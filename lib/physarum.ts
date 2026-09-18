@@ -1,6 +1,14 @@
-import type { PhysarumParams, Rating, RatingsMap } from "./types";
+import { criteriaIdsForBranch } from "./catalog";
+import type { PhysarumParams, Rating, RatingsMap, TypologyId } from "./types";
 
 const rating = (map: RatingsMap, id: string): number => map[id] ?? 1;
+
+const firstPresent = (map: RatingsMap, ids: string[]): number => {
+  for (const id of ids) {
+    if (map[id] !== undefined) return map[id] ?? 1;
+  }
+  return 1;
+};
 
 export function hashSeed(parts: string[]): number {
   let h = 2166136261;
@@ -29,13 +37,25 @@ export function toPhysarumParams(
 ): PhysarumParams {
   const complexity = rating(ratings, "complexity");
   const proportionality = rating(ratings, "proportionality");
-  const directionality = rating(ratings, "directionality");
   const openness = rating(ratings, "openness");
   const connectivity = rating(ratings, "connectivity");
-  const centrality = rating(ratings, "centrality");
-  const contrast = rating(ratings, "contrast");
   const visibility = rating(ratings, "visibility");
-  const hierarchy = rating(ratings, "hierarchy");
+  const immersive = rating(ratings, "immersive");
+  const formalSpecific = firstPresent(ratings, [
+    "centrality",
+    "plate-articulation",
+    "circulation-integration",
+  ]);
+  const spatialSpecific = firstPresent(ratings, [
+    "directionality",
+    "modularity",
+    "spatial-permanence",
+  ]);
+  const atmosphericSpecific = firstPresent(ratings, [
+    "receptivity",
+    "collaboration",
+    "social-proximity",
+  ]);
 
   return {
     seed,
@@ -43,14 +63,14 @@ export function toPhysarumParams(
     sensorAngle: 0.28 + openness * 0.22,
     sensorDistance: 6 + visibility * 4 + openness * 3,
     turnAngle: 0.22 + (2 - proportionality) * 0.12,
-    stepSize: 1.05 + directionality * 0.22,
+    stepSize: 1.05 + spatialSpecific * 0.22,
     deposit: 0.085 + connectivity * 0.045,
-    decay: 0.012 + (2 - centrality) * 0.006,
+    decay: 0.012 + (2 - formalSpecific) * 0.006,
     spread: 0.35 + openness * 0.28,
-    elongate: directionality / 2,
-    centerPull: centrality / 2,
-    contrast: contrast / 2,
-    hierarchy: hierarchy / 2,
+    elongate: spatialSpecific / 2,
+    centerPull: formalSpecific / 2,
+    contrast: immersive / 2,
+    hierarchy: atmosphericSpecific / 2,
     visibility: visibility / 2,
   };
 }
@@ -71,7 +91,11 @@ export function simulationStats(params: PhysarumParams, iteration: number) {
   };
 }
 
-export function criteriaFit(original: RatingsMap, current: RatingsMap) {
+export function criteriaFit(
+  original: RatingsMap,
+  current: RatingsMap,
+  typologyId: TypologyId,
+) {
   const score = (ids: string[]) => {
     const total = ids.reduce((sum, id) => {
       const a = original[id] ?? 1;
@@ -81,9 +105,9 @@ export function criteriaFit(original: RatingsMap, current: RatingsMap) {
     return total / ids.length;
   };
 
-  const formal = score(["complexity", "proportionality", "directionality"]);
-  const spatial = score(["openness", "connectivity", "centrality"]);
-  const atmospheric = score(["contrast", "visibility", "hierarchy"]);
+  const formal = score(criteriaIdsForBranch(typologyId, "formal"));
+  const spatial = score(criteriaIdsForBranch(typologyId, "spatial"));
+  const atmospheric = score(criteriaIdsForBranch(typologyId, "atmospheric"));
   const overall = (formal + spatial + atmospheric) / 3;
 
   return { formal, spatial, atmospheric, overall };

@@ -1,463 +1,550 @@
 import type {
-  Archetype,
+  ArchetypeRecord,
+  BranchSchema,
+  CriterionDefinition,
   CriterionGroup,
+  CriterionInstance,
+  GroupId,
   Rating,
-  Typology,
+  RatingsMap,
   TypologyId,
+  TypologyRecord,
 } from "./types";
 
-const FORMAL = (
-  complexity: Rating,
-  proportionality: Rating,
-  directionality: Rating,
-  descriptor: string,
-): CriterionGroup => ({
-  id: "formal",
-  title: "Formal",
-  subtitle: "Geometry / Massing / Organization",
-  criteria: [
-    { id: "complexity", label: "Complexity", rating: complexity },
-    { id: "proportionality", label: "Proportionality", rating: proportionality },
-    { id: "directionality", label: "Directionality", rating: directionality },
-  ],
-  descriptor,
+const LOW = 0 as const;
+const MEDIUM = 1 as const;
+const HIGH = 2 as const;
+
+const levels = (
+  low: string,
+  medium: string,
+  high: string,
+): CriterionDefinition["levels"] => [
+  { value: LOW, label: "Low", description: low },
+  { value: MEDIUM, label: "Medium", description: medium },
+  { value: HIGH, label: "High", description: high },
+];
+
+const criterion = (
+  id: string,
+  label: string,
+  shared: boolean,
+  low: string,
+  medium: string,
+  high: string,
+): CriterionDefinition => ({
+  id,
+  label,
+  shared,
+  levels: levels(low, medium, high),
 });
 
-const SPATIAL = (
-  openness: Rating,
-  connectivity: Rating,
-  centrality: Rating,
-  descriptor: string,
-): CriterionGroup => ({
-  id: "spatial",
-  title: "Spatial",
-  subtitle: "Space / Connections / Experience",
-  criteria: [
-    { id: "openness", label: "Openness", rating: openness },
-    { id: "connectivity", label: "Connectivity", rating: connectivity },
-    { id: "centrality", label: "Centrality", rating: centrality },
-  ],
-  descriptor,
-});
+export const CRITERION_LEVELS = [
+  { value: LOW, label: "Low" as const },
+  { value: MEDIUM, label: "Medium" as const },
+  { value: HIGH, label: "High" as const },
+];
 
-const ATMOSPHERIC = (
-  contrast: Rating,
-  visibility: Rating,
-  hierarchy: Rating,
-  descriptor: string,
-): CriterionGroup => ({
-  id: "atmospheric",
-  title: "Atmospheric",
-  subtitle: "Light / Sensory / Environment",
-  criteria: [
-    { id: "contrast", label: "Contrast", rating: contrast },
-    { id: "visibility", label: "Visibility", rating: visibility },
-    { id: "hierarchy", label: "Hierarchy", rating: hierarchy },
-  ],
-  descriptor,
-});
+const COMPLEXITY = criterion(
+  "complexity",
+  "Complexity",
+  true,
+  "A simple formal organization with few geometric elements, limited variation, and a clear overall configuration.",
+  "A moderately varied formal organization with multiple geometric elements or relationships, while maintaining a recognizable overall configuration.",
+  "A highly varied formal organization with numerous geometric elements, transformations, intersections, or layered relationships that produce a complex configuration.",
+);
+
+const PROPORTIONALITY = criterion(
+  "proportionality",
+  "Proportionality",
+  true,
+  "Spaces and elements have relatively uniform dimensions and proportions, with limited variation between their size relationships.",
+  "Spaces and elements have noticeable variations in dimension and proportion, creating multiple but relatively balanced relationships.",
+  "Spaces and elements have strongly differentiated dimensions and proportions, creating deliberate relationships between contrasting scales and spatial dimensions.",
+);
+
+const OPENNESS = criterion(
+  "openness",
+  "Openness",
+  true,
+  "The space is predominantly enclosed, with limited openings and restricted visual or physical access to adjacent spaces.",
+  "The space combines enclosed and open conditions, providing moderate visual and physical access to adjacent spaces.",
+  "The space is predominantly open, with extensive visual and physical access to surrounding spaces and limited enclosure.",
+);
+
+const CONNECTIVITY = criterion(
+  "connectivity",
+  "Connectivity",
+  true,
+  "The space has few direct relationships with adjacent spaces, with limited movement, visibility, or interaction between them.",
+  "The space has multiple relationships with adjacent spaces, providing moderate opportunities for movement, visibility, or interaction.",
+  "The space is highly interconnected, with numerous direct relationships to surrounding spaces through movement, visibility, and spatial overlap.",
+);
+
+const IMMERSIVE = criterion(
+  "immersive",
+  "Immersive",
+  true,
+  "The atmosphere is minimally immersive. Sensory conditions remain neutral, predictable, and visually or spatially detached, allowing the user to remain primarily aware of the surrounding environment rather than the atmospheric experience.",
+  "The atmosphere is moderately immersive. Sensory qualities such as light, material, sound, scale, and enclosure begin to shape the user’s perception and encourage a stronger awareness of the space.",
+  "The atmosphere is deeply immersive. Multiple sensory and spatial qualities are deliberately integrated to envelop the user, intensify perception, and create a strong sense of being absorbed within the environment.",
+);
+
+const VISIBILITY = criterion(
+  "visibility",
+  "Visibility",
+  true,
+  "Visual access is limited, with frequent interruptions to sightlines between spaces or areas.",
+  "Visual access is moderate, combining open sightlines with areas of visual obstruction or interruption.",
+  "Visual access is extensive, with long sightlines and minimal obstruction between spaces or areas.",
+);
+
+const CENTRALITY = criterion(
+  "centrality",
+  "Centrality",
+  false,
+  "The lobby occupies a peripheral or secondary position and has limited influence on access to surrounding spaces.",
+  "The lobby occupies a partially central position and provides access to or organizes several surrounding spaces.",
+  "The lobby occupies a central position and functions as a primary spatial node from which multiple surrounding spaces are accessed or organized.",
+);
+
+const PLATE_ARTICULATION = criterion(
+  "plate-articulation",
+  "Plate Articulation",
+  false,
+  "The workspace plate is predominantly continuous and uniform, with minimal changes in its geometric configuration.",
+  "The workspace plate contains noticeable shifts, divisions, offsets, or variations that create distinct spatial zones.",
+  "The workspace plate is strongly articulated through significant shifts, projections, recesses, rotations, or subdivisions that actively define the spatial organization.",
+);
+
+const CIRCULATION_INTEGRATION = criterion(
+  "circulation-integration",
+  "Circulation Integration",
+  false,
+  "Circulation is primarily separated from the gathering area, occurring around or outside the space.",
+  "Circulation partially overlaps or passes through the gathering area, creating some interaction between movement and occupation.",
+  "Circulation is embedded within the gathering area, with movement paths actively shaping, connecting, or activating gathering zones.",
+);
+
+const DIRECTIONALITY = criterion(
+  "directionality",
+  "Directionality",
+  false,
+  "No dominant directional axis is established. Movement and visual orientation are distributed across multiple directions.",
+  "A discernible primary direction organizes movement or visual orientation, while secondary directions remain present.",
+  "A strong directional axis clearly organizes movement, orientation, and visual focus through the lobby.",
+);
+
+const MODULARITY = criterion(
+  "modularity",
+  "Modularity",
+  false,
+  "The workspace is primarily continuous or fixed, with limited repetition, subdivision, or ability to reorganize spatial units.",
+  "The workspace is organized through identifiable repeated or divisible units, allowing some degree of spatial flexibility.",
+  "The workspace is strongly organized through repeated, interchangeable, or reconfigurable units that allow multiple spatial configurations.",
+);
+
+const SPATIAL_PERMANENCE = criterion(
+  "spatial-permanence",
+  "Spatial Permanence",
+  false,
+  "Gathering is isolated from the circulation paths. It exists wholly on its own.",
+  "Gathering and circulation are parallel to each other but do not co-exist.",
+  "Circulation is within the gathering space. Gathering happens because of circulation.",
+);
+
+const RECEPTIVITY = criterion(
+  "receptivity",
+  "Receptivity",
+  false,
+  "The lobby conveys a limited sense of invitation. The space feels formal, guarded, or psychologically distant, discouraging entry or prolonged occupation.",
+  "The lobby conveys a moderate sense of invitation. The space feels accessible and comfortable, while maintaining a degree of formality or control.",
+  "The lobby conveys a strong sense of invitation. The space feels welcoming, comfortable, and accessible, encouraging entry, interaction, and occupation.",
+);
+
+const COLLABORATION = criterion(
+  "collaboration",
+  "Collaboration",
+  false,
+  "The workspace is primarily configured for individual occupation, with limited spatial proximity or opportunities for interaction.",
+  "The workspace combines individual and shared areas, providing moderate opportunities for interaction and collaborative activity.",
+  "The workspace is strongly configured around shared areas, proximity, visual interaction, and spatial conditions that support collaborative activity.",
+);
+
+const SOCIAL_PROXIMITY = criterion(
+  "social-proximity",
+  "Social Proximity",
+  false,
+  "Gathering space offers multiple paths or big spaces with things like foliage or tables to separate the experience between people, which makes this a very low stimulating experience and more private.",
+  "Gathering space offers some private/open spaces to relax in but is part of a series of identical spaces that are close together.",
+  "The gathering space offers very compressed paths or open spaces. Therefore, if a high amount of people circulate the space, it would be a highly overstimulating experience.",
+);
+
+export const BRANCHES: BranchSchema[] = [
+  {
+    id: "formal",
+    title: "Formal",
+    subtitle: "Geometry / Massing / Organization",
+    shared: [COMPLEXITY, PROPORTIONALITY],
+    specific: {
+      lobby: CENTRALITY,
+      workspace: PLATE_ARTICULATION,
+      gathering: CIRCULATION_INTEGRATION,
+    },
+  },
+  {
+    id: "spatial",
+    title: "Spatial",
+    subtitle: "Space / Connections / Experience",
+    shared: [OPENNESS, CONNECTIVITY],
+    specific: {
+      lobby: DIRECTIONALITY,
+      workspace: MODULARITY,
+      gathering: SPATIAL_PERMANENCE,
+    },
+  },
+  {
+    id: "atmospheric",
+    title: "Atmospheric",
+    subtitle: "Light / Sensory / Environment",
+    shared: [IMMERSIVE, VISIBILITY],
+    specific: {
+      lobby: RECEPTIVITY,
+      workspace: COLLABORATION,
+      gathering: SOCIAL_PROXIMITY,
+    },
+  },
+];
 
 const archetype = (
   id: string,
   name: string,
-  groups: CriterionGroup[],
-  synthesis: string,
-): Archetype => ({ id, name, groups, synthesis });
+  ratings: Record<string, Rating>,
+  descriptors: Record<GroupId, string>,
+): ArchetypeRecord => ({ id, name, ratings, descriptors });
 
-export const TYPOLOGIES: Typology[] = [
+export const TYPOLOGIES: TypologyRecord[] = [
   {
     id: "lobby",
     label: "Lobby",
-    tagline: "Threshold · arrival · vertical release",
+    definition:
+      "A threshold between exterior and interior. A public arrival and transition space that receives people, orients, and distributes movement towards the rest of the building.",
     archetypes: [
       archetype(
         "vertical-void",
         "Vertical Void",
-        [
-          FORMAL(
-            2,
-            1,
-            2,
-            "An elongated massing sequence compresses at the threshold, then releases into a vertically expanding void. Proportion stays tight in plan and opens in section.",
-          ),
-          SPATIAL(
-            1,
-            2,
-            1,
-            "Circulation stays continuous through the sequence. Visual connections appear only through controlled openings rather than a single panoramic field.",
-          ),
-          ATMOSPHERIC(
-            2,
-            1,
-            2,
-            "Entry is dense and low-lit. Light and spatial release accumulate along the path into a layered experience of movement, brightness, and vertical air.",
-          ),
-        ],
-        "An elongated spatial sequence organized through increasing directional compression, transitioning from a dense threshold into a vertically expanding void. Circulation remains continuous while visual connections emerge through controlled openings, creating a layered experience of movement, light, and spatial release.",
+        {
+          complexity: HIGH,
+          proportionality: MEDIUM,
+          centrality: HIGH,
+          openness: HIGH,
+          connectivity: MEDIUM,
+          directionality: MEDIUM,
+          immersive: HIGH,
+          visibility: HIGH,
+          receptivity: MEDIUM,
+        },
+        {
+          formal: "Dynamic Core",
+          spatial: "Open Threshold",
+          atmospheric: "Visual Immersion",
+        },
       ),
       archetype(
         "compressed-sequential",
         "Compressed Sequential",
-        [
-          FORMAL(
-            1,
-            2,
-            2,
-            "Repeated bays shorten in depth as they approach the interior. Massing is serial, tightly proportioned, and strongly directional.",
-          ),
-          SPATIAL(
-            0,
-            2,
-            1,
-            "Movement is a chain of compressed rooms. Connections are axial and frequent; openness is withheld until the last bay.",
-          ),
-          ATMOSPHERIC(
-            2,
-            0,
-            1,
-            "Light arrives as a series of slits. Contrast between bay and joint is high; long views are rare by intention.",
-          ),
-        ],
-        "A serial threshold of compressed bays that tighten in depth, holding the body in a directional sequence until a late spatial release. Joints carry the connections; light is admitted as measured slits rather than a continuous wash.",
+        {
+          complexity: HIGH,
+          proportionality: MEDIUM,
+          centrality: LOW,
+          openness: LOW,
+          connectivity: MEDIUM,
+          directionality: MEDIUM,
+          immersive: HIGH,
+          visibility: HIGH,
+          receptivity: MEDIUM,
+        },
+        {
+          formal: "Geometry Compression",
+          spatial: "Sequential Release",
+          atmospheric: "Immersive Transition",
+        },
       ),
       archetype(
         "continuous-hall",
         "Continuous Hall",
-        [
-          FORMAL(
-            1,
-            2,
-            2,
-            "A long, even hall with a stable section. Complexity is low; proportion and direction dominate the geometry.",
-          ),
-          SPATIAL(
-            2,
-            1,
-            0,
-            "The hall is openly traversable along its length. Connectivity is linear rather than networked; no single center organizes the space.",
-          ),
-          ATMOSPHERIC(
-            1,
-            2,
-            1,
-            "A continuous luminous volume. Visibility is high along the axis; hierarchy appears only at the ends and at side alcoves.",
-          ),
-        ],
-        "A long, even hall whose section stays calm while movement runs its full length. Openness and axial visibility replace a central gathering node; hierarchy collects only at the ends and in shallow alcoves.",
+        {
+          complexity: HIGH,
+          proportionality: LOW,
+          centrality: HIGH,
+          openness: HIGH,
+          connectivity: HIGH,
+          directionality: HIGH,
+          immersive: HIGH,
+          visibility: MEDIUM,
+          receptivity: HIGH,
+        },
+        {
+          formal: "Radial Convergence",
+          spatial: "Integrated Form",
+          atmospheric: "Dynamic Engagement",
+        },
       ),
       archetype(
         "topographic-ground-field",
         "Topographic Ground Field",
-        [
-          FORMAL(
-            2,
-            0,
-            1,
-            "The ground itself is the massing: folded planes, stepped plates, and irregular edges. Proportion is uneven; direction is local rather than axial.",
-          ),
-          SPATIAL(
-            2,
-            1,
-            0,
-            "Occupation is a field, not a corridor. Paths branch across the topography; centrality is weak by design.",
-          ),
-          ATMOSPHERIC(
-            1,
-            1,
-            0,
-            "Light grazes the folded ground. Contrast is moderate; no single luminous event outranks the field.",
-          ),
-        ],
-        "Arrival is distributed across a folded ground rather than a corridor. Occupation spreads as a field of stepped plates, with local direction, weak centrality, and light that grazes the topography instead of staging a single event.",
+        {
+          complexity: HIGH,
+          proportionality: HIGH,
+          centrality: LOW,
+          openness: HIGH,
+          connectivity: HIGH,
+          directionality: MEDIUM,
+          immersive: HIGH,
+          visibility: HIGH,
+          receptivity: HIGH,
+        },
+        {
+          formal: "Sculpted Ground",
+          spatial: "Distributed Flow",
+          atmospheric: "Shared Engagement",
+        },
       ),
       archetype(
         "linear-gallery",
         "Linear Gallery",
-        [
-          FORMAL(
-            1,
-            2,
-            2,
-            "A calibrated linear envelope: even bays, thin wall, measured depth. Direction is the primary formal act.",
-          ),
-          SPATIAL(
-            1,
-            2,
-            0,
-            "The gallery connects as a measured path with side chambers. Openness is controlled; there is no central room.",
-          ),
-          ATMOSPHERIC(
-            1,
-            2,
-            1,
-            "Even, museum-like light along the wall. Views are sequential and clear; hierarchy is quiet.",
-          ),
-        ],
-        "A measured linear envelope of even bays and side chambers. Direction and sequential views organize the gallery; openness is controlled and no central room is allowed to collect the sequence.",
+        {
+          complexity: HIGH,
+          proportionality: MEDIUM,
+          centrality: HIGH,
+          openness: MEDIUM,
+          connectivity: HIGH,
+          directionality: HIGH,
+          immersive: MEDIUM,
+          visibility: MEDIUM,
+          receptivity: MEDIUM,
+        },
+        {
+          formal: "Linear Fragmentation",
+          spatial: "Connected Progression",
+          atmospheric: "Intuitive Guidance",
+        },
       ),
     ],
   },
   {
     id: "workspace",
     label: "Workspace",
-    tagline: "Studio · partition · working depth",
+    definition:
+      "A workspace is a space designed to support work and productivity, accommodating different ways of working, from individual to shared activities.",
     archetypes: [
       archetype(
-        "cellular-studio",
-        "Cellular Studio",
-        [
-          FORMAL(
-            2,
-            2,
-            1,
-            "A pack of similar work cells with shared dimension. Complexity lives in the aggregate; each cell is proportionally calm.",
-          ),
-          SPATIAL(
-            0,
-            2,
-            1,
-            "Privacy is high inside the cell. Connectivity runs through a shared spine; a modest center holds service and critique.",
-          ),
-          ATMOSPHERIC(
-            1,
-            0,
-            2,
-            "Task light in the cell, brighter collective light at the spine. Hierarchy of illumination marks work versus gathering.",
-          ),
-        ],
-        "Work is packed into similar cells along a shared spine. Proportion stays calm inside each room while connectivity and light hierarchy collect at the service and critique center.",
+        "open-hall",
+        "Open Hall",
+        {
+          complexity: MEDIUM,
+          proportionality: MEDIUM,
+          "plate-articulation": LOW,
+          openness: HIGH,
+          connectivity: MEDIUM,
+          modularity: HIGH,
+          immersive: MEDIUM,
+          visibility: HIGH,
+          collaboration: MEDIUM,
+        },
+        {
+          formal: "Orthogonal Balance",
+          spatial: "Adaptive Module",
+          atmospheric: "Engaging",
+        },
       ),
       archetype(
-        "nested-atelier",
-        "Nested Atelier",
-        [
-          FORMAL(
-            2,
-            1,
-            0,
-            "Rooms within rooms: inner enclosures sit inside a larger studio shell. Complexity is nested rather than linear.",
-          ),
-          SPATIAL(
-            1,
-            1,
-            2,
-            "The inner room is the working heart. Surrounding space is residual, wrapping, and only moderately open.",
-          ),
-          ATMOSPHERIC(
-            2,
-            1,
-            2,
-            "The nest is darker and more concentrated. The outer studio is brighter; contrast announces the working core.",
-          ),
-        ],
-        "An inner working enclosure nested inside a brighter studio shell. Complexity is concentric: the core holds the work, the wrap holds movement, and contrast marks the difference.",
+        "terraced",
+        "Terraced",
+        {
+          complexity: MEDIUM,
+          proportionality: MEDIUM,
+          "plate-articulation": HIGH,
+          openness: HIGH,
+          connectivity: HIGH,
+          modularity: MEDIUM,
+          immersive: HIGH,
+          visibility: HIGH,
+          collaboration: MEDIUM,
+        },
+        {
+          formal: "Articulated",
+          spatial: "Connected Module",
+          atmospheric: "Immersive",
+        },
       ),
       archetype(
-        "split-level-workshop",
-        "Split-Level Workshop",
-        [
-          FORMAL(
-            2,
-            1,
-            1,
-            "Section is the project: two working datums offset by a short run of steps. Massing is split, not stacked as identical floors.",
-          ),
-          SPATIAL(
-            1,
-            2,
-            1,
-            "Visual and physical links run across the split. The lower and upper work zones stay connected without becoming one room.",
-          ),
-          ATMOSPHERIC(
-            2,
-            2,
-            1,
-            "Light drops into the lower datum and washes the upper slab. Cross-views are strong; hierarchy is sectional rather than axial.",
-          ),
-        ],
-        "Two working datums offset in section, linked by a short run of steps and strong cross-views. The workshop stays one organism without collapsing into a single room.",
+        "flat-deep-plan",
+        "Flat Deep Plan",
+        {
+          complexity: LOW,
+          proportionality: LOW,
+          "plate-articulation": LOW,
+          openness: MEDIUM,
+          connectivity: LOW,
+          modularity: HIGH,
+          immersive: HIGH,
+          visibility: LOW,
+          collaboration: LOW,
+        },
+        {
+          formal: "Restrained",
+          spatial: "Rigid Module",
+          atmospheric: "Introspective",
+        },
       ),
       archetype(
-        "perimeter-loft",
-        "Perimeter Loft",
-        [
-          FORMAL(
-            1,
-            1,
-            1,
-            "Occupation clings to the envelope. The center is left as a large void; the working ring is thin and continuous.",
-          ),
-          SPATIAL(
-            2,
-            1,
-            0,
-            "The loft looks inward across an open void. Connectivity follows the perimeter; centrality is inverted — the empty middle is the figure.",
-          ),
-          ATMOSPHERIC(
-            1,
-            2,
-            0,
-            "Even daylight from the void. Visibility across the floor is high; no inner room outranks the ring.",
-          ),
-        ],
-        "Work occupies a thin continuous ring around a large inner void. Centrality is inverted: the empty middle is the figure, and visibility runs across the loft rather than into a core room.",
+        "void-edge",
+        "Void Edge",
+        {
+          complexity: MEDIUM,
+          proportionality: MEDIUM,
+          "plate-articulation": LOW,
+          openness: MEDIUM,
+          connectivity: MEDIUM,
+          modularity: MEDIUM,
+          immersive: HIGH,
+          visibility: HIGH,
+          collaboration: MEDIUM,
+        },
+        {
+          formal: "Radial Balance",
+          spatial: "Integrated Module",
+          atmospheric: "Partially Engaging",
+        },
       ),
       archetype(
-        "service-spine",
-        "Service Spine",
-        [
-          FORMAL(
-            1,
-            2,
-            2,
-            "A thick linear core of service and a thin working plate beside it. Direction follows the spine; proportion is a clear thick/thin pair.",
-          ),
-          SPATIAL(
-            1,
-            2,
-            2,
-            "All rooms plug into the spine. Connectivity is high and explicit; the spine is the center of the plan.",
-          ),
-          ATMOSPHERIC(
-            2,
-            1,
-            2,
-            "The spine is darker, denser, equipment-lit. The working plate is clearer and more even. Hierarchy is infrastructural.",
-          ),
-        ],
-        "A thick service spine with a thin working plate beside it. Every room plugs into the core; light and density announce infrastructure as the hierarchical center of the plan.",
+        "undulated",
+        "Undulated",
+        {
+          complexity: HIGH,
+          proportionality: MEDIUM,
+          "plate-articulation": HIGH,
+          openness: HIGH,
+          connectivity: HIGH,
+          modularity: LOW,
+          immersive: HIGH,
+          visibility: HIGH,
+          collaboration: MEDIUM,
+        },
+        {
+          formal: "Dynamic",
+          spatial: "Collective Modules",
+          atmospheric: "Interactive",
+        },
       ),
     ],
   },
   {
     id: "gathering",
     label: "Gathering",
-    tagline: "Assembly · overlap · collective field",
+    definition:
+      "A designed common space for employees to socialize, collaborate, and hold large events outside their individual desks.",
     archetypes: [
       archetype(
-        "radial-forum",
-        "Radial Forum",
-        [
-          FORMAL(
-            1,
-            2,
-            0,
-            "A centered assembly with radial bays. Geometry is simple, proportioned, and weakly directional except toward the middle.",
-          ),
-          SPATIAL(
-            2,
-            2,
-            2,
-            "All paths aim at the forum. Openness and connectivity are high; centrality is the spatial argument.",
-          ),
-          ATMOSPHERIC(
-            1,
-            2,
-            2,
-            "A shared luminous volume at the center, quieter bays around it. Visibility and hierarchy both point inward.",
-          ),
-        ],
-        "A centered assembly whose radial bays aim at a shared luminous volume. Openness, connectivity, and hierarchy all argue for the middle as the collective room.",
+        "stepped-amphitheater",
+        "Stepped Amphitheater",
+        {
+          complexity: LOW,
+          proportionality: MEDIUM,
+          "circulation-integration": HIGH,
+          openness: LOW,
+          connectivity: LOW,
+          "spatial-permanence": HIGH,
+          immersive: LOW,
+          visibility: LOW,
+          "social-proximity": MEDIUM,
+        },
+        {
+          formal: "Enclosed Threshold",
+          spatial: "Incidental Threshold",
+          atmospheric: "Contained Commons",
+        },
       ),
       archetype(
-        "overlapping-courts",
-        "Overlapping Courts",
-        [
-          FORMAL(
-            2,
-            1,
-            1,
-            "Two or three court figures share edges and slip past one another. Complexity is in the overlap, not in the court itself.",
-          ),
-          SPATIAL(
-            2,
-            2,
-            1,
-            "Each court is open; the overlaps are the connections. Several mild centers rather than one.",
-          ),
-          ATMOSPHERIC(
-            1,
-            2,
-            1,
-            "Light is similar in each court, denser in the overlap. Visibility between courts is the atmospheric event.",
-          ),
-        ],
-        "Two or three court figures share edges and slip past one another. Collective life happens in the overlaps — several mild centers rather than a single forum.",
+        "void-field",
+        "Void Field",
+        {
+          complexity: LOW,
+          proportionality: LOW,
+          "circulation-integration": MEDIUM,
+          openness: HIGH,
+          connectivity: LOW,
+          "spatial-permanence": LOW,
+          immersive: HIGH,
+          visibility: HIGH,
+          "social-proximity": LOW,
+        },
+        {
+          formal: "Visually Exposed Core",
+          spatial: "Isolated Anchor",
+          atmospheric: "Expansive Commons",
+        },
       ),
       archetype(
-        "processional-nave",
-        "Processional Nave",
-        [
-          FORMAL(
-            1,
-            2,
-            2,
-            "A long nave with a stable, heightened section. Direction is ceremonial; proportion is tall and even.",
-          ),
-          SPATIAL(
-            1,
-            1,
-            1,
-            "Movement is one procession. Side aisles connect without breaking the axis; the liturgical center sits at the end, not the middle.",
-          ),
-          ATMOSPHERIC(
-            2,
-            1,
-            2,
-            "Light grades from dim entry to a brighter termination. Hierarchy is atmospheric and directional at once.",
-          ),
-        ],
-        "A long, heightened nave that holds one procession. Light grades from dim entry to a brighter termination; the collective center sits at the end of the axis, not in the middle of the plan.",
+        "inserted-horizontal-plate",
+        "Inserted Horizontal Plate",
+        {
+          complexity: LOW,
+          proportionality: LOW,
+          "circulation-integration": HIGH,
+          openness: HIGH,
+          connectivity: HIGH,
+          "spatial-permanence": HIGH,
+          immersive: MEDIUM,
+          visibility: HIGH,
+          "social-proximity": LOW,
+        },
+        {
+          formal: "Modular Nodes",
+          spatial: "Visually Disturbed Nodes",
+          atmospheric: "Distributed Retreat",
+        },
       ),
       archetype(
-        "clustered-chambers",
-        "Clustered Chambers",
-        [
-          FORMAL(
-            2,
-            1,
-            0,
-            "A pack of gathering rooms of related but unequal size. Complexity is aggregative; direction is weak.",
-          ),
-          SPATIAL(
-            0,
-            2,
-            1,
-            "Chambers are discrete. Connectivity is through short joints and a small common; openness inside each room is withheld from the others.",
-          ),
-          ATMOSPHERIC(
-            2,
-            0,
-            1,
-            "Each chamber holds its own light. Contrast between rooms is high; long visibility is refused.",
-          ),
-        ],
-        "A pack of discrete gathering rooms joined by short joints and a small common. Each chamber keeps its own light and size; the collective is an aggregate, not a single hall.",
+        "contained-room-within-volume",
+        "Contained Room Within Volume",
+        {
+          complexity: HIGH,
+          proportionality: HIGH,
+          "circulation-integration": HIGH,
+          openness: HIGH,
+          connectivity: LOW,
+          "spatial-permanence": HIGH,
+          immersive: HIGH,
+          visibility: HIGH,
+          "social-proximity": HIGH,
+        },
+        {
+          formal: "Magnetic Enclosed Core",
+          spatial: "Isolated Attractor",
+          atmospheric: "Immersive Core",
+        },
       ),
       archetype(
-        "open-agora",
-        "Open Agora",
-        [
-          FORMAL(
-            0,
-            1,
-            0,
-            "A weakly enclosed field. Formal complexity is minimal; edges are the only massing.",
-          ),
-          SPATIAL(
-            2,
-            1,
-            0,
-            "Occupation is free across the field. Connectivity is informal; no architectural center is imposed.",
-          ),
-          ATMOSPHERIC(
-            0,
-            2,
-            0,
-            "Even outdoor light. Visibility is high in every direction; hierarchy is social rather than built.",
-          ),
-        ],
-        "A weakly enclosed field whose only massing is the edge. Occupation is free, visibility is high, and any hierarchy is social rather than imposed by the architecture.",
+        "linear-edge-gallery",
+        "Linear Edge Gallery",
+        {
+          complexity: LOW,
+          proportionality: MEDIUM,
+          "circulation-integration": MEDIUM,
+          openness: MEDIUM,
+          connectivity: LOW,
+          "spatial-permanence": HIGH,
+          immersive: MEDIUM,
+          visibility: HIGH,
+          "social-proximity": HIGH,
+        },
+        {
+          formal: "Porous Spine",
+          spatial: "Integrated Nodes",
+          atmospheric: "Social Commons",
+        },
       ),
     ],
   },
@@ -483,18 +570,68 @@ export const PHYSARUM_STEPS = [
   { n: 5, title: "Output", caption: "Architectural Form" },
 ] as const;
 
-export function findTypology(id: TypologyId): Typology {
+export function findTypology(id: TypologyId): TypologyRecord {
   const found = TYPOLOGIES.find((item) => item.id === id);
   if (!found) throw new Error(`Unknown typology: ${id}`);
   return found;
 }
 
-export function defaultRatings(archetype: Archetype): Record<string, Rating> {
-  const ratings: Record<string, Rating> = {};
-  for (const group of archetype.groups) {
-    for (const criterion of group.criteria) {
-      ratings[criterion.id] = criterion.rating;
-    }
-  }
-  return ratings;
+export function findArchetype(
+  typology: TypologyRecord,
+  archetypeId: string,
+): ArchetypeRecord {
+  return (
+    typology.archetypes.find((item) => item.id === archetypeId) ??
+    typology.archetypes[0]
+  );
+}
+
+export function criteriaForTypology(typologyId: TypologyId): CriterionDefinition[] {
+  return BRANCHES.flatMap((branch) => [
+    ...branch.shared,
+    branch.specific[typologyId],
+  ]);
+}
+
+export function criteriaIdsForBranch(
+  typologyId: TypologyId,
+  branchId: GroupId,
+): string[] {
+  const branch = BRANCHES.find((item) => item.id === branchId);
+  if (!branch) return [];
+  return [...branch.shared.map((item) => item.id), branch.specific[typologyId].id];
+}
+
+export function defaultRatings(archetype: ArchetypeRecord): RatingsMap {
+  return { ...archetype.ratings };
+}
+
+export function groupsForArchetype(
+  typologyId: TypologyId,
+  archetype: ArchetypeRecord,
+  ratings: RatingsMap,
+): CriterionGroup[] {
+  return BRANCHES.map((branch) => {
+    const definitions = [...branch.shared, branch.specific[typologyId]];
+    const criteria: CriterionInstance[] = definitions.map((definition) => ({
+      id: definition.id,
+      label: definition.label,
+      rating: ratings[definition.id] ?? archetype.ratings[definition.id] ?? 1,
+      definition,
+    }));
+    return {
+      id: branch.id,
+      title: branch.title,
+      subtitle: branch.subtitle,
+      criteria,
+      descriptor: archetype.descriptors[branch.id],
+    };
+  });
+}
+
+export function ratingDescription(
+  definition: CriterionDefinition,
+  value: Rating,
+): string {
+  return definition.levels[value].description;
 }

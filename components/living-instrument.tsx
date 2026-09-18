@@ -18,7 +18,10 @@ import {
   TYPOLOGIES,
   WORKFLOW_STEPS,
   defaultRatings,
+  findArchetype,
   findTypology,
+  groupsForArchetype,
+  ratingDescription,
 } from "@/lib/catalog";
 import {
   criteriaFit,
@@ -27,7 +30,7 @@ import {
   simulationStats,
   toPhysarumParams,
 } from "@/lib/physarum";
-import type { GroupId, Rating, RatingsMap, TypologyId } from "@/lib/types";
+import type { Rating, RatingsMap, TypologyId } from "@/lib/types";
 
 const GROUP_ICON = {
   formal: IconFormal,
@@ -48,15 +51,14 @@ export function LivingInstrument() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const typology = findTypology(typologyId);
-  const archetype =
-    typology.archetypes.find((item) => item.id === archetypeId) ??
-    typology.archetypes[0];
+  const archetype = findArchetype(typology, archetypeId);
   const original = defaultRatings(archetype);
+  const groups = groupsForArchetype(typologyId, archetype, ratings);
 
   const seed = hashSeed([typologyId, archetype.id, String(iteration)]);
   const params = toPhysarumParams(ratings, seed);
   const stats = simulationStats(params, iteration);
-  const fit = criteriaFit(original, ratings);
+  const fit = criteriaFit(original, ratings, typologyId);
 
   const pulse = (message: string) => {
     setNotice(message);
@@ -75,9 +77,8 @@ export function LivingInstrument() {
   };
 
   const selectArchetype = (id: string) => {
-    const next = typology.archetypes.find((item) => item.id === id);
-    if (!next) return;
-    setArchetypeId(id);
+    const next = findArchetype(typology, id);
+    setArchetypeId(next.id);
     setRatings(defaultRatings(next));
     setIteration(1);
     setSimulating(true);
@@ -118,14 +119,19 @@ export function LivingInstrument() {
               <button
                 key={item.id}
                 type="button"
+                title={item.definition}
+                aria-label={`${item.label}. ${item.definition}`}
                 onClick={() => selectTypology(item.id)}
-                className={`min-w-[7.5rem] border px-4 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase transition ${
+                className={`group relative min-w-[7.5rem] border px-4 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase transition ${
                   active
                     ? "border-[var(--cyan)] bg-[rgba(0,228,255,0.12)] text-[var(--cyan-hot)] cyan-glow"
                     : "border-[rgba(0,228,255,0.18)] text-[var(--muted)] hover:border-[var(--cyan-dim)] hover:text-[var(--text)]"
                 }`}
               >
                 {item.label}
+                <span className="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-30 hidden w-[18rem] -translate-x-1/2 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2 text-left text-[0.68rem] normal-case tracking-normal text-[#d5eef6] shadow-[0_12px_30px_rgba(0,0,0,0.45)] group-hover:block group-focus-visible:block">
+                  {item.definition}
+                </span>
               </button>
             );
           })}
@@ -190,9 +196,6 @@ export function LivingInstrument() {
               );
             })}
           </div>
-          <p className="mt-3 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--muted)]">
-            {typology.tagline}
-          </p>
           <button
             type="button"
             onClick={saveIteration}
@@ -221,8 +224,8 @@ export function LivingInstrument() {
             }
           />
           <div className="instrument-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-            {archetype.groups.map((group) => {
-              const Icon = GROUP_ICON[group.id as GroupId];
+            {groups.map((group) => {
+              const Icon = GROUP_ICON[group.id];
               return (
                 <div
                   key={group.id}
@@ -242,14 +245,22 @@ export function LivingInstrument() {
                   <div className="space-y-1">
                     {group.criteria.map((criterion) => {
                       const value = ratings[criterion.id] ?? criterion.rating;
+                      const description = ratingDescription(
+                        criterion.definition,
+                        value,
+                      );
                       return (
-                        <label key={criterion.id} className="block">
+                        <label
+                          key={criterion.id}
+                          className="block"
+                          title={description}
+                        >
                           <div className="flex items-center justify-between">
                             <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
                               {criterion.label}
                             </span>
                             <span className="text-[0.66rem] text-[var(--orange-hot)]">
-                              {value}
+                              {ratingLabel(value)} {value}
                             </span>
                           </div>
                           <input
@@ -260,7 +271,7 @@ export function LivingInstrument() {
                             max={2}
                             step={1}
                             value={value}
-                            aria-valuetext={ratingLabel(value)}
+                            aria-valuetext={`${ratingLabel(value)}. ${description}`}
                             onChange={(event) =>
                               setRating(
                                 criterion.id,
@@ -277,9 +288,9 @@ export function LivingInstrument() {
                     <span>Medium</span>
                     <span>High</span>
                   </div>
-                  <p className="body-copy mt-1 line-clamp-2 border-t border-[rgba(0,228,255,0.12)] pt-1 text-[0.64rem] leading-snug text-[#b9d7e2]">
-                    <span className="mr-1 text-[0.48rem] tracking-[0.14em] uppercase text-[var(--cyan)]">
-                      {group.title}
+                  <p className="mt-1 border-t border-[rgba(0,228,255,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[#d5eef6]">
+                    <span className="mr-1 text-[0.48rem] tracking-[0.14em] text-[var(--cyan)]">
+                      {group.title} descriptor
                     </span>
                     {group.descriptor}
                   </p>
@@ -294,9 +305,19 @@ export function LivingInstrument() {
               </p>
               <span className="text-[0.5rem] text-[var(--muted)]">v1.0</span>
             </div>
-            <p className="body-copy text-[0.68rem] leading-snug text-[#d5eef6]">
-              {archetype.synthesis}
-            </p>
+            <ul className="space-y-1">
+              {groups.map((group) => (
+                <li
+                  key={group.id}
+                  className="flex items-baseline justify-between gap-2 text-[0.7rem] uppercase tracking-[0.08em] text-[#d5eef6]"
+                >
+                  <span className="text-[0.48rem] tracking-[0.16em] text-[var(--muted)]">
+                    {group.title}
+                  </span>
+                  <span>{group.descriptor}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </Panel>
 

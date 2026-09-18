@@ -1,7 +1,11 @@
 import type { RatingsMap } from "@/lib/types";
 
-function n(map: RatingsMap, id: string) {
-  return map[id] ?? 1;
+function n(map: RatingsMap, ids: string | string[]) {
+  const list = Array.isArray(ids) ? ids : [ids];
+  for (const id of list) {
+    if (map[id] !== undefined) return map[id] ?? 1;
+  }
+  return 1;
 }
 
 export function SectionDrawing({
@@ -12,10 +16,18 @@ export function SectionDrawing({
   title: string;
 }) {
   const openness = n(ratings, "openness");
-  const direction = n(ratings, "directionality");
-  const hierarchy = n(ratings, "hierarchy");
+  const direction = n(ratings, [
+    "directionality",
+    "modularity",
+    "spatial-permanence",
+  ]);
+  const immersive = n(ratings, "immersive");
   const complexity = n(ratings, "complexity");
-  const centrality = n(ratings, "centrality");
+  const centrality = n(ratings, [
+    "centrality",
+    "plate-articulation",
+    "circulation-integration",
+  ]);
 
   const voidW = 86 + openness * 30;
   const left = 48;
@@ -23,7 +35,7 @@ export function SectionDrawing({
   const mid = left + leftW;
   const voidStart = mid + 18;
   const tall = voidStart + voidW;
-  const roof = 24 - hierarchy * 4;
+  const roof = 24 - immersive * 4;
   const ground = 160;
   const split = complexity >= 2;
   const platform = ground - 56 - centrality * 4;
@@ -78,9 +90,9 @@ export function SectionDrawing({
 
 export function AxonModel({ ratings }: { ratings: RatingsMap }) {
   const openness = n(ratings, "openness");
-  const hierarchy = n(ratings, "hierarchy");
+  const immersive = n(ratings, "immersive");
   const complexity = n(ratings, "complexity");
-  const floors = 3 + (hierarchy >= 2 ? 1 : 0);
+  const floors = 3 + (immersive >= 2 ? 1 : 0);
   const voidW = 34 + openness * 10;
 
   const iso = (x: number, y: number, z: number) => {
