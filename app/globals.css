@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #04080d;
+  --bg-deep: #02050a;
+  --panel: rgba(4, 16, 24, 0.72);
+  --panel-strong: rgba(3, 14, 22, 0.88);
+  --cyan: #00e4ff;
+  --cyan-hot: #7af6ff;
+  --cyan-dim: rgba(0, 228, 255, 0.38);
+  --cyan-faint: rgba(0, 228, 255, 0.14);
+  --orange: #ff7a32;
+  --orange-hot: #ffb067;
+  --line: rgba(0, 228, 255, 0.42);
+  --text: #def7ff;
+  --muted: #7ea0ad;
+  --danger: #ff5a3a;
+  --font-display: var(--font-orbitron), sans-serif;
+  --font-ui: var(--font-rajdhani), sans-serif;
+  --font-body: var(--font-source-sans), sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-ui);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 80, 110, 0.18), transparent 55%),
+    linear-gradient(rgba(0, 228, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 228, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px, 28px 28px;
+  background-position: 0 0, 0 0, 0 0;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ui {
+  font-family: var(--font-ui);
+}
+
+.body-copy {
+  font-family: var(--font-body);
+}
+
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 24px rgba(0, 228, 255, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.panel::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(122, 246, 255, 0.12);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cyan-glow {
+  text-shadow: 0 0 12px rgba(0, 228, 255, 0.45);
+}
+
+.orange-glow {
+  text-shadow: 0 0 12px rgba(255, 122, 50, 0.5);
+}
+
+.instrument-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.instrument-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 228, 255, 0.28);
+  border-radius: 99px;
+}
+
+.range-hud {
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  outline: none;
+  background: linear-gradient(
+    90deg,
+    var(--cyan) 0%,
+    #7ad0ff 42%,
+    var(--orange) 100%
+  );
+}
+
+.range-hud::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: #061018;
+  border: 2px solid var(--cyan-hot);
+  box-shadow: 0 0 10px rgba(0, 228, 255, 0.7);
+  cursor: pointer;
+}
+
+.range-hud[data-high="true"]::-webkit-slider-thumb {
+  border-color: var(--orange-hot);
+  box-shadow: 0 0 10px rgba(255, 122, 50, 0.75);
+}
+
+.range-hud::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: #061018;
+  border: 2px solid var(--cyan-hot);
+  cursor: pointer;
+}
