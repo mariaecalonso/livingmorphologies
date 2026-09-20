@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 :root {
   --bg: #04080d;
   --bg-deep: #02050a;
@@ -19,17 +18,14 @@
   --font-ui: var(--font-rajdhani), sans-serif;
   --font-body: var(--font-source-sans), sans-serif;
 }
-
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --font-sans: var(--font-ui);
 }
-
 * {
   box-sizing: border-box;
 }
-
 html,
 body {
   height: 100%;
@@ -38,7 +34,6 @@ body {
   color: var(--text);
   font-family: var(--font-ui);
 }
-
 body {
   background-image:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 80, 110, 0.18), transparent 55%),
@@ -47,27 +42,22 @@ body {
   background-size: 100% 100%, 28px 28px, 28px 28px;
   background-position: 0 0, 0 0, 0 0;
 }
-
 button,
 input,
 select {
   font-family: inherit;
 }
-
 .display {
   font-family: var(--font-display);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
-
 .ui {
   font-family: var(--font-ui);
 }
-
 .body-copy {
   font-family: var(--font-body);
 }
-
 .panel {
   position: relative;
   background: var(--panel);
@@ -80,7 +70,6 @@ select {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
-
 .panel::before {
   content: "";
   pointer-events: none;
@@ -89,7 +78,6 @@ select {
   border-radius: inherit;
   box-shadow: inset 0 1px 0 rgba(122, 246, 255, 0.12);
 }
-
 .panel-title {
   font-family: var(--font-display);
   font-size: 0.68rem;
@@ -97,32 +85,26 @@ select {
   text-transform: uppercase;
   color: var(--cyan);
 }
-
 .eyebrow {
   font-size: 0.62rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--muted);
 }
-
 .cyan-glow {
   text-shadow: 0 0 12px rgba(0, 228, 255, 0.45);
 }
-
 .orange-glow {
   text-shadow: 0 0 12px rgba(255, 122, 50, 0.5);
 }
-
 .instrument-scroll::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 .instrument-scroll::-webkit-scrollbar-thumb {
   background: rgba(0, 228, 255, 0.28);
   border-radius: 99px;
 }
-
 .range-hud {
   appearance: none;
   width: 100%;
@@ -136,7 +118,6 @@ select {
     var(--orange) 100%
   );
 }
-
 .range-hud::-webkit-slider-thumb {
   appearance: none;
   width: 11px;
@@ -147,12 +128,10 @@ select {
   box-shadow: 0 0 10px rgba(0, 228, 255, 0.7);
   cursor: pointer;
 }
-
 .range-hud[data-high="true"]::-webkit-slider-thumb {
   border-color: var(--orange-hot);
   box-shadow: 0 0 10px rgba(255, 122, 50, 0.75);
 }
-
 .range-hud::-moz-range-thumb {
   width: 11px;
   height: 11px;
@@ -160,4 +139,15 @@ select {
   background: #061018;
   border: 2px solid var(--cyan-hot);
   cursor: pointer;
+}
+.range-hud:disabled {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+.range-hud:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+.range-hud:disabled::-moz-range-thumb {
+  cursor: not-allowed;
 }

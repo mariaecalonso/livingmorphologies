@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AxonModel, SectionDrawing } from "@/components/drawings";
 import {
   IconAtmospheric,
@@ -12,7 +12,13 @@ import {
   Panel,
   PanelHeader,
 } from "@/components/hud";
-import { PhysarumField } from "@/components/physarum-field";
+import {
+  ArchetypeArchitecturalLayers,
+  ArchetypeBehaviorPanel,
+  ArchetypeSimulationSettings,
+  ArchetypeVisualLegend,
+} from "@/components/skill1-archetype-info";
+import { Skill1PlanView, Skill1Timeline } from "@/components/skill1-viz";
 import {
   PHYSARUM_STEPS,
   TYPOLOGIES,
@@ -23,20 +29,29 @@ import {
   groupsForArchetype,
   ratingDescription,
 } from "@/lib/catalog";
+import { criteriaFit, mulberry32, ratingLabel } from "@/lib/physarum";
 import {
-  criteriaFit,
-  hashSeed,
-  ratingLabel,
-  simulationStats,
-  toPhysarumParams,
-} from "@/lib/physarum";
-import type { Rating, RatingsMap, TypologyId } from "@/lib/types";
+  captureSnapshot,
+  createSimulation,
+  stepMany,
+} from "@/lib/skill1/engine";
+import { DEFAULT_AGENT_COUNT, DEFAULT_DENSITY, DISPLAY_ITERATIONS, SNAPSHOT_ITERATIONS } from "@/lib/skill1/maps";
+import { snapshotFromState } from "@/lib/skill1/section-view";
+import {
+  behaviorFromRatings,
+  paramsFromRatings,
+  translateArchetype,
+} from "@/lib/skill1/translate";
+import type { FieldSnapshot, SimulationState, VizSettings } from "@/lib/skill1/types";
+import type { RatingsMap, TypologyId } from "@/lib/types";
 
 const GROUP_ICON = {
   formal: IconFormal,
   spatial: IconSpatial,
   atmospheric: IconAtmospheric,
 } as const;
+
+const SIMULATION_INTERVAL = 50;
 
 export function LivingInstrument() {
   const [typologyId, setTypologyId] = useState<TypologyId>("lobby");
@@ -46,19 +61,147 @@ export function LivingInstrument() {
   );
   const [iteration, setIteration] = useState(1);
   const [saved, setSaved] = useState(0);
-  const [simulating, setSimulating] = useState(true);
+  const [simulating, setSimulating] = useState(false);
   const [focus, setFocus] = useState<(typeof WORKFLOW_STEPS)[number]>("Physarum");
   const [notice, setNotice] = useState<string | null>(null);
+  const [run, setRun] = useState(0);
+  const [state, setState] = useState<SimulationState | null>(null);
+  const [snapshots, setSnapshots] = useState<Partial<Record<number, FieldSnapshot>>>({});
+  const [viz, setViz] = useState<VizSettings>({
+    agentCount: DEFAULT_AGENT_COUNT,
+    density: DEFAULT_DENSITY,
+    speed: 3,
+    trailDecay: 0.986,
+    showField: true,
+    showAgents: true,
+    showTrails: true,
+    showAttraction: true,
+  });
 
   const typology = findTypology(typologyId);
   const archetype = findArchetype(typology, archetypeId);
   const original = defaultRatings(archetype);
   const groups = groupsForArchetype(typologyId, archetype, ratings);
-
-  const seed = hashSeed([typologyId, archetype.id, String(iteration)]);
-  const params = toPhysarumParams(ratings, seed);
-  const stats = simulationStats(params, iteration);
+  const catalogTranslation = useMemo(
+    () => translateArchetype(archetype.id),
+    [archetype.id],
+  );
+  const translation = useMemo(() => {
+    const params = paramsFromRatings(ratings);
+    return {
+      ...catalogTranslation,
+      ratings: { ...ratings },
+      params,
+      behavior: behaviorFromRatings(ratings),
+    };
+  }, [catalogTranslation, ratings]);
+  const behavior = useMemo(() => behaviorFromRatings(ratings), [ratings]);
   const fit = criteriaFit(original, ratings, typologyId);
+  const rngRef = useRef<() => number>(() => 0.5);
+  const translationRef = useRef(translation);
+  const vizRef = useRef(viz);
+  const snapshotsRef = useRef(snapshots);
+  const stateRef = useRef<SimulationState | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const stepTickRef = useRef(0);
+  const appliedTickRef = useRef(-1);
+  const stepResultRef = useRef<SimulationState | null>(null);
+
+  useEffect(() => {
+    translationRef.current = translation;
+  }, [translation]);
+  useEffect(() => {
+    vizRef.current = viz;
+  }, [viz]);
+  useEffect(() => {
+    snapshotsRef.current = snapshots;
+  }, [snapshots]);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const seedFor = (id: string, nextRun: number) =>
+    (0x51c11 ^ (nextRun * 9973) ^ id.length * 131) >>> 0;
+  const seed = seedFor(archetype.id, run);
+
+  useEffect(() => {
+    if (!simulating) return;
+
+    if (intervalRef.current != null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    const id = window.setInterval(() => {
+      const tick = stepTickRef.current + 1;
+      stepTickRef.current = tick;
+      const snapshotsBefore = snapshotsRef.current;
+
+      setState((current) => {
+        if (!current || current.converged || !translationRef.current) {
+          return current;
+        }
+        if (appliedTickRef.current === tick && stepResultRef.current) {
+          return stepResultRef.current;
+        }
+
+        const settings = vizRef.current;
+        const next = stepMany(
+          current,
+          translationRef.current,
+          rngRef.current,
+          settings.speed,
+          settings.trailDecay,
+        );
+
+        const marks = snapshotsRef.current;
+        let nextMarks = marks;
+        for (const mark of SNAPSHOT_ITERATIONS) {
+          if (!nextMarks[mark] && next.iteration >= mark) {
+            if (nextMarks === marks) nextMarks = { ...marks };
+            nextMarks[mark] = captureSnapshot(next);
+          }
+        }
+        snapshotsRef.current = nextMarks;
+
+        const copy = { ...next };
+        appliedTickRef.current = tick;
+        stepResultRef.current = copy;
+        stateRef.current = copy;
+        return copy;
+      });
+
+      if (snapshotsRef.current !== snapshotsBefore) {
+        setSnapshots(snapshotsRef.current);
+      }
+
+      if (stateRef.current?.converged) {
+        setSimulating(false);
+      }
+    }, SIMULATION_INTERVAL);
+
+    intervalRef.current = id;
+    return () => {
+      window.clearInterval(id);
+      if (intervalRef.current === id) intervalRef.current = null;
+    };
+  }, [simulating]);
+
+  const liveSnapshot = useMemo(
+    () => (state ? snapshotFromState(state) : null),
+    [state],
+  );
+  const simIteration = state?.iteration ?? 0;
+
+  const clearField = () => {
+    setSimulating(false);
+    setState(null);
+    stateRef.current = null;
+    appliedTickRef.current = -1;
+    stepResultRef.current = null;
+    snapshotsRef.current = {};
+    setSnapshots({});
+  };
 
   const pulse = (message: string) => {
     setNotice(message);
@@ -72,7 +215,8 @@ export function LivingInstrument() {
     setArchetypeId(first.id);
     setRatings(defaultRatings(first));
     setIteration(1);
-    setSimulating(true);
+    setRun(0);
+    clearField();
     setFocus("Typology");
   };
 
@@ -81,19 +225,55 @@ export function LivingInstrument() {
     setArchetypeId(next.id);
     setRatings(defaultRatings(next));
     setIteration(1);
-    setSimulating(true);
+    setRun(0);
+    clearField();
     setFocus("Archetype");
   };
 
-  const setRating = (id: string, value: Rating) => {
-    setRatings((prev) => ({ ...prev, [id]: value }));
-    setFocus("Criteria");
+  const generate = () => {
+    const nextSeed = seedFor(archetype.id, run);
+    rngRef.current = mulberry32(nextSeed ^ 0x9e3779b9);
+    translationRef.current = translation;
+    const sim = createSimulation(translation, nextSeed, vizRef.current.agentCount);
+    sim.maxIterations = DISPLAY_ITERATIONS;
+    const first = captureSnapshot(sim);
+    const initial = { 0: first };
+    snapshotsRef.current = initial;
+    setSnapshots(initial);
+    stateRef.current = sim;
+    appliedTickRef.current = -1;
+    stepResultRef.current = null;
+    setState(sim);
+    setSimulating(true);
+    setFocus("Physarum");
+    pulse(`Generating ${archetype.name}`);
+  };
+
+  const resetField = () => {
+    clearField();
+    setFocus("Physarum");
+    pulse("Field cleared");
   };
 
   const regenerate = () => {
-    setIteration((n) => n + 1);
-    setSimulating(true);
+    const next = run + 1;
+    setRun(next);
+    setIteration(next);
     setFocus("Iteration");
+    const nextSeed = seedFor(archetype.id, next);
+    rngRef.current = mulberry32(nextSeed ^ 0x9e3779b9);
+    translationRef.current = translation;
+    const sim = createSimulation(translation, nextSeed, vizRef.current.agentCount);
+    sim.maxIterations = DISPLAY_ITERATIONS;
+    const first = captureSnapshot(sim);
+    const initial = { 0: first };
+    snapshotsRef.current = initial;
+    setSnapshots(initial);
+    stateRef.current = sim;
+    appliedTickRef.current = -1;
+    stepResultRef.current = null;
+    setState(sim);
+    setSimulating(true);
     pulse("New iteration seeded from current criteria");
   };
 
@@ -174,7 +354,7 @@ export function LivingInstrument() {
         })}
       </ol>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[12.2rem_minmax(17rem,20.5rem)_minmax(0,1.2fr)_minmax(20rem,26rem)] md:grid-rows-[minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[8rem_12.75rem_minmax(0,1fr)_15rem] md:grid-rows-[minmax(0,1fr)]">
         <Panel className="flex flex-col">
           <PanelHeader kicker="Input" title="Archetype" />
           <div className="flex flex-1 flex-col gap-1.5">
@@ -185,7 +365,7 @@ export function LivingInstrument() {
                   key={item.id}
                   type="button"
                   onClick={() => selectArchetype(item.id)}
-                  className={`border px-2 py-2 text-left text-[0.64rem] leading-tight tracking-[0.1em] uppercase transition ${
+                  className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
                     active
                       ? "border-[var(--cyan)] bg-[rgba(0,228,255,0.16)] text-white"
                       : "border-[rgba(0,228,255,0.16)] text-[var(--muted)] hover:text-[var(--text)]"
@@ -210,17 +390,9 @@ export function LivingInstrument() {
             kicker="Analysis"
             title="Criteria Configuration"
             aside={
-              <button
-                type="button"
-                className="text-[0.58rem] tracking-[0.16em] uppercase text-[var(--muted)]"
-                onClick={() => {
-                  setRatings(original);
-                  setFocus("Criteria");
-                  pulse("Ratings restored to precedent analysis");
-                }}
-              >
-                Reset
-              </button>
+              <span className="border border-[rgba(0,228,255,0.28)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--cyan)]">
+                Locked
+              </span>
             }
           />
           <div className="instrument-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
@@ -250,10 +422,10 @@ export function LivingInstrument() {
                         value,
                       );
                       return (
-                        <label
+                        <div
                           key={criterion.id}
-                          className="block"
-                          title={description}
+                          className="block cursor-not-allowed"
+                          title={`${description} Ranked and locked.`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
@@ -271,15 +443,12 @@ export function LivingInstrument() {
                             max={2}
                             step={1}
                             value={value}
-                            aria-valuetext={`${ratingLabel(value)}. ${description}`}
-                            onChange={(event) =>
-                              setRating(
-                                criterion.id,
-                                Number(event.target.value) as Rating,
-                              )
-                            }
+                            disabled
+                            aria-readonly="true"
+                            aria-disabled="true"
+                            aria-valuetext={`${ratingLabel(value)}. Ranked and locked. ${description}`}
                           />
-                        </label>
+                        </div>
                       );
                     })}
                   </div>
@@ -321,7 +490,7 @@ export function LivingInstrument() {
           </div>
         </Panel>
 
-        <Panel padded={false} className="flex min-h-[22rem] flex-col md:min-h-0">
+        <Panel padded={false} className="flex min-h-[22rem] min-w-0 flex-col md:min-h-0">
           <div className="flex items-start justify-between gap-3 px-3 pt-3">
             <div>
               <p className="eyebrow">Physarum Workflow</p>
@@ -335,10 +504,10 @@ export function LivingInstrument() {
                     : "border-[var(--cyan-dim)] text-[var(--cyan)]"
                 }`}
               >
-                {simulating ? "Simulating" : "Stable"}
+                {simulating ? "Simulating" : state?.converged ? "Converged" : "Stable"}
               </span>
               <span className="text-[0.62rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-                Iteration {String(iteration).padStart(2, "0")}
+                Iteration {String(simIteration).padStart(3, "0")}
               </span>
             </div>
           </div>
@@ -362,42 +531,63 @@ export function LivingInstrument() {
               );
             })}
           </ol>
+          <div className="mt-2 grid grid-cols-3 gap-1.5 px-3">
+            <button
+              type="button"
+              onClick={generate}
+              className="border border-[var(--orange)] bg-[rgba(255,122,50,0.14)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--orange-hot)] hover:bg-[rgba(255,122,50,0.22)]"
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={resetField}
+              className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={regenerate}
+              className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
+            >
+              Regenerate
+            </button>
+          </div>
+          <div className="px-3 pt-2">
+            <Skill1Timeline snapshots={snapshots} currentIteration={simIteration} compact density={viz.density} />
+          </div>
           <div className="relative mt-2 min-h-[16rem] flex-1 bg-[#071018]">
-            <PhysarumField params={params} running={simulating} />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-40"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(0,228,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,228,255,0.06) 1px, transparent 1px)",
-                backgroundSize: "32px 32px",
-              }}
-            />
-            <div className="pointer-events-none absolute inset-0 grid grid-cols-[auto_1fr_auto] p-3 text-[0.58rem] tracking-[0.14em] uppercase">
-              <div className="space-y-3 text-[var(--muted)]">
-                <Stat label="Input Nodes" value={stats.inputNodes} />
-                <Stat label="Active Paths" value={stats.activePaths} />
-                <Stat label="Convergence" value={`${stats.convergence}%`} />
-              </div>
-              <div />
-              <div className="space-y-16 text-right text-[var(--muted)]">
-                <p>Spatial Connections</p>
-                <p className="pt-10">Emergent Geometry</p>
-              </div>
-              <p className="col-span-1 self-end text-[var(--muted)]">
-                Programmatic Relationships
-              </p>
-              <p className="col-span-2 self-end text-right text-[var(--muted)]">
-                Optimized Pathways
-              </p>
-            </div>
+            <Skill1PlanView snapshot={liveSnapshot} density={viz.density} />
           </div>
           <div className="flex items-center justify-between border-t border-[rgba(0,228,255,0.16)] px-3 py-2 text-[0.62rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-            <span>Physarum interpreting criteria · generating spatial logic</span>
-            <span>Iteration {String(iteration).padStart(2, "0")}</span>
+            <span>Physarum interpreting criteria · 2D agent field</span>
+            <span>Iteration {String(simIteration).padStart(3, "0")}</span>
           </div>
         </Panel>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="instrument-scroll flex min-h-0 flex-col gap-2 overflow-y-auto">
+          <Panel>
+            <PanelHeader kicker={archetype.name} title="Agent Field" />
+            <div className="space-y-3">
+              <ArchetypeBehaviorPanel behavior={behavior} />
+              <ArchetypeSimulationSettings
+                behavior={behavior}
+                translation={translation}
+                viz={viz}
+                seed={seed}
+                onAgentCount={(value) =>
+                  setViz((current) => ({ ...current, agentCount: value }))
+                }
+                onDensity={(value) =>
+                  setViz((current) => ({ ...current, density: value }))
+                }
+                onSpeed={(value) => setViz((current) => ({ ...current, speed: value }))}
+              />
+              <ArchetypeVisualLegend />
+              <ArchetypeArchitecturalLayers topology={translation.topology} />
+            </div>
+          </Panel>
           <Panel className="flex min-h-0 flex-[1.15] flex-col">
             <PanelHeader
               kicker="Architectural Output"
@@ -452,11 +642,11 @@ export function LivingInstrument() {
                 type="button"
                 onClick={() => {
                   setFocus("Criteria");
-                  pulse("Adjust Formal, Spatial, or Atmospheric ratings");
+                  pulse("Ranked criteria are locked to catalog analysis");
                 }}
                 className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
               >
-                Adjust Criteria
+                View Criteria
               </button>
               <button
                 type="button"
@@ -486,15 +676,6 @@ export function LivingInstrument() {
           {notice}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div>
-      <p>{label}</p>
-      <p className="text-[1.05rem] text-white">{value}</p>
     </div>
   );
 }
