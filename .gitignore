@@ -33,3 +33,5 @@ CLAUDE.md
 # generated search stills
 /public/void-search/*.png
 /public/contained-search/*.png
+# generated Skill 2 calibration numbers
+/calibration/

@@ -8,6 +8,10 @@
     "start": "next start --hostname 0.0.0.0 --port 43141",
     "lint": "eslint",
     "verify:skill1": "npx --yes tsx lib/skill1/verify.ts",
+    "verify:skill2-measurements": "npx --yes tsx lib/skill2/verify-measurements.ts",
+    "verify:skill2-evaluation": "npx --yes tsx lib/skill2/verify-evaluation.ts",
+    "verify:skill2-coverage": "npx --yes tsx lib/skill2/verify-coverage.ts",
+    "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "search:void": "npx --yes tsx scripts/search-void-field.ts",
     "search:contained": "npx --yes tsx scripts/search-contained-room.ts"
   },
