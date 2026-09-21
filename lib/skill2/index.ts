@@ -28,10 +28,11 @@ export {
 } from "./evaluate";
 export {
   DEFAULT_MORPHOLOGICAL_EXTRACTION,
+  SKILL1_EDGE_SUPPRESSION_MARGIN,
   resolveExtractionConfig,
 } from "./measurement-config";
 export type { MorphologicalExtractionConfig } from "./measurement-config";
-export { measureMorphology, measureMorphologyDetailed } from "./measurements";
+export { buildInteriorMask, measureMorphology, measureMorphologyDetailed } from "./measurements";
 export {
   CALIBRATION_PROTOCOL,
   calibrationSeed,

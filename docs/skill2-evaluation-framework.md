@@ -48,7 +48,25 @@ Void Field keeps archetype-specific question wording as a prototype overlay. Eve
 
 ## Connectivity sentinel
 
-`connection.continuity` is `1` when fewer than two concentrations exist. Evaluation **does not** treat that as High Connectivity. It uses `pairOpportunityCount` and `linkedPairCount`.
+`connection.continuity` is `1` when fewer than two concentrations exist. Evaluation **does not** treat that as High Connectivity. Compact undivided bodies (`branchCount < 2`, `skeletonEndpoints ≤ 2`, no mass pairs) score **0**. Otherwise Connectivity is `0.4×massRel + 0.4×networkRel + 0.2×bridgeRel`. `concentrationCount < 2` does not force 0. `connection.cycleDensity` / `cycleRank` remain **diagnostic only** (8-connected skeleton density saturates on live trails).
+
+## Interior analysis domain
+
+Skill 1 suppresses deposits within **2.6 occupancy cells** of the field edge. That empty ring is a **simulation boundary condition**. Skill 2 measurements that speak to openness, visibility, receptivity, or enclosure use an **interior analysis domain**: trail cells whose occupancy-mapped distance to the border is ≥ 2.6.
+
+- The ring is **not** counted as architectural openness, visibility, or receptivity.
+- Axis-aligned open spans are clipped to the interior; they cannot equal the full field width just because the perimeter is empty.
+- Enclosure is the fraction of **interior** void that cannot reach the interior-domain perimeter (courtyards). Touching the suppressed ring does not count as “exposed.”
+- `void.boundaryOpenFraction` is the void fraction of the **inner perimeter of the interior domain**, not the raw field edge.
+- Morphology extraction (concentrations, bridges, skeleton) still sees the full trail field; only the architectural void/approach metrics neutralize the ring.
+
+`connection.branching` is skeleton junctions **per occupancy-unit of skeleton length** (scale-aware). The complexity branching cap stays **5**; the cap is not raised to match raw junction counts.
+
+Occupation-support remains measured (horizontal mass with true void in +y) but is **retired from evaluators**. It is typically 0 because dense cores are wrapped by connection-band, not void.
+
+Circulation / spatial permanence classify interior corridor cells with exclusive precedence: **through (N4 sandwich) > around/wrap (N4 mass contact) > zone (inside concentration AABB, not wrap) > far**. Mix = `through + 0.5×zone`. Perimeter contact is diagnostic only. AABB overlap alone cannot promote a wrap to zone.
+
+Proportionality: CV is family-wise (mass areas, void areas, thicknesses). n&lt;2 omits a family; no valid family → observed 0.5.
 
 ---
 
@@ -64,7 +82,7 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium (catalog):** A moderately varied formal organization with multiple geometric elements or relationships, while maintaining a recognizable overall configuration.
 - **High (catalog):** A highly varied formal organization with numerous geometric elements, transformations, intersections, or layered relationships that produce a complex configuration.
 - **Question:** Does the morphology correspond to the catalog's {{Low/Medium/High}} Complexity condition?
-- **Measurements:** `mass.concentrationCount`, `connection.branching`, `topology.connectedComponentCount`, `proportion.overallVariation`, `activity.densityVariation`
+- **Measurements:** `mass.concentrationCount`, scale-aware `connection.branching`, `topology.connectedComponentCount`, `proportion.overallVariation`, `activity.densityVariation`
 - **Axis 0:** few masses, little branching/fragmentation, limited variation
 - **Axis 1:** many masses, high branching/fragmentation, high variation
 - **Correspondence:** `complexityAmount` vs selected peak
@@ -76,7 +94,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Noticeable variations in dimension and proportion, creating multiple but relatively balanced relationships.
 - **High:** Strongly differentiated dimensions and proportions; contrasting scales.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Proportionality condition?
-- **Measurements:** `proportion.concentrationSizeVariation`, `voidSizeVariation`, `connectionThicknessVariation`, `overallVariation`
+- **Measurements:** family CVs of concentration areas, void areas, and bridge thicknesses separately; `insufficientElements`
+- **Limits:** Not classical proportion. Area is never mixed with thickness. n<2 omits a family; all omitted → observed 0.5.
 - **Axis 0:** uniform dimensional relationships
 - **Axis 1:** strongly differentiated dimensional relationships
 - **Correspondence:** `proportionalVariation` vs selected peak (uniform is **not** universally good)
@@ -118,11 +137,11 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Circulation partially overlaps or passes through the gathering area.
 - **High:** Circulation embedded within the gathering area; movement paths shape gathering zones.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Circulation Integration condition?
-- **Measurements:** `connection.meanPerimeterContact`, `footprintOverlap`, continuity, bridges, concentration count
-- **Axis 0:** connective trails outside / around concentrations
-- **Axis 1:** connective trails embedded in concentration footprints
+- **Measurements:** far / around / zone / through network fractions
+- **Axis 0:** connective trails far from or wrapping concentrations
+- **Axis 1:** connective trails organizing or passing through concentration territory
 - **Correspondence:** `circulationMix` vs selected peak
-- **Limits:** Thin-trail geometry, not designed pedestrian circulation.
+- **Limits:** Thin-trail geometry, not designed pedestrian circulation. Wrap-around is Low (around/outside), not Medium or High. AABB overlap without N4 sandwich is not through.
 
 ### Spatial — shared
 
@@ -132,11 +151,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Mix of enclosed and open conditions; moderate access.
 - **High:** Predominantly open; extensive access; limited enclosure.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Openness condition?
-- **Measurements:** void fraction, largest void, void continuity, enclosure, open spans
-- **Axis 0:** little continuous void; tight enclosure
-- **Axis 1:** substantial continuous void; limited enclosure
-- **Correspondence:** `opennessAmount` vs selected peak
-- **Limits:** 2D field only; no rooms outside the simulation.
+- **Measurements:** interior void fraction, largest interior void, interior enclosure, interior open spans
+- **Limits:** 2D interior domain only; empty Skill 1 perimeter cannot create High.
 
 #### Connectivity
 
@@ -144,11 +160,9 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Multiple relationships; moderate opportunities.
 - **High:** Highly interconnected; numerous direct relationships through movement, visibility, and overlap.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Connectivity condition?
-- **Measurements:** `pairOpportunityCount`, `linkedPairCount`, bridges, continuity (evidence only), bridge length, components
-- **Axis 0:** no or few inter-concentration relationships
-- **Axis 1:** many linked pairs and bridges
-- **Correspondence:** `connectivityAmount` vs selected peak; **0 pairs → observed 0**, not High
-- **Limits:** Not a door/room graph.
+- **Measurements:** pair counts when present, scale-aware branching, skeleton endpoints, bridges
+- **Correspondence:** `connectivityAmount` vs selected peak; compact undivided body → 0; **concentration count does not veto**; **cycleDensity is diagnostic only**
+- **Limits:** Not a door/room graph. High needs multiple meaningful relationships, not skeleton noise.
 
 ### Spatial — Lobby-specific
 
@@ -172,11 +186,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Identifiable repeated or divisible units; some flexibility.
 - **High:** Strongly organized through repeated, interchangeable, or reconfigurable units.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Modularity condition?
-- **Measurements:** concentration count, `mass.sizeRegularity`, `mass.spacingRegularity`, component count
-- **Axis 0:** one continuous body or unlike fragments; little repetition
-- **Axis 1:** several similar, regularly spaced units
-- **Correspondence:** `modularityAmount` vs selected peak (`< 2` concentrations → 0)
-- **Limits:** Cannot evaluate interchangeability or actual reconfiguration.
+- **Measurements:** concentration regularity when ≥2 masses; otherwise skeleton branch count and branch-length regularity
+- **Limits:** Cannot evaluate interchangeability. One undivided body is Low; noisy branching is not High.
 
 ### Spatial — Gathering-specific
 
@@ -186,11 +197,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Gathering and circulation are parallel but do not co-exist.
 - **High:** Circulation is within the gathering space. Gathering happens because of circulation.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Spatial Permanence condition?
-- **Measurements:** footprint overlap, perimeter contact, hierarchy, concentration count, bridges
-- **Axis 0:** distinguishable gathering apart from the connective network
-- **Axis 1:** gathering mass constituted by / mixed with the network
-- **Correspondence:** `circulationConstitution` vs selected peak
-- **Limits:** Mixing in the trail field, not time or material durability.
+- **Measurements:** through / zone / around network fractions, hierarchy
+- **Limits:** Mixing in the trail field, not time or material durability. Wrap with a distinguishable core is Low.
 
 ### Atmospheric — shared
 
@@ -200,11 +208,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Moderately immersive. Light, material, sound, scale, and enclosure begin to shape perception.
 - **High:** Deeply immersive. Multiple sensory and spatial qualities envelop the user.
 - **Question:** Does the **spatially measurable** morphology correspond to the catalog's {{rating}} Immersive condition?
-- **Measurements:** enclosure, density variation, hierarchy, spatial spread, void continuity, largest void
-- **Axis 0:** spatially detached field
-- **Axis 1:** strong spatial field around void (enclosure, variation, hierarchy, spread)
-- **Correspondence:** `spatialImmersion` vs selected peak
-- **Limits:** **Does not fabricate** material, sound, light, or other sensory data. Spatial subset only.
+- **Measurements:** directional surround, morphological depth, layering, density variation, spread; courtyard enclosure optional and not required
+- **Limits:** **Does not fabricate** material, sound, light. Solid fill is not High. Empty boundary ring cannot create immersion.
 
 #### Visibility
 
@@ -212,11 +217,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Moderate visual access; open sightlines mixed with obstruction.
 - **High:** Extensive visual access; long sightlines; minimal obstruction.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Visibility condition?
-- **Measurements:** mean/max open span, void continuity, enclosure
-- **Axis 0:** short interrupted void spans
-- **Axis 1:** long continuous void spans
-- **Correspondence:** `visibilityAmount` vs selected peak
-- **Limits:** Axis-aligned open spans, **not** full angular isovists.
+- **Measurements:** interior mean/max open span, interior enclosure
+- **Limits:** Axis-aligned interior spans, **not** full angular isovists. Empty boundary ring cannot create High.
 
 ### Atmospheric — Lobby-specific
 
@@ -226,11 +228,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Moderate invitation. Accessible and comfortable, with some formality or control.
 - **High:** Strong invitation. Welcoming, comfortable, accessible; encourages entry, interaction, occupation.
 - **Question:** Does the spatially measurable morphology correspond to the catalog's {{rating}} Receptivity condition?
-- **Measurements:** `void.boundaryOpenFraction`, enclosure, occupation support, void fraction
-- **Axis 0:** closed boundary, high enclosure, little occupation support
-- **Axis 1:** open boundary, lower enclosure, occupation support
-- **Correspondence:** `receptivitySpatial` vs selected peak
-- **Limits:** **Psychological invitation is not observed.** Spatial approachability only.
+- **Measurements:** interior `void.boundaryOpenFraction`, enclosure, interior void fraction
+- **Limits:** **Psychological invitation is not observed.** Spatial approachability of the interior domain only. Occupation-support is not used. Empty outer ring cannot create High.
 
 ### Atmospheric — Workspace-specific
 
@@ -240,11 +239,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Individual and shared areas; moderate interaction.
 - **High:** Strongly configured around shared areas, proximity, visual interaction, and spatial conditions that support collaboration.
 - **Question:** Does the spatially measurable morphology correspond to the catalog's {{rating}} Collaboration condition?
-- **Measurements:** `mass.clusteredness`, centroid separation, linked/pair counts, mean open span, occupation support
-- **Axis 0:** separated territories, little shared occupation or visual continuity
-- **Axis 1:** clustered territories, visual continuity, occupation support that could be shared
-- **Correspondence:** `collaborationAmount` vs selected peak
-- **Limits:** Not desks, teams, or actual interaction.
+- **Measurements:** `mass.clusteredness`, centroid separation, linked/pair counts, interior mean open span
+- **Limits:** Not desks, teams, or actual interaction. Occupation-support is not used.
 
 ### Atmospheric — Gathering-specific
 
@@ -254,11 +250,8 @@ There are **15 unique criteria**: 6 shared + 3 Lobby-specific + 3 Workspace-spec
 - **Medium:** Some private/open spaces in a series of identical spaces close together.
 - **High:** Very compressed paths or open spaces; high people-load would be overstimulating.
 - **Question:** Does the morphology correspond to the catalog's {{rating}} Social Proximity condition?
-- **Measurements:** significant void area/count, centroid separation, spatial spread, concentration count
-- **Axis 0:** generous or separated territories
-- **Axis 1:** compressed territories / close zones
-- **Correspondence:** `proximityAmount` vs selected peak
-- **Limits:** **No furniture or foliage.** Spatial separation versus compression only.
+- **Measurements:** interior void fraction and open span; nearest-neighbor gap when several territories exist
+- **Limits:** **No furniture or foliage.** Compact mass in a large void is Low, not High.
 
 ---
 
@@ -269,3 +262,28 @@ The current catalog has 3 typologies × 5 archetypes × 9 criteria = **135** eva
 ## Prototype note
 
 Void Field was the first fully worded prototype. The library above is the reusable criterion layer for every catalog criterion. Candidate search, the nine-candidate matrix, UI, frozen calibration, and Skill 3 are out of scope for this document’s implementation status.
+
+## Post-calibration evidence refinement
+
+The first 300-simulation calibration (`docs/skill2-calibration-report.md`) is **preserved**. It found 49/300 provisional accepts (16.3%), all 251 rejects hitting the individual floor, and saturated/constant measurements (`void.maxOpenSpan=20`, `boundaryOpenFraction=1`, perimeter contact ≈ 0.98, occupation ≈ 0, branching mean 27 vs cap 5).
+
+This revision repairs **evidence** (interior domain, branching scale, circulation embedding, occupation retirement, proportionality sampling) **before** any retuning of peaks or gates.
+
+**Unchanged:** Low 0.20 / Medium 0.50 / High 0.80; shared weight 1.0; typology-specific 1.15; overallMinimum 55; individualFloor 30; `complexityBranchingCap` 5.
+
+Recalibration uses the same protocol. Results: `docs/skill2-post-calibration-refinement.md`. Do not treat a new accept rate as a target.
+
+## Final pre-freeze evaluator refinement
+
+A second, diagnosis-driven pass (`docs/skill2-final-evaluator-refinement.md`) corrects six remaining methodological errors without changing peaks, weights, floors, the interior domain, or Skill 1:
+
+1. Proportionality: within-family CV only; mixed area/thickness pool removed.
+2. Circulation / permanence: far / around / zone / through; wrap is Low.
+3. Immersive: surround, depth, layering; courtyard not required; solid fill not High.
+4. Social proximity: intervening void and NN spacing; compact blob in generous void is Low.
+5. Connectivity: no concentration-pair veto; mass pairs plus skeleton relationships/loops.
+6. Modularity: no concentration veto; similar repeated units (masses or branches).
+
+## Classifier freeze correction (final pre-candidate)
+
+`docs/skill2-classifier-freeze-correction.md`: wrap N4 before AABB zone; `cycleDensity` removed from Connectivity scoring. Fourth calibration **56/300 = 18.7%**, deterministic. Methodology **FREEZE** for candidate generation. Earlier reports are not rewritten.

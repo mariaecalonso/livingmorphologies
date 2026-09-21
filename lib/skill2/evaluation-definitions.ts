@@ -47,8 +47,8 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     criterionId: "complexity",
     category: "formal",
     shared: true,
-    axisZero: "few masses, little branching/fragmentation, limited geometric variation",
-    axisOne: "many masses, high branching/fragmentation, high geometric variation",
+    axisZero: "few masses, little scale-aware branching, limited geometric variation",
+    axisOne: "many masses, high scale-aware branching, high geometric variation",
     observedAxis: "complexityAmount",
     evidence: [
       "mass.concentrationCount",
@@ -115,9 +115,11 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "proportion.voidSizeVariation",
       "proportion.connectionThicknessVariation",
       "proportion.overallVariation",
+      "proportion.insufficientElements",
+      "proportion.elementCount",
     ],
     limitations: [
-      "Proportionality uses coefficients of variation among detected elements. It does not evaluate classical proportional systems or human-scale dimensions.",
+      "Proportionality uses coefficients of variation within morphological families (mass areas, void areas, bridge thicknesses) separately. Families with fewer than two members are omitted. No family with n≥2 is indeterminate (0.5), not Low-uniform. Area is never compared with thickness.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Proportionality condition?",
@@ -126,18 +128,18 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     criterionId: "circulation-integration",
     category: "formal",
     shared: false,
-    axisZero: "connective trails remain outside / around concentrations",
-    axisOne: "connective trails are embedded in concentration footprints",
+    axisZero: "connective trails remain far from or around concentrations",
+    axisOne: "connective trails organize or pass through concentration territory",
     observedAxis: "circulationMix",
     evidence: [
-      "connection.meanPerimeterContact",
-      "connection.footprintOverlap",
-      "connection.continuity",
-      "connection.bridgeCount",
+      "connection.farNetworkFraction",
+      "connection.aroundNetworkFraction",
+      "connection.zoneNetworkFraction",
+      "connection.throughNetworkFraction",
       "mass.concentrationCount",
     ],
     limitations: [
-      "Circulation is the thin-trail / corridor band, not a designed path or program. Overlap is geometric contact and bounding-box occupation, not pedestrian flow.",
+      "Wrap-around trails are catalog Low (around/outside), not Medium. Perimeter contact is not used. Through/zone relationships do not require occupying the densest trail core exclusively, but simple contact is not High.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Circulation Integration condition?",
@@ -158,7 +160,7 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "void.maxOpenSpan",
     ],
     limitations: [
-      "Openness is a 2D sectional void/enclosure reading. It does not model adjacent rooms beyond the simulated field.",
+      "Openness is a 2D sectional void/enclosure reading of the interior analysis domain. The Skill 1 empty perimeter ring is excluded and cannot create High openness.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Openness condition?",
@@ -175,12 +177,14 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "connection.linkedPairCount",
       "connection.bridgeCount",
       "connection.continuity",
-      "connection.meanBridgeLength",
-      "topology.connectedComponentCount",
+      "mass.concentrationCount",
+      "connection.branching",
+      "connection.cycleRank",
+      "connection.skeletonEndpoints",
     ],
     limitations: [
-      "connection.continuity equals 1 when fewer than two concentrations exist. Connectivity evaluation uses pairOpportunityCount/linkedPairCount instead of that sentinel.",
-      "Connectivity is inter-concentration morphology, not door/room graph analysis.",
+      "connection.continuity equals 1 when fewer than two concentrations exist. Connectivity uses mass pairs when they exist plus scale-aware branching, endpoints, and bridges. One compact body is Low; concentrationCount < 2 does not force 0.",
+      "connection.cycleRank / cycleDensity are diagnostic only. 8-connected skeleton cycle density saturates on live trails and is not used in the observed Connectivity axis.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Connectivity condition?",
@@ -214,10 +218,11 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "mass.concentrationCount",
       "mass.sizeRegularity",
       "mass.spacingRegularity",
-      "topology.connectedComponentCount",
+      "connection.branchCount",
+      "connection.branchLengthRegularity",
     ],
     limitations: [
-      "Modularity is repetition and regularity of detected concentrations. It cannot evaluate interchangeability, furniture systems, or actual spatial reconfiguration.",
+      "Modularity is repetition and regularity of concentrations when several exist, otherwise similar skeleton branches. Interchangeability and reconfiguration are unmeasurable. A noisy branched network is not High.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Modularity condition?",
@@ -230,14 +235,14 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     axisOne: "gathering mass is constituted by / mixed with the connective network",
     observedAxis: "circulationConstitution",
     evidence: [
-      "connection.footprintOverlap",
-      "connection.meanPerimeterContact",
+      "connection.throughNetworkFraction",
+      "connection.zoneNetworkFraction",
+      "connection.aroundNetworkFraction",
       "mass.scaleHierarchy",
       "mass.concentrationCount",
-      "connection.bridgeCount",
     ],
     limitations: [
-      "Spatial permanence is evaluated only as gathering-versus-circulation mixing in the trail field, not as temporal permanence or material durability.",
+      "Wrap-around circulation with a distinct core is Low spatial permanence. Not temporal or material durability.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Spatial Permanence condition?",
@@ -246,19 +251,19 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     criterionId: "immersive",
     category: "atmospheric",
     shared: true,
-    axisZero: "spatially detached field: little enclosure, layering, or depth around void",
-    axisOne: "strong spatial field around void via enclosure, density variation, hierarchy, and spread",
+    axisZero: "spatially detached field: thin, weakly surrounding morphology",
+    axisOne: "deep, layered, multi-directional morphological field around interior space",
     observedAxis: "spatialImmersion",
     evidence: [
-      "topology.enclosure",
+      "topology.directionalSurround",
+      "topology.morphologicalDepth",
+      "topology.layering",
       "activity.densityVariation",
-      "mass.scaleHierarchy",
       "activity.spatialSpread",
-      "void.voidContinuity",
-      "void.largestVoidFraction",
+      "topology.enclosure",
     ],
     limitations: [
-      "The catalog Immersive definition includes material, sound, light, scale, and enclosure. Skill 2 evaluates only spatially measurable morphology. It does not fabricate sensory data.",
+      "The catalog Immersive definition includes material, sound, light, scale, and enclosure. Skill 2 evaluates only spatially measurable morphology. Courtyard enclosure is optional evidence and is not required for High. Solid fill is not High. The empty Skill 1 ring cannot create immersion.",
     ],
     questionTemplate:
       "Does the spatially measurable morphology correspond to the catalog's {{ratingLabel}} Immersive condition?",
@@ -277,7 +282,7 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "topology.enclosure",
     ],
     limitations: [
-      "Open spans are axis-aligned (rows and columns), not full angular isovists.",
+      "Open spans are axis-aligned interior-domain runs, not full angular isovists. The empty Skill 1 boundary ring cannot create High visibility.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Visibility condition?",
@@ -286,17 +291,17 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     criterionId: "receptivity",
     category: "atmospheric",
     shared: false,
-    axisZero: "closed field boundary and high enclosure; little occupation support",
-    axisOne: "open field boundary, lower enclosure, and measurable occupation support",
+    axisZero: "closed interior-domain perimeter and high enclosure of interior void",
+    axisOne: "open interior-domain perimeter and interior void that is not courtyard-enclosed",
     observedAxis: "receptivitySpatial",
     evidence: [
       "void.boundaryOpenFraction",
       "topology.enclosure",
-      "occupation.potentialOccupationFraction",
       "void.voidFraction",
+      "analysis.interiorExtent",
     ],
     limitations: [
-      "Catalog Receptivity includes invitation, formality, and psychological distance. Skill 2 evaluates only spatial approachability (boundary void, enclosure, occupation support). It does not fabricate comfort or welcoming affect.",
+      "Catalog Receptivity includes invitation, formality, and psychological distance. Skill 2 evaluates only spatial approachability of the interior domain. The Skill 1 empty outer ring cannot create High receptivity. Occupation-support was retired from this axis because it is almost never present on this 2D trail field.",
     ],
     questionTemplate:
       "Does the spatially measurable morphology correspond to the catalog's {{ratingLabel}} Receptivity condition?",
@@ -314,10 +319,9 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "connection.linkedPairCount",
       "connection.pairOpportunityCount",
       "void.meanOpenSpan",
-      "occupation.potentialOccupationFraction",
     ],
     limitations: [
-      "Catalog Collaboration describes individual versus shared work configurations. Skill 2 evaluates clustering, visual span, and occupation-support proximity only. It does not model desks, teams, or interaction.",
+      "Catalog Collaboration describes individual versus shared work configurations. Skill 2 evaluates clustering, interior visual span, and pair linkage only. Occupation-support was retired from this axis (almost always zero on this 2D field). It does not model desks, teams, or interaction.",
     ],
     questionTemplate:
       "Does the spatially measurable morphology correspond to the catalog's {{ratingLabel}} Collaboration condition?",
@@ -332,12 +336,12 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     evidence: [
       "void.meanSignificantArea",
       "void.significantVoidCount",
-      "mass.meanCentroidSeparation",
-      "activity.spatialSpread",
+      "void.meanOpenSpan",
+      "mass.meanNearestNeighbor",
       "mass.concentrationCount",
     ],
     limitations: [
-      "Catalog Low Social Proximity mentions foliage or tables as examples. Skill 2 does not simulate furniture or foliage; it evaluates only spatial separation versus compression.",
+      "Catalog Low Social Proximity mentions foliage or tables as examples. Skill 2 does not simulate furniture or foliage; it evaluates intervening void and territory spacing only. Compact activity spread is not treated as compression.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Social Proximity condition?",

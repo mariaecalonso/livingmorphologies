@@ -85,6 +85,7 @@ function baseMeasurements(overrides?: {
       sizeRegularity: 0.5,
       spacingRegularity: 0.5,
       clusteredness: 0.4,
+      meanNearestNeighbor: 6,
     },
     connection: {
       bridgeCount: 1,
@@ -95,7 +96,25 @@ function baseMeasurements(overrides?: {
       linkedPairCount: overrides?.linkedPairCount ?? 1,
       meanPerimeterContact: 0.2,
       footprintOverlap: 0.1,
+      embeddedNetworkFraction: 0.1,
+      separatedNetworkFraction: 0.8,
+      farNetworkFraction: 0.8,
+      aroundNetworkFraction: 0.1,
+      zoneNetworkFraction: 0.05,
+      throughNetworkFraction: 0.05,
       branching: 0.5,
+      skeletonEndpoints: 4,
+      skeletonNodes: 5,
+      cycleRank: 0,
+      cycleDensity: 0,
+      branchCount: 4,
+      branchLengthRegularity: 0.4,
+    },
+    analysis: {
+      edgeSuppressionMargin: 2.6,
+      interiorCellCount: 200,
+      boundaryRingCellCount: 200,
+      interiorExtent: 14.8,
     },
     void: {
       voidFraction: overrides?.voidFraction ?? 0.6,
@@ -114,6 +133,9 @@ function baseMeasurements(overrides?: {
       enclosure: overrides?.enclosure ?? 0.3,
       anisotropy: 0.3,
       boundingBoxFill: 0.7,
+      directionalSurround: 0.4,
+      morphologicalDepth: 1,
+      layering: 0.3,
     },
     occupation: {
       potentialOccupationFraction: 0.05,
@@ -126,6 +148,8 @@ function baseMeasurements(overrides?: {
       voidSizeVariation: overrides?.overallVariation ?? 0.1,
       connectionThicknessVariation: 0,
       overallVariation: overrides?.overallVariation ?? 0.1,
+      elementCount: 4,
+      insufficientElements: 0,
     },
   };
 }
@@ -236,6 +260,12 @@ const singleton = baseMeasurements({
   linkedPairCount: 0,
   continuity: 1,
 });
+singleton.connection.branchCount = 1;
+singleton.connection.cycleRank = 0;
+singleton.connection.skeletonEndpoints = 2;
+singleton.connection.skeletonNodes = 2;
+singleton.connection.branching = 0;
+singleton.connection.cycleDensity = 0;
 const highConnectivity = evaluateMorphology({
   typologyId: "gathering",
   archetypeId: "void-field",
@@ -247,11 +277,228 @@ if (!connectivityResult) throw new Error("connectivity result missing");
 assert(connectivityResult.evidence.some((item) => item.measurement === "connection.continuity" && item.value === 1), "sentinel continuity 1 should still be recorded as evidence");
 assert(
   connectivityResult.observedCondition === 0,
-  `fewer than two concentrations must yield connectivityAmount 0, got ${connectivityResult.observedCondition}`,
+  `compact single body must yield connectivityAmount 0, got ${connectivityResult.observedCondition}`,
+);
+
+const branchedSingle = baseMeasurements({
+  concentrationCount: 1,
+  pairOpportunityCount: 0,
+  linkedPairCount: 0,
+  continuity: 1,
+});
+branchedSingle.connection.branchCount = 8;
+branchedSingle.connection.skeletonEndpoints = 8;
+branchedSingle.connection.skeletonNodes = 10;
+branchedSingle.connection.branching = 2;
+branchedSingle.connection.cycleRank = 2;
+branchedSingle.connection.cycleDensity = 0.4;
+const branchedEval = evaluateMorphology({
+  typologyId: "gathering",
+  archetypeId: "void-field",
+  measurements: branchedSingle,
+  ratings: { ...voidFieldRatings, connectivity: 2 },
+});
+const branchedObs =
+  branchedEval.criteria.find((item) => item.criterionId === "connectivity")?.observedCondition ?? -1;
+assert(branchedObs > 0, "concentrationCount < 2 must not force connectivity 0 for a meaningful network");
+assert(branchedObs > connectivityResult.observedCondition, "branched network must exceed compact body");
+assert(branchedObs < 0.95, "skeleton richness must not automatically saturate High connectivity");
+
+const cycleNoise = baseMeasurements({
+  concentrationCount: 1,
+  pairOpportunityCount: 0,
+  linkedPairCount: 0,
+  continuity: 1,
+});
+cycleNoise.connection.branchCount = 8;
+cycleNoise.connection.skeletonEndpoints = 8;
+cycleNoise.connection.branching = 2;
+cycleNoise.connection.bridgeCount = 1;
+cycleNoise.connection.cycleDensity = 1;
+cycleNoise.connection.cycleRank = 20;
+const cycleQuiet = { ...cycleNoise, connection: { ...cycleNoise.connection, cycleDensity: 0, cycleRank: 0 } };
+const cycleObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+    ratings: { ...voidFieldRatings, connectivity: 2 },
+  }).criteria.find((item) => item.criterionId === "connectivity")?.observedCondition ?? -1;
+assert(
+  Math.abs(cycleObs(cycleNoise) - cycleObs(cycleQuiet)) < 1e-12,
+  "cycleDensity must not drive Connectivity observed condition",
+);
+
+const farNet = baseMeasurements();
+farNet.connection.throughNetworkFraction = 0;
+farNet.connection.zoneNetworkFraction = 0;
+farNet.connection.aroundNetworkFraction = 0;
+farNet.connection.farNetworkFraction = 1;
+const wrapNet = baseMeasurements();
+wrapNet.connection.throughNetworkFraction = 0;
+wrapNet.connection.zoneNetworkFraction = 0;
+wrapNet.connection.aroundNetworkFraction = 1;
+wrapNet.connection.farNetworkFraction = 0;
+wrapNet.connection.meanPerimeterContact = 1;
+const zoneNet = baseMeasurements();
+zoneNet.connection.throughNetworkFraction = 0;
+zoneNet.connection.zoneNetworkFraction = 1;
+zoneNet.connection.aroundNetworkFraction = 0;
+const throughNet = baseMeasurements();
+throughNet.connection.throughNetworkFraction = 1;
+throughNet.connection.zoneNetworkFraction = 0;
+const circObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+  }).criteria.find((item) => item.criterionId === "circulation-integration")?.observedCondition ?? -1;
+const permObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+  }).criteria.find((item) => item.criterionId === "spatial-permanence")?.observedCondition ?? -1;
+assert(circObs(farNet) < 0.1, `far network must be Low circulation, got ${circObs(farNet)}`);
+assert(circObs(wrapNet) < 0.1, `wrap network must be Low circulation, got ${circObs(wrapNet)}`);
+const wrapInBox = baseMeasurements();
+wrapInBox.connection.throughNetworkFraction = 0;
+wrapInBox.connection.zoneNetworkFraction = 0;
+wrapInBox.connection.aroundNetworkFraction = 1;
+wrapInBox.connection.farNetworkFraction = 0;
+assert(circObs(wrapInBox) < 0.1, "N4 wrap classified as around must remain Low even if it sat in an AABB");
+assert(Math.abs(circObs(zoneNet) - 0.5) < 0.05, `zone network should be Medium-like, got ${circObs(zoneNet)}`);
+assert(circObs(throughNet) > 0.85, `through network must be High-like, got ${circObs(throughNet)}`);
+assert(permObs(wrapNet) < 0.15, `wrap must be Low spatial permanence (distinguishable core), got ${permObs(wrapNet)}`);
+assert(permObs(throughNet) > permObs(wrapNet), "through permanence must exceed wrap");
+
+const wrapped = wrapNet;
+const embedded = throughNet;
+
+const insufficient = baseMeasurements({ overallVariation: 0, concentrationCount: 1 });
+insufficient.proportion.insufficientElements = 1;
+insufficient.proportion.elementCount = 0;
+insufficient.proportion.overallVariation = 0;
+const propInsufficientLow = evaluateMorphology({
+  typologyId: "gathering",
+  archetypeId: "void-field",
+  measurements: insufficient,
+  ratings: { ...voidFieldRatings, proportionality: 0 },
+});
+const propInsufficientHigh = evaluateMorphology({
+  typologyId: "gathering",
+  archetypeId: "void-field",
+  measurements: insufficient,
+  ratings: { ...voidFieldRatings, proportionality: 2 },
+});
+const insLow =
+  propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.correspondenceScore ?? -1;
+const insHigh =
+  propInsufficientHigh.criteria.find((item) => item.criterionId === "proportionality")?.correspondenceScore ?? -1;
+assert(
+  Math.abs(insLow - insHigh) < 1e-9,
+  "too-few-elements must not correspond better to Low than High (not a uniformity sentinel)",
 );
 assert(
-  connectivityResult.correspondenceScore < 40,
-  `must not treat continuity=1 as High Connectivity; score was ${connectivityResult.correspondenceScore}`,
+  (propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.observedCondition ?? -1) ===
+    0.5,
+  "insufficient elements yield indeterminate proportionalVariation 0.5",
+);
+
+const detached = baseMeasurements();
+detached.topology.directionalSurround = 0.05;
+detached.topology.morphologicalDepth = 0.2;
+detached.topology.layering = 0.05;
+detached.topology.enclosure = 0;
+detached.activity.densityVariation = 0.02;
+detached.activity.spatialSpread = 0.1;
+const layered = baseMeasurements();
+layered.topology.directionalSurround = 0.85;
+layered.topology.morphologicalDepth = 2.5;
+layered.topology.layering = 0.7;
+layered.topology.enclosure = 0.1;
+layered.activity.densityVariation = 0.3;
+layered.activity.spatialSpread = 0.5;
+const solidFill = baseMeasurements({ voidFraction: 0, enclosure: 0 });
+solidFill.topology.directionalSurround = 0;
+solidFill.topology.morphologicalDepth = 0;
+solidFill.topology.layering = 0;
+solidFill.topology.enclosure = 0;
+const immObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+  }).criteria.find((item) => item.criterionId === "immersive")?.observedCondition ?? -1;
+assert(immObs(detached) < 0.35, `thin detached field must be Low immersive, got ${immObs(detached)}`);
+assert(immObs(layered) > immObs(detached), "layered multi-directional field must exceed detached");
+assert(immObs(layered) > 0.55, `layered field should be High-ish immersive, got ${immObs(layered)}`);
+assert(immObs(solidFill) < 0.35, `solid fill must not automatically be High immersive, got ${immObs(solidFill)}`);
+
+const oneGenerous = baseMeasurements({ concentrationCount: 1, voidFraction: 0.85, meanOpenSpan: 12 });
+oneGenerous.mass.meanNearestNeighbor = 0;
+const twoFar = baseMeasurements({ concentrationCount: 2, meanOpenSpan: 12 });
+twoFar.mass.meanNearestNeighbor = 12;
+twoFar.void.voidFraction = 0.7;
+const twoClose = baseMeasurements({ concentrationCount: 2, meanOpenSpan: 1.5 });
+twoClose.mass.meanNearestNeighbor = 2;
+twoClose.void.voidFraction = 0.2;
+const proxObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+  }).criteria.find((item) => item.criterionId === "social-proximity")?.observedCondition ?? -1;
+assert(proxObs(oneGenerous) < 0.35, `one concentration in generous void must be Low proximity, got ${proxObs(oneGenerous)}`);
+assert(proxObs(twoFar) < proxObs(twoClose), "separated territories must be lower proximity than compressed ones");
+assert(proxObs(twoClose) > 0.55, `compressed territories should be High-ish proximity, got ${proxObs(twoClose)}`);
+
+const undivided = baseMeasurements({ concentrationCount: 1 });
+undivided.connection.branchCount = 1;
+undivided.connection.branchLengthRegularity = 0;
+const noisyBranches = baseMeasurements({ concentrationCount: 1 });
+noisyBranches.connection.branchCount = 12;
+noisyBranches.connection.branchLengthRegularity = 0.15;
+const repeatedUnits = baseMeasurements({ concentrationCount: 1 });
+repeatedUnits.connection.branchCount = 8;
+repeatedUnits.connection.branchLengthRegularity = 0.92;
+const modObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "workspace",
+    archetypeId: "open-hall",
+    measurements,
+  }).criteria.find((item) => item.criterionId === "modularity")?.observedCondition ?? -1;
+assert(modObs(undivided) === 0, `undivided body must be Low modularity, got ${modObs(undivided)}`);
+assert(modObs(noisyBranches) < 0.4, `irregular branches must not be High modularity, got ${modObs(noisyBranches)}`);
+assert(modObs(repeatedUnits) > 0.6, `repeated similar units should be High-like modularity, got ${modObs(repeatedUnits)}`);
+assert(modObs(repeatedUnits) > 0, "concentrationCount < 2 must not force modularity 0 when repeated units exist");
+
+const noOccupation = baseMeasurements({ enclosure: 0.9, voidFraction: 0.1 });
+noOccupation.occupation.potentialOccupationFraction = 0;
+noOccupation.void.boundaryOpenFraction = 0.05;
+noOccupation.topology.enclosure = 0.9;
+const openApproach = baseMeasurements({ enclosure: 0.05, voidFraction: 0.8 });
+openApproach.occupation.potentialOccupationFraction = 0;
+openApproach.void.boundaryOpenFraction = 0.9;
+openApproach.topology.enclosure = 0.05;
+const recLow = evaluateMorphology({
+  typologyId: "lobby",
+  archetypeId: "continuous-hall",
+  measurements: noOccupation,
+});
+const recHigh = evaluateMorphology({
+  typologyId: "lobby",
+  archetypeId: "continuous-hall",
+  measurements: openApproach,
+});
+const recLowObs = recLow.criteria.find((item) => item.criterionId === "receptivity")?.observedCondition ?? -1;
+const recHighObs = recHigh.criteria.find((item) => item.criterionId === "receptivity")?.observedCondition ?? -1;
+assert(recHighObs > recLowObs, "receptivity must use interior approach, not occupation support");
+assert(
+  (recLow.criteria.find((item) => item.criterionId === "receptivity")?.evidence.every(
+    (item) => item.measurement !== "occupation.potentialOccupationFraction",
+  ) ?? false),
+  "occupation support must not appear in receptivity evidence",
 );
 
 const sample = evaluateMorphology({

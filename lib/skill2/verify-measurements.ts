@@ -1,4 +1,5 @@
-import { measureMorphology, measureMorphologyDetailed } from "./measurements";
+import { measureMorphology, measureMorphologyDetailed, buildInteriorMask } from "./measurements";
+import { SKILL1_EDGE_SUPPRESSION_MARGIN } from "./measurement-config";
 import type { MorphologicalMeasurements } from "./types";
 import type { SimulationState } from "../skill1/types";
 
@@ -182,6 +183,132 @@ const sameState = makeState(TRAIL, SIZE, yTrails);
 assert(
   JSON.stringify(measureMorphology(sameState)) === JSON.stringify(measureMorphology(sameState)),
   "same SimulationState must produce the same measurements",
+);
+
+assert(emptyA.analysis.edgeSuppressionMargin === SKILL1_EDGE_SUPPRESSION_MARGIN, "analysis margin must match Skill 1 edge suppression");
+assert(emptyA.void.maxOpenSpan <= emptyA.analysis.interiorExtent + 1e-6, "empty-field maxOpenSpan must not exceed interior extent");
+assert(emptyA.proportion.insufficientElements === 1, "empty field has too few comparable elements for CV");
+
+const ringFilledTrails = new Array(TRAIL * TRAIL).fill(0);
+const interiorMask = buildInteriorMask(TRAIL, TRAIL, SIZE, SKILL1_EDGE_SUPPRESSION_MARGIN);
+for (let i = 0; i < interiorMask.length; i += 1) {
+  if (interiorMask[i]) ringFilledTrails[i] = 1;
+}
+const ringFilled = measureMorphology(makeState(TRAIL, SIZE, ringFilledTrails));
+assert(ringFilled.void.maxOpenSpan < SIZE * 0.5, `filled interior must not inherit full-field void span, got ${ringFilled.void.maxOpenSpan}`);
+assert(ringFilled.void.boundaryOpenFraction < 0.25, `filled interior inner perimeter must not be open from empty ring, got ${ringFilled.void.boundaryOpenFraction}`);
+assert(ringFilled.void.voidFraction < 0.15, `filled interior voidFraction must be low, got ${ringFilled.void.voidFraction}`);
+assert(
+  ringFilled.void.maxOpenSpan < emptyA.void.maxOpenSpan,
+  "empty outer ring must not create a longer open span than a truly empty interior",
+);
+
+const courtyardTrails = new Array(TRAIL * TRAIL).fill(0);
+for (let i = 0; i < interiorMask.length; i += 1) {
+  if (interiorMask[i]) courtyardTrails[i] = 1;
+}
+for (let y = 14; y < 18; y += 1) {
+  for (let x = 14; x < 18; x += 1) courtyardTrails[y * TRAIL + x] = 0;
+}
+const courtyard = measureMorphology(makeState(TRAIL, SIZE, courtyardTrails));
+assert(courtyard.topology.enclosure > ringFilled.topology.enclosure, "interior courtyard void should be more enclosed than a solid fill with no void");
+assert(courtyard.topology.enclosure > 0.8, `courtyard should be interior-enclosed, got ${courtyard.topology.enclosure}`);
+
+const wrapTrails = new Array(TRAIL * TRAIL).fill(0);
+paintRect(wrapTrails, TRAIL, 12, 12, 20, 20, 1);
+paintRect(wrapTrails, TRAIL, 10, 10, 22, 12, 0.2);
+paintRect(wrapTrails, TRAIL, 10, 20, 22, 22, 0.2);
+paintRect(wrapTrails, TRAIL, 10, 10, 12, 22, 0.2);
+paintRect(wrapTrails, TRAIL, 20, 10, 22, 22, 0.2);
+const wrappedMass = measureMorphology(makeState(TRAIL, SIZE, wrapTrails));
+assert(
+  wrappedMass.connection.meanPerimeterContact > 0.7,
+  `wrap should still show high perimeter contact diagnostically, got ${wrappedMass.connection.meanPerimeterContact}`,
+);
+assert(
+  wrappedMass.connection.embeddedNetworkFraction < 0.35,
+  `wrap-around trails must not count as embedded network, got ${wrappedMass.connection.embeddedNetworkFraction}`,
+);
+
+const throughTrails = new Array(TRAIL * TRAIL).fill(0);
+paintRect(throughTrails, TRAIL, 8, 12, 24, 20, 1);
+paintRect(throughTrails, TRAIL, 15, 4, 16, 28, 0.2);
+const through = measureMorphology(makeState(TRAIL, SIZE, throughTrails));
+assert(
+  through.connection.embeddedNetworkFraction > wrappedMass.connection.embeddedNetworkFraction,
+  "a corridor crossing mass should embed more than a wrap-around ring",
+);
+
+const supportBandTrails = new Array(TRAIL * TRAIL).fill(0);
+paintRect(supportBandTrails, TRAIL, 4, 8, 28, 12, 1);
+paintRect(supportBandTrails, TRAIL, 4, 12, 28, 16, 0.2);
+const banded = measureMorphology(makeState(TRAIL, SIZE, supportBandTrails));
+assert(
+  banded.occupation.supportCount === 0,
+  `connection-band above mass is not void clearance; occupation should stay 0, got ${banded.occupation.supportCount}`,
+);
+assert(platform.occupation.supportCount >= 1, "true void above a bar still yields support");
+
+const oneBlob = measureMorphology(makeState(TRAIL, SIZE, centerTrails));
+assert(oneBlob.mass.concentrationCount === 1, "single blob should be one concentration");
+assert(oneBlob.connection.pairOpportunityCount === 0, "one concentration has no pair opportunities");
+assert(
+  emptyA.proportion.insufficientElements === 1,
+  "an empty field still has too few comparable elements for CV",
+);
+assert(
+  yShape.measurements.connection.branching < 5,
+  `normalized branching must stay below the unelevated cap of 5, got ${yShape.measurements.connection.branching}`,
+);
+
+assert(
+  twoBlobs.measurements.proportion.overallVariation < 0.15,
+  `equal same-family blobs should have low within-family variation, got ${twoBlobs.measurements.proportion.overallVariation}`,
+);
+assert(
+  unequal.proportion.overallVariation > twoBlobs.measurements.proportion.overallVariation,
+  "differentiated same-family sizes should raise overallVariation",
+);
+assert(
+  oneBlob.proportion.insufficientElements === 1,
+  "one concentration and one void family must be indeterminate, not mixed-unit CV",
+);
+assert(
+  denseM.proportion.insufficientElements === 1,
+  "a single solid mass has no comparable family members",
+);
+assert(
+  wrappedMass.connection.aroundNetworkFraction > wrappedMass.connection.throughNetworkFraction,
+  "wrap should classify as around, not through",
+);
+assert(
+  through.connection.throughNetworkFraction > wrappedMass.connection.throughNetworkFraction,
+  "crossing corridor should increase throughNetworkFraction",
+);
+
+const aabbWrapTrails = new Array(TRAIL * TRAIL).fill(0);
+paintRect(aabbWrapTrails, TRAIL, 12, 12, 22, 22, 1);
+paintRect(aabbWrapTrails, TRAIL, 12, 12, 22, 13, 0.2);
+const aabbWrap = measureMorphology(makeState(TRAIL, SIZE, aabbWrapTrails));
+assert(
+  aabbWrap.connection.aroundNetworkFraction > aabbWrap.connection.zoneNetworkFraction,
+  `N4 wrap inside a concentration AABB must stay AROUND not ZONE (around=${aabbWrap.connection.aroundNetworkFraction} zone=${aabbWrap.connection.zoneNetworkFraction})`,
+);
+assert(
+  aabbWrap.connection.throughNetworkFraction < aabbWrap.connection.aroundNetworkFraction,
+  "inner-edge wrap must not classify as through",
+);
+assert(
+  denseM.topology.directionalSurround === 0,
+  "solid fill has no interior void from which to measure surround",
+);
+assert(
+  emptyA.topology.directionalSurround === 0,
+  "empty field has no morphology to create immersion",
+);
+assert(
+  courtyard.topology.layering > ringFilled.topology.layering,
+  "courtyard should layer more than solid interior fill",
 );
 
 console.log("skill2 morphological measurements: ok");

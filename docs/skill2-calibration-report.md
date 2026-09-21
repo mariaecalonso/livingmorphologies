@@ -184,3 +184,5 @@ Do **not** freeze peaks, weights, or acceptability gates yet.
 - Acceptability uses unfrozen provisional gates
 
 Calibration is **not frozen.**
+
+Later evidence repair (interior analysis domain, scale-aware branching, circulation embedding, occupation retirement) is documented in `docs/skill2-post-calibration-refinement.md` without replacing the distributions above.

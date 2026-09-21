@@ -63,6 +63,7 @@ export type MeasurementKey =
   | "mass.sizeRegularity"
   | "mass.spacingRegularity"
   | "mass.clusteredness"
+  | "mass.meanNearestNeighbor"
   | "connection.bridgeCount"
   | "connection.meanBridgeThickness"
   | "connection.meanBridgeLength"
@@ -71,7 +72,23 @@ export type MeasurementKey =
   | "connection.linkedPairCount"
   | "connection.meanPerimeterContact"
   | "connection.footprintOverlap"
+  | "connection.embeddedNetworkFraction"
+  | "connection.separatedNetworkFraction"
+  | "connection.farNetworkFraction"
+  | "connection.aroundNetworkFraction"
+  | "connection.zoneNetworkFraction"
+  | "connection.throughNetworkFraction"
   | "connection.branching"
+  | "connection.skeletonEndpoints"
+  | "connection.skeletonNodes"
+  | "connection.cycleRank"
+  | "connection.cycleDensity"
+  | "connection.branchCount"
+  | "connection.branchLengthRegularity"
+  | "analysis.edgeSuppressionMargin"
+  | "analysis.interiorCellCount"
+  | "analysis.boundaryRingCellCount"
+  | "analysis.interiorExtent"
   | "void.voidFraction"
   | "void.significantVoidCount"
   | "void.residualGapCount"
@@ -86,6 +103,9 @@ export type MeasurementKey =
   | "topology.enclosure"
   | "topology.anisotropy"
   | "topology.boundingBoxFill"
+  | "topology.directionalSurround"
+  | "topology.morphologicalDepth"
+  | "topology.layering"
   | "occupation.potentialOccupationFraction"
   | "occupation.supportContinuity"
   | "occupation.supportCount"
@@ -93,7 +113,9 @@ export type MeasurementKey =
   | "proportion.concentrationSizeVariation"
   | "proportion.voidSizeVariation"
   | "proportion.connectionThicknessVariation"
-  | "proportion.overallVariation";
+  | "proportion.overallVariation"
+  | "proportion.elementCount"
+  | "proportion.insufficientElements";
 
 export type MeasurementEvidence = {
   measurement: MeasurementKey;
@@ -146,6 +168,8 @@ export type MorphologicalMeasurements = {
     spacingRegularity: number;
     /** 1 − mean nearest-neighbor distance / half-diagonal; 0 if fewer than two. */
     clusteredness: number;
+    /** Mean nearest-neighbor centroid distance, occupancy-cell units; 0 if fewer than two. */
+    meanNearestNeighbor: number;
   };
   /** Thinner trails between concentrations → connection / bridge. */
   connection: {
@@ -167,7 +191,8 @@ export type MorphologicalMeasurements = {
     linkedPairCount: number;
     /**
      * Mean fraction of concentration perimeter adjacent to connection-band
-     * cells, in [0, 1]. Neutral overlap evidence, not a circulation score.
+     * cells, in [0, 1]. Often saturated by trails wrapping a core. Kept as
+     * a diagnostic; circulation evaluation does not use it.
      */
     meanPerimeterContact: number;
     /**
@@ -176,10 +201,50 @@ export type MorphologicalMeasurements = {
      */
     footprintOverlap: number;
     /**
-     * Skeleton junctions per morphological component. Subdivision of a
-     * continuous network; not the same as component count.
+     * Fraction of corridor cells with mass on opposite sides (threaded
+     * through a concentration). Interior morphology only.
+     */
+    embeddedNetworkFraction: number;
+    /**
+     * Fraction of corridor cells in components that never touch a
+     * concentration. 1 = network fully separated from masses.
+     */
+    separatedNetworkFraction: number;
+    /** Corridor cells with no N4 mass contact and not inside a concentration AABB. */
+    farNetworkFraction: number;
+    /** Corridor cells that follow a concentration perimeter (wrap), not through. */
+    aroundNetworkFraction: number;
+    /** Corridor cells inside a concentration AABB without opposite-side sandwich. */
+    zoneNetworkFraction: number;
+    /** Corridor cells that bisect mass (opposite-side sandwich). */
+    throughNetworkFraction: number;
+    /**
+     * Skeleton junction density: junctions per occupancy-unit of skeleton
+     * length. Scale-aware; not raw junction count and not junctions per
+     * component.
      */
     branching: number;
+    skeletonEndpoints: number;
+    skeletonNodes: number;
+    /** Cycle rank of the skeleton graph (edges − nodes + components). */
+    cycleRank: number;
+    /** cycleRank / max(1, nodes), in [0, 1]. Diagnostic; not used in Connectivity scoring (saturated on live 8-connected skeletons). */
+    cycleDensity: number;
+    branchCount: number;
+    /** 1 − CV of skeleton branch lengths; 0 if fewer than two branches. */
+    branchLengthRegularity: number;
+  };
+  /**
+   * Analysis domain metadata. The Skill 1 empty perimeter is a boundary
+   * condition, not architectural openness.
+   */
+  analysis: {
+    /** Occupancy-space margin matching Skill 1 edge suppression. */
+    edgeSuppressionMargin: number;
+    interiorCellCount: number;
+    boundaryRingCellCount: number;
+    /** Interior width in occupancy-cell units (`size - 2 * margin`). */
+    interiorExtent: number;
   };
   /**
    * Absence / low activity → physical void. Distinguishes significant voids
@@ -193,13 +258,16 @@ export type MorphologicalMeasurements = {
     largestVoidFraction: number;
     /** Alias of largestVoidFraction: how much void is one continuous body. */
     voidContinuity: number;
-    /** Mean axis-aligned void run length in occupancy-cell units. */
+    /** Mean axis-aligned void run length in occupancy-cell units (interior domain). */
     meanOpenSpan: number;
-    /** Longest axis-aligned void run in occupancy-cell units. */
+    /** Longest axis-aligned void run in occupancy-cell units (interior domain). */
     maxOpenSpan: number;
     /** Mean area of significant void components, occupancy-cell units. */
     meanSignificantArea: number;
-    /** Fraction of field-boundary cells that are void, in [0, 1]. */
+    /**
+     * Fraction of the interior-domain inner perimeter that is void, in [0, 1].
+     * The Skill 1 empty outer ring is excluded and cannot create this value.
+     */
     boundaryOpenFraction: number;
   };
   topology: {
@@ -213,6 +281,15 @@ export type MorphologicalMeasurements = {
     anisotropy: number;
     /** Morphology cells / axis-aligned morphological bounding box, in [0, 1]. */
     boundingBoxFill: number;
+    /**
+     * From interior void next to morphology, fraction of N4 directions that
+     * hit morphology within a local radius. Not courtyard enclosure.
+     */
+    directionalSurround: number;
+    /** Mean occupancy-unit thickness of morphology encountered from those voids. */
+    morphologicalDepth: number;
+    /** Axis-aligned morph↔void transitions per interior line, saturated. */
+    layering: number;
   };
   /**
    * Abstract potential occupation: relatively horizontal, sufficiently
@@ -234,6 +311,10 @@ export type MorphologicalMeasurements = {
     voidSizeVariation: number;
     connectionThicknessVariation: number;
     overallVariation: number;
+    /** Count of size observations used for overallVariation. */
+    elementCount: number;
+    /** 1 when fewer than two comparable elements exist (CV would be a sentinel). */
+    insufficientElements: number;
   };
 };
 

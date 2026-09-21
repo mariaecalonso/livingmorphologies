@@ -29,7 +29,19 @@ export type MorphologicalExtractionConfig = {
    * (Skill 1 y increases away from the bottom source).
    */
   minSupportClearanceFraction: number;
+  /**
+   * Occupancy-space distance matching Skill 1 engine edge suppression
+   * (`edge < 2.6` → deposit × 0.012). Analysis excludes this outer ring
+   * where relevant. Not a simulation parameter.
+   */
+  analysisEdgeMargin: number;
 };
+
+/**
+ * Copied from Skill 1 `engine.ts` deposit suppression (`edge < 2.6`).
+ * Duplicated so Skill 2 analysis does not import or modify Skill 1.
+ */
+export const SKILL1_EDGE_SUPPRESSION_MARGIN = 2.6;
 
 export const DEFAULT_MORPHOLOGICAL_EXTRACTION: MorphologicalExtractionConfig = {
   voidMaxRelative: 0.08,
@@ -39,6 +51,7 @@ export const DEFAULT_MORPHOLOGICAL_EXTRACTION: MorphologicalExtractionConfig = {
   minBridgeLength: 0.5,
   minSupportLength: 2,
   minSupportClearanceFraction: 0.5,
+  analysisEdgeMargin: SKILL1_EDGE_SUPPRESSION_MARGIN,
 };
 
 export function resolveExtractionConfig(

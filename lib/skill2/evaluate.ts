@@ -54,53 +54,66 @@ const observedAxes: Record<
         0.2 * saturate(Math.max(0, m.topology.connectedComponentCount - 1), c.complexityComponentCap - 1) +
         0.2 * saturate(m.proportion.overallVariation, c.variationCap),
     ),
-  proportionalVariation: (m, c) => saturate(m.proportion.overallVariation, c.variationCap),
+  proportionalVariation: (m, c) => {
+    if (m.proportion.insufficientElements >= 1) return 0.5;
+    return saturate(m.proportion.overallVariation, c.variationCap);
+  },
   circulationMix: (m) =>
-    clamp01(0.5 * m.connection.meanPerimeterContact + 0.5 * m.connection.footprintOverlap),
-  opennessAmount: (m) =>
-    clamp01(
+    clamp01(m.connection.throughNetworkFraction + 0.5 * m.connection.zoneNetworkFraction),
+  opennessAmount: (m) => {
+    const extent = Math.max(1e-9, m.analysis.interiorExtent);
+    return clamp01(
       0.3 * m.void.voidFraction +
         0.25 * m.void.largestVoidFraction +
-        0.2 * m.void.voidContinuity +
-        0.25 * (1 - m.topology.enclosure),
-    ),
+        0.2 * (1 - m.topology.enclosure) +
+        0.25 * clamp01(m.void.maxOpenSpan / extent),
+    );
+  },
   connectivityAmount: (m, c) => {
-    if (m.connection.pairOpportunityCount < 1) return 0;
-    const pairFrac = m.connection.linkedPairCount / m.connection.pairOpportunityCount;
-    const bridges = saturate(m.connection.bridgeCount, c.connectivityBridgeCap);
-    return clamp01(0.7 * pairFrac + 0.3 * bridges);
+    const massRel =
+      m.connection.pairOpportunityCount < 1
+        ? 0
+        : m.connection.linkedPairCount / m.connection.pairOpportunityCount;
+    const compact =
+      m.connection.branchCount < 2 && m.connection.skeletonEndpoints <= 2;
+    if (compact && massRel === 0) return 0;
+    const networkRel = clamp01(
+      0.5 * saturate(m.connection.skeletonEndpoints, 8) +
+        0.5 * saturate(m.connection.branching, 3),
+    );
+    const bridgeRel = saturate(m.connection.bridgeCount, c.connectivityBridgeCap);
+    return clamp01(0.4 * massRel + 0.4 * networkRel + 0.2 * bridgeRel);
   },
   circulationConstitution: (m) =>
-    clamp01(
-      0.45 * m.connection.footprintOverlap +
-        0.35 * m.connection.meanPerimeterContact +
-        0.2 * (1 - m.mass.scaleHierarchy),
-    ),
+    clamp01(m.connection.throughNetworkFraction + 0.5 * m.connection.zoneNetworkFraction),
   spatialImmersion: (m, c) =>
     clamp01(
-      0.28 * m.topology.enclosure +
-        0.22 * saturate(m.activity.densityVariation, c.densityVariationCap) +
-        0.2 * m.mass.scaleHierarchy +
-        0.15 * m.activity.spatialSpread +
-        0.15 * m.void.voidContinuity,
+      0.28 * m.topology.directionalSurround +
+        0.22 * saturate(m.topology.morphologicalDepth, 3) +
+        0.18 * m.topology.layering +
+        0.18 * saturate(m.activity.densityVariation, c.densityVariationCap) +
+        0.1 * m.activity.spatialSpread +
+        0.04 * m.topology.enclosure,
     ),
   visibilityAmount: (m) => {
-    const spanNorm = Math.max(1, m.field.size);
+    const extent = Math.max(1e-9, m.analysis.interiorExtent);
     return clamp01(
-      0.4 * clamp01(m.void.maxOpenSpan / spanNorm) +
-        0.4 * clamp01(m.void.meanOpenSpan / spanNorm) +
-        0.2 * m.void.voidContinuity,
+      0.4 * clamp01(m.void.maxOpenSpan / extent) +
+        0.4 * clamp01(m.void.meanOpenSpan / extent) +
+        0.2 * (1 - m.topology.enclosure),
     );
   },
   proximityAmount: (m) => {
-    const area = Math.max(1, m.field.size * m.field.size);
-    const diagonal = Math.max(1, m.field.size * Math.SQRT2);
-    const generous = clamp01(
-      0.4 * m.activity.spatialSpread +
-        0.3 * clamp01(m.mass.meanCentroidSeparation / diagonal) +
-        0.3 * clamp01(m.void.meanSignificantArea / area),
-    );
-    return clamp01(1 - generous);
+    const extent = Math.max(1e-9, m.analysis.interiorExtent);
+    if (m.mass.concentrationCount < 2) {
+      const separation = clamp01(
+        0.5 * m.void.voidFraction + 0.5 * clamp01(m.void.meanOpenSpan / extent),
+      );
+      return clamp01(1 - separation);
+    }
+    const nn = clamp01(m.mass.meanNearestNeighbor / extent);
+    const voidSep = clamp01(m.void.meanOpenSpan / extent);
+    return clamp01(0.5 * (1 - nn) + 0.5 * (1 - voidSep));
   },
   centralityAmount: (m) =>
     clamp01(0.65 * m.mass.dominantCenterProximity + 0.35 * m.activity.centerProximity),
@@ -113,24 +126,28 @@ const observedAxes: Record<
         0.2 * saturate(m.proportion.overallVariation, c.variationCap),
     ),
   modularityAmount: (m, c) => {
-    if (m.mass.concentrationCount < 2) return 0;
-    return clamp01(
-      0.4 * saturate(m.mass.concentrationCount - 1, c.complexityConcentrationCap - 1) +
-        0.35 * m.mass.sizeRegularity +
-        0.25 * m.mass.spacingRegularity,
-    );
+    if (m.mass.concentrationCount >= 2) {
+      return clamp01(
+        0.4 * saturate(m.mass.concentrationCount - 1, c.complexityConcentrationCap - 1) +
+          0.35 * m.mass.sizeRegularity +
+          0.25 * m.mass.spacingRegularity,
+      );
+    }
+    if (m.connection.branchCount >= 3) {
+      const units = saturate(m.connection.branchCount - 2, 6);
+      return clamp01(
+        0.5 * units * m.connection.branchLengthRegularity + 0.5 * m.connection.branchLengthRegularity,
+      );
+    }
+    return 0;
   },
   receptivitySpatial: (m) =>
-    clamp01(
-      0.45 * m.void.boundaryOpenFraction +
-        0.3 * (1 - m.topology.enclosure) +
-        0.25 * m.occupation.potentialOccupationFraction,
-    ),
+    clamp01(0.55 * m.void.boundaryOpenFraction + 0.45 * (1 - m.topology.enclosure)),
   collaborationAmount: (m) => {
-    const spanNorm = Math.max(1, m.field.size);
-    const visual = clamp01(m.void.meanOpenSpan / spanNorm);
-    if (m.connection.pairOpportunityCount < 1) {
-      return clamp01(0.5 * m.occupation.potentialOccupationFraction + 0.5 * m.void.voidContinuity);
+    const extent = Math.max(1e-9, m.analysis.interiorExtent);
+    const visual = clamp01(m.void.meanOpenSpan / extent);
+    if (m.mass.concentrationCount < 2 || m.connection.pairOpportunityCount < 1) {
+      return clamp01(0.6 * visual + 0.4 * m.void.voidContinuity);
     }
     const pairFrac = m.connection.linkedPairCount / m.connection.pairOpportunityCount;
     return clamp01(0.4 * m.mass.clusteredness + 0.3 * pairFrac + 0.3 * visual);

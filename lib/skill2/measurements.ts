@@ -257,16 +257,123 @@ const countSkeletonJunctions = (skel: Uint8Array, width: number, height: number)
   return { junctions, length };
 };
 
+const skeletonDegree = (skel: Uint8Array, width: number, height: number, i: number) => {
+  const x = i % width;
+  const y = (i - x) / width;
+  let neighbors = 0;
+  for (const [ox, oy] of N8) {
+    const nx = x + ox;
+    const ny = y + oy;
+    if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+    if (skel[ny * width + nx]) neighbors += 1;
+  }
+  return neighbors;
+};
+
+/**
+ * Junction/endpoint graph of a skeleton. Cycle rank is
+ * max(0, edges − nodes + components), with a pure loop (no nodes)
+ * counting as one cycle. Branch lengths are occupancy units.
+ */
+const analyzeSkeletonGraph = (
+  skel: Uint8Array,
+  width: number,
+  height: number,
+  cell: number,
+) => {
+  let endpoints = 0;
+  const nodeSet = new Set<number>();
+  for (let i = 0; i < skel.length; i += 1) {
+    if (!skel[i]) continue;
+    const degree = skeletonDegree(skel, width, height, i);
+    if (degree === 1) endpoints += 1;
+    if (degree !== 2) nodeSet.add(i);
+  }
+  const skelMask = skel;
+  const components = connectedComponents(skelMask, width, height);
+  let edges = 0;
+  let cycleRank = 0;
+  const branchLengths: number[] = [];
+  const walkBranch = (start: number, first: number) => {
+    let prev = start;
+    let cur = first;
+    let steps = 1;
+    const seen = new Set<number>([start, first]);
+    while (cur >= 0) {
+      if (nodeSet.has(cur) && cur !== start) return { end: cur, steps };
+      const x = cur % width;
+      const y = (cur - x) / width;
+      let next = -1;
+      for (const [ox, oy] of N8) {
+        const nx = x + ox;
+        const ny = y + oy;
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+        const ni = ny * width + nx;
+        if (!skel[ni] || seen.has(ni) || ni === prev) continue;
+        next = ni;
+        break;
+      }
+      if (next < 0) return { end: cur, steps };
+      seen.add(next);
+      prev = cur;
+      cur = next;
+      steps += 1;
+      if (steps > width * height) return { end: cur, steps };
+    }
+    return { end: cur, steps };
+  };
+  const edgeKeys = new Set<string>();
+  for (const component of components) {
+    const nodes = component.cells.filter((i) => nodeSet.has(i));
+    if (nodes.length === 0) {
+      if (component.cells.length >= 4) cycleRank += 1;
+      continue;
+    }
+    for (const node of nodes) {
+      const x = node % width;
+      const y = (node - x) / width;
+      for (const [ox, oy] of N8) {
+        const nx = x + ox;
+        const ny = y + oy;
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+        const ni = ny * width + nx;
+        if (!skel[ni]) continue;
+        const { end, steps } = nodeSet.has(ni) ? { end: ni, steps: 1 } : walkBranch(node, ni);
+        if (end < 0 || end === node) continue;
+        const key = node < end ? `${node}-${end}-${steps}` : `${end}-${node}-${steps}`;
+        if (edgeKeys.has(key)) continue;
+        edgeKeys.add(key);
+        edges += 1;
+        branchLengths.push(steps * cell);
+      }
+    }
+  }
+  cycleRank += Math.max(0, edges - nodeSet.size + components.length);
+  const branchLengthRegularity =
+    branchLengths.length >= 2 ? clamp01(1 - coefficientOfVariation(branchLengths)) : 0;
+  return {
+    endpoints,
+    nodes: nodeSet.size,
+    edges,
+    cycleRank,
+    branchCount: branchLengths.length,
+    branchLengthRegularity,
+    branchLengths,
+  };
+};
+
 const axisAlignedVoidRuns = (
   voidMask: Uint8Array,
   width: number,
   height: number,
+  domain?: Uint8Array,
 ) => {
+  const open = (i: number) => Boolean(voidMask[i] && (!domain || domain[i]));
   const runs: number[] = [];
   for (let y = 0; y < height; y += 1) {
     let run = 0;
     for (let x = 0; x <= width; x += 1) {
-      const inside = x < width && voidMask[y * width + x];
+      const inside = x < width && open(y * width + x);
       if (inside) run += 1;
       else if (run > 0) {
         runs.push(run);
@@ -277,7 +384,7 @@ const axisAlignedVoidRuns = (
   for (let x = 0; x < width; x += 1) {
     let run = 0;
     for (let y = 0; y <= height; y += 1) {
-      const inside = y < height && voidMask[y * width + x];
+      const inside = y < height && open(y * width + x);
       if (inside) run += 1;
       else if (run > 0) {
         runs.push(run);
@@ -287,6 +394,34 @@ const axisAlignedVoidRuns = (
   }
   return runs;
 };
+
+/**
+ * Interior analysis domain: occupancy cells farther than Skill 1 edge
+ * suppression from the field border. Empty perimeter is a simulation
+ * boundary condition, not morphological openness.
+ */
+export function buildInteriorMask(
+  width: number,
+  height: number,
+  occupancySize: number,
+  margin: number,
+): Uint8Array {
+  const interior = new Uint8Array(Math.max(0, width * height));
+  if (width <= 0 || height <= 0) return interior;
+  if (occupancySize <= 0 || margin <= 0) {
+    interior.fill(1);
+    return interior;
+  }
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const ox = ((x + 0.5) * occupancySize) / width;
+      const oy = ((y + 0.5) * occupancySize) / height;
+      const edge = Math.min(ox, oy, occupancySize - ox, occupancySize - oy);
+      if (edge >= margin) interior[y * width + x] = 1;
+    }
+  }
+  return interior;
+}
 
 const morphologyReachable = (
   morphology: Uint8Array,
@@ -372,6 +507,33 @@ export function measureMorphologyDetailed(
       }
     }
   }
+
+  const interior = buildInteriorMask(width, height, occupancySize, config.analysisEdgeMargin);
+  let interiorCellCount = 0;
+  let interiorVoidCells = 0;
+  let interiorMinX = width;
+  let interiorMaxX = -1;
+  let interiorMinY = height;
+  let interiorMaxY = -1;
+  const interiorVoidMask = new Uint8Array(fieldCells);
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!interior[i]) continue;
+    interiorCellCount += 1;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x < interiorMinX) interiorMinX = x;
+    if (x > interiorMaxX) interiorMaxX = x;
+    if (y < interiorMinY) interiorMinY = y;
+    if (y > interiorMaxY) interiorMaxY = y;
+    if (voidMask[i]) {
+      interiorVoidMask[i] = 1;
+      interiorVoidCells += 1;
+    }
+  }
+  const interiorExtent =
+    interiorMaxX >= interiorMinX
+      ? Math.max(interiorMaxX - interiorMinX + 1, interiorMaxY - interiorMinY + 1) * cell
+      : Math.max(0, occupancySize - 2 * config.analysisEdgeMargin);
 
   const minMassCells = Math.max(1, Math.round(config.minConcentrationArea / areaUnit));
   const minVoidCells = Math.max(1, Math.round(config.minSignificantVoidArea / areaUnit));
@@ -471,21 +633,51 @@ export function measureMorphologyDetailed(
 
   let overlapCells = 0;
   let corridorCount = 0;
-  for (let i = 0; i < fieldCells; i += 1) {
-    if (!corridorMask[i]) continue;
-    corridorCount += 1;
-    const x = i % width;
-    const y = (i - x) / width;
-    const inside = concentrations.some(
+  let embeddedCells = 0;
+  let farCells = 0;
+  let aroundCells = 0;
+  let zoneCells = 0;
+  let throughCells = 0;
+  const insideAabb = (x: number, y: number) =>
+    concentrations.some(
       (component) =>
         x >= component.minX &&
         x <= component.maxX &&
         y >= component.minY &&
         y <= component.maxY,
     );
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!corridorMask[i] || !interior[i]) continue;
+    corridorCount += 1;
+    const x = i % width;
+    const y = (i - x) / width;
+    const inside = insideAabb(x, y);
     if (inside) overlapCells += 1;
+    const left = x > 0 && massMask[i - 1];
+    const right = x < width - 1 && massMask[i + 1];
+    const up = y > 0 && massMask[i - width];
+    const down = y < height - 1 && massMask[i + width];
+    const sandwich = (left && right) || (up && down);
+    if (sandwich) embeddedCells += 1;
+    const n4Mass = neighborConcentrationIds(i).size > 0;
+    // Precedence: through > around/wrap (N4 boundary) > zone (AABB, not wrap) > far.
+    // Wrap that sits inside a fat concentration AABB stays AROUND, not ZONE.
+    if (sandwich) {
+      throughCells += 1;
+    } else if (n4Mass) {
+      aroundCells += 1;
+    } else if (inside) {
+      zoneCells += 1;
+    } else {
+      farCells += 1;
+    }
   }
   const footprintOverlap = corridorCount > 0 ? overlapCells / corridorCount : 0;
+  const embeddedNetworkFraction = corridorCount > 0 ? embeddedCells / corridorCount : 0;
+  const farNetworkFraction = corridorCount > 0 ? farCells / corridorCount : 1;
+  const aroundNetworkFraction = corridorCount > 0 ? aroundCells / corridorCount : 0;
+  const zoneNetworkFraction = corridorCount > 0 ? zoneCells / corridorCount : 0;
+  const throughNetworkFraction = corridorCount > 0 ? throughCells / corridorCount : 0;
 
   const centroids = concentrations.map((component) => {
     let sx = 0;
@@ -512,39 +704,149 @@ export function measureMorphologyDetailed(
 
   const skel = skeletonize(morphMask, width, height);
   const { junctions, length: skeletonLength } = countSkeletonJunctions(skel, width, height);
-  const branching =
-    morphComponents.length === 0 ? 0 : junctions / morphComponents.length;
+  const skeletonOccupancyLength = skeletonLength * cell;
+  const branching = skeletonOccupancyLength > 1e-9 ? junctions / skeletonOccupancyLength : 0;
+  const graph = analyzeSkeletonGraph(skel, width, height, cell);
+  const cycleDensity =
+    graph.nodes > 0 ? graph.cycleRank / graph.nodes : graph.cycleRank > 0 ? 1 : 0;
 
-  const voidComponents = connectedComponents(voidMask, width, height);
+  const interiorCorridorMask = new Uint8Array(fieldCells);
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (corridorMask[i] && interior[i]) interiorCorridorMask[i] = 1;
+  }
+  const interiorCorridorComponents = connectedComponents(interiorCorridorMask, width, height);
+  let separatedCorridorCells = 0;
+  let interiorCorridorCells = 0;
+  for (const component of interiorCorridorComponents) {
+    interiorCorridorCells += component.cells.length;
+    const touchesMass = component.cells.some((i) => neighborConcentrationIds(i).size > 0);
+    if (!touchesMass) separatedCorridorCells += component.cells.length;
+  }
+  const separatedNetworkFraction =
+    interiorCorridorCells > 0 ? separatedCorridorCells / interiorCorridorCells : 1;
+
+  const voidComponents = connectedComponents(interiorVoidMask, width, height);
   const significantVoids = voidComponents.filter((component) => component.cells.length >= minVoidCells);
   const residualGaps = voidComponents.filter((component) => component.cells.length < minVoidCells);
   const voidSizes = voidComponents.map((component) => component.cells.length);
   const largestVoid = voidSizes.reduce((acc, n) => Math.max(acc, n), 0);
-  const largestVoidFraction = voidCells > 0 ? largestVoid / voidCells : 0;
+  const largestVoidFraction = interiorVoidCells > 0 ? largestVoid / interiorVoidCells : 0;
 
-  let enclosed = 0;
-  let exposed = 0;
-  for (const component of significantVoids) {
-    for (const i of component.cells) {
-      const x = i % width;
-      const y = (i - x) / width;
-      for (const [ox, oy] of N4) {
-        const nx = x + ox;
-        const ny = y + oy;
-        if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
-          exposed += 1;
-          continue;
-        }
-        const ni = ny * width + nx;
-        if (morphMask[ni]) enclosed += 1;
+  const innerPerimeterSeeds: number[] = [];
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!interior[i] || !interiorVoidMask[i]) continue;
+    const x = i % width;
+    const y = (i - x) / width;
+    let nextToRing = false;
+    for (const [ox, oy] of N4) {
+      const nx = x + ox;
+      const ny = y + oy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
+        nextToRing = true;
+        break;
+      }
+      const ni = ny * width + nx;
+      if (!interior[ni]) {
+        nextToRing = true;
+        break;
       }
     }
+    if (nextToRing) innerPerimeterSeeds.push(i);
   }
-  const enclosure = enclosed + exposed > 0 ? enclosed / (enclosed + exposed) : 0;
+  const openInteriorVoid = morphologyReachable(interiorVoidMask, width, height, innerPerimeterSeeds);
+  let openVoidCells = 0;
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (openInteriorVoid[i]) openVoidCells += 1;
+  }
+  const enclosure =
+    interiorVoidCells > 0 ? clamp01(1 - openVoidCells / interiorVoidCells) : 0;
 
-  const voidRuns = axisAlignedVoidRuns(voidMask, width, height);
+  const voidRuns = axisAlignedVoidRuns(interiorVoidMask, width, height, interior);
   const maxOpenSpan = (voidRuns.reduce((acc, n) => Math.max(acc, n), 0) || 0) * cell;
   const meanOpenSpan = mean(voidRuns) * cell;
+
+  const surroundRadius = Math.max(2, Math.round(2.5 / Math.max(cell, 1e-9)));
+  let surroundSum = 0;
+  let surroundSamples = 0;
+  let depthSum = 0;
+  let depthSamples = 0;
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!interior[i] || !interiorVoidMask[i]) continue;
+    const x = i % width;
+    const y = (i - x) / width;
+    let hits = 0;
+    let nearMorph = false;
+    for (const [ox, oy] of N4) {
+      let seenMorph = false;
+      let morphRun = 0;
+      for (let step = 1; step <= surroundRadius; step += 1) {
+        const nx = x + ox * step;
+        const ny = y + oy * step;
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) break;
+        const ni = ny * width + nx;
+        if (!interior[ni]) break;
+        if (morphMask[ni]) {
+          seenMorph = true;
+          nearMorph = true;
+          morphRun += 1;
+        } else if (seenMorph) {
+          break;
+        } else if (!interiorVoidMask[ni]) {
+          break;
+        }
+      }
+      if (seenMorph) {
+        hits += 1;
+        depthSum += morphRun * cell;
+        depthSamples += 1;
+      }
+    }
+    if (!nearMorph) continue;
+    surroundSum += hits / 4;
+    surroundSamples += 1;
+  }
+  const directionalSurround = surroundSamples > 0 ? surroundSum / surroundSamples : 0;
+  const morphologicalDepth = depthSamples > 0 ? depthSum / depthSamples : 0;
+
+  let layerTransitions = 0;
+  let layerLines = 0;
+  for (let y = 0; y < height; y += 1) {
+    let prev: 0 | 1 | 2 | null = null;
+    let used = false;
+    for (let x = 0; x < width; x += 1) {
+      const i = y * width + x;
+      if (!interior[i]) {
+        prev = null;
+        continue;
+      }
+      used = true;
+      const kind: 0 | 1 | 2 = morphMask[i] ? 1 : interiorVoidMask[i] ? 0 : 2;
+      if (prev !== null && prev !== kind && (prev === 0 || prev === 1) && (kind === 0 || kind === 1)) {
+        layerTransitions += 1;
+      }
+      prev = kind;
+    }
+    if (used) layerLines += 1;
+  }
+  for (let x = 0; x < width; x += 1) {
+    let prev: 0 | 1 | 2 | null = null;
+    let used = false;
+    for (let y = 0; y < height; y += 1) {
+      const i = y * width + x;
+      if (!interior[i]) {
+        prev = null;
+        continue;
+      }
+      used = true;
+      const kind: 0 | 1 | 2 = morphMask[i] ? 1 : interiorVoidMask[i] ? 0 : 2;
+      if (prev !== null && prev !== kind && (prev === 0 || prev === 1) && (kind === 0 || kind === 1)) {
+        layerTransitions += 1;
+      }
+      prev = kind;
+    }
+    if (used) layerLines += 1;
+  }
+  const layering = clamp01(layerTransitions / Math.max(1, layerLines) / 4);
 
   const concentrationAreas = concentrations.map((component) => component.cells.length * areaUnit);
   const concentrationIntensities = concentrations.map((component) =>
@@ -638,6 +940,7 @@ export function measureMorphologyDetailed(
     nearest.length > 0 && occupancyHalfDiag > 0
       ? clamp01(1 - mean(nearest) / occupancyHalfDiag)
       : 0;
+  const meanNearestNeighbor = finite(mean(nearest));
 
   let morphMinX = width;
   let morphMaxX = -1;
@@ -687,33 +990,57 @@ export function measureMorphologyDetailed(
     morphMaxX >= morphMinX ? (morphMaxX - morphMinX + 1) * (morphMaxY - morphMinY + 1) : 0;
   const boundingBoxFill = bboxArea > 0 ? clamp01(morphCount / bboxArea) : 0;
 
-  let boundaryCells = 0;
-  let boundaryVoid = 0;
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      if (x > 0 && x < width - 1 && y > 0 && y < height - 1) continue;
-      boundaryCells += 1;
-      if (voidMask[y * width + x]) boundaryVoid += 1;
+  let innerPerimeterCells = 0;
+  let innerPerimeterVoid = 0;
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!interior[i]) continue;
+    const x = i % width;
+    const y = (i - x) / width;
+    let nextToRing = false;
+    for (const [ox, oy] of N4) {
+      const nx = x + ox;
+      const ny = y + oy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
+        nextToRing = true;
+        break;
+      }
+      if (!interior[ny * width + nx]) {
+        nextToRing = true;
+        break;
+      }
     }
+    if (!nextToRing) continue;
+    innerPerimeterCells += 1;
+    if (interiorVoidMask[i]) innerPerimeterVoid += 1;
   }
-  const boundaryOpenFraction = boundaryCells > 0 ? boundaryVoid / boundaryCells : 0;
+  const boundaryOpenFraction = innerPerimeterCells > 0 ? innerPerimeterVoid / innerPerimeterCells : 0;
 
-  const concentrationSizeVariation = coefficientOfVariation(concentrationAreas);
-  const voidSizeVariation = coefficientOfVariation(
-    significantVoids.map((component) => component.cells.length * areaUnit),
-  );
-  const connectionThicknessVariation = coefficientOfVariation(bridgeThicknesses);
+  const significantVoidAreas = significantVoids.map((component) => component.cells.length * areaUnit);
+  const concentrationSizeVariation =
+    concentrations.length >= 2 ? coefficientOfVariation(concentrationAreas) : 0;
+  const voidSizeVariation =
+    significantVoids.length >= 2 ? coefficientOfVariation(significantVoidAreas) : 0;
+  const connectionThicknessVariation =
+    bridges.length >= 2 ? coefficientOfVariation(bridgeThicknesses) : 0;
   const variationParts = [
     concentrations.length >= 2 ? concentrationSizeVariation : null,
     significantVoids.length >= 2 ? voidSizeVariation : null,
     bridges.length >= 2 ? connectionThicknessVariation : null,
   ].filter((value): value is number => value !== null);
+  const elementCount = variationParts.length;
+  const insufficientElements = variationParts.length === 0 ? 1 : 0;
   const overallVariation = variationParts.length ? mean(variationParts) : 0;
 
   const measurements: MorphologicalMeasurements = {
     field: {
       size: occupancySize,
       height: SECTION_HEIGHT,
+    },
+    analysis: {
+      edgeSuppressionMargin: config.analysisEdgeMargin,
+      interiorCellCount,
+      boundaryRingCellCount: fieldCells - interiorCellCount,
+      interiorExtent: finite(interiorExtent),
     },
     activity: {
       meanDensity: clamp01(activitySum / fieldCells),
@@ -733,6 +1060,7 @@ export function measureMorphologyDetailed(
       sizeRegularity,
       spacingRegularity,
       clusteredness,
+      meanNearestNeighbor,
     },
     connection: {
       bridgeCount: bridges.length,
@@ -743,10 +1071,22 @@ export function measureMorphologyDetailed(
       linkedPairCount: linkedPairs,
       meanPerimeterContact: clamp01(meanPerimeterContact),
       footprintOverlap: clamp01(footprintOverlap),
+      embeddedNetworkFraction: clamp01(embeddedNetworkFraction),
+      separatedNetworkFraction: clamp01(separatedNetworkFraction),
+      farNetworkFraction: clamp01(farNetworkFraction),
+      aroundNetworkFraction: clamp01(aroundNetworkFraction),
+      zoneNetworkFraction: clamp01(zoneNetworkFraction),
+      throughNetworkFraction: clamp01(throughNetworkFraction),
       branching: finite(branching),
+      skeletonEndpoints: graph.endpoints,
+      skeletonNodes: graph.nodes,
+      cycleRank: graph.cycleRank,
+      cycleDensity: clamp01(cycleDensity),
+      branchCount: graph.branchCount,
+      branchLengthRegularity: clamp01(graph.branchLengthRegularity),
     },
     void: {
-      voidFraction: clamp01(voidCells / fieldCells),
+      voidFraction: clamp01(interiorCellCount > 0 ? interiorVoidCells / interiorCellCount : 1),
       significantVoidCount: significantVoids.length,
       residualGapCount: residualGaps.length,
       largestVoidFraction: clamp01(largestVoidFraction),
@@ -764,6 +1104,9 @@ export function measureMorphologyDetailed(
       enclosure: clamp01(enclosure),
       anisotropy,
       boundingBoxFill,
+      directionalSurround: clamp01(directionalSurround),
+      morphologicalDepth: finite(morphologicalDepth),
+      layering: clamp01(layering),
     },
     occupation: {
       potentialOccupationFraction: clamp01(supportCells / fieldCells),
@@ -776,6 +1119,8 @@ export function measureMorphologyDetailed(
       voidSizeVariation: finite(voidSizeVariation),
       connectionThicknessVariation: finite(connectionThicknessVariation),
       overallVariation: finite(overallVariation),
+      elementCount,
+      insufficientElements,
     },
   };
 
