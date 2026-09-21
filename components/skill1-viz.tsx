@@ -65,7 +65,7 @@ export function drawPlanField(
   options?: { showHud?: boolean; fine?: boolean; density?: number },
 ) {
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#05070a";
+  ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
   const fieldH = FIELD_SIZE * scale;
@@ -93,18 +93,18 @@ export function drawPlanField(
   ctx.globalCompositeOperation = "source-over";
   const sx = snapshot.source.x * scale;
   const sy = toCanvas(snapshot.source.y, fieldH, scale);
-  ctx.strokeStyle = "rgba(90, 220, 196, 0.85)";
+  ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
   ctx.lineWidth = 1.6;
   ctx.beginPath();
   ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.fillStyle = "rgba(90, 220, 196, 0.28)";
+  ctx.fillStyle = "rgba(15, 115, 119, 0.28)";
   ctx.beginPath();
   ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
   ctx.fill();
   const ax = snapshot.attractor.x * scale;
   const ay = toCanvas(snapshot.attractor.y, fieldH, scale);
-  ctx.fillStyle = "rgba(210, 138, 48, 0.7)";
+  ctx.fillStyle = "rgba(199, 126, 95, 0.7)";
   ctx.beginPath();
   ctx.arc(ax, ay, 2.4, 0, Math.PI * 2);
   ctx.fill();
@@ -126,10 +126,10 @@ const DIRS8: Array<[number, number]> = [
   [1, -1],
 ];
 function cyan(alpha: number) {
-  return `rgba(18, 208, 186, ${alpha})`;
+  return `rgba(15, 115, 119, ${alpha})`;
 }
 function orange(alpha: number) {
-  return `rgba(210, 138, 48, ${alpha})`;
+  return `rgba(199, 126, 95, ${alpha})`;
 }
 function bilerp(field: Float32Array, ts: number, x: number, y: number) {
   const x0 = Math.max(0, Math.min(ts - 1, Math.floor(x)));
@@ -308,20 +308,27 @@ function drawColonyBody(
         if (isCore) {
           const veining = Math.max(tTrunk, tMid, tFine);
           glow = 0.4 + n * 0.16 + veining * 0.08;
-          r = 216;
-          g = 146;
-          b = 52;
+          r = 199;
+          g = 126;
+          b = 95;
         } else if (orangeW >= cyanW) {
           glow = 0.34 + n * 0.2 + tTrunk * 0.08;
-          r = 210;
-          g = 138;
-          b = 48;
+          r = 199;
+          g = 126;
+          b = 95;
         } else {
           const t = Math.min(1, Math.max(0, (n - 0.1) / 0.5));
           glow = 0.38 + n * 0.22 + tHair * 0.08;
-          r = 18 + 192 * t;
-          g = 208 - 70 * t;
-          b = 186 - 134 * t;
+          if (n < 0.3) {
+            const neutral = 118 + 54 * t;
+            r = neutral;
+            g = neutral;
+            b = neutral;
+          } else {
+            r = 15 + 35 * t;
+            g = 115 + 70 * t;
+            b = 119 + 60 * t;
+          }
         }
         data[i] = Math.round(r * glow);
         data[i + 1] = Math.round(g * glow);
@@ -425,7 +432,7 @@ function drawCores(
   toX: (x: number) => number,
   toY: (y: number) => number,
 ) {
-  ctx.fillStyle = "rgba(210, 138, 48, 0.28)";
+  ctx.fillStyle = "rgba(199, 126, 95, 0.28)";
   for (let y = 2; y < ts - 2; y += 1) {
     const row = y * ts;
     for (let x = 2; x < ts - 2; x += 1) {
@@ -883,7 +890,7 @@ export function Skill1Timeline({
   density?: number;
 }) {
   return (
-    <div className="grid grid-cols-5 gap-1.5">
+    <div className="skill1-timeline grid grid-cols-5 gap-1.5">
       {SNAPSHOT_ITERATIONS.map((mark) => (
         <TimelineFrame
           key={mark}
@@ -917,21 +924,21 @@ function TimelineFrame({
   );
   return (
     <figure
-      className={`min-w-0 overflow-hidden border bg-[#050910] ${
-        active ? "border-[rgba(255,224,90,0.28)]" : "border-[rgba(0,228,255,0.12)]"
+      className={`skill1-timeline-frame min-w-0 overflow-hidden border bg-[#000000] ${
+        active ? "border-[rgba(199,126,95,0.5)]" : "border-[rgba(242,242,238,0.18)]"
       }`}
     >
-      <figcaption className="flex items-baseline justify-between gap-2 px-1.5 pt-1">
-        <span className="text-[0.52rem] uppercase tracking-[0.14em] text-[var(--cyan-hot)]">
+      <figcaption className="skill1-timeline-caption flex items-baseline justify-between gap-2 px-1.5 pt-1">
+        <span className="skill1-timeline-label text-[0.52rem] uppercase tracking-[0.14em] text-[var(--soft)]">
           Iteration {mark}
         </span>
       </figcaption>
       {compact ? null : (
-        <p className="px-1.5 pb-1 text-[0.5rem] uppercase tracking-[0.08em] text-[var(--muted)]">
+        <p className="skill1-timeline-description px-1.5 pb-1 text-[0.5rem] uppercase tracking-[0.08em] text-[var(--muted)]">
           {PLAN_LABELS[mark]}
         </p>
       )}
-      <div className={`relative w-full ${compact ? "aspect-[6/5]" : "aspect-[5/4]"}`}>
+      <div className={`skill1-timeline-canvas relative w-full ${compact ? "aspect-[6/5]" : "aspect-[5/4]"}`}>
         <canvas ref={ref} className="h-full w-full" role="img" aria-label={`Iteration ${mark} field`} />
       </div>
     </figure>
@@ -950,15 +957,15 @@ export function Skill1PlanView({
     [snapshot, snapshot?.iteration, snapshot?.paths, density],
   );
   return (
-    <div className="relative h-full w-full">
+    <div className="skill1-plan-view relative h-full w-full">
       <canvas
         ref={ref}
-        className="h-full w-full"
+        className="skill1-plan-canvas h-full w-full"
         role="img"
         aria-label="2D Physarum agent field"
       />
       {!snapshot ? (
-        <p className="pointer-events-none absolute inset-x-0 top-3 text-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
+        <p className="skill1-plan-empty-caption pointer-events-none absolute inset-x-0 top-3 text-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
           Empty field — generate to emit agents
         </p>
       ) : null}

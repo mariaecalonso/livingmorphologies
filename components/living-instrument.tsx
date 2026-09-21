@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AxonModel, SectionDrawing } from "@/components/drawings";
+import { DisplayMode, DisplayModeToggle } from "@/components/display-mode-toggle";
 import {
   IconAtmospheric,
   IconFormal,
@@ -29,7 +30,7 @@ import {
   groupsForArchetype,
   ratingDescription,
 } from "@/lib/catalog";
-import { criteriaFit, mulberry32, ratingLabel } from "@/lib/physarum";
+import { mulberry32, ratingLabel } from "@/lib/physarum";
 import {
   captureSnapshot,
   createSimulation,
@@ -52,6 +53,17 @@ const GROUP_ICON = {
 } as const;
 
 const SIMULATION_INTERVAL = 50;
+
+const PRESENTATION_WORKFLOW_STEPS = [
+  { label: "Typology", focus: "Typology" },
+  { label: "Archetype", focus: "Archetype" },
+  { label: "Criteria", focus: "Criteria" },
+  { label: "Descriptors", focus: "Descriptors" },
+  { label: "Physarum", focus: "Physarum" },
+  { label: "2D Section", focus: "2D Section" },
+  { label: "2.5D Propagation", focus: "Iteration" },
+  { label: "3D Model", focus: "3D Model" },
+] as const;
 
 export function LivingInstrument() {
   const [typologyId, setTypologyId] = useState<TypologyId>("lobby");
@@ -77,10 +89,10 @@ export function LivingInstrument() {
     showTrails: true,
     showAttraction: true,
   });
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("desktop");
 
   const typology = findTypology(typologyId);
   const archetype = findArchetype(typology, archetypeId);
-  const original = defaultRatings(archetype);
   const groups = groupsForArchetype(typologyId, archetype, ratings);
   const catalogTranslation = useMemo(
     () => translateArchetype(archetype.id),
@@ -96,7 +108,6 @@ export function LivingInstrument() {
     };
   }, [catalogTranslation, ratings]);
   const behavior = useMemo(() => behaviorFromRatings(ratings), [ratings]);
-  const fit = criteriaFit(original, ratings, typologyId);
   const rngRef = useRef<() => number>(() => 0.5);
   const translationRef = useRef(translation);
   const vizRef = useRef(viz);
@@ -284,10 +295,10 @@ export function LivingInstrument() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col px-2 py-2 text-[13px] md:h-dvh md:overflow-hidden md:px-3 md:py-2.5">
-      <header className="mb-2 flex flex-wrap items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2">
-        <div>
-          <p className="display text-[1.05rem] text-white cyan-glow md:text-[1.25rem]">
+    <div className="living-instrument-shell flex min-h-dvh flex-col px-2 py-2 text-[13px] md:h-dvh md:overflow-hidden md:px-3 md:py-2.5" data-display-mode={displayMode}>
+      <header className="living-instrument-header mb-2 flex flex-wrap items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2">
+        <div className="living-instrument-header-identity">
+          <p className="display text-[1.05rem] text-white md:text-[1.25rem]">
             Living Morphologies
           </p>
           <p className="eyebrow mt-0.5 text-[0.58rem]">Emergent Network</p>
@@ -304,8 +315,8 @@ export function LivingInstrument() {
                 onClick={() => selectTypology(item.id)}
                 className={`group relative min-w-[7.5rem] border px-4 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase transition ${
                   active
-                    ? "border-[var(--cyan)] bg-[rgba(0,228,255,0.12)] text-[var(--cyan-hot)] cyan-glow"
-                    : "border-[rgba(0,228,255,0.18)] text-[var(--muted)] hover:border-[var(--cyan-dim)] hover:text-[var(--text)]"
+                    ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.16),rgba(199,126,95,0.16))] text-white"
+                    : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
                 }`}
               >
                 {item.label}
@@ -316,45 +327,55 @@ export function LivingInstrument() {
             );
           })}
         </nav>
-        <label className="flex items-center gap-2 text-[0.68rem] tracking-[0.18em] uppercase text-[var(--muted)]">
-          <span className="inline-flex h-7 w-7 items-center justify-center border border-[var(--cyan-dim)]">
-            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4">
-              <rect x="3" y="5" width="18" height="14" />
-              <path d="M3 9h18" />
-            </svg>
-          </span>
-          <select
-            defaultValue="screen"
-            className="border border-[var(--cyan-dim)] bg-transparent px-2 py-1 text-[var(--text)]"
-          >
-            <option value="screen">Screen</option>
-          </select>
-        </label>
+        <div className="living-instrument-display-mode" aria-label="Display mode">
+          <DisplayModeToggle mode={displayMode} onModeChange={setDisplayMode} />
+        </div>
       </header>
 
-      <ol className="mb-2 flex gap-1 overflow-x-auto instrument-scroll pb-1">
-        {WORKFLOW_STEPS.map((step, index) => {
-          const active = step === focus;
-          return (
-            <li key={step} className="flex items-center gap-1">
-              <span
-                className={`whitespace-nowrap border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
-                  active
-                    ? "border-[var(--orange)] text-[var(--orange-hot)] orange-glow"
-                    : "border-[rgba(0,228,255,0.16)] text-[var(--muted)]"
-                }`}
-              >
-                {String(index + 1).padStart(2, "0")} {step}
-              </span>
-              {index < WORKFLOW_STEPS.length - 1 ? (
-                <span className="text-[var(--cyan-dim)]">›</span>
-              ) : null}
-            </li>
-          );
-        })}
+      <ol className="living-instrument-workflow mb-2 flex gap-1 overflow-x-auto instrument-scroll pb-1">
+        {displayMode === "presentation"
+          ? PRESENTATION_WORKFLOW_STEPS.map((step, index) => {
+              const active = step.focus === focus;
+              return (
+                <li key={step.label} className="flex items-center gap-1">
+                  <span
+                    className={`whitespace-nowrap border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
+                      active
+                        ? "border-[var(--orange)] text-[var(--orange-hot)] orange-glow"
+                        : "border-[rgba(242,242,238,0.14)] text-[var(--muted)]"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")} {step.label}
+                  </span>
+                  {index < PRESENTATION_WORKFLOW_STEPS.length - 1 ? (
+                    <span className="text-[var(--muted)]">›</span>
+                  ) : null}
+                </li>
+              );
+            })
+          : WORKFLOW_STEPS.map((step, index) => {
+              const active = step === focus;
+              return (
+                <li key={step} className="flex items-center gap-1">
+                  <span
+                    className={`whitespace-nowrap border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
+                      active
+                        ? "border-[var(--orange)] text-[var(--orange-hot)] orange-glow"
+                        : "border-[rgba(242,242,238,0.14)] text-[var(--muted)]"
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, "0")} {step}
+                  </span>
+                  {index < WORKFLOW_STEPS.length - 1 ? (
+                    <span className="text-[var(--muted)]">›</span>
+                  ) : null}
+                </li>
+              );
+            })}
       </ol>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[8rem_12.75rem_minmax(0,1fr)_15rem] md:grid-rows-[minmax(0,1fr)]">
+      <div className="living-instrument-content grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[8rem_12.75rem_minmax(0,1fr)_15rem] md:grid-rows-[minmax(0,1fr)]">
+        <section className="archetype-region">
         <Panel className="flex flex-col">
           <PanelHeader kicker="Input" title="Archetype" />
           <div className="flex flex-1 flex-col gap-1.5">
@@ -367,8 +388,8 @@ export function LivingInstrument() {
                   onClick={() => selectArchetype(item.id)}
                   className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
                     active
-                      ? "border-[var(--cyan)] bg-[rgba(0,228,255,0.16)] text-white"
-                      : "border-[rgba(0,228,255,0.16)] text-[var(--muted)] hover:text-[var(--text)]"
+                      ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
+                      : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
                   }`}
                 >
                   {item.name}
@@ -379,31 +400,33 @@ export function LivingInstrument() {
           <button
             type="button"
             onClick={saveIteration}
-            className="mt-3 inline-flex items-center justify-center gap-2 border border-[var(--cyan-dim)] px-3 py-2 text-[0.68rem] tracking-[0.22em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
+            className="mt-3 inline-flex items-center justify-center gap-2 border border-[rgba(242,242,238,0.28)] px-3 py-2 text-[0.68rem] tracking-[0.22em] uppercase text-[var(--text)] hover:border-[rgba(242,242,238,0.5)]"
           >
             <IconSave /> Save
           </button>
         </Panel>
+        </section>
 
+        <section className="criteria-region">
         <Panel className="flex min-h-0 flex-col">
           <PanelHeader
             kicker="Analysis"
             title="Criteria Configuration"
             aside={
-              <span className="border border-[rgba(0,228,255,0.28)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--cyan)]">
+              <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--muted)]">
                 Locked
               </span>
             }
           />
-          <div className="instrument-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+          <div className="criteria-groups instrument-scroll min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
             {groups.map((group) => {
               const Icon = GROUP_ICON[group.id];
               return (
                 <div
                   key={group.id}
-                  className="border border-[rgba(0,228,255,0.14)] bg-[rgba(0,20,28,0.35)] px-2 py-1.5"
+                  className="criteria-group border border-[rgba(242,242,238,0.14)] bg-[rgba(255,255,255,0.03)] px-2 py-1.5"
                 >
-                  <div className="mb-1 flex items-center gap-2 text-[var(--cyan)]">
+                  <div className="mb-1 flex items-center gap-2 text-[var(--text)]">
                     <Icon />
                     <div>
                       <p className="text-[0.66rem] tracking-[0.18em] uppercase">
@@ -457,8 +480,8 @@ export function LivingInstrument() {
                     <span>Medium</span>
                     <span>High</span>
                   </div>
-                  <p className="mt-1 border-t border-[rgba(0,228,255,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[#d5eef6]">
-                    <span className="mr-1 text-[0.48rem] tracking-[0.14em] text-[var(--cyan)]">
+                  <p className="mt-1 border-t border-[rgba(242,242,238,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[#d5eef6]">
+                    <span className="mr-1 text-[0.48rem] tracking-[0.14em] text-[var(--muted)]">
                       {group.title} descriptor
                     </span>
                     {group.descriptor}
@@ -467,9 +490,9 @@ export function LivingInstrument() {
               );
             })}
           </div>
-          <div className="mt-1.5 border border-[rgba(0,228,255,0.2)] bg-[rgba(0,40,48,0.28)] p-2">
+          <div className="descriptor-region mt-1.5 border border-[rgba(242,242,238,0.18)] bg-[rgba(255,255,255,0.04)] p-2">
             <div className="mb-1 flex items-center justify-between">
-              <p className="text-[0.58rem] tracking-[0.18em] uppercase text-[var(--cyan)]">
+              <p className="text-[0.58rem] tracking-[0.18em] uppercase text-[var(--text)]">
                 Generated Descriptor
               </p>
               <span className="text-[0.5rem] text-[var(--muted)]">v1.0</span>
@@ -489,185 +512,182 @@ export function LivingInstrument() {
             </ul>
           </div>
         </Panel>
+        </section>
 
-        <Panel padded={false} className="flex min-h-[22rem] min-w-0 flex-col md:min-h-0">
-          <div className="flex items-start justify-between gap-3 px-3 pt-3">
-            <div>
-              <p className="eyebrow">Physarum Workflow</p>
-              <h2 className="panel-title cyan-glow mt-1">Emergent Spatial Logic</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
-                  simulating
-                    ? "border-[var(--orange)] text-[var(--orange-hot)]"
-                    : "border-[var(--cyan-dim)] text-[var(--cyan)]"
-                }`}
-              >
-                {simulating ? "Simulating" : state?.converged ? "Converged" : "Stable"}
-              </span>
-              <span className="text-[0.62rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-                Iteration {String(simIteration).padStart(3, "0")}
-              </span>
-            </div>
-          </div>
-          <ol className="mt-3 flex gap-1 overflow-x-auto px-3 instrument-scroll">
-            {PHYSARUM_STEPS.map((step) => {
-              const active = step.n === 3;
-              return (
-                <li
-                  key={step.n}
-                  className={`min-w-[6.4rem] flex-1 border px-2 py-1.5 ${
-                    active
-                      ? "border-[var(--orange)] bg-[rgba(255,122,50,0.1)]"
-                      : "border-[rgba(0,228,255,0.16)]"
+        <section className="agent-system-region min-w-0">
+          <Panel padded={false} className="flex min-h-[22rem] min-w-0 flex-col">
+            <div className="flex items-start justify-between gap-3 px-3 pt-3">
+              <div>
+                <p className="eyebrow">Physarum Workflow</p>
+                <h2 className="panel-title mt-1">Emergent Spatial Logic</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
+                    simulating
+                      ? "border-[var(--orange)] text-[var(--orange-hot)]"
+                      : "border-[var(--cyan-dim)] text-[var(--cyan)]"
                   }`}
                 >
-                  <p className={`text-[0.62rem] tracking-[0.14em] uppercase ${active ? "text-[var(--orange-hot)]" : "text-[var(--cyan)]"}`}>
-                    {step.n} {step.title}
-                  </p>
-                  <p className="text-[0.58rem] text-[var(--muted)]">{step.caption}</p>
-                </li>
-              );
-            })}
-          </ol>
-          <div className="mt-2 grid grid-cols-3 gap-1.5 px-3">
-            <button
-              type="button"
-              onClick={generate}
-              className="border border-[var(--orange)] bg-[rgba(255,122,50,0.14)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--orange-hot)] hover:bg-[rgba(255,122,50,0.22)]"
-            >
-              Generate
-            </button>
-            <button
-              type="button"
-              onClick={resetField}
-              className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={regenerate}
-              className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
-            >
-              Regenerate
-            </button>
-          </div>
-          <div className="px-3 pt-2">
-            <Skill1Timeline snapshots={snapshots} currentIteration={simIteration} compact density={viz.density} />
-          </div>
-          <div className="relative mt-2 min-h-[16rem] flex-1 bg-[#071018]">
-            <Skill1PlanView snapshot={liveSnapshot} density={viz.density} />
-          </div>
-          <div className="flex items-center justify-between border-t border-[rgba(0,228,255,0.16)] px-3 py-2 text-[0.62rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-            <span>Physarum interpreting criteria · 2D agent field</span>
-            <span>Iteration {String(simIteration).padStart(3, "0")}</span>
-          </div>
-        </Panel>
+                  {simulating ? "Simulating" : state?.converged ? "Converged" : "Stable"}
+                </span>
+                <span className="text-[0.62rem] tracking-[0.16em] uppercase text-[var(--muted)]">
+                  Iteration {String(simIteration).padStart(3, "0")}
+                </span>
+              </div>
+            </div>
+            <ol className="mt-3 flex gap-1 overflow-x-auto px-3 instrument-scroll">
+              {PHYSARUM_STEPS.map((step) => {
+                const active = step.n === 3;
+                return (
+                  <li
+                    key={step.n}
+                    className={`min-w-[6.4rem] flex-1 border px-2 py-1.5 ${
+                      active
+                        ? "border-[var(--orange)] bg-[rgba(255,122,50,0.1)]"
+                        : "border-[rgba(0,228,255,0.16)]"
+                    }`}
+                  >
+                    <p className={`text-[0.62rem] tracking-[0.14em] uppercase ${active ? "text-[var(--orange-hot)]" : "text-[var(--cyan)]"}`}>
+                      {step.n} {step.title}
+                    </p>
+                    <p className="text-[0.58rem] text-[var(--muted)]">{step.caption}</p>
+                  </li>
+                );
+              })}
+            </ol>
 
-        <div className="instrument-scroll flex min-h-0 flex-col gap-2 overflow-y-auto">
-          <Panel>
-            <PanelHeader kicker={archetype.name} title="Agent Field" />
-            <div className="space-y-3">
-              <ArchetypeBehaviorPanel behavior={behavior} />
-              <ArchetypeSimulationSettings
-                behavior={behavior}
-                translation={translation}
-                viz={viz}
-                seed={seed}
-                onAgentCount={(value) =>
-                  setViz((current) => ({ ...current, agentCount: value }))
-                }
-                onDensity={(value) =>
-                  setViz((current) => ({ ...current, density: value }))
-                }
-                onSpeed={(value) => setViz((current) => ({ ...current, speed: value }))}
-              />
-              <ArchetypeVisualLegend />
-              <ArchetypeArchitecturalLayers topology={translation.topology} />
+            <div className="agent-system-body min-h-0 flex-1 px-3 pb-3 pt-2">
+              <aside className="agent-information instrument-scroll">
+                <div className="agent-information-header">
+                  <p className="eyebrow">{archetype.name}</p>
+                  <h3 className="panel-title mt-1">Biological / Agent Behavior</h3>
+                </div>
+                <div className="agent-logic">
+                  <ArchetypeBehaviorPanel behavior={behavior} />
+                  <ArchetypeSimulationSettings
+                    behavior={behavior}
+                    translation={translation}
+                    viz={viz}
+                    seed={seed}
+                    onAgentCount={(value) =>
+                      setViz((current) => ({ ...current, agentCount: value }))
+                    }
+                    onDensity={(value) =>
+                      setViz((current) => ({ ...current, density: value }))
+                    }
+                    onSpeed={(value) =>
+                      setViz((current) => ({ ...current, speed: value }))
+                    }
+                  />
+                  <ArchetypeVisualLegend />
+                  <ArchetypeArchitecturalLayers topology={translation.topology} />
+                </div>
+              </aside>
+
+              <section className="agent-history" aria-label="Iteration history">
+                <p className="eyebrow agent-zone-title">Iteration History</p>
+                <div className="agent-timeline">
+                  <Skill1Timeline
+                    snapshots={snapshots}
+                    currentIteration={simIteration}
+                    compact
+                    density={viz.density}
+                  />
+                </div>
+              </section>
+
+              <section className="agent-live" aria-label="Live agent field">
+                <div className="agent-live-header">
+                  <p className="eyebrow agent-zone-title">Live Agent Field</p>
+                  <span className="agent-live-iteration">
+                    Iteration {String(simIteration).padStart(3, "0")}
+                  </span>
+                </div>
+                <div className="agent-controls grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={generate}
+                    className="border border-[var(--orange)] bg-[rgba(255,122,50,0.14)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--orange-hot)] hover:bg-[rgba(255,122,50,0.22)]"
+                  >
+                    Generate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetField}
+                    className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={regenerate}
+                    className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
+                  >
+                    Regenerate
+                  </button>
+                </div>
+                <div className="agent-field relative min-h-0 flex-1 bg-[#000000]">
+                  <Skill1PlanView snapshot={liveSnapshot} density={viz.density} />
+                </div>
+                <div className="agent-live-caption">
+                  <span>Physarum interpreting criteria · 2D agent field</span>
+                  <span>
+                    {simulating ? "Running" : state?.converged ? "Converged" : "Ready"}
+                  </span>
+                </div>
+              </section>
             </div>
           </Panel>
-          <Panel className="flex min-h-0 flex-[1.15] flex-col">
+        </section>
+
+        <section className="architectural-output instrument-scroll min-h-0">
+          <Panel className="architectural-output-panel architectural-output-section flex min-h-0 flex-col">
             <PanelHeader
               kicker="Architectural Output"
               title="Generated From Emergent Logic"
             />
-            <div className="mb-1 flex items-center justify-between text-[0.62rem] tracking-[0.16em] uppercase text-[var(--cyan)]">
+            <div className="mb-1 flex items-center justify-between text-[0.62rem] tracking-[0.16em] uppercase text-[var(--text)]">
               <span className="inline-flex items-center gap-1.5">
                 <IconSection /> 2D Wall Section
               </span>
               <span className="text-[var(--muted)]">v1.0</span>
             </div>
-            <div className="min-h-[9rem] flex-1 border border-[rgba(0,228,255,0.16)] bg-[#071018]">
+            <div className="architectural-output-viewport architectural-output-section-viewport min-h-0 flex-1 border border-[rgba(242,242,238,0.18)] bg-[#000000]">
               <SectionDrawing ratings={ratings} title={archetype.name} />
             </div>
           </Panel>
 
-          <Panel className="flex min-h-0 flex-1 flex-col">
-            <div className="mb-1 flex items-center justify-between text-[0.62rem] tracking-[0.16em] uppercase text-[var(--cyan)]">
+          <Panel className="architectural-output-panel architectural-output-axon flex min-h-0 flex-col">
+            <div className="architectural-output-heading mb-1 flex items-start justify-between gap-2 text-[0.62rem] tracking-[0.16em] uppercase text-[var(--text)]">
               <span className="inline-flex items-center gap-1.5">
-                <IconModel /> 2.5D Model
+                <IconModel /> 2.5D Axonometric Preview
               </span>
-              <span className="text-[var(--muted)]">v1.0</span>
+              <span className="text-right text-[var(--muted)]">Current</span>
             </div>
-            <div className="min-h-[8rem] flex-1 border border-[rgba(0,228,255,0.16)] bg-[#071018]">
+            <p className="architectural-output-status">Skill 2 Propagation Pending</p>
+            <div className="architectural-output-viewport architectural-output-axon-viewport min-h-0 flex-1 border border-[rgba(242,242,238,0.18)] bg-[#000000]">
               <AxonModel ratings={ratings} />
             </div>
           </Panel>
 
-          <Panel>
-            <p className="eyebrow mb-2">Evaluation</p>
-            <div className="space-y-1.5">
-              <FitBar label="Formal" value={fit.formal} />
-              <FitBar label="Spatial" value={fit.spatial} />
-              <FitBar label="Atmospheric" value={fit.atmospheric} />
-            </div>
-            <p className="mt-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--muted)]">
-              Criteria fit {Math.round(fit.overall * 100)}% versus precedent ratings
+          <Panel className="skill3-pending-panel architectural-output-panel architectural-output-3d">
+            <p className="eyebrow">3D Model</p>
+            <p className="mt-1 text-[0.62rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+              Skill 3 Pending
             </p>
           </Panel>
-
-          <Panel>
-            <PanelHeader title="Iteration Controls" />
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={regenerate}
-                className="border border-[var(--orange)] bg-[rgba(255,122,50,0.14)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--orange-hot)] hover:bg-[rgba(255,122,50,0.22)]"
-              >
-                Regenerate
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFocus("Criteria");
-                  pulse("Ranked criteria are locked to catalog analysis");
-                }}
-                className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
-              >
-                View Criteria
-              </button>
-              <button
-                type="button"
-                onClick={saveIteration}
-                className="border border-[var(--cyan-dim)] px-2 py-2 text-[0.62rem] tracking-[0.12em] uppercase text-[var(--cyan)] hover:bg-[rgba(0,228,255,0.08)]"
-              >
-                Save Iteration
-              </button>
-            </div>
-            <p className="mt-2 text-center text-[0.58rem] tracking-[0.18em] uppercase text-[var(--muted)]">
-              Maria Alonso · Julieta Segura · Renata Maglino
-            </p>
-          </Panel>
-        </div>
+        </section>
       </div>
 
-      <footer className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[0.58rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-        <span>Design 7 Prof. Daniel Bolojan</span>
-        <span>
-          {saved > 0 ? `${saved} saved · ` : ""}
+      <footer className="living-instrument-footer mt-2 grid grid-cols-3 items-center gap-2 px-1 text-[0.58rem] tracking-[0.16em] uppercase text-[var(--muted)]">
+        <span className="living-instrument-footer-left">Design 7 Prof. Daniel Bolojan</span>
+        <span className="living-instrument-footer-center text-center">
           {archetype.name} / {typology.label}
+        </span>
+        <span className="living-instrument-footer-right text-right">
+          {saved > 0 ? `${saved} saved · ` : ""}
+          Maria Alonso · Julieta Segura · Renata Maglino
         </span>
       </footer>
 
@@ -676,23 +696,6 @@ export function LivingInstrument() {
           {notice}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function FitBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="mb-0.5 flex justify-between text-[0.58rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-        <span>{label}</span>
-        <span>{Math.round(value * 100)}%</span>
-      </div>
-      <div className="h-1 bg-[rgba(0,228,255,0.12)]">
-        <div
-          className="h-1 bg-[linear-gradient(90deg,var(--cyan),var(--orange))]"
-          style={{ width: `${Math.round(value * 100)}%` }}
-        />
-      </div>
     </div>
   );
 }

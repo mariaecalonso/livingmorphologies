@@ -22,18 +22,20 @@ function rankClass(label: string) {
 
 function BehaviorRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-[var(--muted)]">{label}</dt>
-      <dd className={rankClass(value === "controlled" ? "Medium" : value)}>{value}</dd>
+    <div className="archetype-info-row archetype-behavior-row flex items-baseline justify-between gap-3">
+      <dt className="archetype-info-label text-[var(--muted)]">{label}</dt>
+      <dd className={`archetype-info-value ${rankClass(value === "controlled" ? "Medium" : value)}`}>
+        {value}
+      </dd>
     </div>
   );
 }
 
 function SettingRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-[var(--muted)]">{label}</dt>
-      <dd className="text-right text-[var(--text)]">{value}</dd>
+    <div className="archetype-info-row archetype-setting-row flex items-baseline justify-between gap-3">
+      <dt className="archetype-info-label text-[var(--muted)]">{label}</dt>
+      <dd className="archetype-info-value text-right text-[var(--text)]">{value}</dd>
     </div>
   );
 }
@@ -48,25 +50,25 @@ function LegendDot({
   ring?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-2">
+    <li className="archetype-legend-item flex items-center gap-2">
       <span
-        className="inline-block h-2.5 w-2.5 rounded-full"
+        className="archetype-legend-dot inline-block h-2.5 w-2.5 rounded-full"
         style={
           ring
             ? { boxShadow: `0 0 0 1.5px ${color} inset`, background: "transparent" }
             : { background: color }
         }
       />
-      {label}
+      <span className="archetype-legend-label">{label}</span>
     </li>
   );
 }
 
 export function ArchetypeBehaviorPanel({ behavior }: { behavior: BiologicalBehavior }) {
   return (
-    <div>
-      <p className="eyebrow mb-1.5">Biological behavior</p>
-      <dl className="space-y-1 text-[0.68rem] uppercase tracking-[0.08em]">
+    <div className="archetype-info-section archetype-behavior-panel">
+      <p className="eyebrow archetype-info-kicker mb-1.5">Biological behavior</p>
+      <dl className="archetype-info-list space-y-1 text-[0.68rem] uppercase tracking-[0.08em]">
         <BehaviorRow label="Exploration" value={behavior.exploration} />
         <BehaviorRow label="Attraction" value={behavior.attraction} />
         <BehaviorRow label="Trail following" value={behavior.trailFollowing} />
@@ -96,9 +98,9 @@ export function ArchetypeSimulationSettings({
 }) {
   const recipe = translation?.recipe;
   return (
-    <div>
-      <p className="eyebrow mb-1.5">Simulation settings</p>
-      <dl className="space-y-1 text-[0.68rem] uppercase tracking-[0.08em]">
+    <div className="archetype-info-section archetype-simulation-settings">
+      <p className="eyebrow archetype-info-kicker mb-1.5">Simulation settings</p>
+      <dl className="archetype-info-list space-y-1 text-[0.68rem] uppercase tracking-[0.08em]">
         <SettingRow label="Agents" value={String(viz.agentCount)} />
         <SettingRow label="Density" value={String(viz.density)} />
         <SettingRow
@@ -117,10 +119,11 @@ export function ArchetypeSimulationSettings({
         <SettingRow label="Iterations" value={String(DISPLAY_ITERATIONS)} />
         <SettingRow label="Seed" value={seed.toString(16)} />
       </dl>
-      <label className="mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-        Agents {viz.agentCount}
+
+      <label className="archetype-control archetype-control-agents mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+        <span className="archetype-control-label">Agents {viz.agentCount}</span>
         <input
-          className="range-hud"
+          className="range-hud archetype-control-input"
           type="range"
           min={MIN_AGENT_COUNT}
           max={MAX_AGENT_COUNT}
@@ -129,10 +132,11 @@ export function ArchetypeSimulationSettings({
           onChange={(event) => onAgentCount(Number(event.target.value))}
         />
       </label>
-      <label className="mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-        Density {viz.density}
+
+      <label className="archetype-control archetype-control-density mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+        <span className="archetype-control-label">Density {viz.density}</span>
         <input
-          className="range-hud"
+          className="range-hud archetype-control-input"
           type="range"
           min={MIN_DENSITY}
           max={MAX_DENSITY}
@@ -141,10 +145,11 @@ export function ArchetypeSimulationSettings({
           onChange={(event) => onDensity(Number(event.target.value))}
         />
       </label>
-      <label className="mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-        Speed {viz.speed}
+
+      <label className="archetype-control archetype-control-speed mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+        <span className="archetype-control-label">Speed {viz.speed}</span>
         <input
-          className="range-hud"
+          className="range-hud archetype-control-input"
           type="range"
           min={1}
           max={8}
@@ -159,9 +164,9 @@ export function ArchetypeSimulationSettings({
 
 export function ArchetypeVisualLegend() {
   return (
-    <div>
-      <p className="eyebrow mb-1.5">Visual legend</p>
-      <ul className="space-y-1 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--muted)]">
+    <div className="archetype-info-section archetype-visual-legend">
+      <p className="eyebrow archetype-info-kicker mb-1.5">Visual legend</p>
+      <ul className="archetype-legend-list space-y-1 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--muted)]">
         <LegendDot color="#d28a30" label="Strong trail / path" />
         <LegendDot color="#3ec8b4" label="Secondary path" />
         <LegendDot color="#12d0ba" label="Weak path" />
@@ -179,9 +184,9 @@ export function ArchetypeArchitecturalLayers({
   topology?: BiologicalTranslation["topology"];
 }) {
   return (
-    <div>
-      <p className="eyebrow mb-1.5">Architectural layers</p>
-      <ul className="space-y-1 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--muted)]">
+    <div className="archetype-info-section archetype-architectural-layers">
+      <p className="eyebrow archetype-info-kicker mb-1.5">Architectural layers</p>
+      <ul className="archetype-legend-list archetype-layer-list space-y-1 text-[0.62rem] uppercase tracking-[0.1em] text-[var(--muted)]">
         {topology === "contained-interior" ? (
           <>
             <LegendDot color="#b0764e" label="Mass / outer volume" />

@@ -10,7 +10,7 @@ export function Panel({
   padded?: boolean;
 }) {
   return (
-    <section className={`panel overflow-hidden ${padded ? "p-3" : ""} ${className}`}>
+    <section className={`panel hud-panel overflow-hidden ${padded ? "p-3" : ""} ${className}`}>
       {children}
     </section>
   );
@@ -26,12 +26,12 @@ export function PanelHeader({
   aside?: ReactNode;
 }) {
   return (
-    <header className="mb-2 flex items-start justify-between gap-3">
-      <div>
-        {kicker ? <p className="eyebrow mb-1">{kicker}</p> : null}
-        <h2 className="panel-title cyan-glow">{title}</h2>
+    <header className="panel-header hud-panel-header mb-2 flex items-start justify-between gap-3">
+      <div className="panel-header-content hud-panel-header-content">
+        {kicker ? <p className="eyebrow hud-panel-kicker mb-1">{kicker}</p> : null}
+        <h2 className="panel-title hud-panel-title cyan-glow">{title}</h2>
       </div>
-      {aside ? <div className="shrink-0">{aside}</div> : null}
+      {aside ? <div className="panel-header-aside hud-panel-aside shrink-0">{aside}</div> : null}
     </header>
   );
 }

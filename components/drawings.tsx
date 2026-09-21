@@ -41,15 +41,14 @@ export function SectionDrawing({
   const platform = ground - 56 - centrality * 4;
 
   return (
-    <svg viewBox="0 0 420 220" className="h-full w-full" role="img" aria-label={`${title} 2D wall section`}>
-      <defs>
-        <pattern id="sec-grid" width="18" height="18" patternUnits="userSpaceOnUse">
-          <path d="M 18 0 L 0 0 0 18" fill="none" stroke="rgba(0,228,255,0.07)" strokeWidth="0.6" />
-        </pattern>
-      </defs>
-      <rect width="420" height="220" fill="#071018" />
-      <rect width="420" height="220" fill="url(#sec-grid)" />
-      <g fill="none" stroke="#d7eef6" strokeWidth="1.25">
+    <svg
+      viewBox="0 0 420 220"
+      className="drawing drawing-section h-full w-full"
+      role="img"
+      aria-label={`${title} 2D wall section`}
+    >
+      <rect className="drawing-background" width="420" height="220" fill="#000000" />
+      <g className="drawing-section-lines" fill="none" stroke="#f2f2ee" strokeWidth="1.25">
         <path d={`M 24 ${ground} H 398`} />
         <rect x={left} y={58} width={leftW} height={ground - 58} />
         <path d={`M ${mid} 96 H ${mid + 16} V ${ground}`} />
@@ -61,7 +60,7 @@ export function SectionDrawing({
         <rect x={mid + 4} y={ground - 46} width="13" height="22" />
         <rect x={voidStart + voidW * 0.58} y={roof + 32} width="12" height="22" />
       </g>
-      <g fill="#b7e3ee">
+      <g className="drawing-section-figures" fill="#d4d4d0">
         <circle cx={mid + 10} cy={ground - 27} r="2.4" />
         <rect x={mid + 8.6} y={ground - 25} width="2.8" height="12" />
         <circle cx={voidStart + voidW * 0.26} cy={platform - 11} r="2.4" />
@@ -69,21 +68,21 @@ export function SectionDrawing({
         <circle cx={voidStart + voidW * 0.68} cy={ground - 27} r="2.4" />
         <rect x={voidStart + voidW * 0.68 - 1.4} y={ground - 25} width="2.8" height="12" />
       </g>
-      <g fill="none" stroke="#c5e6ee" strokeWidth="1.05">
+      <g className="drawing-section-context" stroke="#c2c2bd" fill="none" strokeWidth="1.05">
         <path d="M 374 160 c 9 -24 22 -26 30 0" />
         <path d="M 381 160 v -20" />
         <path d="M 394 160 v -14" />
       </g>
-      <g stroke="#7ad0e0" fill="none" strokeWidth="0.9">
+      <g className="drawing-section-dimensions" stroke="#9d9d98" fill="none" strokeWidth="0.9">
         <path d="M 48 186 H 200" />
         <path d="M 48 183 V 189" />
         <path d="M 124 183 V 189" />
         <path d="M 200 183 V 189" />
       </g>
-      <text x="48" y="204" fill="#7ea0ad" fontSize="8" letterSpacing="1.5">0</text>
-      <text x="114" y="204" fill="#7ea0ad" fontSize="8" letterSpacing="1.5">10</text>
-      <text x="186" y="204" fill="#7ea0ad" fontSize="8" letterSpacing="1.5">20 FT</text>
-      <text x="262" y="204" fill="#9fd7e4" fontSize="8.4" letterSpacing="1.5">SECTION A-A′  ·  SCALE 1:200</text>
+      <text x="48" y="204" fill="#9d9d98" fontSize="8" letterSpacing="1.5">0</text>
+      <text x="114" y="204" fill="#9d9d98" fontSize="8" letterSpacing="1.5">10</text>
+      <text x="186" y="204" fill="#9d9d98" fontSize="8" letterSpacing="1.5">20 FT</text>
+      <text x="262" y="204" fill="#c2c2bd" fontSize="8.4" letterSpacing="1.5">SECTION A-A′  ·  SCALE 1:200</text>
     </svg>
   );
 }
@@ -106,20 +105,25 @@ export function AxonModel({ ratings }: { ratings: RatingsMap }) {
   const D = 88;
 
   return (
-    <svg viewBox="0 0 420 220" className="h-full w-full" role="img" aria-label="2.5D modular model">
-      <rect width="420" height="220" fill="#071018" />
-      <g fill="none" stroke="#d5eef5" strokeWidth="1.08">
-        <path d={`M ${iso(0, 0, 0)} L ${iso(W, 0, 0)} L ${iso(W, D, 0)} L ${iso(0, D, 0)} Z`} fill="rgba(8,24,34,0.55)" />
+    <svg
+      viewBox="0 0 420 220"
+      className="drawing drawing-axon h-full w-full"
+      role="img"
+      aria-label="2.5D modular model"
+    >
+      <rect className="drawing-background" width="420" height="220" fill="#000000" />
+      <g className="drawing-axon-geometry" fill="none" stroke="#f2f2ee" strokeWidth="1.08">
+        <path d={`M ${iso(0, 0, 0)} L ${iso(W, 0, 0)} L ${iso(W, D, 0)} L ${iso(0, D, 0)} Z`} fill="rgba(255,255,255,0.05)" />
         {Array.from({ length: floors }, (_, i) => {
           const z = i * story;
           const top = z + story;
           return (
-            <g key={i}>
-              <path d={`M ${iso(0, 0, z)} L ${iso(0, 0, top)} L ${iso(W, 0, top)} L ${iso(W, 0, z)}`} fill="rgba(0,228,255,0.04)" />
-              <path d={`M ${iso(W, 0, z)} L ${iso(W, 0, top)} L ${iso(W, D, top)} L ${iso(W, D, z)}`} fill="rgba(255,122,50,0.05)" />
+            <g key={i} className="drawing-axon-floor">
+              <path d={`M ${iso(0, 0, z)} L ${iso(0, 0, top)} L ${iso(W, 0, top)} L ${iso(W, 0, z)}`} fill="rgba(255,255,255,0.035)" />
+              <path d={`M ${iso(W, 0, z)} L ${iso(W, 0, top)} L ${iso(W, D, top)} L ${iso(W, D, z)}`} fill="rgba(190,190,185,0.035)" />
               <path d={`M ${iso(0, 0, top)} L ${iso(W, 0, top)} L ${iso(W, D, top)} L ${iso(0, D, top)} Z`} />
-              <path d={`M ${iso(42, 0, z)} L ${iso(42 + voidW, 0, z)} L ${iso(42 + voidW, 0, top)} L ${iso(42, 0, top)}`} stroke="#7af6ff" />
-              <path d={`M ${iso(48, 12, z)} L ${iso(62, 28, z + story * 0.5)} L ${iso(76, 44, top)}`} stroke="#ff9a4a" />
+              <path d={`M ${iso(42, 0, z)} L ${iso(42 + voidW, 0, z)} L ${iso(42 + voidW, 0, top)} L ${iso(42, 0, top)}`} stroke="#c2c2bd" />
+              <path d={`M ${iso(48, 12, z)} L ${iso(62, 28, z + story * 0.5)} L ${iso(76, 44, top)}`} stroke="#a7a7a2" />
               <path d={`M ${iso(18, 8, z + 10)} L ${iso(30, 8, z + 10)} L ${iso(30, 8, z + 22)} L ${iso(18, 8, z + 22)} Z`} />
             </g>
           );
