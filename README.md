@@ -6,7 +6,7 @@ Catalog data in `lib/catalog.ts` is the source of truth for ratings and descript
 npm install
 npm run dev
 ```
-Open [http://127.0.0.1:43141](http://127.0.0.1:43141).
+Open [http://127.0.0.1:43141](http://127.0.0.1:43141). Header **Skill 2 Audit** runs one frozen-protocol diagnostic (1000 agents / 600 iter / decay 0.986) without candidate search.
 ```bash
 npx tsx lib/skill1/verify.ts   # traces every archetype and distinguishes Void Field from Contained Room
 npm run search:void            # 50 Void Field seeds → screenshots + scores

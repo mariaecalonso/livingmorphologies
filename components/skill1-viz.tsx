@@ -947,14 +947,16 @@ function TimelineFrame({
 export function Skill1PlanView({
   snapshot,
   density = 5,
+  showHud = true,
 }: {
   snapshot: FieldSnapshot | null;
   density?: number;
+  showHud?: boolean;
 }) {
   const ref = useCanvas(
     (ctx, width, height) =>
-      drawPlanField(ctx, snapshot, width, height, { showHud: true, fine: true, density }),
-    [snapshot, snapshot?.iteration, snapshot?.paths, density],
+      drawPlanField(ctx, snapshot, width, height, { showHud, fine: true, density }),
+    [snapshot, snapshot?.iteration, snapshot?.paths, density, showHud],
   );
   return (
     <div className="skill1-plan-view relative h-full w-full">

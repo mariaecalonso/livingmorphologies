@@ -35,10 +35,24 @@ export type MorphologyExtractionSummary = {
   skeletonLength: number;
 };
 
+/** Diagnostic cell maps for visual audit. Same classification as measurement. */
+export type MorphologyOverlays = {
+  width: number;
+  height: number;
+  mass: Uint8Array;
+  corridor: Uint8Array;
+  significantVoid: Uint8Array;
+  interior: Uint8Array;
+  skeleton: Uint8Array;
+  /** 0 none, 1 far, 2 around, 3 zone, 4 through */
+  circulation: Uint8Array;
+};
+
 export type MorphologyMeasurementResult = {
   measurements: MorphologicalMeasurements;
   summary: MorphologyExtractionSummary;
   config: MorphologicalExtractionConfig;
+  overlays: MorphologyOverlays;
 };
 
 const finite = (value: number, fallback = 0) =>
@@ -638,6 +652,7 @@ export function measureMorphologyDetailed(
   let aroundCells = 0;
   let zoneCells = 0;
   let throughCells = 0;
+  const circulation = new Uint8Array(fieldCells);
   const insideAabb = (x: number, y: number) =>
     concentrations.some(
       (component) =>
@@ -664,12 +679,16 @@ export function measureMorphologyDetailed(
     // Wrap that sits inside a fat concentration AABB stays AROUND, not ZONE.
     if (sandwich) {
       throughCells += 1;
+      circulation[i] = 4;
     } else if (n4Mass) {
       aroundCells += 1;
+      circulation[i] = 2;
     } else if (inside) {
       zoneCells += 1;
+      circulation[i] = 3;
     } else {
       farCells += 1;
+      circulation[i] = 1;
     }
   }
   const footprintOverlap = corridorCount > 0 ? overlapCells / corridorCount : 0;
@@ -727,6 +746,10 @@ export function measureMorphologyDetailed(
 
   const voidComponents = connectedComponents(interiorVoidMask, width, height);
   const significantVoids = voidComponents.filter((component) => component.cells.length >= minVoidCells);
+  const significantVoid = new Uint8Array(fieldCells);
+  for (const component of significantVoids) {
+    for (const i of component.cells) significantVoid[i] = 1;
+  }
   const residualGaps = voidComponents.filter((component) => component.cells.length < minVoidCells);
   const voidSizes = voidComponents.map((component) => component.cells.length);
   const largestVoid = voidSizes.reduce((acc, n) => Math.max(acc, n), 0);
@@ -1136,6 +1159,16 @@ export function measureMorphologyDetailed(
       skeletonLength,
     },
     config,
+    overlays: {
+      width,
+      height,
+      mass: massMask,
+      corridor: corridorMask,
+      significantVoid,
+      interior,
+      skeleton: skel,
+      circulation,
+    },
   };
 }
 

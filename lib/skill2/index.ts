@@ -33,6 +33,41 @@ export {
 } from "./measurement-config";
 export type { MorphologicalExtractionConfig } from "./measurement-config";
 export { buildInteriorMask, measureMorphology, measureMorphologyDetailed } from "./measurements";
+export { buildPlanModel } from "./plan-model";
+export type { PlanModel, PlanComponent, PlanEvidenceSource, PlanPoint } from "./plan-model";
+export { planMorphogenesis } from "./plan-morphogenesis";
+export type { ArchitecturalPlan } from "./plan-morphogenesis";
+export type { MorphologyOverlays } from "./measurements";
+export { sectionTranslate } from "./section-translate";
+export type {
+  SectionModel,
+  SectionPrimitive,
+  SectionPrimitiveKind,
+  SectionOrientation,
+} from "./section-translate";
+export {
+  sectionMorphogenesis,
+  toSectionModel,
+  ARCHETYPE_GRAMMARS,
+} from "./section-morphogenesis";
+export type {
+  MorphogeneticSectionModel,
+  MorphogeneticMember,
+  ArchetypeGrammar,
+  MorphogenesisInput,
+  OperationName,
+  OperationRecord,
+} from "./section-morphogenesis";
+export {
+  evaluateArchetypeValidity,
+  ARCHETYPE_VALIDITY_THRESHOLDS,
+  detectValidPlates,
+  measurePlateGeometry,
+  closedFormDiagnostic,
+} from "./archetype-validity";
+export type { ArchetypeValidityResult, ValidityCheck, PlateGeometry, ClosedFormDiagnostic } from "./archetype-validity";
+export { runSkill2Audit, skill2AuditSeed, SKILL2_AUDIT_PROTOCOL } from "./audit";
+export type { Skill2AuditResult, Skill2AuditRealization } from "./audit";
 export {
   CALIBRATION_PROTOCOL,
   calibrationSeed,

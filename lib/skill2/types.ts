@@ -366,11 +366,13 @@ export type CandidateEvaluation = {
 
 /**
  * Visible / inspectable 2D sectional representation. Composes Skill 1
- * `FieldSnapshot` rather than duplicating trail buffers.
+ * `FieldSnapshot` rather than duplicating trail buffers. `interpretation`
+ * is a derived protoarchitectural section and is not scored.
  */
 export type Skill2SectionalRepresentation = {
   height: number;
   field: FieldSnapshot;
+  interpretation?: import("./section-translate").SectionModel;
 };
 
 /**

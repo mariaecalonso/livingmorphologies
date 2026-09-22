@@ -4,6 +4,7 @@ import {
   FIELD_SIZE,
   MAX_AGENT_COUNT,
   MAX_DENSITY,
+  MAX_ITERATIONS,
   MIN_AGENT_COUNT,
   MIN_DENSITY,
 } from "@/lib/skill1/maps";
@@ -84,17 +85,23 @@ export function ArchetypeSimulationSettings({
   translation,
   viz,
   seed,
+  iterations = DISPLAY_ITERATIONS,
   onAgentCount,
   onDensity,
   onSpeed,
+  onIterations,
+  onTrailDecay,
 }: {
   behavior: BiologicalBehavior;
   translation: BiologicalTranslation | null;
   viz: VizSettings;
   seed: number;
+  iterations?: number;
   onAgentCount: (value: number) => void;
   onDensity: (value: number) => void;
   onSpeed: (value: number) => void;
+  onIterations?: (value: number) => void;
+  onTrailDecay?: (value: number) => void;
 }) {
   const recipe = translation?.recipe;
   return (
@@ -116,7 +123,8 @@ export function ArchetypeSimulationSettings({
           value={recipe ? `Center (${recipe.attractor.x}, ${recipe.attractor.y})` : "—"}
         />
         <SettingRow label="Randomness" value={behavior.randomness} />
-        <SettingRow label="Iterations" value={String(DISPLAY_ITERATIONS)} />
+        <SettingRow label="Iterations" value={String(iterations)} />
+        <SettingRow label="Trail decay" value={viz.trailDecay.toFixed(3)} />
         <SettingRow label="Seed" value={seed.toString(16)} />
       </dl>
 
@@ -158,6 +166,36 @@ export function ArchetypeSimulationSettings({
           onChange={(event) => onSpeed(Number(event.target.value))}
         />
       </label>
+
+      {onIterations ? (
+        <label className="archetype-control archetype-control-iterations mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+          <span className="archetype-control-label">Iterations {iterations}</span>
+          <input
+            className="range-hud archetype-control-input"
+            type="range"
+            min={1}
+            max={MAX_ITERATIONS}
+            step={1}
+            value={iterations}
+            onChange={(event) => onIterations(Number(event.target.value))}
+          />
+        </label>
+      ) : null}
+
+      {onTrailDecay ? (
+        <label className="archetype-control archetype-control-decay mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+          <span className="archetype-control-label">Trail decay {viz.trailDecay.toFixed(3)}</span>
+          <input
+            className="range-hud archetype-control-input"
+            type="range"
+            min={0.96}
+            max={0.998}
+            step={0.001}
+            value={viz.trailDecay}
+            onChange={(event) => onTrailDecay(Number(event.target.value))}
+          />
+        </label>
+      ) : null}
     </div>
   );
 }

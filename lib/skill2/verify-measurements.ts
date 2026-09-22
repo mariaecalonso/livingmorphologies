@@ -290,6 +290,11 @@ const aabbWrapTrails = new Array(TRAIL * TRAIL).fill(0);
 paintRect(aabbWrapTrails, TRAIL, 12, 12, 22, 22, 1);
 paintRect(aabbWrapTrails, TRAIL, 12, 12, 22, 13, 0.2);
 const aabbWrap = measureMorphology(makeState(TRAIL, SIZE, aabbWrapTrails));
+const aabbWrapOverlay = measureMorphologyDetailed(makeState(TRAIL, SIZE, aabbWrapTrails));
+assert(
+  aabbWrapOverlay.overlays.circulation.some((value) => value === 2),
+  "AABB wrap overlay must contain AROUND cells",
+);
 assert(
   aabbWrap.connection.aroundNetworkFraction > aabbWrap.connection.zoneNetworkFraction,
   `N4 wrap inside a concentration AABB must stay AROUND not ZONE (around=${aabbWrap.connection.aroundNetworkFraction} zone=${aabbWrap.connection.zoneNetworkFraction})`,
