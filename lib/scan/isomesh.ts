@@ -39,10 +39,9 @@ const CORNERS: Array<[number, number, number]> = [
 const at = (field: Float32Array, nx: number, ny: number, x: number, y: number, z: number) =>
   field[(z * ny + y) * nx + x];
 
-/** Same gap-to-width ratio the CT plates use at this orbit and spacing. */
-export function sliceSpacing(spacing: number, yaw = 0.86) {
-  const depth = Math.max(0.1, Math.sin(yaw) * 0.32);
-  return depth * (0.28 + spacing * 0.45);
+/** Vertical gap between slices, as a fraction of the plate width. */
+export function sliceSpacing(spacing: number, _yaw = 0.86) {
+  return 0.04 + spacing * 0.42;
 }
 
 export function columnHeight(spacing: number, yaw = 0.86) {

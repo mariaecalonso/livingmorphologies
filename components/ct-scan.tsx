@@ -51,7 +51,7 @@ export function CtScan() {
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [ghost, setGhost] = useState(0.55);
-  const [spacing, setSpacing] = useState(0.72);
+  const [spacing, setSpacing] = useState(0.1);
   const [yaw, setYaw] = useState(0.86);
   const [cut, setCut] = useState(0.5);
   const [mode, setMode] = useState<"stack" | "mesh" | "voxel">("stack");
@@ -185,7 +185,7 @@ export function CtScan() {
         minY = Math.min(minY, point.y);
         maxY = Math.max(maxY, point.y);
       }
-      const scale = Math.min((width - 48) / Math.max(0.2, maxX - minX), (height - 48) / Math.max(0.2, maxY - minY));
+      const scale = Math.min(width, height) * 0.52;
       const xMid = (minX + maxX) / 2;
       const yMid = (minY + maxY) / 2;
       const du = rot(1, 0, 0);
@@ -494,11 +494,11 @@ export function CtScan() {
           </label>
         )}
         <label className="text-[0.62rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-          Spacing {spacing.toFixed(2)}
+          Slice gap {spacing.toFixed(2)}
           <input
             type="range"
-            min={0.25}
-            max={1.2}
+            min={0}
+            max={1}
             step={0.01}
             value={spacing}
             onChange={(event) => setSpacing(Number(event.target.value))}

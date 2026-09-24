@@ -276,7 +276,7 @@ export function drawIsoMesh(
     gl.uniform1f(gpu.uYaw, yaw);
     gl.uniform1f(gpu.uPitch, pitch);
     const aspect = width / Math.max(1, height);
-    const fit = Math.min(1.35, 1.45 / Math.max(0.55, (column / 2) * aspect));
+    const fit = Math.min(1.45, 1.7 / Math.max(1, (column / 2) * aspect * 0.55));
     gl.uniform1f(gpu.uAspect, aspect);
     gl.uniform1f(gpu.uFit, fit);
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
