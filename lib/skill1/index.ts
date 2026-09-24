@@ -27,6 +27,8 @@ export {
   SOCIAL_PROXIMITY_SPACING_MAP,
   trailMaskCutoff,
 } from "./maps";
+export { slimeControlsFromTranslation } from "./slime-controls";
+export type { SlimeControls } from "./slime-controls";
 export { CRITERION_TARGETS, behaviorFromRatings, paramsFromRatings, toHandoff, translateArchetype } from "./translate";
 export type {
   ArchitectureReading,

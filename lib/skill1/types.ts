@@ -174,6 +174,8 @@ export type SimAgent = {
   trailStrength: number;
   pathX: number[];
   pathY: number[];
+  /** Steps left to hold the current heading before sensing again. */
+  hold: number;
 };
 
 export type SimulationState = {

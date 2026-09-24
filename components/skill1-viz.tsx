@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
 import { sampleField } from "@/lib/skill1/engine";
+import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
 import {
   DISPLAY_LEVELS,
   FIELD_SIZE,
@@ -79,18 +80,9 @@ export function drawPlanField(
     ctx.restore();
     return;
   }
-  const ts = snapshot.trailSize;
   let peak = 0.0001;
   for (const value of snapshot.trails) if (value > peak) peak = value;
-  const toX = (tx: number) => (tx / TRAIL_SCALE) * scale;
-  const toY = (ty: number) => toCanvas(ty / TRAIL_SCALE, fieldH, scale);
   drawColonyBody(ctx, snapshot, peak, fieldH, fine, density);
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.globalCompositeOperation = "source-over";
-  if (fine) drawTracedVeins(ctx, snapshot.trails, ts, peak, toX, toY);
-  drawCores(ctx, snapshot, ts, peak, toX, toY);
-  ctx.globalCompositeOperation = "source-over";
   const sx = snapshot.source.x * scale;
   const sy = toCanvas(snapshot.source.y, fieldH, scale);
   ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -115,22 +107,6 @@ export function drawPlanField(
     ctx.fillText(`${FIELD_SIZE} × ${FIELD_SIZE} FIELD`, 10, height - 10);
   }
 }
-const DIRS8: Array<[number, number]> = [
-  [1, 0],
-  [1, 1],
-  [0, 1],
-  [-1, 1],
-  [-1, 0],
-  [-1, -1],
-  [0, -1],
-  [1, -1],
-];
-function cyan(alpha: number) {
-  return `rgba(15, 115, 119, ${alpha})`;
-}
-function orange(alpha: number) {
-  return `rgba(199, 126, 95, ${alpha})`;
-}
 function bilerp(field: Float32Array, ts: number, x: number, y: number) {
   const x0 = Math.max(0, Math.min(ts - 1, Math.floor(x)));
   const y0 = Math.max(0, Math.min(ts - 1, Math.floor(y)));
@@ -143,57 +119,6 @@ function bilerp(field: Float32Array, ts: number, x: number, y: number) {
   const c = field[y1 * ts + x0];
   const d = field[y1 * ts + x1];
   return a * (1 - tx) * (1 - ty) + b * tx * (1 - ty) + c * (1 - tx) * ty + d * tx * ty;
-}
-function hash01(ix: number, iy: number, seed: number) {
-  let n = Math.imul(ix + seed * 1973, 1597334677) ^ Math.imul(iy + seed * 9241, 3812015801);
-  n = Math.imul(n ^ (n >>> 16), 2246822519);
-  n = Math.imul(n ^ (n >>> 13), 3266489917);
-  return (n >>> 0) / 4294967296;
-}
-function valueNoise(x: number, y: number, seed: number) {
-  const x0 = Math.floor(x);
-  const y0 = Math.floor(y);
-  const fx = x - x0;
-  const fy = y - y0;
-  const u = fx * fx * (3 - 2 * fx);
-  const v = fy * fy * (3 - 2 * fy);
-  const a = hash01(x0, y0, seed);
-  const b = hash01(x0 + 1, y0, seed);
-  const c = hash01(x0, y0 + 1, seed);
-  const d = hash01(x0 + 1, y0 + 1, seed);
-  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-}
-function worleyEdge(x: number, y: number, cell: number, seed: number) {
-  const sx = x / cell;
-  const sy = y / cell;
-  const gx = Math.floor(sx);
-  const gy = Math.floor(sy);
-  const fx = sx - gx;
-  const fy = sy - gy;
-  let f1 = 10;
-  let f2 = 10;
-  for (let oy = -1; oy <= 1; oy += 1) {
-    for (let ox = -1; ox <= 1; ox += 1) {
-      const jx = hash01(gx + ox, gy + oy, seed);
-      const jy = hash01(gx + ox, gy + oy, seed + 19);
-      const dx = ox + jx - fx;
-      const dy = oy + jy - fy;
-      const dist = dx * dx + dy * dy;
-      if (dist < f1) {
-        f2 = f1;
-        f1 = dist;
-      } else if (dist < f2) {
-        f2 = dist;
-      }
-    }
-  }
-  return Math.sqrt(f2) - Math.sqrt(f1);
-}
-function veinFalloff(edge: number, width: number) {
-  if (width <= 0) return 0;
-  const t = 1 - edge / width;
-  if (t <= 0) return 0;
-  return t * t * (3 - 2 * t);
 }
 let fineScratch: HTMLCanvasElement | null = null;
 let coarseScratch: HTMLCanvasElement | null = null;
@@ -220,13 +145,17 @@ function drawColonyBody(
   fine: boolean,
   density: number,
 ) {
+  const cutoff = trailMaskCutoff(density);
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldH, cutoff)) return;
   const dpr = ctx.getTransform().a || 1;
   const res = fine
     ? Math.max(1024, Math.min(1536, Math.round(fieldH * Math.max(dpr, 1) * 1.6)))
     : Math.max(160, Math.min(280, Math.round(fieldH)));
   const pack = densityAmount(density);
-  const cutoff = trailMaskCutoff(density);
-  const cacheKey = `${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${snapshot.attractor.x.toFixed(3)}:${cutoff.toFixed(3)}:${pack.toFixed(3)}:ochre`;
+  let finger = 0;
+  const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
+  for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
+  const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:trail`;
   let scratch = fine ? fineScratch : coarseScratch;
   if (!scratch) {
     scratch = document.createElement("canvas");
@@ -250,7 +179,6 @@ function drawColonyBody(
     const nField = nCache;
     if (!nField) return;
     const last = res - 1;
-    const octaves = fine ? 4 : 2;
     for (let py = 0; py < res; py += 1) {
       const fy = (1 - py / last) * FIELD_SIZE;
       for (let px = 0; px < res; px += 1) {
@@ -259,81 +187,43 @@ function drawColonyBody(
         const ty = fy * TRAIL_SCALE;
         const n = bilerp(nField, ts, tx, ty);
         const i = (py * res + px) * 4;
-        if (n < cutoff) {
+        const floor = Math.max(0.03, cutoff * 0.22);
+        if (n < floor) {
           data[i + 3] = 0;
           continue;
         }
-        const warpX =
-          0.2 * valueNoise(fx * 1.7, fy * 1.7, 21) +
-          0.1 * valueNoise(fx * 4.3, fy * 4.3, 22);
-        const warpY =
-          0.2 * valueNoise(fx * 1.6, fy * 1.6, 31) +
-          0.1 * valueNoise(fx * 4.1, fy * 4.1, 32);
-        const fringe = n < cutoff + 0.1 + pack * 0.06;
-        const isCore = n > 0.72;
-        const isoX = fx + warpX * 1.2;
-        const isoY = fy + warpY * 1.2;
-        const eTrunk = Math.min(
-          worleyEdge(isoX, isoY, 1.42, 11),
-          worleyEdge(isoX + 0.31, isoY - 0.22, 1.08, 17),
-        );
-        const eMid = worleyEdge(isoX, isoY, 0.58, 29);
-        const tTrunk = veinFalloff(eTrunk, 0.1 + n * 0.08 + pack * 0.04);
-        const tMid = pack > 0.18 ? veinFalloff(eMid, 0.09 + n * 0.05 + pack * 0.04) : 0;
-        let tFine = 0;
-        let tHair = 0;
-        if (octaves > 2 && pack > 0.4) {
-          const eFine = Math.min(
-            worleyEdge(isoX, isoY, 0.26, 47),
-            worleyEdge(isoX + 0.1, isoY - 0.07, 0.22, 53),
-          );
-          tFine = veinFalloff(eFine, fringe ? 0.11 : 0.08 + pack * 0.04);
-          if (fringe && pack > 0.68) {
-            const eHair = worleyEdge(isoX, isoY, 0.1, 73);
-            tHair = veinFalloff(eHair, 0.08);
-          }
-        } else if (octaves <= 2) {
-          tFine = veinFalloff(worleyEdge(isoX, isoY, 0.34, 47), 0.1);
-        }
-        const orangeW = tTrunk * tTrunk + tMid * tMid * Math.min(1, n * 1.45);
-        const cyanW = tFine * tFine + tHair * tHair * (fringe ? 1.2 : 0.75) + tMid * (1 - n) * 0.4;
-        if (!isCore && orangeW + cyanW < 0.028) {
-          data[i + 3] = 0;
-          continue;
-        }
+        const around =
+          (bilerp(nField, ts, tx - 1.4, ty) +
+            bilerp(nField, ts, tx + 1.4, ty) +
+            bilerp(nField, ts, tx, ty - 1.4) +
+            bilerp(nField, ts, tx, ty + 1.4)) *
+          0.25;
+        const ridge = Math.max(0, n - around);
+        const tube = Math.min(1, Math.pow(n, 1.35) * 0.72 + ridge * 4.5);
+        const t = Math.min(1, tube * (0.85 + pack * 0.2));
         let r: number;
         let g: number;
         let b: number;
-        let glow: number;
-        if (isCore) {
-          const veining = Math.max(tTrunk, tMid, tFine);
-          glow = 0.4 + n * 0.16 + veining * 0.08;
-          r = 199;
-          g = 126;
-          b = 95;
-        } else if (orangeW >= cyanW) {
-          glow = 0.34 + n * 0.2 + tTrunk * 0.08;
-          r = 199;
-          g = 126;
-          b = 95;
+        if (t < 0.28) {
+          const u = t / 0.28;
+          r = 18 + 70 * u;
+          g = 36 + 48 * u;
+          b = 22 + 8 * u;
+        } else if (t < 0.62) {
+          const u = (t - 0.28) / 0.34;
+          r = 88 + 130 * u;
+          g = 84 + 70 * u;
+          b = 30 + 18 * u;
         } else {
-          const t = Math.min(1, Math.max(0, (n - 0.1) / 0.5));
-          glow = 0.38 + n * 0.22 + tHair * 0.08;
-          if (n < 0.3) {
-            const neutral = 118 + 54 * t;
-            r = neutral;
-            g = neutral;
-            b = neutral;
-          } else {
-            r = 15 + 35 * t;
-            g = 115 + 70 * t;
-            b = 119 + 60 * t;
-          }
+          const u = (t - 0.62) / 0.38;
+          r = 218 + 37 * u;
+          g = 154 + 90 * u;
+          b = 48 + 160 * u;
         }
-        data[i] = Math.round(r * glow);
-        data[i + 1] = Math.round(g * glow);
-        data[i + 2] = Math.round(b * glow);
-        data[i + 3] = 255;
+        data[i] = Math.round(r);
+        data[i + 1] = Math.round(g);
+        data[i + 2] = Math.round(b);
+        data[i + 3] = Math.round(Math.min(1, (n - floor) / 0.06) * 255);
       }
     }
     off.putImageData(image, 0, 0);
@@ -343,115 +233,6 @@ function drawColonyBody(
   ctx.imageSmoothingEnabled = res > fieldH * dpr * 1.05;
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(scratch, 0, 0, fieldH, fieldH);
-}
-function drawTracedVeins(
-  ctx: CanvasRenderingContext2D,
-  trails: number[],
-  ts: number,
-  peak: number,
-  toX: (x: number) => number,
-  toY: (y: number) => number,
-) {
-  const starts: Array<{ x: number; y: number; n: number }> = [];
-  for (let y = 2; y < ts - 2; y += 1) {
-    const row = y * ts;
-    for (let x = 2; x < ts - 2; x += 1) {
-      const here = trails[row + x];
-      const n = here / peak;
-      if (n < 0.28) continue;
-      let local = true;
-      for (const [dx, dy] of DIRS8) {
-        if (trails[(y + dy) * ts + (x + dx)] > here) {
-          local = false;
-          break;
-        }
-      }
-      if (local || ((x + y) % 4 === 0 && n > 0.34)) {
-        starts.push({ x: x + 0.5, y: y + 0.5, n });
-      }
-    }
-  }
-  starts.sort((a, b) => b.n - a.n);
-  const limit = Math.min(160, starts.length);
-  const trace = (originX: number, originY: number, initial: number, steps: number) => {
-    ctx.beginPath();
-    ctx.moveTo(toX(originX), toY(originY));
-    let x = originX;
-    let y = originY;
-    let heading = initial;
-    let drawn = 0;
-    for (let s = 0; s < steps; s += 1) {
-      let best = -1;
-      let next = heading;
-      for (let k = -3; k <= 3; k += 1) {
-        const angle = heading + k * 0.16;
-        const look = sampleField(
-          trails,
-          { x: x + Math.cos(angle) * 0.5, y: y + Math.sin(angle) * 0.5 },
-          ts,
-        );
-        if (look > best) {
-          best = look;
-          next = angle;
-        }
-      }
-      if (best / peak < 0.1) break;
-      heading += (next - heading) * 0.72;
-      x += Math.cos(heading) * 0.28;
-      y += Math.sin(heading) * 0.28;
-      if (x < 1.1 || y < 1.1 || x > ts - 1.1 || y > ts - 1.1) break;
-      ctx.lineTo(toX(x), toY(y));
-      drawn += 1;
-    }
-    return drawn;
-  };
-  for (let i = 0; i < limit; i += 1) {
-    const start = starts[i];
-    let heading = 0;
-    let bestInit = -1;
-    for (const [dx, dy] of DIRS8) {
-      const v = sampleField(trails, { x: start.x + dx, y: start.y + dy }, ts);
-      if (v > bestInit) {
-        bestInit = v;
-        heading = Math.atan2(dy, dx);
-      }
-    }
-    const strong = start.n > 0.48;
-    ctx.strokeStyle = strong ? orange(0.28) : cyan(0.18);
-    ctx.lineWidth = (strong ? 0.5 : 0.3) + start.n * 0.35;
-    const steps = strong ? 52 : 28;
-    if (trace(start.x, start.y, heading, steps) >= 4) ctx.stroke();
-    if (trace(start.x, start.y, heading + Math.PI, steps) >= 4) ctx.stroke();
-  }
-}
-function drawCores(
-  ctx: CanvasRenderingContext2D,
-  snapshot: FieldSnapshot,
-  ts: number,
-  peak: number,
-  toX: (x: number) => number,
-  toY: (y: number) => number,
-) {
-  ctx.fillStyle = "rgba(199, 126, 95, 0.28)";
-  for (let y = 2; y < ts - 2; y += 1) {
-    const row = y * ts;
-    for (let x = 2; x < ts - 2; x += 1) {
-      const here = snapshot.trails[row + x];
-      const n = here / peak;
-      if (n < 0.7) continue;
-      let local = true;
-      for (const [dx, dy] of DIRS8) {
-        if (snapshot.trails[(y + dy) * ts + (x + dx)] > here) {
-          local = false;
-          break;
-        }
-      }
-      if (!local) continue;
-      ctx.beginPath();
-      ctx.arc(toX(x + 0.5), toY(y + 0.5), 0.8 + n * 1.1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
 }
 type Projector = (x: number, y: number, z: number) => { px: number; py: number };
 function makeProjector(

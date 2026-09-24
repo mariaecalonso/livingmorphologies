@@ -13,6 +13,7 @@ import {
   TRAIL_SCALE,
 } from "./maps";
 import { attractorFromRatings, sourceFromCorner } from "./translate";
+import { voidRadius, type SlimeControls } from "./slime-controls";
 import type {
   BiologicalTranslation,
   FieldSnapshot,
@@ -66,6 +67,7 @@ function buildAttractionField(
   size: number,
   attractor: Point,
   translation: BiologicalTranslation,
+  slime?: SlimeControls,
 ) {
   const { attractionStrength, influenceRadius, scaleVariation } = translation.params;
   const field = new Array<number>(size * size).fill(0);
@@ -77,7 +79,9 @@ function buildAttractionField(
       for (let x = 0; x < size; x += 1) {
         const d = Math.hypot(x - attractor.x, y - attractor.y);
         const angle = Math.atan2(y - attractor.y, x - attractor.x);
-        const wobble = 1 + 0.16 * Math.cos(angle * 2.15) + 0.09 * Math.cos(angle * 5.4 + 0.6);
+        const wobble = slime
+          ? voidRadius(angle, 1, slime)
+          : 1 + 0.16 * Math.cos(angle * 2.15) + 0.09 * Math.cos(angle * 5.4 + 0.6);
         const r = ringR * wobble;
         field[fieldIndex(x, y, size)] =
           attractionStrength * Math.exp(-((d - r) * (d - r)) / twoSigma);
@@ -129,6 +133,17 @@ function toTrail(point: Point, scale: number) {
   return { x: point.x * scale, y: point.y * scale };
 }
 
+function foodPull(look: Point, foods: Point[], strength: number) {
+  let pull = 0;
+  const sigma = 2.4;
+  const twoSigma = 2 * sigma * sigma;
+  for (const food of foods) {
+    const d = dist(look, food);
+    pull += strength * Math.exp(-(d * d) / twoSigma);
+  }
+  return pull;
+}
+
 function sense(
   fieldPoint: Point,
   heading: number,
@@ -137,6 +152,8 @@ function sense(
   trailSize: number,
   translation: BiologicalTranslation,
   state: SimulationState,
+  foods?: Point[],
+  slime?: SlimeControls,
 ) {
   const look = {
     x: fieldPoint.x + Math.cos(heading) * distance,
@@ -164,12 +181,15 @@ function sense(
     const core = dist(look, state.attractor);
     const angle = Math.atan2(look.y - state.attractor.y, look.x - state.attractor.x);
     const opening = 0.5 + 0.5 * Math.cos(angle * 2.05 + 0.4);
-    const keep = translation.recipe.isolationRadius * (0.28 + 0.24 * opening);
+    const keep = slime
+      ? voidRadius(angle, translation.recipe.isolationRadius * 0.42, slime)
+      : translation.recipe.isolationRadius * (0.28 + 0.24 * opening);
     if (core < keep) {
       return trail * 0.08 - 0.95 - (keep - core) * 0.18;
     }
   }
-  return trail * trailFollow + attraction * pull + params.permeability * 0.03 + alignment * params.directionalBias;
+  const extraFood = foods && foods.length > 1 ? foodPull(look, foods.slice(1), params.attractionStrength) : 0;
+  return trail * trailFollow + attraction * pull + extraFood + params.permeability * 0.03 + alignment * params.directionalBias;
 }
 
 function spawnAgent(
@@ -248,6 +268,7 @@ function spawnAgent(
     trailStrength: 0.38 + params.flowCoupling * 0.42,
     pathX: [x],
     pathY: [y],
+    hold: 0,
   };
 }
 
@@ -256,18 +277,38 @@ function deposit(
   trailSize: number,
   point: Point,
   amount: number,
+  width = 1,
+  cap = 1.8,
 ) {
   const pos = toTrail(point, TRAIL_SCALE);
+  const paint = (x: number, y: number, weight: number) => {
+    if (x < 0 || y < 0 || x >= trailSize || y >= trailSize || weight <= 0) return;
+    const index = y * trailSize + x;
+    trails[index] = Math.min(cap, trails[index] + amount * weight);
+  };
+  if (width <= 1.05) {
+    const x0 = Math.floor(pos.x);
+    const y0 = Math.floor(pos.y);
+    for (let oy = 0; oy <= 1; oy += 1) {
+      for (let ox = 0; ox <= 1; ox += 1) {
+        const x = x0 + ox;
+        const y = y0 + oy;
+        const w = (1 - Math.abs(pos.x - x)) * (1 - Math.abs(pos.y - y));
+        paint(x, y, Math.max(0, w));
+      }
+    }
+    return;
+  }
+  const span = Math.ceil(width);
   const x0 = Math.floor(pos.x);
   const y0 = Math.floor(pos.y);
-  for (let oy = 0; oy <= 1; oy += 1) {
-    for (let ox = 0; ox <= 1; ox += 1) {
+  for (let oy = -span; oy <= span; oy += 1) {
+    for (let ox = -span; ox <= span; ox += 1) {
       const x = x0 + ox;
       const y = y0 + oy;
-      if (x < 0 || y < 0 || x >= trailSize || y >= trailSize) continue;
-      const w = (1 - Math.abs(pos.x - x)) * (1 - Math.abs(pos.y - y));
-      const index = y * trailSize + x;
-      trails[index] = Math.min(1.8, trails[index] + amount * Math.max(0, w));
+      const distance = Math.hypot(pos.x - x, pos.y - y);
+      if (distance > width) continue;
+      paint(x, y, 1 - distance / width);
     }
   }
 }
@@ -335,20 +376,29 @@ export function stepSimulation(
   translation: BiologicalTranslation,
   rng: () => number,
   trailDecay = 0.986,
+  slime?: SlimeControls,
 ): SimulationState {
   if (state.converged || state.iteration >= state.maxIterations) return state;
 
+  if (slime && aroundAbsence(translation)) {
+    state.attraction = buildAttractionField(state.size, state.attractor, translation, slime);
+  }
+
   const { params } = translation;
-  const sensorAngle = 0.32 + params.geometryVariation * 0.45;
-  const sensorDistance = 0.45 + params.influenceRadius * 0.035 + params.scaleVariation * 0.25;
-  const turnAngle = 0.22 + params.geometryVariation * 0.55;
+  const sensorAngle = slime?.sensorAngle ?? 0.32 + params.geometryVariation * 0.45;
+  const sensorDistance =
+    slime?.sensorDistance ?? 0.45 + params.influenceRadius * 0.035 + params.scaleVariation * 0.25;
+  const turnAngle = slime?.turnAngle ?? 0.22 + params.geometryVariation * 0.55;
   const cohesionMul = aroundAbsence(translation)
     ? 0.48
     : containedInterior(translation)
       ? 0.74
       : 0.38 + params.nodeInteraction * 0.24 + translation.recipe.clustering * 0.16;
   const cohesion = clamp(1 - params.nodeSpacing, 0, 1) * cohesionMul;
-  const decayMul = clamp(trailDecay, 0.96, 0.998);
+  const decayMul = slime
+    ? clamp(slime.decay, 0.9, 0.998)
+    : clamp(trailDecay, 0.96, 0.998);
+  const foods = slime?.foodPoints;
 
   const density = new Array<number>(state.size * state.size).fill(0);
   for (const agent of state.agents) {
@@ -362,20 +412,30 @@ export function stepSimulation(
 
   for (const agent of state.agents) {
     const here = { x: agent.x, y: agent.y };
-    const forward = sense(here, agent.heading, sensorDistance, state.trails, state.trailSize, translation, state);
-    const left = sense(here, agent.heading + sensorAngle, sensorDistance, state.trails, state.trailSize, translation, state);
-    const right = sense(here, agent.heading - sensorAngle, sensorDistance, state.trails, state.trailSize, translation, state);
+    const holdHeading = slime != null && agent.hold > 0;
+    if (holdHeading) agent.hold -= 1;
+    if (!holdHeading) {
+      const forward = sense(here, agent.heading, sensorDistance, state.trails, state.trailSize, translation, state, foods, slime);
+      const left = sense(here, agent.heading + sensorAngle, sensorDistance, state.trails, state.trailSize, translation, state, foods, slime);
+      const right = sense(here, agent.heading - sensorAngle, sensorDistance, state.trails, state.trailSize, translation, state, foods, slime);
 
-    if (left > forward && left > right) agent.heading += turnAngle;
-    else if (right > forward && right > left) agent.heading -= turnAngle;
-    else {
-      const wander =
-        0.14 +
-        params.geometryVariation * 1.2 +
-        (aroundAbsence(translation) || containedInterior(translation)
-          ? 0
-          : params.geometricDisplacement * 0.35);
-      agent.heading += (rng() - 0.5) * wander;
+      if (left > forward && left > right) agent.heading += turnAngle;
+      else if (right > forward && right > left) agent.heading -= turnAngle;
+      else {
+        const wander =
+          0.14 +
+          params.geometryVariation * 1.2 +
+          (aroundAbsence(translation) || containedInterior(translation)
+            ? 0
+            : params.geometricDisplacement * 0.35);
+        agent.heading += (rng() - 0.5) * wander;
+      }
+      if (slime && rng() < slime.persistence) {
+        agent.hold = 1 + Math.floor(slime.persistence * 5);
+      }
+    }
+    if (slime && slime.randomness > 0) {
+      agent.heading += (rng() - 0.5) * slime.randomness * Math.PI;
     }
 
     if (cohesion > 0.002) {
@@ -408,7 +468,13 @@ export function stepSimulation(
       agent.heading = wrapAngle(agent.heading * (1 - dirPull) + toward * dirPull);
     }
 
-    const step = agent.speed * (0.7 + params.permeability * 0.35);
+    const ix = clamp(Math.round(agent.x), 0, state.size - 1);
+    const iy = clamp(Math.round(agent.y), 0, state.size - 1);
+    if (slime && density[iy * state.size + ix] > slime.crowdingLimit) {
+      agent.heading = wrapAngle(agent.heading + (rng() > 0.5 ? 1 : -1) * (Math.PI / 2));
+    }
+
+    const step = slime?.stepSize ?? agent.speed * (0.7 + params.permeability * 0.35);
     agent.x += Math.cos(agent.heading) * step;
     agent.y += Math.sin(agent.heading) * step;
 
@@ -417,7 +483,9 @@ export function stepSimulation(
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x) || rng() * TWO_PI;
       const wobble = 1 + 0.16 * Math.cos(angle * 2.15) + 0.09 * Math.cos(angle * 5.4 + 0.6);
       const opening = 0.5 + 0.5 * Math.cos(angle * 2.05 + 0.4);
-      const keepOut = translation.recipe.isolationRadius * 0.48 * wobble * (0.42 + 0.58 * opening);
+      const keepOut = slime
+        ? voidRadius(angle, translation.recipe.isolationRadius * 0.48, slime)
+        : translation.recipe.isolationRadius * 0.48 * wobble * (0.42 + 0.58 * opening);
       if (coreDist < keepOut) {
         const radius = keepOut + 0.12;
         agent.x = clamp(state.attractor.x + Math.cos(angle) * radius, 0.18, state.size - 0.18);
@@ -452,16 +520,24 @@ export function stepSimulation(
       state.size,
     );
     state.flow[cell] += 1;
-    let depositAmount = (0.05 + params.flowCoupling * 0.1) * agent.trailStrength;
+    let depositAmount = slime?.deposit ?? (0.05 + params.flowCoupling * 0.1) * agent.trailStrength;
     const edge = Math.min(agent.x, agent.y, state.size - agent.x, state.size - agent.y);
     if (edge < 2.6) depositAmount *= 0.012;
-    if (
-      aroundAbsence(translation) &&
-      dist(agent, state.attractor) < translation.recipe.isolationRadius * 0.55
-    ) {
-      depositAmount *= 0.05;
+    if (aroundAbsence(translation)) {
+      const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
+      const limit = slime
+        ? voidRadius(angle, translation.recipe.isolationRadius * 0.55, slime)
+        : translation.recipe.isolationRadius * 0.55;
+      if (dist(agent, state.attractor) < limit) depositAmount *= 0.05;
     }
-    deposit(state.trails, state.trailSize, agent, depositAmount);
+    deposit(
+      state.trails,
+      state.trailSize,
+      agent,
+      depositAmount,
+      slime?.depositWidth ?? 1,
+      slime?.trailCap ?? 1.8,
+    );
 
     if (
       rng() <
@@ -491,8 +567,9 @@ export function stepSimulation(
 
   const leak = 0.03 + params.networkDensity * 0.12;
   const pack = clamp(1 - params.nodeSpacing, 0, 1);
-  if (params.networkDensity > 0.35 || pack > 0.55) {
-    const mix = params.networkDensity > 0.35 ? leak : 0.018 + pack * 0.025;
+  const slimeMix = slime?.diffusion ?? -1;
+  if (slimeMix > 0.001 || (!slime && (params.networkDensity > 0.35 || pack > 0.55))) {
+    const mix = slime ? slimeMix : params.networkDensity > 0.35 ? leak : 0.018 + pack * 0.025;
     const copy = state.trails.slice();
     for (let y = 1; y < state.trailSize - 1; y += 1) {
       for (let x = 1; x < state.trailSize - 1; x += 1) {
@@ -526,11 +603,12 @@ export function stepMany(
   rng: () => number,
   count: number,
   trailDecay = 0.986,
+  slime?: SlimeControls,
 ) {
   let next = state;
   for (let i = 0; i < count; i += 1) {
     if (next.converged) break;
-    next = stepSimulation(next, translation, rng, trailDecay);
+    next = stepSimulation(next, translation, rng, trailDecay, slime);
   }
   return next;
 }
