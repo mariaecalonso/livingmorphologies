@@ -15,7 +15,7 @@ import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 
 const COLUMNS = 20;
-const ROWS = 4;
+const ROWS = 7;
 const RUN_COUNT = COLUMNS * ROWS;
 const ARCHETYPE_ID = "vertical-void";
 
@@ -176,7 +176,7 @@ export function RunGrid() {
     <main className="flex h-dvh flex-col bg-black text-[var(--text)]">
       <header className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2">
         <div>
-          <p className="display text-[0.95rem] text-white">20 × 4 runs</p>
+          <p className="display text-[0.95rem] text-white">20 × 7 runs</p>
           <p className="mt-0.5 text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
             Vertical Void · {RUN_COUNT} growth variants · {DISPLAY_ITERATIONS} iterations
           </p>

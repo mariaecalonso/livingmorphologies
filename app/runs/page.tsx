@@ -1,7 +1,7 @@
 import { RunGrid } from "@/components/run-grid";
 
 export const metadata = {
-  title: "20 × 4 runs · Living Morphologies",
+  title: "20 × 7 runs · Living Morphologies",
 };
 
 export default function RunsPage() {
