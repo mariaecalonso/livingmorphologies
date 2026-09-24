@@ -161,31 +161,53 @@ export function CtScan() {
 
       const count = platesRef.current.length;
       if (!count) return;
-      const shear = Math.cos(yaw) * 0.62;
-      const depth = Math.max(0.1, Math.sin(yaw) * 0.32);
-      const plateW = Math.min(width * 0.56, 640);
-      const unitGap = plateW * sliceSpacing(spacing, yaw);
-      const span = plateW * depth + Math.max(0, count - 1) * unitGap;
-      const fit = Math.min(1, (height - 36) / Math.max(span, 1));
-      const plate = plateW * fit;
-      const gap = unitGap * fit;
-      const ox = width * 0.52;
-      const oy = (height - span * fit) / 2 + Math.max(0, count - 1) * gap;
+      const pitchY = sliceSpacing(spacing, yaw);
+      const full = (SCAN_SLICES - 1) * pitchY;
+      const cy = Math.cos(meshYaw);
+      const sy = Math.sin(meshYaw);
+      const cp = Math.cos(pitch);
+      const sp = Math.sin(pitch);
+      const rot = (x: number, y: number, z: number) => {
+        const x1 = x * cy + z * sy;
+        const z1 = -x * sy + z * cy;
+        return { x: x1, y: y * cp - z1 * sp, z: y * sp + z1 * cp };
+      };
+      const yBottom = -full * 0.5;
+      const yTop = yBottom + full;
+      const bounds = [rot(-0.5, yBottom, -0.5), rot(0.5, yBottom, 0.5), rot(-0.5, yTop, -0.5), rot(0.5, yTop, 0.5)];
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const point of bounds) {
+        minX = Math.min(minX, point.x);
+        maxX = Math.max(maxX, point.x);
+        minY = Math.min(minY, point.y);
+        maxY = Math.max(maxY, point.y);
+      }
+      const scale = Math.min((width - 48) / Math.max(0.2, maxX - minX), (height - 48) / Math.max(0.2, maxY - minY));
+      const xMid = (minX + maxX) / 2;
+      const yMid = (minY + maxY) / 2;
+      const du = rot(1, 0, 0);
+      const dv = rot(0, 0, 1);
+      const order = Array.from({ length: count }, (_, index) => index).sort(
+        (a, b) => rot(0, a * pitchY - full * 0.5, 0).z - rot(0, b * pitchY - full * 0.5, 0).z,
+      );
 
-      for (let i = count - 1; i >= 0; i -= 1) {
+      for (const i of order) {
         const plateCanvas = platesRef.current[i];
         if (!plateCanvas) continue;
         const dist = Math.abs(i - active);
         const alpha = i === active ? 1 : Math.max(0.28, ghost * Math.exp(-dist * 0.12));
-        const pull = i === active ? plate * 0.1 : 0;
+        const origin = rot(-0.5, i * pitchY - full * 0.5, -0.5);
         ctx.save();
         ctx.setTransform(
-          dpr * plate,
-          0,
-          dpr * -plate * shear,
-          dpr * plate * depth,
-          dpr * (ox - plate * 0.5 + pull),
-          dpr * (oy - i * gap),
+          dpr * du.x * scale,
+          dpr * -du.y * scale,
+          dpr * dv.x * scale,
+          dpr * -dv.y * scale,
+          dpr * (width / 2 + (origin.x - xMid) * scale),
+          dpr * (height / 2 - (origin.y - yMid) * scale),
         );
         ctx.globalAlpha = i === active ? 0.16 : 0.05;
         ctx.fillStyle = "#f2f2ee";
@@ -205,7 +227,7 @@ export function CtScan() {
         ctx.restore();
       }
     };
-  }, [active, cut, ghost, spacing, yaw, slices.length]);
+  }, [active, cut, ghost, meshYaw, pitch, spacing, yaw, slices.length]);
 
   useEffect(() => {
     drawStack();
@@ -292,19 +314,15 @@ export function CtScan() {
   }, [mesh, meshYaw, mode, pitch, spacing, yaw]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    dragRef.current = { x: event.clientX, y: event.clientY, yaw: mode === "stack" ? yaw : meshYaw, pitch };
+    dragRef.current = { x: event.clientX, y: event.clientY, yaw: meshYaw, pitch };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!dragRef.current) return;
     const nextYaw = dragRef.current.yaw + (event.clientX - dragRef.current.x) * 0.008;
-    if (mode !== "stack") {
-      const nextPitch = dragRef.current.pitch + (event.clientY - dragRef.current.y) * 0.008;
-      setMeshYaw(nextYaw);
-      setPitch(Math.min(1.2, Math.max(-1.2, nextPitch)));
-      return;
-    }
-    setYaw(Math.min(1.35, Math.max(0.35, nextYaw)));
+    const nextPitch = dragRef.current.pitch + (event.clientY - dragRef.current.y) * 0.008;
+    setMeshYaw(nextYaw);
+    setPitch(Math.min(1.2, Math.max(-1.2, nextPitch)));
   };
   const onPointerUp = () => {
     dragRef.current = null;
@@ -393,7 +411,7 @@ export function CtScan() {
         <div className="relative min-h-[420px]">
           <canvas
             ref={stackRef}
-            className={`absolute inset-0 h-full w-full cursor-ew-resize ${mode === "stack" ? "" : "hidden"}`}
+            className={`absolute inset-0 h-full w-full cursor-grab ${mode === "stack" ? "" : "hidden"}`}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
