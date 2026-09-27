@@ -32,6 +32,21 @@ const RUN_TRAIL_SCALE = 8;
 const CATALOG_IMAGE_SIZE = 1280;
 /** Continuous Hall runs that never landed in git. */
 const CH_GAP_RUNS = new Set([17, 18, 19, 20, 21, 22, 23, 24, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]);
+const tinySharedCache = new Map<string, boolean>();
+
+async function isTinySharedImage(image: string) {
+  if (tinySharedCache.has(image)) return tinySharedCache.get(image) ?? false;
+  try {
+    const response = await fetch(image, { cache: "no-store" });
+    const blob = await response.blob();
+    const tiny = blob.size < 4000;
+    tinySharedCache.set(image, tiny);
+    return tiny;
+  } catch {
+    tinySharedCache.set(image, true);
+    return true;
+  }
+}
 
 function seedFor(id: string, run: number) {
   return (0x51c11 ^ (run * 9973) ^ id.length * 131) >>> 0;
@@ -432,9 +447,14 @@ export function RunGrid() {
 
   const mergeCatalog = async (id: string) => {
     const stored = await readCatalog<SavedRun>(id);
-    const have = new Set(stored.map((item) => item.run));
-    const extra = await catalogFromFields(id, have);
-    return [...stored, ...extra].sort((a, b) => a.run - b.run);
+    const usable: SavedRun[] = [];
+    for (const item of stored) {
+      if (!item.image) continue;
+      if (item.image.startsWith("/shared-catalog/linear-edge-gallery/") && (await isTinySharedImage(item.image))) continue;
+      usable.push(item);
+    }
+    const extra = await catalogFromFields(id, new Set(usable.map((item) => item.run)));
+    return [...usable, ...extra].sort((a, b) => a.run - b.run);
   };
 
   const writeContinuousHallGaps = (entries: SavedRun[]) => {
@@ -444,6 +464,30 @@ export function RunGrid() {
     sessionStorage.setItem("lm-ch-gap-write", "done");
     void shareCatalogEntries("continuous-hall", missing);
   };
+
+  const writeLinearEdgeOriginals = (entries: SavedRun[]) => {
+    if (typeof sessionStorage === "undefined") return;
+    void (async () => {
+      if (sessionStorage.getItem("lm-leg-rewrite-v2") === "done") return;
+      const real = entries.filter((item) => item.image && !item.image.startsWith("/shared-catalog/"));
+      if (!real.length) return;
+      sessionStorage.setItem("lm-leg-rewrite-v2", "done");
+      await shareCatalogEntries("linear-edge-gallery", real);
+    })();
+  };
+
+  useEffect(() => {
+    if (pickedId !== "linear-edge-gallery") return;
+    let live = true;
+    void (async () => {
+      const next = await mergeCatalog("linear-edge-gallery");
+      if (!live) return;
+      writeLinearEdgeOriginals(next);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [pickedId]);
 
   useEffect(() => {
     if (!catalogOpen || !catalogId) return;
@@ -463,6 +507,7 @@ export function RunGrid() {
       setCatalogEntries(next);
       refreshCatalogCounts();
       if (catalogId === "continuous-hall") writeContinuousHallGaps(next);
+      if (catalogId === "linear-edge-gallery") writeLinearEdgeOriginals(next);
     })();
     return () => {
       live = false;

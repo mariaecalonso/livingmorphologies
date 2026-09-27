@@ -45,12 +45,19 @@ function isRepoImage(item: CatalogEntry) {
   return String(item.image ?? "").startsWith("/shared-catalog/");
 }
 
+function isPlaceholderImage(item: CatalogEntry) {
+  return String(item.image ?? "").startsWith("/shared-catalog/linear-edge-gallery/");
+}
+
 function savedAt(item: CatalogEntry) {
   const value = (item as CatalogEntry & { savedAt?: number }).savedAt;
   return typeof value === "number" ? value : Number.POSITIVE_INFINITY;
 }
 
 function preferOriginal<T extends CatalogEntry>(next: T, current: T) {
+  const nextBlank = isPlaceholderImage(next);
+  const currentBlank = isPlaceholderImage(current);
+  if (nextBlank !== currentBlank) return currentBlank;
   const nextRepo = isRepoImage(next);
   const currentRepo = isRepoImage(current);
   if (nextRepo !== currentRepo) return nextRepo;

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 
@@ -51,19 +51,27 @@ export async function POST(request: Request) {
   const dir = rootDir(archetypeId);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, "entries.json");
-  const byId = new Map( (await readEntries(file)).map((item) => [item.id, item]) );
+  const byRun = new Map((await readEntries(file)).map((item) => [item.run, item]));
 
   for (const item of incoming) {
-    if (!item?.id || !item.image) continue;
+    if (!item?.id || !item.image || typeof item.run !== "number") continue;
     const png = dataUrlToPng(item.image);
     if (!png) continue;
     const image = `/shared-catalog/${archetypeId}/${safeFileName(item.id)}.png`;
+    const previous = byRun.get(item.run);
+    if (previous?.image && previous.image !== image) {
+      try {
+        await unlink(path.join(process.cwd(), "public", previous.image.replace(/^\//, "")));
+      } catch {
+        /* leftover blank is fine */
+      }
+    }
     await writeFile(path.join(process.cwd(), "public", image.replace(/^\//, "")), png);
     const { image: _image, ...meta } = item;
-    byId.set(item.id, { ...meta, image });
+    byRun.set(item.run, { ...meta, image });
   }
 
-  const entries = [...byId.values()].sort((a, b) => a.run - b.run);
+  const entries = [...byRun.values()].sort((a, b) => a.run - b.run);
   await writeFile(file, `${JSON.stringify(entries, null, 2)}\n`);
   return NextResponse.json({ ok: true, archetypeId, count: entries.length });
 }
