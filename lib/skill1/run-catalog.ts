@@ -1,5 +1,7 @@
 /** Per-archetype run catalog. Metadata and PNG blobs are stored as separate IndexedDB rows. */
 
+import { readSharedCatalog } from "@/lib/skill1/shared-catalog";
+
 export const CATALOG_KEY = (archetypeId: string) => `lm-run-catalog:${archetypeId}`;
 
 const DB_NAME = "living-morphologies-run-catalog";
@@ -143,7 +145,8 @@ export async function readCatalog<T extends CatalogEntry>(archetypeId: string): 
   const fromEntries = db ? await attachImages(db, await readEntryRows<T>(db, archetypeId)) : [];
   const fromBlob = db ? await readBlobStore<T>(db, archetypeId) : [];
   const fromLocal = localEntries<T>(archetypeId);
-  return mergeByRun([...fromLocal, ...fromBlob, ...fromEntries]);
+  const fromRepo = await readSharedCatalog<T>(archetypeId);
+  return mergeByRun([...fromRepo, ...fromLocal, ...fromBlob, ...fromEntries]);
 }
 
 export async function writeCatalog<T extends CatalogEntry>(archetypeId: string, entries: T[]): Promise<boolean> {

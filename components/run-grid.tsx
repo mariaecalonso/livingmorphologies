@@ -18,6 +18,7 @@ import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
+import { shareCatalogEntries } from "@/lib/skill1/shared-catalog";
 import { listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
 import { clearAllDoneFlag, clearRunFields, loadRunsSession, readAllDoneFlag, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
 
@@ -483,13 +484,19 @@ export function RunGrid() {
   const persistEntries = async (id: string, incoming: SavedRun[]) => {
     incoming = incoming.filter((item) => item.image.startsWith("data:"));
     if (!incoming.length) return false;
-    if (await putCatalogEntries(id, incoming)) return true;
-    const compact = incoming.map((item) => {
-      const index = item.run - 1;
-      const image = entryImage(index, snapshotsRef.current[index], canvasRefs.current[index], 960, variantsRef.current[index]?.translation.recipe.attractors);
-      return image ? { ...item, image } : item;
-    });
-    return putCatalogEntries(id, compact);
+    const saved = (await putCatalogEntries(id, incoming))
+      ? incoming
+      : await (async () => {
+          const compact = incoming.map((item) => {
+            const index = item.run - 1;
+            const image = entryImage(index, snapshotsRef.current[index], canvasRefs.current[index], 960, variantsRef.current[index]?.translation.recipe.attractors);
+            return image ? { ...item, image } : item;
+          });
+          return (await putCatalogEntries(id, compact)) ? compact : null;
+        })();
+    if (!saved) return false;
+    void shareCatalogEntries(id, saved);
+    return true;
   };
 
   const catalogOne = async (index: number, archetypeId?: string) => {
