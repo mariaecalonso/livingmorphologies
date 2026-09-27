@@ -41,13 +41,30 @@ function localEntries<T>(archetypeId: string): T[] {
   }
 }
 
+function isRepoImage(item: CatalogEntry) {
+  return String(item.image ?? "").startsWith("/shared-catalog/");
+}
+
+function savedAt(item: CatalogEntry) {
+  const value = (item as CatalogEntry & { savedAt?: number }).savedAt;
+  return typeof value === "number" ? value : Number.POSITIVE_INFINITY;
+}
+
+function preferOriginal<T extends CatalogEntry>(next: T, current: T) {
+  const nextRepo = isRepoImage(next);
+  const currentRepo = isRepoImage(current);
+  if (nextRepo !== currentRepo) return nextRepo;
+  return savedAt(next) < savedAt(current);
+}
+
 function mergeByRun<T extends CatalogEntry>(entries: T[]): T[] {
-  const byId = new Map<string, T>();
+  const byRun = new Map<number, T>();
   for (const item of entries) {
     if (!item || typeof item.run !== "number" || !item.id) continue;
-    byId.set(item.id, item);
+    const current = byRun.get(item.run);
+    if (!current || preferOriginal(item, current)) byRun.set(item.run, item);
   }
-  return [...byId.values()].sort((a, b) => a.run - b.run);
+  return [...byRun.values()].sort((a, b) => a.run - b.run);
 }
 
 function dataUrlToBlob(dataUrl: string): Blob | null {

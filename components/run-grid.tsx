@@ -18,7 +18,7 @@ import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
-import { shareCatalogEntries } from "@/lib/skill1/shared-catalog";
+import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
 import { listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
 import { clearAllDoneFlag, clearRunFields, loadRunsSession, readAllDoneFlag, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
 
@@ -30,6 +30,8 @@ const ALL_ARCHETYPE_IDS = TYPOLOGIES.flatMap((typology) => typology.archetypes.m
 const RUN_TRAIL_SCALE = 8;
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
 const CATALOG_IMAGE_SIZE = 1280;
+/** Continuous Hall runs that never landed in git. */
+const CH_GAP_RUNS = new Set([17, 18, 19, 20, 21, 22, 23, 24, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]);
 
 function seedFor(id: string, run: number) {
   return (0x51c11 ^ (run * 9973) ^ id.length * 131) >>> 0;
@@ -414,10 +416,11 @@ export function RunGrid() {
     };
   };
 
-  const catalogFromFields = async (id: string) => {
+  const catalogFromFields = async (id: string, skipRuns?: Set<number>) => {
     const kept = await loadArchetypeFields(id, RUN_COUNT);
     const entries: SavedRun[] = [];
     for (let index = 0; index < RUN_COUNT; index += 1) {
+      if (skipRuns?.has(index + 1)) continue;
       const snapshot = kept[index] ?? (id === (runningIdRef.current ?? pickedIdRef.current) ? snapshotsRef.current[index] : null);
       if (!snapshot) continue;
       const entry = entryFromSnapshot(id, index, snapshot);
@@ -427,6 +430,21 @@ export function RunGrid() {
     return entries;
   };
 
+  const mergeCatalog = async (id: string) => {
+    const stored = await readCatalog<SavedRun>(id);
+    const have = new Set(stored.map((item) => item.run));
+    const extra = await catalogFromFields(id, have);
+    return [...stored, ...extra].sort((a, b) => a.run - b.run);
+  };
+
+  const writeContinuousHallGaps = (entries: SavedRun[]) => {
+    if (typeof sessionStorage === "undefined" || sessionStorage.getItem("lm-ch-gap-write") === "done") return;
+    const missing = entries.filter((item) => CH_GAP_RUNS.has(item.run) && item.image);
+    if (!missing.length) return;
+    sessionStorage.setItem("lm-ch-gap-write", "done");
+    void shareCatalogEntries("continuous-hall", missing);
+  };
+
   useEffect(() => {
     if (!catalogOpen || !catalogId) return;
     let live = true;
@@ -434,11 +452,17 @@ export function RunGrid() {
       const cached = catalogCacheRef.current[catalogId] ?? [];
       if (cached.length) setCatalogEntries(cached);
       const stored = await readCatalog<SavedRun>(catalogId);
-      const next = stored.length ? stored : await catalogFromFields(catalogId);
+      if (!live) return;
+      if (stored.length) {
+        catalogCacheRef.current[catalogId] = stored;
+        setCatalogEntries(stored);
+      }
+      const next = await mergeCatalog(catalogId);
       if (!live) return;
       catalogCacheRef.current[catalogId] = next;
       setCatalogEntries(next);
       refreshCatalogCounts();
+      if (catalogId === "continuous-hall") writeContinuousHallGaps(next);
     })();
     return () => {
       live = false;
@@ -575,8 +599,7 @@ export function RunGrid() {
     if (cached?.length) setCatalogEntries(cached);
     else setCatalogEntries([]);
     void (async () => {
-      const stored = await readCatalog<SavedRun>(id);
-      const next = stored.length ? stored : await catalogFromFields(id);
+      const next = await mergeCatalog(id);
       catalogCacheRef.current[id] = next;
       setCatalogEntries(next);
     })();

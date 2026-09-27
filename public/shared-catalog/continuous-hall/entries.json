@@ -2876,6 +2876,1366 @@
     "image": "/shared-catalog/continuous-hall/continuous-hall-480231-1790455588885-15.png"
   },
   {
+    "id": "continuous-hall-488684-16",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 17,
+    "seed": 488684,
+    "kind": "point",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486141000,
+    "slime": {
+      "sensorAngle": 0.7545559176068753,
+      "sensorDistance": 1.4596230856592216,
+      "turnAngle": 0.9029832498340682,
+      "stepSize": 0.39967637910690157,
+      "deposit": 0.1269879549654201,
+      "depositWidth": 2.0302743216741543,
+      "diffusion": 0.2410022876825275,
+      "decay": 0.9547250353335403,
+      "trailInfluence": 0.8138628957927229,
+      "resistance": 0.15016880518495024,
+      "randomness": 0.5651814463746268,
+      "persistence": 0.27499089115653186,
+      "trailCap": 1.179778637595009,
+      "crowdingLimit": 33,
+      "foodPoints": [
+        {
+          "x": 11.138383240454456,
+          "y": 10.698167817524425
+        },
+        {
+          "x": 12.586164976716075,
+          "y": 12.47209489648913
+        },
+        {
+          "x": 13.547545994374373,
+          "y": 12.879156879249352
+        },
+        {
+          "x": 13.18953182339788,
+          "y": 8.329266689747527
+        },
+        {
+          "x": 11.077372218598684,
+          "y": 8.694812549845214
+        },
+        {
+          "x": 9.759747709455421,
+          "y": 7.167650448378856
+        },
+        {
+          "x": 8.657077242729793,
+          "y": 12.092897069283648
+        },
+        {
+          "x": 6.7442185426676815,
+          "y": 13.109166182672313
+        },
+        {
+          "x": 10.060539540099185,
+          "y": 13.067747954481916
+        }
+      ],
+      "voidElongation": 1.2252088826972993,
+      "voidRotation": 0.788523333408752,
+      "voidLobes": 0.5834490022710525,
+      "voidNotch": -0.08934184768237173
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 11.138383240454456,
+        "y": 10.698167817524425
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 11.138383240454456,
+          "y": 10.698167817524425,
+          "radius": 1.7970805606253186,
+          "strength": 1.2044848452789094,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 12.586164976716075,
+          "y": 12.47209489648913,
+          "radius": 1.956889776812653,
+          "strength": 0.9339373693448376,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 13.547545994374373,
+          "y": 12.879156879249352,
+          "radius": 1.4957283048684498,
+          "strength": 0.6733866463392331,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 13.18953182339788,
+          "y": 8.329266689747527,
+          "radius": 1.6970934537074283,
+          "strength": 1.2160346406830658,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 11.077372218598684,
+          "y": 8.694812549845214,
+          "radius": 1.2932174013325808,
+          "strength": 0.4374018793539549,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 9.759747709455421,
+          "y": 7.167650448378856,
+          "radius": 1.851249536758056,
+          "strength": 1.0986812748312371,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 8.657077242729793,
+          "y": 12.092897069283648,
+          "radius": 2.784117000489588,
+          "strength": 0.4289690507880678,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.7442185426676815,
+          "y": 13.109166182672313,
+          "radius": 1.872949357272237,
+          "strength": 0.5436118634238872,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 10.060539540099185,
+          "y": 13.067747954481916,
+          "radius": 1.7765862344690593,
+          "strength": 0.6445108129678327,
+          "hole": false
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-488684-16.png"
+  },
+  {
+    "id": "continuous-hall-495097-17",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 18,
+    "seed": 495097,
+    "kind": "point",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486158292,
+    "slime": {
+      "sensorAngle": 0.8364383426447864,
+      "sensorDistance": 1.1559700483323456,
+      "turnAngle": 0.6952319671814611,
+      "stepSize": 0.3208943559703976,
+      "deposit": 0.13344089242685586,
+      "depositWidth": 1.900796817368613,
+      "diffusion": 0.24562915371722524,
+      "decay": 0.9497088745476212,
+      "trailInfluence": 0.8295333212841304,
+      "resistance": 0.30616253950836986,
+      "randomness": 0.517265851550037,
+      "persistence": 0.20241069283923133,
+      "trailCap": 0.999463315049652,
+      "crowdingLimit": 21,
+      "foodPoints": [
+        {
+          "x": 8.788397548794531,
+          "y": 9.481393643535759
+        },
+        {
+          "x": 6.085811478153486,
+          "y": 6.85077895209443
+        },
+        {
+          "x": 5.202531173941966,
+          "y": 5.753731028688152
+        },
+        {
+          "x": 4.25783485181494,
+          "y": 8.050994532565483
+        },
+        {
+          "x": 7.291352381284119,
+          "y": 11.605091137105358
+        },
+        {
+          "x": 9.29397584178666,
+          "y": 11.281247545918577
+        },
+        {
+          "x": 10.801687660463536,
+          "y": 13.440267553197197
+        },
+        {
+          "x": 10.66104424883741,
+          "y": 7.622192809586782
+        },
+        {
+          "x": 12.17197226965018,
+          "y": 5.789376799551469
+        }
+      ],
+      "voidElongation": 1.3828552101351321,
+      "voidRotation": 0.5140661804444001,
+      "voidLobes": 0.4456003461871296,
+      "voidNotch": 0.023639955385588107
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.788397548794531,
+        "y": 9.481393643535759
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 8.788397548794531,
+          "y": 9.481393643535759,
+          "radius": 1.7326765580728847,
+          "strength": 0.5420853319655318,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.085811478153486,
+          "y": 6.85077895209443,
+          "radius": 0.8644599356511836,
+          "strength": 0.38235934196657345,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 5.202531173941966,
+          "y": 5.753731028688152,
+          "radius": 1.189669963747964,
+          "strength": 0.6800888672379953,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 4.25783485181494,
+          "y": 8.050994532565483,
+          "radius": 1.1592597464781533,
+          "strength": 0.41457549037522107,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 7.291352381284119,
+          "y": 11.605091137105358,
+          "radius": 1.308585350051459,
+          "strength": 1.2173572018302845,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 9.29397584178666,
+          "y": 11.281247545918577,
+          "radius": 1.656278752248571,
+          "strength": 0.8183455853402848,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 10.801687660463536,
+          "y": 13.440267553197197,
+          "radius": 2.2660152000943343,
+          "strength": 0.5226459019238352,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 10.66104424883741,
+          "y": 7.622192809586782,
+          "radius": 1.919084871558759,
+          "strength": 0.48982936570267654,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 12.17197226965018,
+          "y": 5.789376799551469,
+          "radius": 1.3236769546454836,
+          "strength": 0.5173099007215384,
+          "hole": false
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-495097-17.png"
+  },
+  {
+    "id": "continuous-hall-501382-18",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 19,
+    "seed": 501382,
+    "kind": "point",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486171908,
+    "slime": {
+      "sensorAngle": 0.6719853531608359,
+      "sensorDistance": 1.2700371797541072,
+      "turnAngle": 0.7266307892052272,
+      "stepSize": 0.32471793229827656,
+      "deposit": 0.0879263043548912,
+      "depositWidth": 1.8074524820919795,
+      "diffusion": 0.22608952718173136,
+      "decay": 0.9529540176650508,
+      "trailInfluence": 1.320893389139697,
+      "resistance": 0.2539925050569597,
+      "randomness": 0.42440628310898315,
+      "persistence": 0.10656541885463519,
+      "trailCap": 1.31295576488832,
+      "crowdingLimit": 14,
+      "foodPoints": [
+        {
+          "x": 8.052060070915026,
+          "y": 8.144172074254246
+        },
+        {
+          "x": 11.1903688746951,
+          "y": 9.542674195965368
+        },
+        {
+          "x": 5.751036632054711,
+          "y": 5.561667157118192
+        },
+        {
+          "x": 6.620799789375615,
+          "y": 10.13428314017925
+        },
+        {
+          "x": 5.389140852524783,
+          "y": 10.65109721934279
+        },
+        {
+          "x": 3.847288281574862,
+          "y": 11.298071063172356
+        }
+      ],
+      "voidElongation": 1.1865179244283588,
+      "voidRotation": 0.7752893561673371,
+      "voidLobes": 0.49406810324033723,
+      "voidNotch": -0.14732143362052738
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.052060070915026,
+        "y": 8.144172074254246
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 8.052060070915026,
+          "y": 8.144172074254246,
+          "radius": 1.7737368058957663,
+          "strength": 1.3252645506442495,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 11.1903688746951,
+          "y": 9.542674195965368,
+          "radius": 0.3851015882292948,
+          "strength": 0.39736792658753683,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 5.751036632054711,
+          "y": 5.561667157118192,
+          "radius": 1.0009844113455406,
+          "strength": 0.6777315296269785,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.620799789375615,
+          "y": 10.13428314017925,
+          "radius": 0.8823248597113699,
+          "strength": 0.6361723449499767,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 5.389140852524783,
+          "y": 10.65109721934279,
+          "radius": 0.8370428894549585,
+          "strength": 0.5507892315918198,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 3.847288281574862,
+          "y": 11.298071063172356,
+          "radius": 1.9076406608314385,
+          "strength": 1.0635418738756826,
+          "hole": false
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-501382-18.png"
+  },
+  {
+    "id": "continuous-hall-524179-19",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 20,
+    "seed": 524179,
+    "kind": "point",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486182851,
+    "slime": {
+      "sensorAngle": 0.6711983622617088,
+      "sensorDistance": 1.0512172782905316,
+      "turnAngle": 0.9890451099812334,
+      "stepSize": 0.43472952636700124,
+      "deposit": 0.11833865881487729,
+      "depositWidth": 2.394351075528906,
+      "diffusion": 0.30650250661970097,
+      "decay": 0.9517063448294065,
+      "trailInfluence": 0.9118663235701622,
+      "resistance": 0.1826248044727269,
+      "randomness": 0.7176158501184544,
+      "persistence": 0.14069363553430883,
+      "trailCap": 1.2608412903011776,
+      "crowdingLimit": 17,
+      "foodPoints": [
+        {
+          "x": 8.098015947760548,
+          "y": 8.09518986551056
+        },
+        {
+          "x": 7.328158409096787,
+          "y": 7.936035424381661
+        },
+        {
+          "x": 6.8209307491085935,
+          "y": 6.470503772723823
+        },
+        {
+          "x": 6.458749799984,
+          "y": 5.424055232078533
+        },
+        {
+          "x": 10.27661139715913,
+          "y": 5.872657768671513
+        },
+        {
+          "x": 10.743854447961237,
+          "y": 9.773561831921766
+        },
+        {
+          "x": 12.691952120622748,
+          "y": 9.715884778354674
+        },
+        {
+          "x": 9.83869053599887,
+          "y": 12.050388004619466
+        },
+        {
+          "x": 6.888623757304901,
+          "y": 11.371344135392116
+        },
+        {
+          "x": 5.455559448009556,
+          "y": 12.753696621352756
+        },
+        {
+          "x": 5.866566303366451,
+          "y": 9.13497229512295
+        },
+        {
+          "x": 3.8204706375918556,
+          "y": 9.059025038631502
+        }
+      ],
+      "voidElongation": 1.1387399776842446,
+      "voidRotation": 0.3887008060436372,
+      "voidLobes": 0.5850308100231923,
+      "voidNotch": 0.033213164247572424
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.098015947760548,
+        "y": 8.09518986551056
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 8.098015947760548,
+          "y": 8.09518986551056,
+          "radius": 3.2,
+          "strength": 0.5021798443144756,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 7.328158409096787,
+          "y": 7.936035424381661,
+          "radius": 3.2,
+          "strength": 0.6199983410639807,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.8209307491085935,
+          "y": 6.470503772723823,
+          "radius": 3.2,
+          "strength": 0.7326627966129626,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.458749799984,
+          "y": 5.424055232078533,
+          "radius": 2.9246252962275765,
+          "strength": 0.828874740414913,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 10.27661139715913,
+          "y": 5.872657768671513,
+          "radius": 2.4972606554074828,
+          "strength": 0.6197992024014134,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 10.743854447961237,
+          "y": 9.773561831921766,
+          "radius": 3.2,
+          "strength": 0.7259306836155487,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 12.691952120622748,
+          "y": 9.715884778354674,
+          "radius": 3.2,
+          "strength": 0.8322859580366244,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 9.83869053599887,
+          "y": 12.050388004619466,
+          "radius": 1.437698543335538,
+          "strength": 0.6835418842813052,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 6.888623757304901,
+          "y": 11.371344135392116,
+          "radius": 3.2,
+          "strength": 0.5747543452290386,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 5.455559448009556,
+          "y": 12.753696621352756,
+          "radius": 3.150312924882784,
+          "strength": 1.283056496909403,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 5.866566303366451,
+          "y": 9.13497229512295,
+          "radius": 3.2,
+          "strength": 0.7704694386591318,
+          "hole": false
+        },
+        {
+          "kind": "point",
+          "x": 3.8204706375918556,
+          "y": 9.059025038631502,
+          "radius": 1.3919810824905157,
+          "strength": 0.6294172876581839,
+          "hole": false
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-524179-19.png"
+  },
+  {
+    "id": "continuous-hall-397464-20",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 21,
+    "seed": 397464,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486193668,
+    "slime": {
+      "sensorAngle": 0.6689186706563458,
+      "sensorDistance": 1.5960835001671136,
+      "turnAngle": 0.930142739018919,
+      "stepSize": 0.3168357843034528,
+      "deposit": 0.10412266468219461,
+      "depositWidth": 2.079539528707759,
+      "diffusion": 0.2908727052569481,
+      "decay": 0.9693727699376177,
+      "trailInfluence": 1.0721386030916127,
+      "resistance": 0.20360047196707606,
+      "randomness": 0.7428897078859154,
+      "persistence": 0.2802892488718964,
+      "trailCap": 1.303155110401567,
+      "crowdingLimit": 31,
+      "foodPoints": [
+        {
+          "x": 8.493978925318558,
+          "y": 7.54234345415723
+        },
+        {
+          "x": 5.727198390561455,
+          "y": 6.432269831820176
+        },
+        {
+          "x": 4.364056192775539,
+          "y": 6.0514695769972375
+        },
+        {
+          "x": 9.542857306847255,
+          "y": 5.18965184406219
+        },
+        {
+          "x": 10.173683776677612,
+          "y": 2.906591704632943
+        }
+      ],
+      "voidElongation": 1.5102497237775476,
+      "voidRotation": 0.7332312245196223,
+      "voidLobes": 0.5578161568786018,
+      "voidNotch": 0.17103230996523053
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.493978925318558,
+        "y": 7.54234345415723
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 8.493978925318558,
+          "y": 7.54234345415723,
+          "radius": 4.288387890152589,
+          "strength": 0.6476145670354228,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.727198390561455,
+          "y": 6.432269831820176,
+          "radius": 1.8292055123676245,
+          "strength": 0.45212376652682745,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 4.364056192775539,
+          "y": 6.0514695769972375,
+          "radius": 2.303605940407416,
+          "strength": 0.771941282200873,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.542857306847255,
+          "y": 5.18965184406219,
+          "radius": 2.679453948143037,
+          "strength": 0.7249403646098587,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.173683776677612,
+          "y": 2.906591704632943,
+          "radius": 2.033016914391658,
+          "strength": 0.543256988137961,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-397464-20.png"
+  },
+  {
+    "id": "continuous-hall-403877-21",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 22,
+    "seed": 403877,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486207161,
+    "slime": {
+      "sensorAngle": 0.9030478456469253,
+      "sensorDistance": 1.2089973524184814,
+      "turnAngle": 0.7242418073090073,
+      "stepSize": 0.37954798643613236,
+      "deposit": 0.13958687786068769,
+      "depositWidth": 2.169995547826187,
+      "diffusion": 0.22415508708163145,
+      "decay": 0.9701570790961385,
+      "trailInfluence": 0.887215932006389,
+      "resistance": 0.2772917237013477,
+      "randomness": 0.6491973438288551,
+      "persistence": 0.06393253433872015,
+      "trailCap": 0.9316349570732564,
+      "crowdingLimit": 15,
+      "foodPoints": [
+        {
+          "x": 10.242761922838781,
+          "y": 9.634498225013894
+        },
+        {
+          "x": 14.163709969810265,
+          "y": 10.668435097913184
+        },
+        {
+          "x": 9.774464206496717,
+          "y": 13.465425840661757
+        },
+        {
+          "x": 8.452666918556103,
+          "y": 10.459042209743297
+        },
+        {
+          "x": 6.24300218298727,
+          "y": 10.584801923391364
+        },
+        {
+          "x": 8.77084608867179,
+          "y": 7.492600035956035
+        },
+        {
+          "x": 7.939783334380188,
+          "y": 5.842349389034556
+        },
+        {
+          "x": 13.674716240066502,
+          "y": 8.442481212113382
+        },
+        {
+          "x": 16.09345357382595,
+          "y": 7.442754456447352
+        }
+      ],
+      "voidElongation": 1.1898327949460596,
+      "voidRotation": 0.45254094291015745,
+      "voidLobes": 0.41214207735750824,
+      "voidNotch": 0.2136197733459994
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 10.242761922838781,
+        "y": 9.634498225013894
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 10.242761922838781,
+          "y": 9.634498225013894,
+          "radius": 1.1943247235588812,
+          "strength": 0.7244306543151094,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 14.163709969810265,
+          "y": 10.668435097913184,
+          "radius": 0.9984679058519064,
+          "strength": 0.6258258165049848,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.774464206496717,
+          "y": 13.465425840661757,
+          "radius": 1.0486342885079691,
+          "strength": 0.986609863456711,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.452666918556103,
+          "y": 10.459042209743297,
+          "radius": 1.2683062211158034,
+          "strength": 0.6460784689884358,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.24300218298727,
+          "y": 10.584801923391364,
+          "radius": 1.3704971685145007,
+          "strength": 0.33497352355523274,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.77084608867179,
+          "y": 7.492600035956035,
+          "radius": 1.5478103233267022,
+          "strength": 0.8377282373807308,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.939783334380188,
+          "y": 5.842349389034556,
+          "radius": 1.8794938555025171,
+          "strength": 0.41110008219615946,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 13.674716240066502,
+          "y": 8.442481212113382,
+          "radius": 0.8,
+          "strength": 0.4669131881499489,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 16.09345357382595,
+          "y": 7.442754456447352,
+          "radius": 1.0190053715732916,
+          "strength": 0.31320081137962036,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-403877-21.png"
+  },
+  {
+    "id": "continuous-hall-410290-22",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 23,
+    "seed": 410290,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486218302,
+    "slime": {
+      "sensorAngle": 0.7675456463589333,
+      "sensorDistance": 1.6091929010820956,
+      "turnAngle": 0.6870803927509395,
+      "stepSize": 0.3544190457611903,
+      "deposit": 0.1359918339788914,
+      "depositWidth": 1.839721369794355,
+      "diffusion": 0.2749714126339274,
+      "decay": 0.9572151600422337,
+      "trailInfluence": 1.2523407434713096,
+      "resistance": 0.2938300243692371,
+      "randomness": 0.6571828703023492,
+      "persistence": 0.3249373676919378,
+      "trailCap": 1.0384256337862463,
+      "crowdingLimit": 29,
+      "foodPoints": [
+        {
+          "x": 7.7649490211023275,
+          "y": 9.878014095764991
+        },
+        {
+          "x": 5.891834536509148,
+          "y": 6.137623004487691
+        },
+        {
+          "x": 9.386243900999954,
+          "y": 12.27354892914627
+        },
+        {
+          "x": 10.621290021125148,
+          "y": 6.398842319586406
+        }
+      ],
+      "voidElongation": 1.0678280716393145,
+      "voidRotation": 0.40454263591258177,
+      "voidLobes": 0.4217602483141236,
+      "voidNotch": 0.23422632685862482
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.7649490211023275,
+        "y": 9.878014095764991
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 7.7649490211023275,
+          "y": 9.878014095764991,
+          "radius": 3.3451113874503484,
+          "strength": 1.1865269597032417,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.891834536509148,
+          "y": 6.137623004487691,
+          "radius": 4.156016130552406,
+          "strength": 0.8141219773297604,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.386243900999954,
+          "y": 12.27354892914627,
+          "radius": 2.3554008726227162,
+          "strength": 0.6846244672751175,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.621290021125148,
+          "y": 6.398842319586406,
+          "radius": 4.264520924618532,
+          "strength": 0.9287498490226682,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-410290-22.png"
+  },
+  {
+    "id": "continuous-hall-433087-23",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 24,
+    "seed": 433087,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486229327,
+    "slime": {
+      "sensorAngle": 0.7464972329884302,
+      "sensorDistance": 1.6277083649365147,
+      "turnAngle": 0.7397181733995957,
+      "stepSize": 0.3376219407068193,
+      "deposit": 0.13004157213084402,
+      "depositWidth": 1.9954612725551888,
+      "diffusion": 0.29821276423792337,
+      "decay": 0.9631413899416569,
+      "trailInfluence": 1.1701482820924374,
+      "resistance": 0.25031786250154403,
+      "randomness": 0.6369484425324481,
+      "persistence": 0.29773962614480404,
+      "trailCap": 0.962055022220593,
+      "crowdingLimit": 13,
+      "foodPoints": [
+        {
+          "x": 11.25954719339303,
+          "y": 9.066479424540669
+        },
+        {
+          "x": 9.611071199985522,
+          "y": 6.096246734101413
+        },
+        {
+          "x": 9.297246149012471,
+          "y": 3.5214486968494656
+        },
+        {
+          "x": 8.875756282797452,
+          "y": 11.013279216940289
+        },
+        {
+          "x": 7.014371281546878,
+          "y": 13.602340488013526
+        },
+        {
+          "x": 13.154325139788103,
+          "y": 8.8896163945228
+        }
+      ],
+      "voidElongation": 1.6630530578758569,
+      "voidRotation": 0.944692742701784,
+      "voidLobes": 0.4393067163885571,
+      "voidNotch": 0.03278490616008639
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 11.25954719339303,
+        "y": 9.066479424540669
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 11.25954719339303,
+          "y": 9.066479424540669,
+          "radius": 4.5553181403952125,
+          "strength": 1.7384363546664496,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.611071199985522,
+          "y": 6.096246734101413,
+          "radius": 3.3263926811561553,
+          "strength": 0.7280239689192755,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.297246149012471,
+          "y": 3.5214486968494656,
+          "radius": 2.8404232438307204,
+          "strength": 1.205558486410625,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.875756282797452,
+          "y": 11.013279216940289,
+          "radius": 3.9349800825510197,
+          "strength": 0.38780622482708915,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.014371281546878,
+          "y": 13.602340488013526,
+          "radius": 4.413869843858225,
+          "strength": 0.7258945635992531,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 13.154325139788103,
+          "y": 8.8896163945228,
+          "radius": 2.245560022129711,
+          "strength": 0.7822738211887459,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-433087-23.png"
+  },
+  {
     "id": "continuous-hall-441668-1790456323324-24",
     "archetypeId": "continuous-hall",
     "archetypeName": "Continuous Hall",
@@ -4164,6 +5524,2470 @@
     "image": "/shared-catalog/continuous-hall/continuous-hall-109591-1790456913907-31.png"
   },
   {
+    "id": "continuous-hall-115996-32",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 33,
+    "seed": 115996,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486321661,
+    "slime": {
+      "sensorAngle": 0.9544694747107103,
+      "sensorDistance": 1.4060468320532151,
+      "turnAngle": 0.9168981684949529,
+      "stepSize": 0.34890000703601165,
+      "deposit": 0.12649624578710647,
+      "depositWidth": 2.027252952693747,
+      "diffusion": 0.312155753293922,
+      "decay": 0.9530764631567988,
+      "trailInfluence": 1.4014368042483927,
+      "resistance": 0.11364077815058558,
+      "randomness": 0.5770038289960939,
+      "persistence": 0.08573475659480316,
+      "trailCap": 1.0070882157515735,
+      "crowdingLimit": 29,
+      "foodPoints": [
+        {
+          "x": 7.10454099529548,
+          "y": 9.725032356689047
+        },
+        {
+          "x": 8.12311823279553,
+          "y": 12.831398042665334
+        },
+        {
+          "x": 10.6686210820341,
+          "y": 8.732705258091555
+        },
+        {
+          "x": 5.1212132798914745,
+          "y": 7.602704463112373
+        }
+      ],
+      "voidElongation": 1.2465420333746822,
+      "voidRotation": 0.5791295168792351,
+      "voidLobes": 0.5429792728158646,
+      "voidNotch": -0.18752834149170666
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.10454099529548,
+        "y": 9.725032356689047
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 7.10454099529548,
+          "y": 9.725032356689047,
+          "radius": 2.071448787874176,
+          "strength": 1.2118660304591804,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.12311823279553,
+          "y": 12.831398042665334,
+          "radius": 1.2915700760800464,
+          "strength": 0.8119028984023253,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.6686210820341,
+          "y": 8.732705258091555,
+          "radius": 1.3615085175815254,
+          "strength": 0.6829751769941648,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.1212132798914745,
+          "y": 7.602704463112373,
+          "radius": 2.00320141385937,
+          "strength": 0.5903584998047224,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-115996-32.png"
+  },
+  {
+    "id": "continuous-hall-7721-33",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 34,
+    "seed": 7721,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486331600,
+    "slime": {
+      "sensorAngle": 0.6224693994808012,
+      "sensorDistance": 1.2215820778889963,
+      "turnAngle": 0.7240118473542669,
+      "stepSize": 0.34936293156860393,
+      "deposit": 0.12032958426568659,
+      "depositWidth": 1.8455069107327327,
+      "diffusion": 0.19180826710901205,
+      "decay": 0.9703886776261963,
+      "trailInfluence": 1.3192909062974156,
+      "resistance": 0.23265679877920925,
+      "randomness": 0.4905095892259851,
+      "persistence": 0.10744445081222802,
+      "trailCap": 1.0091501275752672,
+      "crowdingLimit": 30,
+      "foodPoints": [
+        {
+          "x": 10.741879834616055,
+          "y": 9.577789506152852
+        },
+        {
+          "x": 8.587001843539085,
+          "y": 9.99159456787357
+        },
+        {
+          "x": 6.170430432920185,
+          "y": 8.378507214837258
+        },
+        {
+          "x": 12.653369528869236,
+          "y": 6.346850165432116
+        },
+        {
+          "x": 13.989413918409864,
+          "y": 9.616369297751566
+        },
+        {
+          "x": 11.786601475152546,
+          "y": 12.692653060068034
+        },
+        {
+          "x": 12.906602802329727,
+          "y": 14.012538402325076
+        },
+        {
+          "x": 10.76533047104539,
+          "y": 14.580611077820715
+        },
+        {
+          "x": 6.856163020907094,
+          "y": 11.81024986726577
+        }
+      ],
+      "voidElongation": 1.0666270330645147,
+      "voidRotation": 0.6513295972715305,
+      "voidLobes": 0.588080129194539,
+      "voidNotch": 0.2327201937837526
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 10.741879834616055,
+        "y": 9.577789506152852
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 10.741879834616055,
+          "y": 9.577789506152852,
+          "radius": 1.6446871643626209,
+          "strength": 1.2663294067510535,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.587001843539085,
+          "y": 9.99159456787357,
+          "radius": 1.487511836193765,
+          "strength": 0.5253976779134193,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.170430432920185,
+          "y": 8.378507214837258,
+          "radius": 1.0980052192083387,
+          "strength": 0.6815261049988388,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.653369528869236,
+          "y": 6.346850165432116,
+          "radius": 1.1414291701311785,
+          "strength": 0.5026742082111397,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 13.989413918409864,
+          "y": 9.616369297751566,
+          "radius": 1.4467820493714414,
+          "strength": 0.7506012759680372,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 11.786601475152546,
+          "y": 12.692653060068034,
+          "radius": 1.6767905830617649,
+          "strength": 0.9262617530432965,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.906602802329727,
+          "y": 14.012538402325076,
+          "radius": 3.048467874798746,
+          "strength": 0.7135599238814676,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.76533047104539,
+          "y": 14.580611077820715,
+          "radius": 4.349892832414258,
+          "strength": 0.6104764716510379,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.856163020907094,
+          "y": 11.81024986726577,
+          "radius": 3.537114162484773,
+          "strength": 0.36393989248526093,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-7721-33.png"
+  },
+  {
+    "id": "continuous-hall-14134-34",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 35,
+    "seed": 14134,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486340212,
+    "slime": {
+      "sensorAngle": 0.7000116279746407,
+      "sensorDistance": 1.4950758849207693,
+      "turnAngle": 0.8258688313591108,
+      "stepSize": 0.412619033549875,
+      "deposit": 0.09473777486067267,
+      "depositWidth": 1.7363308699380322,
+      "diffusion": 0.22495629808065462,
+      "decay": 0.962318346500676,
+      "trailInfluence": 1.0277971393562855,
+      "resistance": 0.3284178931845251,
+      "randomness": 0.7099027674400713,
+      "persistence": 0.13096396434707566,
+      "trailCap": 1.3049687585304492,
+      "crowdingLimit": 12,
+      "foodPoints": [
+        {
+          "x": 9.40557000675958,
+          "y": 8.806289792693951
+        },
+        {
+          "x": 10.77480448505081,
+          "y": 6.122172423168802
+        },
+        {
+          "x": 12.270017772888679,
+          "y": 4.337117570859032
+        },
+        {
+          "x": 6.37921576888718,
+          "y": 7.470146525017311
+        },
+        {
+          "x": 4.079564962113569,
+          "y": 7.477245223739543
+        },
+        {
+          "x": 12.166785592681983,
+          "y": 10.09844627087392
+        }
+      ],
+      "voidElongation": 1.1064315048515798,
+      "voidRotation": 0.8935765282034174,
+      "voidLobes": 0.40428891190653665,
+      "voidNotch": -0.04580210094340146
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.40557000675958,
+        "y": 8.806289792693951
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 9.40557000675958,
+          "y": 8.806289792693951,
+          "radius": 1.818581827870691,
+          "strength": 1.1815705353876766,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.77480448505081,
+          "y": 6.122172423168802,
+          "radius": 2.0659650861277523,
+          "strength": 0.6798357580858967,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.270017772888679,
+          "y": 4.337117570859032,
+          "radius": 1.5929004703297407,
+          "strength": 0.753130967014312,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.37921576888718,
+          "y": 7.470146525017311,
+          "radius": 1.2338449152947528,
+          "strength": 0.5745591741025731,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 4.079564962113569,
+          "y": 7.477245223739543,
+          "radius": 1.1366018707908951,
+          "strength": 0.8460480732095775,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.166785592681983,
+          "y": 10.09844627087392,
+          "radius": 1.5725371422723922,
+          "strength": 0.5859710764811855,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-14134-34.png"
+  },
+  {
+    "id": "continuous-hall-18627-35",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 36,
+    "seed": 18627,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486354661,
+    "slime": {
+      "sensorAngle": 0.6342155237637461,
+      "sensorDistance": 1.2656542766659902,
+      "turnAngle": 0.9344455951552653,
+      "stepSize": 0.42038309981158,
+      "deposit": 0.0946526980964467,
+      "depositWidth": 1.9573912294346554,
+      "diffusion": 0.24359489187263866,
+      "decay": 0.9487071510862093,
+      "trailInfluence": 1.0426169384405017,
+      "resistance": 0.34598858699872076,
+      "randomness": 0.594526386790676,
+      "persistence": 0.26830755597800016,
+      "trailCap": 1.0100783273787237,
+      "crowdingLimit": 16,
+      "foodPoints": [
+        {
+          "x": 8.50004436038366,
+          "y": 10.401093416814021
+        },
+        {
+          "x": 7.268217062555967,
+          "y": 8.331231949808759
+        },
+        {
+          "x": 6.367159073925705,
+          "y": 6.781531932412967
+        },
+        {
+          "x": 12.760928617283668,
+          "y": 8.659681180794042
+        },
+        {
+          "x": 12.943804805500372,
+          "y": 12.753934983215732
+        },
+        {
+          "x": 7.3382332902104555,
+          "y": 11.436905168341099
+        },
+        {
+          "x": 5.385385400885772,
+          "y": 12.037246277611425
+        }
+      ],
+      "voidElongation": 1.1694590957578272,
+      "voidRotation": 0.2882966315599,
+      "voidLobes": 0.5449285859339871,
+      "voidNotch": 0.17181783414445817
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.50004436038366,
+        "y": 10.401093416814021
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 8.50004436038366,
+          "y": 10.401093416814021,
+          "radius": 4.068451762171277,
+          "strength": 0.9889554732489221,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.268217062555967,
+          "y": 8.331231949808759,
+          "radius": 2.6633202820179385,
+          "strength": 0.7794801983414851,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.367159073925705,
+          "y": 6.781531932412967,
+          "radius": 1.9387031234332701,
+          "strength": 0.7902346288287533,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.760928617283668,
+          "y": 8.659681180794042,
+          "radius": 2.552687333777548,
+          "strength": 0.8153963134880495,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.943804805500372,
+          "y": 12.753934983215732,
+          "radius": 2.6820871226398872,
+          "strength": 0.7217827769512362,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.3382332902104555,
+          "y": 11.436905168341099,
+          "radius": 1.2573751696936808,
+          "strength": 0.48284320152998383,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.385385400885772,
+          "y": 12.037246277611425,
+          "radius": 1.4597627212391302,
+          "strength": 0.45126982241307595,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-18627-35.png"
+  },
+  {
+    "id": "continuous-hall-25032-36",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 37,
+    "seed": 25032,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486363750,
+    "slime": {
+      "sensorAngle": 0.8020694426337257,
+      "sensorDistance": 1.2906352570147634,
+      "turnAngle": 0.9661738894665894,
+      "stepSize": 0.3286694275871478,
+      "deposit": 0.08614232328776272,
+      "depositWidth": 2.217469603675203,
+      "diffusion": 0.30433726805393563,
+      "decay": 0.9665837210892234,
+      "trailInfluence": 1.2001714495610447,
+      "resistance": 0.30156061147543517,
+      "randomness": 0.5412974992045201,
+      "persistence": 0.2419038982096128,
+      "trailCap": 1.0273364505940117,
+      "crowdingLimit": 27,
+      "foodPoints": [
+        {
+          "x": 7.505842328963527,
+          "y": 10.626808925678237
+        },
+        {
+          "x": 7.176696477026645,
+          "y": 8.436889683920075
+        },
+        {
+          "x": 5.706065511861265,
+          "y": 4.999039685326283
+        },
+        {
+          "x": 5.52413277245478,
+          "y": 11.715441593523181
+        },
+        {
+          "x": 3.957637188587258,
+          "y": 13.55103418855678
+        },
+        {
+          "x": 9.246027302056062,
+          "y": 12.052872693795496
+        },
+        {
+          "x": 10.423387022228036,
+          "y": 13.784759923755193
+        },
+        {
+          "x": 10.680967745146267,
+          "y": 9.144995111016506
+        },
+        {
+          "x": 11.874553087726685,
+          "y": 7.948055513116683
+        }
+      ],
+      "voidElongation": 1.0394028528559955,
+      "voidRotation": 0.43407321934220033,
+      "voidLobes": 0.46646466820314525,
+      "voidNotch": 0.23458432167302817
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.505842328963527,
+        "y": 10.626808925678237
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 7.505842328963527,
+          "y": 10.626808925678237,
+          "radius": 1.5474244754486606,
+          "strength": 0.8557893685130655,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.176696477026645,
+          "y": 8.436889683920075,
+          "radius": 2.002975570844432,
+          "strength": 0.4879779458547396,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.706065511861265,
+          "y": 4.999039685326283,
+          "radius": 1.293600973189422,
+          "strength": 0.38506104267989083,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.52413277245478,
+          "y": 11.715441593523181,
+          "radius": 0.9408412292710087,
+          "strength": 0.6695249882434677,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 3.957637188587258,
+          "y": 13.55103418855678,
+          "radius": 1.1806968555119064,
+          "strength": 0.827752848595854,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 9.246027302056062,
+          "y": 12.052872693795496,
+          "radius": 0.9379851181495182,
+          "strength": 1.1044686359330498,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.423387022228036,
+          "y": 13.784759923755193,
+          "radius": 0.8,
+          "strength": 0.9804819514793851,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.680967745146267,
+          "y": 9.144995111016506,
+          "radius": 2.9136976587049617,
+          "strength": 0.8029628754804236,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 11.874553087726685,
+          "y": 7.948055513116683,
+          "radius": 1.6639519962065428,
+          "strength": 0.6453158534159908,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-25032-36.png"
+  },
+  {
+    "id": "continuous-hall-47829-37",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 38,
+    "seed": 47829,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486377544,
+    "slime": {
+      "sensorAngle": 0.5861046289454215,
+      "sensorDistance": 1.172472433131878,
+      "turnAngle": 0.7786978729344254,
+      "stepSize": 0.3826071925973147,
+      "deposit": 0.14304413524046541,
+      "depositWidth": 1.7902917522329553,
+      "diffusion": 0.22784207531847972,
+      "decay": 0.9553976436257827,
+      "trailInfluence": 1.2404866830114276,
+      "resistance": 0.09564463730174035,
+      "randomness": 0.4953999078029301,
+      "persistence": 0.1603923783905804,
+      "trailCap": 1.0431980793806725,
+      "crowdingLimit": 28,
+      "foodPoints": [
+        {
+          "x": 8.199441321493943,
+          "y": 11.604257566436733
+        },
+        {
+          "x": 5.3490253609439975,
+          "y": 9.69810900464979
+        },
+        {
+          "x": 5.593860377896753,
+          "y": 12.680592639835181
+        },
+        {
+          "x": 10.545283403388527,
+          "y": 14.569210130557119
+        },
+        {
+          "x": 11.547735605703297,
+          "y": 10.31389705685421
+        },
+        {
+          "x": 8.582234560178106,
+          "y": 7.630772600709964
+        }
+      ],
+      "voidElongation": 1.4825188368022444,
+      "voidRotation": 0.5749065958896254,
+      "voidLobes": 0.42787890902720394,
+      "voidNotch": 0.11867862265091389
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.199441321493943,
+        "y": 11.604257566436733
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 8.199441321493943,
+          "y": 11.604257566436733,
+          "radius": 1.9994621396430607,
+          "strength": 0.9714980977560759,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.3490253609439975,
+          "y": 9.69810900464979,
+          "radius": 0.8,
+          "strength": 1.1174542877293994,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.593860377896753,
+          "y": 12.680592639835181,
+          "radius": 0.8,
+          "strength": 0.41170784993841114,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 10.545283403388527,
+          "y": 14.569210130557119,
+          "radius": 1.512058392451734,
+          "strength": 0.5011632253814721,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 11.547735605703297,
+          "y": 10.31389705685421,
+          "radius": 0.8,
+          "strength": 0.4302120906556402,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 8.582234560178106,
+          "y": 7.630772600709964,
+          "radius": 1.0644171348637972,
+          "strength": 0.710612402529007,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-47829-37.png"
+  },
+  {
+    "id": "continuous-hall-54242-38",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 39,
+    "seed": 54242,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486386895,
+    "slime": {
+      "sensorAngle": 0.9093750337066129,
+      "sensorDistance": 1.2148992464733226,
+      "turnAngle": 0.9938903999720049,
+      "stepSize": 0.3409229216160811,
+      "deposit": 0.14385584955625239,
+      "depositWidth": 2.296808882984118,
+      "diffusion": 0.2721569432554858,
+      "decay": 0.9512172085521277,
+      "trailInfluence": 1.0601833359006794,
+      "resistance": 0.2815438934249702,
+      "randomness": 0.47884935189504174,
+      "persistence": 0.12469678355734794,
+      "trailCap": 1.1965972591750325,
+      "crowdingLimit": 14,
+      "foodPoints": [
+        {
+          "x": 9.324912107692203,
+          "y": 10.126545394548797
+        },
+        {
+          "x": 6.247335489526627,
+          "y": 8.176916983103352
+        },
+        {
+          "x": 13.416809467253401,
+          "y": 8.91781819836923
+        },
+        {
+          "x": 12.433792343652774,
+          "y": 13.974491747287063
+        }
+      ],
+      "voidElongation": 1.3949373703155667,
+      "voidRotation": 0.4967966710474441,
+      "voidLobes": 0.505128139896784,
+      "voidNotch": 0.14290057736914605
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.324912107692203,
+        "y": 10.126545394548797
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 9.324912107692203,
+          "y": 10.126545394548797,
+          "radius": 4.8,
+          "strength": 1.2751685645839224,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 6.247335489526627,
+          "y": 8.176916983103352,
+          "radius": 2.6853601332547066,
+          "strength": 0.8812559873650543,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 13.416809467253401,
+          "y": 8.91781819836923,
+          "radius": 3.0415636753495052,
+          "strength": 1.127676132121448,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 12.433792343652774,
+          "y": 13.974491747287063,
+          "radius": 4.218906639824927,
+          "strength": 0.4838208376111267,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-54242-38.png"
+  },
+  {
+    "id": "continuous-hall-62703-39",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 40,
+    "seed": 62703,
+    "kind": "circle",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486394462,
+    "slime": {
+      "sensorAngle": 0.6961520482720343,
+      "sensorDistance": 1.6107864203904672,
+      "turnAngle": 0.9987043385017011,
+      "stepSize": 0.32511167244702577,
+      "deposit": 0.12538536913748832,
+      "depositWidth": 2.0257210985336167,
+      "diffusion": 0.19599627966425365,
+      "decay": 0.9561625318260863,
+      "trailInfluence": 0.8230136407673361,
+      "resistance": 0.11837415279558777,
+      "randomness": 0.4049582895101048,
+      "persistence": 0.13252337589981034,
+      "trailCap": 1.304223250374198,
+      "crowdingLimit": 34,
+      "foodPoints": [
+        {
+          "x": 6.959132765526028,
+          "y": 9.908067852119753
+        },
+        {
+          "x": 11.879413833682287,
+          "y": 13.372025961076924
+        },
+        {
+          "x": 5.898544147586721,
+          "y": 12.794907855271374
+        },
+        {
+          "x": 4.595137240792851,
+          "y": 9.12519400272056
+        },
+        {
+          "x": 7.398112712656884,
+          "y": 6.363009336915214
+        },
+        {
+          "x": 11.176481257101461,
+          "y": 9.624935035723746
+        }
+      ],
+      "voidElongation": 1.6897165495030584,
+      "voidRotation": 0.394733737056001,
+      "voidLobes": 0.41605733848642557,
+      "voidNotch": -0.05729715263005346
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 6.959132765526028,
+        "y": 9.908067852119753
+      },
+      "attractors": [
+        {
+          "kind": "ring",
+          "x": 6.959132765526028,
+          "y": 9.908067852119753,
+          "radius": 3.0983521296975307,
+          "strength": 0.676022471613257,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 11.879413833682287,
+          "y": 13.372025961076924,
+          "radius": 1.6070319608891954,
+          "strength": 1.2564734165985625,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 5.898544147586721,
+          "y": 12.794907855271374,
+          "radius": 1.1219084326263562,
+          "strength": 0.44052587043440994,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 4.595137240792851,
+          "y": 9.12519400272056,
+          "radius": 0.8,
+          "strength": 1.0115013102115442,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 7.398112712656884,
+          "y": 6.363009336915214,
+          "radius": 1.7196262992075648,
+          "strength": 1.0456674443160512,
+          "hole": true
+        },
+        {
+          "kind": "ring",
+          "x": 11.176481257101461,
+          "y": 9.624935035723746,
+          "radius": 1.1029522746295441,
+          "strength": 0.8127693050053416,
+          "hole": true
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-62703-39.png"
+  },
+  {
+    "id": "continuous-hall-200180-40",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 41,
+    "seed": 200180,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486400833,
+    "slime": {
+      "sensorAngle": 0.7499413219750394,
+      "sensorDistance": 1.4443005437003364,
+      "turnAngle": 0.9562512432069332,
+      "stepSize": 0.4050883760125935,
+      "deposit": 0.09774743295330555,
+      "depositWidth": 2.157464865441219,
+      "diffusion": 0.20565735514546726,
+      "decay": 0.9686817775006406,
+      "trailInfluence": 0.811603375258297,
+      "resistance": 0.08332182875572622,
+      "randomness": 0.6330985305854119,
+      "persistence": 0.09705137992165981,
+      "trailCap": 1.247361294538714,
+      "crowdingLimit": 31,
+      "foodPoints": [
+        {
+          "x": 8.241520753951882,
+          "y": 8.62153455298981
+        },
+        {
+          "x": 9.54952075362977,
+          "y": 12.520662415886383
+        },
+        {
+          "x": 11.961233625416996,
+          "y": 11.970498004010478
+        },
+        {
+          "x": 10.380166795993835,
+          "y": 8.81856490685767
+        },
+        {
+          "x": 8.303585081325881,
+          "y": 9.733513708443802
+        }
+      ],
+      "voidElongation": 1.270329815678671,
+      "voidRotation": 0.8477500469305291,
+      "voidLobes": 0.5682464611204341,
+      "voidNotch": 0.23583281771745532
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.241520753951882,
+        "y": 8.62153455298981
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 8.241520753951882,
+          "y": 8.62153455298981,
+          "x2": 10.062582170405825,
+          "y2": 11.014883269567193,
+          "radius": 0.6766623066995952,
+          "strength": 1.174895541416481
+        },
+        {
+          "kind": "line",
+          "x": 9.54952075362977,
+          "y": 12.520662415886383,
+          "radius": 1.6943153886968325,
+          "strength": 0.5349598348420113,
+          "x2": 6.5032028574664515,
+          "y2": 16.134137148391737
+        },
+        {
+          "kind": "line",
+          "x": 11.961233625416996,
+          "y": 11.970498004010478,
+          "radius": 1.0752372103325685,
+          "strength": 0.7848688749223947,
+          "x2": 16.31418275265233,
+          "y2": 13.68611061455942
+        },
+        {
+          "kind": "line",
+          "x": 10.380166795993835,
+          "y": 8.81856490685767,
+          "x2": 14.01755580050872,
+          "y2": 4.440747429071875,
+          "radius": 1.250071921300044,
+          "strength": 0.7889161700755356
+        },
+        {
+          "kind": "line",
+          "x": 8.303585081325881,
+          "y": 9.733513708443802,
+          "radius": 1.0718261714805393,
+          "strength": 0.6611405705008655,
+          "x2": 5.266041461355729,
+          "y2": 6.776103564986999
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-200180-40.png"
+  },
+  {
+    "id": "continuous-hall-206465-41",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 42,
+    "seed": 206465,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486407902,
+    "slime": {
+      "sensorAngle": 0.879321758080693,
+      "sensorDistance": 1.4342248708715113,
+      "turnAngle": 0.9299227297592723,
+      "stepSize": 0.3827325696246326,
+      "deposit": 0.13662940076142552,
+      "depositWidth": 2.4223829083282213,
+      "diffusion": 0.2837414892138073,
+      "decay": 0.9610291818371508,
+      "trailInfluence": 1.1867800193972886,
+      "resistance": 0.3447510311260718,
+      "randomness": 0.5350355628808029,
+      "persistence": 0.19183651613658292,
+      "trailCap": 0.9576987410522998,
+      "crowdingLimit": 19,
+      "foodPoints": [
+        {
+          "x": 7.970751894153695,
+          "y": 8.301337434256828
+        },
+        {
+          "x": 10.124267759557185,
+          "y": 7.549475887069197
+        },
+        {
+          "x": 10.613553282687185,
+          "y": 9.342775436869669
+        },
+        {
+          "x": 9.757453183260367,
+          "y": 11.041106284084448
+        },
+        {
+          "x": 7.53997295910506,
+          "y": 10.58098941819174
+        },
+        {
+          "x": 6.587394882410456,
+          "y": 9.011552590623337
+        },
+        {
+          "x": 7.867644484167504,
+          "y": 7.851136043803311
+        }
+      ],
+      "voidElongation": 1.2383340407688173,
+      "voidRotation": 0.32163662119114883,
+      "voidLobes": 0.4476247334177606,
+      "voidNotch": -0.11433452506083994
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.970751894153695,
+        "y": 8.301337434256828
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 7.970751894153695,
+          "y": 8.301337434256828,
+          "x2": 10.114688952826475,
+          "y2": 10.935211898389026,
+          "radius": 0.7641312980899502,
+          "strength": 0.7478753027506172
+        },
+        {
+          "kind": "line",
+          "x": 10.124267759557185,
+          "y": 7.549475887069197,
+          "x2": 12.36545490750823,
+          "y2": 5.62750947801662,
+          "radius": 1.4499443676083443,
+          "strength": 0.6639039873611181
+        },
+        {
+          "kind": "line",
+          "x": 10.613553282687185,
+          "y": 9.342775436869669,
+          "x2": 14.232756992581002,
+          "y2": 10.098205959783238,
+          "radius": 1.1150854920012852,
+          "strength": 0.5591570635884999
+        },
+        {
+          "kind": "line",
+          "x": 9.757453183260367,
+          "y": 11.041106284084448,
+          "radius": 1.321523715206563,
+          "strength": 0.6047746641188859,
+          "x2": 10.766125822489437,
+          "y2": 15.570321104265417
+        },
+        {
+          "kind": "line",
+          "x": 7.53997295910506,
+          "y": 10.58098941819174,
+          "x2": 5.1567122421067415,
+          "y2": 13.369583098128217,
+          "radius": 1.2235221061370118,
+          "strength": 0.7808609993429854
+        },
+        {
+          "kind": "line",
+          "x": 6.587394882410456,
+          "y": 9.011552590623337,
+          "radius": 1.3271673312718466,
+          "strength": 0.6370593849709256,
+          "x2": 2.1978645324897133,
+          "y2": 6.7919271022499474
+        },
+        {
+          "kind": "line",
+          "x": 7.867644484167504,
+          "y": 7.851136043803311,
+          "x2": 7.64930537220617,
+          "y2": 3.646034098315832,
+          "radius": 1.7076161930335334,
+          "strength": 0.8745909454720093
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-206465-41.png"
+  },
+  {
+    "id": "continuous-hall-229262-42",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 43,
+    "seed": 229262,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486418734,
+    "slime": {
+      "sensorAngle": 0.954347863020096,
+      "sensorDistance": 1.06204205606551,
+      "turnAngle": 0.6977608839103767,
+      "stepSize": 0.39877285978799687,
+      "deposit": 0.11789798432085664,
+      "depositWidth": 1.7270907926510735,
+      "diffusion": 0.26155387471514735,
+      "decay": 0.9693219013271853,
+      "trailInfluence": 0.8666505619551987,
+      "resistance": 0.24900095508172093,
+      "randomness": 0.5611337438994087,
+      "persistence": 0.3220299079164862,
+      "trailCap": 1.1114028741815127,
+      "crowdingLimit": 27,
+      "foodPoints": [
+        {
+          "x": 9.98830529307272,
+          "y": 8.74937046655744
+        },
+        {
+          "x": 6.644777805474687,
+          "y": 12.064202250877678
+        },
+        {
+          "x": 6.181437657118339,
+          "y": 10.797631549580501
+        },
+        {
+          "x": 7.093642180255347,
+          "y": 8.3625920589919
+        },
+        {
+          "x": 9.950600587150907,
+          "y": 10.09736406901485
+        },
+        {
+          "x": 10.04350006550017,
+          "y": 11.934601253540597
+        }
+      ],
+      "voidElongation": 1.213055712798983,
+      "voidRotation": 0.45555237308888347,
+      "voidLobes": 0.40861239755433054,
+      "voidNotch": 0.16695204229094088
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.98830529307272,
+        "y": 8.74937046655744
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 9.98830529307272,
+          "y": 8.74937046655744,
+          "x2": 6.754695309921061,
+          "y2": 11.23413741436218,
+          "radius": 0.9175559672818732,
+          "strength": 1.29865210223943
+        },
+        {
+          "kind": "line",
+          "x": 6.644777805474687,
+          "y": 12.064202250877678,
+          "x2": 3.789795035153756,
+          "y2": 14.486037195635191,
+          "radius": 1.7115440730483278,
+          "strength": 0.5205715641845018
+        },
+        {
+          "kind": "line",
+          "x": 6.181437657118339,
+          "y": 10.797631549580501,
+          "radius": 1.3010803091366916,
+          "strength": 0.6025040127104148,
+          "x2": 2.377958449216045,
+          "y2": 10.75666094391764
+        },
+        {
+          "kind": "line",
+          "x": 7.093642180255347,
+          "y": 8.3625920589919,
+          "radius": 1.8588332405599057,
+          "strength": 0.634693333772011,
+          "x2": 5.699982401456963,
+          "y2": 5.456319730315532
+        },
+        {
+          "kind": "line",
+          "x": 9.950600587150907,
+          "y": 10.09736406901485,
+          "x2": 13.276973349827951,
+          "y2": 7.769656204516226,
+          "radius": 1.3037542617723856,
+          "strength": 0.7772705170745029
+        },
+        {
+          "kind": "line",
+          "x": 10.04350006550017,
+          "y": 11.934601253540597,
+          "x2": 13.345342780145288,
+          "y2": 14.035939454155514,
+          "radius": 1.5280471173460082,
+          "strength": 0.6911804595310239
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-229262-42.png"
+  },
+  {
+    "id": "continuous-hall-233627-43",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 44,
+    "seed": 233627,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486427022,
+    "slime": {
+      "sensorAngle": 0.7146180300109088,
+      "sensorDistance": 1.2792525876646312,
+      "turnAngle": 1.0046146377055254,
+      "stepSize": 0.3692327594160661,
+      "deposit": 0.1012518617982045,
+      "depositWidth": 2.168702759961383,
+      "diffusion": 0.20710456766552274,
+      "decay": 0.9608075833070557,
+      "trailInfluence": 1.0735451379925014,
+      "resistance": 0.14041082666925073,
+      "randomness": 0.7378883644915185,
+      "persistence": 0.25282991147954015,
+      "trailCap": 1.2737059746379964,
+      "crowdingLimit": 22,
+      "foodPoints": [
+        {
+          "x": 11.125959239645846,
+          "y": 9.790230083101
+        },
+        {
+          "x": 10.38940271707311,
+          "y": 9.248179934982913
+        },
+        {
+          "x": 10.770481553662055,
+          "y": 11.890687756567191
+        },
+        {
+          "x": 12.49102549783539,
+          "y": 10.425908084540755
+        }
+      ],
+      "voidElongation": 1.11050321055986,
+      "voidRotation": 0.7390450636539299,
+      "voidLobes": 0.48327611606149,
+      "voidNotch": 0.20930618014186622
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 11.125959239645846,
+        "y": 9.790230083101
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 11.125959239645846,
+          "y": 9.790230083101,
+          "x2": 10.040096215977568,
+          "y2": 11.24784446580574,
+          "radius": 0.6,
+          "strength": 0.9305367028806358
+        },
+        {
+          "kind": "line",
+          "x": 10.38940271707311,
+          "y": 9.248179934982913,
+          "radius": 1.377454134784971,
+          "strength": 0.8798861975455655,
+          "x2": 10.534624577174359,
+          "y2": 5.393787434561357
+        },
+        {
+          "kind": "line",
+          "x": 10.770481553662055,
+          "y": 11.890687756567191,
+          "radius": 1.4503922611039293,
+          "strength": 0.6285987304383888,
+          "x2": 7.690755678144183,
+          "y2": 15.31096160891156
+        },
+        {
+          "kind": "line",
+          "x": 12.49102549783539,
+          "y": 10.425908084540755,
+          "radius": 1.8914912163094444,
+          "strength": 0.7767676116991787,
+          "x2": 18.21673238797566,
+          "y2": 10.524894420078741
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-233627-43.png"
+  },
+  {
+    "id": "continuous-hall-240032-44",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 45,
+    "seed": 240032,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486439006,
+    "slime": {
+      "sensorAngle": 0.6057344759033993,
+      "sensorDistance": 1.4881032241829586,
+      "turnAngle": 0.7537850388484356,
+      "stepSize": 0.4130201918254234,
+      "deposit": 0.11569558042157443,
+      "depositWidth": 2.2856815975669487,
+      "diffusion": 0.24924785137028416,
+      "decay": 0.9459296508442611,
+      "trailInfluence": 0.9504197857476773,
+      "resistance": 0.12836984711437405,
+      "randomness": 0.6936003997549414,
+      "persistence": 0.3277729082864709,
+      "trailCap": 1.1084964493615552,
+      "crowdingLimit": 34,
+      "foodPoints": [
+        {
+          "x": 11.993528707447426,
+          "y": 7.55713062219087
+        },
+        {
+          "x": 8.756342448946763,
+          "y": 8.415075860527624
+        },
+        {
+          "x": 8.570106779661517,
+          "y": 10.262131007400038
+        },
+        {
+          "x": 11.042972268020781,
+          "y": 10.589936826322473
+        },
+        {
+          "x": 11.977205094755869,
+          "y": 8.48175458584416
+        },
+        {
+          "x": 11.01284170699617,
+          "y": 7.1844119815806415
+        }
+      ],
+      "voidElongation": 1.1429664657343181,
+      "voidRotation": 0.21023263415306648,
+      "voidLobes": 0.469842819343321,
+      "voidNotch": -0.22723959637340158
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 11.993528707447426,
+        "y": 7.55713062219087
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 11.993528707447426,
+          "y": 7.55713062219087,
+          "x2": 10.089595843628222,
+          "y2": 10.25040695541304,
+          "radius": 0.7421145962379483,
+          "strength": 0.8217348175588994
+        },
+        {
+          "kind": "line",
+          "x": 8.756342448946763,
+          "y": 8.415075860527624,
+          "radius": 1.4508131873793522,
+          "strength": 0.5320508986571802,
+          "x2": 3.8972115604495037,
+          "y2": 9.463333187967917
+        },
+        {
+          "kind": "line",
+          "x": 8.570106779661517,
+          "y": 10.262131007400038,
+          "radius": 0.8704991364800363,
+          "strength": 0.7323404379189014,
+          "x2": 6.364369878457482,
+          "y2": 13.661827562406415
+        },
+        {
+          "kind": "line",
+          "x": 11.042972268020781,
+          "y": 10.589936826322473,
+          "radius": 0.7950333627505001,
+          "strength": 0.7489311488252132,
+          "x2": 13.514059674335755,
+          "y2": 12.619586088087818
+        },
+        {
+          "kind": "line",
+          "x": 11.977205094755869,
+          "y": 8.48175458584416,
+          "x2": 16.39218416986561,
+          "y2": 7.192192862944896,
+          "radius": 1.729470871747025,
+          "strength": 0.6254910649731755
+        },
+        {
+          "kind": "line",
+          "x": 11.01284170699617,
+          "y": 7.1844119815806415,
+          "x2": 10.433658685206996,
+          "y2": 1.8843295794218502,
+          "radius": 0.9816835584436627,
+          "strength": 0.6891874509677289
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-240032-44.png"
+  },
+  {
+    "id": "continuous-hall-246445-45",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 46,
+    "seed": 246445,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486447170,
+    "slime": {
+      "sensorAngle": 0.6701332191966475,
+      "sensorDistance": 1.0640252143558961,
+      "turnAngle": 0.8731404821942841,
+      "stepSize": 0.42320774642979725,
+      "deposit": 0.12695671925842764,
+      "depositWidth": 1.9962553435515327,
+      "diffusion": 0.2912502692587765,
+      "decay": 0.9488507702795789,
+      "trailInfluence": 1.2332285686995836,
+      "resistance": 0.3550781314374778,
+      "randomness": 0.4188936075055971,
+      "persistence": 0.17150936188297344,
+      "trailCap": 1.1037687847134658,
+      "crowdingLimit": 26,
+      "foodPoints": [
+        {
+          "x": 9.127641423406397,
+          "y": 6.883401384416237
+        },
+        {
+          "x": 7.340972056264775,
+          "y": 8.072310395942834
+        },
+        {
+          "x": 9.357741026113395,
+          "y": 9.171045744422358
+        },
+        {
+          "x": 10.769381256919177,
+          "y": 8.818417925324972
+        },
+        {
+          "x": 9.929007521299269,
+          "y": 6.208661647630741
+        }
+      ],
+      "voidElongation": 1.318380832283199,
+      "voidRotation": 0.08310901706072377,
+      "voidLobes": 0.5505325663937256,
+      "voidNotch": -0.0689402616256848
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.127641423406397,
+        "y": 6.883401384416237
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 9.127641423406397,
+          "y": 6.883401384416237,
+          "x2": 8.578440478616104,
+          "y2": 8.965498207324238,
+          "radius": 0.6,
+          "strength": 1.0677094114013015
+        },
+        {
+          "kind": "line",
+          "x": 7.340972056264775,
+          "y": 8.072310395942834,
+          "radius": 0.9199744734570369,
+          "strength": 0.8976650371635332,
+          "x2": 3.890348418125597,
+          "y2": 7.212577958429862
+        },
+        {
+          "kind": "line",
+          "x": 9.357741026113395,
+          "y": 9.171045744422358,
+          "x2": 6.888762708509528,
+          "y2": 13.33818723033038,
+          "radius": 1.1701020977677765,
+          "strength": 0.6400198693852871
+        },
+        {
+          "kind": "line",
+          "x": 10.769381256919177,
+          "y": 8.818417925324972,
+          "x2": 15.314628827408077,
+          "y2": 10.674325779200068,
+          "radius": 0.9950506809536421,
+          "strength": 0.8391874305857344
+        },
+        {
+          "kind": "line",
+          "x": 9.929007521299269,
+          "y": 6.208661647630741,
+          "radius": 1.016045200462439,
+          "strength": 0.6081477280892431,
+          "x2": 9.239524259370693,
+          "y2": 2.472761383735525
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-246445-45.png"
+  },
+  {
+    "id": "continuous-hall-138170-46",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 47,
+    "seed": 138170,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486455667,
+    "slime": {
+      "sensorAngle": 0.7267283039153088,
+      "sensorDistance": 1.0608850507363592,
+      "turnAngle": 0.7040824540385792,
+      "stepSize": 0.3858274772408977,
+      "deposit": 0.10971802417710425,
+      "depositWidth": 1.7698144848409756,
+      "diffusion": 0.2718718939986171,
+      "decay": 0.9602916365829296,
+      "trailInfluence": 1.1589123619854451,
+      "resistance": 0.14728004945180295,
+      "randomness": 0.6093950346496422,
+      "persistence": 0.28094339816020797,
+      "trailCap": 1.1219400468142704,
+      "crowdingLimit": 28,
+      "foodPoints": [
+        {
+          "x": 6.359566833733641,
+          "y": 10.05270039211991
+        },
+        {
+          "x": 10.83315202667249,
+          "y": 9.367490378685329
+        },
+        {
+          "x": 8.098728750148,
+          "y": 8.377992824229064
+        },
+        {
+          "x": 6.128617948898492,
+          "y": 9.24355515936303
+        },
+        {
+          "x": 9.056234853203401,
+          "y": 11.99835239566214
+        }
+      ],
+      "voidElongation": 1.6376752849280836,
+      "voidRotation": 0.3227729969371885,
+      "voidLobes": 0.5474640474589542,
+      "voidNotch": -0.2330567375477403
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 6.359566833733641,
+        "y": 10.05270039211991
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 6.359566833733641,
+          "y": 10.05270039211991,
+          "x2": 8.872484533114747,
+          "y2": 11.608752650380023,
+          "radius": 0.6650283704184344,
+          "strength": 0.9723393735010176
+        },
+        {
+          "kind": "line",
+          "x": 10.83315202667249,
+          "y": 9.367490378685329,
+          "radius": 1.7869305855226274,
+          "strength": 0.49429431785829364,
+          "x2": 14.613947231495649,
+          "y2": 8.461994047088208
+        },
+        {
+          "kind": "line",
+          "x": 8.098728750148,
+          "y": 8.377992824229064,
+          "radius": 1.3154660448410838,
+          "strength": 0.6867609080625697,
+          "x2": 8.829160663325512,
+          "y2": 5.545457243996035
+        },
+        {
+          "kind": "line",
+          "x": 6.128617948898492,
+          "y": 9.24355515936303,
+          "x2": 2.212550177435358,
+          "y2": 9.062672590806393,
+          "radius": 1.1157668639265623,
+          "strength": 0.5400448752660304
+        },
+        {
+          "kind": "line",
+          "x": 9.056234853203401,
+          "y": 11.99835239566214,
+          "radius": 1.4064958245066324,
+          "strength": 0.5970445358660071,
+          "x2": 10.132625381739492,
+          "y2": 15.60703371339022
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-138170-46.png"
+  },
+  {
+    "id": "continuous-hall-146759-47",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 48,
+    "seed": 146759,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486464284,
+    "slime": {
+      "sensorAngle": 0.7836834054162726,
+      "sensorDistance": 1.4361759387731934,
+      "turnAngle": 0.7621978390666471,
+      "stepSize": 0.4032335056797229,
+      "deposit": 0.1341759140888229,
+      "depositWidth": 2.180119883208321,
+      "diffusion": 0.23408790192325582,
+      "decay": 0.9684758861721958,
+      "trailInfluence": 1.1626778463501484,
+      "resistance": 0.10809411344787954,
+      "randomness": 0.5376156905305106,
+      "persistence": 0.2502078752464615,
+      "trailCap": 1.0969739158032463,
+      "crowdingLimit": 27,
+      "foodPoints": [
+        {
+          "x": 8.990303908310704,
+          "y": 9.42647645771513
+        },
+        {
+          "x": 10.158989332858477,
+          "y": 12.242537163565983
+        },
+        {
+          "x": 11.597666175483775,
+          "y": 12.104093465206457
+        },
+        {
+          "x": 11.99521442967171,
+          "y": 8.895686222967225
+        },
+        {
+          "x": 9.79778383611644,
+          "y": 9.594585386317455
+        },
+        {
+          "x": 9.150803908379004,
+          "y": 11.023188806680208
+        }
+      ],
+      "voidElongation": 1.3804044145591559,
+      "voidRotation": 0.6117298644922822,
+      "voidLobes": 0.49413514529634267,
+      "voidNotch": 0.20542014899197966
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.990303908310704,
+        "y": 9.42647645771513
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 8.990303908310704,
+          "y": 9.42647645771513,
+          "x2": 11.051921973230531,
+          "y2": 11.909649658341992,
+          "radius": 0.7261757162453574,
+          "strength": 1.114933579135686
+        },
+        {
+          "kind": "line",
+          "x": 10.158989332858477,
+          "y": 12.242537163565983,
+          "x2": 9.250101452910984,
+          "y2": 16.389986904828657,
+          "radius": 1.1629364690068635,
+          "strength": 0.895400153636001
+        },
+        {
+          "kind": "line",
+          "x": 11.597666175483775,
+          "y": 12.104093465206457,
+          "radius": 1.246284929445528,
+          "strength": 0.6691745590884238,
+          "x2": 15.259576409578296,
+          "y2": 14.677129393609778
+        },
+        {
+          "kind": "line",
+          "x": 11.99521442967171,
+          "y": 8.895686222967225,
+          "radius": 1.038438752768167,
+          "strength": 0.5901356771728024,
+          "x2": 14.519064086350895,
+          "y2": 5.535449559396088
+        },
+        {
+          "kind": "line",
+          "x": 9.79778383611644,
+          "y": 9.594585386317455,
+          "radius": 0.9795382029815488,
+          "strength": 0.901053672642447,
+          "x2": 6.323077861650198,
+          "y2": 7.168719074515697
+        },
+        {
+          "kind": "line",
+          "x": 9.150803908379004,
+          "y": 11.023188806680208,
+          "radius": 1.0574502135314179,
+          "strength": 0.7781352745182811,
+          "x2": 3.920629822518466,
+          "y2": 10.46663259376355
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-146759-47.png"
+  },
+  {
     "id": "continuous-hall-153164-1790457908824-48",
     "archetypeId": "continuous-hall",
     "archetypeName": "Continuous Hall",
@@ -5400,6 +9224,2552 @@
     },
     "topology": "open-network",
     "image": "/shared-catalog/continuous-hall/continuous-hall-869663-1790458202932-55.png"
+  },
+  {
+    "id": "continuous-hall-892452-56",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 57,
+    "seed": 892452,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486543167,
+    "slime": {
+      "sensorAngle": 0.7262085507574492,
+      "sensorDistance": 1.5580638840114613,
+      "turnAngle": 0.8972946309235693,
+      "stepSize": 0.38548493123795835,
+      "deposit": 0.09077854907661678,
+      "depositWidth": 2.420165540384845,
+      "diffusion": 0.20222155007059667,
+      "decay": 0.9697700614321045,
+      "trailInfluence": 1.1114318032883108,
+      "resistance": 0.10293758505693555,
+      "randomness": 0.496193703582976,
+      "persistence": 0.27360555932745334,
+      "trailCap": 1.0628860292583704,
+      "crowdingLimit": 31,
+      "foodPoints": [
+        {
+          "x": 8.622388611045267,
+          "y": 7.203835551217227
+        },
+        {
+          "x": 6.687434602559452,
+          "y": 8.918169499654695
+        },
+        {
+          "x": 8.606078451124656,
+          "y": 9.680837451026756
+        },
+        {
+          "x": 10.005432428119477,
+          "y": 9.977650822085073
+        },
+        {
+          "x": 10.888621604100228,
+          "y": 7.855089196959098
+        },
+        {
+          "x": 10.951548806745768,
+          "y": 6.406271658829305
+        },
+        {
+          "x": 8.199127587995678,
+          "y": 5.876413559752709
+        }
+      ],
+      "voidElongation": 1.16960057005696,
+      "voidRotation": 0.282071277812357,
+      "voidLobes": 0.4524075430887751,
+      "voidNotch": 0.18166723027825354
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.622388611045267,
+        "y": 7.203835551217227
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 8.622388611045267,
+          "y": 7.203835551217227,
+          "x2": 9.892461312867706,
+          "y2": 9.14721099146606,
+          "radius": 0.6,
+          "strength": 0.8892504583578557
+        },
+        {
+          "kind": "line",
+          "x": 6.687434602559452,
+          "y": 8.918169499654695,
+          "radius": 1.2520267944226897,
+          "strength": 0.5368562794383615,
+          "x2": 3.2433681680104787,
+          "y2": 9.871429946398575
+        },
+        {
+          "kind": "line",
+          "x": 8.606078451124656,
+          "y": 9.680837451026756,
+          "x2": 6.763326536033519,
+          "y2": 12.934581133266459,
+          "radius": 1.327218214827229,
+          "strength": 0.5846782677806913
+        },
+        {
+          "kind": "line",
+          "x": 10.005432428119477,
+          "y": 9.977650822085073,
+          "radius": 1.091443104020838,
+          "strength": 0.7919802193576468,
+          "x2": 11.558919079887241,
+          "y2": 13.241684288425628
+        },
+        {
+          "kind": "line",
+          "x": 10.888621604100228,
+          "y": 7.855089196959098,
+          "radius": 0.7092520509354978,
+          "strength": 0.6973534935479982,
+          "x2": 14.870537579018388,
+          "y2": 6.6901766728434096
+        },
+        {
+          "kind": "line",
+          "x": 10.951548806745768,
+          "y": 6.406271658829305,
+          "radius": 0.6711058447006616,
+          "strength": 0.5752073875255882,
+          "x2": 13.512663268531297,
+          "y2": 2.0747162011092746
+        },
+        {
+          "kind": "line",
+          "x": 8.199127587995678,
+          "y": 5.876413559752709,
+          "radius": 1.616428532069768,
+          "strength": 0.6344374369224532,
+          "x2": 5.273729808151115,
+          "y2": 3.9605217006777567
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-892452-56.png"
+  },
+  {
+    "id": "continuous-hall-898865-57",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 58,
+    "seed": 898865,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486555097,
+    "slime": {
+      "sensorAngle": 0.7219791459538508,
+      "sensorDistance": 1.4943547276600646,
+      "turnAngle": 0.7519084447326885,
+      "stepSize": 0.3543616126463376,
+      "deposit": 0.09748706454001368,
+      "depositWidth": 2.3565607777561706,
+      "diffusion": 0.29090090456503426,
+      "decay": 0.9473224463609513,
+      "trailInfluence": 1.3833977244462818,
+      "resistance": 0.2946759610317546,
+      "randomness": 0.498449886055896,
+      "persistence": 0.18104579124720765,
+      "trailCap": 1.301418093298562,
+      "crowdingLimit": 25,
+      "foodPoints": [
+        {
+          "x": 7.105160839277699,
+          "y": 9.086812913439601
+        },
+        {
+          "x": 10.174838272192838,
+          "y": 8.19112360663489
+        },
+        {
+          "x": 7.493351419635563,
+          "y": 8.903047112180557
+        },
+        {
+          "x": 8.20372577642464,
+          "y": 10.372814858808999
+        },
+        {
+          "x": 9.88590309338217,
+          "y": 9.90181880516368
+        },
+        {
+          "x": 11.466480411129178,
+          "y": 8.815274601700917
+        }
+      ],
+      "voidElongation": 1.2740007565118374,
+      "voidRotation": 0.2300953748233711,
+      "voidLobes": 0.5671408725562506,
+      "voidNotch": -0.17008716371376068
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.105160839277699,
+        "y": 9.086812913439601
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 7.105160839277699,
+          "y": 9.086812913439601,
+          "x2": 9.255212561946202,
+          "y2": 10.584123668071129,
+          "radius": 0.6,
+          "strength": 1.0765581522136927
+        },
+        {
+          "kind": "line",
+          "x": 10.174838272192838,
+          "y": 8.19112360663489,
+          "radius": 1.0676951655440954,
+          "strength": 0.8517006752453743,
+          "x2": 11.20632919954189,
+          "y2": 3.075542090785998
+        },
+        {
+          "kind": "line",
+          "x": 7.493351419635563,
+          "y": 8.903047112180557,
+          "x2": 4.370013167502115,
+          "y2": 7.217902291598207,
+          "radius": 1.376886706581721,
+          "strength": 0.5941675165016204
+        },
+        {
+          "kind": "line",
+          "x": 8.20372577642464,
+          "y": 10.372814858808999,
+          "x2": 5.004312937957207,
+          "y2": 14.206760656347358,
+          "radius": 1.3934608612261432,
+          "strength": 0.8187281559826805
+        },
+        {
+          "kind": "line",
+          "x": 9.88590309338217,
+          "y": 9.90181880516368,
+          "radius": 1.291308072317984,
+          "strength": 0.5269498461857438,
+          "x2": 14.138063540664486,
+          "y2": 14.488246368981471
+        },
+        {
+          "kind": "line",
+          "x": 11.466480411129178,
+          "y": 8.815274601700917,
+          "x2": 15.517380741966212,
+          "y2": 7.739743154675974,
+          "radius": 1.0038882030805378,
+          "strength": 0.9023929547844454
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-898865-57.png"
+  },
+  {
+    "id": "continuous-hall-903230-58",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 59,
+    "seed": 903230,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486564567,
+    "slime": {
+      "sensorAngle": 0.6594068656339777,
+      "sensorDistance": 1.5968216630101586,
+      "turnAngle": 0.8842496400415246,
+      "stepSize": 0.4319510132912174,
+      "deposit": 0.13886017765440048,
+      "depositWidth": 2.0779464380394383,
+      "diffusion": 0.25479473296311667,
+      "decay": 0.9697033332817256,
+      "trailInfluence": 1.2214930255565795,
+      "resistance": 0.1471761903373423,
+      "randomness": 0.5984780794929246,
+      "persistence": 0.1465856427152641,
+      "trailCap": 1.2646819202438928,
+      "crowdingLimit": 33,
+      "foodPoints": [
+        {
+          "x": 9.25279919125182,
+          "y": 10.818579679652613
+        },
+        {
+          "x": 8.18995200448889,
+          "y": 10.167253750685882
+        },
+        {
+          "x": 9.586031587647986,
+          "y": 10.739668298717056
+        },
+        {
+          "x": 10.223941558654191,
+          "y": 11.906103058372791
+        },
+        {
+          "x": 8.627975764973714,
+          "y": 12.779145760906731
+        },
+        {
+          "x": 7.399049687203983,
+          "y": 11.866785189732585
+        },
+        {
+          "x": 7.013100201785099,
+          "y": 10.93319712107861
+        }
+      ],
+      "voidElongation": 1.4217504381000998,
+      "voidRotation": 0.7291877917287023,
+      "voidLobes": 0.5346016899915412,
+      "voidNotch": 0.012979430202394724
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.25279919125182,
+        "y": 10.818579679652613
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 9.25279919125182,
+          "y": 10.818579679652613,
+          "x2": 7.433302493808421,
+          "y2": 11.259217786875888,
+          "radius": 0.6,
+          "strength": 0.8856316697318106
+        },
+        {
+          "kind": "line",
+          "x": 8.18995200448889,
+          "y": 10.167253750685882,
+          "radius": 0.8539161144213833,
+          "strength": 0.8438037836225702,
+          "x2": 6.2487729915183925,
+          "y2": 5.130942601390445
+        },
+        {
+          "kind": "line",
+          "x": 9.586031587647986,
+          "y": 10.739668298717056,
+          "radius": 1.0426373754445182,
+          "strength": 0.7184069535695016,
+          "x2": 12.48982654783751,
+          "y2": 7.324757893108432
+        },
+        {
+          "kind": "line",
+          "x": 10.223941558654191,
+          "y": 11.906103058372791,
+          "x2": 14.02461265661135,
+          "y2": 14.105908042212363,
+          "radius": 1.063665500882508,
+          "strength": 0.6236672581452876
+        },
+        {
+          "kind": "line",
+          "x": 8.627975764973714,
+          "y": 12.779145760906731,
+          "radius": 1.3882495134029798,
+          "strength": 0.8023956976598128,
+          "x2": 9.649154169294865,
+          "y2": 16.88675543910427
+        },
+        {
+          "kind": "line",
+          "x": 7.399049687203983,
+          "y": 11.866785189732585,
+          "radius": 0.8805291125362269,
+          "strength": 0.8889602608326822,
+          "x2": 4.628405789287545,
+          "y2": 15.448704674286613
+        },
+        {
+          "kind": "line",
+          "x": 7.013100201785099,
+          "y": 10.93319712107861,
+          "radius": 1.043726486698367,
+          "strength": 0.6319436995685099,
+          "x2": 2.063328397758373,
+          "y2": 8.998225992597462
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-903230-58.png"
+  },
+  {
+    "id": "continuous-hall-909771-59",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 60,
+    "seed": 909771,
+    "kind": "line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486572299,
+    "slime": {
+      "sensorAngle": 0.7323778753436171,
+      "sensorDistance": 1.3608883660864,
+      "turnAngle": 0.980549389526276,
+      "stepSize": 0.36677230470949784,
+      "deposit": 0.09602135721649976,
+      "depositWidth": 1.838471311698453,
+      "diffusion": 0.2326381866633052,
+      "decay": 0.948272380165942,
+      "trailInfluence": 1.333573009645939,
+      "resistance": 0.18078556590451778,
+      "randomness": 0.7321065343054942,
+      "persistence": 0.06431165519524365,
+      "trailCap": 1.0650616464181804,
+      "crowdingLimit": 26,
+      "foodPoints": [
+        {
+          "x": 6.765943081169163,
+          "y": 7.767927918494502
+        },
+        {
+          "x": 7.241518737677875,
+          "y": 10.150387222543538
+        },
+        {
+          "x": 7.071679199459444,
+          "y": 8.37838123708597
+        },
+        {
+          "x": 7.757998796728209,
+          "y": 8.134228213109123
+        },
+        {
+          "x": 9.805102610923866,
+          "y": 8.198905031410048
+        },
+        {
+          "x": 10.322779094224277,
+          "y": 8.318357507016913
+        },
+        {
+          "x": 9.199166010856922,
+          "y": 9.427491048139489
+        }
+      ],
+      "voidElongation": 1.4873460975050927,
+      "voidRotation": 0.7429520768469975,
+      "voidLobes": 0.4309802393047139,
+      "voidNotch": -0.1425737597141415
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 6.765943081169163,
+        "y": 7.767927918494502
+      },
+      "attractors": [
+        {
+          "kind": "line",
+          "x": 6.765943081169163,
+          "y": 7.767927918494502,
+          "x2": 8.303953621191395,
+          "y2": 9.800774219657567,
+          "radius": 0.6,
+          "strength": 0.8082312767859547
+        },
+        {
+          "kind": "line",
+          "x": 7.241518737677875,
+          "y": 10.150387222543538,
+          "radius": 1.46134965824416,
+          "strength": 0.49059904943685967,
+          "x2": 4.858806433373925,
+          "y2": 14.308883887973801
+        },
+        {
+          "kind": "line",
+          "x": 7.071679199459444,
+          "y": 8.37838123708597,
+          "x2": 2.7540914199485007,
+          "y2": 8.818848827119083,
+          "radius": 2.2231995734015304,
+          "strength": 0.722990897418931
+        },
+        {
+          "kind": "line",
+          "x": 7.757998796728209,
+          "y": 8.134228213109123,
+          "radius": 1.3423893236954207,
+          "strength": 0.7426620481954886,
+          "x2": 5.8892318811198745,
+          "y2": 4.172962730454744
+        },
+        {
+          "kind": "line",
+          "x": 9.805102610923866,
+          "y": 8.198905031410048,
+          "x2": 12.483141748898918,
+          "y2": 4.134442714362686,
+          "radius": 0.9374866880760685,
+          "strength": 0.5272526906896382
+        },
+        {
+          "kind": "line",
+          "x": 10.322779094224277,
+          "y": 8.318357507016913,
+          "radius": 2.1635748587909185,
+          "strength": 0.707702021091245,
+          "x2": 13.22956931628644,
+          "y2": 9.218912856650576
+        },
+        {
+          "kind": "line",
+          "x": 9.199166010856922,
+          "y": 9.427491048139489,
+          "radius": 1.4697077774893628,
+          "strength": 0.6429899620451033,
+          "x2": 11.750554147879566,
+          "y2": 14.110342616205015
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-909771-59.png"
+  },
+  {
+    "id": "continuous-hall-801488-60",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 61,
+    "seed": 801488,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486583921,
+    "slime": {
+      "sensorAngle": 0.783124675085023,
+      "sensorDistance": 1.2853783327545887,
+      "turnAngle": 0.7773748986302224,
+      "stepSize": 0.40177675757134335,
+      "deposit": 0.10017332103624942,
+      "depositWidth": 2.209633907391475,
+      "diffusion": 0.23815313568190655,
+      "decay": 0.9533287954695988,
+      "trailInfluence": 0.9567215718463065,
+      "resistance": 0.32633560205547985,
+      "randomness": 0.5199596678069792,
+      "persistence": 0.2023864577815868,
+      "trailCap": 1.1843639669450932,
+      "crowdingLimit": 13,
+      "foodPoints": [
+        {
+          "x": 8.1527265960689,
+          "y": 6.313110575133042
+        },
+        {
+          "x": 10.794388337110483,
+          "y": 9.453088084883802
+        },
+        {
+          "x": 9.306486362366398,
+          "y": 5.623684202028581
+        },
+        {
+          "x": 7.200713186486949,
+          "y": 8.68506466058609
+        }
+      ],
+      "voidElongation": 1.640493933484331,
+      "voidRotation": 0.3585232609911846,
+      "voidLobes": 0.4347533450727351,
+      "voidNotch": 0.24554059032350778
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.1527265960689,
+        "y": 6.313110575133042
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 8.1527265960689,
+          "y": 6.313110575133042,
+          "x2": 9.672877623319055,
+          "y2": 10.488630609821186,
+          "cx": 13.088322144382122,
+          "cy": 6.8807195652269595,
+          "radius": 0.8887255303125209,
+          "strength": 1.290161234885454
+        },
+        {
+          "kind": "curve",
+          "x": 10.794388337110483,
+          "y": 9.453088084883802,
+          "radius": 1.0220680148993,
+          "strength": 0.6576270193234085,
+          "x2": 14.202927547841789,
+          "y2": 12.352766364080427,
+          "cx": 11.841365790377122,
+          "cy": 11.67556675811899
+        },
+        {
+          "kind": "curve",
+          "x": 9.306486362366398,
+          "y": 5.623684202028581,
+          "radius": 1.090806243934364,
+          "strength": 0.50408192765899,
+          "x2": 8.036216300203982,
+          "y2": 1.2,
+          "cx": 7.471067423342102,
+          "cy": 3.756506106111272
+        },
+        {
+          "kind": "curve",
+          "x": 7.200713186486949,
+          "y": 8.68506466058609,
+          "radius": 1.0499368638604907,
+          "strength": 0.898596032387577,
+          "x2": 1.7890099266742214,
+          "y2": 9.648992634200152,
+          "cx": 5.5808753161225715,
+          "cy": 8.479388486502389
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-801488-60.png"
+  },
+  {
+    "id": "continuous-hall-807901-61",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 62,
+    "seed": 807901,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486598754,
+    "slime": {
+      "sensorAngle": 0.866702366100112,
+      "sensorDistance": 1.585326615598277,
+      "turnAngle": 0.8527487381263916,
+      "stepSize": 0.3536963328905031,
+      "deposit": 0.13404502561371776,
+      "depositWidth": 2.201366129196034,
+      "diffusion": 0.21175140879807045,
+      "decay": 0.9629705400916282,
+      "trailInfluence": 0.9165792416915299,
+      "resistance": 0.31263454194384543,
+      "randomness": 0.5586305663746316,
+      "persistence": 0.1108059252368286,
+      "trailCap": 1.1055542341293767,
+      "crowdingLimit": 31,
+      "foodPoints": [
+        {
+          "x": 7.487484023581891,
+          "y": 10.850081614972728
+        },
+        {
+          "x": 9.537628526956661,
+          "y": 10.38345142174152
+        },
+        {
+          "x": 10.215744755033112,
+          "y": 8.343913266417518
+        },
+        {
+          "x": 6.270696413829491,
+          "y": 9.463533625555183
+        }
+      ],
+      "voidElongation": 1.5001301784630867,
+      "voidRotation": 0.6531184840007004,
+      "voidLobes": 0.5373632440981455,
+      "voidNotch": -0.24472986259963364
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 7.487484023581891,
+        "y": 10.850081614972728
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 7.487484023581891,
+          "y": 10.850081614972728,
+          "x2": 7.40101519846775,
+          "y2": 7.368754909402346,
+          "cx": 3.962922905454439,
+          "cy": 9.195887087301678,
+          "radius": 0.696480078354985,
+          "strength": 0.9510251042898743
+        },
+        {
+          "kind": "curve",
+          "x": 9.537628526956661,
+          "y": 10.38345142174152,
+          "radius": 1.032473418172178,
+          "strength": 0.5364685959508642,
+          "x2": 11.845517907403226,
+          "y2": 14.676400224195488,
+          "cx": 9.847592399667514,
+          "cy": 11.888807370504487
+        },
+        {
+          "kind": "curve",
+          "x": 10.215744755033112,
+          "y": 8.343913266417518,
+          "radius": 0.7915784461626018,
+          "strength": 0.6227905347663908,
+          "x2": 13.309175255013978,
+          "y2": 4.344591624762151,
+          "cx": 11.439222251624237,
+          "cy": 7.699275607589366
+        },
+        {
+          "kind": "curve",
+          "x": 6.270696413829491,
+          "y": 9.463533625555183,
+          "radius": 1.0574699527651472,
+          "strength": 0.7774279286991803,
+          "x2": 3.1365807445619973,
+          "y2": 10.655082101865041,
+          "cx": 6.054434291541319,
+          "cy": 9.342393494368459
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-807901-61.png"
+  },
+  {
+    "id": "continuous-hall-816362-62",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 63,
+    "seed": 816362,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486616962,
+    "slime": {
+      "sensorAngle": 0.6710218481861056,
+      "sensorDistance": 1.3816262907390398,
+      "turnAngle": 0.8797873510020134,
+      "stepSize": 0.35204186463398857,
+      "deposit": 0.13065869299285116,
+      "depositWidth": 1.7221565959181353,
+      "diffusion": 0.22574484356298094,
+      "decay": 0.9502226049177348,
+      "trailInfluence": 0.8990936362784357,
+      "resistance": 0.2729927465665984,
+      "randomness": 0.6680388136522378,
+      "persistence": 0.27543812658526,
+      "trailCap": 0.9822018037643284,
+      "crowdingLimit": 30,
+      "foodPoints": [
+        {
+          "x": 8.813865232840673,
+          "y": 10.635819046878835
+        },
+        {
+          "x": 8.81769652822204,
+          "y": 8.213209998017076
+        },
+        {
+          "x": 7.4461441525841945,
+          "y": 8.613135492214942
+        },
+        {
+          "x": 7.450177946688257,
+          "y": 10.543295956107979
+        },
+        {
+          "x": 8.881042621926975,
+          "y": 11.918983840289176
+        },
+        {
+          "x": 10.503147395624966,
+          "y": 9.896059973561732
+        },
+        {
+          "x": 10.72765910967455,
+          "y": 8.525764690235718
+        }
+      ],
+      "voidElongation": 1.2664577724192294,
+      "voidRotation": 0.8335420049965528,
+      "voidLobes": 0.5612596462238579,
+      "voidNotch": -0.0478410409251228
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.813865232840673,
+        "y": 10.635819046878835
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 8.813865232840673,
+          "y": 10.635819046878835,
+          "x2": 7.178190716928304,
+          "y2": 8.5857848280542,
+          "cx": 5.945993756059853,
+          "cy": 11.246476453378888,
+          "radius": 0.6,
+          "strength": 0.8899103714618831
+        },
+        {
+          "kind": "curve",
+          "x": 8.81769652822204,
+          "y": 8.213209998017076,
+          "radius": 1.6156329652882457,
+          "strength": 0.8383520029578357,
+          "x2": 8.969550516225116,
+          "y2": 2.791566017533696,
+          "cx": 10.018069898357293,
+          "cy": 5.5338824524726355
+        },
+        {
+          "kind": "curve",
+          "x": 7.4461441525841945,
+          "y": 8.613135492214942,
+          "radius": 1.051539401651822,
+          "strength": 0.5209802286652847,
+          "x2": 3.269969501773997,
+          "y2": 8.491415611856432,
+          "cx": 5.316666773103831,
+          "cy": 9.972356594801036
+        },
+        {
+          "kind": "curve",
+          "x": 7.450177946688257,
+          "y": 10.543295956107979,
+          "radius": 1.837907874319306,
+          "strength": 0.9035556597588582,
+          "x2": 3.6035129389975222,
+          "y2": 12.074681980835807,
+          "cx": 5.052561872966748,
+          "cy": 10.117643362265616
+        },
+        {
+          "kind": "curve",
+          "x": 8.881042621926975,
+          "y": 11.918983840289176,
+          "radius": 1.409584795350518,
+          "strength": 0.5635854328749701,
+          "x2": 9.117160331719862,
+          "y2": 15.750038037922176,
+          "cx": 7.77198806365669,
+          "cy": 13.910141090449418
+        },
+        {
+          "kind": "curve",
+          "x": 10.503147395624966,
+          "y": 9.896059973561732,
+          "radius": 1.223684998823332,
+          "strength": 0.5826480791065841,
+          "x2": 13.609740228812669,
+          "y2": 11.913688185270473,
+          "cx": 11.595871163437678,
+          "cy": 9.908764486407511
+        },
+        {
+          "kind": "curve",
+          "x": 10.72765910967455,
+          "y": 8.525764690235718,
+          "radius": 0.8474208403085255,
+          "strength": 0.6135777338128536,
+          "x2": 13.573328844402715,
+          "y2": 5.700816519354404,
+          "cx": 12.735324669583623,
+          "cy": 7.702411148269029
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-816362-62.png"
+  },
+  {
+    "id": "continuous-hall-822775-63",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 64,
+    "seed": 822775,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486629562,
+    "slime": {
+      "sensorAngle": 0.7298590274631978,
+      "sensorDistance": 1.1820715001756241,
+      "turnAngle": 0.8973885301158578,
+      "stepSize": 0.37614779477702454,
+      "deposit": 0.11449258055128159,
+      "depositWidth": 2.313949718731241,
+      "diffusion": 0.29293017539280447,
+      "decay": 0.9544128360526636,
+      "trailInfluence": 1.386127261318639,
+      "resistance": 0.1790746806070107,
+      "randomness": 0.6849625899479724,
+      "persistence": 0.11348340298170222,
+      "trailCap": 1.0270599233312532,
+      "crowdingLimit": 13,
+      "foodPoints": [
+        {
+          "x": 12.571850447922543,
+          "y": 10.087578668186278
+        },
+        {
+          "x": 10.47435387756036,
+          "y": 8.554388364677898
+        },
+        {
+          "x": 9.677043181847782,
+          "y": 9.822190302594136
+        },
+        {
+          "x": 10.953481676696743,
+          "y": 11.937129575454065
+        },
+        {
+          "x": 11.931476888715862,
+          "y": 10.90633929735335
+        },
+        {
+          "x": 11.929031267656999,
+          "y": 8.894493968023221
+        }
+      ],
+      "voidElongation": 1.4875234754685314,
+      "voidRotation": 0.3421360687211356,
+      "voidLobes": 0.4069639081861824,
+      "voidNotch": 0.11812740342691541
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 12.571850447922543,
+        "y": 10.087578668186278
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 12.571850447922543,
+          "y": 10.087578668186278,
+          "x2": 10.359241948793446,
+          "y2": 10.690906730224567,
+          "cx": 12.068874260396285,
+          "cy": 12.60185119833452,
+          "radius": 0.6,
+          "strength": 1.0149899181909858
+        },
+        {
+          "kind": "curve",
+          "x": 10.47435387756036,
+          "y": 8.554388364677898,
+          "radius": 1.0486918853993046,
+          "strength": 0.775062391576357,
+          "x2": 9.685492141600418,
+          "y2": 6.032766853158225,
+          "cx": 9.192530020379456,
+          "cy": 8.279857445845606
+        },
+        {
+          "kind": "curve",
+          "x": 9.677043181847782,
+          "y": 9.822190302594136,
+          "radius": 0.774463755016057,
+          "strength": 0.8496908662607893,
+          "x2": 6.6379675989687845,
+          "y2": 10.846714443887272,
+          "cx": 7.917617475238874,
+          "cy": 9.622865914478567
+        },
+        {
+          "kind": "curve",
+          "x": 10.953481676696743,
+          "y": 11.937129575454065,
+          "radius": 0.8778246185010025,
+          "strength": 0.5118304359167813,
+          "x2": 12.923831981539987,
+          "y2": 16.043656890422756,
+          "cx": 10.794575256474323,
+          "cy": 14.53933429737692
+        },
+        {
+          "kind": "curve",
+          "x": 11.931476888715862,
+          "y": 10.90633929735335,
+          "radius": 1.0316523707598928,
+          "strength": 0.6303414478013292,
+          "x2": 15.900624234096899,
+          "y2": 12.652248557175497,
+          "cx": 13.445038725995824,
+          "cy": 12.850091487701956
+        },
+        {
+          "kind": "curve",
+          "x": 11.929031267656999,
+          "y": 8.894493968023221,
+          "radius": 0.988639552027251,
+          "strength": 0.7115028560208155,
+          "x2": 13.327895207577052,
+          "y2": 4.214478085451921,
+          "cx": 13.790619310012282,
+          "cy": 6.901856262870114
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-822775-63.png"
+  },
+  {
+    "id": "continuous-hall-829180-64",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 65,
+    "seed": 829180,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486643333,
+    "slime": {
+      "sensorAngle": 0.7825959455165546,
+      "sensorDistance": 1.254958745103321,
+      "turnAngle": 0.7972008680303396,
+      "stepSize": 0.40624525333750994,
+      "deposit": 0.10480961100254209,
+      "depositWidth": 2.120836829687254,
+      "diffusion": 0.265697402917696,
+      "decay": 0.9708466279956046,
+      "trailInfluence": 1.3043413711380214,
+      "resistance": 0.22851224088779568,
+      "randomness": 0.5226564526127185,
+      "persistence": 0.19956491372901944,
+      "trailCap": 1.2586185843427666,
+      "crowdingLimit": 28,
+      "foodPoints": [
+        {
+          "x": 9.310574564111665,
+          "y": 10.762829511102055
+        },
+        {
+          "x": 12.818056515587609,
+          "y": 12.841422182576792
+        },
+        {
+          "x": 11.05921825090316,
+          "y": 12.285746642685574
+        },
+        {
+          "x": 10.134154833048319,
+          "y": 9.835750248561833
+        },
+        {
+          "x": 10.939765571366701,
+          "y": 9.593789895091696
+        },
+        {
+          "x": 12.85940500467154,
+          "y": 10.303683387931907
+        }
+      ],
+      "voidElongation": 1.6252218674182894,
+      "voidRotation": 0.7080136897560786,
+      "voidLobes": 0.5391789861996659,
+      "voidNotch": -0.01994145075324923
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.310574564111665,
+        "y": 10.762829511102055
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 9.310574564111665,
+          "y": 10.762829511102055,
+          "x2": 11.720085623005044,
+          "y2": 10.007417732817391,
+          "cx": 9.75991831527369,
+          "cy": 7.975612563066343,
+          "radius": 0.6,
+          "strength": 1.1243743100203574
+        },
+        {
+          "kind": "curve",
+          "x": 12.818056515587609,
+          "y": 12.841422182576792,
+          "radius": 2.012954396891115,
+          "strength": 0.5040919716516509,
+          "x2": 14.26932619072133,
+          "y2": 16.37104154372915,
+          "cx": 14.488683168020735,
+          "cy": 14.217680627498698
+        },
+        {
+          "kind": "curve",
+          "x": 11.05921825090316,
+          "y": 12.285746642685574,
+          "radius": 1.7941464949179187,
+          "strength": 0.6156940276408567,
+          "x2": 8.231903207717137,
+          "y2": 15.513922769258075,
+          "cx": 10.49043175713706,
+          "cy": 14.639793268599345
+        },
+        {
+          "kind": "curve",
+          "x": 10.134154833048319,
+          "y": 9.835750248561833,
+          "radius": 0.834286902987904,
+          "strength": 0.7987707568425685,
+          "x2": 6.074881912985557,
+          "y2": 8.177418627321895,
+          "cx": 8.660277927557837,
+          "cy": 7.646193258687129
+        },
+        {
+          "kind": "curve",
+          "x": 10.939765571366701,
+          "y": 9.593789895091696,
+          "radius": 1.0400499062250521,
+          "strength": 0.7508103726059198,
+          "x2": 10.005691380421725,
+          "y2": 5.538067557504113,
+          "cx": 9.658399517823735,
+          "cy": 7.753476985118105
+        },
+        {
+          "kind": "curve",
+          "x": 12.85940500467154,
+          "y": 10.303683387931907,
+          "radius": 2.2347123077655593,
+          "strength": 0.7561471809400245,
+          "x2": 16.409286604913717,
+          "y2": 8.412480523678038,
+          "cx": 15.279975796593611,
+          "cy": 10.569961480618952
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-829180-64.png"
+  },
+  {
+    "id": "continuous-hall-851849-65",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 66,
+    "seed": 851849,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486656389,
+    "slime": {
+      "sensorAngle": 0.6722475569622591,
+      "sensorDistance": 1.5532919062424833,
+      "turnAngle": 0.9636922684610171,
+      "stepSize": 0.33222659672746435,
+      "deposit": 0.1331679418968037,
+      "depositWidth": 2.166677150516556,
+      "diffusion": 0.23050690243710745,
+      "decay": 0.9557383941008709,
+      "trailInfluence": 1.2724521267361941,
+      "resistance": 0.14458541510364892,
+      "randomness": 0.5499415960919577,
+      "persistence": 0.0868309251487255,
+      "trailCap": 1.208576331739314,
+      "crowdingLimit": 29,
+      "foodPoints": [
+        {
+          "x": 8.902407131286568,
+          "y": 6.386604501107749
+        },
+        {
+          "x": 7.543880354915306,
+          "y": 8.373522426839775
+        },
+        {
+          "x": 9.079690501779684,
+          "y": 6.554176353455551
+        },
+        {
+          "x": 9.014070649009277,
+          "y": 9.1157218167348
+        }
+      ],
+      "voidElongation": 1.1793318431027235,
+      "voidRotation": 0.5319679739339551,
+      "voidLobes": 0.5447274786476046,
+      "voidNotch": 0.005338844382204115
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 8.902407131286568,
+        "y": 6.386604501107749
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 8.902407131286568,
+          "y": 6.386604501107749,
+          "x2": 7.104140681399913,
+          "y2": 8.022938497129449,
+          "cx": 9.639607902364942,
+          "cy": 9.003037949005254,
+          "radius": 0.6,
+          "strength": 0.8420583638362586
+        },
+        {
+          "kind": "curve",
+          "x": 7.543880354915306,
+          "y": 8.373522426839775,
+          "radius": 1.3472887203941317,
+          "strength": 0.8044146357243879,
+          "x2": 2.65637814988491,
+          "y2": 8.069705304153812,
+          "cx": 5.034386513892921,
+          "cy": 9.279216467278859
+        },
+        {
+          "kind": "curve",
+          "x": 9.079690501779684,
+          "y": 6.554176353455551,
+          "radius": 1.238424407416396,
+          "strength": 0.5501180612295865,
+          "x2": 11.99216454231513,
+          "y2": 2.8732987440620286,
+          "cx": 9.435129232155049,
+          "cy": 3.8427369930773008
+        },
+        {
+          "kind": "curve",
+          "x": 9.014070649009277,
+          "y": 9.1157218167348,
+          "radius": 1.8708679925322227,
+          "strength": 0.6474982109526172,
+          "x2": 12.266504632332676,
+          "y2": 13.163950451704174,
+          "cx": 11.608797182980211,
+          "cy": 10.361714730361728
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-851849-65.png"
+  },
+  {
+    "id": "continuous-hall-987286-66",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 67,
+    "seed": 987286,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486671064,
+    "slime": {
+      "sensorAngle": 0.5780371233336162,
+      "sensorDistance": 1.2618458681106484,
+      "turnAngle": 0.934398837780608,
+      "stepSize": 0.3481430512996949,
+      "deposit": 0.11460523419603708,
+      "depositWidth": 2.2133754147913023,
+      "diffusion": 0.24789988063826207,
+      "decay": 0.94711663145395,
+      "trailInfluence": 0.8763689076196404,
+      "resistance": 0.2938112529573861,
+      "randomness": 0.7410426474409177,
+      "persistence": 0.15303578569907694,
+      "trailCap": 1.0448656079918146,
+      "crowdingLimit": 28,
+      "foodPoints": [
+        {
+          "x": 9.155425919312197,
+          "y": 7.969030552545059
+        },
+        {
+          "x": 6.579184054154963,
+          "y": 10.144452627444382
+        },
+        {
+          "x": 8.67549338124719,
+          "y": 9.026452425210945
+        },
+        {
+          "x": 10.464000024300205,
+          "y": 9.369014019725768
+        },
+        {
+          "x": 8.753861409860823,
+          "y": 11.66771888447385
+        }
+      ],
+      "voidElongation": 1.0841317295361312,
+      "voidRotation": 0.7110698591149424,
+      "voidLobes": 0.5255674636606127,
+      "voidNotch": 0.08625803419388832
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.155425919312197,
+        "y": 7.969030552545059
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 9.155425919312197,
+          "y": 7.969030552545059,
+          "x2": 7.776468606472262,
+          "y2": 11.479154414881544,
+          "cx": 11.976071125228714,
+          "cy": 11.103049796553238,
+          "radius": 0.7542544079971623,
+          "strength": 1.1038075684104114
+        },
+        {
+          "kind": "curve",
+          "x": 6.579184054154963,
+          "y": 10.144452627444382,
+          "radius": 1.6017122159950212,
+          "strength": 0.584000731431879,
+          "x2": 1.8840809059297503,
+          "y2": 9.248186660153372,
+          "cx": 4.426504742456054,
+          "cy": 8.675478279571054
+        },
+        {
+          "kind": "curve",
+          "x": 8.67549338124719,
+          "y": 9.026452425210945,
+          "radius": 1.3657989924959648,
+          "strength": 0.569648367576301,
+          "x2": 9.678254140938066,
+          "y2": 4.082012095674468,
+          "cx": 10.217724009054693,
+          "cy": 7.432416992947466
+        },
+        {
+          "kind": "curve",
+          "x": 10.464000024300205,
+          "y": 9.369014019725768,
+          "radius": 1.4513624538851673,
+          "strength": 0.6625799515796825,
+          "x2": 15.29073186128406,
+          "y2": 10.476664797127015,
+          "cx": 12.534374381917836,
+          "cy": 11.417469593738883
+        },
+        {
+          "kind": "curve",
+          "x": 8.753861409860823,
+          "y": 11.66771888447385,
+          "radius": 1.390592216530416,
+          "strength": 0.6103006346570327,
+          "x2": 11.29633082246549,
+          "y2": 16.35328924274984,
+          "cx": 11.389146541673865,
+          "cy": 13.270347323037921
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-987286-66.png"
+  },
+  {
+    "id": "continuous-hall-993699-67",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 68,
+    "seed": 993699,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486680371,
+    "slime": {
+      "sensorAngle": 0.6265021627880167,
+      "sensorDistance": 1.6106840364385777,
+      "turnAngle": 0.831849901164677,
+      "stepSize": 0.43819764489397406,
+      "deposit": 0.08989535443540664,
+      "depositWidth": 2.402985543547915,
+      "diffusion": 0.3016612011216672,
+      "decay": 0.954324150084937,
+      "trailInfluence": 1.0474840645812453,
+      "resistance": 0.1467517061738196,
+      "randomness": 0.488083296600962,
+      "persistence": 0.2648988318222575,
+      "trailCap": 0.9889588715485298,
+      "crowdingLimit": 30,
+      "foodPoints": [
+        {
+          "x": 9.342046454877071,
+          "y": 7.0020289230739845
+        },
+        {
+          "x": 10.756288025280014,
+          "y": 6.9285734145983175
+        },
+        {
+          "x": 9.44245376768572,
+          "y": 9.334233441657398
+        },
+        {
+          "x": 12.722580710417107,
+          "y": 9.922798651747362
+        }
+      ],
+      "voidElongation": 1.121334158528969,
+      "voidRotation": 0.7367831078389623,
+      "voidLobes": 0.43477180126355963,
+      "voidNotch": 0.0014091228134930133
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.342046454877071,
+        "y": 7.0020289230739845
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 9.342046454877071,
+          "y": 7.0020289230739845,
+          "x2": 13.137611418126234,
+          "y2": 9.831820658396493,
+          "cx": 14.069620671824163,
+          "cy": 4.621359827486077,
+          "radius": 0.9468692550831757,
+          "strength": 0.9334531873464584
+        },
+        {
+          "kind": "curve",
+          "x": 10.756288025280014,
+          "y": 6.9285734145983175,
+          "radius": 1.664639580102123,
+          "strength": 0.6669089042022823,
+          "x2": 8.12736524542237,
+          "y2": 3.990424879532916,
+          "cx": 10.121711533625563,
+          "cy": 4.85116880725354
+        },
+        {
+          "kind": "curve",
+          "x": 9.44245376768572,
+          "y": 9.334233441657398,
+          "radius": 0.8933653522844842,
+          "strength": 0.8695421961601824,
+          "x2": 5.209863845663521,
+          "y2": 11.078378431842717,
+          "cx": 7.457752031349972,
+          "cy": 8.791815030816213
+        },
+        {
+          "kind": "curve",
+          "x": 12.722580710417107,
+          "y": 9.922798651747362,
+          "radius": 1.9997075049854707,
+          "strength": 0.7143173439009114,
+          "x2": 15.704553318249584,
+          "y2": 10.893406828820751,
+          "cx": 12.747719740969826,
+          "cy": 10.368930639727118
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-993699-67.png"
+  },
+  {
+    "id": "continuous-hall-1000104-68",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 69,
+    "seed": 1000104,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486692208,
+    "slime": {
+      "sensorAngle": 0.9190360847950914,
+      "sensorDistance": 1.1056384760998106,
+      "turnAngle": 0.9213110154047889,
+      "stepSize": 0.37757060993226244,
+      "deposit": 0.1391656199615449,
+      "depositWidth": 1.7581786251019402,
+      "diffusion": 0.31135928042969646,
+      "decay": 0.9515771252693143,
+      "trailInfluence": 1.2028962453495713,
+      "resistance": 0.3432539037076655,
+      "randomness": 0.6263768393429927,
+      "persistence": 0.09926270455475895,
+      "trailCap": 1.0279355780314654,
+      "crowdingLimit": 16,
+      "foodPoints": [
+        {
+          "x": 11.283205601436368,
+          "y": 9.194074775315038
+        },
+        {
+          "x": 8.169699956334112,
+          "y": 11.51284668951364
+        },
+        {
+          "x": 9.769525492572741,
+          "y": 10.176993955926239
+        },
+        {
+          "x": 11.686773847991262,
+          "y": 9.551280424052178
+        },
+        {
+          "x": 11.569162459055885,
+          "y": 11.370738172898287
+        },
+        {
+          "x": 10.12940434839572,
+          "y": 12.964608105935856
+        }
+      ],
+      "voidElongation": 1.4527731329429896,
+      "voidRotation": 0.3942234840304858,
+      "voidLobes": 0.45668889389419925,
+      "voidNotch": -0.16047812762204558
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 11.283205601436368,
+        "y": 9.194074775315038
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 11.283205601436368,
+          "y": 9.194074775315038,
+          "x2": 10.292562547180735,
+          "y2": 11.602836169173841,
+          "cx": 13.196645468167354,
+          "cy": 11.389098526500073,
+          "radius": 0.6,
+          "strength": 0.7473036549985408
+        },
+        {
+          "kind": "curve",
+          "x": 8.169699956334112,
+          "y": 11.51284668951364,
+          "radius": 1.5905815625767157,
+          "strength": 0.6047514836583286,
+          "x2": 3.3244894832957224,
+          "y2": 12.133874515057446,
+          "cx": 5.930676404882183,
+          "cy": 13.255650536101413
+        },
+        {
+          "kind": "curve",
+          "x": 9.769525492572741,
+          "y": 10.176993955926239,
+          "radius": 0.9711213320251489,
+          "strength": 0.7413074847823008,
+          "x2": 6.72592826658766,
+          "y2": 6.399449031981843,
+          "cx": 7.048687453261291,
+          "cy": 9.25429685381512
+        },
+        {
+          "kind": "curve",
+          "x": 11.686773847991262,
+          "y": 9.551280424052178,
+          "radius": 1.535284113764764,
+          "strength": 0.6605900230724364,
+          "x2": 13.867947954588054,
+          "y2": 6.1338834025651,
+          "cx": 13.625030074047736,
+          "cy": 8.383611837240537
+        },
+        {
+          "kind": "curve",
+          "x": 11.569162459055885,
+          "y": 11.370738172898287,
+          "radius": 1.8439587264864774,
+          "strength": 0.8890311268623917,
+          "x2": 16.975591207853405,
+          "y2": 11.303361454479958,
+          "cx": 12.30002012819018,
+          "cy": 12.373126063977727
+        },
+        {
+          "kind": "curve",
+          "x": 10.12940434839572,
+          "y": 12.964608105935856,
+          "radius": 1.5646972523588638,
+          "strength": 0.6202580095548182,
+          "x2": 10.409719137665842,
+          "y2": 16.229222310834594,
+          "cx": 9.180760159745377,
+          "cy": 14.690404719616794
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-1000104-68.png"
+  },
+  {
+    "id": "continuous-hall-1022901-69",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 70,
+    "seed": 1022901,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486705101,
+    "slime": {
+      "sensorAngle": 0.664966210873751,
+      "sensorDistance": 1.5627141707746692,
+      "turnAngle": 0.8504330931052381,
+      "stepSize": 0.3204278749543801,
+      "deposit": 0.13919372157715262,
+      "depositWidth": 1.7264744014057978,
+      "diffusion": 0.23473172616531124,
+      "decay": 0.9519472820033784,
+      "trailInfluence": 1.3890642197005452,
+      "resistance": 0.32802427991962907,
+      "randomness": 0.7285800720006227,
+      "persistence": 0.13359369774470103,
+      "trailCap": 1.2778006865736098,
+      "crowdingLimit": 26,
+      "foodPoints": [
+        {
+          "x": 10.127991799848965,
+          "y": 13.462028249157033
+        },
+        {
+          "x": 7.1724899666864665,
+          "y": 10.534087359861504
+        },
+        {
+          "x": 11.546479681790897,
+          "y": 12.424959318239448
+        },
+        {
+          "x": 11.331275228867794,
+          "y": 8.062727540564186
+        },
+        {
+          "x": 8.279714993882628,
+          "y": 8.089469462729134
+        }
+      ],
+      "voidElongation": 1.3822211285647006,
+      "voidRotation": 0.9538212918293534,
+      "voidLobes": 0.41584157121367754,
+      "voidNotch": 0.07752016743645072
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 10.127991799848965,
+        "y": 13.462028249157033
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 10.127991799848965,
+          "y": 13.462028249157033,
+          "x2": 7.445265556685394,
+          "y2": 8.725615865510619,
+          "cx": 4.050216294620765,
+          "cy": 13.776548300497398,
+          "radius": 1.088680345440619,
+          "strength": 1.2558160991407932
+        },
+        {
+          "kind": "curve",
+          "x": 7.1724899666864665,
+          "y": 10.534087359861504,
+          "radius": 1.5051195837142697,
+          "strength": 0.8644030711567028,
+          "x2": 2.4791615101993365,
+          "y2": 12.79328429156771,
+          "cx": 5.44732696241906,
+          "cy": 12.954812481957877
+        },
+        {
+          "kind": "curve",
+          "x": 11.546479681790897,
+          "y": 12.424959318239448,
+          "radius": 1.1973317662993659,
+          "strength": 0.8793538380647078,
+          "x2": 14.632087495676252,
+          "y2": 14.377192765535053,
+          "cx": 12.547952223229796,
+          "cy": 14.256678784281394
+        },
+        {
+          "kind": "curve",
+          "x": 11.331275228867794,
+          "y": 8.062727540564186,
+          "radius": 1.0523493527897112,
+          "strength": 0.8904724160954356,
+          "x2": 14.658921271960079,
+          "y2": 5.303629552320514,
+          "cx": 13.569088367371693,
+          "cy": 7.375446798460615
+        },
+        {
+          "kind": "curve",
+          "x": 8.279714993882628,
+          "y": 8.089469462729134,
+          "radius": 0.7827398442466971,
+          "strength": 0.7856245239451527,
+          "x2": 5.118245879012046,
+          "y2": 5.487158136544013,
+          "cx": 7.293635056798429,
+          "cy": 6.06588593432384
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-1022901-69.png"
+  },
+  {
+    "id": "continuous-hall-1031490-70",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 71,
+    "seed": 1031490,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486715866,
+    "slime": {
+      "sensorAngle": 0.6258285028207582,
+      "sensorDistance": 1.515726938250699,
+      "turnAngle": 0.8759650919593686,
+      "stepSize": 0.3656383776305802,
+      "deposit": 0.10187377712279559,
+      "depositWidth": 2.0627122361536783,
+      "diffusion": 0.3053187428022826,
+      "decay": 0.9678228917359374,
+      "trailInfluence": 1.3362361956521869,
+      "resistance": 0.2522995098840344,
+      "randomness": 0.4634633584995754,
+      "persistence": 0.06408157176459206,
+      "trailCap": 0.8931441971892491,
+      "crowdingLimit": 16,
+      "foodPoints": [
+        {
+          "x": 10.475644011007674,
+          "y": 8.307390306526722
+        },
+        {
+          "x": 8.555242789585758,
+          "y": 9.77406577771158
+        },
+        {
+          "x": 9.991538486701968,
+          "y": 9.218575880618024
+        },
+        {
+          "x": 10.40168873651965,
+          "y": 6.708873621674286
+        },
+        {
+          "x": 7.623831638502529,
+          "y": 6.939341543112116
+        }
+      ],
+      "voidElongation": 1.1339730699587616,
+      "voidRotation": 0.34835689107992807,
+      "voidLobes": 0.5461410084716044,
+      "voidNotch": -0.2514176226686686
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 10.475644011007674,
+        "y": 8.307390306526722
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 10.475644011007674,
+          "y": 8.307390306526722,
+          "x2": 8.567862377631307,
+          "y2": 7.433938200212558,
+          "cx": 8.648301088005326,
+          "cy": 9.778445886746006,
+          "radius": 0.6,
+          "strength": 0.8226620104163884
+        },
+        {
+          "kind": "curve",
+          "x": 8.555242789585758,
+          "y": 9.77406577771158,
+          "radius": 1.095216153263273,
+          "strength": 0.8370392393972723,
+          "x2": 5.733598414573105,
+          "y2": 12.89185525827885,
+          "cx": 6.953859480855322,
+          "cy": 10.013522774397678
+        },
+        {
+          "kind": "curve",
+          "x": 9.991538486701968,
+          "y": 9.218575880618024,
+          "radius": 0.7787272479189935,
+          "strength": 0.6983282831264659,
+          "x2": 14.792866274979453,
+          "y2": 11.957630856479007,
+          "cx": 11.551483179066384,
+          "cy": 12.061811819525738
+        },
+        {
+          "kind": "curve",
+          "x": 10.40168873651965,
+          "y": 6.708873621674286,
+          "radius": 1.6330752208366976,
+          "strength": 0.6986261741351335,
+          "x2": 11.486460957809456,
+          "y2": 2.4541295070437776,
+          "cx": 12.198998619855105,
+          "cy": 4.90145181560208
+        },
+        {
+          "kind": "curve",
+          "x": 7.623831638502529,
+          "y": 6.939341543112116,
+          "radius": 0.8938839029232453,
+          "strength": 0.6076175493001937,
+          "x2": 4.701960580664263,
+          "y2": 5.356763824820092,
+          "cx": 5.684343137712162,
+          "cy": 7.031592280152329
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-1031490-70.png"
+  },
+  {
+    "id": "continuous-hall-1037903-71",
+    "archetypeId": "continuous-hall",
+    "archetypeName": "Continuous Hall",
+    "run": 72,
+    "seed": 1037903,
+    "kind": "curvy line",
+    "agents": 500,
+    "iterations": 600,
+    "savedAt": 1790486728021,
+    "slime": {
+      "sensorAngle": 0.9153145844470244,
+      "sensorDistance": 1.2181466779806567,
+      "turnAngle": 0.9005303789938615,
+      "stepSize": 0.3816718364003673,
+      "deposit": 0.10911022263634951,
+      "depositWidth": 1.9582618302244408,
+      "diffusion": 0.27963533841111676,
+      "decay": 0.9686650335575919,
+      "trailInfluence": 1.2856621008500457,
+      "resistance": 0.27813145300577313,
+      "randomness": 0.5383609041571616,
+      "persistence": 0.2105811437068507,
+      "trailCap": 0.8778055707667954,
+      "crowdingLimit": 17,
+      "foodPoints": [
+        {
+          "x": 9.13765660493669,
+          "y": 9.439753057761154
+        },
+        {
+          "x": 6.89559212676978,
+          "y": 7.918168540597144
+        },
+        {
+          "x": 7.806660898105626,
+          "y": 10.260992194323629
+        },
+        {
+          "x": 10.03145793890619,
+          "y": 8.490289432339223
+        },
+        {
+          "x": 9.694621044815188,
+          "y": 6.296975151733775
+        }
+      ],
+      "voidElongation": 1.430942930769548,
+      "voidRotation": 0.38539810850959966,
+      "voidLobes": 0.5270602989885956,
+      "voidNotch": 0.0661830836115405
+    },
+    "params": {
+      "geometryVariation": 0.8,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.8,
+      "networkDensity": 0.8,
+      "directionalBias": 1,
+      "attractionStrength": 0.8,
+      "influenceRadius": 6,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.8,
+      "nodeInteraction": 0.5,
+      "geometricDisplacement": 0.5,
+      "nodeRepetition": 0.5,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "High",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-left",
+      "attractor": {
+        "x": 9.13765660493669,
+        "y": 9.439753057761154
+      },
+      "attractors": [
+        {
+          "kind": "curve",
+          "x": 9.13765660493669,
+          "y": 9.439753057761154,
+          "x2": 7.219873781656311,
+          "y2": 7.122784529304601,
+          "cx": 5.861796664839948,
+          "cy": 10.199051616813257,
+          "radius": 0.6015391631183257,
+          "strength": 0.7403858157806098
+        },
+        {
+          "kind": "curve",
+          "x": 6.89559212676978,
+          "y": 7.918168540597144,
+          "radius": 0.9439567866805926,
+          "strength": 0.5903780276235192,
+          "x2": 2.7266214106885194,
+          "y2": 6.092716494713963,
+          "cx": 5.230925009758216,
+          "cy": 6.046660852109175
+        },
+        {
+          "kind": "curve",
+          "x": 7.806660898105626,
+          "y": 10.260992194323629,
+          "radius": 0.7594344631769452,
+          "strength": 0.6074980252888054,
+          "x2": 7.222677871334138,
+          "y2": 13.666712152561516,
+          "cx": 6.559107013584785,
+          "cy": 10.65193142438995
+        },
+        {
+          "kind": "curve",
+          "x": 10.03145793890619,
+          "y": 8.490289432339223,
+          "radius": 1.3059981918904187,
+          "strength": 0.83761494086124,
+          "x2": 13.841986078776559,
+          "y2": 7.074038144430153,
+          "cx": 12.41530765649981,
+          "cy": 9.069833634343292
+        },
+        {
+          "kind": "curve",
+          "x": 9.694621044815188,
+          "y": 6.296975151733775,
+          "radius": 1.3592487296328115,
+          "strength": 0.6689314184058456,
+          "x2": 10.450551423615332,
+          "y2": 1.3816839998864685,
+          "cx": 9.025191257084819,
+          "cy": 3.678249050291706
+        }
+      ],
+      "coreExposure": 0.8,
+      "enclosureCollar": 1.15,
+      "isolationRadius": 5.4,
+      "clustering": 0.26,
+      "approachWidth": 4.2,
+      "attractorFixed": true,
+      "attractorsOnly": true
+    },
+    "topology": "open-network",
+    "image": "/shared-catalog/continuous-hall/continuous-hall-1037903-71.png"
   },
   {
     "id": "continuous-hall-1044308-1790459047575-72",
