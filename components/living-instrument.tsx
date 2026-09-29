@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AxonModel, SectionDrawing } from "@/components/drawings";
-import { DisplayMode, DisplayModeToggle } from "@/components/display-mode-toggle";
+import type { DisplayMode } from "@/components/display-mode-toggle";
+import { useViewMode } from "@/components/view-mode";
 import {
   IconAtmospheric,
   IconFormal,
@@ -169,10 +170,9 @@ export function LivingInstrument() {
     showAttraction: true,
   });
   const [targetIterations, setTargetIterations] = useState(DISPLAY_ITERATIONS);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("desktop");
+  const displayMode: DisplayMode = useViewMode() ?? "desktop";
   const [workspace, setWorkspace] = useState<"skill1" | "skill2-audit">("skill1");
   const [carveThreshold, setCarveThreshold] = useState(DIRECT_CARVE_THRESHOLD);
-  const [wall, setWall] = useState(false);
   const [slime, setSlime] = useState<SlimeControls | null>(null);
   const [attractorMarks, setAttractorMarks] = useState<FieldAttractor[] | null>(null);
   const [showAttractors, setShowAttractors] = useState(true);
@@ -220,9 +220,6 @@ export function LivingInstrument() {
   const simRef = useRef<SimulationState | null>(null);
 
   useEffect(() => {
-    setWall(new URLSearchParams(window.location.search).get("wall") === "1");
-  }, []);
-  useEffect(() => {
     let live = true;
     void loadBoardSession().then(({ session, snapshot }) => {
       if (!live) return;
@@ -244,7 +241,6 @@ export function LivingInstrument() {
         vizRef.current = session.viz;
         setViz(session.viz);
         setTargetIterations(session.targetIterations);
-        setDisplayMode(session.displayMode);
         setCarveThreshold(session.carveThreshold);
         setShowAttractors(session.showAttractors);
         setSelectedAttractors(session.selectedAttractors);
@@ -628,7 +624,7 @@ export function LivingInstrument() {
   };
 
   return (
-    <div className="living-instrument-shell flex min-h-dvh flex-col px-2 py-2 text-[13px] md:h-dvh md:overflow-hidden md:px-3 md:py-2.5" data-display-mode={displayMode}>
+    <div className="living-instrument-shell flex min-h-full flex-col px-2 py-2 text-[13px] md:h-full md:overflow-hidden md:px-3 md:py-2.5" data-display-mode={displayMode}>
       <header className="living-instrument-header mb-2 flex flex-wrap items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2">
         <div className="living-instrument-header-identity">
           <p className="display text-[1.05rem] text-white md:text-[1.25rem]">
@@ -661,19 +657,6 @@ export function LivingInstrument() {
           })}
         </nav>
         <div className="living-instrument-display-mode flex items-center gap-2" aria-label="Display mode">
-          <a
-            href="/scan"
-            target={wall ? "_top" : undefined}
-            className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
-          >
-            Scan
-          </a>
-          <a
-            href={wall ? "/runs?wall=1" : "/runs"}
-            className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
-          >
-            Runs
-          </a>
           <button
             type="button"
             onClick={() => setWorkspace((current) => (current === "skill1" ? "skill2-audit" : "skill1"))}
@@ -683,7 +666,6 @@ export function LivingInstrument() {
           >
             {workspace === "skill2-audit" ? "Skill 2 Audit" : "Skill 1"}
           </button>
-          <DisplayModeToggle mode={displayMode} onModeChange={setDisplayMode} />
         </div>
       </header>
 

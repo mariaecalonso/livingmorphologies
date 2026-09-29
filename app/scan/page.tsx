@@ -1,9 +1,14 @@
-import { CtScan } from "@/components/ct-scan";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "CT Scan Stack · Living Morphologies",
-};
-
-export default function ScanPage() {
-  return <CtScan />;
+export default async function ScanPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = new URLSearchParams(
+    Object.entries(await searchParams).flatMap(([key, value]) =>
+      (Array.isArray(value) ? value : [value ?? ""]).map((item) => [key, item]),
+    ),
+  ).toString();
+  redirect(query ? `/vertical?${query}` : "/vertical");
 }

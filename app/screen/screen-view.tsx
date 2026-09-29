@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { PRESENTATION_HEIGHT as SCREEN_HEIGHT, PRESENTATION_WIDTH as SCREEN_WIDTH } from "@/components/view-mode";
 
-const SCREEN_WIDTH = 7407;
-const SCREEN_HEIGHT = 2160;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 6;
 
@@ -20,7 +19,7 @@ export default function ScreenView() {
   const [fitScale, setFitScale] = useState(1);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [frameSrc, setFrameSrc] = useState("/?wall=1");
+  const [frameSrc, setFrameSrc] = useState("/physarum?wall=1");
 
   const applyView = (nextZoom: number, nextPan: { x: number; y: number }) => {
     const clamped = clampZoom(nextZoom);
@@ -50,7 +49,7 @@ export default function ScreenView() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("all") === "1" || params.get("runs") === "1") {
       const fresh = params.get("fresh") === "1" ? "&fresh=1" : "";
-      setFrameSrc(`/runs?wall=1&all=1${fresh}`);
+      setFrameSrc(`/physarum/runs?wall=1&all=1${fresh}`);
     }
   }, []);
 

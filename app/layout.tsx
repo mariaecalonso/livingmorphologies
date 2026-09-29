@@ -20,7 +20,7 @@ const sourceSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: "Living Morphologies",
   description:
-    "Skill 1 prototype: catalog criteria ranked into Physarum agent behavior for Void Field and Contained Room Within Volume.",
+    "Architectural criteria translated into Physarum logic, evolved as 2D morphologies, and propagated vertically into volumetric form.",
 };
 export default function RootLayout({
   children,

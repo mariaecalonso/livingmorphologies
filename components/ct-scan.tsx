@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useVerticalView } from "@/components/vertical-view";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { trailMaskCutoff } from "@/lib/skill1/maps";
 import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
@@ -54,7 +55,7 @@ export function CtScan() {
   const [spacing, setSpacing] = useState(0.1);
   const [yaw, setYaw] = useState(0.86);
   const [cut, setCut] = useState(0.5);
-  const [mode, setMode] = useState<"stack" | "mesh" | "voxel">("stack");
+  const mode = useVerticalView();
   const [iso, setIso] = useState(0.48);
   const [meshYaw, setMeshYaw] = useState(0.7);
   const [pitch, setPitch] = useState(0.35);
@@ -329,7 +330,7 @@ export function CtScan() {
   };
 
   return (
-    <main className="flex h-dvh flex-col bg-black text-[var(--text)]">
+    <main className="flex h-full flex-col bg-black text-[var(--text)]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2">
         <div>
           <p className="display text-[0.95rem] text-white">CT Scan Stack</p>
@@ -368,29 +369,6 @@ export function CtScan() {
               className="ml-2 w-16 border border-[rgba(242,242,238,0.18)] bg-black px-2 py-1 text-[0.72rem] text-[var(--text)]"
             />
           </label>
-          <div className="flex border border-[rgba(242,242,238,0.18)]">
-            <button
-              type="button"
-              onClick={() => setMode("stack")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "stack" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Stack
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("mesh")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "mesh" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Isomesh
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("voxel")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "voxel" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Voxels
-            </button>
-          </div>
           <button
             type="button"
             onClick={() => setRunId((current) => current + 1)}
@@ -398,12 +376,6 @@ export function CtScan() {
           >
             Rescan
           </button>
-          <a
-            href="/"
-            className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] text-[var(--muted)] hover:text-[var(--text)]"
-          >
-            Board
-          </a>
         </div>
       </header>
 

@@ -16,6 +16,8 @@ import type { SlimeControls } from "@/lib/skill1/slime-controls";
 import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnapshot, SpatialRecipe, TopologyKind } from "@/lib/skill1/types";
 import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
+import { paintMorphology as paintSnapshot } from "@/components/morphology-preview";
+import { useSquareGridFit } from "@/components/use-square-grid-fit";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
 import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
@@ -92,26 +94,6 @@ function translationForRun(base: BiologicalTranslation, seed: number, index: num
       attractors,
     },
   };
-}
-
-function paintSnapshot(canvas: HTMLCanvasElement, snapshot: FieldSnapshot, fine = false, attractors?: FieldAttractor[]) {
-  const parent = canvas.parentElement;
-  if (!parent) return;
-  const rect = parent.getBoundingClientRect();
-  const width = Math.max(1, Math.floor(rect.width));
-  const height = Math.max(1, Math.floor(rect.height));
-  const dpr = Math.max(window.devicePixelRatio || 1, width >= 200 ? 2 : 1);
-  if (width < 8 || height < 8) return;
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, width, height);
-  drawPlanField(ctx, snapshot, width, height, { showHud: false, fine, density: 5, attractors, showAttractors: false });
 }
 
 /** One saved run in the per-archetype catalog. */
@@ -304,7 +286,7 @@ function ParamList({
   );
 }
 
-export function RunGrid() {
+export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
   const detailRef = useRef<HTMLCanvasElement>(null);
   const snapshotsRef = useRef<Array<FieldSnapshot | null>>(Array.from({ length: RUN_COUNT }, () => null));
@@ -315,7 +297,15 @@ export function RunGrid() {
   const [running, setRunning] = useState(false);
   const [runToken, setRunToken] = useState(0);
   const [wall, setWall] = useState(false);
-  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(view === "catalog");
+  const catalogBodyRef = useRef<HTMLDivElement>(null);
+  const [catalogPage, setCatalogPage] = useState(0);
+  const catalogFit = useSquareGridFit(catalogBodyRef, {
+    minimum: wall ? 300 : 132,
+    caption: wall ? 50 : 28,
+    gap: wall ? 12 : 8,
+    enabled: catalogOpen,
+  });
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [inspecting, setInspecting] = useState(false);
   const [catalogInspected, setCatalogInspected] = useState<number | null>(null);
@@ -639,6 +629,7 @@ export function RunGrid() {
 
   const viewArchetype = (id: string) => {
     setCatalogInspected(null);
+    setCatalogPage(0);
     setPickedId(id);
     const cached = catalogCacheRef.current[id];
     if (cached?.length) setCatalogEntries(cached);
@@ -1166,30 +1157,35 @@ export function RunGrid() {
 
   const selectedSnapshot = selected == null ? null : snapshotsRef.current[selected];
   const pickedName = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === (catalogOpen ? pickedId : runningId ?? pickedId))?.name;
+  const pageSize = catalogFit.columns * catalogFit.rows;
+  const pageCount = Math.max(1, Math.ceil(catalog.length / pageSize));
+  const page = Math.min(catalogPage, pageCount - 1);
+  const pageStart = page * pageSize;
 
   return (
-    <main className={`flex h-dvh flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
+    <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
       <header className="runs-header border-b border-[var(--line)] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="display text-[0.95rem] text-white">20 × 4 runs</p>
+          <p className="display text-[0.95rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 4 runs"}</p>
           <div className="flex items-center gap-2">
             <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-              {completed} / {RUN_COUNT}
+              {view === "catalog" ? `${catalog.length} saved` : `${completed} / ${RUN_COUNT}`}
             </p>
-            <a
-              href={wall ? "/?wall=1" : "/"}
-              className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] text-[var(--muted)] hover:text-[var(--text)]"
-            >
-              Board
-            </a>
           </div>
         </div>
         <div className="mt-0.5 flex items-center">
-          <p className="eyebrow shrink-0">
-            {pickedName
-              ? `${pickedName} · ${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations`
-              : "Select an archetype"}
+          <p className={view === "catalog" ? "eyebrow min-w-0 truncate" : "eyebrow shrink-0"}>
+            {view === "catalog"
+              ? `Generation 01 · Initial morphology population · ${pickedName ?? "Select an archetype"}`
+              : pickedName
+                ? `${pickedName} · ${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations`
+                : "Select an archetype"}
           </p>
+          {view === "catalog" ? (
+            <p className="runs-g01-slot" title="This catalog becomes the G01 population of 2D Evolution. Saved entries are legacy studies until validated against the locked generation rules.">
+              Legacy entries · G01 validity not confirmed
+            </p>
+          ) : (
           <div className="runs-controls">
             <button
               type="button"
@@ -1224,22 +1220,6 @@ export function RunGrid() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setCatalogOpen((current) => !current);
-                setCatalogInspected(null);
-              }}
-              disabled={!catalogId}
-              aria-pressed={catalogOpen}
-              className={`runs-control border px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase disabled:opacity-30 ${
-                catalogOpen
-                  ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
-                  : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              Catalog
-            </button>
-            <button
-              type="button"
               onClick={saveCatalog}
               disabled={completed < 1 && !snapshotsRef.current.some(Boolean)}
               className={`runs-control border px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase disabled:opacity-30 ${
@@ -1248,9 +1228,10 @@ export function RunGrid() {
                   : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:text-[var(--text)]"
               }`}
             >
-              {saveFlash ? "Saved" : "Save"}
+              {saveFlash ? "Saved" : "Save to catalog"}
             </button>
           </div>
+          )}
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
@@ -1296,24 +1277,42 @@ export function RunGrid() {
               <p className="hud-panel-kicker">Catalog</p>
               <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
             </div>
-            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-              {catalog.length} saved{allDone ? " · all 15 complete" : ""}
-            </p>
+            <div className="runs-catalog-pager">
+              <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+                {catalog.length} saved{allDone ? " · all 15 complete" : ""}
+              </p>
+              <button type="button" onClick={() => setCatalogPage(page - 1)} disabled={page === 0} aria-label="Previous page">
+                ‹
+              </button>
+              <span>
+                {page + 1} / {pageCount}
+              </span>
+              <button type="button" onClick={() => setCatalogPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
+                ›
+              </button>
+            </div>
           </header>
+          <div ref={catalogBodyRef} className="runs-catalog-body">
           {catalog.length ? (
-            <div className="runs-catalog-grid grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 overflow-auto">
-              {catalog.map((entry, index) => (
+            <div
+              className="runs-catalog-grid"
+              style={{
+                gridTemplateColumns: `repeat(${catalogFit.columns}, ${catalogFit.size}px)`,
+                gap: wall ? 12 : 8,
+              }}
+            >
+              {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
                 <figure key={entry.id} className="flex flex-col border border-[rgba(242,242,238,0.16)] bg-black">
                   <button
                     type="button"
-                    onClick={() => setCatalogInspected(index)}
+                    onClick={() => setCatalogInspected(pageStart + offset)}
                     className="block w-full text-left"
                     aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
                   >
                     <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} className="block aspect-square w-full" />
                   </button>
                   <figcaption className="flex items-center justify-between gap-2 px-1.5 py-1 text-[0.55rem] tracking-[0.08em] uppercase text-[var(--muted)]">
-                    <span>
+                    <span className="truncate">
                       Run {String(entry.run).padStart(2, "0")} · {entry.kind} · {entry.agents} agents
                     </span>
                     <button
@@ -1334,6 +1333,7 @@ export function RunGrid() {
                 : "No saved runs for this archetype yet"}
             </p>
           )}
+          </div>
         </section>
       ) : null}
       <div
@@ -1473,7 +1473,7 @@ function RunDetail({
                 disabled={!snapshot}
                 className="border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--orange-hot)] disabled:opacity-30"
               >
-                {saved ? "Saved" : "Save"}
+                {saved ? "Saved" : "Save to catalog"}
               </button>
               <button
                 type="button"

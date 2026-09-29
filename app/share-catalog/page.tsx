@@ -3,7 +3,7 @@
 export default function ShareCatalogPage() {
   return (
     <main className="p-6 font-mono text-sm">
-      Open /runs, click Catalog, then Continuous Hall. That writes only the 40 missing runs.
+      Open /physarum/catalog, then choose Continuous Hall. That writes only the 40 missing runs.
     </main>
   );
 }

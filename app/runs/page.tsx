@@ -1,9 +1,14 @@
-import { RunGrid } from "@/components/run-grid";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "20 × 4 runs · Living Morphologies",
-};
-
-export default function RunsPage() {
-  return <RunGrid />;
+export default async function RunsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = new URLSearchParams(
+    Object.entries(await searchParams).flatMap(([key, value]) =>
+      (Array.isArray(value) ? value : [value ?? ""]).map((item) => [key, item]),
+    ),
+  ).toString();
+  redirect(query ? `/physarum/runs?${query}` : "/physarum/runs");
 }
