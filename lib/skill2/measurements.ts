@@ -31,11 +31,23 @@ export type MorphologyExtractionSummary = {
   massCells: number;
   connectionCells: number;
   voidCells: number;
+  /** Topology-grid skeleton, in topology cells. */
   skeletonJunctions: number;
   skeletonLength: number;
+  /** Trail value that relative intensity 1 refers to on the native grid. */
+  occupancyReference: number;
+  /** Share of positive interior trail that falls in native-grid void cells. */
+  interiorTrailVoidShare: number;
+  topologyCellSize: number;
+  topologyReference: number;
 };
 
-/** Diagnostic cell maps for visual audit. Same classification as measurement. */
+/**
+ * Native-resolution cell maps for visual audit and plan / section use.
+ * Same occupancy classification as measurement; concentration, corridor,
+ * circulation and skeleton here are native-grid readings, while measured
+ * topology comes from the coarser topology grid.
+ */
 export type MorphologyOverlays = {
   width: number;
   height: number;
@@ -86,6 +98,26 @@ const coefficientOfVariation = (values: number[]) => {
   const m = mean(values);
   if (m <= 1e-12) return 0;
   return populationStdev(values) / m;
+};
+
+const percentile = (sorted: number[], quantile: number) => {
+  if (sorted.length === 0) return 0;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor(quantile * (sorted.length - 1))));
+  return sorted[index];
+};
+
+/** Run length that contains the median unit of total run length. 0 when there are no runs. */
+const lengthWeightedMedian = (runs: number[]) => {
+  const sorted = [...runs].sort((a, b) => a - b);
+  const total = sorted.reduce((acc, value) => acc + value, 0);
+  if (total <= 0) return 0;
+  const half = 0.5 * total;
+  let acc = 0;
+  for (const value of sorted) {
+    acc += value;
+    if (acc >= half) return value;
+  }
+  return sorted[sorted.length - 1];
 };
 
 const gini = (values: number[]) => {
@@ -466,94 +498,57 @@ const morphologyReachable = (
   return seen;
 };
 
-export function measureMorphologyDetailed(
-  state: SimulationState,
-  overrides?: Partial<MorphologicalExtractionConfig>,
-): MorphologyMeasurementResult {
-  const config = resolveExtractionConfig(overrides);
-  const width = state.trailSize;
-  const height = state.trailSize;
-  const occupancySize = state.size;
-  const cell = occupancySize > 0 && width > 0 ? occupancySize / width : 1;
-  const areaUnit = cell * cell;
-  const fieldCells = Math.max(1, width * height);
-  const trails = state.trails;
-  const trailPeak = peakOf(trails);
-  const flowField =
-    state.flow.length === occupancySize * occupancySize
-      ? upsampleNearest(state.flow, occupancySize, width)
-      : new Array<number>(fieldCells).fill(0);
-  const flowPeak = peakOf(flowField);
+/**
+ * Quantile of positive trail inside the analysis interior. Uses all positive
+ * cells only when the interior holds none; such a field still reads as an
+ * empty interior and fails the morphology validity floor.
+ */
+const occupancyReferenceOf = (values: ArrayLike<number>, interior: Uint8Array, quantile: number) => {
+  const inside: number[] = [];
+  const all: number[] = [];
+  for (let i = 0; i < values.length; i += 1) {
+    const value = values[i] ?? 0;
+    if (!(value > 0)) continue;
+    all.push(value);
+    if (interior[i]) inside.push(value);
+  }
+  const pool = Float64Array.from(inside.length > 0 ? inside : all).sort();
+  if (pool.length === 0) return 0;
+  return pool[Math.min(pool.length - 1, Math.max(0, Math.floor(quantile * (pool.length - 1))))];
+};
 
-  const relative = new Float32Array(fieldCells);
-  const massMask = new Uint8Array(fieldCells);
-  const morphMask = new Uint8Array(fieldCells);
-  const voidMask = new Uint8Array(fieldCells);
-  const connectionBand = new Uint8Array(fieldCells);
-  let massCells = 0;
-  let connectionCells = 0;
-  let voidCells = 0;
-  let activitySum = 0;
-  let activityMomentX = 0;
-  let activityMomentY = 0;
-  let activityWeight = 0;
-
-  for (let i = 0; i < fieldCells; i += 1) {
-    const rel = trailPeak > 0 ? (trails[i] ?? 0) / trailPeak : 0;
-    relative[i] = rel;
-    activitySum += rel;
-    if (rel < config.voidMaxRelative) {
-      voidMask[i] = 1;
-      voidCells += 1;
-    } else {
-      morphMask[i] = 1;
-      const x = i % width;
-      const y = (i - x) / width;
-      activityWeight += rel;
-      activityMomentX += rel * x;
-      activityMomentY += rel * y;
-      if (rel >= config.massMinRelative) {
-        massMask[i] = 1;
-        massCells += 1;
-      } else {
-        connectionBand[i] = 1;
-        connectionCells += 1;
-      }
+const boxAverage = (values: ArrayLike<number>, width: number, height: number, factor: number) => {
+  const outWidth = width / factor;
+  const outHeight = height / factor;
+  const out = new Float32Array(outWidth * outHeight);
+  for (let y = 0; y < height; y += 1) {
+    const oy = Math.floor(y / factor);
+    for (let x = 0; x < width; x += 1) {
+      out[oy * outWidth + Math.floor(x / factor)] += values[y * width + x] ?? 0;
     }
   }
+  const cells = factor * factor;
+  for (let i = 0; i < out.length; i += 1) out[i] /= cells;
+  return out;
+};
 
-  const interior = buildInteriorMask(width, height, occupancySize, config.analysisEdgeMargin);
-  let interiorCellCount = 0;
-  let interiorVoidCells = 0;
-  let interiorMinX = width;
-  let interiorMaxX = -1;
-  let interiorMinY = height;
-  let interiorMaxY = -1;
-  const interiorVoidMask = new Uint8Array(fieldCells);
-  for (let i = 0; i < fieldCells; i += 1) {
-    if (!interior[i]) continue;
-    interiorCellCount += 1;
-    const x = i % width;
-    const y = (i - x) / width;
-    if (x < interiorMinX) interiorMinX = x;
-    if (x > interiorMaxX) interiorMaxX = x;
-    if (y < interiorMinY) interiorMinY = y;
-    if (y > interiorMaxY) interiorMaxY = y;
-    if (voidMask[i]) {
-      interiorVoidMask[i] = 1;
-      interiorVoidCells += 1;
-    }
-  }
-  const interiorExtent =
-    interiorMaxX >= interiorMinX
-      ? Math.max(interiorMaxX - interiorMinX + 1, interiorMaxY - interiorMinY + 1) * cell
-      : Math.max(0, occupancySize - 2 * config.analysisEdgeMargin);
+type AnalysisGrid = {
+  width: number;
+  height: number;
+  cell: number;
+  massMask: Uint8Array;
+  morphMask: Uint8Array;
+  connectionBand: Uint8Array;
+  interior: Uint8Array;
+  /** Reference-relative trail clamped to 1. */
+  relative: Float32Array;
+  flowField: number[];
+};
 
-  const minMassCells = Math.max(1, Math.round(config.minConcentrationArea / areaUnit));
-  const minVoidCells = Math.max(1, Math.round(config.minSignificantVoidArea / areaUnit));
-  const minBridgeCells = Math.max(1, Math.round(config.minBridgeLength / cell));
-  const minSupportCells = Math.max(1, Math.round(config.minSupportLength / cell));
-
+/** Concentrations, corridor mask and circulation classes on one grid. */
+const concentrationLayout = (grid: AnalysisGrid, minMassCells: number) => {
+  const { width, height, massMask, morphMask, interior } = grid;
+  const fieldCells = width * height;
   const denseComponents = connectedComponents(massMask, width, height);
   const concentrations = denseComponents.filter((component) => component.cells.length >= minMassCells);
   const concentrationId = new Int32Array(fieldCells).fill(-1);
@@ -565,7 +560,6 @@ export function measureMorphologyDetailed(
   for (let i = 0; i < fieldCells; i += 1) {
     if (morphMask[i] && concentrationId[i] < 0) corridorMask[i] = 1;
   }
-  const corridorComponents = connectedComponents(corridorMask, width, height);
 
   const neighborConcentrationIds = (i: number) => {
     const ids = new Set<number>();
@@ -580,6 +574,83 @@ export function measureMorphologyDetailed(
     }
     return ids;
   };
+
+  let overlapCells = 0;
+  let corridorCount = 0;
+  let embeddedCells = 0;
+  let farCells = 0;
+  let aroundCells = 0;
+  let zoneCells = 0;
+  let throughCells = 0;
+  const circulation = new Uint8Array(fieldCells);
+  const insideAabb = (x: number, y: number) =>
+    concentrations.some(
+      (component) =>
+        x >= component.minX &&
+        x <= component.maxX &&
+        y >= component.minY &&
+        y <= component.maxY,
+    );
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!corridorMask[i] || !interior[i]) continue;
+    corridorCount += 1;
+    const x = i % width;
+    const y = (i - x) / width;
+    const inside = insideAabb(x, y);
+    if (inside) overlapCells += 1;
+    const left = x > 0 && massMask[i - 1];
+    const right = x < width - 1 && massMask[i + 1];
+    const up = y > 0 && massMask[i - width];
+    const down = y < height - 1 && massMask[i + width];
+    const sandwich = (left && right) || (up && down);
+    if (sandwich) embeddedCells += 1;
+    const n4Mass = neighborConcentrationIds(i).size > 0;
+    // Precedence: through > around/wrap (N4 boundary) > zone (AABB, not wrap) > far.
+    // Wrap that sits inside a fat concentration AABB stays AROUND, not ZONE.
+    if (sandwich) {
+      throughCells += 1;
+      circulation[i] = 4;
+    } else if (n4Mass) {
+      aroundCells += 1;
+      circulation[i] = 2;
+    } else if (inside) {
+      zoneCells += 1;
+      circulation[i] = 3;
+    } else {
+      farCells += 1;
+      circulation[i] = 1;
+    }
+  }
+  return {
+    concentrations,
+    corridorMask,
+    neighborConcentrationIds,
+    circulation,
+    footprintOverlap: corridorCount > 0 ? overlapCells / corridorCount : 0,
+    embeddedNetworkFraction: corridorCount > 0 ? embeddedCells / corridorCount : 0,
+    farNetworkFraction: corridorCount > 0 ? farCells / corridorCount : 1,
+    aroundNetworkFraction: corridorCount > 0 ? aroundCells / corridorCount : 0,
+    zoneNetworkFraction: corridorCount > 0 ? zoneCells / corridorCount : 0,
+    throughNetworkFraction: corridorCount > 0 ? throughCells / corridorCount : 0,
+  };
+};
+
+/** Mass, connection, component and skeleton-graph measurements on the topology grid. */
+const measureTopology = (
+  grid: AnalysisGrid,
+  config: MorphologicalExtractionConfig,
+  occupancySize: number,
+) => {
+  const { width, height, cell, massMask, morphMask, connectionBand, interior, relative, flowField } = grid;
+  const fieldCells = width * height;
+  const areaUnit = cell * cell;
+  const flowPeak = peakOf(flowField);
+  const minMassCells = Math.max(1, Math.round(config.minConcentrationArea / areaUnit));
+  const minBridgeCells = Math.max(1, Math.round(config.minBridgeLength / cell));
+
+  const layout = concentrationLayout(grid, minMassCells);
+  const { concentrations, corridorMask, neighborConcentrationIds } = layout;
+  const corridorComponents = connectedComponents(corridorMask, width, height);
 
   const bridges = corridorComponents.filter((component) => {
     if (component.cells.length < minBridgeCells) return false;
@@ -645,59 +716,6 @@ export function measureMorphologyDetailed(
   const meanPerimeterContact =
     concentrations.length > 0 ? perimeterContactSum / concentrations.length : 0;
 
-  let overlapCells = 0;
-  let corridorCount = 0;
-  let embeddedCells = 0;
-  let farCells = 0;
-  let aroundCells = 0;
-  let zoneCells = 0;
-  let throughCells = 0;
-  const circulation = new Uint8Array(fieldCells);
-  const insideAabb = (x: number, y: number) =>
-    concentrations.some(
-      (component) =>
-        x >= component.minX &&
-        x <= component.maxX &&
-        y >= component.minY &&
-        y <= component.maxY,
-    );
-  for (let i = 0; i < fieldCells; i += 1) {
-    if (!corridorMask[i] || !interior[i]) continue;
-    corridorCount += 1;
-    const x = i % width;
-    const y = (i - x) / width;
-    const inside = insideAabb(x, y);
-    if (inside) overlapCells += 1;
-    const left = x > 0 && massMask[i - 1];
-    const right = x < width - 1 && massMask[i + 1];
-    const up = y > 0 && massMask[i - width];
-    const down = y < height - 1 && massMask[i + width];
-    const sandwich = (left && right) || (up && down);
-    if (sandwich) embeddedCells += 1;
-    const n4Mass = neighborConcentrationIds(i).size > 0;
-    // Precedence: through > around/wrap (N4 boundary) > zone (AABB, not wrap) > far.
-    // Wrap that sits inside a fat concentration AABB stays AROUND, not ZONE.
-    if (sandwich) {
-      throughCells += 1;
-      circulation[i] = 4;
-    } else if (n4Mass) {
-      aroundCells += 1;
-      circulation[i] = 2;
-    } else if (inside) {
-      zoneCells += 1;
-      circulation[i] = 3;
-    } else {
-      farCells += 1;
-      circulation[i] = 1;
-    }
-  }
-  const footprintOverlap = corridorCount > 0 ? overlapCells / corridorCount : 0;
-  const embeddedNetworkFraction = corridorCount > 0 ? embeddedCells / corridorCount : 0;
-  const farNetworkFraction = corridorCount > 0 ? farCells / corridorCount : 1;
-  const aroundNetworkFraction = corridorCount > 0 ? aroundCells / corridorCount : 0;
-  const zoneNetworkFraction = corridorCount > 0 ? zoneCells / corridorCount : 0;
-  const throughNetworkFraction = corridorCount > 0 ? throughCells / corridorCount : 0;
-
   const centroids = concentrations.map((component) => {
     let sx = 0;
     let sy = 0;
@@ -744,6 +762,241 @@ export function measureMorphologyDetailed(
   const separatedNetworkFraction =
     interiorCorridorCells > 0 ? separatedCorridorCells / interiorCorridorCells : 1;
 
+  const concentrationAreas = concentrations.map((component) => component.cells.length * areaUnit);
+  const concentrationIntensities = concentrations.map((component) =>
+    mean(component.cells.map((i) => relative[i])),
+  );
+  const concentrationScores = concentrations.map((component, index) => {
+    const flowMean =
+      flowPeak > 0 ? mean(component.cells.map((i) => flowField[i] / flowPeak)) : 0;
+    return (
+      concentrationAreas[index] *
+      concentrationIntensities[index] *
+      (0.5 + 0.5 * flowMean)
+    );
+  });
+
+  const halfDiagonal = 0.5 * Math.hypot(width, height);
+  const fieldCx = (width - 1) / 2;
+  const fieldCy = (height - 1) / 2;
+  let dominantCenterProximity = 0;
+  if (concentrations.length > 0) {
+    const dominant = concentrations.reduce((best, component) =>
+      component.cells.length > best.cells.length ? component : best,
+    );
+    const n = Math.max(1, dominant.cells.length);
+    let sx = 0;
+    let sy = 0;
+    for (const i of dominant.cells) {
+      sx += i % width;
+      sy += (i - (i % width)) / width;
+    }
+    dominantCenterProximity = clamp01(
+      1 - Math.hypot(sx / n - fieldCx, sy / n - fieldCy) / Math.max(halfDiagonal, 1e-9),
+    );
+  }
+
+  const occupancyHalfDiag = 0.5 * Math.hypot(occupancySize, occupancySize);
+  const nearest: number[] = [];
+  for (let i = 0; i < centroids.length; i += 1) {
+    let best = Number.POSITIVE_INFINITY;
+    for (let j = 0; j < centroids.length; j += 1) {
+      if (i === j) continue;
+      const gap = Math.hypot(centroids[i].x - centroids[j].x, centroids[i].y - centroids[j].y);
+      if (gap < best) best = gap;
+    }
+    if (Number.isFinite(best)) nearest.push(best);
+  }
+  const sizeRegularity =
+    concentrations.length >= 2 ? clamp01(1 - coefficientOfVariation(concentrationAreas)) : 0;
+  const spacingRegularity =
+    nearest.length >= 2 ? clamp01(1 - coefficientOfVariation(nearest)) : 0;
+  const clusteredness =
+    nearest.length > 0 && occupancyHalfDiag > 0
+      ? clamp01(1 - mean(nearest) / occupancyHalfDiag)
+      : 0;
+
+  return {
+    layout,
+    concentrationCount: concentrations.length,
+    concentrationAreas,
+    concentrationIntensities,
+    concentrationScores,
+    meanCentroidSeparation,
+    dominantCenterProximity,
+    sizeRegularity,
+    spacingRegularity,
+    clusteredness,
+    meanNearestNeighbor: finite(mean(nearest)),
+    bridgeCount: bridges.length,
+    bridgeThicknesses,
+    bridgeLengths,
+    continuity,
+    pairCount,
+    linkedPairs,
+    meanPerimeterContact,
+    separatedNetworkFraction,
+    branching,
+    junctions,
+    skeletonLength,
+    graph,
+    cycleDensity,
+    connectedComponentCount: morphComponents.length,
+    largestComponentFraction: morphTotal > 0 ? clamp01(largestMorph / morphTotal) : 0,
+  };
+};
+
+export function measureMorphologyDetailed(
+  state: SimulationState,
+  overrides?: Partial<MorphologicalExtractionConfig>,
+): MorphologyMeasurementResult {
+  const config = resolveExtractionConfig(overrides);
+  const width = state.trailSize;
+  const height = state.trailSize;
+  const occupancySize = state.size;
+  const cell = occupancySize > 0 && width > 0 ? occupancySize / width : 1;
+  const areaUnit = cell * cell;
+  const fieldCells = Math.max(1, width * height);
+  const trails = state.trails;
+  const trailPeak = peakOf(trails);
+  const hasFlow = state.flow.length === occupancySize * occupancySize;
+  const flowField = hasFlow
+    ? upsampleNearest(state.flow, occupancySize, width)
+    : new Array<number>(fieldCells).fill(0);
+  const flowPeak = peakOf(flowField);
+  const interior = buildInteriorMask(width, height, occupancySize, config.analysisEdgeMargin);
+  const occupancyReference = occupancyReferenceOf(trails, interior, config.occupancyReferenceQuantile);
+
+  const relative = new Float32Array(fieldCells);
+  const massMask = new Uint8Array(fieldCells);
+  const morphMask = new Uint8Array(fieldCells);
+  const voidMask = new Uint8Array(fieldCells);
+  const connectionBand = new Uint8Array(fieldCells);
+  let massCells = 0;
+  let connectionCells = 0;
+  let voidCells = 0;
+  let activitySum = 0;
+  let activityMomentX = 0;
+  let activityMomentY = 0;
+  let activityWeight = 0;
+
+  let interiorTrail = 0;
+  let interiorVoidTrail = 0;
+
+  for (let i = 0; i < fieldCells; i += 1) {
+    const value = trails[i] ?? 0;
+    const rel = occupancyReference > 0 ? value / occupancyReference : 0;
+    const weight = Math.min(1, rel);
+    relative[i] = weight;
+    activitySum += weight;
+    if (interior[i] && value > 0) interiorTrail += value;
+    if (rel < config.voidMaxRelative) {
+      voidMask[i] = 1;
+      voidCells += 1;
+      if (interior[i] && value > 0) interiorVoidTrail += value;
+    } else {
+      morphMask[i] = 1;
+      const x = i % width;
+      const y = (i - x) / width;
+      activityWeight += weight;
+      activityMomentX += weight * x;
+      activityMomentY += weight * y;
+      if (rel >= config.massMinRelative) {
+        massMask[i] = 1;
+        massCells += 1;
+      } else {
+        connectionBand[i] = 1;
+        connectionCells += 1;
+      }
+    }
+  }
+
+  let interiorCellCount = 0;
+  let interiorVoidCells = 0;
+  let interiorMinX = width;
+  let interiorMaxX = -1;
+  let interiorMinY = height;
+  let interiorMaxY = -1;
+  const interiorVoidMask = new Uint8Array(fieldCells);
+  for (let i = 0; i < fieldCells; i += 1) {
+    if (!interior[i]) continue;
+    interiorCellCount += 1;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x < interiorMinX) interiorMinX = x;
+    if (x > interiorMaxX) interiorMaxX = x;
+    if (y < interiorMinY) interiorMinY = y;
+    if (y > interiorMaxY) interiorMaxY = y;
+    if (voidMask[i]) {
+      interiorVoidMask[i] = 1;
+      interiorVoidCells += 1;
+    }
+  }
+  const interiorExtent =
+    interiorMaxX >= interiorMinX
+      ? Math.max(interiorMaxX - interiorMinX + 1, interiorMaxY - interiorMinY + 1) * cell
+      : Math.max(0, occupancySize - 2 * config.analysisEdgeMargin);
+
+  const minMassCells = Math.max(1, Math.round(config.minConcentrationArea / areaUnit));
+  const minVoidCells = Math.max(1, Math.round(config.minSignificantVoidArea / areaUnit));
+  const minSupportCells = Math.max(1, Math.round(config.minSupportLength / cell));
+
+  const fineGrid: AnalysisGrid = {
+    width,
+    height,
+    cell,
+    massMask,
+    morphMask,
+    connectionBand,
+    interior,
+    relative,
+    flowField,
+  };
+  const fineLayout = concentrationLayout(fineGrid, minMassCells);
+  const dist = distanceToVoid(morphMask, width, height);
+  const skel = skeletonize(morphMask, width, height);
+
+  let topologyFactor = Math.max(1, Math.round(config.topologyCellSize / cell));
+  while (topologyFactor > 1 && (width % topologyFactor !== 0 || height % topologyFactor !== 0)) {
+    topologyFactor -= 1;
+  }
+  let topologyGrid = fineGrid;
+  let topologyReference = occupancyReference;
+  if (topologyFactor > 1) {
+    const tWidth = width / topologyFactor;
+    const tHeight = height / topologyFactor;
+    const tCells = tWidth * tHeight;
+    const tTrails = boxAverage(trails, width, height, topologyFactor);
+    const tInterior = buildInteriorMask(tWidth, tHeight, occupancySize, config.analysisEdgeMargin);
+    topologyReference = occupancyReferenceOf(tTrails, tInterior, config.occupancyReferenceQuantile);
+    const tRelative = new Float32Array(tCells);
+    const tMass = new Uint8Array(tCells);
+    const tMorph = new Uint8Array(tCells);
+    const tBand = new Uint8Array(tCells);
+    for (let i = 0; i < tCells; i += 1) {
+      const rel = topologyReference > 0 ? tTrails[i] / topologyReference : 0;
+      tRelative[i] = Math.min(1, rel);
+      if (rel < config.voidMaxRelative) continue;
+      tMorph[i] = 1;
+      if (rel >= config.massMinRelative) tMass[i] = 1;
+      else tBand[i] = 1;
+    }
+    topologyGrid = {
+      width: tWidth,
+      height: tHeight,
+      cell: cell * topologyFactor,
+      massMask: tMass,
+      morphMask: tMorph,
+      connectionBand: tBand,
+      interior: tInterior,
+      relative: tRelative,
+      flowField: hasFlow
+        ? upsampleNearest(state.flow, occupancySize, tWidth)
+        : new Array<number>(tCells).fill(0),
+    };
+  }
+  const topo = measureTopology(topologyGrid, config, occupancySize);
+
   const voidComponents = connectedComponents(interiorVoidMask, width, height);
   const significantVoids = voidComponents.filter((component) => component.cells.length >= minVoidCells);
   const significantVoid = new Uint8Array(fieldCells);
@@ -787,6 +1040,10 @@ export function measureMorphologyDetailed(
   const voidRuns = axisAlignedVoidRuns(interiorVoidMask, width, height, interior);
   const maxOpenSpan = (voidRuns.reduce((acc, n) => Math.max(acc, n), 0) || 0) * cell;
   const meanOpenSpan = mean(voidRuns) * cell;
+  const sightlineMedian = lengthWeightedMedian(voidRuns) * cell;
+  const voidRunLength = voidRuns.reduce((acc, value) => acc + value, 0);
+  const lengthWeightedSightline =
+    voidRunLength > 0 ? (voidRuns.reduce((acc, value) => acc + value * value, 0) / voidRunLength) * cell : 0;
 
   const surroundRadius = Math.max(2, Math.round(2.5 / Math.max(cell, 1e-9)));
   let surroundSum = 0;
@@ -871,20 +1128,6 @@ export function measureMorphologyDetailed(
   }
   const layering = clamp01(layerTransitions / Math.max(1, layerLines) / 4);
 
-  const concentrationAreas = concentrations.map((component) => component.cells.length * areaUnit);
-  const concentrationIntensities = concentrations.map((component) =>
-    mean(component.cells.map((i) => relative[i])),
-  );
-  const concentrationScores = concentrations.map((component, index) => {
-    const flowMean =
-      flowPeak > 0 ? mean(component.cells.map((i) => flowField[i] / flowPeak)) : 0;
-    return (
-      concentrationAreas[index] *
-      concentrationIntensities[index] *
-      (0.5 + 0.5 * flowMean)
-    );
-  });
-
   const supportLengths: number[] = [];
   let supportCells = 0;
   for (let y = 0; y < height - 1; y += 1) {
@@ -926,44 +1169,6 @@ export function measureMorphologyDetailed(
     spatialSpread = clamp01(Math.sqrt(moment / activityWeight) / halfDiagonal);
     centerProximity = clamp01(1 - Math.hypot(cx - fieldCx, cy - fieldCy) / halfDiagonal);
   }
-
-  let dominantCenterProximity = 0;
-  if (concentrations.length > 0) {
-    const dominant = concentrations.reduce((best, component) =>
-      component.cells.length > best.cells.length ? component : best,
-    );
-    const n = Math.max(1, dominant.cells.length);
-    let sx = 0;
-    let sy = 0;
-    for (const i of dominant.cells) {
-      sx += i % width;
-      sy += (i - (i % width)) / width;
-    }
-    dominantCenterProximity = clamp01(
-      1 - Math.hypot(sx / n - fieldCx, sy / n - fieldCy) / Math.max(halfDiagonal, 1e-9),
-    );
-  }
-
-  const occupancyHalfDiag = 0.5 * Math.hypot(occupancySize, occupancySize);
-  const nearest: number[] = [];
-  for (let i = 0; i < centroids.length; i += 1) {
-    let best = Number.POSITIVE_INFINITY;
-    for (let j = 0; j < centroids.length; j += 1) {
-      if (i === j) continue;
-      const gap = Math.hypot(centroids[i].x - centroids[j].x, centroids[i].y - centroids[j].y);
-      if (gap < best) best = gap;
-    }
-    if (Number.isFinite(best)) nearest.push(best);
-  }
-  const sizeRegularity =
-    concentrations.length >= 2 ? clamp01(1 - coefficientOfVariation(concentrationAreas)) : 0;
-  const spacingRegularity =
-    nearest.length >= 2 ? clamp01(1 - coefficientOfVariation(nearest)) : 0;
-  const clusteredness =
-    nearest.length > 0 && occupancyHalfDiag > 0
-      ? clamp01(1 - mean(nearest) / occupancyHalfDiag)
-      : 0;
-  const meanNearestNeighbor = finite(mean(nearest));
 
   let morphMinX = width;
   let morphMaxX = -1;
@@ -1040,19 +1245,27 @@ export function measureMorphologyDetailed(
 
   const significantVoidAreas = significantVoids.map((component) => component.cells.length * areaUnit);
   const concentrationSizeVariation =
-    concentrations.length >= 2 ? coefficientOfVariation(concentrationAreas) : 0;
+    topo.concentrationCount >= 2 ? coefficientOfVariation(topo.concentrationAreas) : 0;
   const voidSizeVariation =
     significantVoids.length >= 2 ? coefficientOfVariation(significantVoidAreas) : 0;
   const connectionThicknessVariation =
-    bridges.length >= 2 ? coefficientOfVariation(bridgeThicknesses) : 0;
+    topo.bridgeCount >= 2 ? coefficientOfVariation(topo.bridgeThicknesses) : 0;
   const variationParts = [
-    concentrations.length >= 2 ? concentrationSizeVariation : null,
+    topo.concentrationCount >= 2 ? concentrationSizeVariation : null,
     significantVoids.length >= 2 ? voidSizeVariation : null,
-    bridges.length >= 2 ? connectionThicknessVariation : null,
+    topo.bridgeCount >= 2 ? connectionThicknessVariation : null,
   ].filter((value): value is number => value !== null);
   const elementCount = variationParts.length;
   const insufficientElements = variationParts.length === 0 ? 1 : 0;
   const overallVariation = variationParts.length ? mean(variationParts) : 0;
+  const medialRadii: number[] = [];
+  for (let i = 0; i < skel.length; i += 1) {
+    if (!skel[i]) continue;
+    medialRadii.push(dist[i] * cell);
+  }
+  medialRadii.sort((a, b) => a - b);
+  const medialRadiusP50 = percentile(medialRadii, 0.5);
+  const medialRadiusP90 = percentile(medialRadii, 0.9);
 
   const measurements: MorphologicalMeasurements = {
     field: {
@@ -1074,39 +1287,39 @@ export function measureMorphologyDetailed(
     },
     mass: {
       totalMassFraction: clamp01(massCells / fieldCells),
-      concentrationCount: concentrations.length,
-      meanArea: finite(mean(concentrationAreas)),
-      meanIntensity: clamp01(mean(concentrationIntensities)),
-      scaleHierarchy: gini(concentrationScores),
-      meanCentroidSeparation,
-      dominantCenterProximity,
-      sizeRegularity,
-      spacingRegularity,
-      clusteredness,
-      meanNearestNeighbor,
+      concentrationCount: topo.concentrationCount,
+      meanArea: finite(mean(topo.concentrationAreas)),
+      meanIntensity: clamp01(mean(topo.concentrationIntensities)),
+      scaleHierarchy: gini(topo.concentrationScores),
+      meanCentroidSeparation: topo.meanCentroidSeparation,
+      dominantCenterProximity: topo.dominantCenterProximity,
+      sizeRegularity: topo.sizeRegularity,
+      spacingRegularity: topo.spacingRegularity,
+      clusteredness: topo.clusteredness,
+      meanNearestNeighbor: topo.meanNearestNeighbor,
     },
     connection: {
-      bridgeCount: bridges.length,
-      meanBridgeThickness: finite(mean(bridgeThicknesses)),
-      meanBridgeLength: finite(mean(bridgeLengths)),
-      continuity: clamp01(continuity),
-      pairOpportunityCount: pairCount,
-      linkedPairCount: linkedPairs,
-      meanPerimeterContact: clamp01(meanPerimeterContact),
-      footprintOverlap: clamp01(footprintOverlap),
-      embeddedNetworkFraction: clamp01(embeddedNetworkFraction),
-      separatedNetworkFraction: clamp01(separatedNetworkFraction),
-      farNetworkFraction: clamp01(farNetworkFraction),
-      aroundNetworkFraction: clamp01(aroundNetworkFraction),
-      zoneNetworkFraction: clamp01(zoneNetworkFraction),
-      throughNetworkFraction: clamp01(throughNetworkFraction),
-      branching: finite(branching),
-      skeletonEndpoints: graph.endpoints,
-      skeletonNodes: graph.nodes,
-      cycleRank: graph.cycleRank,
-      cycleDensity: clamp01(cycleDensity),
-      branchCount: graph.branchCount,
-      branchLengthRegularity: clamp01(graph.branchLengthRegularity),
+      bridgeCount: topo.bridgeCount,
+      meanBridgeThickness: finite(mean(topo.bridgeThicknesses)),
+      meanBridgeLength: finite(mean(topo.bridgeLengths)),
+      continuity: clamp01(topo.continuity),
+      pairOpportunityCount: topo.pairCount,
+      linkedPairCount: topo.linkedPairs,
+      meanPerimeterContact: clamp01(topo.meanPerimeterContact),
+      footprintOverlap: clamp01(topo.layout.footprintOverlap),
+      embeddedNetworkFraction: clamp01(topo.layout.embeddedNetworkFraction),
+      separatedNetworkFraction: clamp01(topo.separatedNetworkFraction),
+      farNetworkFraction: clamp01(topo.layout.farNetworkFraction),
+      aroundNetworkFraction: clamp01(topo.layout.aroundNetworkFraction),
+      zoneNetworkFraction: clamp01(topo.layout.zoneNetworkFraction),
+      throughNetworkFraction: clamp01(topo.layout.throughNetworkFraction),
+      branching: finite(topo.branching),
+      skeletonEndpoints: topo.graph.endpoints,
+      skeletonNodes: topo.graph.nodes,
+      cycleRank: topo.graph.cycleRank,
+      cycleDensity: clamp01(topo.cycleDensity),
+      branchCount: topo.graph.branchCount,
+      branchLengthRegularity: clamp01(topo.graph.branchLengthRegularity),
     },
     void: {
       voidFraction: clamp01(interiorCellCount > 0 ? interiorVoidCells / interiorCellCount : 1),
@@ -1116,14 +1329,16 @@ export function measureMorphologyDetailed(
       voidContinuity: clamp01(largestVoidFraction),
       meanOpenSpan: finite(meanOpenSpan),
       maxOpenSpan: finite(maxOpenSpan),
+      sightlineMedian: finite(sightlineMedian),
+      lengthWeightedSightline: finite(lengthWeightedSightline),
       meanSignificantArea: finite(
         mean(significantVoids.map((component) => component.cells.length * areaUnit)),
       ),
       boundaryOpenFraction: clamp01(boundaryOpenFraction),
     },
     topology: {
-      connectedComponentCount: morphComponents.length,
-      largestComponentFraction: morphTotal > 0 ? clamp01(largestMorph / morphTotal) : 0,
+      connectedComponentCount: topo.connectedComponentCount,
+      largestComponentFraction: topo.largestComponentFraction,
       enclosure: clamp01(enclosure),
       anisotropy,
       boundingBoxFill,
@@ -1144,6 +1359,8 @@ export function measureMorphologyDetailed(
       overallVariation: finite(overallVariation),
       elementCount,
       insufficientElements,
+      medialRadiusP50: finite(medialRadiusP50),
+      medialRadiusP90: finite(medialRadiusP90),
     },
   };
 
@@ -1155,19 +1372,23 @@ export function measureMorphologyDetailed(
       massCells,
       connectionCells,
       voidCells,
-      skeletonJunctions: junctions,
-      skeletonLength,
+      skeletonJunctions: topo.junctions,
+      skeletonLength: topo.skeletonLength,
+      occupancyReference,
+      interiorTrailVoidShare: interiorTrail > 0 ? interiorVoidTrail / interiorTrail : 0,
+      topologyCellSize: topologyGrid.cell,
+      topologyReference,
     },
     config,
     overlays: {
       width,
       height,
       mass: massMask,
-      corridor: corridorMask,
+      corridor: fineLayout.corridorMask,
       significantVoid,
       interior,
       skeleton: skel,
-      circulation,
+      circulation: fineLayout.circulation,
     },
   };
 }

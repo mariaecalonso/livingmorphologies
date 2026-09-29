@@ -30,6 +30,37 @@ import type {
 
 const ratingLabel = (rating: Rating): TargetRatingLabel => CRITERION_LEVELS[rating].label;
 
+/** log1p(value) / log1p(reference), in [0, 1]. Ordinary branching no longer hits a hard cap of 5 or 3. */
+function logShoulder(value: number, reference: number) {
+  if (reference <= 0) return 0;
+  return clamp01(Math.log1p(Math.max(0, value)) / Math.log1p(reference));
+}
+
+/**
+ * True when the field is a real morphology.
+ * One mass, one void, and a network remain valid.
+ * Proportionality and insufficientElements are not consulted.
+ */
+export function morphologyValid(
+  measurements: MorphologicalMeasurements,
+  calibration: EvaluationCalibration = EVALUATION_CALIBRATION,
+) {
+  const occupied = 1 - measurements.void.voidFraction;
+  const peak = measurements.activity.peakConcentration;
+  const values = [
+    occupied,
+    measurements.void.voidFraction,
+    peak,
+    measurements.proportion.medialRadiusP50,
+    measurements.proportion.medialRadiusP90,
+  ];
+  if (values.some((value) => !Number.isFinite(value))) return false;
+  if (peak <= 0) return false;
+  if (occupied < calibration.minimumOccupiedFraction) return false;
+  if (measurements.void.voidFraction < calibration.minimumVoidFraction) return false;
+  return true;
+}
+
 export function readMeasurement(
   measurements: MorphologicalMeasurements,
   key: MeasurementKey,
@@ -50,37 +81,26 @@ const observedAxes: Record<
   complexityAmount: (m, c) =>
     clamp01(
       0.35 * saturate(Math.max(0, m.mass.concentrationCount - 1), c.complexityConcentrationCap - 1) +
-        0.25 * saturate(m.connection.branching, c.complexityBranchingCap) +
+        0.25 * logShoulder(m.connection.branching, c.branchingLogReference) +
         0.2 * saturate(Math.max(0, m.topology.connectedComponentCount - 1), c.complexityComponentCap - 1) +
         0.2 * saturate(m.proportion.overallVariation, c.variationCap),
     ),
   proportionalVariation: (m, c) => {
-    if (m.proportion.insufficientElements >= 1) return 0.5;
-    return saturate(m.proportion.overallVariation, c.variationCap);
+    const typical = m.proportion.medialRadiusP50;
+    const thick = m.proportion.medialRadiusP90;
+    if (!(typical > 0) || !(thick >= typical)) return 0;
+    const reference = c.proportionalityThicknessReference;
+    if (!(reference > 1)) return 0;
+    return clamp01(Math.log(thick / typical) / Math.log(reference));
   },
   circulationMix: (m) =>
     clamp01(m.connection.throughNetworkFraction + 0.5 * m.connection.zoneNetworkFraction),
-  opennessAmount: (m) => {
-    const extent = Math.max(1e-9, m.analysis.interiorExtent);
-    return clamp01(
-      0.3 * m.void.voidFraction +
-        0.25 * m.void.largestVoidFraction +
-        0.2 * (1 - m.topology.enclosure) +
-        0.25 * clamp01(m.void.maxOpenSpan / extent),
-    );
-  },
+  opennessAmount: (m) => clamp01(0.65 * m.void.voidFraction + 0.35 * (1 - m.topology.enclosure)),
   connectivityAmount: (m, c) => {
-    const massRel =
-      m.connection.pairOpportunityCount < 1
-        ? 0
-        : m.connection.linkedPairCount / m.connection.pairOpportunityCount;
-    const compact =
-      m.connection.branchCount < 2 && m.connection.skeletonEndpoints <= 2;
-    if (compact && massRel === 0) return 0;
-    const networkRel = clamp01(
-      0.5 * saturate(m.connection.skeletonEndpoints, 8) +
-        0.5 * saturate(m.connection.branching, 3),
-    );
+    const pairs = Math.max(0, m.connection.pairOpportunityCount);
+    const linked = pairs > 0 ? m.connection.linkedPairCount / pairs : 0;
+    const massRel = (pairs / (pairs + 2)) * linked;
+    const networkRel = clamp01(m.topology.largestComponentFraction);
     const bridgeRel = saturate(m.connection.bridgeCount, c.connectivityBridgeCap);
     return clamp01(0.4 * massRel + 0.4 * networkRel + 0.2 * bridgeRel);
   },
@@ -97,11 +117,7 @@ const observedAxes: Record<
     ),
   visibilityAmount: (m) => {
     const extent = Math.max(1e-9, m.analysis.interiorExtent);
-    return clamp01(
-      0.4 * clamp01(m.void.maxOpenSpan / extent) +
-        0.4 * clamp01(m.void.meanOpenSpan / extent) +
-        0.2 * (1 - m.topology.enclosure),
-    );
+    return clamp01(m.void.lengthWeightedSightline / extent);
   },
   proximityAmount: (m) => {
     const extent = Math.max(1e-9, m.analysis.interiorExtent);
@@ -115,8 +131,15 @@ const observedAxes: Record<
     const voidSep = clamp01(m.void.meanOpenSpan / extent);
     return clamp01(0.5 * (1 - nn) + 0.5 * (1 - voidSep));
   },
-  centralityAmount: (m) =>
-    clamp01(0.65 * m.mass.dominantCenterProximity + 0.35 * m.activity.centerProximity),
+  centralityAmount: (m) => {
+    const massPresence = 1 - Math.exp(-Math.max(0, m.mass.concentrationCount) / 10.5);
+    const massWeight = 0.65 * massPresence;
+    const activityWeight = 0.35;
+    return clamp01(
+      (massWeight * m.mass.dominantCenterProximity + activityWeight * m.activity.centerProximity) /
+        (massWeight + activityWeight),
+    );
+  },
   directionalityAmount: (m) => clamp01(m.topology.anisotropy),
   articulationAmount: (m, c) =>
     clamp01(
@@ -126,20 +149,20 @@ const observedAxes: Record<
         0.2 * saturate(m.proportion.overallVariation, c.variationCap),
     ),
   modularityAmount: (m, c) => {
-    if (m.mass.concentrationCount >= 2) {
-      return clamp01(
-        0.4 * saturate(m.mass.concentrationCount - 1, c.complexityConcentrationCap - 1) +
-          0.35 * m.mass.sizeRegularity +
-          0.25 * m.mass.spacingRegularity,
-      );
-    }
-    if (m.connection.branchCount >= 3) {
-      const units = saturate(m.connection.branchCount - 2, 6);
-      return clamp01(
-        0.5 * units * m.connection.branchLengthRegularity + 0.5 * m.connection.branchLengthRegularity,
-      );
-    }
-    return 0;
+    const count = Math.max(0, m.mass.concentrationCount);
+    const massFade = 1 - Math.exp(-Math.max(0, count - 1) / 4.5);
+    const massScore = clamp01(
+      0.4 * saturate(Math.max(0, count - 1), c.complexityConcentrationCap - 1) +
+        0.35 * m.mass.sizeRegularity +
+        0.25 * m.mass.spacingRegularity,
+    );
+    const branches = Math.max(0, m.connection.branchCount);
+    const branchUnits = saturate(Math.max(0, branches - 2), 6);
+    const branchScore = clamp01(
+      0.5 * branchUnits * m.connection.branchLengthRegularity + 0.5 * m.connection.branchLengthRegularity,
+    );
+    const branchFade = 1 - Math.exp(-Math.max(0, branches - 2) / 3.5);
+    return clamp01(massFade * massScore + (1 - massFade) * branchFade * branchScore);
   },
   receptivitySpatial: (m) =>
     clamp01(0.55 * m.void.boundaryOpenFraction + 0.45 * (1 - m.topology.enclosure)),
@@ -169,6 +192,7 @@ export function criterionWeight(shared: boolean, calibration: EvaluationCalibrat
 export function finalizeEvaluation(
   criteria: NineCriterionResults,
   calibration: EvaluationCalibration = EVALUATION_CALIBRATION,
+  feasible = true,
 ): CandidateEvaluation {
   const scores = criteria.map((item) => item.correspondenceScore);
   const weights = criteria.map((item) => item.weight);
@@ -182,6 +206,7 @@ export function finalizeEvaluation(
     overallPerformance,
     minimumIndividualPerformance,
     acceptable,
+    feasible,
   };
 }
 
@@ -282,7 +307,7 @@ export function evaluateMorphology(input: EvaluateMorphologyInput): CandidateEva
       calibration,
     ),
   ) as unknown as NineCriterionResults;
-  return finalizeEvaluation(criteria, calibration);
+  return finalizeEvaluation(criteria, calibration, morphologyValid(input.measurements, calibration));
 }
 
 /** Catalog Low / Medium / High text for a criterion (source of truth). */

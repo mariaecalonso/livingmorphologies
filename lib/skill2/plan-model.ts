@@ -41,9 +41,9 @@ export type PlanModel = {
   };
   reinforcement: {
     trailPeak: number;
-    /** Peak-relative trail on the trail grid. */
+    /** Trail relative to the extractor's occupancy reference, on the trail grid. */
     relative: Float32Array;
-    /** Existing mass class: peak-relative trail at or above massMinRelative. */
+    /** Existing mass class: relative trail at or above massMinRelative. */
     strong: Uint8Array;
     /** Existing thin-connection class: corridor cells that are not mass. */
     connective: Uint8Array;
@@ -208,9 +208,9 @@ export function buildPlanModel(
   const skeleton = copyMask(overlays.skeleton);
   const circulation = copyMask(overlays.circulation);
 
-  const peak = summary.trailPeak > 0 ? summary.trailPeak : 1;
+  const reference = summary.occupancyReference > 0 ? summary.occupancyReference : 1;
   const relative = new Float32Array(state.trails.length);
-  for (let i = 0; i < state.trails.length; i += 1) relative[i] = (state.trails[i] ?? 0) / peak;
+  for (let i = 0; i < state.trails.length; i += 1) relative[i] = (state.trails[i] ?? 0) / reference;
 
   const cell = state.size > 0 && columns > 0 ? state.size / columns : 1;
   const areaUnit = cell * cell;

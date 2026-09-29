@@ -1,5 +1,5 @@
 import { mulberry32 } from "../physarum";
-import { FIELD_SIZE } from "./maps";
+import { FIELD_SIZE, MAX_AGENT_COUNT, MAX_DENSITY, MIN_AGENT_COUNT, MIN_DENSITY } from "./maps";
 import { attractorFromRatings } from "./translate";
 import type { BiologicalTranslation, Point } from "./types";
 
@@ -114,6 +114,13 @@ export function densityFromTranslation(translation: BiologicalTranslation): numb
   const { params, topology } = translation;
   const contained = topology === "contained-interior" ? 0.12 : 0;
   return Math.round(lerp(1, 10, params.networkDensity * 0.38 + params.permeability * 0.28 + params.nodeRepetition * 0.22 + contained));
+}
+
+/** Agent count for a density slider value. */
+export function agentCountFromDensity(density: number) {
+  const span = MAX_DENSITY - MIN_DENSITY;
+  const t = span === 0 ? 0 : (density - MIN_DENSITY) / span;
+  return Math.round(MIN_AGENT_COUNT + Math.min(1, Math.max(0, t)) * (MAX_AGENT_COUNT - MIN_AGENT_COUNT));
 }
 
 /** Spread one archetype across distinct growth settings. The seed picks the variant. */

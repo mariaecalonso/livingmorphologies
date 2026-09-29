@@ -136,9 +136,9 @@ assertFinite(platform);
 assert(platform.occupation.supportCount >= 1, "horizontal bar with void above should yield support potential");
 
 const dumbbellTrails = new Array(TRAIL * TRAIL).fill(0);
-paintRect(dumbbellTrails, TRAIL, 2, 12, 10, 20, 1);
-paintRect(dumbbellTrails, TRAIL, 22, 12, 30, 20, 1);
-paintRect(dumbbellTrails, TRAIL, 10, 15, 22, 17, 0.2);
+paintRect(dumbbellTrails, TRAIL, 10, 12, 14, 20, 1);
+paintRect(dumbbellTrails, TRAIL, 18, 12, 22, 20, 1);
+paintRect(dumbbellTrails, TRAIL, 14, 15, 18, 17, 0.2);
 const dumbbell = measureMorphology(makeState(TRAIL, SIZE, dumbbellTrails));
 assertFinite(dumbbell);
 assert(

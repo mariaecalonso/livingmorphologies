@@ -1,7 +1,7 @@
 import { correspondenceScore } from "./correspondence";
 import { EVALUATION_CALIBRATION } from "./evaluation-config";
 import { VOID_FIELD_EVALUATION_QUESTIONS } from "./evaluation-definitions";
-import { evaluateMorphology, finalizeEvaluation } from "./evaluate";
+import { evaluateMorphology, finalizeEvaluation, morphologyValid } from "./evaluate";
 import { measureMorphology } from "./measurements";
 import type {
   CandidateEvaluation,
@@ -124,6 +124,8 @@ function baseMeasurements(overrides?: {
       voidContinuity: overrides?.voidContinuity ?? 0.8,
       meanOpenSpan: overrides?.meanOpenSpan ?? 10,
       maxOpenSpan: overrides?.maxOpenSpan ?? 16,
+      sightlineMedian: 8,
+      lengthWeightedSightline: 8,
       meanSignificantArea: 40,
       boundaryOpenFraction: 0.4,
     },
@@ -150,6 +152,8 @@ function baseMeasurements(overrides?: {
       overallVariation: overrides?.overallVariation ?? 0.1,
       elementCount: 4,
       insufficientElements: 0,
+      medialRadiusP50: 0.05,
+      medialRadiusP90: 0.08,
     },
   };
 }
@@ -253,6 +257,23 @@ const closedEval = evaluateMorphology({
 const openOpenness = openEval.criteria.find((item) => item.criterionId === "openness")?.correspondenceScore ?? -1;
 const closedOpenness = closedEval.criteria.find((item) => item.criterionId === "openness")?.correspondenceScore ?? -1;
 assert(openOpenness > closedOpenness, "open morphology must score better against HIGH Openness than enclosed morphology");
+const openObserved = openEval.criteria.find((item) => item.criterionId === "openness")?.observedCondition ?? -1;
+const spanIgnored = baseMeasurements({
+  voidFraction: 0.9,
+  largestVoidFraction: 0.1,
+  voidContinuity: 0.1,
+  enclosure: 0.05,
+  meanOpenSpan: 1,
+  maxOpenSpan: 2,
+});
+const spanIgnoredObserved =
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements: spanIgnored,
+  }).criteria.find((item) => item.criterionId === "openness")?.observedCondition ?? -1;
+assert(Math.abs(openObserved - spanIgnoredObserved) < 1e-9, "openness must ignore void segmentation and open span");
+assert(Math.abs(openObserved - (0.65 * 0.9 + 0.35 * 0.95)) < 1e-9, "openness must be void fraction and enclosure only");
 
 const singleton = baseMeasurements({
   concentrationCount: 1,
@@ -276,8 +297,29 @@ const connectivityResult = highConnectivity.criteria.find((item) => item.criteri
 if (!connectivityResult) throw new Error("connectivity result missing");
 assert(connectivityResult.evidence.some((item) => item.measurement === "connection.continuity" && item.value === 1), "sentinel continuity 1 should still be recorded as evidence");
 assert(
-  connectivityResult.observedCondition === 0,
-  `compact single body must yield connectivityAmount 0, got ${connectivityResult.observedCondition}`,
+  connectivityResult.observedCondition > 0 && connectivityResult.observedCondition < 0.5,
+  `single integrated body without pairs must stay below Medium-High, got ${connectivityResult.observedCondition}`,
+);
+
+const connectivityObs = (measurements: MorphologicalMeasurements) =>
+  evaluateMorphology({
+    typologyId: "gathering",
+    archetypeId: "void-field",
+    measurements,
+    ratings: { ...voidFieldRatings, connectivity: 2 },
+  }).criteria.find((item) => item.criterionId === "connectivity")?.observedCondition ?? -1;
+
+const fragmentedSingle = baseMeasurements({
+  concentrationCount: 1,
+  pairOpportunityCount: 0,
+  linkedPairCount: 0,
+  continuity: 1,
+});
+fragmentedSingle.topology.connectedComponentCount = 12;
+fragmentedSingle.topology.largestComponentFraction = 0.2;
+assert(
+  connectivityObs(fragmentedSingle) < connectivityResult.observedCondition,
+  "fragmented morphology must read less connected than one integrated fragment",
 );
 
 const branchedSingle = baseMeasurements({
@@ -290,19 +332,16 @@ branchedSingle.connection.branchCount = 8;
 branchedSingle.connection.skeletonEndpoints = 8;
 branchedSingle.connection.skeletonNodes = 10;
 branchedSingle.connection.branching = 2;
-branchedSingle.connection.cycleRank = 2;
-branchedSingle.connection.cycleDensity = 0.4;
-const branchedEval = evaluateMorphology({
-  typologyId: "gathering",
-  archetypeId: "void-field",
-  measurements: branchedSingle,
-  ratings: { ...voidFieldRatings, connectivity: 2 },
-});
-const branchedObs =
-  branchedEval.criteria.find((item) => item.criterionId === "connectivity")?.observedCondition ?? -1;
-assert(branchedObs > 0, "concentrationCount < 2 must not force connectivity 0 for a meaningful network");
-assert(branchedObs > connectivityResult.observedCondition, "branched network must exceed compact body");
-assert(branchedObs < 0.95, "skeleton richness must not automatically saturate High connectivity");
+assert(
+  Math.abs(connectivityObs(branchedSingle) - connectivityObs({ ...branchedSingle, connection: { ...branchedSingle.connection, skeletonEndpoints: 2, branching: 0 } })) < 1e-12,
+  "skeleton endpoints and branching must not drive Connectivity observed condition",
+);
+
+const linkedMasses = baseMeasurements({ concentrationCount: 3, pairOpportunityCount: 3, linkedPairCount: 3 });
+linkedMasses.connection.bridgeCount = 3;
+const linkedObs = connectivityObs(linkedMasses);
+assert(linkedObs > connectivityResult.observedCondition, "linked mass pairs and bridges must add to an integrated network");
+assert(linkedObs < 0.95, "three linked masses must not automatically saturate High connectivity");
 
 const cycleNoise = baseMeasurements({
   concentrationCount: 1,
@@ -379,6 +418,13 @@ const insufficient = baseMeasurements({ overallVariation: 0, concentrationCount:
 insufficient.proportion.insufficientElements = 1;
 insufficient.proportion.elementCount = 0;
 insufficient.proportion.overallVariation = 0;
+insufficient.proportion.medialRadiusP50 = 0.05;
+insufficient.proportion.medialRadiusP90 = 0.1;
+const withFamily = baseMeasurements({ overallVariation: 0.4, concentrationCount: 2 });
+withFamily.proportion.insufficientElements = 0;
+withFamily.proportion.elementCount = 1;
+withFamily.proportion.medialRadiusP50 = 0.05;
+withFamily.proportion.medialRadiusP90 = 0.1;
 const propInsufficientLow = evaluateMorphology({
   typologyId: "gathering",
   archetypeId: "void-field",
@@ -391,19 +437,32 @@ const propInsufficientHigh = evaluateMorphology({
   measurements: insufficient,
   ratings: { ...voidFieldRatings, proportionality: 2 },
 });
-const insLow =
-  propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.correspondenceScore ?? -1;
-const insHigh =
-  propInsufficientHigh.criteria.find((item) => item.criterionId === "proportionality")?.correspondenceScore ?? -1;
-assert(
-  Math.abs(insLow - insHigh) < 1e-9,
-  "too-few-elements must not correspond better to Low than High (not a uniformity sentinel)",
-);
-assert(
-  (propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.observedCondition ?? -1) ===
-    0.5,
-  "insufficient elements yield indeterminate proportionalVariation 0.5",
-);
+const propWithFamily = evaluateMorphology({
+  typologyId: "gathering",
+  archetypeId: "void-field",
+  measurements: withFamily,
+});
+const formalCount = (evaluation: { criteria: ReadonlyArray<{ category: string }> }) =>
+  evaluation.criteria.filter((item) => item.category === "formal").length;
+const insObserved =
+  propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.observedCondition ?? -1;
+const familyObserved =
+  propWithFamily.criteria.find((item) => item.criterionId === "proportionality")?.observedCondition ?? -1;
+const insWeight =
+  propInsufficientLow.criteria.find((item) => item.criterionId === "proportionality")?.weight ?? 0;
+assert(Math.abs(insObserved - Math.log(2) / Math.log(16)) < 1e-9, `thickness ratio 2 must map by log(16), got ${insObserved}`);
+assert(insObserved !== 0.5, "proportionality must not be the 0.50 sentinel");
+assert(Math.abs(insObserved - familyObserved) < 1e-9, "segmented family count must not change proportionality");
+assert(insWeight > 0, "proportionality must keep its weight");
+assert(formalCount(propInsufficientLow) === 3, "Formal Match must still include three criteria");
+assert(formalCount(propInsufficientHigh) === 3, "Formal Match must still include three criteria");
+assert(morphologyValid(insufficient), "one body with one void family remains valid");
+assert(propInsufficientLow.feasible === true, "missing segmented families must not make a field infeasible");
+const emptyField = baseMeasurements({ voidFraction: 1 });
+emptyField.activity.peakConcentration = 0;
+const solidField = baseMeasurements({ voidFraction: 0.01 });
+assert(!morphologyValid(emptyField), "a field with no trail is invalid");
+assert(!morphologyValid(solidField), "an almost solid fill is invalid");
 
 const detached = baseMeasurements();
 detached.topology.directionalSurround = 0.05;
