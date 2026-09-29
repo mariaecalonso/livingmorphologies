@@ -254,14 +254,18 @@ export function HomeWorkflow() {
   useEffect(() => {
     const net = netRef.current;
     const svg = svgRef.current;
-    if (!net || !svg || lines.length === 0) return;
+    const section = net?.closest<HTMLElement>("#workflow");
+    if (!net || !svg || !section || lines.length === 0) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const groups = [...svg.querySelectorAll<SVGGElement>("[data-pulse]")];
     const hold = new Map<string, number>();
+    const shell = section.closest<HTMLElement>(".site-shell");
     let frame = 0;
-    let start = performance.now();
-    let running = true;
+    let startedAt = 0;
+    let running = false;
+    let inView = false;
+    let observer: IntersectionObserver | null = null;
 
     const routes = (ids: string[]) =>
       ids
@@ -299,9 +303,22 @@ export function HomeWorkflow() {
       group?.querySelectorAll("circle").forEach((circle) => circle.setAttribute("opacity", "0"));
     };
 
+    const clearLit = () => {
+      hold.clear();
+      net.querySelectorAll(".is-lit").forEach((node) => node.classList.remove("is-lit"));
+    };
+
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      clearLit();
+      groups.forEach(hide);
+    };
+
     const tick = (now: number) => {
       if (!running) return;
-      const elapsed = (now - start) % CYCLE_MS;
+      const elapsed = (now - startedAt) % CYCLE_MS;
       const active: Point[] = [];
       const scale = Math.max(3, Math.min(12, net.clientHeight / 120));
       const branches = BRANCHES.map((ids) => routes(ids));
@@ -364,27 +381,53 @@ export function HomeWorkflow() {
         mark.parentElement?.classList.toggle("is-lit", (hold.get(id) ?? 0) > now);
       });
 
+      if (!running) return;
       frame = requestAnimationFrame(tick);
     };
 
-    const onVisibility = () => {
-      if (document.hidden) {
-        running = false;
-        cancelAnimationFrame(frame);
-        return;
-      }
-      if (!running) {
-        running = true;
-        start = performance.now();
-        frame = requestAnimationFrame(tick);
-      }
+    const start = () => {
+      if (running) return;
+      running = true;
+      startedAt = performance.now();
+      clearLit();
+      groups.forEach(hide);
+      frame = requestAnimationFrame(tick);
     };
 
-    frame = requestAnimationFrame(tick);
+    const sync = () => {
+      if (inView && !document.hidden) start();
+      else stop();
+    };
+
+    const onIntersect: IntersectionObserverCallback = (entries) => {
+      const entry = entries[entries.length - 1];
+      const rootHeight = entry?.rootBounds?.height ?? 0;
+      const visible = entry?.intersectionRect.height ?? 0;
+      inView = rootHeight > 0 && visible / rootHeight >= 0.65;
+      sync();
+    };
+
+    const connect = () => {
+      observer?.disconnect();
+      const root = shell?.dataset.siteDisplay === "classroom" ? shell : section.closest(".site-main");
+      observer = new IntersectionObserver(onIntersect, {
+        root,
+        threshold: Array.from({ length: 21 }, (_, index) => index / 20),
+      });
+      observer.observe(section);
+    };
+
+    const onDisplay = () => connect();
+    const onVisibility = () => sync();
+
+    connect();
+    const displayObserver = new MutationObserver(onDisplay);
+    if (shell) displayObserver.observe(shell, { attributes: true, attributeFilter: ["data-site-display"] });
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      running = false;
-      cancelAnimationFrame(frame);
+      stop();
+      observer?.disconnect();
+      displayObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [lines]);

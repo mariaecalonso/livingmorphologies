@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { HomeLabPreview } from "@/components/home-lab-preview";
 import { HomePrecedent } from "@/components/home-precedent";
 import { HomeWorkflow } from "@/components/home-workflow";
 
@@ -15,7 +16,7 @@ const RAIL = [
 
 const STORY = [
   { id: "precedent-analysis", number: "02", title: "Precedent Analysis" },
-  { id: "lab", number: "03", title: "Lab" },
+  { id: "lab", number: "03", title: "Live Lab Preview" },
   { id: "results", number: "04", title: "Results" },
 ] as const;
 
@@ -151,6 +152,15 @@ export function HomePage() {
         <section className="home-overview" id={section.id} data-rail-target={section.id} key={section.id}>
           <HomeSectionHeading number={section.number} title={section.title} />
           {section.id === "precedent-analysis" ? <HomePrecedent /> : null}
+          {section.id === "lab" ? <HomeLabPreview /> : null}
+          {section.id === "results" ? (
+            <Link className="results-generate" href="/results">
+              <span>See More Results</span>
+              <span className="results-generate-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+          ) : null}
         </section>
       ))}
 
