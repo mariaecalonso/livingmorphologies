@@ -251,11 +251,7 @@ function ParameterSlider({
   );
 }
 
-export function agentCountFromDensity(density: number) {
-  const span = MAX_DENSITY - MIN_DENSITY;
-  const t = span === 0 ? 0 : (density - MIN_DENSITY) / span;
-  return Math.round(MIN_AGENT_COUNT + Math.min(1, Math.max(0, t)) * (MAX_AGENT_COUNT - MIN_AGENT_COUNT));
-}
+export { agentCountFromDensity } from "@/lib/skill1/slime-controls";
 
 export function PhysarumParameterPanel({
   sensorDistance,

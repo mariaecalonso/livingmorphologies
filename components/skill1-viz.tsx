@@ -931,7 +931,7 @@ export function Skill1PlanView({
     if (!box || !showAttractors) return;
     const marks = () => marksRef.current ?? [];
     const clamp = (value: number) => Math.min(FIELD_SIZE - 0.4, Math.max(0.4, value));
-    const hit = (x: number, y: number): { index: number; mode: "move" | "resize" | "end" | "bend" } | null => {
+    const hit = (x: number, y: number) => {
       let best: { index: number; mode: "move" | "resize" | "end" | "bend" } | null = null;
       let bestScore = 1.2;
       marks().forEach((item, index) => {
@@ -1154,4 +1154,3 @@ export function Skill1Longitudinal({
     />
   );
 }
-

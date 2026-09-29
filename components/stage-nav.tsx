@@ -129,4 +129,3 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
     </header>
   );
 }
-
