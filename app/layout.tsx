@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Orbitron, Rajdhani, Source_Sans_3 } from "next/font/google";
+import localFont from "next/font/local";
+import { Orbitron, Rajdhani } from "next/font/google";
+import { SiteNav } from "@/components/site-nav";
+import { SiteDisplayControl } from "@/components/site-display-control";
 import "./globals.css";
+const neuropol = localFont({
+  src: "./fonts/Neuropol.otf",
+  variable: "--font-neuropol",
+  weight: "400",
+  display: "swap",
+});
 const orbitron = Orbitron({
   variable: "--font-orbitron",
   subsets: ["latin"],
@@ -11,11 +20,6 @@ const rajdhani = Rajdhani({
   variable: "--font-rajdhani",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
-});
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
-  subsets: ["latin"],
-  weight: ["400", "500"],
 });
 export const metadata: Metadata = {
   title: "Living Morphologies",
@@ -30,9 +34,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${orbitron.variable} ${rajdhani.variable} ${sourceSans.variable} h-full antialiased`}
+      className={`${neuropol.variable} ${orbitron.variable} ${rajdhani.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <head>
+        <link rel="stylesheet" href="https://use.typekit.net/rau7owf.css" />
+      </head>
+      <body className="min-h-full">
+        <SiteDisplayControl />
+        <div className="site-frame">
+          <div className="site-shell">
+            <SiteNav />
+            <main className="site-main">{children}</main>
+          </div>
+        </div>
+      </body>
     </html>
   );
 }

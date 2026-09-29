@@ -1,5 +1,9 @@
-import { LivingInstrument } from "@/components/living-instrument";
+import { HomePage } from "@/components/home-page";
+
+export const metadata = {
+  title: "Home · Living Morphologies",
+};
 
 export default function Home() {
-  return <LivingInstrument />;
+  return <HomePage />;
 }
