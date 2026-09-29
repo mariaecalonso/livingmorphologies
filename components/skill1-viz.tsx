@@ -8,12 +8,12 @@ import {
   SECTION_HEIGHT,
   SNAPSHOT_ITERATIONS,
   TRAIL_SCALE,
-  densityAmount,
   trailMaskCutoff,
 } from "@/lib/skill1/maps";
 import { buildSectionModel, type SectionModel } from "@/lib/skill1/section-view";
 import type {
   BiologicalTranslation,
+  FieldAttractor,
   FieldSnapshot,
 } from "@/lib/skill1/types";
 const PLAN_LABELS: Record<number, string> = {
@@ -63,49 +63,175 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[] },
 ) {
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
-  const fieldH = FIELD_SIZE * scale;
-  const ox = (width - fieldH) / 2;
-  const oy = (height - fieldH) / 2;
+  const fieldW = width;
+  const fieldH = height;
+  const ox = 0;
+  const oy = 0;
   const fine = options?.fine !== false;
   const density = options?.density ?? 5;
   ctx.save();
   ctx.translate(ox, oy);
-  if (!snapshot) {
-    ctx.restore();
-    return;
+  if (snapshot) {
+    let peak = 0.0001;
+    for (const value of snapshot.trails) if (value > peak) peak = value;
+    const colorMarks =
+      options?.attractors?.length
+        ? options.attractors
+        : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks);
+    const sx = snapshot.source.x * scale;
+    const sy = toCanvas(snapshot.source.y, fieldH, scale);
+    ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(15, 115, 119, 0.28)";
+    ctx.beginPath();
+    ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+    ctx.fill();
   }
-  let peak = 0.0001;
-  for (const value of snapshot.trails) if (value > peak) peak = value;
-  drawColonyBody(ctx, snapshot, peak, fieldH, fine, density);
-  const sx = snapshot.source.x * scale;
-  const sy = toCanvas(snapshot.source.y, fieldH, scale);
-  ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(15, 115, 119, 0.28)";
-  ctx.beginPath();
-  ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
-  ctx.fill();
-  const ax = snapshot.attractor.x * scale;
-  const ay = toCanvas(snapshot.attractor.y, fieldH, scale);
-  ctx.fillStyle = "rgba(199, 126, 95, 0.7)";
-  ctx.beginPath();
-  ctx.arc(ax, ay, 2.4, 0, Math.PI * 2);
-  ctx.fill();
+  const marks = options?.attractors;
+  if (options?.showAttractors !== false) {
+  if (marks?.length) {
+    const unit = Math.min(fieldW, fieldH) / FIELD_SIZE;
+    const at = (x: number, y: number) => ({
+      px: (x / FIELD_SIZE) * fieldW,
+      py: fieldH - (y / FIELD_SIZE) * fieldH,
+    });
+    ctx.strokeStyle = "#ffffff";
+    ctx.fillStyle = "#ffffff";
+    ctx.lineWidth = 1.25;
+    marks.forEach((item, index) => {
+      const selected = options?.selectedIndices?.includes(index) || options?.selectedIndex === index;
+      const center = at(item.x, item.y);
+      const ringRadius = item.kind === "ring"
+        ? Math.max(2, (item.radius ?? 4) * unit)
+        : Math.max(2, (item.radius ?? 1.6) * unit);
+      if (selected) {
+        const gradient = ctx.createLinearGradient(center.px - ringRadius, center.py, center.px + ringRadius, center.py);
+        gradient.addColorStop(0, "#0f7377");
+        gradient.addColorStop(0.52, "#8faaa8");
+        gradient.addColorStop(1, "#c77e5f");
+        ctx.strokeStyle = gradient;
+        ctx.fillStyle = gradient;
+        ctx.lineWidth = 4;
+      } else {
+        ctx.strokeStyle = "#ffffff";
+        ctx.fillStyle = "#ffffff";
+        ctx.lineWidth = 1.25;
+      }
+      if (item.kind === "line" || item.kind === "curve") {
+        const end = at(item.x2 ?? item.x + 3, item.y2 ?? item.y);
+        ctx.beginPath();
+        ctx.moveTo(center.px, center.py);
+        if (item.kind === "curve") {
+          const bend = at(item.cx ?? (item.x + (item.x2 ?? item.x + 3)) / 2, item.cy ?? (item.y + (item.y2 ?? item.y)) / 2 + 1.6);
+          ctx.quadraticCurveTo(bend.px, bend.py, end.px, end.py);
+        } else {
+          ctx.lineTo(end.px, end.py);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(center.px, center.py, 2.2, 0, Math.PI * 2);
+        ctx.arc(end.px, end.py, 2.2, 0, Math.PI * 2);
+        if (item.kind === "curve") {
+          const bend = at(item.cx ?? (item.x + (item.x2 ?? item.x + 3)) / 2, item.cy ?? (item.y + (item.y2 ?? item.y)) / 2 + 1.6);
+          ctx.moveTo(bend.px + 3.2, bend.py);
+          ctx.arc(bend.px, bend.py, 3.2, 0, Math.PI * 2);
+        }
+        ctx.fill();
+      } else if (item.kind === "ring") {
+        ctx.beginPath();
+        ctx.arc(center.px, center.py, Math.max(2, (item.radius ?? 4) * unit), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(center.px, center.py, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const radius = Math.max(2, (item.radius ?? 1.6) * unit);
+        ctx.beginPath();
+        ctx.arc(center.px, center.py, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(center.px, center.py, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  } else if (snapshot) {
+    const ax = snapshot.attractor.x * scale;
+    const ay = toCanvas(snapshot.attractor.y, fieldH, scale);
+    ctx.fillStyle = "rgba(199, 126, 95, 0.7)";
+    ctx.beginPath();
+    ctx.arc(ax, ay, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  }
   ctx.restore();
   if (options?.showHud) {
     ctx.fillStyle = "rgba(150,184,196,0.8)";
     ctx.font = "500 10px Rajdhani, sans-serif";
     ctx.fillText(`${FIELD_SIZE} × ${FIELD_SIZE} FIELD`, 10, height - 10);
   }
+}
+
+export function renderPlanImage(
+  snapshot: FieldSnapshot,
+  size = 4096,
+  options?: {
+    attractors?: FieldAttractor[];
+    density?: number;
+    type?: "image/png";
+  },
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, size, size);
+  drawPlanField(ctx, snapshot, size, size, {
+    showHud: false,
+    fine: true,
+    density: options?.density ?? 5,
+    attractors: options?.attractors,
+    showAttractors: false,
+  });
+  try {
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
+function downloadDataUrl(href: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  link.click();
+}
+
+export function downloadPlanPng(
+  snapshot: FieldSnapshot,
+  filename: string,
+  options?: { attractors?: FieldAttractor[]; density?: number },
+) {
+  const href = renderPlanImage(snapshot, 4096, options);
+  if (href) downloadDataUrl(href, filename);
+}
+
+/** @deprecated Use downloadPlanPng. Kept so existing callers compile during the switch. */
+export function downloadPlanJpeg(
+  snapshot: FieldSnapshot,
+  filename: string,
+  options?: { attractors?: FieldAttractor[]; density?: number },
+) {
+  downloadPlanPng(snapshot, filename.replace(/\.jpe?g$/i, ".png"), options);
 }
 function bilerp(field: Float32Array, ts: number, x: number, y: number) {
   const x0 = Math.max(0, Math.min(ts - 1, Math.floor(x)));
@@ -133,7 +259,7 @@ function fillTrailCaches(trails: number[], ts: number, peak: number) {
   for (let y = 0; y < ts; y += 1) {
     const row = y * ts;
     for (let x = 0; x < ts; x += 1) {
-      nCache[row + x] = Math.sqrt(Math.max(0, trails[row + x] / peak));
+      nCache[row + x] = Math.pow(Math.max(0, trails[row + x] / peak), 0.82);
     }
   }
 }
@@ -141,21 +267,22 @@ function drawColonyBody(
   ctx: CanvasRenderingContext2D,
   snapshot: FieldSnapshot,
   peak: number,
+  fieldW: number,
   fieldH: number,
   fine: boolean,
   density: number,
+  attractors?: FieldAttractor[],
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldH, cutoff)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors)) return;
   const dpr = ctx.getTransform().a || 1;
   const res = fine
-    ? Math.max(1024, Math.min(1536, Math.round(fieldH * Math.max(dpr, 1) * 1.6)))
+    ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
     : Math.max(160, Math.min(280, Math.round(fieldH)));
-  const pack = densityAmount(density);
   let finger = 0;
   const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
   for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
-  const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:trail`;
+  const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:vessel:${attractors?.length ?? 0}`;
   let scratch = fine ? fineScratch : coarseScratch;
   if (!scratch) {
     scratch = document.createElement("canvas");
@@ -183,56 +310,79 @@ function drawColonyBody(
       const fy = (1 - py / last) * FIELD_SIZE;
       for (let px = 0; px < res; px += 1) {
         const fx = (px / last) * FIELD_SIZE;
-        const tx = fx * TRAIL_SCALE;
-        const ty = fy * TRAIL_SCALE;
-        const n = bilerp(nField, ts, tx, ty);
-        const i = (py * res + px) * 4;
-        const floor = Math.max(0.03, cutoff * 0.22);
-        if (n < floor) {
-          data[i + 3] = 0;
+        const scale = ts / FIELD_SIZE;
+        const tx = fx * scale;
+        const ty = fy * scale;
+        const v = bilerp(nField, ts, tx, ty);
+        const e = bilerp(nField, ts, tx + 1, ty);
+        const w = bilerp(nField, ts, tx - 1, ty);
+        const n = bilerp(nField, ts, tx, ty + 1);
+        const s = bilerp(nField, ts, tx, ty - 1);
+        const around = 0.25 * (e + w + n + s);
+        const ridge = Math.max(0, v - around * 0.62);
+        const gx = e - w;
+        const gy = n - s;
+        const glen = Math.hypot(gx, gy);
+        const ax = glen > 1e-6 ? -gy / glen : 1;
+        const ay = glen > 1e-6 ? gx / glen : 0;
+        let tissue = v;
+        if (v > 0.04 || ridge > 0.005) {
+          let linked = v;
+          for (let k = 1; k <= 6; k += 1) {
+            linked = Math.max(
+              linked,
+              bilerp(nField, ts, tx + ax * k * 1.6, ty + ay * k * 1.6),
+              bilerp(nField, ts, tx - ax * k * 1.6, ty - ay * k * 1.6),
+            );
+          }
+          tissue = Math.max(v, linked * 0.96);
+        }
+        const membrane = Math.min(1, Math.max(0, (tissue - 0.14) / 0.14));
+        const tube = Math.min(1, Math.max(0, (tissue - 0.045) / 0.075)) * Math.min(1, Math.max(0, (ridge - 0.004) / 0.012));
+        const hair = Math.min(1, Math.max(0, (tissue - 0.018) / 0.022)) * Math.min(1, Math.max(0, (ridge - 0.008) / 0.012));
+        const mask = Math.max(membrane, tube, hair);
+        if (mask < 0.03) {
+          const empty = (py * res + px) * 4;
+          data[empty + 3] = 255;
           continue;
         }
-        const around =
-          (bilerp(nField, ts, tx - 1.4, ty) +
-            bilerp(nField, ts, tx + 1.4, ty) +
-            bilerp(nField, ts, tx, ty - 1.4) +
-            bilerp(nField, ts, tx, ty + 1.4)) *
-          0.25;
-        const ridge = Math.max(0, n - around);
-        const tube = Math.min(1, Math.pow(n, 1.35) * 0.72 + ridge * 4.5);
-        const t = Math.min(1, tube * (0.85 + pack * 0.2));
-        let r: number;
-        let g: number;
-        let b: number;
-        if (t < 0.28) {
-          const u = t / 0.28;
-          r = 18 + 70 * u;
-          g = 36 + 48 * u;
-          b = 22 + 8 * u;
-        } else if (t < 0.62) {
-          const u = (t - 0.28) / 0.34;
-          r = 88 + 130 * u;
-          g = 84 + 70 * u;
-          b = 30 + 18 * u;
-        } else {
-          const u = (t - 0.62) / 0.38;
-          r = 218 + 37 * u;
-          g = 154 + 90 * u;
-          b = 48 + 160 * u;
+        const body = Math.min(1, tissue);
+        const alpha = mask;
+        const vein = Math.min(1, Math.max(0, (body - 0.08) / 0.26));
+        let pull = 0;
+        if (attractors?.length) {
+          let nearest = 1;
+          for (const mark of attractors) {
+            const dx = fx / FIELD_SIZE - mark.x / FIELD_SIZE;
+            const dy = fy / FIELD_SIZE - mark.y / FIELD_SIZE;
+            let d = Math.hypot(dx, dy);
+            if (mark.kind === "ring") d = Math.abs(d - (mark.radius ?? 4) / FIELD_SIZE);
+            nearest = Math.min(nearest, d);
+          }
+          pull = nearest >= 0.16 ? 0 : 1 - nearest / 0.16;
         }
-        data[i] = Math.round(r);
-        data[i + 1] = Math.round(g);
-        data[i + 2] = Math.round(b);
-        data[i + 3] = Math.round(Math.min(1, (n - floor) / 0.06) * 255);
+        const core = Math.max(
+          pull * Math.min(1, Math.max(0, (body - 0.08) / 0.24)),
+          Math.min(1, Math.max(0, (body - 0.48) / 0.34)),
+        );
+        const mixCore = core * (0.35 + body * 0.37);
+        const r = ((1 * (1 - vein) + 0.78 * vein) * (1 - mixCore) + 0.059 * mixCore) * alpha;
+        const g = ((1 * (1 - vein) + 0.494 * vein) * (1 - mixCore) + 0.451 * mixCore) * alpha;
+        const b = ((1 * (1 - vein) + 0.373 * vein) * (1 - mixCore) + 0.467 * mixCore) * alpha;
+        const i = (py * res + px) * 4;
+        data[i] = Math.round(Math.min(1, r) * 255);
+        data[i + 1] = Math.round(Math.min(1, g) * 255);
+        data[i + 2] = Math.round(Math.min(1, b) * 255);
+        data[i + 3] = 255;
       }
     }
     off.putImageData(image, 0, 0);
     if (fine) fineCacheKey = cacheKey;
     else coarseCacheKey = cacheKey;
   }
-  ctx.imageSmoothingEnabled = res > fieldH * dpr * 1.05;
+  ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(scratch, 0, 0, fieldH, fieldH);
+  ctx.drawImage(scratch, 0, 0, fieldW, fieldH);
 }
 type Projector = (x: number, y: number, z: number) => { px: number; py: number };
 function makeProjector(
@@ -729,18 +879,188 @@ export function Skill1PlanView({
   snapshot,
   density = 5,
   showHud = true,
+  attractors,
+  showAttractors = true,
+  selectedIndices = [0],
+  onAttractorsChange,
+  onAttractorsCommit,
+  onSelectAttractor,
 }: {
   snapshot: FieldSnapshot | null;
   density?: number;
   showHud?: boolean;
+  attractors?: FieldAttractor[];
+  showAttractors?: boolean;
+  selectedIndices?: number[];
+  onAttractorsChange?: (next: FieldAttractor[]) => void;
+  onAttractorsCommit?: () => void;
+  onSelectAttractor?: (index: number, shift: boolean) => void;
 }) {
   const ref = useCanvas(
     (ctx, width, height) =>
-      drawPlanField(ctx, snapshot, width, height, { showHud, fine: true, density }),
-    [snapshot, snapshot?.iteration, snapshot?.paths, density, showHud],
+      drawPlanField(ctx, snapshot, width, height, { showHud, fine: true, density, attractors, showAttractors, selectedIndices }),
+    [snapshot, snapshot?.iteration, snapshot?.paths, density, showHud, attractors, showAttractors, selectedIndices],
   );
+  const boxRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ index: number; mode: "move" | "resize" | "end" | "bend" } | null>(null);
+  const marksRef = useRef(attractors);
+  const changeRef = useRef(onAttractorsChange);
+  const commitRef = useRef(onAttractorsCommit);
+  const selectRef = useRef(onSelectAttractor);
+  marksRef.current = attractors;
+  changeRef.current = onAttractorsChange;
+  commitRef.current = onAttractorsCommit;
+  selectRef.current = onSelectAttractor;
+  const toField = (event: PointerEvent) => {
+    const rect = boxRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return {
+      x: ((event.clientX - rect.left) / rect.width) * FIELD_SIZE,
+      y: (1 - (event.clientY - rect.top) / rect.height) * FIELD_SIZE,
+    };
+  };
+  const distToSeg = (x: number, y: number, ax: number, ay: number, bx: number, by: number) => {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const den = dx * dx + dy * dy;
+    const t = den > 0.000001 ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / den)) : 0;
+    return Math.hypot(x - (ax + dx * t), y - (ay + dy * t));
+  };
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box || !showAttractors) return;
+    const marks = () => marksRef.current ?? [];
+    const clamp = (value: number) => Math.min(FIELD_SIZE - 0.4, Math.max(0.4, value));
+    const hit = (x: number, y: number): { index: number; mode: "move" | "resize" | "end" | "bend" } | null => {
+      let best: { index: number; mode: "move" | "resize" | "end" | "bend" } | null = null;
+      let bestScore = 1.2;
+      marks().forEach((item, index) => {
+        const center = Math.hypot(x - item.x, y - item.y);
+        if (item.kind === "ring" || item.kind === "point") {
+          const radius = item.radius ?? (item.kind === "ring" ? 4 : 1.6);
+          const edge = Math.abs(center - radius);
+          if (edge < 0.4 && center > radius * 0.82 && edge < bestScore) {
+            best = { index, mode: "resize" };
+            bestScore = edge;
+            return;
+          }
+          if (center <= radius + 0.5 && Math.min(center, 0.4) < bestScore) {
+            best = { index, mode: "move" };
+            bestScore = Math.min(center, 0.4);
+          }
+          return;
+        }
+        const x2 = item.x2 ?? item.x + 3;
+        const y2 = item.y2 ?? item.y;
+        const end = Math.hypot(x - x2, y - y2);
+        if (end < 0.75 && end < bestScore) {
+          best = { index, mode: "end" };
+          bestScore = end;
+        }
+        if (item.kind === "curve") {
+          const cx = item.cx ?? (item.x + x2) / 2;
+          const cy = item.cy ?? (item.y + y2) / 2 + 1.6;
+          const bend = Math.hypot(x - cx, y - cy);
+          if (bend < 0.75 && bend < bestScore) {
+            best = { index, mode: "bend" };
+            bestScore = bend;
+          }
+        }
+        if (center < 0.75 && center < bestScore) {
+          best = { index, mode: "move" };
+          bestScore = center;
+        }
+        const along = distToSeg(x, y, item.x, item.y, x2, y2);
+        if (along < 0.55 && along < bestScore) {
+          best = { index, mode: "move" };
+          bestScore = along;
+        }
+      });
+      return best;
+    };
+    const down = (event: PointerEvent) => {
+      if (!changeRef.current) return;
+      const point = toField(event);
+      const found = hit(point.x, point.y);
+      if (!found) return;
+      if (event.shiftKey) {
+        selectRef.current?.(found.index, true);
+        event.preventDefault();
+        return;
+      }
+      selectRef.current?.(found.index, false);
+      dragRef.current = found;
+      box.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    };
+    const move = (event: PointerEvent) => {
+      const drag = dragRef.current;
+      const change = changeRef.current;
+      if (!drag || !change) return;
+      const point = toField(event);
+      const next = marks().map((item, index) => {
+        if (index !== drag.index) return item;
+        if (drag.mode === "resize") {
+          return { ...item, radius: Math.min(8, Math.max(0.35, Math.hypot(point.x - item.x, point.y - item.y))) };
+        }
+        if (drag.mode === "end") {
+          return { ...item, x2: clamp(point.x), y2: clamp(point.y) };
+        }
+        if (drag.mode === "bend") {
+          return { ...item, cx: clamp(point.x), cy: clamp(point.y) };
+        }
+        if (item.kind === "line" || item.kind === "curve") {
+          const dx = clamp(point.x) - item.x;
+          const dy = clamp(point.y) - item.y;
+          const x2 = item.x2 ?? item.x + 3;
+          const y2 = item.y2 ?? item.y;
+          return {
+            ...item,
+            x: clamp(point.x),
+            y: clamp(point.y),
+            x2: clamp(x2 + dx),
+            y2: clamp(y2 + dy),
+            cx: item.kind === "curve" ? clamp((item.cx ?? (item.x + x2) / 2) + dx) : item.cx,
+            cy: item.kind === "curve" ? clamp((item.cy ?? (item.y + y2) / 2 + 1.6) + dy) : item.cy,
+          };
+        }
+        return { ...item, x: clamp(point.x), y: clamp(point.y) };
+      });
+      change(next);
+    };
+    const up = () => {
+      if (!dragRef.current) return;
+      dragRef.current = null;
+      commitRef.current?.();
+    };
+    const hover = (event: PointerEvent) => {
+      if (dragRef.current) {
+        box.style.cursor = "grabbing";
+        return;
+      }
+      const point = toField(event);
+      const found = hit(point.x, point.y);
+      box.style.cursor = found ? (found.mode === "resize" ? "nwse-resize" : "grab") : "default";
+    };
+    box.addEventListener("pointerdown", down);
+    box.addEventListener("pointermove", move);
+    box.addEventListener("pointermove", hover);
+    box.addEventListener("pointerup", up);
+    box.addEventListener("pointercancel", up);
+    box.addEventListener("pointerleave", () => {
+      if (!dragRef.current) box.style.cursor = "default";
+    });
+    return () => {
+      box.removeEventListener("pointerdown", down);
+      box.removeEventListener("pointermove", move);
+      box.removeEventListener("pointermove", hover);
+      box.removeEventListener("pointerup", up);
+      box.removeEventListener("pointercancel", up);
+      box.style.cursor = "default";
+    };
+  }, [showAttractors]);
   return (
-    <div className="skill1-plan-view relative h-full w-full">
+    <div ref={boxRef} className="skill1-plan-view relative h-full w-full touch-none">
       <canvas
         ref={ref}
         className="skill1-plan-canvas h-full w-full"
@@ -834,3 +1154,4 @@ export function Skill1Longitudinal({
     />
   );
 }
+

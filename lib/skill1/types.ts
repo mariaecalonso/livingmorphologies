@@ -95,9 +95,36 @@ export type BiologicalParams = {
  * Spatial recipes that descriptors imply. These are not extra criteria.
  * They locate WHERE qualities act on the field; ratings still set HOW MUCH.
  */
+export type AttractorKind = "point" | "ring" | "line" | "curve";
+
+/** A pull on the field. Point, circle, line, and curvy line can share one generation. */
+export type FieldAttractor = {
+  kind: AttractorKind;
+  x: number;
+  y: number;
+  /** Line or curve end. Ignored for point and ring. */
+  x2?: number;
+  y2?: number;
+  /** Curve bend. Ignored for point, ring, and line. */
+  cx?: number;
+  cy?: number;
+  /** Spread for a point or line. Ring radius for a ring. Bend amount is separate. */
+  radius?: number;
+  /** Multiplier on the translated attraction strength. */
+  strength?: number;
+  /** Ring only. Keeps the interior empty so the network loops around it. */
+  hole?: boolean;
+};
+
 export type SpatialRecipe = {
   sourceCorner: SourceCorner;
   attractor: Point;
+  /** Extra pulls. The primary attractor stays the recipe point above. */
+  attractors?: FieldAttractor[];
+  /** When set, the placed point is the simulation attractor. */
+  attractorFixed?: boolean;
+  /** When set, the field pull comes only from the placed attractors. */
+  attractorsOnly?: boolean;
   /** High D at the attractor = visually exposed; low D = more enclosed. */
   coreExposure: number;
   /** Width of a lower-permeability collar around the attractor. */

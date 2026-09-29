@@ -1,8 +1,17 @@
 /**
- * One shared WebGL2 quad. The trail grid is a float texture; a fragment
- * shader keeps vein edges about one pixel wide and grades them yellow-green
- * on black, closer to a photographed Physarum network.
+ * Trail-density field → continuous Physarum tissue.
+ * Agents are never drawn. Discrete deposits are reconstructed into an
+ * implicit surface: membranes where paths reinforce, tubes of varying
+ * thickness, and thin peripheral filaments. Edges are geometric
+ * (isosurface + 1px AA), not glow.
+ *
+ * Palette is role-based:
+ * white = exploratory protoplasm, terracotta = reinforced veins,
+ * teal = slime organized around attractors or densest committed nodes.
  */
+
+import type { FieldAttractor } from "@/lib/skill1/types";
+import { FIELD_SIZE } from "@/lib/skill1/maps";
 
 const VERT = `#version 300 es
 layout(location = 0) in vec2 aPos;
@@ -17,64 +26,122 @@ precision highp float;
 uniform sampler2D uField;
 uniform float uTexels;
 uniform float uCutoff;
+uniform int uCount;
+uniform vec4 uAttr[16];
+uniform float uKind[16];
 in vec2 vUv;
 out vec4 oColor;
 
 float tap(vec2 st) {
-  return texture(uField, st).r;
+  return texture(uField, clamp(st, 0.0, 1.0)).r;
 }
 
-float curve(float a, float b, float c, float d, float t) {
-  return b + 0.5 * t * (c - a + t * (2.0 * a - 5.0 * b + 4.0 * c - d + t * (3.0 * (b - c) + d - a)));
-}
+float bspline0(float t) { return (1.0 - t) * (1.0 - t) * (1.0 - t) / 6.0; }
+float bspline1(float t) { return (3.0 * t * t * t - 6.0 * t * t + 4.0) / 6.0; }
+float bspline2(float t) { return (-3.0 * t * t * t + 3.0 * t * t + 3.0 * t + 1.0) / 6.0; }
+float bspline3(float t) { return t * t * t / 6.0; }
 
 float fieldAt(vec2 uv) {
   vec2 p = clamp(uv, 0.0, 1.0) * uTexels - 0.5;
   vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 d = vec2(1.0) / uTexels;
-  float rows[4];
-  for (int y = -1; y <= 2; y++) {
-    float cols[4];
-    for (int x = -1; x <= 2; x++) {
-      cols[x + 1] = tap((i + vec2(float(x), float(y)) + 0.5) * d);
+  float wx[4];
+  wx[0] = bspline0(f.x);
+  wx[1] = bspline1(f.x);
+  wx[2] = bspline2(f.x);
+  wx[3] = bspline3(f.x);
+  float wy[4];
+  wy[0] = bspline0(f.y);
+  wy[1] = bspline1(f.y);
+  wy[2] = bspline2(f.y);
+  wy[3] = bspline3(f.y);
+  float acc = 0.0;
+  for (int y = 0; y < 4; y++) {
+    for (int x = 0; x < 4; x++) {
+      acc += tap((i + vec2(float(x - 1), float(y - 1)) + 0.5) * d) * wx[x] * wy[y];
     }
-    rows[y + 1] = curve(cols[0], cols[1], cols[2], cols[3], f.x);
   }
-  return max(0.0, curve(rows[0], rows[1], rows[2], rows[3], f.y));
+  return max(0.0, acc);
+}
+
+float distToSeg(vec2 p, vec2 a, vec2 b) {
+  vec2 ab = b - a;
+  float den = dot(ab, ab);
+  float t = den > 0.000001 ? clamp(dot(p - a, ab) / den, 0.0, 1.0) : 0.0;
+  return length(p - (a + ab * t));
+}
+
+float attractorNear(vec2 uv) {
+  if (uCount <= 0) return 0.0;
+  float best = 1.0;
+  for (int i = 0; i < 16; i++) {
+    if (i >= uCount) break;
+    vec4 a = uAttr[i];
+    float kind = uKind[i];
+    float d = distance(uv, a.xy);
+    if (kind > 1.5) d = distToSeg(uv, a.xy, a.zw);
+    else if (kind > 0.5) d = abs(distance(uv, a.xy) - a.z);
+    best = min(best, d);
+  }
+  return 1.0 - smoothstep(0.0, 0.16, best);
 }
 
 void main() {
-  float n = fieldAt(vUv);
-  vec2 e = vec2(1.6 / uTexels);
-  float blur = (
-    fieldAt(vUv + vec2(e.x, 0.0)) +
-    fieldAt(vUv - vec2(e.x, 0.0)) +
-    fieldAt(vUv + vec2(0.0, e.y)) +
-    fieldAt(vUv - vec2(0.0, e.y)) +
-    fieldAt(vUv + e) +
-    fieldAt(vUv - e) +
-    fieldAt(vUv + vec2(e.x, -e.y)) +
-    fieldAt(vUv + vec2(-e.x, e.y))
-  ) * 0.125;
-  float ridge = max(0.0, n - blur);
-  float w = max(fwidth(ridge) * 1.25, 0.0015);
-  float vein = smoothstep(0.018, 0.018 + w, ridge) * smoothstep(uCutoff * 0.35, uCutoff * 0.35 + w, n);
-  float core = smoothstep(0.7, 0.88, n);
-  float mask = clamp(max(vein, core), 0.0, 1.0);
+  float t = 1.0 / uTexels;
+  float v = fieldAt(vUv);
+  float e = fieldAt(vUv + vec2(t, 0.0));
+  float w = fieldAt(vUv - vec2(t, 0.0));
+  float n = fieldAt(vUv + vec2(0.0, t));
+  float s = fieldAt(vUv - vec2(0.0, t));
+  float ne = fieldAt(vUv + vec2(t, t));
+  float nw = fieldAt(vUv + vec2(-t, t));
+  float se = fieldAt(vUv + vec2(t, -t));
+  float sw = fieldAt(vUv + vec2(-t, -t));
+  float around = 0.125 * (e + w + n + s + ne + nw + se + sw);
+  float ridge = max(0.0, v - around * 0.62);
+  vec2 g = vec2(e - w, n - s);
+  float glen = length(g);
+  vec2 along = glen > 1.0e-6 ? vec2(-g.y, g.x) / glen : vec2(1.0, 0.0);
+  float tissue = v;
+  if (v > 0.04 || ridge > 0.005) {
+    float linked = v;
+    for (int i = 1; i <= 8; i++) {
+      float step = float(i) * t * 1.6;
+      linked = max(linked, fieldAt(vUv + along * step));
+      linked = max(linked, fieldAt(vUv - along * step));
+    }
+    tissue = max(v, linked * 0.96);
+  }
 
-  vec3 filament = vec3(0.62, 0.86, 0.1);
-  vec3 lace = vec3(0.86, 0.95, 0.18);
-  vec3 trunk = vec3(0.98, 0.88, 0.08);
-  vec3 mass = vec3(1.0, 0.78, 0.05);
-  float tone = clamp(ridge * 6.0 + n * 0.35, 0.0, 1.0);
-  vec3 col = mix(filament, lace, smoothstep(0.15, 0.45, tone));
-  col = mix(col, trunk, smoothstep(0.4, 0.7, n));
-  col = mix(col, mass, core);
-  float pore = smoothstep(0.9, 0.62, n) * smoothstep(0.25, 0.55, blur);
-  col = mix(col, vec3(0.42, 0.14, 0.03), pore * core);
+  float membrane = smoothstep(0.14, 0.28, tissue);
+  float tube = smoothstep(0.045, 0.12, tissue) * smoothstep(0.004, 0.016, ridge);
+  float hair = smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
+  float mask = max(membrane, max(tube, hair));
+  if (mask < 0.02) {
+    oColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
 
-  oColor = vec4(col * mask, mask);
+  float aa = max(fwidth(mask), 0.008);
+  float cover = smoothstep(0.22 - aa, 0.22 + aa, mask);
+  if (cover < 0.03) {
+    oColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+
+  float body = clamp(tissue, 0.0, 1.0);
+  float depth = pow(body, 0.68);
+  float membraneTone = 0.88 + 0.12 * smoothstep(0.0, 0.08, ridge);
+  float anchor = attractorNear(vUv);
+  vec3 search = vec3(1.0, 1.0, 1.0);
+  vec3 vein = vec3(0.780, 0.494, 0.373);
+  vec3 organized = vec3(0.059, 0.451, 0.467);
+  vec3 ink = mix(search, vein, smoothstep(0.08, 0.34, body));
+  float core = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
+  ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  ink *= depth * membraneTone;
+  oColor = vec4(ink * cover, 1.0);
 }`;
 
 type GlState = {
@@ -85,11 +152,16 @@ type GlState = {
   buffer: WebGLBuffer;
   uTexels: WebGLUniformLocation;
   uCutoff: WebGLUniformLocation;
+  uCount: WebGLUniformLocation;
+  uAttr: WebGLUniformLocation;
+  uKind: WebGLUniformLocation;
   pixels: Float32Array;
 };
 
 let state: GlState | null = null;
 let failed = false;
+const SHADER_GEN = 28;
+let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   const shader = gl.createShader(type);
@@ -97,6 +169,7 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.warn(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
@@ -108,7 +181,7 @@ function createState(): GlState | null {
   const gl = canvas.getContext("webgl2", {
     alpha: true,
     premultipliedAlpha: true,
-    antialias: false,
+    antialias: true,
     depth: false,
     stencil: false,
   });
@@ -126,7 +199,10 @@ function createState(): GlState | null {
   const texture = gl.createTexture();
   const uTexels = gl.getUniformLocation(program, "uTexels");
   const uCutoff = gl.getUniformLocation(program, "uCutoff");
-  if (!buffer || !texture || !uTexels || !uCutoff) return null;
+  const uCount = gl.getUniformLocation(program, "uCount");
+  const uAttr = gl.getUniformLocation(program, "uAttr");
+  const uKind = gl.getUniformLocation(program, "uKind");
+  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -143,15 +219,20 @@ function createState(): GlState | null {
     buffer,
     uTexels,
     uCutoff,
+    uCount,
+    uAttr,
+    uKind,
     pixels: new Float32Array(0),
   };
 }
 
 function ensure(): GlState | null {
-  if (failed) return null;
-  if (state && !state.gl.isContextLost()) return state;
+  if (failed && builtGen === SHADER_GEN) return null;
+  if (state && !state.gl.isContextLost() && builtGen === SHADER_GEN) return state;
   state = createState();
+  builtGen = SHADER_GEN;
   if (!state) failed = true;
+  else failed = false;
   return state;
 }
 
@@ -161,14 +242,16 @@ export function drawSlimeFieldGl(
   trails: ArrayLike<number>,
   trailSize: number,
   peak: number,
+  fieldW: number,
   fieldH: number,
   cutoff: number,
+  attractors?: FieldAttractor[],
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
   const { gl, canvas } = gpu;
-  const dpr = ctx.getTransform().a || 1;
-  const pixels = Math.max(64, Math.min(2048, Math.round(fieldH * dpr)));
+  const dpr = Math.max(1, ctx.getTransform().a || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1);
+  const pixels = Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
   if (canvas.width !== pixels || canvas.height !== pixels) {
     canvas.width = pixels;
     canvas.height = pixels;
@@ -176,7 +259,7 @@ export function drawSlimeFieldGl(
   const count = trailSize * trailSize;
   if (gpu.pixels.length !== count) gpu.pixels = new Float32Array(count);
   const inv = 1 / Math.max(peak, 0.0001);
-  for (let i = 0; i < count; i += 1) gpu.pixels[i] = Math.sqrt(Math.max(0, trails[i] * inv));
+  for (let i = 0; i < count; i += 1) gpu.pixels[i] = Math.pow(Math.max(0, trails[i] * inv), 0.82);
 
   gl.viewport(0, 0, pixels, pixels);
   gl.useProgram(gpu.program);
@@ -189,14 +272,36 @@ export function drawSlimeFieldGl(
   gl.uniform1i(gl.getUniformLocation(gpu.program, "uField"), 0);
   gl.uniform1f(gpu.uTexels, trailSize);
   gl.uniform1f(gpu.uCutoff, cutoff);
+  const packed = new Float32Array(64);
+  const kinds = new Float32Array(16);
+  const list = attractors ?? [];
+  const attractorCount = Math.min(16, list.length);
+  for (let i = 0; i < attractorCount; i += 1) {
+    const item = list[i];
+    const x = item.x / FIELD_SIZE;
+    const y = item.y / FIELD_SIZE;
+    if (item.kind === "line" || item.kind === "curve") {
+      packed.set([x, y, (item.x2 ?? item.x) / FIELD_SIZE, (item.y2 ?? item.y) / FIELD_SIZE], i * 4);
+      kinds[i] = 2;
+    } else if (item.kind === "ring") {
+      packed.set([x, y, (item.radius ?? 4) / FIELD_SIZE, 0], i * 4);
+      kinds[i] = 1;
+    } else {
+      packed.set([x, y, 0, 0], i * 4);
+    }
+  }
+  gl.uniform1i(gpu.uCount, attractorCount);
+  gl.uniform4fv(gpu.uAttr, packed);
+  gl.uniform1fv(gpu.uKind, kinds);
   gl.disable(gl.BLEND);
-  gl.clearColor(0, 0, 0, 0);
+  gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(canvas, 0, 0, fieldH, fieldH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(canvas, 0, 0, fieldW, fieldH);
   ctx.restore();
   return true;
 }

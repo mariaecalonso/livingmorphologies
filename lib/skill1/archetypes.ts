@@ -15,6 +15,10 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 11 },
+      attractors: [
+        { kind: "ring", x: 10, y: 11, radius: 4.4, strength: 1.1, hole: true },
+        { kind: "line", x: 2.2, y: 2.4, x2: 7.2, y2: 8.2, radius: 1.3, strength: 0.4 },
+      ],
       coreExposure: 0.9,
       enclosureCollar: 0.85,
       isolationRadius: 4.3,
@@ -29,7 +33,19 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     typologyId: "lobby",
     recipe: {
       sourceCorner: "bottom-left",
-      attractor: { x: 7, y: 6 },
+      attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "point", x: 2.2, y: 4, radius: 2.4, strength: 0.85 },
+        { kind: "point", x: 2.2, y: 10, radius: 2.2, strength: 0.7 },
+        { kind: "point", x: 2.2, y: 16, radius: 2.4, strength: 0.85 },
+        { kind: "ring", x: 6.2, y: 10, radius: 1.35, strength: 1.15, hole: true },
+        { kind: "ring", x: 9.2, y: 10, radius: 0.78, strength: 1.2, hole: true },
+        { kind: "ring", x: 12, y: 10, radius: 0.78, strength: 1.2, hole: true },
+        { kind: "ring", x: 14.6, y: 10, radius: 1.35, strength: 1.15, hole: true },
+        { kind: "point", x: 17.8, y: 4, radius: 2.4, strength: 0.85 },
+        { kind: "point", x: 17.8, y: 10, radius: 2.2, strength: 0.7 },
+        { kind: "point", x: 17.8, y: 16, radius: 2.4, strength: 0.85 },
+      ],
       coreExposure: 0.38,
       enclosureCollar: 1.7,
       isolationRadius: 2.6,
@@ -45,6 +61,11 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "line", x: 2.5, y: 10, x2: 17.5, y2: 10, radius: 1.8, strength: 1 },
+        { kind: "point", x: 5, y: 10, radius: 2.2, strength: 0.45 },
+        { kind: "point", x: 15, y: 10, radius: 2.2, strength: 0.45 },
+      ],
       coreExposure: 0.8,
       enclosureCollar: 1.15,
       isolationRadius: 5.4,
@@ -60,6 +81,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 9 },
+      attractors: [
+        { kind: "point", x: 5, y: 6, radius: 3.4, strength: 0.4 },
+        { kind: "point", x: 12, y: 8, radius: 3.6, strength: 0.45 },
+        { kind: "point", x: 8, y: 14, radius: 3.2, strength: 0.35 },
+        { kind: "point", x: 15, y: 13, radius: 2.8, strength: 0.35 },
+      ],
       coreExposure: 0.92,
       enclosureCollar: 0.55,
       isolationRadius: 6.5,
@@ -75,6 +102,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 14, y: 10 },
+      attractors: [
+        { kind: "line", x: 3, y: 10, x2: 17, y2: 10, radius: 1.15, strength: 1 },
+        { kind: "point", x: 6, y: 10, radius: 1.3, strength: 0.7 },
+        { kind: "point", x: 11, y: 10, radius: 1.3, strength: 0.7 },
+        { kind: "point", x: 15.5, y: 10, radius: 1.4, strength: 0.8 },
+      ],
       coreExposure: 0.52,
       enclosureCollar: 1.05,
       isolationRadius: 3.1,
@@ -90,6 +123,11 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "point", x: 10, y: 10, radius: 5.5, strength: 0.45 },
+        { kind: "point", x: 10, y: 10, radius: 2, strength: 0.85 },
+        { kind: "ring", x: 10, y: 10, radius: 6.2, strength: 0.25 },
+      ],
       coreExposure: 0.84,
       enclosureCollar: 1.0,
       isolationRadius: 5.6,
@@ -105,6 +143,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 13 },
+      attractors: [
+        { kind: "line", x: 3, y: 6, x2: 17, y2: 6, radius: 1.1, strength: 0.7 },
+        { kind: "line", x: 4, y: 10, x2: 16, y2: 10, radius: 1.15, strength: 0.9 },
+        { kind: "line", x: 5, y: 14, x2: 15, y2: 14, radius: 1.2, strength: 1 },
+        { kind: "point", x: 10, y: 14, radius: 1.6, strength: 0.5 },
+      ],
       coreExposure: 0.68,
       enclosureCollar: 1.85,
       isolationRadius: 4.35,
@@ -120,6 +164,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-right",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "point", x: 9, y: 9, radius: 1.5, strength: 1 },
+        { kind: "point", x: 11.5, y: 10.5, radius: 1.4, strength: 0.9 },
+        { kind: "point", x: 10, y: 12, radius: 1.3, strength: 0.75 },
+        { kind: "ring", x: 10, y: 10, radius: 3.4, strength: 0.35 },
+      ],
       coreExposure: 0.26,
       enclosureCollar: 3.7,
       isolationRadius: 2.35,
@@ -135,6 +185,11 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 15.6, y: 10 },
+      attractors: [
+        { kind: "ring", x: 15.6, y: 10, radius: 3.6, strength: 1 },
+        { kind: "line", x: 16.5, y: 3, x2: 16.5, y2: 17, radius: 1.2, strength: 0.55 },
+        { kind: "point", x: 8, y: 10, radius: 2, strength: 0.4 },
+      ],
       coreExposure: 0.72,
       enclosureCollar: 1.15,
       isolationRadius: 3.7,
@@ -150,6 +205,13 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "point", x: 4, y: 7, radius: 1.8, strength: 0.7 },
+        { kind: "point", x: 8, y: 12, radius: 1.8, strength: 0.8 },
+        { kind: "point", x: 12, y: 7.5, radius: 1.8, strength: 0.8 },
+        { kind: "point", x: 16, y: 12.5, radius: 1.8, strength: 0.7 },
+        { kind: "line", x: 3, y: 8, x2: 17, y2: 11, radius: 1.4, strength: 0.35 },
+      ],
       coreExposure: 0.76,
       enclosureCollar: 1.45,
       isolationRadius: 4.7,
@@ -163,15 +225,27 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     name: "Stepped Amphitheater",
     typologyId: "gathering",
     recipe: {
-      sourceCorner: "bottom-right",
-      attractor: { x: 10, y: 9 },
+      sourceCorner: "bottom-left",
+      attractor: { x: 10, y: 10.4 },
+      attractorsOnly: true,
+      attractors: [
+        { kind: "ring", x: 10, y: 10.4, radius: 1.6, strength: 0.85, hole: true },
+        { kind: "curve", x: 6.6, y: 10.4, x2: 13.4, y2: 10.4, cx: 10, cy: 6.9, radius: 0.55, strength: 1.22 },
+        { kind: "curve", x: 6.6, y: 10.4, x2: 13.4, y2: 10.4, cx: 10, cy: 13.9, radius: 0.55, strength: 1.22 },
+        { kind: "curve", x: 5.0, y: 10.4, x2: 15.0, y2: 10.4, cx: 10, cy: 5.4, radius: 0.6, strength: 1.12 },
+        { kind: "curve", x: 5.0, y: 10.4, x2: 15.0, y2: 10.4, cx: 10, cy: 15.4, radius: 0.6, strength: 1.12 },
+        { kind: "curve", x: 3.4, y: 10.4, x2: 16.6, y2: 10.4, cx: 10, cy: 3.8, radius: 0.65, strength: 1.02 },
+        { kind: "curve", x: 3.4, y: 10.4, x2: 16.6, y2: 10.4, cx: 10, cy: 17.0, radius: 0.65, strength: 1.02 },
+        { kind: "point", x: 6.2, y: 4.2, radius: 0.9, strength: 0.32 },
+        { kind: "point", x: 13.8, y: 4.2, radius: 0.9, strength: 0.32 },
+      ],
       coreExposure: 0.24,
       enclosureCollar: 3.55,
       isolationRadius: 2.55,
       clustering: 0.82,
       approachWidth: 1.65,
     },
-    topology: "contained-interior",
+    topology: "around-absence",
   },
   void_field: {
     id: "void-field",
@@ -180,6 +254,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 11 },
+      attractors: [
+        { kind: "ring", x: 10, y: 11, radius: 4.8, strength: 1 },
+        { kind: "point", x: 4, y: 5, radius: 2.4, strength: 0.35 },
+        { kind: "point", x: 16, y: 6, radius: 2.4, strength: 0.35 },
+        { kind: "point", x: 10, y: 17, radius: 2.2, strength: 0.3 },
+      ],
       coreExposure: 0.92,
       enclosureCollar: 0.8,
       isolationRadius: 4.6,
@@ -195,6 +275,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "line", x: 2, y: 10, x2: 18, y2: 10, radius: 1.35, strength: 1.15 },
+        { kind: "point", x: 10, y: 10, radius: 2.4, strength: 0.4 },
+        { kind: "point", x: 10, y: 4.5, radius: 2.6, strength: 0.25 },
+        { kind: "point", x: 10, y: 15.5, radius: 2.6, strength: 0.25 },
+      ],
       coreExposure: 0.86,
       enclosureCollar: 0.7,
       isolationRadius: 5.9,
@@ -210,6 +296,11 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-right",
       attractor: { x: 10, y: 10 },
+      attractors: [
+        { kind: "point", x: 9.2, y: 9.4, radius: 1.3, strength: 1 },
+        { kind: "point", x: 11.2, y: 10.6, radius: 1.25, strength: 0.9 },
+        { kind: "ring", x: 10, y: 10, radius: 3.1, strength: 0.55 },
+      ],
       coreExposure: 0.34,
       enclosureCollar: 3.4,
       isolationRadius: 2.1,
@@ -225,6 +316,12 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
     recipe: {
       sourceCorner: "bottom-left",
       attractor: { x: 16, y: 10 },
+      attractors: [
+        { kind: "line", x: 16.2, y: 3, x2: 16.2, y2: 17, radius: 1.15, strength: 1 },
+        { kind: "point", x: 16.2, y: 6, radius: 1.3, strength: 0.7 },
+        { kind: "point", x: 16.2, y: 11, radius: 1.3, strength: 0.75 },
+        { kind: "point", x: 16.2, y: 15, radius: 1.3, strength: 0.7 },
+      ],
       coreExposure: 0.48,
       enclosureCollar: 1.35,
       isolationRadius: 2.75,
@@ -249,5 +346,5 @@ export function configForArchetype(archetypeId: string): ArchetypeConfig {
 }
 
 export function hasPrototypeConfig(archetypeId: string) {
-  return Object.values(ARCHETYPES).some((item) => item.id === archetypeId);
+  return (PROTOTYPE_ARCHETYPE_IDS as readonly string[]).includes(archetypeId);
 }

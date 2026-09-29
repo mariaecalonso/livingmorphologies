@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useVerticalView } from "@/components/vertical-view";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { trailMaskCutoff } from "@/lib/skill1/maps";
 import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
@@ -30,7 +31,7 @@ function rasterPlate(slice: ScanSlice) {
   canvas.height = PLATE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
-  drawSlimeFieldGl(ctx, slice.trails, slice.trailSize, slice.peak, PLATE, CUTOFF);
+  drawSlimeFieldGl(ctx, slice.trails, slice.trailSize, slice.peak, PLATE, PLATE, CUTOFF);
   return canvas;
 }
 
@@ -54,8 +55,7 @@ export function CtScan() {
   const [spacing, setSpacing] = useState(0.1);
   const [yaw, setYaw] = useState(0.86);
   const [cut, setCut] = useState(0.5);
-  const [cutY, setCutY] = useState(0.5);
-  const [mode, setMode] = useState<"stack" | "mesh" | "voxel">("stack");
+  const mode = useVerticalView();
   const [iso, setIso] = useState(0.48);
   const [meshYaw, setMeshYaw] = useState(0.7);
   const [pitch, setPitch] = useState(0.35);
@@ -64,7 +64,6 @@ export function CtScan() {
   const meshRef = useRef<HTMLCanvasElement>(null);
   const axialRef = useRef<HTMLCanvasElement>(null);
   const sagittalRef = useRef<HTMLCanvasElement>(null);
-  const coronalRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
   const followRef = useRef(true);
 
@@ -223,15 +222,13 @@ export function CtScan() {
         ctx.beginPath();
         ctx.moveTo(cut, 0);
         ctx.lineTo(cut, 1);
-        ctx.moveTo(0, 1 - cutY);
-        ctx.lineTo(1, 1 - cutY);
         ctx.strokeStyle = i === active ? "rgba(125,184,184,0.9)" : "rgba(125,184,184,0.25)";
         ctx.lineWidth = 0.008;
         ctx.stroke();
         ctx.restore();
       }
     };
-  }, [active, cut, cutY, ghost, meshYaw, pitch, spacing, yaw, slices.length]);
+  }, [active, cut, ghost, meshYaw, pitch, spacing, yaw, slices.length]);
 
   useEffect(() => {
     drawStack();
@@ -261,59 +258,48 @@ export function CtScan() {
     ctx.fillRect(0, 0, size, size);
     ctx.drawImage(plate, 8, 8, size - 16, size - 16);
     const x = 8 + cut * (size - 16);
-    const y = 8 + (1 - cutY) * (size - 16);
-    ctx.lineWidth = 1;
     ctx.strokeStyle = "rgba(125,184,184,0.9)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, 8);
     ctx.lineTo(x, size - 8);
     ctx.stroke();
-    ctx.strokeStyle = "rgba(199,126,95,0.9)";
-    ctx.beginPath();
-    ctx.moveTo(8, y);
-    ctx.lineTo(size - 8, y);
-    ctx.stroke();
     ctx.strokeStyle = "rgba(199,126,95,0.8)";
     ctx.strokeRect(8, 8, size - 16, size - 16);
-  }, [activeSlice, cut, cutY, slices.length]);
+  }, [activeSlice, cut, slices.length]);
 
   useEffect(() => {
-    const paint = (
-      canvas: HTMLCanvasElement | null,
-      sample: (slice: ScanSlice, across: number) => number,
-    ) => {
-      if (!canvas || slices.length === 0) return;
-      const dpr = window.devicePixelRatio || 1;
-      const width = 280;
-      const height = 160;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, width, height);
-      const cols = slices.length;
-      const rows = 72;
-      const cellW = width / cols;
-      const cellH = height / rows;
-      for (let z = 0; z < cols; z += 1) {
-        for (let row = 0; row < rows; row += 1) {
-          const across = 1 - row / (rows - 1);
-          ctx.fillStyle = veinColor(sample(slices[z], across));
-          ctx.fillRect(z * cellW, row * cellH, cellW + 0.5, cellH + 0.5);
-        }
+    const canvas = sagittalRef.current;
+    if (!canvas || slices.length === 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = 280;
+    const height = 160;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, width, height);
+    const cols = slices.length;
+    const rows = 72;
+    const cellW = width / cols;
+    const cellH = height / rows;
+    for (let z = 0; z < cols; z += 1) {
+      for (let row = 0; row < rows; row += 1) {
+        const yNorm = 1 - row / (rows - 1);
+        const amount = sampleSlice(slices[z], cut, yNorm);
+        ctx.fillStyle = veinColor(amount);
+        ctx.fillRect(z * cellW, row * cellH, cellW + 0.5, cellH + 0.5);
       }
-      ctx.strokeStyle = "rgba(199,126,95,0.95)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo((active + 0.5) * cellW, 0);
-      ctx.lineTo((active + 0.5) * cellW, height);
-      ctx.stroke();
-    };
-    paint(sagittalRef.current, (slice, yNorm) => sampleSlice(slice, cut, yNorm));
-    paint(coronalRef.current, (slice, xNorm) => sampleSlice(slice, xNorm, cutY));
-  }, [active, cut, cutY, slices]);
+    }
+    ctx.strokeStyle = "rgba(199,126,95,0.95)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo((active + 0.5) * cellW, 0);
+    ctx.lineTo((active + 0.5) * cellW, height);
+    ctx.stroke();
+  }, [active, cut, slices]);
 
   useEffect(() => {
     if (mode === "stack") return;
@@ -344,7 +330,7 @@ export function CtScan() {
   };
 
   return (
-    <main className="flex h-dvh flex-col bg-black text-[var(--text)]">
+    <main className="flex h-full flex-col bg-black text-[var(--text)]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2">
         <div>
           <p className="display text-[0.95rem] text-white">CT Scan Stack</p>
@@ -383,29 +369,6 @@ export function CtScan() {
               className="ml-2 w-16 border border-[rgba(242,242,238,0.18)] bg-black px-2 py-1 text-[0.72rem] text-[var(--text)]"
             />
           </label>
-          <div className="flex border border-[rgba(242,242,238,0.18)]">
-            <button
-              type="button"
-              onClick={() => setMode("stack")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "stack" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Stack
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("mesh")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "mesh" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Isomesh
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("voxel")}
-              className={`px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] ${mode === "voxel" ? "bg-[rgba(242,242,238,0.12)] text-white" : "text-[var(--muted)]"}`}
-            >
-              Voxels
-            </button>
-          </div>
           <button
             type="button"
             onClick={() => setRunId((current) => current + 1)}
@@ -413,12 +376,6 @@ export function CtScan() {
           >
             Rescan
           </button>
-          <a
-            href="/"
-            className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] uppercase tracking-[0.18em] text-[var(--muted)] hover:text-[var(--text)]"
-          >
-            Board
-          </a>
         </div>
       </header>
 
@@ -458,16 +415,9 @@ export function CtScan() {
           <div>
             <p className="eyebrow">Sagittal cut</p>
             <p className="mt-1 text-[0.72rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-              Vertical plane, stack running left to right
+              Vertical plane through the stack
             </p>
             <canvas ref={sagittalRef} className="mt-2 w-full border border-[rgba(242,242,238,0.16)]" />
-          </div>
-          <div>
-            <p className="eyebrow">Coronal cut</p>
-            <p className="mt-1 text-[0.72rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-              The other vertical plane
-            </p>
-            <canvas ref={coronalRef} className="mt-2 w-full border border-[rgba(242,242,238,0.16)]" />
           </div>
         </aside>
       </div>
@@ -528,7 +478,7 @@ export function CtScan() {
           />
         </label>
         <label className="text-[0.62rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-          Sagittal {cut.toFixed(2)}
+          Cut {cut.toFixed(2)}
           <input
             type="range"
             min={0.05}
@@ -536,18 +486,6 @@ export function CtScan() {
             step={0.01}
             value={cut}
             onChange={(event) => setCut(Number(event.target.value))}
-            className="mt-1 block w-full"
-          />
-        </label>
-        <label className="text-[0.62rem] uppercase tracking-[0.14em] text-[var(--muted)]">
-          Coronal {cutY.toFixed(2)}
-          <input
-            type="range"
-            min={0.05}
-            max={0.95}
-            step={0.01}
-            value={cutY}
-            onChange={(event) => setCutY(Number(event.target.value))}
             className="mt-1 block w-full"
           />
         </label>
