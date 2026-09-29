@@ -59,6 +59,7 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     ],
     limitations: [
       "Complexity is inferred from mass count, network subdivision, fragmentation, and dimensional variation, not from architectural program or layered drawings.",
+      "Branching is read on the 0.25-unit topology grid. branchingLogReference 3.0 is a version-1 calibration from the post-repair 75-run distribution, not a permanent constant.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} {{criterionName}} condition?",
@@ -110,16 +111,9 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     axisZero: "uniform dimensional relationships among masses, voids, and connections",
     axisOne: "strongly differentiated dimensional relationships among those elements",
     observedAxis: "proportionalVariation",
-    evidence: [
-      "proportion.concentrationSizeVariation",
-      "proportion.voidSizeVariation",
-      "proportion.connectionThicknessVariation",
-      "proportion.overallVariation",
-      "proportion.insufficientElements",
-      "proportion.elementCount",
-    ],
+    evidence: ["proportion.medialRadiusP50", "proportion.medialRadiusP90"],
     limitations: [
-      "Proportionality uses coefficients of variation within morphological families (mass areas, void areas, bridge thicknesses) separately. Families with fewer than two members are omitted. No family with n≥2 is indeterminate (0.5), not Low-uniform. Area is never compared with thickness.",
+      "Proportionality is the contrast between the typical and thick parts of the occupied body, measured as medial half-width along the skeleton. It does not use segmented mass, void, or bridge coefficients, and it does not decide feasibility.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Proportionality condition?",
@@ -151,16 +145,9 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     axisZero: "little continuous void; morphology tightly encloses space",
     axisOne: "substantial continuous void with limited enclosure by dense morphology",
     observedAxis: "opennessAmount",
-    evidence: [
-      "void.voidFraction",
-      "void.largestVoidFraction",
-      "void.voidContinuity",
-      "topology.enclosure",
-      "void.meanOpenSpan",
-      "void.maxOpenSpan",
-    ],
+    evidence: ["void.voidFraction", "topology.enclosure"],
     limitations: [
-      "Openness is a 2D sectional void/enclosure reading of the interior analysis domain. The Skill 1 empty perimeter ring is excluded and cannot create High openness.",
+      "Openness is the share of interior void, corrected by how much of that void is wrapped. It does not use open span or void segmentation. The Skill 1 empty perimeter ring is excluded from the void fraction.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Openness condition?",
@@ -178,13 +165,11 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
       "connection.bridgeCount",
       "connection.continuity",
       "mass.concentrationCount",
-      "connection.branching",
-      "connection.cycleRank",
-      "connection.skeletonEndpoints",
+      "topology.largestComponentFraction",
     ],
     limitations: [
-      "connection.continuity equals 1 when fewer than two concentrations exist. Connectivity uses mass pairs when they exist plus scale-aware branching, endpoints, and bridges. One compact body is Low; concentrationCount < 2 does not force 0.",
-      "connection.cycleRank / cycleDensity are diagnostic only. 8-connected skeleton cycle density saturates on live trails and is not used in the observed Connectivity axis.",
+      "connection.continuity equals 1 when fewer than two concentrations exist. Connectivity uses mass pairs when they exist, the share of occupied topology-grid area in the largest connected fragment, and bridges. One compact body is Low; concentrationCount < 2 does not force 0.",
+      "Read on the 0.25-unit topology grid. connection.branching, cycleRank and skeletonEndpoints are diagnostic only and are not used in the observed Connectivity axis.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Connectivity condition?",
@@ -275,14 +260,9 @@ export const CRITERION_EVALUATION_SPECS: Record<string, CriterionEvaluationSpec>
     axisZero: "short interrupted void spans",
     axisOne: "long continuous void spans with little morphological obstruction",
     observedAxis: "visibilityAmount",
-    evidence: [
-      "void.meanOpenSpan",
-      "void.maxOpenSpan",
-      "void.voidContinuity",
-      "topology.enclosure",
-    ],
+    evidence: ["void.lengthWeightedSightline", "analysis.interiorExtent"],
     limitations: [
-      "Open spans are axis-aligned interior-domain runs, not full angular isovists. The empty Skill 1 boundary ring cannot create High visibility.",
+      "Visibility is the length-weighted mean of axis-aligned interior void runs (expected sightline from a random void cell) relative to the interior extent, not full angular isovists. It does not use void amount, enclosure, or the longest span. The empty Skill 1 boundary ring cannot create High visibility.",
     ],
     questionTemplate:
       "Does the morphology correspond to the catalog's {{ratingLabel}} Visibility condition?",

@@ -28,10 +28,31 @@ export const EVALUATION_CALIBRATION = {
   /** PROVISIONAL triangular falloff width on the [0, 1] axis. */
   defaultTolerance: 0.65,
   complexityConcentrationCap: 7,
+  /**
+   * Retired as a hard ceiling. Branching now uses `branchingLogReference`.
+   * Kept so older calibration notes still name the constant.
+   */
   complexityBranchingCap: 5,
+  /**
+   * log1p shoulder for topology-grid branching. VERSION-1 calibration from the
+   * post-repair 75-run audit (min 0.36, median 1.95, max 2.66), set just above
+   * the observed maximum. Not a permanent constant.
+   */
+  branchingLogReference: 3,
   complexityComponentCap: 6,
   connectivityBridgeCap: 6,
   variationCap: 1,
+  /**
+   * Thickness-contrast shoulder for Proportionality.
+   * ratio 1 → 0, ratio 16 → 1. Provisional until more archetypes are sampled.
+   */
+  proportionalityThicknessReference: 16,
+  /**
+   * Degenerate-simulation floors. Canonical fields in the pose check sit near
+   * occupied 0.09–0.21 and void 0.79–0.91, so 0.02 is outside that range.
+   */
+  minimumOccupiedFraction: 0.02,
+  minimumVoidFraction: 0.02,
   densityVariationCap: 0.45,
 } as const;
 

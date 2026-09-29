@@ -96,6 +96,8 @@ export type MeasurementKey =
   | "void.voidContinuity"
   | "void.meanOpenSpan"
   | "void.maxOpenSpan"
+  | "void.sightlineMedian"
+  | "void.lengthWeightedSightline"
   | "void.meanSignificantArea"
   | "void.boundaryOpenFraction"
   | "topology.connectedComponentCount"
@@ -115,7 +117,9 @@ export type MeasurementKey =
   | "proportion.connectionThicknessVariation"
   | "proportion.overallVariation"
   | "proportion.elementCount"
-  | "proportion.insufficientElements";
+  | "proportion.insufficientElements"
+  | "proportion.medialRadiusP50"
+  | "proportion.medialRadiusP90";
 
 export type MeasurementEvidence = {
   measurement: MeasurementKey;
@@ -262,6 +266,17 @@ export type MorphologicalMeasurements = {
     meanOpenSpan: number;
     /** Longest axis-aligned void run in occupancy-cell units (interior domain). */
     maxOpenSpan: number;
+    /**
+     * Length-weighted median of the same pooled horizontal and vertical
+     * interior void runs, in field units: the run length that holds the
+     * typical void cell. Diagnostic; Visibility does not use it.
+     */
+    sightlineMedian: number;
+    /**
+     * sum(run²) / sum(run) over the same pooled runs, in field units:
+     * expected run length seen from a randomly selected void cell.
+     */
+    lengthWeightedSightline: number;
     /** Mean area of significant void components, occupancy-cell units. */
     meanSignificantArea: number;
     /**
@@ -273,7 +288,7 @@ export type MorphologicalMeasurements = {
   topology: {
     /** Disconnected morphology. 0 if there is no activity. */
     connectedComponentCount: number;
-    /** Largest morphological component / all morphology cells, in [0, 1]. */
+    /** Largest morphological component / all morphology cells on the topology grid, in [0, 1]. */
     largestComponentFraction: number;
     /** Degree to which morphology surrounds void, in [0, 1]. */
     enclosure: number;
@@ -311,10 +326,17 @@ export type MorphologicalMeasurements = {
     voidSizeVariation: number;
     connectionThicknessVariation: number;
     overallVariation: number;
-    /** Count of size observations used for overallVariation. */
+    /** Count of segmented families that had two or more members. Diagnostic only. */
     elementCount: number;
-    /** 1 when fewer than two comparable elements exist (CV would be a sentinel). */
+    /**
+     * 1 when no segmented family has two members.
+     * Does not define Proportionality and does not affect feasibility.
+     */
     insufficientElements: number;
+    /** Median 4-connected medial half-width, in field units. */
+    medialRadiusP50: number;
+    /** 90th percentile 4-connected medial half-width, in field units. */
+    medialRadiusP90: number;
   };
 };
 
@@ -362,6 +384,12 @@ export type CandidateEvaluation = {
   overallPerformance: number;
   minimumIndividualPerformance: number;
   acceptable: boolean;
+  /**
+   * False only when the simulation is degenerate: non-finite measurements,
+   * no trail, almost no occupied morphology, or an almost solid fill.
+   * Proportionality does not affect this flag.
+   */
+  feasible: boolean;
 };
 
 /**

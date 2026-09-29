@@ -7,15 +7,27 @@
  */
 export type MorphologicalExtractionConfig = {
   /**
-   * Peak-relative trail intensity below this is void (little / no activity).
-   * Domain: [0, 1], relative to max(trails).
+   * Relative trail intensity below this is void (little / no activity).
+   * Relative to the occupancy reference, not max(trails).
    */
   voidMaxRelative: number;
   /**
-   * Peak-relative trail intensity at or above this is mass / concentration.
+   * Relative trail intensity at or above this is mass / concentration.
    * Must be > voidMaxRelative. Between the two is thin connection.
    */
   massMinRelative: number;
+  /**
+   * Quantile of positive interior trail used as the occupancy reference,
+   * so a single hotspot cannot set the scale for the whole field.
+   */
+  occupancyReferenceQuantile: number;
+  /**
+   * Field units per cell of the box-averaged topology grid used for
+   * concentrations, corridors, bridges, components, skeleton and
+   * circulation classes. Void, sightline, medial radius and overlays
+   * stay on the native trail grid.
+   */
+  topologyCellSize: number;
   /** Drop concentrations smaller than this area (occupancy-cell units). */
   minConcentrationArea: number;
   /** Void components at or above this area (occupancy-cell units) are significant. */
@@ -46,6 +58,8 @@ export const SKILL1_EDGE_SUPPRESSION_MARGIN = 2.6;
 export const DEFAULT_MORPHOLOGICAL_EXTRACTION: MorphologicalExtractionConfig = {
   voidMaxRelative: 0.08,
   massMinRelative: 0.4,
+  occupancyReferenceQuantile: 0.99,
+  topologyCellSize: 0.25,
   minConcentrationArea: 1,
   minSignificantVoidArea: 2,
   minBridgeLength: 0.5,

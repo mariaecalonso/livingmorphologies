@@ -51,6 +51,10 @@ function stubMorph(section: SectionModel, mass = new Uint8Array(section.width * 
       voidCells: 0,
       skeletonJunctions: 0,
       skeletonLength: 0,
+      occupancyReference: 0,
+      interiorTrailVoidShare: 0,
+      topologyCellSize: 0,
+      topologyReference: 0,
     },
     config: DEFAULT_MORPHOLOGICAL_EXTRACTION,
     overlays: {

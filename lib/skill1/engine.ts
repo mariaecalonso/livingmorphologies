@@ -58,8 +58,16 @@ export function sampleField(field: number[], point: Point, size: number) {
   return a * (1 - tx) * (1 - ty) + b * tx * (1 - ty) + c * (1 - tx) * ty + d * tx * ty;
 }
 
-const topologyOf = (translation: BiologicalTranslation) =>
-  configForArchetype(translation.archetypeId).topology;
+const topologyCache = new Map<string, ReturnType<typeof configForArchetype>["topology"]>();
+
+const topologyOf = (translation: BiologicalTranslation) => {
+  let topology = topologyCache.get(translation.archetypeId);
+  if (topology === undefined) {
+    topology = configForArchetype(translation.archetypeId).topology;
+    topologyCache.set(translation.archetypeId, topology);
+  }
+  return topology;
+};
 
 const aroundAbsence = (translation: BiologicalTranslation) =>
   topologyOf(translation) === "around-absence";
@@ -328,6 +336,32 @@ function circleHitT(x0: number, y0: number, x1: number, y1: number, cx: number, 
   return t === Infinity ? null : t;
 }
 
+const holeMasks = new Map<string, Uint8Array>();
+
+/** Trail pixels inside an attractor disk. Fixed for a given disk layout, so built once and reused every step. */
+function holeMaskFor(trailSize: number, fieldSize: number, translation: BiologicalTranslation) {
+  const list = translation.recipe.attractors ?? [];
+  const key = `${trailSize}|${fieldSize}|${list
+    .map((item) => {
+      const radius = circleRadius(item);
+      return radius > 0 ? `${item.x},${item.y},${radius}` : "";
+    })
+    .join(";")}`;
+  let mask = holeMasks.get(key);
+  if (!mask) {
+    const scale = trailSize / fieldSize;
+    mask = new Uint8Array(trailSize * trailSize);
+    for (let i = 0; i < mask.length; i += 1) {
+      const fx = (i % trailSize) / scale;
+      const fy = Math.floor(i / trailSize) / scale;
+      if (insideAttractorHole({ x: fx, y: fy }, translation)) mask[i] = 1;
+    }
+    if (holeMasks.size >= 8) holeMasks.delete(holeMasks.keys().next().value as string);
+    holeMasks.set(key, mask);
+  }
+  return mask;
+}
+
 function eraseTrailsInsideCircles(
   trails: number[],
   trailSize: number,
@@ -337,13 +371,11 @@ function eraseTrailsInsideCircles(
   const list = translation.recipe.attractors;
   if (!list?.some((item) => circleRadius(item) > 0)) return;
   const book = trailBook(trails);
-  const scale = trailSize / fieldSize;
+  const hole = holeMaskFor(trailSize, fieldSize, translation);
   let write = 0;
   for (let n = 0; n < book.active.length; n += 1) {
     const i = book.active[n];
-    const fx = (i % trailSize) / scale;
-    const fy = Math.floor(i / trailSize) / scale;
-    if (insideAttractorHole({ x: fx, y: fy }, translation)) {
+    if (hole[i]) {
       trails[i] = 0;
       book.stamp[i] = 0;
       continue;

@@ -462,6 +462,11 @@ const GENERATORS: Record<string, { angles: number[]; build: (f: Frame) => LocalM
   "linear-edge-gallery": { angles: CARDINAL, build: linearEdgeGallery },
 };
 
+/** Legal layout orientations (radians) for an archetype. Read-only copy; no generator means no rotation. */
+export function legalOrientationsFor(archetypeId: string): number[] {
+  return [...(GENERATORS[archetypeId]?.angles ?? [0])];
+}
+
 /** Falls back to the recipe marks, jittered, for an archetype without a generator. */
 function jitteredRecipe(f: Frame, recipe: FieldAttractor[]): FieldAttractor[] {
   return recipe.map((item) => ({
