@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
 import Link from "next/link";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
@@ -85,6 +85,12 @@ type Focus = [number, number, number];
 type AxisName = "Formal" | "Spatial" | "Atmospheric";
 
 const FULL_CUBE = { yaw: -0.62, pitch: 0.42, zoom: 1.15, focus: [0.5, 0.5, 0.5] as Focus };
+const ZOOM_MIN = 0.85;
+const ZOOM_MAX = 3.2;
+
+function clampZoom(zoom: number) {
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+}
 
 /** Faces that hide one axis so the other two read flat. */
 const AXIS_SNAP: Record<AxisName, { yaw: number; pitch: number }> = {
@@ -122,7 +128,7 @@ function frameOf(points: { formal: number; spatial: number; atmospheric: number 
   for (const point of points) {
     radius = Math.max(radius, Math.hypot(point.formal - focus[0], point.spatial - focus[1], point.atmospheric - focus[2]));
   }
-  return { focus, zoom: Math.max(0.9, Math.min(3.1, 24 / (radius * 78))) };
+  return { focus, zoom: clampZoom(24 / (radius * 78)) };
 }
 
 /** Edges between each archive member and its nearest neighbors. No surface is fitted. */
@@ -185,8 +191,12 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
   const [view, setView] = useState({ yaw: FULL_CUBE.yaw, pitch: FULL_CUBE.pitch, zoom: FULL_CUBE.zoom, focus: FULL_CUBE.focus });
   const [camera, setCamera] = useState({ focus: FULL_CUBE.focus, zoom: FULL_CUBE.zoom });
   const cameraRef = useRef(camera);
-  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
-  const completed = archetype?.generations.filter((item) => item.status === "done") ?? [];
+  const svgRef = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; pointerId: number; moved: boolean } | null>(null);
+  const completed = useMemo(
+    () => archetype?.generations.filter((item) => item.status === "done") ?? [],
+    [archetype?.generations],
+  );
   const generationCount = completed.length;
 
   useEffect(() => {
@@ -279,33 +289,65 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
     [archetype?.candidates, frontIds],
   );
   const frameTarget = useMemo(() => frameOf(frontPoints), [frontPoints]);
+  const frameSignature = `${archetype?.archetypeId ?? ""}:${shownGeneration ?? "all"}:${frameTarget.zoom.toFixed(4)}:${frameTarget.focus.map((value) => value.toFixed(4)).join(",")}`;
+  const frameTargetRef = useRef(frameTarget);
+  frameTargetRef.current = frameTarget;
   useEffect(() => {
-    const target = fit ? frameTarget : { focus: view.focus, zoom: view.zoom };
+    if (!fit) return;
+    const target = {
+      focus: [...frameTargetRef.current.focus] as Focus,
+      zoom: clampZoom(frameTargetRef.current.zoom),
+    };
     const from = cameraRef.current;
+    let frame = 0;
+    const apply = (next: { zoom: number; focus: Focus }) => {
+      const same =
+        Math.abs(cameraRef.current.zoom - next.zoom) < 0.0001 &&
+        cameraRef.current.focus.every((value, index) => Math.abs(value - next.focus[index]) < 0.0001);
+      if (same) return;
+      cameraRef.current = next;
+      setCamera(next);
+    };
     if (reducedMotion) {
-      cameraRef.current = target;
-      setCamera(target);
+      apply(target);
       return;
     }
     const start = performance.now();
-    let frame = 0;
     const tick = (now: number) => {
       const blend = 1 - (1 - Math.min(1, (now - start) / 380)) ** 3;
-      const next = {
+      apply({
         zoom: from.zoom + (target.zoom - from.zoom) * blend,
         focus: [
           from.focus[0] + (target.focus[0] - from.focus[0]) * blend,
           from.focus[1] + (target.focus[1] - from.focus[1]) * blend,
           from.focus[2] + (target.focus[2] - from.focus[2]) * blend,
-        ] as Focus,
-      };
-      cameraRef.current = next;
-      setCamera(next);
+        ],
+      });
       if (blend < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [fit, frameTarget, view.focus, view.zoom, reducedMotion]);
+  }, [fit, frameSignature, reducedMotion]);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const zoom = clampZoom(cameraRef.current.zoom * (event.deltaY > 0 ? 0.92 : 1.08));
+      const next = { focus: cameraRef.current.focus, zoom };
+      cameraRef.current = next;
+      setFit(false);
+      setCamera(next);
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      svg.removeEventListener("wheel", onWheel);
+      const start = drag.current;
+      if (start && svg.hasPointerCapture(start.pointerId)) svg.releasePointerCapture(start.pointerId);
+      drag.current = null;
+    };
+  }, []);
 
   const candidateById = useMemo(() => {
     const map = new Map<number, EvolutionCandidateView>();
@@ -398,7 +440,7 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
   };
 
   const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    drag.current = { x: event.clientX, y: event.clientY, yaw: view.yaw, pitch: view.pitch, moved: false };
+    drag.current = { x: event.clientX, y: event.clientY, yaw: view.yaw, pitch: view.pitch, pointerId: event.pointerId, moved: false };
   };
   const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const start = drag.current;
@@ -406,7 +448,10 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
     const dx = event.clientX - start.x;
     const dy = event.clientY - start.y;
     if (!start.moved && Math.hypot(dx, dy) < 4) return;
-    if (!start.moved) event.currentTarget.setPointerCapture(event.pointerId);
+    if (!start.moved) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setFit(false);
+    }
     start.moved = true;
     setHoveredKey(null);
     setSnapped(null);
@@ -416,21 +461,18 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
       pitch: Math.max(-1.4, Math.min(1.4, start.pitch + dy * 0.008)),
     }));
   };
-  const onPointerUp = () => {
+  const onPointerUp = (event: PointerEvent<SVGSVGElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     window.setTimeout(() => {
       drag.current = null;
     }, 0);
   };
-  const onWheel = (event: WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    const factor = event.deltaY > 0 ? 0.92 : 1.08;
-    const zoom = Math.max(0.85, Math.min(3.2, cameraRef.current.zoom * factor));
-    setFit(false);
-    setView((current) => ({ ...current, focus: cameraRef.current.focus, zoom }));
-  };
   const showFullCube = () => {
+    const next = { focus: FULL_CUBE.focus, zoom: FULL_CUBE.zoom };
+    cameraRef.current = next;
     setFit(false);
     setSnapped(null);
+    setCamera(next);
     setView((current) => ({ ...current, ...FULL_CUBE }));
   };
   const snapAxis = (axis: string) => {
@@ -505,14 +547,15 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
           </div>
 
           <svg
+            ref={svgRef}
             className="pareto-svg"
             viewBox="-6 -6 112 112"
             preserveAspectRatio="xMidYMid meet"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
             onPointerLeave={onPointerUp}
-            onWheel={onWheel}
             onDoubleClick={showFullCube}
           >
             {GRID.map(([from, to], index) => {
