@@ -6717,16 +6717,6 @@ button.evo-generation:disabled {
   flex: 1.15 1 0;
 }
 
-.gh-output {
-  container-type: inline-size;
-}
-
-@container (max-width: 28rem) {
-  .so-top {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .so-bottom {
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr);
   flex: 0.72 1 0;
