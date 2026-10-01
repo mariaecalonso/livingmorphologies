@@ -6,6 +6,24 @@
   background: #000000;
 }
 
+/* The lab sits under the site nav, so a full viewport here clips the bottom of the stage. */
+@media (min-width: 768px) {
+  .site-shell:has(.stage-shell) {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .site-shell:has(.stage-shell) .site-main {
+    overflow: hidden;
+  }
+
+  .site-shell:has(.stage-shell) .stage-shell {
+    height: 100%;
+    min-height: 0;
+  }
+}
+
 .stage-body {
   position: relative;
   flex: 1 1 auto;
@@ -501,4 +519,111 @@
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--muted);
+}
+
+.vertical-prepare-steps {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vertical-prepare-steps li {
+  padding: 0.5rem 0 0.5rem 0.85rem;
+  border-top: 1px solid rgba(242, 242, 238, 0.12);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.42);
+}
+
+.vertical-prepare-steps li:last-child {
+  border-bottom: 1px solid rgba(242, 242, 238, 0.12);
+}
+
+.vertical-prepare-steps li[data-active] {
+  color: #ffffff;
+  box-shadow: inset 2px 0 0 var(--orange);
+}
+
+.vertical-prepare-root {
+  background: #000000;
+}
+
+.vertical-prepare-chrome,
+.vertical-prepare-stack,
+.vertical-handoff-viewer,
+.vertical-handoff-viewer header,
+.vertical-handoff-viewer aside,
+.vertical-handoff-viewer footer,
+.vertical-handoff-viewer .pointer-events-none {
+  transition-timing-function: var(--handoff-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.vertical-prepare-chrome {
+  transition-property: opacity;
+  transition-duration: var(--handoff-labels, 240ms);
+}
+
+.vertical-prepare-stack,
+.vertical-handoff-viewer {
+  transition-property: opacity;
+  transition-duration: var(--handoff-fade, 280ms);
+}
+
+.vertical-handoff-viewer header,
+.vertical-handoff-viewer aside,
+.vertical-handoff-viewer footer,
+.vertical-handoff-viewer .pointer-events-none {
+  transition-property: opacity;
+  transition-duration: var(--handoff-ui, 340ms);
+}
+
+.vertical-handoff-viewer {
+  z-index: 0;
+  opacity: 0;
+}
+
+.vertical-handoff-preview {
+  z-index: 1;
+}
+
+.vertical-handoff[data-phase="glide"] .vertical-prepare-chrome,
+.vertical-handoff[data-phase="crossfade"] .vertical-prepare-chrome,
+.vertical-handoff[data-phase="reveal"] .vertical-prepare-chrome,
+.vertical-handoff[data-phase="glide"] .vertical-handoff-viewer header,
+.vertical-handoff[data-phase="glide"] .vertical-handoff-viewer aside,
+.vertical-handoff[data-phase="glide"] .vertical-handoff-viewer footer,
+.vertical-handoff[data-phase="glide"] .vertical-handoff-viewer .pointer-events-none,
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-viewer header,
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-viewer aside,
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-viewer footer,
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-viewer .pointer-events-none {
+  opacity: 0;
+}
+
+.vertical-handoff[data-phase="glide"] .vertical-prepare-stack {
+  will-change: transform;
+}
+
+.vertical-handoff[data-phase="crossfade"] .vertical-prepare-root,
+.vertical-handoff[data-phase="reveal"] .vertical-prepare-root,
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-preview,
+.vertical-handoff[data-phase="reveal"] .vertical-handoff-preview {
+  background: transparent;
+  pointer-events: none;
+}
+
+.vertical-handoff[data-phase="crossfade"] .vertical-prepare-stack,
+.vertical-handoff[data-phase="reveal"] .vertical-prepare-stack {
+  opacity: 0;
+}
+
+.vertical-handoff[data-phase="crossfade"] .vertical-handoff-viewer,
+.vertical-handoff[data-phase="reveal"] .vertical-handoff-viewer,
+.vertical-handoff[data-phase="ready"] .vertical-handoff-viewer {
+  opacity: 1;
+}
+
+.vertical-handoff:not([data-phase="ready"]) .vertical-handoff-viewer {
+  pointer-events: none;
 }

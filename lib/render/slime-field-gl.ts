@@ -151,7 +151,7 @@ type GlState = {
   texture: WebGLTexture;
   buffer: WebGLBuffer;
   uTexels: WebGLUniformLocation;
-  uCutoff: WebGLUniformLocation;
+  uCutoff: WebGLUniformLocation | null;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
@@ -202,7 +202,7 @@ function createState(): GlState | null {
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);

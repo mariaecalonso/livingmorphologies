@@ -48,13 +48,33 @@ export function columnHeight(spacing: number, yaw = 0.86) {
   return (SCAN_SLICES - 1) * sliceSpacing(spacing, yaw);
 }
 
-function world(x: number, y: number, z: number, nx: number, ny: number, pitch: number) {
-  const full = (SCAN_SLICES - 1) * pitch;
-  return [
-    x / (nx - 1) - 0.5,
-    z * pitch - full * 0.5,
-    y / (ny - 1) - 0.5,
-  ];
+/** Y of a fractional slice index. Omitted positions keep the uniform scan pitch. */
+export function sliceVertical(z: number, pitch: number, zPositions?: readonly number[]) {
+  if (!zPositions || zPositions.length === 0) {
+    const full = (SCAN_SLICES - 1) * pitch;
+    return z * pitch - full * 0.5;
+  }
+  const last = zPositions.length - 1;
+  const clamped = Math.min(Math.max(z, 0), last);
+  const i0 = Math.min(last, Math.floor(clamped));
+  const i1 = Math.min(last, i0 + 1);
+  const y = zPositions[i0] + (zPositions[i1] - zPositions[i0]) * (clamped - i0);
+  const span = zPositions[last] - zPositions[0];
+  return y - zPositions[0] - span * 0.5;
+}
+
+function world(x: number, y: number, z: number, nx: number, ny: number, pitch: number, zPositions?: readonly number[]) {
+  return [x / (nx - 1) - 0.5, sliceVertical(z, pitch, zPositions), y / (ny - 1) - 0.5];
+}
+
+/** Voxel corners may sit one step past the last slice. That cap repeats the final gap. */
+function voxelVertical(z: number, zPositions: readonly number[]) {
+  const last = zPositions.length - 1;
+  if (z <= last) return sliceVertical(z, 0, zPositions);
+  const gap = last > 0 ? zPositions[last] - zPositions[last - 1] : 0;
+  const extended = zPositions[last] + (z - last) * gap;
+  const span = zPositions[last] - zPositions[0];
+  return extended - zPositions[0] - span * 0.5;
 }
 
 /** Surface-nets isosurface. Density above `iso` is inside the mesh. */
@@ -65,6 +85,7 @@ export function surfaceNets(
   nz: number,
   iso: number,
   pitch = 0.85 / Math.max(1, nz - 1),
+  zPositions?: readonly number[],
 ): IsoMesh {
   const cx = nx - 1;
   const cy = ny - 1;
@@ -96,7 +117,7 @@ export function surfaceNets(
           const px = x + ca[0] + (cb[0] - ca[0]) * t;
           const py = y + ca[1] + (cb[1] - ca[1]) * t;
           const pz = z + ca[2] + (cb[2] - ca[2]) * t;
-          const point = world(px, py, pz, nx, ny, pitch);
+          const point = world(px, py, pz, nx, ny, pitch, zPositions);
           ax += point[0];
           ay += point[1];
           az += point[2];
@@ -212,7 +233,13 @@ export function surfaceNets(
   };
 }
 
-export function extractIsomesh(slices: ScanSlice[], iso: number, spacing = 0.72, yaw = 0.86): IsoMesh {
+export function extractIsomesh(
+  slices: ScanSlice[],
+  iso: number,
+  spacing = 0.72,
+  yaw = 0.86,
+  zPositions?: readonly number[],
+): IsoMesh {
   if (slices.length < 2) {
     return { positions: new Float32Array(), normals: new Float32Array(), indices: new Uint32Array(), triangles: 0 };
   }
@@ -243,7 +270,9 @@ export function extractIsomesh(slices: ScanSlice[], iso: number, spacing = 0.72,
       }
     }
   }
-  return surfaceNets(field, nx, ny, nz, iso, sliceSpacing(spacing, yaw));
+  const pitch = sliceSpacing(spacing, yaw);
+  if (zPositions && zPositions.length !== nz) throw new Error("isomesh Z positions must match the slice count");
+  return surfaceNets(field, nx, ny, nz, iso, pitch, zPositions);
 }
 
 const EMPTY_MESH: IsoMesh = {
@@ -263,7 +292,13 @@ const VOXEL_FACES: Array<{ d: [number, number, number]; n: [number, number, numb
 ];
 
 /** Exposed cubes. One layer per scan slice, same vertical pitch as the isomesh. */
-export function extractVoxels(slices: ScanSlice[], iso: number, spacing = 0.72, yaw = 0.86): IsoMesh {
+export function extractVoxels(
+  slices: ScanSlice[],
+  iso: number,
+  spacing = 0.72,
+  yaw = 0.86,
+  zPositions?: readonly number[],
+): IsoMesh {
   if (slices.length < 1) return EMPTY_MESH;
   const nz = slices.length;
   const nx = VOXEL_RESOLUTION;
@@ -293,7 +328,7 @@ export function extractVoxels(slices: ScanSlice[], iso: number, spacing = 0.72, 
     }
   }
   const pitch = sliceSpacing(spacing, yaw);
-  const full = (SCAN_SLICES - 1) * pitch;
+  if (zPositions && zPositions.length !== nz) throw new Error("voxel Z positions must match the slice count");
   const positions: number[] = [];
   const normals: number[] = [];
   const indices: number[] = [];
@@ -301,11 +336,10 @@ export function extractVoxels(slices: ScanSlice[], iso: number, spacing = 0.72, 
     if (x < 0 || y < 0 || z < 0 || x >= nx || y >= ny || z >= nz) return false;
     return field[(z * ny + y) * nx + x] >= iso;
   };
-  const point = (x: number, y: number, z: number) => [
-    x / nx - 0.5,
-    z * pitch - full * 0.5,
-    y / ny - 0.5,
-  ];
+  const point = (x: number, y: number, z: number) => {
+    const vertical = zPositions ? voxelVertical(z, zPositions) : sliceVertical(z, pitch);
+    return [x / nx - 0.5, vertical, y / ny - 0.5];
+  };
   for (let z = 0; z < nz; z += 1) {
     for (let y = 0; y < ny; y += 1) {
       for (let x = 0; x < nx; x += 1) {
@@ -316,6 +350,52 @@ export function extractVoxels(slices: ScanSlice[], iso: number, spacing = 0.72, 
           for (const corner of face.corners) {
             const p = point(x + corner[0], y + corner[1], z + corner[2]);
             positions.push(p[0], p[1], p[2]);
+            normals.push(face.n[0], face.n[1], face.n[2]);
+          }
+          indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+        }
+      }
+    }
+  }
+  return {
+    positions: Float32Array.from(positions),
+    normals: Float32Array.from(normals),
+    indices: Uint32Array.from(indices),
+    triangles: indices.length / 3,
+  };
+}
+
+/** Voxels of a prepared scalar field. Values at or above `iso` are solid. */
+export function extractScalarVoxels(
+  field: Float32Array,
+  nx: number,
+  ny: number,
+  nz: number,
+  iso: number,
+  zPositions?: readonly number[],
+): IsoMesh {
+  if (nx < 1 || ny < 1 || nz < 1) return EMPTY_MESH;
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+  const inside = (x: number, y: number, z: number) => {
+    if (x < 0 || y < 0 || z < 0 || x >= nx || y >= ny || z >= nz) return false;
+    return field[(z * ny + y) * nx + x] >= iso;
+  };
+  const point = (x: number, y: number, z: number) => {
+    const vertical = zPositions ? voxelVertical(z, zPositions) : sliceVertical(z, sliceSpacing(0.1));
+    return [x / nx - 0.5, vertical, y / ny - 0.5];
+  };
+  for (let z = 0; z < nz; z += 1) {
+    for (let y = 0; y < ny; y += 1) {
+      for (let x = 0; x < nx; x += 1) {
+        if (!inside(x, y, z)) continue;
+        for (const face of VOXEL_FACES) {
+          if (inside(x + face.d[0], y + face.d[1], z + face.d[2])) continue;
+          const base = positions.length / 3;
+          for (const corner of face.corners) {
+            const placed = point(x + corner[0], y + corner[1], z + corner[2]);
+            positions.push(placed[0], placed[1], placed[2]);
             normals.push(face.n[0], face.n[1], face.n[2]);
           }
           indices.push(base, base + 1, base + 2, base, base + 2, base + 3);

@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { drawPlanField } from "@/components/skill1-viz";
 import { useVerticalView } from "@/components/vertical-view";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
-import { trailMaskCutoff } from "@/lib/skill1/maps";
+import { FIELD_SIZE, trailMaskCutoff } from "@/lib/skill1/maps";
+import type { FieldSnapshot } from "@/lib/skill1/types";
 import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
 import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { columnHeight, extractIsomesh, extractVoxels, sliceSpacing, VOXEL_RESOLUTION } from "@/lib/scan/isomesh";
+import { materializeOpenings } from "@/lib/skill3/materialize";
+import { MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
 import {
   SCAN_SLICES,
   advanceScan,
@@ -15,6 +19,8 @@ import {
   takeSlice,
   type ScanSlice,
 } from "@/lib/scan/volume";
+import { stackDisplaySlices } from "@/lib/skill3/stack-display";
+import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 const ARCHETYPE_LIST = Object.values(ARCHETYPES);
 const TYPOLOGY_LABEL = {
@@ -22,16 +28,68 @@ const TYPOLOGY_LABEL = {
   workspace: "Workspace",
   gathering: "Gathering",
 } as const;
-const PLATE = 220;
-const CUTOFF = trailMaskCutoff(5);
+const PLATE = 512;
 
+/**
+ * Skill 2 catalog field, drawn with the same trail renderer as the Pareto cards.
+ * Catalog thumbnails are white and light gray on black, so the copper and teal
+ * ink of the live shader is shown as gray. Openings stay clear.
+ */
 function rasterPlate(slice: ScanSlice) {
   const canvas = document.createElement("canvas");
   canvas.width = PLATE;
   canvas.height = PLATE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
-  drawSlimeFieldGl(ctx, slice.trails, slice.trailSize, slice.peak, PLATE, PLATE, CUTOFF);
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, PLATE, PLATE);
+  const painted = drawSlimeFieldGl(
+    ctx,
+    slice.trails,
+    slice.trailSize,
+    Math.max(slice.peak, 0.0001),
+    PLATE,
+    PLATE,
+    trailMaskCutoff(5),
+  );
+  if (!painted) {
+    const snapshot: FieldSnapshot = {
+      iteration: slice.iteration,
+      size: FIELD_SIZE,
+      trailSize: slice.trailSize,
+      trails: Array.from(slice.trails),
+      occupancy: [],
+      agents: [],
+      source: slice.source,
+      attractor: slice.attractor,
+    };
+    drawPlanField(ctx, snapshot, PLATE, PLATE, {
+      showHud: false,
+      fine: true,
+      density: 5,
+      showAttractors: false,
+    });
+  }
+  const image = ctx.getImageData(0, 0, PLATE, PLATE);
+  const data = image.data;
+  let peak = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    peak = Math.max(peak, data[i], data[i + 1], data[i + 2]);
+  }
+  const gain = peak > 8 ? 1 / peak : 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const ink = Math.max(data[i], data[i + 1], data[i + 2]);
+    if (ink < 8 || gain === 0) {
+      data[i + 3] = 0;
+      continue;
+    }
+    const v = Math.round(255 * Math.pow(ink * gain, 0.72));
+    data[i] = v;
+    data[i + 1] = v;
+    data[i + 2] = v;
+    data[i + 3] = v < 8 ? 0 : 255;
+  }
+  ctx.putImageData(image, 0, 0);
   return canvas;
 }
 
@@ -44,11 +102,46 @@ function veinColor(amount: number) {
   return `rgba(${r},${g},${b},${0.15 + t * 0.85})`;
 }
 
-export function CtScan() {
+function slicesFromField(field: VerticalViewerField): ScanSlice[] {
+  return field.slices.map((slice) => ({
+    index: slice.index,
+    iteration: slice.iteration,
+    trails: Float32Array.from(slice.trails),
+    trailSize: slice.trailSize,
+    peak: slice.peak,
+    source: { ...slice.source },
+    attractor: { ...slice.attractor },
+  }));
+}
+
+function plateCenterY(index: number, count: number, pitchY: number, zNorm: readonly number[] | null) {
+  if (!zNorm) {
+    const full = (SCAN_SLICES - 1) * pitchY;
+    return { y: index * pitchY - full * 0.5, full };
+  }
+  const full = Math.max(1, count - 1) * pitchY;
+  return { y: zNorm[index] * full - full * 0.5, full };
+}
+
+export function CtScan({
+  field,
+  fields,
+  materialization = "void",
+}: {
+  field?: VerticalViewerField;
+  fields?: readonly VerticalViewerField[];
+  /** Skill 3 solid. `trail` keeps the legacy trail-density mesh for comparison. */
+  materialization?: "void" | "trail";
+} = {}) {
+  const catalog = fields && fields.length > 0 ? fields : field ? [field] : [];
+  const [futureIndex, setFutureIndex] = useState(0);
+  const shown = catalog[Math.min(futureIndex, Math.max(0, catalog.length - 1))];
   const [archetypeId, setArchetypeId] = useState("vertical-void");
   const [seed, setSeed] = useState(7);
   const [runId, setRunId] = useState(0);
   const [slices, setSlices] = useState<ScanSlice[]>([]);
+  /** Vertical positions for the plates currently drawn. The mesh keeps the full accepted list. */
+  const [zNorm, setZNorm] = useState<number[] | null>(null);
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [ghost, setGhost] = useState(0.55);
@@ -70,10 +163,12 @@ export function CtScan() {
   const archetype = ARCHETYPE_LIST.find((item) => item.id === archetypeId) ?? ARCHETYPE_LIST[0];
 
   useEffect(() => {
+    if (shown) return;
     let cancelled = false;
     const run = startScan(archetypeId, seed);
     platesRef.current = [];
     setSlices([]);
+    setZNorm(null);
     setActive(0);
     setPlaying(false);
     followRef.current = true;
@@ -94,7 +189,19 @@ export function CtScan() {
     return () => {
       cancelled = true;
     };
-  }, [archetypeId, seed, runId]);
+  }, [archetypeId, shown, runId, seed]);
+
+  useEffect(() => {
+    if (!shown) return;
+    const source = mode === "stack" ? stackDisplaySlices(shown.slices) : shown.slices;
+    const next = slicesFromField({ ...shown, slices: source });
+    platesRef.current = next.map(rasterPlate);
+    setSlices(next);
+    setZNorm(source.map((slice) => slice.z));
+    setActive(0);
+    setPlaying(false);
+    followRef.current = false;
+  }, [mode, shown]);
 
   useEffect(() => {
     if (mode === "stack") return;
@@ -129,18 +236,39 @@ export function CtScan() {
   const meshCache = useRef(new Map<string, ReturnType<typeof extractIsomesh>>());
   const mesh = useMemo(() => {
     if (mode === "stack") return null;
-    const count = Math.min(slices.length, active + 1);
+    if (shown && materialization !== "trail") {
+      const samples = shown.slices;
+      if (samples.length < (mode === "voxel" ? 1 : 2)) return null;
+      const key = `${shown.lineage.futureId}:void:${MODULE_SIZE_Z}:${mode}:${iso}:${samples.map((slice) => slice.iteration).join(",")}`;
+      const cached = meshCache.current.get(key);
+      if (cached) return cached;
+      const next = materializeOpenings(samples, {
+        mode: mode === "voxel" ? "voxel" : "isomesh",
+        iso,
+        spacing,
+        yaw,
+        sizeZ: MODULE_SIZE_Z,
+      });
+      meshCache.current.set(key, next);
+      return next;
+    }
+    const fullTrail = shown ? slicesFromField(shown) : null;
+    const grown = fullTrail ?? slices.slice(0, Math.min(slices.length, active + 1));
+    const count = grown.length;
     if (count < (mode === "voxel" ? 1 : 2)) return null;
-    const key = `${mode}:${count}:${iso}:${spacing}:${yaw}:${slices.length}:${VOXEL_RESOLUTION}`;
+    const pitchY = sliceSpacing(spacing, yaw);
+    const trailZ = shown ? shown.slices.map((slice) => slice.z) : null;
+    if (trailZ && trailZ.length !== count) return null;
+    const meshZ = trailZ ? trailZ.map((z) => z * Math.max(1, trailZ.length - 1) * pitchY) : undefined;
+    const key = `${shown?.lineage.futureId ?? ""}:trail:${mode}:${shown ? `field:${count}` : count}:${iso}:${spacing}:${yaw}:${grown.length}:${VOXEL_RESOLUTION}:${meshZ?.join(",") ?? ""}`;
     const cached = meshCache.current.get(key);
     if (cached) return cached;
-    const grown = slices.slice(0, count);
     const next = mode === "voxel"
-      ? extractVoxels(grown, iso, spacing, yaw)
-      : extractIsomesh(grown, iso, spacing, yaw);
+      ? extractVoxels(grown, iso, spacing, yaw, meshZ)
+      : extractIsomesh(grown, iso, spacing, yaw, meshZ);
     meshCache.current.set(key, next);
     return next;
-  }, [active, iso, mode, slices, spacing, yaw]);
+  }, [active, materialization, shown, iso, mode, slices, spacing, yaw]);
 
   const drawStack = useMemo(() => {
     return () => {
@@ -163,7 +291,8 @@ export function CtScan() {
       const count = platesRef.current.length;
       if (!count) return;
       const pitchY = sliceSpacing(spacing, yaw);
-      const full = (SCAN_SLICES - 1) * pitchY;
+      const placed = Array.from({ length: count }, (_, index) => plateCenterY(index, count, pitchY, zNorm));
+      const full = placed[0]?.full ?? 0;
       const cy = Math.cos(meshYaw);
       const sy = Math.sin(meshYaw);
       const cp = Math.cos(pitch);
@@ -192,7 +321,7 @@ export function CtScan() {
       const du = rot(1, 0, 0);
       const dv = rot(0, 0, 1);
       const order = Array.from({ length: count }, (_, index) => index).sort(
-        (a, b) => rot(0, a * pitchY - full * 0.5, 0).z - rot(0, b * pitchY - full * 0.5, 0).z,
+        (a, b) => rot(0, placed[a].y, 0).z - rot(0, placed[b].y, 0).z,
       );
 
       for (const i of order) {
@@ -200,7 +329,7 @@ export function CtScan() {
         if (!plateCanvas) continue;
         const dist = Math.abs(i - active);
         const alpha = i === active ? 1 : Math.max(0.28, ghost * Math.exp(-dist * 0.12));
-        const origin = rot(-0.5, i * pitchY - full * 0.5, -0.5);
+        const origin = rot(-0.5, placed[i].y, -0.5);
         ctx.save();
         ctx.setTransform(
           dpr * du.x * scale,
@@ -210,9 +339,6 @@ export function CtScan() {
           dpr * (width / 2 + (origin.x - xMid) * scale),
           dpr * (height / 2 - (origin.y - yMid) * scale),
         );
-        ctx.globalAlpha = i === active ? 0.16 : 0.05;
-        ctx.fillStyle = "#f2f2ee";
-        ctx.fillRect(0, 0, 1, 1);
         ctx.globalAlpha = alpha;
         ctx.drawImage(plateCanvas, 0, 0, 1, 1);
         ctx.globalAlpha = i === active ? 0.95 : 0.28;
@@ -228,7 +354,7 @@ export function CtScan() {
         ctx.restore();
       }
     };
-  }, [active, cut, ghost, meshYaw, pitch, spacing, yaw, slices.length]);
+  }, [active, cut, ghost, meshYaw, pitch, spacing, yaw, zNorm, slices.length]);
 
   useEffect(() => {
     drawStack();
@@ -245,7 +371,7 @@ export function CtScan() {
   useEffect(() => {
     const canvas = axialRef.current;
     const slice = activeSlice;
-    const plate = slice ? platesRef.current[slice.index] : null;
+    const plate = slice ? platesRef.current[Math.min(active, platesRef.current.length - 1)] : null;
     if (!canvas || !slice || !plate) return;
     const dpr = window.devicePixelRatio || 1;
     const size = 280;
@@ -283,36 +409,50 @@ export function CtScan() {
     ctx.fillRect(0, 0, width, height);
     const cols = slices.length;
     const rows = 72;
-    const cellW = width / cols;
     const cellH = height / rows;
+    const bands = zNorm && zNorm.length === cols
+      ? zNorm.map((z, index) => {
+          const x0 = z * width;
+          const x1 = index + 1 < cols ? zNorm[index + 1] * width : width;
+          return { x: x0, w: Math.max(1, x1 - x0) };
+        })
+      : Array.from({ length: cols }, (_, index) => ({ x: (index * width) / cols, w: width / cols }));
     for (let z = 0; z < cols; z += 1) {
       for (let row = 0; row < rows; row += 1) {
         const yNorm = 1 - row / (rows - 1);
         const amount = sampleSlice(slices[z], cut, yNorm);
         ctx.fillStyle = veinColor(amount);
-        ctx.fillRect(z * cellW, row * cellH, cellW + 0.5, cellH + 0.5);
+        ctx.fillRect(bands[z].x, row * cellH, bands[z].w + 0.5, cellH + 0.5);
       }
     }
+    const marker = bands[Math.min(active, cols - 1)];
     ctx.strokeStyle = "rgba(199,126,95,0.95)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo((active + 0.5) * cellW, 0);
-    ctx.lineTo((active + 0.5) * cellW, height);
+    ctx.moveTo(marker.x + marker.w * 0.5, 0);
+    ctx.lineTo(marker.x + marker.w * 0.5, height);
     ctx.stroke();
-  }, [active, cut, slices]);
+  }, [active, cut, slices, zNorm]);
 
   useEffect(() => {
     if (mode === "stack") return;
     const canvas = meshRef.current;
     if (!canvas) return;
-    const paint = () => drawIsoMesh(canvas, mesh, meshYaw, pitch, columnHeight(spacing, yaw));
+    const paint = () => {
+      const column = shown && materialization !== "trail"
+        ? moduleViewColumn(moduleEnvelope(MODULE_SIZE_Z))
+        : shown
+          ? Math.max(1, Math.max(0, slices.length - 1)) * sliceSpacing(spacing, yaw)
+          : columnHeight(spacing, yaw);
+      drawIsoMesh(canvas, mesh, meshYaw, pitch, column, mode === "mesh" ? "shell" : "field");
+    };
     paint();
     const parent = canvas.parentElement;
     if (!parent) return;
     const observer = new ResizeObserver(paint);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [mesh, meshYaw, mode, pitch, spacing, yaw]);
+  }, [shown, mesh, meshYaw, mode, pitch, slices.length, spacing, yaw, materialization]);
 
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     dragRef.current = { x: event.clientX, y: event.clientY, yaw: meshYaw, pitch };
@@ -330,17 +470,55 @@ export function CtScan() {
   };
 
   return (
-    <main className="flex h-full flex-col bg-black text-[var(--text)]">
+    <main
+      className="flex h-full flex-col bg-black text-[var(--text)]"
+      data-skill3-future={shown?.lineage.futureId}
+      data-skill3-futures={catalog.map((item) => item.lineage.futureId).join(",")}
+      data-skill3-candidate={shown?.lineage.candidateId}
+      data-skill3-z0={shown?.lineage.z0Iteration}
+      data-skill3-iterations={shown?.slices.map((slice) => slice.iteration).join(",")}
+      data-skill3-displayed={
+        shown && mode === "stack"
+          ? stackDisplaySlices(shown.slices).map((slice) => slice.iteration).join(",")
+          : undefined
+      }
+    >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2">
         <div>
           <p className="display text-[0.95rem] text-white">CT Scan Stack</p>
           <p className="mt-0.5 text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-            {archetype.name}
+            {shown
+              ? `${shown.lineage.archetypeName} · candidate ${shown.lineage.candidateId} · Z0 ${shown.lineage.z0Iteration} · ${shown.lineage.futureId}`
+              : archetype.name}
             {mode === "stack"
               ? " · successive states of one run"
               : ` · ${mode === "voxel" ? "voxels" : "isomesh"}${mesh ? ` · ${mesh.triangles.toLocaleString()} triangles` : ""}`}
           </p>
         </div>
+        {shown ? (
+          catalog.length > 1 ? (
+            <div className="flex flex-wrap items-center gap-1">
+              {catalog.map((item, index) => (
+                <button
+                  key={item.lineage.futureId}
+                  type="button"
+                  data-active={index === futureIndex || undefined}
+                  onClick={() => {
+                    setFutureIndex(index);
+                    setPlaying(false);
+                  }}
+                  className={`border px-2.5 py-1.5 text-[0.72rem] uppercase tracking-[0.16em] ${
+                    index === futureIndex
+                      ? "border-[var(--text)] text-[var(--text)]"
+                      : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  {item.lineage.futureId}
+                </button>
+              ))}
+            </div>
+          ) : null
+        ) : (
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-[0.62rem] uppercase tracking-[0.14em] text-[var(--muted)]">
             Archetype
@@ -377,6 +555,7 @@ export function CtScan() {
             Rescan
           </button>
         </div>
+        )}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -406,9 +585,11 @@ export function CtScan() {
             <p className="eyebrow">Axial slice</p>
             <p className="mt-1 text-[0.72rem] uppercase tracking-[0.14em] text-[var(--muted)]">
               {activeSlice
-                ? `${String(activeSlice.index + 1).padStart(2, "0")} / ${String(SCAN_SLICES).padStart(2, "0")} · iter ${activeSlice.iteration}`
+                ? shown
+                  ? `${String(active + 1).padStart(2, "0")} / ${String(slices.length).padStart(2, "0")} · iter ${activeSlice.iteration}`
+                  : `${String(activeSlice.index + 1).padStart(2, "0")} / ${String(SCAN_SLICES).padStart(2, "0")} · iter ${activeSlice.iteration}`
                 : "Recording"}
-              {slices.length < SCAN_SLICES ? ` · ${slices.length} captured` : ""}
+              {!shown && slices.length < SCAN_SLICES ? ` · ${slices.length} captured` : ""}
             </p>
             <canvas ref={axialRef} className="mt-2 w-full border border-[rgba(242,242,238,0.16)]" />
           </div>

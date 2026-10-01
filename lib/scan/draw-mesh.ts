@@ -100,10 +100,79 @@ void main() {
   oColor = vec4(col * ao, 1.0);
 }`;
 
+/** Skill 3 Isomesh. Lighting only; the mesh buffers are unchanged. */
+const SHELL_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+in float vDepth;
+layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 oDepth;
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
+  if (dot(n, viewDir) < 0.0) n = -n;
+  vec3 key = normalize(vec3(0.32, 0.74, 0.46));
+  vec3 fill = normalize(vec3(-0.62, 0.08, 0.42));
+  float wrap = clamp((dot(n, key) + 0.62) / 1.62, 0.0, 1.0);
+  float bounce = clamp(dot(n, fill), 0.0, 1.0);
+  float facing = abs(dot(n, viewDir));
+  vec3 halfDir = normalize(key + viewDir);
+  float spec = pow(clamp(dot(n, halfDir), 0.0, 1.0), 56.0);
+  float rim = pow(1.0 - facing, 2.8);
+  vec3 shadow = vec3(0.27, 0.24, 0.21);
+  vec3 body = vec3(0.74, 0.68, 0.62);
+  vec3 bronze = vec3(0.66, 0.52, 0.42);
+  vec3 col = mix(shadow, body, wrap);
+  col += bronze * bounce * 0.14;
+  col += vec3(0.86, 0.80, 0.72) * spec * 0.07;
+  col += vec3(0.80, 0.74, 0.66) * rim * 0.20;
+  float fog = smoothstep(4.4, 11.0, vDepth);
+  col = mix(col, vec3(0.0), fog * 0.12);
+  oColor = vec4(col * 0.78, 1.0);
+  oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+}`;
+
+const SHELL_AO_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uColor;
+uniform sampler2D uDepth;
+uniform vec2 uTexel;
+in vec2 vUv;
+out vec4 oColor;
+
+void main() {
+  vec3 col = texture(uColor, vUv).rgb;
+  float z = texture(uDepth, vUv).r;
+  if (z <= 0.001) {
+    oColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+  float edge = 0.0;
+  vec2 stepUv = uTexel * 1.5;
+  float z1 = texture(uDepth, vUv + vec2(stepUv.x, 0.0)).r;
+  float z2 = texture(uDepth, vUv - vec2(stepUv.x, 0.0)).r;
+  float z3 = texture(uDepth, vUv + vec2(0.0, stepUv.y)).r;
+  float z4 = texture(uDepth, vUv - vec2(0.0, stepUv.y)).r;
+  edge += step(0.001, z1) * smoothstep(0.015, 0.09, abs(z - z1));
+  edge += step(0.001, z2) * smoothstep(0.015, 0.09, abs(z - z2));
+  edge += step(0.001, z3) * smoothstep(0.015, 0.09, abs(z - z3));
+  edge += step(0.001, z4) * smoothstep(0.015, 0.09, abs(z - z4));
+  edge = clamp(edge / 3.0, 0.0, 1.0);
+  col = mix(col, vec3(0.84, 0.78, 0.70), edge * 0.28);
+  oColor = vec4(col, 1.0);
+}`;
+
+export type IsoMeshStyle = "field" | "shell";
+
+const DRAW_MESH_GEN = 2;
+
 type MeshGl = {
   gl: WebGL2RenderingContext;
+  gen: number;
   program: WebGLProgram;
   aoProgram: WebGLProgram;
+  shellProgram: WebGLProgram;
+  shellAoProgram: WebGLProgram;
   position: WebGLBuffer;
   normal: WebGLBuffer;
   index: WebGLBuffer;
@@ -129,6 +198,7 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.warn(gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
@@ -144,7 +214,10 @@ function program(gl: WebGL2RenderingContext, vertSrc: string, fragSrc: string) {
   gl.attachShader(shader, vert);
   gl.attachShader(shader, frag);
   gl.linkProgram(shader);
-  if (!gl.getProgramParameter(shader, gl.LINK_STATUS)) return null;
+  if (!gl.getProgramParameter(shader, gl.LINK_STATUS)) {
+    console.warn(gl.getProgramInfoLog(shader));
+    return null;
+  }
   return shader;
 }
 
@@ -175,13 +248,15 @@ function resizeTargets(gpu: MeshGl, width: number, height: number) {
 
 function setup(canvas: HTMLCanvasElement): MeshGl | null {
   const existing = cache.get(canvas);
-  if (existing && !existing.gl.isContextLost()) return existing;
-  const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
+  if (existing && existing.gen === DRAW_MESH_GEN && !existing.gl.isContextLost()) return existing;
+  const gl = existing?.gl ?? canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = program(gl, VERT, FRAG);
   const aoProgram = program(gl, AO_VERT, AO_FRAG);
-  if (!meshProgram || !aoProgram) return null;
+  const shellProgram = program(gl, VERT, SHELL_FRAG);
+  const shellAoProgram = program(gl, AO_VERT, SHELL_AO_FRAG);
+  if (!meshProgram || !aoProgram || !shellProgram || !shellAoProgram) return null;
   const position = gl.createBuffer();
   const normal = gl.createBuffer();
   const index = gl.createBuffer();
@@ -207,8 +282,11 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   const state: MeshGl = {
     gl,
+    gen: DRAW_MESH_GEN,
     program: meshProgram,
     aoProgram,
+    shellProgram,
+    shellAoProgram,
     position,
     normal,
     index,
@@ -235,6 +313,7 @@ export function drawIsoMesh(
   yaw: number,
   pitch: number,
   column: number,
+  style: IsoMeshStyle = "field",
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -261,8 +340,10 @@ export function drawIsoMesh(
   gl.depthFunc(gl.LEQUAL);
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
+  const meshProgram = style === "shell" ? gpu.shellProgram : gpu.program;
+  const compositeProgram = style === "shell" ? gpu.shellAoProgram : gpu.aoProgram;
   if (mesh && mesh.triangles > 0) {
-    gl.useProgram(gpu.program);
+    gl.useProgram(meshProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
     gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(0);
@@ -273,26 +354,26 @@ export function drawIsoMesh(
     gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
-    gl.uniform1f(gpu.uYaw, yaw);
-    gl.uniform1f(gpu.uPitch, pitch);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uYaw"), yaw);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uPitch"), pitch);
     const aspect = width / Math.max(1, height);
     const fit = Math.min(1.45, 1.7 / Math.max(1, (column / 2) * aspect * 0.55));
-    gl.uniform1f(gpu.uAspect, aspect);
-    gl.uniform1f(gpu.uFit, fit);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uAspect"), aspect);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uFit"), fit);
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.disable(gl.DEPTH_TEST);
-  gl.useProgram(gpu.aoProgram);
+  gl.useProgram(compositeProgram);
   gl.bindBuffer(gl.ARRAY_BUFFER, gpu.quad);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, gpu.colorTex);
-  gl.uniform1i(gl.getUniformLocation(gpu.aoProgram, "uColor"), 0);
+  gl.uniform1i(gl.getUniformLocation(compositeProgram, "uColor"), 0);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, gpu.linearTex);
-  gl.uniform1i(gl.getUniformLocation(gpu.aoProgram, "uDepth"), 1);
-  gl.uniform2f(gpu.uTexel, 1 / pixelsW, 1 / pixelsH);
+  gl.uniform1i(gl.getUniformLocation(compositeProgram, "uDepth"), 1);
+  gl.uniform2f(gl.getUniformLocation(compositeProgram, "uTexel"), 1 / pixelsW, 1 / pixelsH);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
