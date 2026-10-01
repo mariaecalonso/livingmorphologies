@@ -30,12 +30,16 @@ export function useViewMode(): DisplayMode | null {
   return useSyncExternalStore(subscribeViewMode, readViewMode, () => null);
 }
 
-/** True inside any frame; the presentation canvas also carries `frame=1`. */
+function readExportSheet() {
+  return new URLSearchParams(window.location.search).get("export") === "1";
+}
+
+/** True inside any frame; the presentation canvas also carries `frame=1`. `export=1` renders that canvas directly for PDF export. */
 export function useFramed(): { framed: boolean; presentationFrame: boolean } | null {
-  const framed = useSyncExternalStore(subscribeNever, () => window.self !== window.top, () => null);
+  const framed = useSyncExternalStore(subscribeNever, () => window.self !== window.top || readExportSheet(), () => null);
   const presentationFrame = useSyncExternalStore(
     subscribeNever,
-    () => new URLSearchParams(window.location.search).get("frame") === "1",
+    () => new URLSearchParams(window.location.search).get("frame") === "1" || readExportSheet(),
     () => null,
   );
   if (framed === null || presentationFrame === null) return null;

@@ -627,10 +627,7 @@ export function LivingInstrument() {
     <div className="living-instrument-shell flex min-h-full flex-col px-2 py-2 text-[13px] md:h-full md:overflow-hidden md:px-3 md:py-2.5" data-display-mode={displayMode}>
       <header className="living-instrument-header mb-2 flex flex-wrap items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2">
         <div className="living-instrument-header-identity">
-          <p className="display text-[1.05rem] text-white md:text-[1.25rem]">
-            Living Morphologies
-          </p>
-          <p className="eyebrow mt-0.5 text-[0.58rem]">Emergent Network</p>
+          <p className="eyebrow text-[0.58rem]">Emergent Network</p>
         </div>
         <nav className="flex items-center gap-1" aria-label="Typology">
           {TYPOLOGIES.map((item) => {
@@ -736,23 +733,6 @@ export function LivingInstrument() {
                 </button>
               );
             })}
-          </div>
-          <div className="mt-3 flex gap-1.5">
-            <button
-              type="button"
-              onClick={saveToCatalog}
-              className="inline-flex flex-1 items-center justify-center gap-2 border border-[rgba(242,242,238,0.28)] px-3 py-2 text-[0.68rem] tracking-[0.22em] uppercase text-[var(--text)] hover:border-[rgba(242,242,238,0.5)]"
-            >
-              <IconSave /> Save
-            </button>
-            <button
-              type="button"
-              onClick={saveFieldJpeg}
-              disabled={!liveSnapshot}
-              className="inline-flex flex-1 items-center justify-center border border-[rgba(242,242,238,0.28)] px-3 py-2 text-[0.68rem] tracking-[0.22em] uppercase text-[var(--text)] hover:border-[rgba(242,242,238,0.5)] disabled:opacity-30"
-            >
-              PNG
-            </button>
           </div>
         </Panel>
         </section>
@@ -892,7 +872,7 @@ export function LivingInstrument() {
               </div>
             </div>
             <div className="agent-system-body min-h-0 flex-1 px-3 pb-3 pt-2">
-              <aside className="agent-information instrument-scroll" aria-label="Agent simulation">
+              <aside className="agent-information" aria-label="Agent simulation">
                 <div className="agent-information-header">
                   <p className="eyebrow">{archetype.name}</p>
                   <h3 className="panel-title mt-1">Agent / Simulation</h3>
@@ -934,7 +914,7 @@ export function LivingInstrument() {
                 </div>
               </aside>
 
-              <div className="agent-compare">
+              <div className="agent-compare agent-compare-field">
                 <div className="agent-compare-head">
                   <p className="eyebrow agent-zone-title">Physarum field</p>
                   <div className="flex flex-wrap items-center justify-end gap-1">
@@ -959,18 +939,9 @@ export function LivingInstrument() {
                     >
                       Regenerate
                     </button>
-                    <button
-                      type="button"
-                      title="Save Physarum PNG"
-                      aria-label="Save Physarum PNG"
-                      onClick={() => saveCanvasPng(physarumExportRef.current, exportFileName("physarum"))}
-                      className="inline-flex h-7 w-7 items-center justify-center border border-[rgba(242,242,238,0.28)] text-[var(--text)] hover:border-[rgba(242,242,238,0.5)]"
-                    >
-                      <IconSave />
-                    </button>
                   </div>
                 </div>
-                <div className="agent-compare-head">
+                <div className="agent-compare-head agent-carving" hidden>
                   <p className="eyebrow agent-zone-title">Carving</p>
                   <button
                     type="button"
@@ -1005,7 +976,7 @@ export function LivingInstrument() {
                     />
                   </div>
                 </div>
-                <div className="agent-stage" ref={carvingExportRef}>
+                <div className="agent-stage agent-carving" ref={carvingExportRef} hidden>
                   <div className="agent-stage-square agent-field bg-[#000000]">
                     <Skill2DirectInverseField
                       trails={liveSnapshot?.trails ?? null}
@@ -1019,7 +990,7 @@ export function LivingInstrument() {
                 <p className="agent-compare-foot text-[0.52rem] uppercase tracking-[0.12em] text-[var(--muted)]">
                   {simulating ? "Running" : state?.converged ? "Converged" : "Ready"}
                 </p>
-                <label className="agent-carve-control flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+                <label className="agent-carve-control flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]" hidden>
                   <span className="flex items-center justify-between gap-2">
                     <span>Carving threshold</span>
                     <span className="tabular-nums text-[var(--text)]">{carveThreshold.toFixed(2)}</span>
@@ -1139,17 +1110,6 @@ export function LivingInstrument() {
           </section>
         </div>
       ) : null}
-
-      <footer className="living-instrument-footer mt-2 grid grid-cols-3 items-center gap-2 px-1 text-[0.58rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-        <span className="living-instrument-footer-left">Design 7 Prof. Daniel Bolojan</span>
-        <span className="living-instrument-footer-center text-center">
-          {archetype.name} / {typology.label}
-        </span>
-        <span className="living-instrument-footer-right text-right">
-          {saved > 0 ? `${saved} saved · ` : ""}
-          Maria Alonso · Julieta Segura · Renata Maguino
-        </span>
-      </footer>
 
       {notice ? (
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-20 -translate-x-1/2 border border-[var(--cyan)] bg-[var(--panel-strong)] px-4 py-2 text-[0.7rem] tracking-[0.16em] uppercase text-[var(--cyan-hot)]">

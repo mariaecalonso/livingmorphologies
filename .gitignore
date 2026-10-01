@@ -35,3 +35,5 @@ CLAUDE.md
 /public/contained-search/*.png
 # generated Skill 2 calibration numbers
 /calibration/
+# presentation tab exports for PowerPoint
+/exports/

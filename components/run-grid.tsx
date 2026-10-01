@@ -17,7 +17,6 @@ import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTra
 import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { paintMorphology as paintSnapshot } from "@/components/morphology-preview";
-import { useSquareGridFit } from "@/components/use-square-grid-fit";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
 import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
@@ -298,14 +297,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const [runToken, setRunToken] = useState(0);
   const [wall, setWall] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(view === "catalog");
-  const catalogBodyRef = useRef<HTMLDivElement>(null);
   const [catalogPage, setCatalogPage] = useState(0);
-  const catalogFit = useSquareGridFit(catalogBodyRef, {
-    minimum: wall ? 300 : 132,
-    caption: wall ? 50 : 28,
-    gap: wall ? 12 : 8,
-    enabled: catalogOpen,
-  });
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [inspecting, setInspecting] = useState(false);
   const [catalogInspected, setCatalogInspected] = useState<number | null>(null);
@@ -1157,7 +1149,9 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   const selectedSnapshot = selected == null ? null : snapshotsRef.current[selected];
   const pickedName = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === (catalogOpen ? pickedId : runningId ?? pickedId))?.name;
-  const pageSize = catalogFit.columns * catalogFit.rows;
+  const catalogColumns = wall ? 16 : 8;
+  const catalogRows = 5;
+  const pageSize = Math.max(1, catalogColumns * catalogRows);
   const pageCount = Math.max(1, Math.ceil(catalog.length / pageSize));
   const page = Math.min(catalogPage, pageCount - 1);
   const pageStart = page * pageSize;
@@ -1166,7 +1160,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
       <header className="runs-header border-b border-[var(--line)] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="display text-[0.95rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 4 runs"}</p>
+          <p className="display text-[0.72rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 4 runs"}</p>
           <div className="flex items-center gap-2">
             <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
               {view === "catalog" ? `${catalog.length} saved` : `${completed} / ${RUN_COUNT}`}
@@ -1292,24 +1286,26 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               </button>
             </div>
           </header>
-          <div ref={catalogBodyRef} className="runs-catalog-body">
+          <div className="runs-catalog-body">
           {catalog.length ? (
             <div
               className="runs-catalog-grid"
+              data-fill
               style={{
-                gridTemplateColumns: `repeat(${catalogFit.columns}, ${catalogFit.size}px)`,
+                gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
                 gap: wall ? 12 : 8,
               }}
             >
               {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
-                <figure key={entry.id} className="flex flex-col border border-[rgba(242,242,238,0.16)] bg-black">
+                <figure key={entry.id} className="runs-catalog-card">
                   <button
                     type="button"
                     onClick={() => setCatalogInspected(pageStart + offset)}
-                    className="block w-full text-left"
+                    className="runs-catalog-card-image"
                     aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
                   >
-                    <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} className="block aspect-square w-full" />
+                    <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} />
                   </button>
                   <figcaption className="flex items-center justify-between gap-2 px-1.5 py-1 text-[0.55rem] tracking-[0.08em] uppercase text-[var(--muted)]">
                     <span className="truncate">

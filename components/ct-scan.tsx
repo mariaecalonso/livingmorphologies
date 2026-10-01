@@ -330,10 +330,10 @@ export function CtScan() {
   };
 
   return (
-    <main className="flex h-full flex-col bg-black text-[var(--text)]">
+    <main className="ct-page flex h-full flex-col bg-black text-[var(--text)]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] px-3 py-2">
         <div>
-          <p className="display text-[0.95rem] text-white">CT Scan Stack</p>
+          <p className="display text-[0.72rem] text-white">CT Scan Stack</p>
           <p className="mt-0.5 text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
             {archetype.name}
             {mode === "stack"

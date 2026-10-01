@@ -21,10 +21,11 @@ const STAGES: (NavItem & { match: string; sub?: NavItem[] })[] = [
     ],
   },
   {
-    href: "/evolution",
+    href: "/evolution/process",
     label: "2D Evolution",
     match: "/evolution",
     sub: [
+      { href: "/evolution/process", label: "Process" },
       { href: "/evolution", label: "Evolution" },
       { href: "/evolution/pareto", label: "Pareto" },
       { href: "/evolution/pareto-catalog", label: "Pareto Catalog" },

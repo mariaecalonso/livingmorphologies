@@ -210,9 +210,11 @@ async function main() {
         const born = current.candidates.filter((candidate) => candidate.generation === record.generation);
         const pixels = new Map(born.map((candidate, index) => [candidate.id, previews[index]]));
         const archived = new Set(current.archiveIds);
+        const specialists = new Set(Object.values(current.specialistIds ?? {}).flat());
+        const orientations = new Set(current.orientationEliteIds ?? []);
         let bytes = 0;
         for (const candidate of current.candidates) {
-          if (archived.has(candidate.id)) keepImage(candidate, pixels.get(candidate.id) ?? null);
+          if (archived.has(candidate.id) || specialists.has(candidate.id) || orientations.has(candidate.id)) keepImage(candidate, pixels.get(candidate.id) ?? null);
           else dropImage(candidate);
           if (candidate.preview.file) {
             const path = join(dir, candidate.preview.file);

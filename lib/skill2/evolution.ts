@@ -14,13 +14,14 @@ import {
   projectDrift,
   type Genome,
 } from "./genome";
-import { selectSurvivors, tournament, updateArchive, type Objectives } from "./nsga";
+import { rankPopulation, updateArchive, type Objectives } from "./nsga";
+import { newGenerationMix, selectOrientationElites, selectSpecialists, specialistIdList, tooClose, type SpecialistIds } from "./specialists";
 
 /**
- * Version-1 evolutionary controller. One independent search per archetype:
- * G01 is a legal sample of the realization genome, G02–G04 are mutated
- * offspring with elitist parent + offspring survival. No crossover, no
- * scalarized best; the output is the global non-dominated archive.
+ * Version-2 evolutionary controller. G01 is a legal sample. Later generations
+ * evaluate 80 new genomes: mutants from the Pareto archive and the specialist
+ * catalog, plus fresh explorers. Elites are carried without being simulated
+ * again. The unweighted archive stays separate from the specialist catalog.
  */
 export type EvolutionConfig = {
   generations: number;
@@ -83,7 +84,7 @@ export type GenerationRecord = {
   radiusStep: number;
   evaluated: number;
   feasible: number;
-  /** G01: the 80 initial candidates. Later: 80 parents + 80 offspring. */
+  /** The 80 genomes evaluated in this generation. */
   pool: PoolEntry[];
   /** Rank 1 within this generation's pool (generation-specific front). */
   frontIds: number[];
@@ -106,8 +107,12 @@ export type EvolutionRun = {
   completedGenerations: number;
   generations: GenerationRecord[];
   candidates: Candidate[];
-  /** Current global archive; the Pareto Catalog reads this, not rank 1. */
+  /** Current global unweighted archive. The Pareto catalog reads this, not rank 1. */
   archiveIds: number[];
+  /** At most four specialists in each emphasis. None of these ids are in the unweighted archive. */
+  specialistIds: SpecialistIds;
+  /** Best feasible candidate for each legal orientation. Carried so that angle keeps mutating. */
+  orientationEliteIds: number[];
 };
 
 export type EvaluateBatch = (genomes: Genome[]) => Promise<GenomeEvaluation[]>;
@@ -133,7 +138,17 @@ function gaussian(rng: () => number) {
 
 const sameAngle = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) <= 1e-9;
 
-/** G01: canonical pose first, then rejection-sampled legal genomes. Illegal samples are resampled, never shrunk. */
+function sampleOneGenome(base: BiologicalTranslation, rng: () => number, legal: number[]): Genome | null {
+  const r = GENOME_BOUNDS.driftMagnitude * Math.sqrt(rng());
+  const theta = rng() * Math.PI * 2;
+  const genome: Genome = {
+    driftX: r * Math.cos(theta),
+    driftY: r * Math.sin(theta),
+    uniformRadiusScale: GENOME_BOUNDS.radiusScaleMin + rng() * (GENOME_BOUNDS.radiusScaleMax - GENOME_BOUNDS.radiusScaleMin),
+    orientation: legal[Math.floor(rng() * legal.length)],
+  };
+  return isLegalGenome(base, genome, legal) ? genome : null;
+}
 export function sampleInitialGenomes(
   base: BiologicalTranslation,
   rng: () => number,
@@ -233,7 +248,7 @@ export function mutateGenome(
 export function createRun(archetypeId: string, controllerSeed: number, config: EvolutionConfig = EVOLUTION_CONFIG): EvolutionRun {
   const base = translateArchetype(archetypeId);
   return {
-    version: 1,
+    version: 2,
     archetypeId,
     typologyId: base.typologyId,
     evaluationSeed: EVALUATION_SEED,
@@ -246,6 +261,8 @@ export function createRun(archetypeId: string, controllerSeed: number, config: E
     generations: [],
     candidates: [],
     archiveIds: [],
+    specialistIds: { formal: [], spatial: [], atmospheric: [] },
+    orientationEliteIds: [],
   };
 }
 
@@ -275,27 +292,52 @@ export async function runEvolution(options: {
   for (let generation = run.completedGenerations + 1; generation <= config.generations; generation += 1) {
     const rng = generationRng(run.controllerSeed, generation);
     const steps = mutationSteps(generation, config);
-    const previous = run.generations[run.generations.length - 1];
-    const parents = previous ? previous.survivorIds.map((id) => byId.get(id)!) : [];
-    const parentPool = previous ? previous.survivorIds.map((id) => previous.pool.find((entry) => entry.id === id)!) : [];
 
     const births: Array<{ genome: Genome; parentId: number | null; flags: string[] }> = [];
     if (generation === 1) {
       sampleInitialGenomes(base, rng, config, legal).forEach((genome, index) =>
-        births.push({ genome, parentId: null, flags: index === 0 ? ["canonical"] : [] }),
+        births.push({ genome, parentId: null, flags: index === 0 ? ["canonical", "explorer"] : ["explorer"] }),
       );
     } else {
-      const rank = parentPool.map((entry) => entry.rank);
-      const crowding = parentPool.map((entry) => entry.crowding ?? Number.POSITIVE_INFINITY);
-      while (births.length < config.populationSize) {
-        const parent = parents[tournament(rank, crowding, rng)];
-        let child = mutateGenome(base, parent.genome, generation, rng, config, legal);
-        for (let retry = 0; retry < config.maxDuplicateRetries && seen.has(genomeKey(child.genome)); retry += 1) {
-          child = mutateGenome(base, parent.genome, generation, rng, config, legal);
+      const mix = newGenerationMix(generation);
+      const paretoParents = [...new Set([...run.archiveIds, ...run.orientationEliteIds])].map((id) => byId.get(id)!).filter(Boolean);
+      const specialistParents = specialistIdList(run.specialistIds).map((id) => byId.get(id)!).filter(Boolean);
+      const specialistMutants = specialistParents.length === 0 ? 0 : Math.floor(mix.mutants / 4);
+      const paretoMutants = mix.mutants - specialistMutants;
+      const pick = (pool: Candidate[]) => pool[Math.floor(rng() * pool.length)];
+      const addMutants = (count: number, pool: Candidate[]) => {
+        for (let n = 0; n < count; n += 1) {
+          const parent = pick(pool);
+          let child = mutateGenome(base, parent.genome, generation, rng, config, legal);
+          for (let retry = 0; retry < config.maxDuplicateRetries && seen.has(genomeKey(child.genome)); retry += 1) {
+            child = mutateGenome(base, parent.genome, generation, rng, config, legal);
+          }
+          if (seen.has(genomeKey(child.genome))) child.flags.push("duplicate-genome");
+          seen.add(genomeKey(child.genome));
+          births.push({ genome: child.genome, parentId: parent.id, flags: ["mutant", ...child.flags] });
         }
-        if (seen.has(genomeKey(child.genome))) child.flags.push("duplicate-genome");
-        seen.add(genomeKey(child.genome));
-        births.push({ genome: child.genome, parentId: parent.id, flags: child.flags });
+      };
+      if (paretoParents.length) addMutants(paretoMutants, paretoParents);
+      if (specialistParents.length) addMutants(specialistMutants, specialistParents);
+      const evaluated = run.candidates.map((candidate) => candidate.genome);
+      const explorerTarget = config.populationSize - births.length;
+      let explorers = 0;
+      let attempts = 0;
+      while (explorers < explorerTarget && attempts < config.maxSampleAttempts * explorerTarget) {
+        attempts += 1;
+        const genome = sampleOneGenome(base, rng, legal);
+        if (!genome) continue;
+        const key = genomeKey(genome);
+        if (seen.has(key)) continue;
+        const novel = attempts <= config.maxSampleAttempts * explorerTarget * 0.8;
+        const prior = [...evaluated, ...births.map((birth) => birth.genome)];
+        if (novel && prior.some((existing) => tooClose(genome, existing))) continue;
+        seen.add(key);
+        births.push({ genome, parentId: null, flags: ["explorer"] });
+        explorers += 1;
+      }
+      if (births.length < config.populationSize) {
+        throw new Error(`${run.archetypeId}: G${generation} could not fill ${config.populationSize} new legal genomes`);
       }
     }
     for (const birth of births) seen.add(genomeKey(birth.genome));
@@ -327,20 +369,17 @@ export async function runEvolution(options: {
       };
     });
 
-    const pool = [...parents, ...offspring];
-    const { survivors, ranking } = selectSurvivors(pool, config.populationSize);
-    const survived = new Set(survivors);
-    const entries: PoolEntry[] = pool.map((candidate, index) => ({
-      id: candidate.id,
-      rank: ranking.rank[index],
-      crowding: ranking.crowding[index],
-      survived: survived.has(index),
-    }));
+    const ranking = rankPopulation(offspring);
     offspring.forEach((candidate, index) => {
-      const entry = entries[parents.length + index];
-      candidate.rank = entry.rank;
-      candidate.crowding = entry.crowding;
+      candidate.rank = ranking.rank[index];
+      candidate.crowding = ranking.crowding[index];
     });
+    const entries: PoolEntry[] = offspring.map((candidate) => ({
+      id: candidate.id,
+      rank: candidate.rank,
+      crowding: candidate.crowding,
+      survived: false,
+    }));
 
     for (const candidate of offspring) {
       run.candidates.push(candidate);
@@ -353,6 +392,10 @@ export async function runEvolution(options: {
     run.archiveIds = archive.map((candidate) => candidate.id).sort((a, b) => a - b);
     const archived = new Set(run.archiveIds);
     for (const candidate of run.candidates) candidate.archived = archived.has(candidate.id);
+    run.specialistIds = selectSpecialists(run.candidates, run.archiveIds);
+    run.orientationEliteIds = selectOrientationElites(run.candidates, legal);
+    const elites = [...new Set([...run.archiveIds, ...specialistIdList(run.specialistIds), ...run.orientationEliteIds])];
+    for (const entry of entries) entry.survived = elites.includes(entry.id);
 
     run.generations.push({
       generation,
@@ -361,7 +404,7 @@ export async function runEvolution(options: {
       feasible: offspring.filter((candidate) => candidate.feasible).length,
       pool: entries,
       frontIds: entries.filter((entry) => entry.rank === 1).map((entry) => entry.id),
-      survivorIds: survivors.map((index) => pool[index].id),
+      survivorIds: elites,
       archiveIds: [...run.archiveIds],
       previewFile,
     });

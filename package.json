@@ -18,7 +18,8 @@
     "verify:skill2-morphogenesis": "npx --yes tsx lib/skill2/verify-section-morphogenesis.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "search:void": "npx --yes tsx scripts/search-void-field.ts",
-    "search:contained": "npx --yes tsx scripts/search-contained-room.ts"
+    "search:contained": "npx --yes tsx scripts/search-contained-room.ts",
+    "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -32,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "puppeteer-core": "^25.12.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

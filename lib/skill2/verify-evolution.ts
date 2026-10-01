@@ -27,6 +27,7 @@ import {
   legalOrientations,
   type Genome,
 } from "./genome";
+import { selectSpecialists } from "./specialists";
 import {
   crowdingDistances,
   dominates,
@@ -262,6 +263,24 @@ ok(
   ok("external archive");
 }
 
+{
+  const archive = [1];
+  const candidates = [
+    { id: 1, feasible: true, objectives: { formal: 0.9, spatial: 0.4, atmospheric: 0.4 }, genome: { ...CANONICAL_GENOME, driftX: 0 } },
+    { id: 2, feasible: true, objectives: { formal: 0.2, spatial: 0.2, atmospheric: 0.2 }, genome: { ...CANONICAL_GENOME, driftX: 0.4 } },
+    { id: 3, feasible: true, objectives: { formal: 0.8, spatial: 0.7, atmospheric: 0.7 }, genome: { ...CANONICAL_GENOME, driftX: 0.8 } },
+    { id: 4, feasible: true, objectives: { formal: 0.79, spatial: 0.7, atmospheric: 0.7 }, genome: { ...CANONICAL_GENOME, driftX: 0.82 } },
+  ];
+  const picked = selectSpecialists(candidates, archive);
+  const flat = [...picked.formal, ...picked.spatial, ...picked.atmospheric];
+  assert(new Set(flat).size === flat.length, "a specialist belongs to only one preference");
+  assert(!picked.formal.includes(1) && !picked.spatial.includes(1) && !picked.atmospheric.includes(1), "Pareto members are not specialists");
+  assert(!flat.includes(2), "below-median quality is not a specialist");
+  assert(picked.formal.includes(3), "a strong Formal-biased candidate can be a specialist");
+  assert(!flat.includes(4), "a near-duplicate does not fill another specialist row");
+  ok("specialist gate, single preference, and catalog-wide diversity");
+}
+
 // ---------- controller with a synthetic evaluator ----------
 function fakeEvaluator(seed = EVALUATION_SEED): EvaluateBatch {
   return async (genomes) =>
@@ -306,15 +325,26 @@ async function controllerChecks() {
   assert(g01.length === 80 && g01.every((c) => c.parentId === null), "G01 has 80 founders");
   assert(g01[0].flags.includes("canonical") && genomeKey(g01[0].genome) === genomeKey(CANONICAL_GENOME), "canonical founder");
   for (const record of run.generations) {
-    assert(record.survivorIds.length === 80 && new Set(record.survivorIds).size === 80, `G${record.generation} survivors`);
-    assert(record.pool.length === (record.generation === 1 ? 80 : 160), `G${record.generation} pool size`);
-    assert(record.frontIds.every((id) => record.pool.find((e) => e.id === id)!.rank === 1), "front ids are rank 1 in pool");
+    const born = run.candidates.filter((candidate) => candidate.generation === record.generation);
+    assert(born.length === 80, `G${record.generation} evaluates 80 new genomes`);
+    assert(record.pool.length === 80, `G${record.generation} pool is the evaluated generation`);
+    const mutants = born.filter((candidate) => candidate.flags.includes("mutant")).length;
+    const explorers = born.filter((candidate) => candidate.flags.includes("explorer")).length;
+    if (record.generation === 1) assert(mutants === 0 && explorers === 80, "G01 is explorers");
+    if (record.generation === 2) assert(mutants === 24 && explorers === 56, `G02 mix mutants=${mutants} explorers=${explorers}`);
+    if (record.generation === 3) assert(mutants === 40 && explorers === 40, `G03 mix mutants=${mutants} explorers=${explorers}`);
+    if (record.generation === 4) assert(mutants === 56 && explorers === 24, `G04 mix mutants=${mutants} explorers=${explorers}`);
     if (record.generation > 1) {
-      const previousSurvivors = new Set(run.generations[record.generation - 2].survivorIds);
-      const born = run.candidates.filter((c) => c.generation === record.generation);
-      assert(born.length === 80 && born.every((c) => previousSurvivors.has(c.parentId!)), "parents come from previous survivors");
+      const elites = new Set(run.generations[record.generation - 2].survivorIds);
+      assert(born.filter((candidate) => candidate.parentId != null).every((candidate) => elites.has(candidate.parentId!)), "mutant parents are elites");
     }
   }
+  for (const emphasis of ["formal", "spatial", "atmospheric"] as const) {
+    assert(run.specialistIds[emphasis].length <= 4, `${emphasis} specialists stay within 4`);
+    assert(run.specialistIds[emphasis].every((id) => !run.archiveIds.includes(id)), `${emphasis} specialists stay out of the Pareto archive`);
+  }
+  assert(run.orientationEliteIds.length <= legal.length, "at most one elite per legal orientation");
+  assert(new Set(run.orientationEliteIds).size === run.orientationEliteIds.length, "orientation elites are unique");
   for (const candidate of run.candidates) {
     assert(candidate.evaluationSeed === EVALUATION_SEED, "fixed evaluation seed recorded");
     assert(withinBounds(candidate.genome) && isLegalGenome(base, candidate.genome, legal), "controller genome legal");

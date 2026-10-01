@@ -16,6 +16,10 @@ export type EvolutionCandidateView = {
   pareto: boolean;
   paretoRank: number;
   archived: boolean;
+  /** Preference direction when this candidate is in the specialist catalog. */
+  specialist: "formal" | "spatial" | "atmospheric" | null;
+  /** Best of its legal orientation, shown when it is not already in the Pareto archive. */
+  orientationElite: boolean;
   image: string | null;
   observed: Record<string, number>;
   parentId: number | null;
@@ -44,6 +48,11 @@ export type EvolutionArchetypeView = {
   generations: EvolutionGenerationView[];
   candidates: EvolutionCandidateView[];
   archiveCount: number;
+  specialists: {
+    formal: number[];
+    spatial: number[];
+    atmospheric: number[];
+  };
 };
 
 export type EvolutionCatalog = {
@@ -91,9 +100,16 @@ function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
     });
   }
   const root = join(evolutionDir(), archetypeId);
+  const specialists = run.specialistIds ?? { formal: [], spatial: [], atmospheric: [] };
+  const orientationElites = new Set(run.orientationEliteIds ?? []);
+  const specialistOf = (id: number) =>
+    (["formal", "spatial", "atmospheric"] as const).find((emphasis) => specialists[emphasis].includes(id)) ?? null;
   const candidates = run.candidates.map((candidate) => {
     const rel = candidate.preview.file;
-    const hasImage = candidate.archived && rel.startsWith("archive/") && existsSync(join(root, rel));
+    const emphasis = specialistOf(candidate.id);
+    const orientationElite = orientationElites.has(candidate.id);
+    const kept = candidate.archived || emphasis != null || orientationElite;
+    const hasImage = kept && rel.startsWith("archive/") && existsSync(join(root, rel));
     return {
       key: `${archetypeId}:${candidate.id}`,
       archetypeId,
@@ -105,6 +121,8 @@ function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
       pareto: candidate.rank === 1,
       paretoRank: candidate.rank,
       archived: candidate.archived,
+      specialist: emphasis,
+      orientationElite,
       image: hasImage ? `/api/evolution/${archetypeId}/${candidate.id}` : null,
       observed: candidate.observed,
       parentId: candidate.parentId,
@@ -121,6 +139,7 @@ function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
     generations,
     candidates,
     archiveCount: run.archiveIds.length,
+    specialists,
   };
 }
 
