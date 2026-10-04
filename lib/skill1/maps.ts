@@ -82,6 +82,31 @@ export function trailMaskCutoff(density: number) {
   return 0.38 - densityAmount(density) * 0.24;
 }
 
+/** Ignore a few hot pixels so the colony body stays visible after peak-normalize. */
+export function robustTrailPeak(trails: ArrayLike<number>) {
+  let max = 0.0001;
+  let count = 0;
+  for (let i = 0; i < trails.length; i += 1) {
+    const value = trails[i];
+    if (value > max) max = value;
+    if (value > 0.012) count += 1;
+  }
+  if (count < 24) return max;
+  const bins = new Uint32Array(64);
+  for (let i = 0; i < trails.length; i += 1) {
+    const value = trails[i];
+    if (value <= 0.012) continue;
+    bins[Math.min(63, Math.floor((value / max) * 64))] += 1;
+  }
+  const cut = Math.max(1, Math.floor(count * 0.1));
+  let above = 0;
+  for (let i = 63; i >= 0; i -= 1) {
+    above += bins[i];
+    if (above >= cut) return Math.max(0.05, max * ((i + 1) / 64));
+  }
+  return max;
+}
+
 export function asRatingIndex(value: number): RatingIndex {
   if (value <= 0) return 0;
   if (value >= 2) return 2;

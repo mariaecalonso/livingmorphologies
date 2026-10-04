@@ -127,17 +127,21 @@ export function agentCountFromDensity(density: number) {
 export function varySlimeControls(base: SlimeControls, seed: number, archetypeId?: string): SlimeControls {
   const rng = mulberry32(seed ^ 0x51c0de);
   const singleVoid = archetypeId === "vertical-void" || archetypeId === "void-edge";
-  /** Stay near the translated DNA; do not re-roll the full slider range. */
-  const across = (value: number, min: number, max: number) =>
-    clamp(value + (rng() - 0.5) * (max - min) * 0.3, min, max);
+  const isolatedVoid = archetypeId === "void-field";
+  const linear = archetypeId === "linear-gallery" || archetypeId === "linear-edge-gallery" || archetypeId === "compressed-sequential";
+  const contained = archetypeId === "contained-room-within-volume" || archetypeId === "flat-deep-plan" || archetypeId === "stepped-amphitheater";
+  const openField = archetypeId === "topographic-ground-field" || archetypeId === "open-hall" || archetypeId === "undulated";
+  const span = 0.62;
+  const across = (value: number, min: number, max: number, local = span) =>
+    clamp(value + (rng() - 0.5) * (max - min) * local, min, max);
   const origin = base.foodPoints[0] ?? { x: FIELD_SIZE / 2, y: FIELD_SIZE / 2 };
   const foodPoints: Point[] = [
     {
-      x: clamp(origin.x + (rng() - 0.5) * (singleVoid ? 2.2 : 4), 2, FIELD_SIZE - 3),
-      y: clamp(origin.y + (rng() - 0.5) * (singleVoid ? 2.2 : 4), 2, FIELD_SIZE - 3),
+      x: clamp(origin.x + (rng() - 0.5) * (singleVoid || isolatedVoid ? 2.4 : 5.2), 2, FIELD_SIZE - 3),
+      y: clamp(origin.y + (rng() - 0.5) * (singleVoid || isolatedVoid ? 2.4 : 5.2), 2, FIELD_SIZE - 3),
     },
   ];
-  return {
+  const next: SlimeControls = {
     sensorAngle: across(base.sensorAngle, 0.08, 1.35),
     sensorDistance: across(base.sensorDistance, 0.25, 2.2),
     turnAngle: across(base.turnAngle, 0.05, 1.2),
@@ -155,7 +159,88 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     foodPoints,
     voidElongation: across(base.voidElongation, 0.38, 2.7),
     voidRotation: across(base.voidRotation, 0, Math.PI),
-    voidLobes: across(base.voidLobes, 0, singleVoid ? 0.16 : 0.62),
+    voidLobes: across(base.voidLobes, 0, singleVoid ? 0.22 : isolatedVoid ? 0.4 : 0.62),
     voidNotch: across(base.voidNotch, -0.9, 0.9),
   };
+  if (linear) {
+    next.persistence = clamp(next.persistence, 0.42, 0.9);
+    next.sensorAngle = clamp(next.sensorAngle, 0.08, 0.95);
+  }
+  if (contained) {
+    next.resistance = clamp(next.resistance, 0.18, 0.95);
+    next.diffusion = clamp(next.diffusion, 0, 0.22);
+    next.stepSize = clamp(next.stepSize, 0.08, 0.32);
+  }
+  if (openField) {
+    next.resistance = clamp(next.resistance, 0, 0.45);
+    next.trailInfluence = clamp(next.trailInfluence, 0.35, 1.7);
+    next.diffusion = clamp(next.diffusion, 0.08, 0.42);
+  }
+  if (archetypeId === "continuous-hall") {
+    next.trailInfluence = clamp(next.trailInfluence, 0.22, 2);
+    next.persistence = clamp(next.persistence, 0.26, 0.95);
+    next.sensorAngle = clamp(next.sensorAngle, 0.04, 0.62);
+    next.turnAngle = clamp(next.turnAngle, 0.04, 0.4);
+    next.diffusion = clamp(next.diffusion, 0, 0.14);
+    next.randomness = clamp(next.randomness, 0.02, 0.45);
+    next.resistance = clamp(next.resistance, 0.02, 0.5);
+    next.trailCap = clamp(next.trailCap, 0.14, 2);
+    next.deposit = clamp(next.deposit, 0.005, 0.3);
+    next.depositWidth = clamp(next.depositWidth, 0.28, 3.5);
+  }
+  if (archetypeId === "void-field") {
+    next.resistance = clamp(next.resistance, 0.08, 0.55);
+    next.trailInfluence = clamp(next.trailInfluence, 0.25, 1.2);
+  }
+  if (archetypeId === "vertical-void") {
+    next.trailInfluence = clamp(next.trailInfluence, 0.55, 2);
+    next.voidElongation = clamp(next.voidElongation, 0.55, 2.2);
+  }
+  if (archetypeId === "compressed-sequential") {
+    next.resistance = clamp(next.resistance, 0, 0.55);
+    next.persistence = clamp(next.persistence, 0.12, 0.9);
+    next.depositWidth = clamp(next.depositWidth, 0.26, 3.5);
+    next.deposit = clamp(next.deposit, 0.008, 0.3);
+    next.trailCap = clamp(next.trailCap, 0.18, 1.95);
+    next.stepSize = clamp(next.stepSize, 0.08, 0.4);
+    next.randomness = clamp(next.randomness, 0.02, 1.05);
+    next.diffusion = clamp(next.diffusion, 0, 0.16);
+  }
+  if (archetypeId === "topographic-ground-field") {
+    next.resistance = clamp(next.resistance, 0, 0.45);
+    next.persistence = clamp(next.persistence, 0.12, 0.9);
+    next.depositWidth = clamp(next.depositWidth, 0.26, 3.5);
+    next.deposit = clamp(next.deposit, 0.008, 0.3);
+    next.trailCap = clamp(next.trailCap, 0.18, 1.95);
+    next.stepSize = clamp(next.stepSize, 0.08, 0.4);
+    next.randomness = clamp(next.randomness, 0.04, 1.05);
+    next.diffusion = clamp(next.diffusion, 0, 0.16);
+    next.trailInfluence = clamp(next.trailInfluence, 0.28, 1.85);
+  }
+  if (archetypeId === "linear-gallery") {
+    next.resistance = clamp(next.resistance, 0.02, 0.45);
+    next.persistence = clamp(next.persistence, 0.18, 0.92);
+    next.depositWidth = clamp(next.depositWidth, 0.22, 3.2);
+    next.deposit = clamp(next.deposit, 0.008, 0.28);
+    next.trailCap = clamp(next.trailCap, 0.22, 1.95);
+    next.stepSize = clamp(next.stepSize, 0.1, 0.38);
+    next.randomness = clamp(next.randomness, 0.02, 0.95);
+    next.diffusion = clamp(next.diffusion, 0, 0.14);
+    next.sensorAngle = clamp(next.sensorAngle, 0.08, 0.85);
+    next.trailInfluence = clamp(next.trailInfluence, 0.28, 1.9);
+  }
+  if (archetypeId === "stepped-amphitheater") {
+    next.trailInfluence = clamp(next.trailInfluence, 1.1, 2);
+    next.resistance = clamp(next.resistance, 0.04, 0.28);
+    next.randomness = clamp(next.randomness, 0.08, 0.45);
+  }
+  if (archetypeId === "contained-room-within-volume") {
+    next.trailCap = clamp(next.trailCap, 0.9, 1.8);
+    next.deposit = clamp(next.deposit, 0.06, 0.22);
+  }
+  if (archetypeId === "flat-deep-plan") {
+    next.sensorDistance = clamp(next.sensorDistance, 0.25, 1.15);
+    next.randomness = clamp(next.randomness, 0, 0.55);
+  }
+  return next;
 }

@@ -26,6 +26,7 @@ precision highp float;
 uniform sampler2D uField;
 uniform float uTexels;
 uniform float uCutoff;
+uniform float uHairThin;
 uniform int uCount;
 uniform vec4 uAttr[16];
 uniform float uKind[16];
@@ -40,6 +41,18 @@ float bspline0(float t) { return (1.0 - t) * (1.0 - t) * (1.0 - t) / 6.0; }
 float bspline1(float t) { return (3.0 * t * t * t - 6.0 * t * t + 4.0) / 6.0; }
 float bspline2(float t) { return (-3.0 * t * t * t + 3.0 * t * t + 3.0 * t + 1.0) / 6.0; }
 float bspline3(float t) { return t * t * t / 6.0; }
+
+float bilinear(vec2 uv) {
+  vec2 p = clamp(uv, 0.0, 1.0) * uTexels - 0.5;
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 d = vec2(1.0) / uTexels;
+  float a = tap((i + 0.5) * d);
+  float b = tap((i + vec2(1.5, 0.5)) * d);
+  float c = tap((i + vec2(0.5, 1.5)) * d);
+  float e = tap((i + vec2(1.5, 1.5)) * d);
+  return mix(mix(a, b, f.x), mix(c, e, f.x), f.y);
+}
 
 float fieldAt(vec2 uv) {
   vec2 p = clamp(uv, 0.0, 1.0) * uTexels - 0.5;
@@ -89,22 +102,25 @@ float attractorNear(vec2 uv) {
 
 void main() {
   float t = 1.0 / uTexels;
-  float v = fieldAt(vUv);
-  float e = fieldAt(vUv + vec2(t, 0.0));
-  float w = fieldAt(vUv - vec2(t, 0.0));
-  float n = fieldAt(vUv + vec2(0.0, t));
-  float s = fieldAt(vUv - vec2(0.0, t));
-  float ne = fieldAt(vUv + vec2(t, t));
-  float nw = fieldAt(vUv + vec2(-t, t));
-  float se = fieldAt(vUv + vec2(t, -t));
-  float sw = fieldAt(vUv + vec2(-t, -t));
+  float vSmooth = fieldAt(vUv);
+  float vSharp = bilinear(vUv);
+  float v = uHairThin > 0.5 && vSmooth < 0.14 ? vSharp : vSmooth;
+  float e = uHairThin > 0.5 ? bilinear(vUv + vec2(t, 0.0)) : fieldAt(vUv + vec2(t, 0.0));
+  float w = uHairThin > 0.5 ? bilinear(vUv - vec2(t, 0.0)) : fieldAt(vUv - vec2(t, 0.0));
+  float n = uHairThin > 0.5 ? bilinear(vUv + vec2(0.0, t)) : fieldAt(vUv + vec2(0.0, t));
+  float s = uHairThin > 0.5 ? bilinear(vUv - vec2(0.0, t)) : fieldAt(vUv - vec2(0.0, t));
+  float ne = uHairThin > 0.5 ? bilinear(vUv + vec2(t, t)) : fieldAt(vUv + vec2(t, t));
+  float nw = uHairThin > 0.5 ? bilinear(vUv + vec2(-t, t)) : fieldAt(vUv + vec2(-t, t));
+  float se = uHairThin > 0.5 ? bilinear(vUv + vec2(t, -t)) : fieldAt(vUv + vec2(t, -t));
+  float sw = uHairThin > 0.5 ? bilinear(vUv + vec2(-t, -t)) : fieldAt(vUv + vec2(-t, -t));
   float around = 0.125 * (e + w + n + s + ne + nw + se + sw);
   float ridge = max(0.0, v - around * 0.62);
   vec2 g = vec2(e - w, n - s);
   float glen = length(g);
   vec2 along = glen > 1.0e-6 ? vec2(-g.y, g.x) / glen : vec2(1.0, 0.0);
   float tissue = v;
-  if (v > 0.04 || ridge > 0.005) {
+  bool link = uHairThin > 0.5 ? (v > 0.12 || ridge > 0.02) : (v > 0.04 || ridge > 0.005);
+  if (link) {
     float linked = v;
     for (int i = 1; i <= 8; i++) {
       float step = float(i) * t * 1.6;
@@ -116,7 +132,9 @@ void main() {
 
   float membrane = smoothstep(0.14, 0.28, tissue);
   float tube = smoothstep(0.045, 0.12, tissue) * smoothstep(0.004, 0.016, ridge);
-  float hair = smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
+  float hair = uHairThin > 0.5
+    ? smoothstep(0.010, 0.020, v) * (1.0 - smoothstep(0.070, 0.140, v)) * smoothstep(max(fwidth(v), t) * 0.35, max(fwidth(v), t) * 1.4, ridge)
+    : smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
   float mask = max(membrane, max(tube, hair));
   if (mask < 0.02) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -124,7 +142,7 @@ void main() {
   }
 
   float aa = max(fwidth(mask), 0.008);
-  float cover = smoothstep(0.22 - aa, 0.22 + aa, mask);
+  float cover = smoothstep((uHairThin > 0.5 ? 0.12 : 0.22) - aa, (uHairThin > 0.5 ? 0.12 : 0.22) + aa, mask);
   if (cover < 0.03) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
@@ -152,6 +170,7 @@ type GlState = {
   buffer: WebGLBuffer;
   uTexels: WebGLUniformLocation;
   uCutoff: WebGLUniformLocation;
+  uHairThin: WebGLUniformLocation;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
@@ -160,7 +179,7 @@ type GlState = {
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 28;
+const SHADER_GEN = 29;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -199,10 +218,11 @@ function createState(): GlState | null {
   const texture = gl.createTexture();
   const uTexels = gl.getUniformLocation(program, "uTexels");
   const uCutoff = gl.getUniformLocation(program, "uCutoff");
+  const uHairThin = gl.getUniformLocation(program, "uHairThin");
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uCutoff || !uHairThin || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -219,6 +239,7 @@ function createState(): GlState | null {
     buffer,
     uTexels,
     uCutoff,
+    uHairThin,
     uCount,
     uAttr,
     uKind,
@@ -246,6 +267,7 @@ export function drawSlimeFieldGl(
   fieldH: number,
   cutoff: number,
   attractors?: FieldAttractor[],
+  hairThin = false,
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
@@ -272,6 +294,7 @@ export function drawSlimeFieldGl(
   gl.uniform1i(gl.getUniformLocation(gpu.program, "uField"), 0);
   gl.uniform1f(gpu.uTexels, trailSize);
   gl.uniform1f(gpu.uCutoff, cutoff);
+  gl.uniform1f(gpu.uHairThin, hairThin ? 1 : 0);
   const packed = new Float32Array(64);
   const kinds = new Float32Array(16);
   const list = attractors ?? [];

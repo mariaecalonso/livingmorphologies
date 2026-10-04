@@ -1,11 +1,17 @@
 import { mulberry32 } from "../physarum";
 import { FIELD_SIZE } from "./maps";
+import { attractorsFromCompressedSequential, planCompressedSequential } from "./run-compressed-sequential";
+import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
+import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
+import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
+import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
 import type { AttractorKind, FieldAttractor } from "./types";
 
 /**
- * Attractor layouts for the run grid. Each archetype keeps the spatial idea its
- * descriptors name; the seed changes orientation, count, proportion, and place
- * so every run is a different realization of the same archetype.
+ * Attractor layouts for the run grid. Each run is an independent realization of
+ * the same architectural DNA. There is no universal point/circle/line/curve
+ * banding. The seed varies composition, proportion, branching, and approach
+ * while the archetype's spatial identity stays readable.
  *
  * Points and rings are solid disks the network wraps around. Lines and curves
  * are corridors the network gathers along; their radius is the corridor width.
@@ -17,6 +23,7 @@ type Frame = {
   r: (min: number, max: number) => number;
   int: (min: number, max: number) => number;
   chance: (p: number) => boolean;
+  pick: <T>(items: readonly T[]) => T;
 };
 
 /** A mark in layout space: u runs along the archetype axis, v across it, origin at the layout centre. */
@@ -43,6 +50,7 @@ function frame(rng: Rng): Frame {
     r: (min, max) => min + rng() * (max - min),
     int: (min, max) => Math.floor(min + rng() * (max - min + 1)),
     chance: (p) => rng() < p,
+    pick: (items) => items[Math.min(items.length - 1, Math.floor(rng() * items.length))],
   };
 }
 
@@ -50,9 +58,9 @@ function frame(rng: Rng): Frame {
 function place(layout: LocalMark[], rng: Rng, angles: number[], hold = false): FieldAttractor[] {
   const angle = angles[Math.floor(rng() * angles.length)] + (rng() - 0.5) * (hold ? 0.12 : 0.3);
   const flip = rng() < 0.5 ? -1 : 1;
-  const driftSpan = hold ? 2.2 : 3.6;
+  const driftSpan = hold ? 2.8 : 5.2;
   const drift = { x: (rng() - 0.5) * driftSpan, y: (rng() - 0.5) * driftSpan };
-  const grow = hold ? 0.88 + rng() * 0.14 : 0.7 + rng() * 0.4;
+  const grow = hold ? 0.82 + rng() * 0.28 : 0.58 + rng() * 0.72;
   const shake = (amount: number) => (rng() - 0.5) * 2 * amount;
   const marks = layout.map((mark) => {
     const isDisk = mark.kind === "point" || mark.kind === "ring";
@@ -121,208 +129,192 @@ function arc(_f: Frame, u1: number, v1: number, u2: number, v2: number, cu: numb
   return { kind: "curve", u: u1, v: v1, u2, v2, cu, cv, radius, strength };
 }
 
-/** Dynamic Core · Open Threshold · Visual Immersion — one absence, one approach. */
-function verticalVoid(f: Frame): LocalMark[] {
-  const ringR = f.r(3.6, 5.4);
-  const marks = [disk(f, "ring", 0, 0, ringR, 1.15, true)];
-  const approach = f.r(-Math.PI, Math.PI);
-  const far = ringR + f.r(3.8, 5.4);
-  marks.push(
-    seg(
-      f,
-      Math.cos(approach) * far,
-      Math.sin(approach) * far,
-      Math.cos(approach) * (ringR + 0.55),
-      Math.sin(approach) * (ringR + 0.55),
-      f.r(1.7, 2.8),
-      0.48,
-    ),
-  );
-  return marks;
+function approachPath(
+  f: Frame,
+  fromU: number,
+  fromV: number,
+  toU: number,
+  toV: number,
+  width: number,
+  strength: number,
+): LocalMark {
+  if (f.chance(0.55)) {
+    const midU = (fromU + toU) / 2 + f.r(-2.8, 2.8);
+    const midV = (fromV + toV) / 2 + f.r(-2.8, 2.8);
+    return arc(f, fromU, fromV, toU, toV, midU, midV, width, strength);
+  }
+  return seg(f, fromU, fromV, toU, toV, width, strength);
 }
 
-/** Geometry Compression · Sequential Release · Immersive Transition */
-function compressedSequential(f: Frame): LocalMark[] {
-  const pinches = f.int(1, 3);
-  const span = 15;
-  const pinchLen = f.r(2, 2.8);
-  const chamberLen = (span - pinches * pinchLen) / (pinches + 1);
-  const bend = f.chance(0.4) ? f.r(-2.2, 2.2) : 0;
-  const marks: LocalMark[] = [];
-  let u = -span / 2;
-  for (let i = 0; i <= pinches; i += 1) {
-    const wide = f.r(2.2, 3.1);
-    const u2 = u + chamberLen;
-    if (bend) marks.push(arc(f, u, 0, u2, 0, (u + u2) / 2, bend * (i % 2 ? -1 : 1), wide, 0.8));
-    else marks.push(seg(f, u, 0, u2, 0, wide, 0.8));
-    u = u2;
-    if (i === pinches) break;
-    const gap = f.r(1.1, 1.9);
-    const jaw = f.r(1.4, 2.4);
-    const mid = u + pinchLen / 2;
-    marks.push(seg(f, u, 0, u + pinchLen, 0, f.r(0.45, 0.7), 1.25));
-    marks.push(disk(f, "ring", mid, gap + jaw, jaw, 1.1, true));
-    marks.push(disk(f, "ring", mid, -(gap + jaw), jaw, 1.1, true));
-    u += pinchLen;
-  }
-  return marks;
+/** Dynamic Core · Open Threshold · Visual Immersion — realized in run-morphology. */
+function verticalVoid(_f: Frame): LocalMark[] {
+  return [];
 }
 
-/** Radial Convergence · Integrated Form · Dynamic Engagement */
-function continuousHall(f: Frame): LocalMark[] {
-  const coreR = f.r(1.4, 2.4);
-  const marks = [disk(f, "point", 0, 0, coreR, 1)];
-  const spokes = f.int(3, 6);
-  const start = f.r(0, Math.PI * 2);
-  for (let i = 0; i < spokes; i += 1) {
-    const a = start + (i / spokes) * Math.PI * 2 + (f.r(-0.5, 0.5) * Math.PI) / spokes;
-    const reach = f.r(7, 9);
-    const width = f.r(1.1, 1.8);
-    const inner = coreR + 0.4;
-    if (f.chance(0.35)) {
-      const side = f.r(-2, 2);
-      marks.push(
-        arc(
-          f,
-          Math.cos(a) * inner,
-          Math.sin(a) * inner,
-          Math.cos(a) * reach,
-          Math.sin(a) * reach,
-          Math.cos(a) * (reach / 2) - Math.sin(a) * side,
-          Math.sin(a) * (reach / 2) + Math.cos(a) * side,
-          width,
-          0.7,
-        ),
-      );
-    } else {
-      marks.push(seg(f, Math.cos(a) * inner, Math.sin(a) * inner, Math.cos(a) * reach, Math.sin(a) * reach, width, 0.7));
-    }
-  }
-  return marks;
+/** Geometry Compression · Sequential Release · Immersive Transition — realized in run-compressed-sequential. */
+function compressedSequential(_f: Frame): LocalMark[] {
+  return [];
 }
 
-/** Sculpted Ground · Distributed Flow · Shared Engagement */
-function topographicGroundField(f: Frame): LocalMark[] {
-  const marks: LocalMark[] = [];
-  const mounds = f.int(4, 7);
-  for (let i = 0; i < mounds; i += 1) {
-    const a = (i / mounds) * Math.PI * 2 + f.r(-0.4, 0.4);
-    const d = f.r(2, 7);
-    marks.push(disk(f, "point", Math.cos(a) * d, Math.sin(a) * d, f.r(1.5, 3.6), f.r(0.3, 0.5)));
-  }
-  const flows = f.int(1, 2);
-  for (let i = 0; i < flows; i += 1) {
-    const v = f.r(-5, 5);
-    marks.push(arc(f, -8, v, 8, v + f.r(-3, 3), f.r(-3, 3), v + f.r(-4, 4), f.r(2, 3), 0.35));
-  }
-  return marks;
+/** Radial Convergence · Integrated Form · Dynamic Engagement — realized in run-continuous-hall. */
+function continuousHall(_f: Frame): LocalMark[] {
+  return [];
 }
 
-/** Linear Fragmentation · Connected Progression · Intuitive Guidance */
-function linearGallery(f: Frame): LocalMark[] {
-  const half = f.r(6.5, 7.5);
-  const width = f.r(0.9, 1.4);
-  const bend = f.chance(0.4) ? f.r(-2.5, 2.5) : 0;
-  const marks = [
-    bend ? arc(f, -half, 0, half, 0, 0, bend, width, 1) : seg(f, -half, 0, half, 0, width, 1),
-  ];
-  const nodes = f.int(3, 5);
-  for (let i = 0; i < nodes; i += 1) {
-    const t = (i + 0.5) / nodes;
-    const u = -half + t * half * 2 + f.r(-0.6, 0.6);
-    const v = bend ? 2 * t * (1 - t) * bend : 0;
-    marks.push(disk(f, "point", u, v, f.r(0.9, 1.5), 0.7));
-  }
-  return marks;
+/** Sculpted Ground · Distributed Flow · Shared Engagement — realized in run-topographic-ground-field. */
+function topographicGroundField(_f: Frame): LocalMark[] {
+  return [];
+}
+
+/** Linear Fragmentation · Connected Progression · Intuitive Guidance — realized in run-linear-gallery. */
+function linearGallery(_f: Frame): LocalMark[] {
+  return [];
 }
 
 /** Orthogonal Balance · Adaptive Module · Engaging */
 function openHall(f: Frame): LocalMark[] {
   const marks: LocalMark[] = [];
-  if (f.chance(0.6)) marks.push(disk(f, "point", 0, 0, f.r(1.6, 2.4), 0.5));
-  const rows = f.int(2, 3);
-  const cols = f.int(2, 3);
-  const pitch = f.r(2.6, 4.2);
-  const width = f.r(1.1, 1.7);
+  const rows = f.int(2, 4);
+  const cols = f.int(2, 4);
+  const pitchU = f.r(2.4, 4.8);
+  const pitchV = f.r(2.4, 4.8);
+  const width = f.r(0.75, 1.8);
+  const spanU = ((cols - 1) / 2) * pitchU + f.r(1.8, 3.2);
+  const spanV = ((rows - 1) / 2) * pitchV + f.r(1.8, 3.2);
   for (let i = 0; i < rows; i += 1) {
-    const v = (i - (rows - 1) / 2) * pitch;
-    marks.push(seg(f, -7.2, v, 7.2, v, width, 0.7));
+    const v = (i - (rows - 1) / 2) * pitchV + f.r(-0.4, 0.4);
+    marks.push(seg(f, -spanU, v, spanU, v, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
   }
   for (let i = 0; i < cols; i += 1) {
-    const u = (i - (cols - 1) / 2) * pitch;
-    marks.push(seg(f, u, -7.2, u, 7.2, width, 0.7));
+    const u = (i - (cols - 1) / 2) * pitchU + f.r(-0.4, 0.4);
+    marks.push(seg(f, u, -spanV, u, spanV, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
+  }
+  const modules = f.int(3, 7);
+  for (let i = 0; i < modules; i += 1) {
+    marks.push(
+      disk(
+        f,
+        "point",
+        ((i % cols) - (cols - 1) / 2) * pitchU + f.r(-0.8, 0.8),
+        (Math.floor(i / cols) - (rows - 1) / 2) * pitchV + f.r(-0.8, 0.8),
+        f.r(0.8, 1.8),
+        f.r(0.28, 0.55),
+      ),
+    );
   }
   return marks;
 }
 
 /** Articulated · Connected Module · Immersive */
 function terraced(f: Frame): LocalMark[] {
-  const steps = f.int(3, 4);
-  const pitch = f.r(3, 3.8);
-  const shift = f.r(0.6, 1.4) * (f.chance(0.5) ? -1 : 1);
+  const steps = f.int(3, 6);
+  const pitch = f.r(2.2, 4.2);
+  const shift = f.r(0.4, 2.2) * (f.chance(0.5) ? -1 : 1);
   const marks: LocalMark[] = [];
   for (let i = 0; i < steps; i += 1) {
     const v = (i - (steps - 1) / 2) * pitch;
-    const half = 7 - i * f.r(0.8, 1.4);
-    const u = i * shift;
-    marks.push(seg(f, u - half, v, u + half, v, f.r(1, 1.4), 0.6 + i * 0.15));
+    const half = f.r(4.2, 8.2) - i * f.r(0.2, 1.6);
+    const u = i * shift + f.r(-0.6, 0.6);
+    const thick = f.r(0.75, 1.7);
+    if (f.chance(0.35)) marks.push(arc(f, u - half, v, u + half, v, u, v + f.r(-1.6, 1.6), thick, 0.5 + i * 0.12));
+    else marks.push(seg(f, u - half, v, u + half, v, thick, 0.5 + i * 0.12));
   }
-  const connector = f.r(-2, 2);
-  marks.push(seg(f, connector, -((steps - 1) / 2) * pitch - 0.5, connector + shift * (steps - 1), ((steps - 1) / 2) * pitch + 0.5, 1, 0.5));
+  const links = f.int(1, 3);
+  for (let i = 0; i < links; i += 1) {
+    const connector = f.r(-3.5, 3.5);
+    marks.push(
+      approachPath(
+        f,
+        connector,
+        -((steps - 1) / 2) * pitch - 0.4,
+        connector + shift * (steps - 1) + f.r(-1, 1),
+        ((steps - 1) / 2) * pitch + 0.4,
+        f.r(0.7, 1.3),
+        f.r(0.35, 0.65),
+      ),
+    );
+  }
   return marks;
 }
 
 /** Restrained · Rigid Module · Introspective */
 function flatDeepPlan(f: Frame): LocalMark[] {
-  const marks = [disk(f, "point", 0, 0, f.r(1, 1.5), 1)];
-  const rows = f.int(2, 3);
-  const cols = f.int(2, 3);
-  const cell = f.r(2.2, 3);
-  const width = f.r(0.6, 0.9);
+  const rows = f.int(2, 4);
+  const cols = f.int(2, 4);
+  const cell = f.r(1.8, 3.2);
+  const width = f.r(0.42, 0.95);
   const halfU = ((cols - 1) / 2) * cell + cell / 2;
   const halfV = ((rows - 1) / 2) * cell + cell / 2;
+  const marks: LocalMark[] = [];
   for (let i = 0; i <= rows; i += 1) {
     const v = -halfV + i * cell;
-    marks.push(seg(f, -halfU, v, halfU, v, width, 0.9));
+    marks.push(seg(f, -halfU, v, halfU, v, width, f.r(0.7, 1.05)));
   }
   for (let i = 0; i <= cols; i += 1) {
     const u = -halfU + i * cell;
-    marks.push(seg(f, u, -halfV, u, halfV, width, 0.9));
+    marks.push(seg(f, u, -halfV, u, halfV, width, f.r(0.7, 1.05)));
+  }
+  const clusters = f.int(2, 5);
+  for (let i = 0; i < clusters; i += 1) {
+    marks.push(
+      disk(
+        f,
+        "point",
+        f.r(-halfU + 0.6, halfU - 0.6),
+        f.r(-halfV + 0.6, halfV - 0.6),
+        f.r(0.55, 1.35),
+        f.r(0.55, 1.05),
+      ),
+    );
   }
   return marks;
 }
 
 /** Radial Balance · Integrated Module · Partially Engaging */
 function voidEdge(f: Frame): LocalMark[] {
-  const ringR = f.r(2.8, 4.2);
-  const edge = 6.4;
-  const marks = [disk(f, "ring", f.r(-2, 2), edge - ringR + 1.2, ringR, 1)];
-  marks.push(seg(f, -7, edge + 0.8, 7, edge + 0.8, f.r(1, 1.4), 0.55));
-  const modules = f.int(1, 2);
+  const ringR = f.r(2.2, 5.2);
+  const edge = f.r(5.4, 7.4);
+  const slide = f.r(-3.6, 3.6);
+  const marks = [disk(f, "ring", slide, edge - ringR + f.r(0.4, 1.8), ringR, f.r(0.85, 1.2), true)];
+  marks.push(seg(f, -8, edge + 0.6, 8, edge + 0.6, f.r(0.75, 1.7), f.r(0.4, 0.7)));
+  const modules = f.int(2, 5);
   for (let i = 0; i < modules; i += 1) {
-    marks.push(disk(f, "point", f.r(-5, 5), f.r(-4.5, -1.5), f.r(1.6, 2.2), 0.4));
+    const u = f.r(-6.2, 6.2);
+    const v = f.r(-5.4, -0.4);
+    marks.push(disk(f, "point", u, v, f.r(1.1, 2.4), f.r(0.28, 0.55)));
+    if (f.chance(0.6)) {
+      marks.push(approachPath(f, u, v, slide + f.r(-1.2, 1.2), edge - ringR, f.r(0.5, 1.2), 0.35));
+    }
   }
   return marks;
 }
 
 /** Dynamic · Collective Modules · Interactive */
 function undulated(f: Frame): LocalMark[] {
-  const waves = f.int(2, 3);
-  const span = 15;
+  const waves = f.int(2, 5);
+  const span = f.r(12, 16.5);
   const step = span / waves;
-  const amp = f.r(2, 3.5);
-  const width = f.r(1.2, 1.8);
+  const amp = f.r(1.6, 4.6);
+  const width = f.r(0.85, 2.2);
   const marks: LocalMark[] = [];
   for (let i = 0; i < waves; i += 1) {
     const u1 = -span / 2 + i * step;
     const u2 = u1 + step;
-    marks.push(arc(f, u1, 0, u2, 0, (u1 + u2) / 2, amp * (i % 2 ? -1 : 1), width, 0.5));
+    marks.push(arc(f, u1, f.r(-1.2, 1.2), u2, f.r(-1.2, 1.2), (u1 + u2) / 2, amp * (i % 2 ? -1 : 1) * f.r(0.6, 1.2), width, f.r(0.35, 0.7)));
   }
-  const modules = f.int(3, 5);
+  const modules = f.int(4, 8);
+  const clusters: Array<{ u: number; v: number }> = [];
   for (let i = 0; i < modules; i += 1) {
-    const u = -span / 2 + ((i + 0.5) / modules) * span;
-    const v = (i % 2 ? -1 : 1) * f.r(2.5, 3.5);
-    marks.push(disk(f, "point", u, v, f.r(1.4, 2), 0.75));
+    const u = -span / 2 + ((i + 0.5) / modules) * span + f.r(-1.2, 1.2);
+    const v = (i % 2 ? -1 : 1) * f.r(1.8, 5.2);
+    clusters.push({ u, v });
+    marks.push(disk(f, "point", u, v, f.r(1.1, 2.5), f.r(0.45, 0.9)));
+  }
+  for (let i = 1; i < clusters.length; i += 1) {
+    if (!f.chance(0.75)) continue;
+    const prev = clusters[i - 1];
+    const next = clusters[i];
+    marks.push(approachPath(f, prev.u, prev.v, next.u, next.v, f.r(0.5, 1.2), 0.35));
   }
   return marks;
 }
@@ -340,106 +332,168 @@ function ovalLoop(f: Frame, rx: number, ry: number, width: number, strength: num
   ];
 }
 
-function steppedAmphitheater(f: Frame, kind?: AttractorKind): LocalMark[] {
-  const tiers = f.int(3, 4);
-  const stretch = kind === "ring" ? f.r(1.05, 1.2) : f.r(1.45, 1.85);
-  const innerRx = f.r(2.8, 3.3);
-  const step = f.r(1.35, 1.7);
-  const marks: LocalMark[] = [disk(f, "ring", 0, 0, f.r(1.35, 1.75), 0.85, true)];
+function steppedAmphitheater(f: Frame): LocalMark[] {
+  const tiers = f.int(3, 6);
+  const stretch = f.r(1.08, 1.95);
+  const innerRx = f.r(2.2, 3.6);
+  const step = f.r(1.05, 1.9);
+  const marks: LocalMark[] = [disk(f, "ring", 0, 0, f.r(1.1, 2.1), f.r(0.7, 1.05), true)];
+  const mode = f.pick(["oval", "polygon", "seats", "bands"] as const);
 
   for (let i = 0; i < tiers; i += 1) {
     const rx = innerRx + i * step;
     const ry = rx / stretch;
-    const width = 0.52 + i * 0.05;
-    const strength = 1.22 - i * 0.08;
-    if (kind === "line") {
-      const sides = 8;
+    const width = f.r(0.42, 0.85) + i * 0.04;
+    const strength = 1.25 - i * 0.08;
+    if (mode === "polygon") {
+      const sides = f.int(6, 10);
       for (let s = 0; s < sides; s += 1) {
         const a0 = (s / sides) * Math.PI * 2;
         const a1 = ((s + 1) / sides) * Math.PI * 2;
         marks.push(seg(f, Math.cos(a0) * rx, Math.sin(a0) * ry, Math.cos(a1) * rx, Math.sin(a1) * ry, width, strength));
       }
-    } else if (kind === "point") {
-      const seats = f.int(4, 11);
+    } else if (mode === "seats") {
+      const seats = f.int(5, 12);
       for (let s = 0; s < seats; s += 1) {
-        if (f.chance(0.12)) continue;
-        const a = (s / seats) * Math.PI * 2 + f.r(-0.2, 0.2);
-        marks.push(disk(f, "point", Math.cos(a) * rx, Math.sin(a) * ry, f.r(0.35, 2.3), strength * f.r(0.55, 1.15)));
+        if (f.chance(0.1)) continue;
+        const a = (s / seats) * Math.PI * 2 + f.r(-0.18, 0.18);
+        marks.push(disk(f, "point", Math.cos(a) * rx, Math.sin(a) * ry, f.r(0.35, 1.6), strength * f.r(0.55, 1.1)));
       }
+    } else if (mode === "bands") {
+      marks.push(arc(f, -rx, -ry * 0.15, rx, -ry * 0.15, 0, -ry, width, strength));
+      marks.push(arc(f, -rx, ry * 0.15, rx, ry * 0.15, 0, ry, width, strength * 0.85));
     } else {
       marks.push(...ovalLoop(f, rx, ry, width, strength));
     }
   }
 
   const outerRy = (innerRx + (tiers - 1) * step) / stretch;
-  const crown = f.int(2, 3);
-  for (let i = 0; i < crown; i += 1) {
-    const u = (i - (crown - 1) / 2) * f.r(2.2, 3.2);
-    marks.push(disk(f, "point", u, -outerRy - f.r(1.1, 1.8), f.r(0.7, 1.1), 0.32));
+  const approaches = f.int(1, 3);
+  for (let i = 0; i < approaches; i += 1) {
+    const a = f.pick([-Math.PI / 2, Math.PI / 2, 0, Math.PI]) + f.r(-0.35, 0.35);
+    marks.push(
+      approachPath(
+        f,
+        Math.cos(a) * (outerRy + f.r(1.4, 2.8)),
+        Math.sin(a) * (outerRy + f.r(1.4, 2.8)),
+        Math.cos(a) * (innerRx * 0.4),
+        Math.sin(a) * (innerRx * 0.4),
+        f.r(0.55, 1.1),
+        0.38,
+      ),
+    );
   }
   return marks;
 }
 
 /** Visually Exposed Core · Isolated Anchor · Expansive Commons */
 function voidField(f: Frame): LocalMark[] {
-  const ringR = f.r(4, 6);
-  const marks = [disk(f, "ring", 0, 0, ringR, 1)];
-  const anchors = f.int(2, 4);
+  const coreU = f.r(-2.8, 2.8);
+  const coreV = f.r(-2.8, 2.8);
+  const ringR = f.r(2.8, 6.6);
+  const marks = [disk(f, "ring", coreU, coreV, ringR, f.r(0.75, 1.15), true)];
+  const framing = f.int(2, 6);
   const start = f.r(0, Math.PI * 2);
-  for (let i = 0; i < anchors; i += 1) {
-    const a = start + (i / anchors) * Math.PI * 2 + f.r(-0.3, 0.3);
-    const d = ringR + f.r(2.4, 3.4);
-    marks.push(disk(f, "point", Math.cos(a) * d, Math.sin(a) * d, f.r(1.8, 2.6), 0.3));
+  for (let i = 0; i < framing; i += 1) {
+    const a = start + (i / framing) * Math.PI * 2 + f.r(-0.4, 0.4);
+    const d = ringR + f.r(2.2, 5.4);
+    marks.push(disk(f, "point", coreU + Math.cos(a) * d, coreV + Math.sin(a) * d, f.r(1.2, 2.8), f.r(0.18, 0.38)));
+  }
+  const paths = f.int(1, 4);
+  for (let i = 0; i < paths; i += 1) {
+    const a = f.r(-Math.PI, Math.PI);
+    const far = ringR + f.r(3.4, 6.4);
+    marks.push(
+      approachPath(
+        f,
+        coreU + Math.cos(a) * far,
+        coreV + Math.sin(a) * far,
+        coreU + Math.cos(a) * (ringR + f.r(0.8, 2.2)),
+        coreV + Math.sin(a) * (ringR + f.r(0.8, 2.2)),
+        f.r(0.55, 1.5),
+        f.r(0.18, 0.36),
+      ),
+    );
   }
   return marks;
 }
 
 /** Modular Nodes · Visually Disturbed Nodes · Distributed Retreat */
 function insertedHorizontalPlate(f: Frame): LocalMark[] {
-  const v = f.r(-1.5, 1.5);
-  const marks = [seg(f, -8, v, 8, v, f.r(1.2, 1.6), 1.15)];
-  const nodes = f.int(3, 5);
+  const nodes = f.int(3, 7);
+  const marks: LocalMark[] = [];
+  const plates: Array<{ u: number; v: number }> = [];
   for (let i = 0; i < nodes; i += 1) {
-    const u = -7 + ((i + 0.5) / nodes) * 14 + f.r(-0.8, 0.8);
-    const side = (i % 2 ? -1 : 1) * f.r(3, 5.5);
-    marks.push(disk(f, "point", u, v + side, f.r(1.2, 2), 0.35));
+    const u = -7.4 + ((i + 0.5) / nodes) * 14.8 + f.r(-1.4, 1.4);
+    const v = (i % 2 ? -1 : 1) * f.r(1.6, 5.8) + f.r(-1.2, 1.2);
+    plates.push({ u, v });
+    marks.push(disk(f, f.chance(0.25) ? "ring" : "point", u, v, f.r(1.0, 2.4), f.r(0.55, 1.05)));
+    if (f.chance(0.45)) {
+      marks.push(seg(f, u - f.r(1.4, 2.6), v, u + f.r(1.4, 2.6), v, f.r(0.7, 1.3), 0.7));
+    }
+  }
+  for (let i = 0; i < plates.length - 1; i += 1) {
+    const a = plates[i];
+    const b = plates[i + 1];
+    marks.push(approachPath(f, a.u, a.v, b.u, b.v, f.r(0.55, 1.3), f.r(0.35, 0.7)));
+  }
+  if (f.chance(0.5) && plates.length > 2) {
+    const a = plates[0];
+    const b = plates[plates.length - 1];
+    marks.push(approachPath(f, a.u, a.v, b.u, b.v, f.r(0.45, 1), 0.3));
   }
   return marks;
 }
 
 /** Magnetic Enclosed Core · Isolated Attractor · Immersive Core */
 function containedRoomWithinVolume(f: Frame): LocalMark[] {
-  const marks = [disk(f, "point", 0, 0, f.r(1.2, 1.8), 1)];
-  if (f.chance(0.6)) {
-    const a = f.r(0, Math.PI * 2);
-    const d = f.r(1.8, 2.4);
-    marks.push(disk(f, "point", Math.cos(a) * d, Math.sin(a) * d, f.r(1, 1.4), 0.9));
+  const roomU = f.r(-1.8, 1.8);
+  const roomV = f.r(-1.8, 1.8);
+  const roomR = f.r(0.9, 2.1);
+  const ringR = roomR + f.r(1.8, 3.6);
+  const marks = [disk(f, "point", roomU, roomV, roomR, f.r(0.95, 1.25))];
+  marks.push(disk(f, "ring", roomU + f.r(-0.4, 0.4), roomV + f.r(-0.4, 0.4), ringR, f.r(0.45, 0.8)));
+  const outer = f.int(1, 3);
+  for (let i = 0; i < outer; i += 1) {
+    marks.push(disk(f, "ring", roomU, roomV, ringR + (i + 1) * f.r(1.1, 2.0), f.r(0.22, 0.45)));
   }
-  const ringR = f.r(2.8, 3.8);
-  marks.push(disk(f, "ring", 0, 0, ringR, 0.55));
-  const pulls = f.int(2, 4);
+  const openings = f.int(1, 4);
   const start = f.r(0, Math.PI * 2);
-  for (let i = 0; i < pulls; i += 1) {
-    const a = start + (i / pulls) * Math.PI * 2 + f.r(-0.3, 0.3);
-    const far = f.r(5.5, 7.5);
-    marks.push(seg(f, Math.cos(a) * far, Math.sin(a) * far, Math.cos(a) * (ringR + 0.5), Math.sin(a) * (ringR + 0.5), f.r(0.8, 1.1), 0.5));
+  for (let i = 0; i < openings; i += 1) {
+    const a = start + (i / openings) * Math.PI * 2 + f.r(-0.4, 0.4);
+    const far = ringR + f.r(2.8, 6.4);
+    marks.push(
+      approachPath(
+        f,
+        roomU + Math.cos(a) * far,
+        roomV + Math.sin(a) * far,
+        roomU + Math.cos(a) * (roomR + 0.35),
+        roomV + Math.sin(a) * (roomR + 0.35),
+        f.r(0.55, 1.3),
+        f.r(0.4, 0.75),
+      ),
+    );
   }
   return marks;
 }
 
 /** Porous Spine · Integrated Nodes · Social Commons */
 function linearEdgeGallery(f: Frame): LocalMark[] {
-  const v = f.r(5.5, 6.5);
-  const marks = [seg(f, -7, v, 7, v, f.r(1, 1.3), 1)];
-  const nodes = f.int(3, 4);
+  const v = f.r(4.6, 7.1);
+  const bend = f.chance(0.55) ? f.r(-2.4, 2.4) : 0;
+  const half = f.r(6.2, 8);
+  const marks = [
+    bend ? arc(f, -half, v, half, v, 0, v + bend, f.r(0.85, 1.7), 1.05) : seg(f, -half, v, half, v, f.r(0.85, 1.7), 1.05),
+  ];
+  const nodes = f.int(3, 7);
   for (let i = 0; i < nodes; i += 1) {
-    const u = -6 + ((i + 0.5) / nodes) * 12 + f.r(-0.6, 0.6);
-    marks.push(disk(f, "point", u, v, f.r(1.1, 1.5), 0.7));
+    const u = -half + ((i + 0.5) / nodes) * half * 2 + f.r(-0.9, 0.9);
+    marks.push(disk(f, "point", u, v + (bend ? bend * 0.25 : 0), f.r(0.9, 2.0), f.r(0.5, 0.9)));
   }
-  const pores = f.int(2, 3);
+  const pores = f.int(2, 5);
   for (let i = 0; i < pores; i += 1) {
-    const u = -6.5 + ((i + 0.5) / pores) * 13 + f.r(-1, 1);
-    marks.push(seg(f, u, v - 0.5, u, v - f.r(3, 5), 0.8, 0.4));
+    const u = -half + ((i + 0.5) / pores) * half * 2 + f.r(-1.3, 1.3);
+    marks.push(approachPath(f, u, v - 0.4, u + f.r(-1.2, 1.2), v - f.r(2.4, 6.2), f.r(0.5, 1.2), f.r(0.28, 0.55)));
   }
   return marks;
 }
@@ -481,16 +535,30 @@ export function runAttractorsFor(
   archetypeId: string,
   seed: number,
   recipe: FieldAttractor[],
-  kind?: AttractorKind,
+  _kind?: AttractorKind,
+  attempt = 0,
+  index = 0,
 ): FieldAttractor[] {
-  const rng = mulberry32(seed ^ 0xa77ac7);
-  const f = frame(rng);
-  if (archetypeId === "stepped-amphitheater") {
-    return place(steppedAmphitheater(f, kind), rng, CARDINAL, kind !== "point");
+  if (archetypeId === "vertical-void") {
+    return attractorsFromVerticalVoidPlan(planVerticalVoid(seed, attempt), seed, attempt);
   }
+  if (archetypeId === "compressed-sequential") {
+    return attractorsFromCompressedSequential(planCompressedSequential(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "continuous-hall") {
+    return attractorsFromContinuousHall(planContinuousHall(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "topographic-ground-field") {
+    return attractorsFromTopographic(planTopographicGroundField(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "linear-gallery") {
+    return attractorsFromLinearGallery(planLinearGallery(seed, attempt, index), seed, attempt);
+  }
+  const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
+  const f = frame(rng);
   const generator = GENERATORS[archetypeId];
   if (!generator) return jitteredRecipe(f, recipe);
-  return place(generator.build(f), rng, generator.angles);
+  return place(generator.build(f), rng, generator.angles, archetypeId === "stepped-amphitheater");
 }
 
 function pathPoint(mark: FieldAttractor, t: number) {

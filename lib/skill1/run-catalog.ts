@@ -1,8 +1,36 @@
 /** Per-archetype run catalog. Metadata and PNG blobs are stored as separate IndexedDB rows. */
 
-import { readSharedCatalog } from "@/lib/skill1/shared-catalog";
+import { clearSharedCatalog, readSharedCatalog } from "@/lib/skill1/shared-catalog";
 
 export const CATALOG_KEY = (archetypeId: string) => `lm-run-catalog:${archetypeId}`;
+const CLEARED_KEY = (archetypeId: string) => `lm-run-catalog-cleared:${archetypeId}`;
+
+function markCatalogCleared(archetypeId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CLEARED_KEY(archetypeId), "1");
+  } catch {
+    /* quota leftovers are fine */
+  }
+}
+
+export function catalogWasCleared(archetypeId: string) {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(CLEARED_KEY(archetypeId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function forgetCatalogCleared(archetypeId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(CLEARED_KEY(archetypeId));
+  } catch {
+    /* leftover flags are fine */
+  }
+}
 
 const DB_NAME = "living-morphologies-run-catalog";
 const BLOB_STORE = "catalogs";
@@ -51,17 +79,17 @@ function isPlaceholderImage(item: CatalogEntry) {
 
 function savedAt(item: CatalogEntry) {
   const value = (item as CatalogEntry & { savedAt?: number }).savedAt;
-  return typeof value === "number" ? value : Number.POSITIVE_INFINITY;
+  return typeof value === "number" ? value : 0;
 }
 
 function preferOriginal<T extends CatalogEntry>(next: T, current: T) {
   const nextBlank = isPlaceholderImage(next);
   const currentBlank = isPlaceholderImage(current);
   if (nextBlank !== currentBlank) return currentBlank;
-  const nextRepo = isRepoImage(next);
-  const currentRepo = isRepoImage(current);
-  if (nextRepo !== currentRepo) return nextRepo;
-  return savedAt(next) < savedAt(current);
+  const nextAt = savedAt(next);
+  const currentAt = savedAt(current);
+  if (nextAt !== currentAt) return nextAt > currentAt;
+  return isRepoImage(current) && !isRepoImage(next);
 }
 
 function mergeByRun<T extends CatalogEntry>(entries: T[]): T[] {
@@ -169,12 +197,14 @@ export async function readCatalog<T extends CatalogEntry>(archetypeId: string): 
   const fromEntries = db ? await attachImages(db, await readEntryRows<T>(db, archetypeId)) : [];
   const fromBlob = db ? await readBlobStore<T>(db, archetypeId) : [];
   const fromLocal = localEntries<T>(archetypeId);
+  if (catalogWasCleared(archetypeId)) return mergeByRun([...fromLocal, ...fromBlob, ...fromEntries]);
   const fromRepo = await readSharedCatalog<T>(archetypeId);
   return mergeByRun([...fromRepo, ...fromLocal, ...fromBlob, ...fromEntries]);
 }
 
 export async function writeCatalog<T extends CatalogEntry>(archetypeId: string, entries: T[]): Promise<boolean> {
   const merged = mergeByRun(entries);
+  if (merged.length) forgetCatalogCleared(archetypeId);
   const db = await openDb();
   if (db) {
     const existing = await readEntryRows<T>(db, archetypeId);
@@ -199,6 +229,7 @@ export async function writeCatalog<T extends CatalogEntry>(archetypeId: string, 
 
 export async function putCatalogEntries<T extends CatalogEntry>(archetypeId: string, incoming: T[]): Promise<boolean> {
   if (!incoming.length) return true;
+  forgetCatalogCleared(archetypeId);
   const db = await openDb();
   if (db && (await writeEntryRows(db, incoming))) return true;
   try {
@@ -212,11 +243,56 @@ export async function putCatalogEntries<T extends CatalogEntry>(archetypeId: str
   }
 }
 
+export async function clearCatalog(archetypeId: string): Promise<boolean> {
+  const db = await openDb();
+  if (db) {
+    const existing = await readEntryRows(db, archetypeId);
+    await writeEntryRows(db, [], existing.map((item) => item.id));
+    if (db.objectStoreNames.contains(BLOB_STORE)) {
+      await new Promise<void>((resolve) => {
+        const tx = db.transaction(BLOB_STORE, "readwrite");
+        const store = tx.objectStore(BLOB_STORE);
+        store.delete(archetypeId);
+        const request = store.getAllKeys();
+        request.onsuccess = () => {
+          for (const key of request.result ?? []) {
+            if (String(key) === archetypeId || String(key).includes(archetypeId)) store.delete(key);
+          }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    }
+  }
+  try {
+    window.localStorage.removeItem(CATALOG_KEY(archetypeId));
+  } catch {
+    /* leftover keys are fine */
+  }
+  markCatalogCleared(archetypeId);
+  await clearSharedCatalog(archetypeId);
+  return true;
+}
+
+async function countEntryRows(db: IDBDatabase, archetypeId: string): Promise<number> {
+  if (!db.objectStoreNames.contains(ENTRY_STORE)) return 0;
+  const tx = db.transaction(ENTRY_STORE, "readonly");
+  const store = tx.objectStore(ENTRY_STORE);
+  if (store.indexNames.contains("archetypeId")) {
+    return (await requestAll(store.index("archetypeId").count(archetypeId))) ?? 0;
+  }
+  const all = (await requestAll(store.getAll())) ?? [];
+  return (all as CatalogEntry[]).filter((item) => item?.archetypeId === archetypeId).length;
+}
+
 export async function listCatalogCounts(archetypeIds: string[]): Promise<Record<string, number>> {
+  const db = await openDb();
   const counts: Record<string, number> = {};
   await Promise.all(
     archetypeIds.map(async (id) => {
-      counts[id] = (await readCatalog(id)).length;
+      const local = localEntries(id).length;
+      const indexed = db ? await countEntryRows(db, id) : 0;
+      counts[id] = Math.max(local, indexed);
     }),
   );
   return counts;

@@ -712,10 +712,10 @@ export function LivingInstrument() {
       </ol>
 
       <div className="living-instrument-content grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[8rem_12.75rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
-        <section className="archetype-region">
-        <Panel className="flex flex-col">
+        <section className="archetype-region h-full min-h-0">
+        <Panel className="flex min-h-0 flex-col">
           <PanelHeader kicker="Input" title="Archetype" />
-          <div className="flex flex-1 flex-col gap-1.5">
+          <div className="archetype-list flex flex-1 flex-col gap-1.5">
             {typology.archetypes.map((item) => {
               const active = item.id === archetype.id;
               return (
@@ -723,10 +723,8 @@ export function LivingInstrument() {
                   key={item.id}
                   type="button"
                   onClick={() => selectArchetype(item.id)}
-                  className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
-                    active
-                      ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
-                      : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
+                  className={`archetype-chip px-1.5 py-1.5 text-center text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
+                    active ? "is-active text-white" : "text-[var(--muted)] hover:text-[var(--text)]"
                   }`}
                 >
                   {item.name}
@@ -745,13 +743,13 @@ export function LivingInstrument() {
           />
         ) : (
           <>
-        <section className="criteria-region">
+        <section className="criteria-region h-full min-h-0">
         <Panel className="flex min-h-0 flex-col">
           <PanelHeader
             kicker="Analysis"
             title="Criteria Configuration"
             aside={
-              <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--muted)]">
+              <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.6rem] tracking-[0.16em] uppercase text-[var(--muted)]">
                 Locked
               </span>
             }
@@ -767,10 +765,10 @@ export function LivingInstrument() {
                   <div className="mb-1 flex items-center gap-2 text-[var(--text)]">
                     <Icon />
                     <div>
-                      <p className="text-[0.66rem] tracking-[0.18em] uppercase">
+                      <p className="text-[0.79rem] tracking-[0.18em] uppercase">
                         {group.title}
                       </p>
-                      <p className="text-[0.5rem] tracking-[0.12em] uppercase text-[var(--muted)]">
+                      <p className="text-[0.6rem] tracking-[0.12em] uppercase text-[var(--muted)]">
                         {group.subtitle}
                       </p>
                     </div>
@@ -789,10 +787,10 @@ export function LivingInstrument() {
                           title={`${description} Ranked and locked.`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
+                            <span className="text-[0.77rem] tracking-[0.08em] uppercase text-[var(--text)]">
                               {criterion.label}
                             </span>
-                            <span className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--orange-hot)]">
+                            <span className="text-[0.79rem] uppercase tracking-[0.12em] text-[var(--orange-hot)]">
                               {ratingLabel(value)}
                             </span>
                           </div>
@@ -813,13 +811,13 @@ export function LivingInstrument() {
                       );
                     })}
                   </div>
-                  <div className="criteria-scale mt-0.5 flex justify-between text-[0.48rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+                  <div className="criteria-scale mt-0.5 flex justify-between text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
                     <span>Low</span>
                     <span>Medium</span>
                     <span>High</span>
                   </div>
-                  <p className="mt-1 border-t border-[rgba(242,242,238,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[#d5eef6]">
-                    <span className="mr-1 text-[0.48rem] tracking-[0.14em] text-[var(--muted)]">
+                  <p className="mt-1 border-t border-[rgba(242,242,238,0.12)] pt-1 text-[0.84rem] tracking-[0.12em] uppercase text-[#d5eef6]">
+                    <span className="mr-1 text-[0.58rem] tracking-[0.14em] text-[var(--muted)]">
                       {group.title} descriptor
                     </span>
                     {group.descriptor}
@@ -830,18 +828,18 @@ export function LivingInstrument() {
           </div>
           <div className="descriptor-region mt-1.5 border border-[rgba(242,242,238,0.18)] bg-[rgba(255,255,255,0.04)] p-2">
             <div className="mb-1 flex items-center justify-between">
-              <p className="text-[0.58rem] tracking-[0.18em] uppercase text-[var(--text)]">
+              <p className="text-[0.7rem] tracking-[0.18em] uppercase text-[var(--text)]">
                 Generated Descriptor
               </p>
-              <span className="text-[0.5rem] text-[var(--muted)]">v1.0</span>
+              <span className="text-[0.6rem] text-[var(--muted)]">v1.0</span>
             </div>
             <ul className="space-y-1">
               {groups.map((group) => (
                 <li
                   key={group.id}
-                  className="flex items-baseline justify-between gap-2 text-[0.7rem] uppercase tracking-[0.08em] text-[#d5eef6]"
+                  className="flex items-baseline justify-between gap-2 text-[0.84rem] uppercase tracking-[0.08em] text-[#d5eef6]"
                 >
-                  <span className="text-[0.48rem] tracking-[0.16em] text-[var(--muted)]">
+                  <span className="text-[0.58rem] tracking-[0.16em] text-[var(--muted)]">
                     {group.title}
                   </span>
                   <span>{group.descriptor}</span>

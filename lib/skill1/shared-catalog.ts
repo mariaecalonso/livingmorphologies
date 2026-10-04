@@ -66,6 +66,16 @@ export async function shareCatalogEntries<T extends SharedCatalogEntry>(archetyp
   return true;
 }
 
+export async function clearSharedCatalog(archetypeId: string): Promise<boolean> {
+  if (typeof fetch === "undefined" || !archetypeId) return true;
+  try {
+    const response = await fetch(`/api/shared-catalog?archetypeId=${encodeURIComponent(archetypeId)}`, { method: "DELETE" });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function sharedImageFor(archetypeId: string, entryId: string) {
   return imagePath(archetypeId, entryId);
 }

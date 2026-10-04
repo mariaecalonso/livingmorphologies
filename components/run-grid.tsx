@@ -6,33 +6,109 @@ import {
   createSimulation,
   stepMany,
 } from "@/lib/skill1/engine";
-import { DISPLAY_ITERATIONS, MAX_AGENT_COUNT, MIN_AGENT_COUNT, TRAIL_SCALE } from "@/lib/skill1/maps";
-import { attractorsAsKind, runAttractorsFor } from "@/lib/skill1/run-variants";
+import { DISPLAY_ITERATIONS, MIN_AGENT_COUNT, robustTrailPeak } from "@/lib/skill1/maps";
+import { runAttractorsFor } from "@/lib/skill1/run-variants";
+import {
+  agentsFromCompressedSequential,
+  attractorsFromCompressedSequential,
+  compressedSequentialIdentity,
+  foodFromAttractors,
+  isNovelSequence,
+  paramsFromCompressedSequential,
+  planCompressedSequential,
+  recipeFromCompressedSequential,
+  scoreCompressedSequential,
+  sequenceSignature,
+  slimeFromCompressedSequential,
+} from "@/lib/skill1/run-compressed-sequential";
+import {
+  agentsFromTopographic,
+  attractorsFromTopographic,
+  isNovelTerrain,
+  paramsFromTopographic,
+  planTopographicGroundField,
+  recipeFromTopographic,
+  scoreTopographic,
+  slimeFromTopographic,
+  topographicIdentity,
+  topographicSignature,
+} from "@/lib/skill1/run-topographic-ground-field";
+import {
+  agentsFromLinearGallery,
+  attractorsFromLinearGallery,
+  gallerySignature,
+  isNovelGallery,
+  linearGalleryIdentity,
+  pickMostNovelGallery,
+  paramsFromLinearGallery,
+  planLinearGallery,
+  recipeFromLinearGallery,
+  scoreLinearGallery,
+  slimeFromLinearGallery,
+} from "@/lib/skill1/run-linear-gallery";
+import {
+  agentsFromContinuousHall,
+  attractorsFromContinuousHall,
+  continuousHallIdentity,
+  hallSignature,
+  isNovelHall,
+  paramsFromContinuousHall,
+  planContinuousHall,
+  recipeFromContinuousHall,
+  slimeFromContinuousHall,
+} from "@/lib/skill1/run-continuous-hall";
+import {
+  extractMorphFeatures,
+  isNovelMorphology,
+  pickMostNovel,
+  planVerticalVoid,
+  slimeFromVerticalVoidPlan,
+  verticalVoidIdentity,
+  type MorphFeatures,
+} from "@/lib/skill1/run-morphology";
 import { densityFromTranslation, slimeControlsFromTranslation, varySlimeControls } from "@/lib/skill1/slime-controls";
 import { agentCountFromDensity } from "@/components/skill1-archetype-info";
 import { configForArchetype } from "@/lib/skill1/archetypes";
 import { translateArchetype } from "@/lib/skill1/translate";
 import type { SlimeControls } from "@/lib/skill1/slime-controls";
-import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnapshot, SpatialRecipe, TopologyKind } from "@/lib/skill1/types";
+import type { BiologicalBehavior, BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnapshot, SpatialRecipe, TopologyKind } from "@/lib/skill1/types";
 import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { paintMorphology as paintSnapshot } from "@/components/morphology-preview";
+import { useViewMode } from "@/components/view-mode";
 import { TYPOLOGIES } from "@/lib/catalog";
-import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
-import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
-import { listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
-import { clearAllDoneFlag, clearRunFields, loadRunsSession, readAllDoneFlag, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
+import { catalogWasCleared, clearCatalog, listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
+import { shareCatalogEntries } from "@/lib/skill1/shared-catalog";
+import { clearArchetypeFields, listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
+import { clearAllDoneFlag, clearRunFields, loadRunsSession, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
 
 const COLUMNS = 20;
-const ROWS = 4;
+const ROWS = 5;
 const RUN_COUNT = COLUMNS * ROWS;
+const CATALOG_MIN_ZOOM = 0.5;
+const CATALOG_MAX_ZOOM = 6;
+const clampCatalogZoom = (value: number) => Math.min(CATALOG_MAX_ZOOM, Math.max(CATALOG_MIN_ZOOM, value));
 const ALL_ARCHETYPE_IDS = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => item.id));
-/** Run grid uses a lighter trail so 80 cells can finish. The board still uses TRAIL_SCALE. */
+/** Run grid uses a lighter trail so 100 cells can finish. The board still uses TRAIL_SCALE. */
 const RUN_TRAIL_SCALE = 8;
+/** Compressed Sequential needs more texels so zoomed white filaments stay hair-thin. */
+const CS_TRAIL_SCALE = 32;
+const TGF_TRAIL_SCALE = 32;
+const LG_TRAIL_SCALE = 16;
+
+function finePaint(id?: string) {
+  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery";
+}
+
+function trailScaleFor(id?: string) {
+  if (id === "topographic-ground-field") return TGF_TRAIL_SCALE;
+  if (id === "compressed-sequential") return CS_TRAIL_SCALE;
+  if (id === "linear-gallery") return LG_TRAIL_SCALE;
+  return RUN_TRAIL_SCALE;
+}
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
 const CATALOG_IMAGE_SIZE = 1280;
 /** Continuous Hall runs that never landed in git. */
-const CH_GAP_RUNS = new Set([17, 18, 19, 20, 21, 22, 23, 24, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]);
 const tinySharedCache = new Map<string, boolean>();
 
 async function isTinySharedImage(image: string) {
@@ -53,36 +129,44 @@ function seedFor(id: string, run: number) {
   return (0x51c11 ^ (run * 9973) ^ id.length * 131) >>> 0;
 }
 
-/** One attractor type per grid row: Point, Circle, Line, Curvy line. */
-const ROW_KINDS: AttractorKind[] = ["point", "ring", "line", "curve"];
-
 function rebuildSavedDetail(entry: SavedRun) {
   const base = translateArchetype(entry.archetypeId);
-  const runTranslation = translationForRun(base, entry.seed, Math.max(0, entry.run - 1));
-  const marks = runTranslation.recipe.attractors ?? [];
-  const slime = entry.slime ?? {
-    ...varySlimeControls(slimeControlsFromTranslation(base), entry.seed, entry.archetypeId),
-    foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
-  };
-  return {
-    slime,
-    translation: {
-      ...runTranslation,
-      params: entry.params ?? runTranslation.params,
-      behavior: entry.behavior ?? runTranslation.behavior,
-      recipe: entry.recipe ?? runTranslation.recipe,
-      topology: entry.topology ?? runTranslation.topology,
-      archetypeName: entry.archetypeName ?? runTranslation.archetypeName,
-    },
-  };
+  try {
+    const runTranslation = translationForRun(base, entry.seed, Math.max(0, entry.run - 1));
+    const marks = entry.recipe?.attractors ?? runTranslation.recipe.attractors ?? [];
+    const slime = entry.slime ?? {
+      ...varySlimeControls(slimeControlsFromTranslation(base), entry.seed, entry.archetypeId),
+      foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
+    };
+    return {
+      slime,
+      translation: {
+        ...runTranslation,
+        params: entry.params ?? runTranslation.params,
+        behavior: entry.behavior ?? runTranslation.behavior,
+        recipe: entry.recipe ?? runTranslation.recipe,
+        topology: entry.topology ?? runTranslation.topology,
+        archetypeName: entry.archetypeName ?? runTranslation.archetypeName,
+      },
+    };
+  } catch {
+    return {
+      slime: entry.slime ?? slimeControlsFromTranslation(base),
+      translation: {
+        ...base,
+        params: entry.params ?? base.params,
+        behavior: entry.behavior ?? base.behavior,
+        recipe: entry.recipe ?? base.recipe,
+        topology: entry.topology ?? base.topology,
+        archetypeName: entry.archetypeName ?? base.archetypeName,
+      },
+    };
+  }
 }
 
-function translationForRun(base: BiologicalTranslation, seed: number, index: number): BiologicalTranslation {
-  const kind = ROW_KINDS[Math.floor(index / COLUMNS) % ROW_KINDS.length];
-  const built = runAttractorsFor(base.archetypeId, seed, base.recipe.attractors ?? [], kind);
-  const attractors =
-    base.archetypeId === "stepped-amphitheater" ? built : attractorsAsKind(built, kind, seed, base.archetypeId);
-  const first = attractors[0];
+function translationForRun(base: BiologicalTranslation, seed: number, index: number, attempt = 0): BiologicalTranslation {
+  const attractors = runAttractorsFor(base.archetypeId, seed, base.recipe.attractors ?? [], undefined, attempt, index);
+  const first = attractors[0] ?? { x: 10, y: 10, kind: "point" as const, radius: 1.4, strength: 1 };
   return {
     ...base,
     recipe: {
@@ -93,6 +177,112 @@ function translationForRun(base: BiologicalTranslation, seed: number, index: num
       attractors,
     },
   };
+}
+
+function realizeRun(
+  base: BiologicalTranslation,
+  slimeBase: SlimeControls,
+  seed: number,
+  attempt = 0,
+  index = 0,
+) {
+  const compressedPlan = base.archetypeId === "compressed-sequential" ? planCompressedSequential(seed, attempt, index) : null;
+  const hallPlan = base.archetypeId === "continuous-hall" ? planContinuousHall(seed, attempt, index) : null;
+  const groundPlan = base.archetypeId === "topographic-ground-field" ? planTopographicGroundField(seed, attempt, index) : null;
+  const galleryPlan = base.archetypeId === "linear-gallery" ? planLinearGallery(seed, attempt, index) : null;
+  const runTranslation = translationForRun(base, seed, index, attempt);
+  const tuned = compressedPlan
+    ? {
+        ...runTranslation,
+        params: paramsFromCompressedSequential(base.params, compressedPlan),
+        recipe: {
+          ...recipeFromCompressedSequential(runTranslation.recipe, compressedPlan, seed ^ (attempt * 131)),
+          attractors: attractorsFromCompressedSequential(compressedPlan, seed, attempt),
+          attractorFixed: true,
+          attractorsOnly: compressedPlan.attractorsOnly,
+        },
+      }
+    : hallPlan
+      ? {
+          ...runTranslation,
+          topology: hallPlan.figure === "void-cut" ? "around-absence" : "open-network",
+          params: paramsFromContinuousHall(base.params, hallPlan),
+          recipe: {
+            ...recipeFromContinuousHall(runTranslation.recipe, hallPlan, seed ^ (attempt * 131)),
+            attractors: attractorsFromContinuousHall(hallPlan, seed, attempt),
+          },
+        }
+      : groundPlan
+        ? {
+            ...runTranslation,
+            params: paramsFromTopographic(base.params, seed ^ (attempt * 131)),
+            recipe: {
+              ...recipeFromTopographic(runTranslation.recipe, seed ^ (attempt * 131)),
+              attractors: attractorsFromTopographic(groundPlan, seed, attempt),
+              attractorFixed: true,
+              attractorsOnly: true,
+            },
+          }
+        : galleryPlan
+          ? {
+              ...runTranslation,
+              params: paramsFromLinearGallery(base.params, seed ^ (attempt * 131)),
+              recipe: {
+                ...recipeFromLinearGallery(runTranslation.recipe, seed ^ (attempt * 131)),
+                attractors: attractorsFromLinearGallery(galleryPlan, seed, attempt),
+                attractorFixed: true,
+                attractorsOnly: true,
+              },
+            }
+          : runTranslation;
+  const marks = tuned.recipe.attractors ?? [];
+  const slime =
+    base.archetypeId === "vertical-void"
+      ? {
+          ...slimeFromVerticalVoidPlan(slimeBase, planVerticalVoid(seed, attempt), seed ^ (attempt * 131)),
+          foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
+        }
+      : compressedPlan
+        ? {
+            ...slimeFromCompressedSequential(slimeBase, compressedPlan, seed ^ (attempt * 131)),
+            foodPoints: foodFromAttractors(marks),
+          }
+        : hallPlan
+          ? {
+              ...slimeFromContinuousHall(slimeBase, hallPlan, seed ^ (attempt * 131)),
+              foodPoints: (() => {
+                if (hallPlan.figure !== "void-cut") return foodFromAttractors(marks);
+                const banks = foodFromAttractors(marks.filter((item) => !item.hole && item.kind !== "ring"));
+                return banks.length ? banks : [{ x: hallPlan.cx, y: hallPlan.cy }];
+              })(),
+            }
+        : groundPlan
+          ? {
+              ...slimeFromTopographic(slimeBase, groundPlan, seed ^ (attempt * 131)),
+              foodPoints: foodFromAttractors(marks),
+            }
+        : galleryPlan
+          ? {
+              ...slimeFromLinearGallery(slimeBase, galleryPlan, seed ^ (attempt * 131)),
+              foodPoints: foodFromAttractors(marks),
+            }
+        : {
+            ...varySlimeControls(slimeBase, seed ^ (attempt * 9973), base.archetypeId),
+            foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
+          };
+  const rng = mulberry32(seed ^ 0x6d2b79f5 ^ attempt);
+  const baseAgents = agentCountFromDensity(densityFromTranslation(base)) + (rng() - 0.5) * 36;
+  const plannedAgents = compressedPlan
+    ? agentsFromCompressedSequential(compressedPlan, seed ^ attempt)
+    : hallPlan
+      ? agentsFromContinuousHall(hallPlan, seed ^ attempt)
+      : groundPlan
+        ? agentsFromTopographic(groundPlan, seed ^ attempt)
+        : galleryPlan
+          ? agentsFromLinearGallery(galleryPlan, seed ^ attempt)
+          : baseAgents;
+  const agents = Math.round(Math.min(600, Math.max(MIN_AGENT_COUNT, plannedAgents)));
+  return { seed, agents, slime, translation: tuned };
 }
 
 /** One saved run in the per-archetype catalog. */
@@ -114,7 +304,7 @@ type SavedRun = {
   topology?: TopologyKind;
 };
 
-function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[]) {
+function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -122,7 +312,7 @@ function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attra
   if (!ctx) return "";
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, size, size);
-  drawPlanField(ctx, snapshot, size, size, { showHud: false, fine: true, density: 5, attractors, showAttractors: false });
+  drawPlanField(ctx, snapshot, size, size, { showHud: false, fine: true, density: 5, attractors, showAttractors: false, peak, hairThin: Boolean(peak) });
   try {
     return canvas.toDataURL("image/png");
   } catch {
@@ -139,13 +329,44 @@ function canvasImage(canvas: HTMLCanvasElement | null) {
   }
 }
 
-function kindLabel(index: number) {
-  const kind = ROW_KINDS[Math.floor(index / COLUMNS) % ROW_KINDS.length];
-  return kind === "ring" ? "circle" : kind === "curve" ? "curvy line" : kind;
+function kindLabel(marks?: FieldAttractor[]) {
+  if (!marks?.length) return "mixed";
+  const kinds = [...new Set(marks.map((mark) => mark.kind))];
+  if (kinds.length === 1) {
+    const kind = kinds[0];
+    return kind === "ring" ? "circle" : kind === "curve" ? "curvy line" : kind;
+  }
+  return "mixed";
 }
 
-function entryImage(index: number, snapshot: FieldSnapshot | null, canvas: HTMLCanvasElement | null, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[]) {
-  return (snapshot ? snapshotImage(snapshot, size, attractors) : "") || canvasImage(canvas);
+function entryImage(
+  index: number,
+  snapshot: FieldSnapshot | null,
+  canvas: HTMLCanvasElement | null,
+  size = CATALOG_IMAGE_SIZE,
+  attractors?: FieldAttractor[],
+  peak?: number,
+) {
+  return (snapshot ? snapshotImage(snapshot, size, attractors, peak) : "") || canvasImage(canvas);
+}
+
+function paintRunCell(
+  canvas: HTMLCanvasElement,
+  snapshot: FieldSnapshot,
+  attractors?: FieldAttractor[],
+  archetypeId?: string,
+  fine = false,
+) {
+  paintSnapshot(
+    canvas,
+    snapshot,
+    fine,
+    attractors,
+    undefined,
+    finePaint(archetypeId) ? 8 : 5,
+    finePaint(archetypeId) ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined,
+    finePaint(archetypeId),
+  );
 }
 
 function labelize(key: string) {
@@ -286,17 +507,24 @@ function ParamList({
 }
 
 export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
+  const viewMode = useViewMode();
   const canvasRefs = useRef<Array<HTMLCanvasElement | null>>([]);
   const detailRef = useRef<HTMLCanvasElement>(null);
   const snapshotsRef = useRef<Array<FieldSnapshot | null>>(Array.from({ length: RUN_COUNT }, () => null));
   const [completed, setCompleted] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [pickedId, setPickedId] = useState<string | null>(null);
+  const [pickedId, setPickedId] = useState<string | null>(ALL_ARCHETYPE_IDS[0] ?? null);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [runToken, setRunToken] = useState(0);
   const [wall, setWall] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(view === "catalog");
+  const catalogBodyRef = useRef<HTMLDivElement>(null);
+  const catalogZoomRef = useRef(1);
+  const catalogPanRef = useRef({ x: 0, y: 0 });
+  const catalogDragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const [catalogZoom, setCatalogZoom] = useState(1);
+  const [catalogPan, setCatalogPan] = useState({ x: 0, y: 0 });
   const [catalogPage, setCatalogPage] = useState(0);
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [inspecting, setInspecting] = useState(false);
@@ -331,6 +559,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const resumeFrameRef = useRef<(() => void) | null>(null);
   const saveFlashTimer = useRef<number | null>(null);
   const catalogCacheRef = useRef<Record<string, SavedRun[]>>({});
+  const catalogFieldsRef = useRef<Record<string, Array<FieldSnapshot | null>>>({});
   const [catalogCounts, setCatalogCounts] = useState<Record<string, number>>({});
   const activeId = runningId ?? pickedId;
   const catalogStamp = activeId ? JSON.stringify(configForArchetype(activeId).recipe) : "";
@@ -343,32 +572,10 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     () => (activeId ? Array.from({ length: RUN_COUNT }, (_, index) => seedFor(activeId, index)) : []),
     [activeId],
   );
-  const variants = useMemo(
-    () =>
-      slime && translation
-        ? seeds.map((seed, index) => {
-            const runTranslation = translationForRun(translation, seed, index);
-            const rng = mulberry32(seed ^ 0x6d2b79f5);
-            const marks = runTranslation.recipe.attractors ?? [];
-            const agents = Math.round(
-              Math.min(
-                500,
-                Math.max(MIN_AGENT_COUNT, agentCountFromDensity(densityFromTranslation(translation)) + (rng() - 0.5) * 280),
-              ),
-            );
-            return {
-              seed,
-              agents,
-              slime: {
-                ...varySlimeControls(slime, seed, translation.archetypeId),
-                foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
-              },
-              translation: runTranslation,
-            };
-          })
-        : [],
-    [seeds, slime, translation],
-  );
+  const variants = useMemo(() => {
+    if (!slime || !translation || catalogOpen) return [];
+    return seeds.map((seed) => ({ seed, agents: MIN_AGENT_COUNT, slime, translation }));
+  }, [catalogOpen, seeds, slime, translation]);
 
   const catalogId = catalogOpen ? pickedId : activeId;
   const catalog = catalogEntries;
@@ -391,7 +598,12 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const entryFromSnapshot = (id: string, index: number, snapshot: FieldSnapshot): SavedRun | null => {
     const variant = id === (runningIdRef.current ?? pickedIdRef.current) ? variantsRef.current[index] : undefined;
     const marks = variant?.translation.recipe.attractors;
-    const image = snapshotImage(snapshot, 768, marks);
+    const image = snapshotImage(
+      snapshot,
+      480,
+      marks,
+      finePaint(id) ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined,
+    );
     if (!image) return null;
     const seed = variant?.seed ?? seedFor(id, index);
     return {
@@ -400,7 +612,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       archetypeName: variant?.translation.archetypeName,
       run: index + 1,
       seed,
-      kind: kindLabel(index),
+      kind: kindLabel(marks),
       agents: variant?.agents ?? 0,
       iterations: snapshot.iteration ?? DISPLAY_ITERATIONS,
       image,
@@ -413,88 +625,132 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     };
   };
 
-  const catalogFromFields = async (id: string, skipRuns?: Set<number>) => {
+  const catalogFromFields = async (id: string) => {
     const kept = await loadArchetypeFields(id, RUN_COUNT);
+    catalogFieldsRef.current[id] = kept;
+    if (kept.some(Boolean) && id === (runningIdRef.current ?? pickedIdRef.current)) snapshotsRef.current = kept;
+    const savedAt = Date.now();
     const entries: SavedRun[] = [];
     for (let index = 0; index < RUN_COUNT; index += 1) {
-      if (skipRuns?.has(index + 1)) continue;
-      const snapshot = kept[index] ?? (id === (runningIdRef.current ?? pickedIdRef.current) ? snapshotsRef.current[index] : null);
-      if (!snapshot) continue;
-      const entry = entryFromSnapshot(id, index, snapshot);
-      if (entry) entries.push(entry);
+      const snapshot = kept[index];
+      if (!snapshot?.trails?.length) continue;
+      entries.push({
+        id: `${id}-field-${index}`,
+        archetypeId: id,
+        run: index + 1,
+        seed: seedFor(id, index),
+        kind: "mixed",
+        agents: 0,
+        iterations: snapshot.iteration ?? DISPLAY_ITERATIONS,
+        image: `field:${id}:${index}`,
+        savedAt,
+      });
     }
-    if (kept.some(Boolean) && id === (runningIdRef.current ?? pickedIdRef.current)) snapshotsRef.current = kept;
     return entries;
   };
 
+  const slimEntry = (item: SavedRun): SavedRun => ({
+    id: item.id,
+    archetypeId: item.archetypeId,
+    run: item.run,
+    seed: item.seed,
+    kind: item.kind,
+    agents: item.agents,
+    iterations: item.iterations,
+    image: item.image,
+    savedAt: item.savedAt,
+  });
+
   const mergeCatalog = async (id: string) => {
+    if (catalogWasCleared(id)) return [];
+    const rebuilt = await catalogFromFields(id);
+    if (rebuilt.length) return rebuilt;
     const stored = await readCatalog<SavedRun>(id);
     const usable: SavedRun[] = [];
     for (const item of stored) {
       if (!item.image) continue;
       if (item.image.startsWith("/shared-catalog/linear-edge-gallery/") && (await isTinySharedImage(item.image))) continue;
-      usable.push(item);
+      usable.push(slimEntry(item));
     }
-    const extra = await catalogFromFields(id, new Set(usable.map((item) => item.run)));
-    return [...usable, ...extra].sort((a, b) => a.run - b.run);
+    return usable.sort((a, b) => a.run - b.run);
   };
-
-  const writeContinuousHallGaps = (entries: SavedRun[]) => {
-    if (typeof sessionStorage === "undefined" || sessionStorage.getItem("lm-ch-gap-write") === "done") return;
-    const missing = entries.filter((item) => CH_GAP_RUNS.has(item.run) && item.image);
-    if (!missing.length) return;
-    sessionStorage.setItem("lm-ch-gap-write", "done");
-    void shareCatalogEntries("continuous-hall", missing);
-  };
-
-  const writeLinearEdgeOriginals = (entries: SavedRun[]) => {
-    if (typeof sessionStorage === "undefined") return;
-    void (async () => {
-      if (sessionStorage.getItem("lm-leg-rewrite-v2") === "done") return;
-      const real = entries.filter((item) => item.image && !item.image.startsWith("/shared-catalog/"));
-      if (!real.length) return;
-      sessionStorage.setItem("lm-leg-rewrite-v2", "done");
-      await shareCatalogEntries("linear-edge-gallery", real);
-    })();
-  };
-
-  useEffect(() => {
-    if (pickedId !== "linear-edge-gallery") return;
-    let live = true;
-    void (async () => {
-      const next = await mergeCatalog("linear-edge-gallery");
-      if (!live) return;
-      writeLinearEdgeOriginals(next);
-    })();
-    return () => {
-      live = false;
-    };
-  }, [pickedId]);
 
   useEffect(() => {
     if (!catalogOpen || !catalogId) return;
     let live = true;
     void (async () => {
-      const cached = catalogCacheRef.current[catalogId] ?? [];
-      if (cached.length) setCatalogEntries(cached);
-      const stored = await readCatalog<SavedRun>(catalogId);
-      if (!live) return;
-      if (stored.length) {
-        catalogCacheRef.current[catalogId] = stored;
-        setCatalogEntries(stored);
+      try {
+        const next = await mergeCatalog(catalogId);
+        if (!live) return;
+        catalogCacheRef.current[catalogId] = next;
+        setCatalogEntries(next);
+        setCatalogCounts((current) => ({ ...current, [catalogId]: next.length }));
+      } catch {
+        if (live) setCatalogEntries(catalogCacheRef.current[catalogId] ?? []);
       }
-      const next = await mergeCatalog(catalogId);
-      if (!live) return;
-      catalogCacheRef.current[catalogId] = next;
-      setCatalogEntries(next);
-      refreshCatalogCounts();
-      if (catalogId === "continuous-hall") writeContinuousHallGaps(next);
-      if (catalogId === "linear-edge-gallery") writeLinearEdgeOriginals(next);
     })();
     return () => {
       live = false;
     };
   }, [catalogOpen, catalogId, catalogVersion]);
+
+  useEffect(() => {
+    const node = catalogBodyRef.current;
+    if (!catalogOpen || !node) return;
+
+    const zoomAt = (factor: number, clientX: number, clientY: number) => {
+      const rect = node.getBoundingClientRect();
+      const px = clientX - rect.left - rect.width / 2;
+      const py = clientY - rect.top - rect.height / 2;
+      const prevZoom = catalogZoomRef.current;
+      const nextZoom = clampCatalogZoom(prevZoom * factor);
+      const ratio = nextZoom / prevZoom;
+      const prevPan = catalogPanRef.current;
+      applyCatalogView(nextZoom, {
+        x: px - (px - prevPan.x) * ratio,
+        y: py - (py - prevPan.y) * ratio,
+      });
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      zoomAt(event.deltaY < 0 ? 1.15 : 1 / 1.15, event.clientX, event.clientY);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0 && event.button !== 1) return;
+      catalogDragRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        panX: catalogPanRef.current.x,
+        panY: catalogPanRef.current.y,
+      };
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      const drag = catalogDragRef.current;
+      if (!drag || !event.buttons) return;
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+      event.preventDefault();
+      applyCatalogView(catalogZoomRef.current, {
+        x: drag.panX + (event.clientX - drag.x),
+        y: drag.panY + (event.clientY - drag.y),
+      });
+    };
+    const onPointerUp = () => {
+      catalogDragRef.current = null;
+    };
+
+    node.addEventListener("wheel", onWheel, { passive: false });
+    node.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      node.removeEventListener("wheel", onWheel);
+      node.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [catalogOpen]);
 
   const markSaved = () => {
     setCatalogVersion((current) => current + 1);
@@ -510,7 +766,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     const variant = id === active ? variantsRef.current[index] : undefined;
     if (!id) return null;
     const marks = variant?.translation.recipe.attractors;
-    const image = entryImage(index, snapshot, canvasRefs.current[index], size, marks);
+    const image = entryImage(
+      index,
+      snapshot,
+      canvasRefs.current[index],
+      size,
+      marks,
+      finePaint(id) && snapshot ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined,
+    );
     if (!image) return null;
     const seed = variant?.seed ?? seedFor(id, index);
     return {
@@ -519,7 +782,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       archetypeName: variant?.translation.archetypeName,
       run: index + 1,
       seed,
-      kind: kindLabel(index),
+      kind: kindLabel(marks),
       agents: variant?.agents ?? 0,
       iterations: snapshot?.iteration ?? DISPLAY_ITERATIONS,
       image,
@@ -545,7 +808,10 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           });
           return (await putCatalogEntries(id, compact)) ? compact : null;
         })();
-    if (!saved) return false;
+    if (!saved) {
+      void shareCatalogEntries(id, incoming);
+      return incoming.length > 0;
+    }
     void shareCatalogEntries(id, saved);
     return true;
   };
@@ -619,18 +885,41 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     })();
   };
 
+  const deleteDisplayedCatalog = () => {
+    if (!catalogId || !catalog.length) return;
+    const name = pickedName ?? "this archetype";
+    if (!window.confirm(`Delete the ${name} catalog currently on screen?`)) return;
+    void (async () => {
+      await clearCatalog(catalogId);
+      await clearArchetypeFields(catalogId, RUN_COUNT);
+      if (catalogId === (runningIdRef.current ?? pickedIdRef.current)) {
+        snapshotsRef.current = Array.from({ length: RUN_COUNT }, () => null);
+      }
+      catalogCacheRef.current[catalogId] = [];
+      setCatalogEntries([]);
+      setCatalogInspected(null);
+      setCatalogPage(0);
+      setCatalogCounts((current) => ({ ...current, [catalogId]: 0 }));
+      setCatalogVersion((current) => current + 1);
+    })();
+  };
+
+  const applyCatalogView = (nextZoom: number, nextPan: { x: number; y: number }) => {
+    const clamped = clampCatalogZoom(nextZoom);
+    catalogZoomRef.current = clamped;
+    catalogPanRef.current = nextPan;
+    setCatalogZoom(clamped);
+    setCatalogPan(nextPan);
+  };
+
   const viewArchetype = (id: string) => {
     setCatalogInspected(null);
     setCatalogPage(0);
+    applyCatalogView(1, { x: 0, y: 0 });
     setPickedId(id);
     const cached = catalogCacheRef.current[id];
     if (cached?.length) setCatalogEntries(cached);
     else setCatalogEntries([]);
-    void (async () => {
-      const next = await mergeCatalog(id);
-      catalogCacheRef.current[id] = next;
-      setCatalogEntries(next);
-    })();
   };
 
   const pickArchetype = (id: string, force = false) => {
@@ -670,29 +959,31 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   const startRuns = () => {
     if (!pickedId) return;
-    if (allQueueRef.current || new URLSearchParams(window.location.search).get("all") === "1") {
-      allQueueRef.current = true;
-      setAllQueue(true);
-      try {
-        window.localStorage.setItem("lm-run-all-queue", "1");
-        window.localStorage.setItem("lm-run-all-next", pickedId);
-      } catch {
-        /* ignore */
-      }
-    }
+    allQueueRef.current = false;
+    setAllQueue(false);
     setCatalogOpen(false);
-    runningRef.current = true;
-    setRunning(true);
-    setPaused(false);
     setSelected(null);
     setInspecting(false);
     setCatalogInspected(null);
     pendingSavesRef.current = [];
-    resumeIndexRef.current = 0;
-    setCompleted(0);
     setRunningId(pickedId);
-    setRunToken((current) => current + 1);
-    void clearRunFields();
+    void (async () => {
+      let existing = snapshotsRef.current;
+      if (!existing.some(Boolean)) {
+        existing = await loadArchetypeFields(pickedId, RUN_COUNT);
+        snapshotsRef.current = existing;
+      }
+      let resumeAt = 0;
+      while (resumeAt < RUN_COUNT && existing[resumeAt]) resumeAt += 1;
+      resumeIndexRef.current = resumeAt;
+      completedRef.current = resumeAt;
+      setCompleted(resumeAt);
+      if (resumeAt === 0) await clearRunFields();
+      runningRef.current = true;
+      setPaused(false);
+      setRunning(true);
+      setRunToken((current) => current + 1);
+    })();
   };
 
   const stopRuns = () => {
@@ -744,26 +1035,16 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   useEffect(() => {
     let live = true;
     void (async () => {
-      const { session, snapshots } = await loadRunsSession();
+      const { session } = await loadRunsSession({ snapshots: false });
       if (!live) return;
       const params = new URLSearchParams(window.location.search);
       const fresh = params.get("fresh") === "1";
-      const lastId = session?.runningId ?? session?.pickedId ?? null;
-      if (!fresh && lastId && snapshots.some(Boolean)) {
-        await Promise.all(
-          snapshots.map((snapshot, index) => (snapshot ? saveArchetypeField(lastId, index, snapshot) : Promise.resolve())),
-        );
-      }
-      const [images, fields] = await Promise.all([
-        listCatalogCounts(ALL_ARCHETYPE_IDS),
-        listArchetypeFieldCounts(ALL_ARCHETYPE_IDS, RUN_COUNT),
-      ]);
-      const savedFor = (id: string) => Math.max(images[id] ?? 0, fields[id] ?? 0);
-      const allSaved = !fresh && ALL_ARCHETYPE_IDS.every((id) => savedFor(id) >= RUN_COUNT);
+      allQueueRef.current = false;
+      freshQueueRef.current = false;
+      autoStartedRef.current = null;
+      setAllQueue(false);
       if (fresh) {
         clearAllDoneFlag();
-        freshQueueRef.current = true;
-        autoStartedRef.current = null;
         snapshotsRef.current = Array.from({ length: RUN_COUNT }, () => null);
         completedRef.current = 0;
         setPickedId(ALL_ARCHETYPE_IDS[0] ?? null);
@@ -771,12 +1052,10 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         setCompleted(0);
         setPaused(false);
         allDoneRef.current = false;
-        allQueueRef.current = true;
         setAllDone(false);
-        setAllQueue(true);
         try {
-          window.localStorage.setItem("lm-run-all-queue", "1");
-          window.localStorage.setItem("lm-run-all-next", ALL_ARCHETYPE_IDS[0] ?? "");
+          window.localStorage.removeItem("lm-run-all-queue");
+          window.localStorage.removeItem("lm-run-all-next");
           params.delete("fresh");
           const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
           window.history.replaceState({}, "", next);
@@ -785,36 +1064,19 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         }
       } else {
         if (session) {
-          snapshotsRef.current = snapshots;
           completedRef.current = session.completed;
           setPickedId(session.pickedId);
-          setRunningId(session.runningId);
+          setRunningId(null);
           setCompleted(session.completed);
           setPaused(false);
-          if (session.pickedId) autoStartedRef.current = session.completed > 0 ? session.pickedId : autoStartedRef.current;
         }
-        const firstMissing = ALL_ARCHETYPE_IDS.find((id) => savedFor(id) < RUN_COUNT) ?? null;
-        if (!allSaved) clearAllDoneFlag();
-        allDoneRef.current = allSaved;
-        allQueueRef.current = !allSaved;
-        setAllDone(allSaved);
-        setAllQueue(!allSaved);
-        if (!allSaved && firstMissing && !session?.pickedId) setPickedId(firstMissing);
-        if (allSaved) {
-          try {
-            window.localStorage.setItem("lm-run-all-done", "1");
-            window.localStorage.removeItem("lm-run-all-queue");
-            window.localStorage.removeItem("lm-run-all-next");
-          } catch {
-            /* ignore */
-          }
-        } else {
-          try {
-            window.localStorage.setItem("lm-run-all-queue", "1");
-            if (firstMissing) window.localStorage.setItem("lm-run-all-next", firstMissing);
-          } catch {
-            /* ignore */
-          }
+        allDoneRef.current = false;
+        setAllDone(false);
+        try {
+          window.localStorage.removeItem("lm-run-all-queue");
+          window.localStorage.removeItem("lm-run-all-next");
+        } catch {
+          /* ignore */
         }
       }
       setSessionReady(true);
@@ -893,105 +1155,18 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     } catch {
       /* ignore */
     }
-    document.title = "20 × 4 runs · catalog complete";
+    document.title = "20 × 5 runs · catalog complete";
   };
 
   useEffect(() => {
     const sync = () => {
       const params = new URLSearchParams(window.location.search);
-      setWall(params.get("wall") === "1");
-      if (params.get("fresh") === "1") {
-        clearAllDoneFlag();
-        allDoneRef.current = false;
-        allQueueRef.current = true;
-        freshQueueRef.current = true;
-        setAllDone(false);
-        setAllQueue(true);
-        setPickedId(ALL_ARCHETYPE_IDS[0] ?? null);
-        return;
-      }
-      if (allDoneRef.current || readAllDoneFlag()) {
-        allDoneRef.current = true;
-        allQueueRef.current = false;
-        setAllDone(true);
-        setAllQueue(false);
-        return;
-      }
-      const queued =
-        params.get("all") === "1" ||
-        window.localStorage.getItem("lm-run-all-queue") === "1" ||
-        window.sessionStorage.getItem("lm-run-all-queue") === "1";
-      if (queued) {
-        allQueueRef.current = true;
-        setAllQueue(true);
-        const resume =
-          window.localStorage.getItem("lm-run-all-next") || window.sessionStorage.getItem("lm-run-all-next");
-        setPickedId((current) => current ?? resume ?? ALL_ARCHETYPE_IDS[0] ?? null);
-      }
+      setWall(viewMode === "presentation" || params.get("wall") === "1");
     };
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, []);
-
-  useEffect(() => {
-    if (!sessionReady) return;
-    if (allDoneRef.current || catalogOpen) return;
-    if (!allQueueRef.current || !pickedId || running || paused || savingRef.current) return;
-    void (async () => {
-      if (freshQueueRef.current) {
-        freshQueueRef.current = false;
-        autoStartedRef.current = pickedId;
-        startRuns();
-        return;
-      }
-      const [images, fields] = await Promise.all([
-        listCatalogCounts(ALL_ARCHETYPE_IDS),
-        listArchetypeFieldCounts(ALL_ARCHETYPE_IDS, RUN_COUNT),
-      ]);
-      const savedFor = (id: string) => Math.max(images[id] ?? 0, fields[id] ?? 0);
-      if (ALL_ARCHETYPE_IDS.every((id) => savedFor(id) >= RUN_COUNT)) {
-        await finishAllQueue();
-        return;
-      }
-      const stored = savedFor(pickedId);
-      if (stored >= RUN_COUNT) {
-        const nextId = ALL_ARCHETYPE_IDS.find((id) => savedFor(id) < RUN_COUNT);
-        if (!nextId) {
-          await finishAllQueue();
-          return;
-        }
-        autoStartedRef.current = null;
-        pickArchetype(nextId, true);
-        return;
-      }
-      if (completed === RUN_COUNT) return;
-      if (stored > 0 && stored < RUN_COUNT) {
-        const kept = await loadArchetypeFields(pickedId, RUN_COUNT);
-        snapshotsRef.current = kept;
-        autoStartedRef.current = pickedId;
-        resumeIndexRef.current = stored;
-        runningRef.current = true;
-        setCompleted(stored);
-        setRunning(true);
-        setRunningId(pickedId);
-        setRunToken((current) => current + 1);
-        return;
-      }
-      if (completed > 0 && snapshotsRef.current.some(Boolean) && stored < RUN_COUNT) {
-        autoStartedRef.current = pickedId;
-        resumeIndexRef.current = completed;
-        runningRef.current = true;
-        setRunning(true);
-        setRunningId(pickedId);
-        setRunToken((current) => current + 1);
-        return;
-      }
-      if (autoStartedRef.current === pickedId) return;
-      autoStartedRef.current = pickedId;
-      startRuns();
-    })();
-  }, [sessionReady, allQueue, pickedId, running, paused, completed]);
+  }, [viewMode]);
 
   useEffect(() => {
     if (completed !== RUN_COUNT || savingRef.current) return;
@@ -1029,7 +1204,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     const current = runningId ?? pickedId;
     const index = current ? ALL_ARCHETYPE_IDS.indexOf(current) : -1;
     document.title = allDone
-      ? "20 × 4 runs · catalog complete"
+      ? "20 × 5 runs · catalog complete"
       : `${current ?? "runs"} ${completed}/${RUN_COUNT} · ${Math.max(1, index + 1)}/${ALL_ARCHETYPE_IDS.length}`;
   }, [allQueue, allDone, runningId, pickedId, completed]);
 
@@ -1051,32 +1226,135 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     } else {
       snapshotsRef.current.forEach((snapshot, cell) => {
         const canvas = canvasRefs.current[cell];
-        if (snapshot && canvas) paintSnapshot(canvas, snapshot, false, variantsRef.current[cell]?.translation.recipe.attractors);
+        if (snapshot && canvas) {
+          paintRunCell(canvas, snapshot, variantsRef.current[cell]?.translation.recipe.attractors, variantsRef.current[cell]?.translation.archetypeId);
+        }
       });
     }
-    const startRun = (run: number) => {
-      const variant = variantsRef.current[run];
-      const next = createSimulation(variant.translation, variant.seed, variant.agents, RUN_TRAIL_SCALE);
+    const previous: MorphFeatures[] = [];
+    const previousSequences: number[][] = [];
+    const archetypeId = runningIdRef.current ?? pickedIdRef.current;
+    const source = archetypeId ? translateArchetype(archetypeId) : null;
+    const sourceSlime = source ? slimeControlsFromTranslation(source) : null;
+
+    const simulateVariant = (variant: (typeof variantsRef.current)[number]) => {
+      const next = createSimulation(
+        variant.translation,
+        variant.seed,
+        variant.agents,
+        trailScaleFor(variant.translation.archetypeId),
+      );
       next.maxIterations = DISPLAY_ITERATIONS;
-      return {
-        sim: next,
-        rng: mulberry32(variant.seed ^ 0x9e3779b9),
-        slime: { ...variant.slime, diffusion: Math.min(variant.slime.diffusion, 0.04) },
-        translation: variant.translation,
+      const rng = mulberry32(variant.seed ^ 0x9e3779b9);
+      const slime = {
+        ...variant.slime,
+        diffusion:
+          variant.translation.archetypeId === "continuous-hall" || finePaint(variant.translation.archetypeId)
+            ? variant.slime.diffusion
+            : Math.min(variant.slime.diffusion, 0.04),
       };
+      const steps = DISPLAY_ITERATIONS - next.iteration;
+      next.maxIterations = next.iteration + Math.max(1, steps);
+      stepMany(next, variant.translation, rng, Math.max(1, steps), slime.decay, slime, false);
+      return captureSnapshot(next, true);
     };
 
     const frame = () => {
       if (cancelled || !runningRef.current || index >= RUN_COUNT) return;
-      const current = startRun(index);
-      const left = DISPLAY_ITERATIONS - current.sim.iteration;
-      stepMany(current.sim, current.translation, current.rng, Math.max(1, left), current.slime.decay, current.slime, false);
-      const snapshot = captureSnapshot(current.sim, true);
-      snapshotsRef.current[index] = snapshot;
+      const fallback = variantsRef.current[index];
+      const tries: Array<{ variant: typeof fallback; snapshot: FieldSnapshot; features: MorphFeatures; identity: boolean; signature: number[]; score: number }> = [];
+      const compressed = fallback.translation.archetypeId === "compressed-sequential";
+      const hall = fallback.translation.archetypeId === "continuous-hall";
+      const ground = fallback.translation.archetypeId === "topographic-ground-field";
+      const gallery = fallback.translation.archetypeId === "linear-gallery";
+      const attempts = compressed || ground ? 5 : gallery ? 5 : fallback.translation.archetypeId === "vertical-void" || hall ? 6 : 1;
+      let chosen: (typeof tries)[number] | null = null;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const variant =
+          source && sourceSlime ? realizeRun(source, sourceSlime, fallback.seed, attempt, index) : fallback;
+        const snapshot = simulateVariant(variant);
+        const marks = variant.translation.recipe.attractors ?? [];
+        const features = extractMorphFeatures(snapshot, marks);
+        const identity =
+          variant.translation.archetypeId === "vertical-void"
+            ? verticalVoidIdentity(features)
+            : compressed
+              ? compressedSequentialIdentity(features, marks, snapshot)
+              : hall
+                ? continuousHallIdentity(features, marks, snapshot)
+              : ground
+                ? topographicIdentity(features, marks, snapshot)
+              : gallery
+                ? linearGalleryIdentity(features, marks, snapshot)
+              : true;
+        const signature = compressed
+          ? sequenceSignature(marks, { slime: variant.slime, agents: variant.agents })
+          : hall
+            ? hallSignature(marks, { slime: variant.slime, agents: variant.agents })
+            : ground
+              ? topographicSignature(marks, { slime: variant.slime, agents: variant.agents })
+              : gallery
+                ? gallerySignature(marks, {
+                    slime: variant.slime,
+                    agents: variant.agents,
+                    snapshot,
+                    ...(() => {
+                      const planned = planLinearGallery(variant.seed, attempt, index);
+                      return { kind: planned.kind, growth: planned.growth };
+                    })(),
+                  })
+              : [];
+        const score = compressed
+          ? scoreCompressedSequential(snapshot, marks, variant.slime)
+          : ground
+            ? scoreTopographic(snapshot, marks)
+            : gallery
+              ? scoreLinearGallery(snapshot, marks)
+              : 0;
+        tries.push({ variant, snapshot, features, identity, signature, score });
+        if (compressed || ground) continue;
+        if (gallery) {
+          if (identity && isNovelGallery(signature, previousSequences)) {
+            chosen = { variant, snapshot, features, identity, signature, score };
+            break;
+          }
+          continue;
+        }
+        if (!identity) continue;
+        if (hall ? !isNovelHall(signature, previousSequences) : !isNovelMorphology(features, previous)) continue;
+        chosen = { variant, snapshot, features, identity, signature, score };
+        break;
+      }
+      if (!chosen) {
+        if (compressed || ground || gallery) {
+          const novel = tries.filter((item) =>
+            item.identity &&
+            (gallery
+              ? isNovelGallery(item.signature, previousSequences)
+              : ground
+                ? isNovelTerrain(item.signature, previousSequences)
+                : isNovelSequence(item.signature, previousSequences)),
+          );
+          const valid = novel.length ? novel : tries.filter((item) => item.identity);
+          const pool = valid.length ? valid : tries;
+          chosen = gallery
+            ? pool[pickMostNovelGallery(pool.map((item) => item.signature), previousSequences)] ?? pool[0]
+            : pool.reduce((best, item) => (item.score > best.score ? item : best));
+        } else {
+          const valid = tries.filter((item) => item.identity);
+          const pool = valid.length ? valid : tries;
+          chosen = pool[pickMostNovel(pool.map((item) => item.features), previous)] ?? tries[tries.length - 1];
+        }
+      }
+      previous.push(chosen.features);
+      if (chosen.signature.length) previousSequences.push(chosen.signature);
+      variantsRef.current[index] = chosen.variant;
+      snapshotsRef.current[index] = chosen.snapshot;
       const canvas = canvasRefs.current[index];
-      if (canvas) paintSnapshot(canvas, snapshot, false, current.translation.recipe.attractors);
+      if (canvas) paintRunCell(canvas, chosen.snapshot, chosen.variant.translation.recipe.attractors, chosen.variant.translation.archetypeId);
       const id = runningIdRef.current ?? pickedIdRef.current;
       const cell = index;
+      const snapshot = chosen.snapshot;
       index += 1;
       setCompleted(index);
       void (async () => {
@@ -1105,7 +1383,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     const onResize = () => {
       snapshotsRef.current.forEach((snapshot, index) => {
         const canvas = canvasRefs.current[index];
-        if (snapshot && canvas) paintSnapshot(canvas, snapshot, false, variants[index]?.translation.recipe.attractors);
+        if (snapshot && canvas) paintRunCell(canvas, snapshot, variants[index]?.translation.recipe.attractors, variants[index]?.translation.archetypeId);
       });
     };
     if (!catalogOpen) onResize();
@@ -1137,7 +1415,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     const canvas = detailRef.current;
     const box = canvas?.parentElement;
     if (!snapshot || !canvas || !box) return;
-    const paint = () => paintSnapshot(canvas, snapshot, true, variants[selected]?.translation.recipe.attractors);
+    const paint = () => paintRunCell(canvas, snapshot, variants[selected]?.translation.recipe.attractors, variants[selected]?.translation.archetypeId, true);
     const observer = new ResizeObserver(paint);
     observer.observe(box);
     const frame = requestAnimationFrame(paint);
@@ -1149,18 +1427,24 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   const selectedSnapshot = selected == null ? null : snapshotsRef.current[selected];
   const pickedName = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === (catalogOpen ? pickedId : runningId ?? pickedId))?.name;
-  const catalogColumns = wall ? 16 : 8;
-  const catalogRows = 5;
-  const pageSize = Math.max(1, catalogColumns * catalogRows);
-  const pageCount = Math.max(1, Math.ceil(catalog.length / pageSize));
-  const page = Math.min(catalogPage, pageCount - 1);
-  const pageStart = page * pageSize;
+  const pageSize = RUN_COUNT;
+  const pageCount = 1;
+  const page = 0;
+  const pageStart = 0;
+  const catalogSlots = Array.from({ length: RUN_COUNT }, (_, index) => catalog.find((item) => item.run === index + 1) ?? null);
+  const catalogEmptyLabel =
+    (catalogCounts[catalogId ?? ""] ?? 0) > 0
+      ? "Building catalog from saved runs"
+      : "No saved runs for this archetype yet";
+  const catalogZoomStyle = {
+    transform: `translate(${catalogPan.x}px, ${catalogPan.y}px) scale(${catalogZoom})`,
+  };
 
   return (
-    <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
+    <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}${view === "catalog" ? "" : " runs-page"}`}>
       <header className="runs-header border-b border-[var(--line)] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="display text-[0.72rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 4 runs"}</p>
+          <p className="display text-[0.95rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 5 runs"}</p>
           <div className="flex items-center gap-2">
             <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
               {view === "catalog" ? `${catalog.length} saved` : `${completed} / ${RUN_COUNT}`}
@@ -1271,69 +1555,104 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               <p className="hud-panel-kicker">Catalog</p>
               <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
             </div>
-            <div className="runs-catalog-pager">
-              <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-                {catalog.length} saved{allDone ? " · all 15 complete" : ""}
-              </p>
-              <button type="button" onClick={() => setCatalogPage(page - 1)} disabled={page === 0} aria-label="Previous page">
-                ‹
-              </button>
-              <span>
-                {page + 1} / {pageCount}
-              </span>
-              <button type="button" onClick={() => setCatalogPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
-                ›
-              </button>
+            <div className="runs-catalog-toolbar">
+              <div className="runs-catalog-pager">
+                <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+                  {catalog.length} saved{allDone ? " · all 15 complete" : ""}
+                </p>
+                <button type="button" onClick={() => setCatalogPage(page - 1)} disabled={page === 0} aria-label="Previous page">
+                  ‹
+                </button>
+                <span>
+                  {page + 1} / {pageCount}
+                </span>
+                <button type="button" onClick={() => setCatalogPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
+                  ›
+                </button>
+              </div>
+              <div className="runs-catalog-zoom">
+                <button type="button" onClick={() => applyCatalogView(catalogZoom / 1.25, catalogPan)} aria-label="Zoom catalog out">
+                  −
+                </button>
+                <button type="button" onClick={() => applyCatalogView(1, { x: 0, y: 0 })} aria-label="Reset catalog zoom">
+                  {Math.round(catalogZoom * 100)}%
+                </button>
+                <button type="button" onClick={() => applyCatalogView(catalogZoom * 1.25, catalogPan)} aria-label="Zoom catalog in">
+                  +
+                </button>
+              </div>
+              <div className="runs-catalog-delete">
+                <button
+                  type="button"
+                  onClick={deleteDisplayedCatalog}
+                  disabled={!catalog.length}
+                  aria-label={`Delete the ${pickedName ?? "current"} catalog`}
+                >
+                  Delete catalog
+                </button>
+              </div>
             </div>
           </header>
-          <div className="runs-catalog-body">
-          {catalog.length ? (
-            <div
-              className="runs-catalog-grid"
-              data-fill
-              style={{
-                gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
-                gap: wall ? 12 : 8,
-              }}
-            >
-              {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
-                <figure key={entry.id} className="runs-catalog-card">
-                  <button
-                    type="button"
-                    onClick={() => setCatalogInspected(pageStart + offset)}
-                    className="runs-catalog-card-image"
-                    aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
-                  >
-                    <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} />
-                  </button>
-                  <figcaption className="flex items-center justify-between gap-2 px-1.5 py-1 text-[0.55rem] tracking-[0.08em] uppercase text-[var(--muted)]">
-                    <span className="truncate">
-                      Run {String(entry.run).padStart(2, "0")} · {entry.kind} · {entry.agents} agents
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeSaved(entry.id)}
-                      className="border border-[rgba(242,242,238,0.18)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.1em] uppercase text-[var(--muted)] hover:text-[var(--text)]"
-                    >
-                      Remove
-                    </button>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          ) : (
-            <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-              {catalogCounts[catalogId ?? ""] || snapshotsRef.current.some(Boolean)
-                ? "Building catalog from saved runs"
-                : "No saved runs for this archetype yet"}
-            </p>
-          )}
+          <div ref={catalogBodyRef} className="runs-catalog-body">
+            {catalog.length ? (
+              <div className="runs-catalog-zoom-plane h-full w-full" style={catalogZoomStyle}>
+                <div
+                  className="runs-catalog-grid h-full w-full"
+                  style={{
+                    gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`,
+                    gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
+                    gap: wall ? 12 : 8,
+                  }}
+                >
+                  {catalogSlots.map((entry, offset) => (
+                    <figure key={entry?.id ?? `empty-${offset}`} className="flex min-h-0 flex-col border border-[rgba(242,242,238,0.16)] bg-black">
+                      {entry ? (
+                        <>
+                      <button
+                        type="button"
+                        onClick={() => setCatalogInspected(offset)}
+                        className="block min-h-0 w-full flex-1 text-left"
+                        aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
+                      >
+                        {catalogId && catalogFieldsRef.current[catalogId]?.[offset] ? (
+                          <CatalogFieldThumb snapshot={catalogFieldsRef.current[catalogId][offset]!} />
+                        ) : (
+                          <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} className="block h-full w-full object-contain" loading="lazy" decoding="async" />
+                        )}
+                      </button>
+                      <figcaption className="flex shrink-0 items-center justify-between gap-2 px-1.5 py-1 text-[0.55rem] tracking-[0.08em] uppercase text-[var(--muted)]">
+                        <span className="truncate">
+                          Run {String(entry.run).padStart(2, "0")} · {entry.kind} · {entry.agents} agents
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeSaved(entry.id)}
+                          className="border border-[rgba(242,242,238,0.18)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.1em] uppercase text-[var(--muted)] hover:text-[var(--text)]"
+                        >
+                          Remove
+                        </button>
+                      </figcaption>
+                        </>
+                      ) : (
+                        <div className="flex flex-1 items-center justify-center text-[0.5rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+                          {String(offset + 1).padStart(2, "0")}
+                        </div>
+                      )}
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
+                {catalogEmptyLabel}
+              </p>
+            )}
           </div>
         </section>
       ) : null}
+      {catalogOpen ? null : (
       <div
-        className={`grid min-h-0 flex-1 gap-px bg-[rgba(242,242,238,0.12)]${catalogOpen ? " hidden" : ""}`}
+        className="grid min-h-0 flex-1 gap-px bg-[rgba(242,242,238,0.12)]"
         style={{
           gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
@@ -1364,14 +1683,16 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           </button>
         ))}
       </div>
+      )}
       </div>
-      {catalogInspected != null && catalog[catalogInspected] ? (
+      {catalogInspected != null && catalogSlots[catalogInspected] ? (
         <CatalogDetail
-          entry={catalog[catalogInspected]}
+          entry={catalogSlots[catalogInspected]}
           snapshot={
-            variants[catalog[catalogInspected].run - 1]?.seed === catalog[catalogInspected].seed
-              ? snapshotsRef.current[catalog[catalogInspected].run - 1]
-              : null
+            (catalogId ? catalogFieldsRef.current[catalogId]?.[catalogSlots[catalogInspected].run - 1] : null) ??
+            (variants[catalogSlots[catalogInspected].run - 1]?.seed === catalogSlots[catalogInspected].seed
+              ? snapshotsRef.current[catalogSlots[catalogInspected].run - 1]
+              : null)
           }
           onClose={() => setCatalogInspected(null)}
           onStep={(delta) =>
@@ -1515,6 +1836,24 @@ function RunDetail({
   );
 }
 
+function CatalogFieldThumb({ snapshot }: { snapshot: FieldSnapshot }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const parent = canvas?.parentElement;
+    if (!canvas || !parent) return;
+    const size = Math.max(48, Math.floor(Math.min(parent.clientWidth, parent.clientHeight) || 96));
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, size, size);
+    drawPlanField(ctx, snapshot, size, size, { showHud: false, fine: false, density: 5, showAttractors: false });
+  }, [snapshot]);
+  return <canvas ref={ref} className="block h-full w-full" />;
+}
+
 function CatalogDetail({
   entry,
   snapshot,
@@ -1531,13 +1870,28 @@ function CatalogDetail({
   canNext: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const rebuilt = rebuildSavedDetail(entry);
   const { slime, translation } = rebuilt;
   useEffect(() => {
     const canvas = canvasRef.current;
     const box = canvas?.parentElement;
     if (!snapshot || !canvas || !box) return;
-    const paint = () => paintSnapshot(canvas, snapshot, true, translation.recipe.attractors);
+    const paint = () =>
+      paintSnapshot(
+        canvas,
+        snapshot,
+        true,
+        translation.recipe.attractors,
+        undefined,
+        finePaint(translation.archetypeId) ? 8 : 5,
+        finePaint(translation.archetypeId) ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined,
+        finePaint(translation.archetypeId),
+      );
     const observer = new ResizeObserver(paint);
     observer.observe(box);
     const frame = requestAnimationFrame(paint);
@@ -1546,6 +1900,37 @@ function CatalogDetail({
       cancelAnimationFrame(frame);
     };
   }, [snapshot, translation.recipe.attractors]);
+  useEffect(() => {
+    zoomRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [entry.id]);
+  useEffect(() => {
+    const node = frameRef.current;
+    if (!node) return;
+    const apply = (nextZoom: number, nextPan: { x: number; y: number }) => {
+      const clamped = clampCatalogZoom(nextZoom);
+      zoomRef.current = clamped;
+      panRef.current = nextPan;
+      setZoom(clamped);
+      setPan(nextPan);
+    };
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rect = node.getBoundingClientRect();
+      const px = event.clientX - rect.left - rect.width / 2;
+      const py = event.clientY - rect.top - rect.height / 2;
+      const prev = zoomRef.current;
+      const next = clampCatalogZoom(prev * (event.deltaY < 0 ? 1.15 : 1 / 1.15));
+      const ratio = next / prev;
+      const prevPan = panRef.current;
+      apply(next, { x: px - (px - prevPan.x) * ratio, y: py - (py - prevPan.y) * ratio });
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, []);
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 p-4"
@@ -1559,12 +1944,19 @@ function CatalogDetail({
         aria-modal="true"
         aria-label={`Saved run ${String(entry.run).padStart(2, "0")} parameters`}
       >
-        <div className="relative min-h-0 min-w-0 bg-black">
+        <div ref={frameRef} className="relative min-h-0 min-w-0 overflow-hidden bg-black">
+          <div className="runs-catalog-zoom-plane absolute inset-0" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
           {snapshot ? (
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
           ) : (
             <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} className="absolute inset-0 h-full w-full object-contain" />
           )}
+          </div>
+          <div className="runs-catalog-zoom runs-catalog-zoom-overlay">
+            <button type="button" onClick={() => { const next = clampCatalogZoom(zoom / 1.25); zoomRef.current = next; setZoom(next); }} aria-label="Zoom saved run out">−</button>
+            <button type="button" onClick={() => { zoomRef.current = 1; panRef.current = { x: 0, y: 0 }; setZoom(1); setPan({ x: 0, y: 0 }); }} aria-label="Reset saved run zoom">{Math.round(zoom * 100)}%</button>
+            <button type="button" onClick={() => { const next = clampCatalogZoom(zoom * 1.25); zoomRef.current = next; setZoom(next); }} aria-label="Zoom saved run in">+</button>
+          </div>
         </div>
         <aside className="flex min-h-0 w-[22rem] shrink-0 flex-col border-l border-[var(--line)]">
           <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">

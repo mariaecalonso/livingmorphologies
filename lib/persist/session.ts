@@ -78,6 +78,10 @@ async function get<T>(key: string): Promise<T | null> {
   });
 }
 
+export async function deleteSessionValue(key: string) {
+  return del(key);
+}
+
 async function del(key: string) {
   const db = await openDb();
   if (!db) return;
@@ -202,10 +206,10 @@ export async function saveRunSnapshot(index: number, snapshot: FieldSnapshot) {
   await put(`run-field:${index}`, packSnapshot(snapshot));
 }
 
-export async function loadRunsSession() {
+export async function loadRunsSession(options?: { snapshots?: boolean }) {
   const session = await get<RunsSession>("runs");
-  const snapshots: Array<FieldSnapshot | null> = Array.from({ length: 80 }, () => null);
-  if (session && session.completed > 0) {
+  const snapshots: Array<FieldSnapshot | null> = Array.from({ length: 100 }, () => null);
+  if (options?.snapshots !== false && session && session.completed > 0) {
     await Promise.all(
       Array.from({ length: session.completed }, async (_, index) => {
         const packed = await get<ReturnType<typeof packSnapshot>>(`run-field:${index}`);
@@ -217,5 +221,5 @@ export async function loadRunsSession() {
 }
 
 export async function clearRunFields() {
-  await Promise.all(Array.from({ length: 80 }, (_, index) => del(`run-field:${index}`)));
+  await Promise.all(Array.from({ length: 100 }, (_, index) => del(`run-field:${index}`)));
 }

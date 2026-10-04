@@ -45,8 +45,7 @@ const isStageActive = (pathname: string, match: string) =>
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
   const pathname = usePathname();
   const verticalView = useVerticalView();
-  const wall = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("wall") === "1";
-  const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
+  const suffix = "";
   const activeStage = STAGES.find((stage) => isStageActive(pathname, stage.match));
 
   const changeMode = (next: DisplayMode) => {

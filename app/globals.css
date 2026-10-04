@@ -15,6 +15,7 @@
   --text: #f2f2ee;
   --muted: #9b9b98;
   --danger: #c77e5f;
+  --font-orbitron: "Orbitron", "Arial Narrow", Helvetica, Arial, sans-serif;
   --font-display: var(--font-orbitron), "Arial Narrow", Helvetica, Arial, sans-serif;
   --font-ui: Helvetica, Arial, system-ui, sans-serif;
   --font-body: Helvetica, Arial, system-ui, sans-serif;
@@ -237,8 +238,92 @@ button {
   height: 100%;
 }
 
+.living-instrument-content > .archetype-region {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.living-instrument-content > .archetype-region > .panel {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.living-instrument-content > .archetype-region .archetype-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 0.75rem;
+}
+
+.living-instrument-content > .archetype-region .panel-title {
+  font-size: 0.82rem;
+}
+
+.living-instrument-content > .archetype-region .eyebrow {
+  font-size: 0.6rem;
+}
+
+.living-instrument-content > .archetype-region .archetype-list button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.7rem;
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, #161616, #0b0b0b) padding-box,
+    linear-gradient(90deg, rgba(199, 126, 95, 0.85), rgba(15, 115, 119, 0.85)) border-box;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.living-instrument-content > .archetype-region .archetype-list button.is-active {
+  background:
+    linear-gradient(90deg, rgba(15, 115, 119, 0.18), rgba(199, 126, 95, 0.16)) padding-box,
+    linear-gradient(90deg, rgba(199, 126, 95, 0.9), rgba(15, 115, 119, 0.9)) border-box;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.living-instrument-content > .archetype-region .archetype-actions button {
+  font-size: 0.82rem;
+}
+
 .criteria-region > .panel {
   height: 100%;
+}
+
+.living-instrument-content > .criteria-region {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+.living-instrument-content > .criteria-region > .panel {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.living-instrument-content > .criteria-region .panel-title {
+  font-size: 0.82rem;
+}
+
+.living-instrument-content > .criteria-region .eyebrow {
+  font-size: 0.6rem;
 }
 
 .archetype-region button[aria-pressed="true"],
@@ -248,6 +333,28 @@ button {
 
 .criteria-groups {
   min-height: 0;
+}
+
+.living-instrument-content > .criteria-region .criteria-groups {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  align-content: stretch;
+  min-height: 0;
+}
+
+.living-instrument-content > .criteria-region .criteria-group {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.living-instrument-content > .criteria-region .criteria-group .space-y-1 {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
 .criteria-group {
@@ -1050,6 +1157,11 @@ input[type="range"] {
 
 [data-display-mode="desktop"] .criteria-region .panel-header .eyebrow {
   margin-bottom: 0.04rem;
+  font-size: 0.53rem;
+}
+
+[data-display-mode="desktop"] .living-instrument-content > .criteria-region .panel-title {
+  font-size: 0.72rem;
 }
 
 [data-display-mode="desktop"] .criteria-groups {
@@ -1061,6 +1173,7 @@ input[type="range"] {
   gap: 0.32rem;
   padding-right: 0;
   overflow: hidden;
+  flex: 1 1 auto;
 }
 
 [data-display-mode="desktop"] .criteria-groups > :not([hidden]) ~ :not([hidden]) {
@@ -1091,12 +1204,12 @@ input[type="range"] {
 }
 
 [data-display-mode="desktop"] .criteria-group > div:first-child p:first-child {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   line-height: 1.05;
 }
 
 [data-display-mode="desktop"] .criteria-group > div:first-child p:last-child {
-  font-size: 0.42rem;
+  font-size: 0.5rem;
   line-height: 1.05;
 }
 
@@ -1179,9 +1292,9 @@ input[type="range"] {
     border-bottom: 3px solid rgba(242, 242, 238, 0.42);
   }
 
-  [data-display-mode="desktop"] .archetype-region button {
-    border-radius: 28px;
-    border-width: 3px;
+  [data-display-mode="desktop"] .archetype-region .archetype-list button {
+    border-radius: 999px;
+    border-width: 1px;
   }
 
   [data-display-mode="desktop"] .criteria-group {
@@ -1286,9 +1399,9 @@ input[type="range"] {
     gap: 0.8rem;
   }
 
-  [data-display-mode="desktop"] .archetype-region button {
-    flex: 1;
-    padding: 1.1rem 0.9rem;
+  [data-display-mode="desktop"] .archetype-region .archetype-list button {
+    flex: 0 0 auto;
+    padding: 1.45rem 0.9rem;
     font-size: 2rem;
     line-height: 1.15;
   }
@@ -1610,6 +1723,53 @@ input[type="range"] {
   gap: 20px;
   grid-template-columns: minmax(420px, 0.07fr) minmax(0, 0.32fr) minmax(0, 0.61fr);
   overflow: hidden;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region > .panel {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region .panel-title {
+  font-size: 0.54vw;
+  line-height: 1.15;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region .eyebrow {
+  font-size: 0.4vw;
+  line-height: 1.15;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region .archetype-list {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 0.7vw;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region .archetype-list button {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0.48vw 0.7vw;
+  font-size: 0.5vw;
+  line-height: 1.15;
+}
+
+[data-display-mode="presentation"] .living-instrument-content > .archetype-region .archetype-actions button {
+  font-size: 0.52vw;
+  line-height: 1.15;
 }
 
 [data-display-mode="presentation"] .living-instrument-workflow {
@@ -2247,96 +2407,104 @@ input[type="range"] {
   white-space: nowrap;
 }
 
-@media (min-width: 7200px) {
-  .runs-wall > header {
-    min-height: 5.4rem;
-    padding: 0.7rem 1.4rem;
-  }
+.runs-wall > header {
+  min-height: 5.4rem;
+  padding: 0.7rem 1.4rem;
+}
 
-  .runs-wall > header .display {
-    font-size: 1.8rem;
-  }
+.runs-wall > header .display {
+  font-size: 2.16rem;
+}
 
-  .runs-wall > header .eyebrow,
-  .runs-wall > header p,
-  .runs-wall > header button,
-  .runs-wall > header a {
-    font-size: 1.44rem;
-    letter-spacing: 0.08em;
-  }
+.runs-wall > header .eyebrow,
+.runs-wall > header p,
+.runs-wall > header button,
+.runs-wall > header a {
+  font-size: 1.73rem;
+  letter-spacing: 0.08em;
+}
 
-  .runs-wall > header button,
-  .runs-wall > header a {
-    padding: 0.55rem 1.1rem;
-  }
+.runs-wall > header button,
+.runs-wall > header a {
+  padding: 0.55rem 1.1rem;
+}
 
-  .runs-wall .runs-aside {
-    width: 12vw;
-    margin: 0.8rem;
-  }
+.runs-wall .runs-aside {
+  width: 7.5%;
+  min-width: 17rem;
+  margin: 0.8rem;
+}
 
-  .runs-wall .runs-aside .panel-title {
-    font-size: 1.45rem;
-  }
+.runs-wall .runs-aside .panel-title {
+  font-size: 1.45rem;
+}
 
-  .runs-wall .runs-aside .eyebrow,
-  .runs-wall .runs-aside .hud-panel-kicker {
-    font-size: 1.45rem;
-  }
+.runs-wall .runs-aside .eyebrow,
+.runs-wall .runs-aside .hud-panel-kicker {
+  font-size: 1.5rem;
+}
 
-  .runs-wall .runs-aside button {
-    border-width: 3px;
-    padding: 0.45rem 0.8rem;
-    font-size: 1.7rem;
-    line-height: 1.15;
-    letter-spacing: 0.08em;
-  }
+.runs-wall .runs-aside button {
+  border-width: 3px;
+  padding: 0.4rem 0.85rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  .runs-wall .runs-index {
-    font-size: 1.15rem;
-  }
+.runs-wall .runs-index {
+  font-size: 1.38rem;
+}
 
-  .runs-wall .runs-catalog {
-    margin: 0.8rem 0.8rem 0.8rem 0;
-  }
+.runs-wall .runs-catalog {
+  margin: 0.8rem 0.8rem 0.8rem 0;
+}
 
-  .runs-wall .runs-catalog .panel-title {
-    font-size: 1.45rem;
-  }
+.runs-wall .runs-catalog .panel-title {
+  font-size: 1.45rem;
+}
 
-  .runs-wall .runs-catalog .hud-panel-kicker,
-  .runs-wall .runs-catalog > header p,
-  .runs-wall .runs-catalog > p {
-    font-size: 1.45rem;
-  }
+.runs-wall .runs-catalog .hud-panel-kicker,
+.runs-wall .runs-catalog > header p,
+.runs-wall .runs-catalog > p {
+  font-size: 1.74rem;
+}
 
-  .runs-wall .runs-catalog-grid {
-    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
-    gap: 0.8rem;
-  }
+.runs-wall .runs-catalog-grid {
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 0.8rem;
+}
 
-  .runs-wall .runs-catalog figcaption,
-  .runs-wall .runs-catalog figcaption button,
-  .runs-wall .pareto-catalog-copy {
-    font-size: 1.15rem;
-  }
+.runs-wall .runs-catalog figcaption,
+.runs-wall .runs-catalog figcaption button,
+.runs-wall .pareto-catalog-copy {
+  font-size: 1.15rem;
+}
 
-  .runs-wall .pareto-catalog-detail {
-    width: 42rem;
-  }
+.runs-wall .pareto-catalog-detail {
+  width: 42rem;
+}
 
-  .runs-wall .runs-detail {
-    height: min(92dvh, 1900px);
-    width: min(96vw, 6800px);
-  }
+.runs-wall .runs-catalog-zoom button {
+  min-width: 2.6em;
+  font-size: 1.44rem;
+  padding: 0.28em 0.6em;
+}
 
-  .runs-wall .runs-detail aside {
-    width: 36rem;
-  }
+.runs-wall .runs-detail {
+  height: min(92dvh, 1900px);
+  width: min(96vw, 6800px);
+}
 
-  .runs-wall .runs-detail .display {
-    font-size: 1.8rem;
-  }
+.runs-wall .runs-detail aside {
+  width: 36rem;
+}
+
+.runs-wall .runs-detail .display {
+  font-size: 2.16rem;
 }
 
 /* Application stages */
@@ -2380,8 +2548,33 @@ input[type="range"] {
   left: 50%;
   top: 50%;
   display: block;
+  overflow: hidden;
   border: 0;
   transform-origin: center;
+}
+
+.presentation-canvas .stage-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.presentation-zoom {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: flex;
+  gap: 6px;
+}
+
+.presentation-zoom button {
+  min-width: 42px;
+  height: 36px;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  background: rgba(8, 8, 8, 0.92);
+  color: #f2f2ee;
+  font-size: 14px;
+  letter-spacing: 0.08em;
 }
 
 .stage-nav {
@@ -4950,6 +5143,38 @@ button.evo-generation:disabled {
 
 /* Physarum catalog */
 
+.runs-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.runs-catalog-delete {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(199, 126, 95, 0.45);
+  padding: 0.2rem 0.28rem;
+}
+
+.runs-catalog-delete button {
+  border: 1px solid rgba(199, 126, 95, 0.7);
+  background: rgba(199, 126, 95, 0.16);
+  padding: 0.22em 0.7em;
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange-hot);
+}
+
+.runs-catalog-delete button:disabled {
+  opacity: 0.3;
+}
+
+.runs-catalog-delete button:not(:disabled):hover {
+  background: rgba(199, 126, 95, 0.28);
+}
+
 .runs-catalog-pager {
   display: flex;
   align-items: center;
@@ -4962,6 +5187,40 @@ button.evo-generation:disabled {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  cursor: grab;
+}
+
+.runs-catalog-body:active {
+  cursor: grabbing;
+}
+
+.runs-catalog-zoom-plane {
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.runs-catalog-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.runs-catalog-zoom button {
+  min-width: 2.1em;
+  border: 1px solid rgba(242, 242, 238, 0.22);
+  background: rgba(8, 8, 8, 0.75);
+  padding: 0.18em 0.45em;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.runs-catalog-zoom-overlay {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  z-index: 3;
 }
 
 .runs-catalog-grid {

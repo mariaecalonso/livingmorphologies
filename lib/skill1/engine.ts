@@ -28,6 +28,14 @@ const TWO_PI = Math.PI * 2;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+function fineTrail(archetypeId: string) {
+  return (
+    archetypeId === "compressed-sequential" ||
+    archetypeId === "topographic-ground-field" ||
+    archetypeId === "linear-gallery"
+  );
+}
+
 const wrapAngle = (angle: number) => {
   let next = angle % TWO_PI;
   if (next < 0) next += TWO_PI;
@@ -86,7 +94,7 @@ function buildAttractionField(
   const { attractionStrength, influenceRadius, scaleVariation } = translation.params;
   const field = new Array<number>(size * size).fill(0);
   if (translation.recipe.attractorsOnly && translation.recipe.attractors?.length) {
-    paintAttractorList(field, size, translation.recipe.attractors, attractionStrength);
+    paintAttractorList(field, size, translation.recipe.attractors, attractionStrength, slime);
     return field;
   }
   if (aroundAbsence(translation)) {
@@ -203,6 +211,14 @@ function nearestOnCurve(from: Point, item: FieldAttractor): Point {
 }
 
 function pullPoint(from: Point, item: FieldAttractor, heading?: number): Point {
+  if (isVoidCorridor(item)) {
+    const on = item.kind === "curve" ? nearestOnCurve(from, item) : nearestOnLine(from, item);
+    const dx = from.x - on.x;
+    const dy = from.y - on.y;
+    const d = Math.hypot(dx, dy) || 0.0001;
+    const radius = Math.max(0.6, item.radius ?? 1.2);
+    return { x: on.x + (dx / d) * radius, y: on.y + (dy / d) * radius };
+  }
   if (item.kind === "curve") return nearestOnCurve(from, item);
   if (item.kind === "line") {
     const ax = item.x;
@@ -215,8 +231,20 @@ function pullPoint(from: Point, item: FieldAttractor, heading?: number): Point {
     const t = Math.max(0, Math.min(1, ((from.x - ax) * abx + (from.y - ay) * aby) / len2));
     return { x: ax + abx * t, y: ay + aby * t };
   }
-  if (item.kind === "ring" || item.kind === "point") return ringAroundPoint(from, item, heading);
+  if (item.kind === "ring" || (item.kind === "point" && isVoidDisk(item))) return ringAroundPoint(from, item, heading);
   return { x: item.x, y: item.y };
+}
+
+function nearestOnLine(from: Point, item: FieldAttractor): Point {
+  const ax = item.x;
+  const ay = item.y;
+  const bx = item.x2 ?? item.x;
+  const by = item.y2 ?? item.y;
+  const abx = bx - ax;
+  const aby = by - ay;
+  const len2 = abx * abx + aby * aby || 1;
+  const t = Math.max(0, Math.min(1, ((from.x - ax) * abx + (from.y - ay) * aby) / len2));
+  return { x: ax + abx * t, y: ay + aby * t };
 }
 
 /** Grazing point on a circle so movement stays outside and follows the rim. */
@@ -258,7 +286,7 @@ function nearestAttractorPoint(from: Point, primary: Point, translation: Biologi
   return best;
 }
 
-function paintAttractorList(field: number[], size: number, list: FieldAttractor[], gainBase: number) {
+function paintAttractorList(field: number[], size: number, list: FieldAttractor[], gainBase: number, slime?: SlimeControls) {
   for (const item of list) {
     const gain = gainBase * (item.strength ?? 1);
     const spread = Math.max(0.75, item.kind === "ring" ? 1.15 : item.radius ?? 2.2);
@@ -266,13 +294,21 @@ function paintAttractorList(field: number[], size: number, list: FieldAttractor[
     for (let y = 0; y < size; y += 1) {
       for (let x = 0; x < size; x += 1) {
         let d = 0;
-        if (item.kind === "line") {
+        if (isVoidCorridor(item)) {
+          const radial =
+            item.kind === "curve"
+              ? dist({ x, y }, nearestOnCurve({ x, y }, item))
+              : distanceToSegment(x, y, item.x, item.y, item.x2 ?? item.x, item.y2 ?? item.y);
+          const limit = Math.max(0.55, item.radius ?? 1.2);
+          if (radial < limit) continue;
+          d = radial - limit;
+        } else if (item.kind === "line") {
           d = distanceToSegment(x, y, item.x, item.y, item.x2 ?? item.x, item.y2 ?? item.y);
         } else if (item.kind === "curve") {
           d = dist({ x, y }, nearestOnCurve({ x, y }, item));
-        } else if (item.kind === "ring" || item.kind === "point") {
+        } else if (isVoidDisk(item)) {
           const radial = Math.hypot(x - item.x, y - item.y);
-          const limit = circleRadius(item);
+          const limit = polarVoidRadius(item, { x, y }, slime);
           if (radial < limit) continue;
           d = radial - limit;
         } else {
@@ -305,11 +341,36 @@ function circleRadius(item: FieldAttractor) {
   return Math.max(0.2, item.radius ?? (item.kind === "ring" ? 4 : 1.6));
 }
 
-function insideAttractorHole(point: Point, translation: BiologicalTranslation) {
+function isVoidDisk(item: FieldAttractor) {
+  if (item.kind === "line" || item.kind === "curve") return false;
+  return item.hole === true || item.kind === "ring";
+}
+
+function isVoidCorridor(item: FieldAttractor) {
+  return (item.kind === "line" || item.kind === "curve") && item.hole === true;
+}
+
+function polarVoidRadius(item: FieldAttractor, point: Point, slime?: SlimeControls) {
+  const base = circleRadius(item);
+  if (base <= 0) return 0;
+  if (!slime) return base;
+  return voidRadius(Math.atan2(point.y - item.y, point.x - item.x), base, slime);
+}
+
+function insideAttractorHole(point: Point, translation: BiologicalTranslation, slime?: SlimeControls) {
   const list = translation.recipe.attractors;
   if (!list) return false;
   for (const item of list) {
-    const radius = circleRadius(item);
+    if (isVoidCorridor(item)) {
+      const radial =
+        item.kind === "curve"
+          ? dist(point, nearestOnCurve(point, item))
+          : distanceToSegment(point.x, point.y, item.x, item.y, item.x2 ?? item.x, item.y2 ?? item.y);
+      if (radial < Math.max(0.55, item.radius ?? 1.2)) return true;
+      continue;
+    }
+    if (!isVoidDisk(item)) continue;
+    const radius = polarVoidRadius(item, point, slime);
     if (radius <= 0) continue;
     if (Math.hypot(point.x - item.x, point.y - item.y) < radius) return true;
   }
@@ -339,10 +400,15 @@ function circleHitT(x0: number, y0: number, x1: number, y1: number, cx: number, 
 const holeMasks = new Map<string, Uint8Array>();
 
 /** Trail pixels inside an attractor disk. Fixed for a given disk layout, so built once and reused every step. */
-function holeMaskFor(trailSize: number, fieldSize: number, translation: BiologicalTranslation) {
+function holeMaskFor(trailSize: number, fieldSize: number, translation: BiologicalTranslation, slime?: SlimeControls) {
   const list = translation.recipe.attractors ?? [];
-  const key = `${trailSize}|${fieldSize}|${list
+  const shape = slime
+    ? `${slime.voidElongation.toFixed(3)},${slime.voidRotation.toFixed(3)},${slime.voidLobes.toFixed(3)},${slime.voidNotch.toFixed(3)}`
+    : "circle";
+  const key = `${trailSize}|${fieldSize}|${shape}|${list
     .map((item) => {
+      if (isVoidCorridor(item)) return `c${item.x},${item.y},${item.x2},${item.y2},${item.radius ?? 0}`;
+      if (!isVoidDisk(item)) return "";
       const radius = circleRadius(item);
       return radius > 0 ? `${item.x},${item.y},${radius}` : "";
     })
@@ -354,7 +420,7 @@ function holeMaskFor(trailSize: number, fieldSize: number, translation: Biologic
     for (let i = 0; i < mask.length; i += 1) {
       const fx = (i % trailSize) / scale;
       const fy = Math.floor(i / trailSize) / scale;
-      if (insideAttractorHole({ x: fx, y: fy }, translation)) mask[i] = 1;
+      if (insideAttractorHole({ x: fx, y: fy }, translation, slime)) mask[i] = 1;
     }
     if (holeMasks.size >= 8) holeMasks.delete(holeMasks.keys().next().value as string);
     holeMasks.set(key, mask);
@@ -367,11 +433,12 @@ function eraseTrailsInsideCircles(
   trailSize: number,
   fieldSize: number,
   translation: BiologicalTranslation,
+  slime?: SlimeControls,
 ) {
   const list = translation.recipe.attractors;
-  if (!list?.some((item) => circleRadius(item) > 0)) return;
+  if (!list?.some((item) => (isVoidDisk(item) && circleRadius(item) > 0) || isVoidCorridor(item))) return;
   const book = trailBook(trails);
-  const hole = holeMaskFor(trailSize, fieldSize, translation);
+  const hole = holeMaskFor(trailSize, fieldSize, translation, slime);
   let write = 0;
   for (let n = 0; n < book.active.length; n += 1) {
     const i = book.active[n];
@@ -393,42 +460,21 @@ function keepOutsideCircles(
   fromY: number,
   translation: BiologicalTranslation,
   size: number,
+  slime?: SlimeControls,
 ) {
   const list = translation.recipe.attractors;
   if (!list) return;
   for (let pass = 0; pass < 2; pass += 1) {
     for (const item of list) {
-      const radius = circleRadius(item);
-      if (radius <= 0) continue;
+      if (!isVoidDisk(item) || circleRadius(item) <= 0) continue;
+      const angle = Math.atan2(agent.y - item.y, agent.x - item.x);
+      const radius = polarVoidRadius(item, agent, slime);
       const endDist = Math.hypot(agent.x - item.x, agent.y - item.y);
-      const startDist = Math.hypot(fromX - item.x, fromY - item.y);
-      if (endDist >= radius && startDist >= radius) {
-        const crossed = circleHitT(fromX, fromY, agent.x, agent.y, item.x, item.y, radius);
-        if (crossed == null) continue;
-      } else if (endDist >= radius) {
-        continue;
-      }
-      let px = agent.x;
-      let py = agent.y;
-      if (startDist > radius) {
-        const hit = circleHitT(fromX, fromY, agent.x, agent.y, item.x, item.y, radius);
-        if (hit != null) {
-          const span = Math.hypot(agent.x - fromX, agent.y - fromY) || 1;
-          const t = Math.max(0, hit - 0.04 / span);
-          px = fromX + (agent.x - fromX) * t;
-          py = fromY + (agent.y - fromY) * t;
-        }
-      }
-      const rdx = px - item.x;
-      const rdy = py - item.y;
-      const rd = Math.hypot(rdx, rdy);
-      if (rd < radius + 0.02) {
-        const angle = rd > 0.001 ? Math.atan2(rdy, rdx) : Math.atan2(fromY - item.y, fromX - item.x);
-        px = item.x + Math.cos(angle) * (radius + 0.02);
-        py = item.y + Math.sin(angle) * (radius + 0.02);
-      }
-      agent.x = clamp(px, 0.18, size - 0.18);
-      agent.y = clamp(py, 0.18, size - 0.18);
+      if (endDist >= radius + 0.02) continue;
+      const fromAngle = Math.atan2(fromY - item.y, fromX - item.x);
+      const out = radius + 0.04;
+      agent.x = clamp(item.x + Math.cos(endDist > 0.001 ? angle : fromAngle) * out, 0.18, size - 0.18);
+      agent.y = clamp(item.y + Math.sin(endDist > 0.001 ? angle : fromAngle) * out, 0.18, size - 0.18);
       const nx = agent.x - item.x;
       const ny = agent.y - item.y;
       const nm = Math.hypot(nx, ny) || 1;
@@ -500,7 +546,7 @@ function sense(
     }
   }
   const extraFood = foods && foods.length > 1 ? foodPull(look, foods.slice(1), params.attractionStrength) : 0;
-  if (insideAttractorHole(look, translation)) return -2;
+  if (insideAttractorHole(look, translation, slime)) return -2;
   const influence = slime?.trailInfluence ?? 1;
   const resistance = sampleResistance(look, state.size, slime?.resistance ?? 0);
   return (
@@ -534,7 +580,101 @@ function spawnAgent(
   let x: number;
   let y: number;
   let heading: number;
-  if (aroundAbsence(translation) && rng() > 0.05) {
+  if (fineTrail(translation.archetypeId)) {
+    const marks = recipe.attractors ?? [];
+    let minX = FIELD_SIZE;
+    let minY = FIELD_SIZE;
+    let maxX = 0;
+    let maxY = 0;
+    for (const item of marks) {
+      minX = Math.min(minX, item.x, item.x2 ?? item.x);
+      minY = Math.min(minY, item.y, item.y2 ?? item.y);
+      maxX = Math.max(maxX, item.x, item.x2 ?? item.x);
+      maxY = Math.max(maxY, item.y, item.y2 ?? item.y);
+    }
+    const scatter = !marks.length || rng() >= 0.2 + recipe.clustering * 0.7;
+    if (scatter) {
+      const pad = 2.6;
+      x = clamp((minX < maxX ? minX : 1.6) - pad + rng() * ((maxX > minX ? maxX - minX : 16) + pad * 2), 0.2, FIELD_SIZE - 0.2);
+      y = clamp((minY < maxY ? minY : 1.6) - pad + rng() * ((maxY > minY ? maxY - minY : 16) + pad * 2), 0.2, FIELD_SIZE - 0.2);
+      heading = rng() * TWO_PI;
+    } else {
+      const chambers = marks.filter((item) => (item.radius ?? 1) >= 2);
+      const beads = marks.filter((item) => (item.radius ?? 1) >= 0.7 && (item.radius ?? 1) < 2);
+      const necks = marks.filter((item) => (item.radius ?? 1) < 0.7);
+      const pool =
+        rng() < 0.78 && chambers.length
+          ? chambers
+          : rng() < 0.6 && beads.length
+            ? beads
+            : necks.length
+              ? necks
+              : marks;
+      const mark = pool[Math.floor(rng() * Math.max(1, pool.length))] ?? {
+        x: attractor.x,
+        y: attractor.y,
+        x2: attractor.x,
+        y2: attractor.y,
+        radius: 1.2,
+      };
+      if (mark.kind === "point" || mark.kind === "ring" || mark.x2 == null) {
+        const a = rng() * TWO_PI;
+        const r = (mark.radius ?? 1.2) * rng() * 0.82;
+        x = clamp(mark.x + Math.cos(a) * r, 0.2, FIELD_SIZE - 0.2);
+        y = clamp(mark.y + Math.sin(a) * r, 0.2, FIELD_SIZE - 0.2);
+        heading = rng() * TWO_PI;
+      } else {
+        const t = rng();
+        const x2 = mark.x2 ?? mark.x;
+        const y2 = mark.y2 ?? mark.y;
+        const alongX = mark.x + (x2 - mark.x) * t;
+        const alongY = mark.y + (y2 - mark.y) * t;
+        const nx = -(y2 - mark.y);
+        const ny = x2 - mark.x;
+        const span = Math.hypot(nx, ny) || 1;
+        const offset = (mark.radius ?? 0.2) * (0.2 + rng() * 0.45);
+        x = clamp(alongX + (nx / span) * (rng() - 0.5) * offset, 0.2, FIELD_SIZE - 0.2);
+        y = clamp(alongY + (ny / span) * (rng() - 0.5) * offset, 0.2, FIELD_SIZE - 0.2);
+        heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() - 0.5) * 0.4);
+      }
+    }
+  } else if (translation.archetypeId === "continuous-hall") {
+    const marks = recipe.attractors ?? [];
+    const voids = marks.filter((item) => item.hole || item.kind === "ring");
+    const solids = marks.filter((item) => !item.hole && item.kind !== "ring");
+    const inverted = voids.length > 0;
+    const pool = inverted ? (solids.length ? solids : voids) : marks;
+    const mark = pool[Math.floor(rng() * Math.max(1, pool.length))] ?? {
+      x: attractor.x,
+      y: attractor.y,
+      x2: attractor.x,
+      y2: attractor.y,
+      radius: 1,
+    };
+    if (!inverted && (mark.kind === "point" || mark.kind === "ring")) {
+      const a = rng() * TWO_PI;
+      const r = (mark.radius ?? 1) * rng() * 0.85;
+      x = clamp(mark.x + Math.cos(a) * r, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(mark.y + Math.sin(a) * r, 0.2, FIELD_SIZE - 0.2);
+      heading = rng() * TWO_PI;
+    } else {
+      const t = rng();
+      const x2 = mark.x2 ?? mark.x;
+      const y2 = mark.y2 ?? mark.y;
+      const alongX = mark.x + (x2 - mark.x) * t;
+      const alongY = mark.y + (y2 - mark.y) * t;
+      const nx = -(y2 - mark.y);
+      const ny = x2 - mark.x;
+      const span = Math.hypot(nx, ny) || 1;
+      const side = inverted ? (rng() < 0.5 ? 1 : -1) : rng() - 0.5;
+      const offset = inverted
+        ? (mark.radius ?? 1.2) * (1.2 + rng() * 1.8)
+        : (mark.radius ?? 0.8) * (0.35 + rng() * 0.45);
+      x = clamp(alongX + (nx / span) * side * offset, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(alongY + (ny / span) * side * offset, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() - 0.5) * (inverted ? 0.8 : 0.35));
+    }
+  } else if (aroundAbsence(translation) && rng() > 0.05) {
     x = 1.1 + rng() * (FIELD_SIZE - 2.2);
     y = 1.1 + rng() * (FIELD_SIZE - 2.2);
     const away = dist({ x, y }, attractor);
@@ -670,8 +810,9 @@ function deposit(
   const span = Math.ceil(pixelWidth);
   const x0 = Math.floor(pos.x);
   const y0 = Math.floor(pos.y);
-  for (let oy = -span; oy <= span; oy += 1) {
-    for (let ox = -span; ox <= span; ox += 1) {
+  const stride = pixelWidth > 8 ? 2 : 1;
+  for (let oy = -span; oy <= span; oy += stride) {
+    for (let ox = -span; ox <= span; ox += stride) {
       const x = x0 + ox;
       const y = y0 + oy;
       const distance = Math.hypot(pos.x - x, pos.y - y);
@@ -816,7 +957,7 @@ export function stepSimulation(
   state.flow.fill(0);
 
   for (const agent of state.agents) {
-    keepOutsideCircles(agent, agent.x, agent.y, translation, state.size);
+    keepOutsideCircles(agent, agent.x, agent.y, translation, state.size, slime);
     const here = { x: agent.x, y: agent.y };
     const holdHeading = slime != null && agent.hold > 0;
     if (holdHeading) agent.hold -= 1;
@@ -905,7 +1046,7 @@ export function stepSimulation(
       }
     }
 
-    keepOutsideCircles(agent, fromX, fromY, translation, state.size);
+    keepOutsideCircles(agent, fromX, fromY, translation, state.size, slime);
 
     const hitWall =
       agent.x < 0.18 || agent.x > state.size - 0.18 || agent.y < 0.18 || agent.y > state.size - 0.18;
@@ -937,8 +1078,8 @@ export function stepSimulation(
     state.flow[cell] += 1;
     let depositAmount = slime?.deposit ?? (0.05 + params.flowCoupling * 0.1) * agent.trailStrength;
     const edge = Math.min(agent.x, agent.y, state.size - agent.x, state.size - agent.y);
-    if (edge < 2.6) depositAmount *= 0.012;
-    if (insideAttractorHole(agent, translation)) depositAmount = 0;
+    if (edge < 2.6 && !fineTrail(translation.archetypeId)) depositAmount *= 0.012;
+    if (insideAttractorHole(agent, translation, slime)) depositAmount = 0;
     if (aroundAbsence(translation)) {
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
       const limit = slime
@@ -946,10 +1087,18 @@ export function stepSimulation(
         : translation.recipe.isolationRadius * 0.55;
       if (dist(agent, state.attractor) < limit) depositAmount *= 0.05;
     }
-    const depositWidth = slime?.depositWidth ?? 1;
+    const depositWidth =
+      fineTrail(translation.archetypeId)
+        ? (() => {
+            const width = slime?.depositWidth ?? 1.2;
+            return width * 0.22 + width ** 2.4 * 4.2;
+          })()
+        : (slime?.depositWidth ?? 1);
     const depositCap = slime?.trailCap ?? 1.8;
     const traveled = dist({ x: fromX, y: fromY }, agent);
-    if (!hitWall && traveled <= step * 1.75 + 0.02) {
+    const joinTrail =
+      translation.archetypeId !== "compressed-sequential" || depositWidth < 28;
+    if (joinTrail && !hitWall && traveled <= step * 1.75 + 0.02) {
       depositSegment(
         state.trails,
         state.trailSize,
@@ -1053,7 +1202,7 @@ export function stepSimulation(
     book.active = queued;
   }
 
-  eraseTrailsInsideCircles(state.trails, state.trailSize, state.size, translation);
+  eraseTrailsInsideCircles(state.trails, state.trailSize, state.size, translation, slime);
 
   if (finalize) state.occupancy = downsampleOccupancy(state.trails, state.trailSize, state.size);
   state.iteration += 1;
