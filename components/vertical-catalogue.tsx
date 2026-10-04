@@ -1,0 +1,218 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { CatalogueField, type CatalogueModule } from "@/components/vertical-catalogue-scene";
+import { ARCHETYPES } from "@/lib/skill1/archetypes";
+import { catalogueSlots } from "@/lib/skill3/catalogue";
+import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
+
+const TYPOLOGY: Record<string, string> = {
+  lobby: "Lobby",
+  workspace: "Workspace",
+  gathering: "Gathering",
+};
+
+type CandidateRequest = {
+  archetypeId: string;
+  archetypeName: string;
+  typologyId: string;
+  candidateId: number;
+};
+
+type ApiContinuation = Omit<NaturalContinuation, "field">;
+
+type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
+  continuations: ApiContinuation[];
+  fields: VerticalViewerField[];
+};
+
+function joinSet(body: ApiSet): NaturalContinuationSet {
+  const { fields, continuations, ...source } = body;
+  return {
+    ...source,
+    continuations: continuations.map((continuation, index) => ({
+      ...continuation,
+      field: fields[index],
+    })),
+  };
+}
+
+function archetypesFor(typologyId: string) {
+  return Object.values(ARCHETYPES).filter((item) => item.typologyId === typologyId);
+}
+
+export function VerticalCatalogue({
+  initial,
+  candidate,
+}: {
+  initial: NaturalContinuationSet | null;
+  candidate: CandidateRequest | null;
+}) {
+  const search = useSearchParams();
+  const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(initial == null && candidate != null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewReset, setViewReset] = useState(0);
+  const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
+  const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || "continuous-hall");
+
+  useEffect(() => {
+    if (initial || !candidate) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      archetype: candidate.archetypeId,
+      candidate: String(candidate.candidateId),
+    });
+    setPending(true);
+    setError(null);
+    void fetch(`/api/vertical?${params}`, { signal: controller.signal })
+      .then(async (response) => {
+        const body = (await response.json()) as ApiSet & { error?: string };
+        if (!response.ok) throw new Error(body.error ?? "The selected candidate could not be reconstructed.");
+        if (!controller.signal.aborted) setSet(joinSet(body));
+      })
+      .catch((caught) => {
+        if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
+        setError(caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPending(false);
+      });
+    return () => controller.abort();
+  }, [candidate, initial]);
+
+  const matches = set != null && set.typologyId === typologyId && set.archetypeId === archetypeId;
+  const slots = useMemo(() => (matches && set ? catalogueSlots(set.continuations) : []), [matches, set]);
+  const selected = slots.find((item) => item.id === selectedId) ?? null;
+  const generated = matches && set ? set.continuations.length : 0;
+  const archetypeName = archetypesFor(typologyId).find((item) => item.id === archetypeId)?.name
+    ?? (matches ? set?.archetypeName : null)
+    ?? "Archetype";
+  const processParams = new URLSearchParams(search.toString());
+  processParams.delete("legacy");
+  const processHref = processParams.toString() ? `/lab/vertical?${processParams.toString()}` : "/lab/vertical";
+  const modules = useMemo<CatalogueModule[]>(() => slots.map((item, index) => ({
+    id: item.id,
+    label: String(index + 1).padStart(2, "0"),
+    cacheIdentity: `${set?.origin ?? "pending"}:${item.archetypeId}:${item.candidateId}:${item.id}`,
+    field: item.field,
+  })), [set?.origin, slots]);
+
+  return (
+    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"}>
+      <header className="evo-header">
+        <div>
+          <p className="display evo-header-title">3D Catalogue</p>
+          <p className="eyebrow evo-header-detail">
+            {TYPOLOGY[typologyId] ?? typologyId} · {archetypeName}
+            {matches && set ? ` · Candidate ${set.candidateId}` : ""}
+          </p>
+        </div>
+        <div className="vertical-catalogue-nav">
+          {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+          <Link href={processHref} className="vertical-catalogue-back">Process</Link>
+        </div>
+      </header>
+      <div className="vertical-catalogue-body">
+        <aside className="vertical-catalogue-side">
+          <section className="vertical-catalogue-frame">
+            <p className="vertical-catalogue-figure">{slots.length}</p>
+            <p className="vertical-process-note">Representative morphologies shown</p>
+            <p className="vertical-catalogue-figure">{generated}</p>
+            <p className="vertical-process-note">Natural continuations generated</p>
+            <p className="vertical-catalogue-figure">{selected ? 1 : 0}</p>
+            <p className="vertical-process-note">{selected ? `Selected ${modules.find((item) => item.id === selected.id)?.label}` : "No morphology selected"}</p>
+          </section>
+          <section className="vertical-catalogue-frame">
+            <h2 className="panel-title">Select typology</h2>
+            <div className="vertical-catalogue-choices">
+              {Object.entries(TYPOLOGY).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  data-active={id === typologyId || undefined}
+                  onClick={() => {
+                    setTypologyId(id);
+                    const next = archetypesFor(id)[0];
+                    if (next) setArchetypeId(next.id);
+                    setSelectedId(null);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="vertical-catalogue-frame vertical-catalogue-grow">
+            <h2 className="panel-title">Select archetype</h2>
+            <div className="vertical-catalogue-choices">
+              {archetypesFor(typologyId).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-active={item.id === archetypeId || undefined}
+                  onClick={() => {
+                    setArchetypeId(item.id);
+                    setSelectedId(null);
+                  }}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </section>
+        </aside>
+        <section className="vertical-catalogue-field">
+          <CatalogueField
+            modules={modules}
+            origin={set?.origin ?? "pending"}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelectedId}
+            resetToken={viewReset}
+          />
+        </section>
+        <aside className="vertical-catalogue-side">
+          <section className="vertical-catalogue-frame vertical-catalogue-grow">
+            <h2 className="panel-title">Collection</h2>
+            <dl className="vertical-catalogue-facts">
+              <div><dt>Typology</dt><dd>{TYPOLOGY[typologyId] ?? typologyId}</dd></div>
+              <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
+              <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
+              <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
+              <div><dt>Displayed</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+              <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
+            </dl>
+            {error ? <p className="vertical-process-note">{error}</p> : null}
+            {pending ? <p className="vertical-process-note">Checking handoff</p> : null}
+            {!matches && !pending && !error ? <p className="vertical-process-note">No continuation set for this archetype</p> : null}
+            {selected ? (
+              <dl className="vertical-catalogue-facts">
+                <div><dt>Result</dt><dd>{modules.find((item) => item.id === selected.id)?.label}</dd></div>
+                <div><dt>Continuation</dt><dd>{selected.id}</dd></div>
+                <div><dt>Seed</dt><dd>{String(selected.continuationSeed)}</dd></div>
+                <div><dt>Z0</dt><dd>{String(selected.z0Iteration)}</dd></div>
+                <div><dt>Samples</dt><dd>{String(selected.sampleCount)}</dd></div>
+              </dl>
+            ) : null}
+          </section>
+          <section className="vertical-catalogue-frame">
+            <h2 className="panel-title">Controls</h2>
+            <dl className="vertical-catalogue-facts">
+              <div><dt>Orbit</dt><dd>Drag</dd></div>
+              <div><dt>Pan</dt><dd>Shift drag</dd></div>
+              <div><dt>Zoom</dt><dd>Wheel</dd></div>
+              <div><dt>Select</dt><dd>Click</dd></div>
+            </dl>
+            <button type="button" className="vertical-catalogue-reset" onClick={() => setViewReset((value) => value + 1)}>
+              Reset view
+            </button>
+          </section>
+        </aside>
+      </div>
+    </main>
+  );
+}

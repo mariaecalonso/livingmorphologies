@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
@@ -268,6 +270,13 @@ function PropagationMarks({ iterations }: { iterations: number[] }) {
   );
 }
 
+function catalogueHref(search: string) {
+  const params = new URLSearchParams(search);
+  params.delete("legacy");
+  const query = params.toString();
+  return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
+}
+
 function joinSet(body: ApiSet): NaturalContinuationSet {
   const { fields, continuations, ...source } = body;
   return {
@@ -306,6 +315,7 @@ export function VerticalProcess({
   candidate: CandidateRequest | null;
   provenance?: Skill2Provenance | null;
 }) {
+  const search = useSearchParams();
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
@@ -502,7 +512,8 @@ export function VerticalProcess({
             <section className="vertical-process-region" data-balance="visual">
               <header className="vertical-process-label">
                 <p className="eyebrow">04</p>
-                <h2 className="panel-title">3D morphology</h2>
+                <h2 className="panel-title">3D morphology preview</h2>
+                {shown ? <p className="vertical-process-aside">{shown.id} · preview outcome</p> : null}
               </header>
               <div className="vertical-process-split">
                 <div className="vertical-process-stage">
@@ -571,10 +582,11 @@ export function VerticalProcess({
             </p>
             <p>Further morphology rules can be added here if the 3D outcomes need them.</p>
           </details>
-          <p className="vertical-process-catalogue">
+          <Link href={catalogueHref(search.toString())} className="vertical-process-catalogue">
             <span>Explore 3D catalogue</span>
             <span aria-hidden="true">→</span>
-          </p>
+          </Link>
+          <p className="vertical-process-note">Compare alternative natural continuation outcomes.</p>
         </aside>
       </div>
     </main>

@@ -108,7 +108,7 @@ function eventsFor(iterations: number[]): ContinuationEvent[] {
   }));
 }
 
-export function buildDevelopmentFixture(): NaturalContinuationSet {
+function buildDevelopmentSet(richThrough: number): NaturalContinuationSet {
   const identity = {
     typologyId: "lobby",
     archetypeId: "continuous-hall",
@@ -121,7 +121,7 @@ export function buildDevelopmentFixture(): NaturalContinuationSet {
   const continuations: NaturalContinuation[] = [];
   for (let branch = 1; branch <= NATURAL_CONTINUATION_COUNT; branch += 1) {
     const id = naturalContinuationId(branch);
-    const shown = branch === 1;
+    const shown = branch <= richThrough;
     const branchIterations = shown ? iterations : [Z0_ITERATION];
     const branchHeights = shown ? heights : [0];
     const events = eventsFor(branchIterations);
@@ -181,4 +181,20 @@ export function buildDevelopmentFixture(): NaturalContinuationSet {
     },
     continuations,
   };
+}
+
+/** Process page stand-in. Only N01 carries a multi-sample field. */
+export function buildDevelopmentFixture(): NaturalContinuationSet {
+  return buildDevelopmentSet(1);
+}
+
+/** How many fixture branches carry a multi-sample field for the catalogue. Not a diversity filter. */
+const CATALOGUE_RICH_BRANCHES = 12;
+
+/**
+ * Catalogue stand-in. The first 12 branches carry the authored fixture field.
+ * This is not a 24→12 diversity filter. Seeds stay the continuation seeds.
+ */
+export function buildDevelopmentCatalogueSet(): NaturalContinuationSet {
+  return buildDevelopmentSet(CATALOGUE_RICH_BRANCHES);
 }

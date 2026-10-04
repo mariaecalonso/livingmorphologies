@@ -58,6 +58,13 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
     const query = params.toString();
     return query ? `/lab/vertical?${query}` : "/lab/vertical";
   };
+  const catalogueQuery = () => {
+    const params = new URLSearchParams(search.toString());
+    params.delete("legacy");
+    const query = params.toString();
+    return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
+  };
+  const onCatalogue = pathname.startsWith("/lab/vertical/catalogue");
 
   const changeMode = (next: DisplayMode) => {
     if (next === mode) return;
@@ -115,12 +122,20 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
           </nav>
         ) : activeStage?.match === "/lab/vertical" ? (
           <nav className="stage-nav-sub" aria-label="Vertical Propagation views">
-            {legacy ? (
+            {onCatalogue ? (
               <Link href={verticalQuery(false)} className="stage-nav-subitem">
                 Process
               </Link>
             ) : null}
-            {legacy
+            <Link href={catalogueQuery()} className="stage-nav-subitem" aria-current={onCatalogue ? "page" : undefined} data-active={onCatalogue || undefined}>
+              Catalogue
+            </Link>
+            {legacy && !onCatalogue ? (
+              <Link href={verticalQuery(false)} className="stage-nav-subitem">
+                Process
+              </Link>
+            ) : null}
+            {legacy && !onCatalogue
               ? VERTICAL_VIEWS.map((item) => {
                   const active = item.view === verticalView;
                   return (
@@ -135,11 +150,11 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
                     </a>
                   );
                 })
-              : (
+              : !onCatalogue ? (
                 <Link href={verticalQuery(true)} className="stage-nav-subitem">
                   Experimental
                 </Link>
-              )}
+              ) : null}
           </nav>
         ) : null}
         {mode === "presentation" ? <PresentationEditControls /> : null}
