@@ -43,7 +43,7 @@ export async function saveArchetypeField(archetypeId: string, index: number, sna
   return ok || backup;
 }
 
-export async function loadArchetypeFields(archetypeId: string, count = 80) {
+export async function loadArchetypeFields(archetypeId: string, count = 100) {
   const snapshots: Array<FieldSnapshot | null> = Array.from({ length: count }, () => null);
   const db = await openDb();
   await Promise.all(
@@ -64,7 +64,7 @@ export async function loadArchetypeFields(archetypeId: string, count = 80) {
   return snapshots;
 }
 
-export async function countArchetypeFields(archetypeId: string, count = 80) {
+export async function countArchetypeFields(archetypeId: string, count = 100) {
   const prefix = `${archetypeId}:`;
   const db = await openDb();
   if (db) {
@@ -81,7 +81,7 @@ export async function countArchetypeFields(archetypeId: string, count = 80) {
   return fields.reduce((sum, item) => sum + (item ? 1 : 0), 0);
 }
 
-export async function listArchetypeFieldCounts(archetypeIds: string[], count = 80) {
+export async function listArchetypeFieldCounts(archetypeIds: string[], count = 100) {
   const counts: Record<string, number> = {};
   await Promise.all(
     archetypeIds.map(async (id) => {

@@ -11,6 +11,9 @@ export function paintMorphology(
   fine = false,
   attractors?: FieldAttractor[],
   box?: { width: number; height: number },
+  density = 5,
+  peak?: number,
+  hairThin = false,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -28,7 +31,7 @@ export function paintMorphology(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
-  drawPlanField(ctx, snapshot, width, height, { showHud: false, fine, density: 5, attractors, showAttractors: false });
+  drawPlanField(ctx, snapshot, width, height, { showHud: false, fine, density, attractors, showAttractors: false, peak, hairThin });
 }
 
 /** Fills its parent and repaints on resize. Uses layout size, so ancestor transforms do not distort it. */

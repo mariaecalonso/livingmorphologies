@@ -204,7 +204,7 @@ export async function saveRunSnapshot(index: number, snapshot: FieldSnapshot) {
 
 export async function loadRunsSession() {
   const session = await get<RunsSession>("runs");
-  const snapshots: Array<FieldSnapshot | null> = Array.from({ length: 80 }, () => null);
+  const snapshots: Array<FieldSnapshot | null> = Array.from({ length: 100 }, () => null);
   if (session && session.completed > 0) {
     await Promise.all(
       Array.from({ length: session.completed }, async (_, index) => {
@@ -217,5 +217,5 @@ export async function loadRunsSession() {
 }
 
 export async function clearRunFields() {
-  await Promise.all(Array.from({ length: 80 }, (_, index) => del(`run-field:${index}`)));
+  await Promise.all(Array.from({ length: 100 }, (_, index) => del(`run-field:${index}`)));
 }
