@@ -13,7 +13,7 @@ export type ViewPoint = { x: number; y: number; depth: number };
  * Orthographic frame for a unit-square stack.
  * `full` is the vertical span the bounds are fitted to. Yaw and pitch stay with the caller.
  */
-export function orthoStackFrame(width: number, height: number, yaw: number, pitch: number, full: number) {
+export function orthoStackFrame(width: number, height: number, yaw: number, pitch: number, full: number, cover = false) {
   const cy = Math.cos(yaw);
   const sy = Math.sin(yaw);
   const cp = Math.cos(pitch);
@@ -36,7 +36,11 @@ export function orthoStackFrame(width: number, height: number, yaw: number, pitc
     minY = Math.min(minY, point.y);
     maxY = Math.max(maxY, point.y);
   }
-  const scale = Math.min(width, height) * ORTHO_STACK_FIT;
+  const spanX = Math.max(0.001, maxX - minX);
+  const spanY = Math.max(0.001, maxY - minY);
+  const scale = cover
+    ? Math.min((width * 0.94) / spanX, (height * 0.94) / spanY)
+    : Math.min(width, height) * ORTHO_STACK_FIT;
   const xMid = (minX + maxX) / 2;
   const yMid = (minY + maxY) / 2;
   const du = rotate(1, 0, 0);

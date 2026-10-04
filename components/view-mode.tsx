@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { LAB_DISPLAY_EVENT, labModeForSite, readStoredLab, readStoredSite, syncSiteFromLab } from "@/components/display-sync";
@@ -48,7 +48,11 @@ export function setViewMode(mode: DisplayMode, returnPath?: string) {
 /** Renders the current route on the ultra-wide canvas, fitted to the window. */
 export function PresentationFrame() {
   const pathname = usePathname();
-  const [src] = useState(() => `${pathname}?wall=1&frame=1${window.location.hash}`);
+  const search = useSearchParams();
+  const params = new URLSearchParams(search.toString());
+  params.set("wall", "1");
+  params.set("frame", "1");
+  const src = `${pathname}?${params.toString()}${typeof window === "undefined" ? "" : window.location.hash}`;
   const [scale, setScale] = useState(1);
 
   useEffect(() => {

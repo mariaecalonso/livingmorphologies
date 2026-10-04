@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { loadNaturalContinuations } from "@/lib/skill3/continuations";
 import { selectionFromQuery } from "@/lib/skill3/selection";
-import { loadVerticalViewerBundle } from "@/lib/skill3/viewer-field";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Same viewer bundle as the vertical page. The page paints first; this request reconstructs. */
+/** Viewer plates for the current vertical page. Meshes stay lazy on the client. */
 export function GET(request: Request) {
   const url = new URL(request.url);
   const requested = selectionFromQuery({
@@ -18,8 +18,16 @@ export function GET(request: Request) {
   }
 
   try {
-    const bundle = loadVerticalViewerBundle(requested.selection);
-    return NextResponse.json({ fields: bundle.futures.map((future) => future.field) });
+    const set = loadNaturalContinuations(requested.selection);
+    const { continuations, ...source } = set;
+    return NextResponse.json({
+      ...source,
+      continuations: continuations.map((continuation) => {
+        const { field: _field, ...meta } = continuation;
+        return meta;
+      }),
+      fields: continuations.map((continuation) => continuation.field),
+    });
   } catch (caught) {
     const error = caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.";
     return NextResponse.json({ error }, { status: 422 });

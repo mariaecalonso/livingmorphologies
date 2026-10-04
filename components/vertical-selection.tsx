@@ -1,17 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { readVerticalSelection } from "@/lib/skill3/selection";
 
 export function VerticalSelectionNotice({ title, detail }: { title: string; detail: string }) {
+  const search = useSearchParams();
+  const fixture = new URLSearchParams(search.toString());
+  fixture.set("fixture", "1");
+  fixture.delete("legacy");
   return (
     <main className="flex h-full flex-col justify-center gap-3 bg-black px-8 text-[var(--text)]">
       <p className="display text-[0.95rem] text-white">{title}</p>
       <p className="evo-empty max-w-md">{detail}</p>
       <Link href="/lab/evolution/pareto-catalog" className="text-[0.72rem] uppercase tracking-[0.16em] text-[var(--orange-hot)]">
         Pareto Catalog
+      </Link>
+      <Link href={`/lab/vertical?${fixture.toString()}`} className="text-[0.72rem] uppercase tracking-[0.16em] text-[var(--muted)]">
+        Development fixture
       </Link>
     </main>
   );

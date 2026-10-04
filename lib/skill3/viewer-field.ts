@@ -1,11 +1,6 @@
-import type { Skill3SourceRequest } from "./source";
-import { branchSampledFutures, BRANCHED_FUTURE_COUNT } from "./futures";
-import { DEFAULT_EVENT_CONFIG, type AcceptedSample, type EventSamplingResult } from "./events";
-import { DEFAULT_BOUNDARY_FUSION, type BoundaryFusionConfig } from "./boundary-fusion";
-import { DEFAULT_ADAPTIVE_SCALE } from "./adaptive-scale";
-import { DEFAULT_TWIST } from "./twist";
+import type { AcceptedSample, EventSamplingResult } from "./events";
 
-/** Plate resolution handed to the viewer. The full 1280 field stays in Skill 3. */
+/** Plate resolution handed to the viewer. Generators downsample, then drop the 1280 field. */
 export const VIEWER_TRAIL_SIZE = 128;
 
 export type ViewerPoint = { x: number; y: number };
@@ -104,46 +99,3 @@ export function toVerticalViewerField(result: EventSamplingResult, futureId = "F
   };
 }
 
-const bundleCache = new Map<string, VerticalViewerBundle>();
-
-export type ViewerFuture = {
-  id: string;
-  parentChecksum: string;
-  continuationSeed: number;
-  iterations: number[];
-  field: VerticalViewerField;
-};
-
-/** One replay, then a viewer field for each continuation. */
-export type VerticalViewerBundle = {
-  parentChecksum: string;
-  futures: ViewerFuture[];
-};
-
-function bundleKey(request: Skill3SourceRequest) {
-  return `${request.runKey ?? request.archetypeId}#${request.candidateId}`;
-}
-
-/** Replays the selected candidate once per server process, then reuses every future. */
-export function loadVerticalViewerBundle(
-  request: Skill3SourceRequest,
-  count = BRANCHED_FUTURE_COUNT,
-  fusionConfig: BoundaryFusionConfig = DEFAULT_BOUNDARY_FUSION,
-): VerticalViewerBundle {
-  const key = `${bundleKey(request)}#${count}#${DEFAULT_EVENT_CONFIG.horizon}#${fusionConfig.proximity}#${fusionConfig.relaxationRadius}#${fusionConfig.blendStrength}#${DEFAULT_TWIST.maxTwistAngle}#${DEFAULT_ADAPTIVE_SCALE.contractionFloor}#${DEFAULT_ADAPTIVE_SCALE.expansionCeiling}#${DEFAULT_ADAPTIVE_SCALE.neutralBand}`;
-  const cached = bundleCache.get(key);
-  if (cached) return cached;
-  const branched = branchSampledFutures(request, count, DEFAULT_EVENT_CONFIG, fusionConfig);
-  const bundle: VerticalViewerBundle = {
-    parentChecksum: branched.parentChecksum,
-    futures: branched.futures.map((future) => ({
-      id: future.id,
-      parentChecksum: future.parentChecksum,
-      continuationSeed: future.continuationSeed,
-      iterations: future.iterations,
-      field: toVerticalViewerField(future.sampling, future.id),
-    })),
-  };
-  bundleCache.set(key, bundle);
-  return bundle;
-}

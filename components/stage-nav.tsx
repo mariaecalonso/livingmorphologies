@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { useVerticalView, VERTICAL_VIEWS } from "@/components/vertical-view";
@@ -44,14 +44,32 @@ const isStageActive = (pathname: string, match: string) =>
 
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const verticalView = useVerticalView();
-  const wall = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("wall") === "1";
+  const wall = search.get("wall") === "1";
+  const legacy = search.get("legacy") === "1";
   const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
   const activeStage = STAGES.find((stage) => isStageActive(pathname, stage.match));
 
+  const verticalQuery = (nextLegacy: boolean) => {
+    const params = new URLSearchParams(search.toString());
+    if (nextLegacy) params.set("legacy", "1");
+    else params.delete("legacy");
+    const query = params.toString();
+    return query ? `/lab/vertical?${query}` : "/lab/vertical";
+  };
+
   const changeMode = (next: DisplayMode) => {
     if (next === mode) return;
-    setViewMode(next, presentationFrame ? `${pathname}${window.location.hash}` : undefined);
+    if (!presentationFrame) {
+      setViewMode(next);
+      return;
+    }
+    const params = new URLSearchParams(search.toString());
+    params.delete("wall");
+    params.delete("frame");
+    const query = params.toString();
+    setViewMode(next, `${pathname}${query ? `?${query}` : ""}${window.location.hash}`);
   };
 
   return (
@@ -97,20 +115,31 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
           </nav>
         ) : activeStage?.match === "/lab/vertical" ? (
           <nav className="stage-nav-sub" aria-label="Vertical Propagation views">
-            {VERTICAL_VIEWS.map((item) => {
-              const active = item.view === verticalView;
-              return (
-                <a
-                  key={item.hash}
-                  href={item.hash}
-                  aria-current={active ? "page" : undefined}
-                  className="stage-nav-subitem"
-                  data-active={active || undefined}
-                >
-                  {item.label}
-                </a>
-              );
-            })}
+            {legacy ? (
+              <Link href={verticalQuery(false)} className="stage-nav-subitem">
+                Process
+              </Link>
+            ) : null}
+            {legacy
+              ? VERTICAL_VIEWS.map((item) => {
+                  const active = item.view === verticalView;
+                  return (
+                    <a
+                      key={item.hash}
+                      href={`${verticalQuery(true)}${item.hash}`}
+                      aria-current={active ? "page" : undefined}
+                      className="stage-nav-subitem"
+                      data-active={active || undefined}
+                    >
+                      {item.label}
+                    </a>
+                  );
+                })
+              : (
+                <Link href={verticalQuery(true)} className="stage-nav-subitem">
+                  Experimental
+                </Link>
+              )}
           </nav>
         ) : null}
         {mode === "presentation" ? <PresentationEditControls /> : null}
