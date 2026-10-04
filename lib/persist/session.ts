@@ -163,8 +163,36 @@ export async function loadBoardSession() {
   };
 }
 
-export async function saveRunsMeta(session: RunsSession) {
-  await put("runs", session);
+const TAB_KEY = "lm-runs-tab";
+
+/** This browser tab's archetype. sessionStorage is not shared with other tabs. */
+export function rememberRunsTab(archetypeId: string) {
+  try {
+    window.sessionStorage.setItem(TAB_KEY, archetypeId);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readRunsTab() {
+  try {
+    return window.sessionStorage.getItem(TAB_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function runsKey(archetypeId?: string | null) {
+  return archetypeId ? `runs:${archetypeId}` : "runs";
+}
+
+function runFieldKey(index: number, archetypeId?: string | null) {
+  return archetypeId ? `run-field:${archetypeId}:${index}` : `run-field:${index}`;
+}
+
+export async function saveRunsMeta(session: RunsSession, archetypeId?: string | null) {
+  await put(runsKey(archetypeId), session);
+  if (archetypeId) return;
   try {
     if (session.allDone) {
       window.localStorage.setItem("lm-run-all-done", "1");
@@ -202,17 +230,19 @@ export async function saveCatalogIndex(counts: Record<string, number>) {
   await put("catalog-index", { savedAt: Date.now(), counts });
 }
 
-export async function saveRunSnapshot(index: number, snapshot: FieldSnapshot) {
-  await put(`run-field:${index}`, packSnapshot(snapshot));
+export async function saveRunSnapshot(index: number, snapshot: FieldSnapshot, archetypeId?: string) {
+  const key = archetypeId ? `run-field:${archetypeId}:${index}` : `run-field:${index}`;
+  await put(key, packSnapshot(snapshot));
 }
 
-export async function loadRunsSession(options?: { snapshots?: boolean }) {
-  const session = await get<RunsSession>("runs");
+export async function loadRunsSession(options?: { snapshots?: boolean; archetypeId?: string | null }) {
+  const archetypeId = options?.archetypeId;
+  const session = await get<RunsSession>(runsKey(archetypeId));
   const snapshots: Array<FieldSnapshot | null> = Array.from({ length: 100 }, () => null);
   if (options?.snapshots !== false && session && session.completed > 0) {
     await Promise.all(
       Array.from({ length: session.completed }, async (_, index) => {
-        const packed = await get<ReturnType<typeof packSnapshot>>(`run-field:${index}`);
+        const packed = await get<ReturnType<typeof packSnapshot>>(runFieldKey(index, archetypeId));
         if (packed) snapshots[index] = unpackSnapshot(packed);
       }),
     );
@@ -220,6 +250,7 @@ export async function loadRunsSession(options?: { snapshots?: boolean }) {
   return { session, snapshots };
 }
 
-export async function clearRunFields() {
-  await Promise.all(Array.from({ length: 100 }, (_, index) => del(`run-field:${index}`)));
+export async function clearRunFields(archetypeId?: string) {
+  const key = (index: number) => (archetypeId ? `run-field:${archetypeId}:${index}` : `run-field:${index}`);
+  await Promise.all(Array.from({ length: 100 }, (_, index) => del(key(index))));
 }
