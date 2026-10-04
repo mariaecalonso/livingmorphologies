@@ -2,6 +2,7 @@ import { attractorsFromCompressedSequential } from "./run-compressed-sequential"
 import { attractorsFromContinuousHall } from "./run-continuous-hall";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
 import { attractorsFromTopographic } from "./run-topographic-ground-field";
+import { attractorsFromVerticalVoidPlan, type MorphPlan } from "./run-morphology";
 import { runAttractorsFor } from "./run-variants";
 import { slimeControlsFromTranslation } from "./slime-controls";
 import { translateArchetype } from "./translate";
@@ -96,15 +97,88 @@ if (galleryPlanned && galleryPlanned.archetypeId === "linear-gallery") {
 }
 
 const voidBase = translateArchetype("vertical-void");
+const voidSlime = slimeControlsFromTranslation(voidBase);
 const voidPlanned = planLobby("vertical-void", salt);
 if (voidPlanned && voidPlanned.archetypeId === "vertical-void") {
   const illegal: LobbyPlan = { archetypeId: "vertical-void", plan: { ...voidPlanned.plan, core: "compact", aspect: 9 } };
   const repaired = repairLobbyPlan(illegal);
   assert(repaired.ok && repaired.plan.archetypeId === "vertical-void" && repaired.plan.plan.aspect === 1.15, "aspect is repaired into the compact band");
-  const moved: LobbyPlan = { archetypeId: "vertical-void", plan: { ...voidPlanned.plan, cx: Math.min(18, voidPlanned.plan.cx + 0.5) } };
-  const a = realizeLobbyPlan(voidBase, slimeControlsFromTranslation(voidBase), voidPlanned, salt);
-  const b = realizeLobbyPlan(voidBase, slimeControlsFromTranslation(voidBase), moved, salt);
-  if (a.ok && b.ok) assert(radii(a.attractors) === radii(b.attractors), "same salt, new core position, radii stay put");
+}
+
+const seated: MorphPlan = {
+  core: "compact",
+  approach: "single",
+  relation: "tight",
+  cx: 8,
+  cy: 10,
+  axis: 0,
+  span: 4,
+  aspect: 1,
+};
+
+function realizeVoid(plan: MorphPlan) {
+  return realizeLobbyPlan(voidBase, voidSlime, { archetypeId: "vertical-void", plan }, salt);
+}
+
+const voidA = realizeVoid(seated);
+const voidB = realizeVoid(seated);
+assert(voidA.ok && voidB.ok && JSON.stringify(voidA) === JSON.stringify(voidB), "vertical void same plan and salt are identical");
+if (voidA.ok) {
+  const drawn = attractorsFromVerticalVoidPlan(seated, salt.seed, salt.attempt);
+  assert(JSON.stringify(voidA.attractors) === JSON.stringify(drawn), "vertical void attractors come from the stored plan");
+  assert(Math.abs(voidA.attractors[0].x - seated.cx) < 1e-9, "stored cx is the core x");
+  const shifted = realizeVoid({ ...seated, cx: 10 });
+  if (shifted.ok) {
+    assert(Math.abs(shifted.attractors[0].x - 10) < 1e-9, "changing cx moves the core");
+    assert(shifted.attractors[0].x - voidA.attractors[0].x === 2, "the core moves by the cx delta");
+    const mean = (marks: { x: number }[]) => marks.reduce((sum, mark) => sum + mark.x, 0) / marks.length;
+    assert(mean(shifted.attractors) > mean(voidA.attractors) + 1, "changing cx moves the whole organization horizontally");
+    assert(radii(shifted.attractors) === radii(voidA.attractors), "cx keeps the residual radii");
+    const fresh = runAttractorsFor("vertical-void", salt.seed, voidBase.recipe.attractors ?? [], undefined, salt.attempt, salt.index);
+    assert(JSON.stringify(shifted.attractors) !== JSON.stringify(fresh), "a mutated cx is not replaced by the seed plan");
+  }
+  const turned = realizeVoid({ ...seated, axis: Math.PI / 2 });
+  if (turned.ok) {
+    const aim = (marks: typeof voidA.attractors, cx: number, cy: number) => {
+      const path = marks.find((mark) => mark.kind === "line" || mark.kind === "curve");
+      return path ? Math.atan2(path.y - cy, path.x - cx) : 0;
+    };
+    const delta = Math.atan2(Math.sin(aim(turned.attractors, 8, 10) - aim(voidA.attractors, 8, 10)), Math.cos(aim(turned.attractors, 8, 10) - aim(voidA.attractors, 8, 10)));
+    assert(Math.abs(delta - Math.PI / 2) < 1e-6, "changing axis turns the approach");
+    assert(radii(turned.attractors) === radii(voidA.attractors), "axis keeps the residual radii");
+    assert(turned.slime.voidRotation === Math.PI / 2 && voidA.slime.deposit === turned.slime.deposit, "axis sets void rotation and leaves the slime stream");
+  }
+  const expanded = realizeVoid({ ...seated, core: "expanded" });
+  if (expanded.ok) {
+    assert((expanded.attractors[0].radius ?? 0) >= 4.6, "expanded core uses the expanded radius family");
+    assert((voidA.attractors[0].radius ?? 0) <= 2.3, "compact core uses the compact radius family");
+    assert(expanded.attractors.filter((mark) => mark.hole || mark.kind === "ring").length === 1, "expanded core stays one hole");
+  }
+  const split = realizeVoid({ ...seated, core: "split" });
+  if (split.ok) {
+    assert(split.attractors.filter((mark) => mark.hole || mark.kind === "ring").length === 2, "split core draws a second hole");
+  }
+  const pair = realizeVoid({ ...seated, approach: "pair" });
+  if (pair.ok) {
+    const paths = (marks: typeof voidA.attractors) => marks.filter((mark) => mark.kind === "line" || mark.kind === "curve").length;
+    assert(paths(pair.attractors) === 2 && paths(voidA.attractors) === 1, "approach pair adds a second path");
+    assert(pair.attractors[0].radius === voidA.attractors[0].radius, "approach leaves the core radius");
+  }
+  const separated = realizeVoid({ ...seated, relation: "separated" });
+  if (separated.ok) {
+    const path = (marks: typeof voidA.attractors) => marks.find((mark) => mark.kind === "line" || mark.kind === "curve");
+    const gap = (mark: NonNullable<ReturnType<typeof path>>) => Math.hypot((mark.x2 ?? mark.x) - 8, (mark.y2 ?? mark.y) - 10);
+    const near = path(voidA.attractors);
+    const far = path(separated.attractors);
+    assert(near != null && far != null && gap(far) > gap(near), "separated relation stops the path farther from the core");
+    assert(near?.radius === far?.radius, "relation keeps the path width from the salt");
+  }
+  const stretched = realizeVoid({ ...seated, aspect: 1.1 });
+  if (stretched.ok) {
+    assert(JSON.stringify(stretched.attractors) === JSON.stringify(voidA.attractors), "aspect does not redraw the attractors");
+    assert(stretched.slime.voidElongation === 1.1 && voidA.slime.voidElongation === 1, "aspect sets void elongation");
+    assert(stretched.slime.deposit === voidA.slime.deposit, "aspect leaves the rest of the slime stream");
+  }
 }
 
 const hallPlanned = planLobby("continuous-hall", salt);

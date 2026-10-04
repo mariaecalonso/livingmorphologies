@@ -60,6 +60,7 @@ import {
   type GrowthKind as GalleryGrowth,
 } from "./run-linear-gallery";
 import {
+  attractorsFromVerticalVoidPlan,
   planVerticalVoid,
   slimeFromVerticalVoidPlan,
   VERTICAL_VOID_APPROACHES,
@@ -394,22 +395,34 @@ export function realizeLobbyPlan(
   if (![salt.seed, salt.attempt, salt.index].every(finite)) return { ok: false, reasons: ["salt"] };
   const repaired = repairLobbyPlan(stored);
   if (!repaired.ok) return repaired;
-  const runTranslation = translationFromRun(base, salt);
   const { seed, attempt } = salt;
   const slimeSalt = seed ^ (attempt * 131);
   const agentSalt = seed ^ attempt;
 
   if (repaired.plan.archetypeId === "vertical-void") {
     const plan = repaired.plan.plan;
-    const marks = runTranslation.recipe.attractors ?? [];
+    const marks = attractorsFromVerticalVoidPlan(plan, seed, attempt);
+    const first = marks[0] ?? { x: plan.cx, y: plan.cy, kind: "ring" as const, radius: 1.4, strength: 1 };
+    const translation: BiologicalTranslation = {
+      ...base,
+      recipe: {
+        ...base.recipe,
+        attractorFixed: true,
+        attractorsOnly: true,
+        attractor: { x: first.x, y: first.y },
+        attractors: marks,
+      },
+    };
     const slime = {
       ...slimeFromVerticalVoidPlan(slimeBase, plan, slimeSalt),
       foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
     };
     const rng = mulberry32(seed ^ 0x6d2b79f5 ^ attempt);
     const agents = clampAgents(agentCountFromDensity(densityFromTranslation(base)) + (rng() - 0.5) * 36);
-    return pack(repaired.plan, salt, repaired.repaired, agents, slime, runTranslation);
+    return pack(repaired.plan, salt, repaired.repaired, agents, slime, translation);
   }
+
+  const runTranslation = translationFromRun(base, salt);
 
   if (repaired.plan.archetypeId === "compressed-sequential") {
     const plan = pinIndex(repaired.plan.plan, salt);
