@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { Orbitron, Rajdhani } from "next/font/google";
+import { DevOverlayPassThrough } from "@/components/dev-overlay-pass-through";
 import { SiteNav } from "@/components/site-nav";
 import { SiteDisplayControl } from "@/components/site-display-control";
 import "./globals.css";
@@ -40,11 +41,14 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/rau7owf.css" />
       </head>
       <body className="min-h-full">
+        <DevOverlayPassThrough />
         <SiteDisplayControl />
         <div className="site-frame">
           <div className="site-shell">
-            <SiteNav />
-            <main className="site-main">{children}</main>
+            <div className="site-edit-canvas">
+              <SiteNav />
+              <main className="site-main">{children}</main>
+            </div>
           </div>
         </div>
       </body>

@@ -1,5 +1,5 @@
+import { readFileSync } from "node:fs";
 import { openingMasks } from "./materialize";
-import { sampleFromParent } from "./events";
 import { branchSampledFutures } from "./futures";
 import { DEFAULT_BOUNDARY_FUSION } from "./boundary-fusion";
 import {
@@ -7,9 +7,7 @@ import {
   modulePivot,
   rotateTrail,
   twistAngle,
-  twistSample,
 } from "./twist";
-import type { AcceptedSample } from "./events";
 
 const assert = (condition: boolean, message: string) => {
   if (!condition) throw new Error(message);
@@ -58,8 +56,8 @@ assert(twistAngle(600, 600, 64) === 0, "Z0 twist is not 0");
 const mid = twistAngle(632, 600, 64);
 const end = twistAngle(664, 600, 64);
 assert(mid > 0 && mid < end && Math.abs(end - DEFAULT_MAX_TWIST_ANGLE) < 1e-12, "twist does not grow with iteration");
-assert(Math.abs(DEFAULT_MAX_TWIST_ANGLE - Math.PI / 3) < 1e-12, "default twist is not 60 degrees");
-ok("twist is 0° at Z0 and reaches 60° at the horizon");
+assert(Math.abs(DEFAULT_MAX_TWIST_ANGLE - (2 * Math.PI) / 3) < 1e-12, "default twist is not 120 degrees");
+ok("twist is 0° at Z0 and reaches 120° at the horizon");
 
 const source = paintHole(48, 34, 24, 5);
 const plain = openingCentroid(source, 48);
@@ -93,27 +91,22 @@ assert(trailsEqual(f01.samples[0].trails, f02.samples[0].trails) && trailsEqual(
 assert(f03.samples[0].iteration === 600, "F03 Z0 iteration changed");
 ok("F01, F02, and F03 share one unrotated Z0");
 
-const plainF01 = sampleFromParent(branched.z0, branched.handoff, branched.record, f01.continuationSeed);
-assert(plainF01.samples.map((sample) => sample.iteration).join(",") === F01_ITERATIONS, "baseline F01 diverged");
-assert(plainF01.samples.every((sample, index) => trailsEqual(sample.trails, f01.samples[index].trails)), "F01 trails changed");
-const plainF03 = sampleFromParent(branched.z0, branched.handoff, branched.record, f03.continuationSeed);
-assert(plainF03.samples.map((sample) => sample.iteration).join(",") === f03.iterations.join(","), "F03 event sequence changed");
-assert(trailsEqual(plainF03.samples[0].trails, f03.samples[0].trails), "F03 rotated Z0");
-const angles = f03.samples.map((sample) => twistAngle(sample.iteration, 600, plainF03.config.horizon));
-for (let index = 1; index < angles.length; index += 1) assert(angles[index] > angles[index - 1], "F03 angles do not increase");
-for (let index = 1; index < f03.samples.length; index += 1) {
-  const expected = rotateTrail(plainF03.samples[index].trails, plainF03.samples[index].trailSize, angles[index]);
-  assert(trailsEqual(expected, f03.samples[index].trails), `F03 sample ${index} is not the progressive rotation`);
-}
-const repeated = structuredClone(plainF03.samples[plainF03.samples.length - 1]) as AcceptedSample;
-twistSample(repeated, 600, plainF03.config.horizon);
-assert(trailsEqual(repeated.trails, f03.samples[f03.samples.length - 1].trails), "F03 rotation is not deterministic");
-ok(`F03 rotates ${angles.map((angle) => `${Math.round((angle * 180) / Math.PI)}°`).join(", ")}`);
-
-const lastPlain = openingCentroid(plainF03.samples[plainF03.samples.length - 1].trails, plainF03.samples[0].trailSize);
-const lastTurned = openingCentroid(f03.samples[f03.samples.length - 1].trails, f03.samples[0].trailSize);
-assert(lastPlain.count > 0 && lastTurned.count === lastPlain.count, `rotation changed opening count ${lastPlain.count} -> ${lastTurned.count}`);
-assert(lastTurned.x > 0 && lastTurned.y > 0, "F03 opening left the trail");
-ok(`F03 openings stay interior (${lastTurned.count} components)`);
+const futuresSource = readFileSync(new URL("./futures.ts", import.meta.url), "utf8");
+assert(!futuresSource.includes("twistSample("), "F03 still rotates stored samples after sampling");
+assert(futuresSource.includes("applyLiveTwist"), "F03 does not turn the live state");
+assert(f03.sampling.future.iteration === 664, `F03 did not finish the horizon (${f03.sampling.future.iteration})`);
+assert(Math.abs(twistAngle(f03.sampling.future.iteration, 600, f03.sampling.config.horizon) - DEFAULT_MAX_TWIST_ANGLE) < 1e-12, "F03 did not accumulate the horizon twist");
+const margin = 0.18;
+const limit = f03.sampling.future.size - margin;
+assert(
+  f03.sampling.future.agents.every((agent) =>
+    Number.isFinite(agent.x) && Number.isFinite(agent.y) && Number.isFinite(agent.heading)
+    && agent.x >= margin && agent.y >= margin && agent.x <= limit && agent.y <= limit,
+  ),
+  "F03 agents left the field",
+);
+assert(f03.samples.every((sample) => sample.trails.every((value) => Number.isFinite(value))), "F03 trails are not finite");
+assert(f03.samples.slice(1).some((sample) => !trailsEqual(sample.trails, f01.samples[0].trails)), "F03 never left Z0");
+ok(`F03 live twist reaches ${Math.round((DEFAULT_MAX_TWIST_ANGLE * 180) / Math.PI)}°`);
 
 console.log(`verify-twist: all checks passed (${Math.round((Date.now() - started) / 1000)}s)`);

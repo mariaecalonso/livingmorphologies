@@ -64,7 +64,7 @@ function useWorkflowHref(path: string) {
 }
 
 function ParetoDestination({ candidates }: { candidates: EvolutionCandidateView[] }) {
-  const href = useWorkflowHref("/evolution/pareto");
+  const href = useWorkflowHref("/lab/evolution/pareto");
   const points = candidates
     .map((candidate) => ({ candidate, ...projectPreview([candidate.formal, candidate.spatial, candidate.atmospheric]) }))
     .sort((a, b) => a.depth - b.depth);
@@ -116,7 +116,7 @@ function ParetoDestination({ candidates }: { candidates: EvolutionCandidateView[
 }
 
 function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) {
-  const href = useWorkflowHref("/evolution/pareto-catalog");
+  const href = useWorkflowHref("/lab/evolution/pareto-catalog");
   const thumbs = archive.filter((candidate) => candidate.image).slice(0, 8);
 
   return (

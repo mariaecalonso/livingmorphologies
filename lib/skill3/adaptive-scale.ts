@@ -1,13 +1,13 @@
 import { BRANCHES, groupsForArchetype } from "../catalog";
+import type { SimulationState } from "../skill1/types";
 import type { Rating, RatingsMap, TypologyId } from "../types";
 import { MODULE_SIZE_X } from "./envelope";
-import type { AcceptedSample } from "./events";
 import { modulePivot } from "./twist";
 
 /**
  * F04 Adaptive Scale.
  * The signed response is read from the catalog's Formal / Spatial / Atmospheric
- * groups. It rewrites stored samples only. The live continuation is not scaled.
+ * groups. The live continuation applies that scale one step at a time.
  */
 export type ScaleDirection = "expansion" | "contraction" | "neutral";
 
@@ -28,10 +28,10 @@ export type AdaptiveScalePlan = {
   finalScale: number;
 };
 
-/** Starting bounds. Proportionality decides how much of this span is used. */
+/** Bounds the live continuation can reach. Proportionality decides how much of this span is used. */
 export const DEFAULT_ADAPTIVE_SCALE: AdaptiveScaleConfig = {
-  contractionFloor: 0.85,
-  expansionCeiling: 1.15,
+  contractionFloor: 0.75,
+  expansionCeiling: 1.25,
   neutralBand: 0.08,
 };
 
@@ -189,18 +189,30 @@ export function scaleTrail(trails: ArrayLike<number>, trailSize: number, scale: 
   return out;
 }
 
-/** Rewrites a post-Z0 sample. Z0 stays at scale 1 and is not resampled. */
-export function scaleSample(
-  sample: AcceptedSample,
-  z0Iteration: number,
-  horizon: number,
-  plan: AdaptiveScalePlan,
-  config: AdaptiveScaleConfig = DEFAULT_ADAPTIVE_SCALE,
-) {
-  assertAdaptiveScaleConfig(config);
-  if (sample.iteration <= z0Iteration || plan.finalScale === 1) return;
-  let scale = sampleScale(sample.iteration, z0Iteration, horizon, plan.finalScale);
-  if (scale > 1) scale = Math.min(scale, expansionLimit(sample.trails, sample.trailSize));
-  if (scale === 1) return;
-  sample.trails = scaleTrail(sample.trails, sample.trailSize, scale);
+/**
+ * Scales the live trail field and agent positions about the module center by `factor`.
+ * `factor` is this step's ratio, not the cumulative target. Headings stay put.
+ * Agents that leave the field are brought back onto the domain the stepper uses.
+ */
+export function applyLiveScale(state: SimulationState, factor: number) {
+  if (!Number.isFinite(factor) || factor === 1) return;
+  if (factor <= 0) throw new Error(`live scale ${factor} is not positive`);
+  state.trails = scaleTrail(state.trails, state.trailSize, factor);
+  const pivotX = state.size / 2;
+  const pivotY = state.size / 2;
+  const margin = 0.18;
+  const limit = Math.max(margin, state.size - margin);
+  for (const agent of state.agents) {
+    agent.x = pivotX + (agent.x - pivotX) * factor;
+    agent.y = pivotY + (agent.y - pivotY) * factor;
+    for (let i = 0; i < agent.pathX.length; i += 1) {
+      agent.pathX[i] = pivotX + (agent.pathX[i] - pivotX) * factor;
+      agent.pathY[i] = pivotY + (agent.pathY[i] - pivotY) * factor;
+    }
+    if (!Number.isFinite(agent.x) || !Number.isFinite(agent.y) || !Number.isFinite(agent.heading)) {
+      throw new Error("live scale produced a non-finite agent");
+    }
+    agent.x = Math.min(limit, Math.max(margin, agent.x));
+    agent.y = Math.min(limit, Math.max(margin, agent.y));
+  }
 }

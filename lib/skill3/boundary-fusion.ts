@@ -18,11 +18,6 @@ export const DEFAULT_BOUNDARY_FUSION: BoundaryFusionConfig = BOUNDARY_FUSION_PRE
 
 export type BoundaryFusionPresetName = keyof typeof BOUNDARY_FUSION_PRESETS;
 
-export function boundaryFusionPreset(name: string | undefined): BoundaryFusionConfig | undefined {
-  if (name === "subtle" || name === "medium" || name === "strong") return BOUNDARY_FUSION_PRESETS[name];
-  return undefined;
-}
-
 export type BoundaryFusionConfig = {
   proximity: number;
   relaxationRadius: number;

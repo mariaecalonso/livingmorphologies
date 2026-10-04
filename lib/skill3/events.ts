@@ -277,14 +277,10 @@ export function futureContinuationSeed(record: Skill2HandoffRecord, futureIndex:
 /** Applied to the clone after each post-Z0 step. Z0 has already been stored as sample 0. */
 export type ContinuationTransform = (state: SimulationState) => void;
 
-/** Rewrites stored samples after the sequence is accepted. It does not see the live state, so event decisions stay on the unrotated field. */
-export type SampleTransform = (sample: AcceptedSample, z0Iteration: number, horizon: number) => void;
-
 /**
  * Samples one clone of an already replayed Z0. Does not replay or reload the candidate.
- * Z0 is always sample 0. The continuation seed, an optional post-step transform, and an optional
- * sample rewrite are the only differences between futures. The state transform never sees the parent Z0.
- * The sample rewrite runs after the sequence is complete, so the event reference stays the unrotated copy.
+ * Z0 is always sample 0. The continuation seed and an optional post-step transform are the
+ * differences between futures. The state transform never sees the parent Z0.
  */
 export function sampleFromParent(
   parent: SimulationState,
@@ -293,7 +289,6 @@ export function sampleFromParent(
   continuationSeedValue: number,
   config: EventSampleConfig = DEFAULT_EVENT_CONFIG,
   transform?: ContinuationTransform,
-  sampleTransform?: SampleTransform,
 ): EventSamplingResult {
   assertEventConfig(config);
   const future = cloneSimulationState(parent);
@@ -330,10 +325,6 @@ export function sampleFromParent(
     if (!reason) continue;
     const sample = captureSample(future, samples.length, reason, reference.iteration, measures);
     samples.push(sample);
-  }
-  const z0Iteration = samples[0].iteration;
-  for (let index = 1; index < samples.length; index += 1) {
-    sampleTransform?.(samples[index], z0Iteration, config.horizon);
   }
   return { record, z0: parent, future, samples, startChecksum, config };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
   ArchetypeSwitch,
@@ -15,9 +16,11 @@ import { ObjectiveBars } from "@/components/evolution/pareto-space";
 import { useSquareGridFit } from "@/components/use-square-grid-fit";
 import { useViewMode } from "@/components/view-mode";
 import { BRANCHES } from "@/lib/catalog";
+import { writeVerticalSelection } from "@/lib/skill3/selection";
 import type { EvolutionCatalog } from "@/lib/skill2/evolution-index";
 
 export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
+  const router = useRouter();
   const catalog = useEvolutionCatalog(initial);
   const { archetype, select } = useSelectedArchetype(catalog);
   const presentation = useViewMode() === "presentation";
@@ -29,7 +32,12 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   });
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
   const appliedFocus = useRef<string | null>(null);
+
+  useEffect(() => {
+    setOpening(false);
+  }, [selectedKey]);
   const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
   const selected = archive.find((candidate) => candidate.key === selectedKey) ?? null;
   const pageSize = Math.max(1, fit.columns * fit.rows);
@@ -130,6 +138,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 <EvolutionImage src={selected.image} />
               </div>
               <div className="archive-detail-data">
+                <div className="archive-detail-scroll">
                 <ObjectiveBars candidate={selected} />
                 <div className="archive-criteria">
                   <p className="eyebrow">Observed criteria</p>
@@ -168,8 +177,20 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     <dd>Non-dominated archive</dd>
                   </div>
                 </dl>
-                <button type="button" className="archive-handoff" disabled title="Available once vertical propagation is connected">
-                  Select for vertical propagation
+                </div>
+                <button
+                  type="button"
+                  className="archive-handoff"
+                  disabled={opening}
+                  onClick={() => {
+                    if (!archetype || opening) return;
+                    const selection = { archetypeId: archetype.archetypeId, candidateId: selected.id };
+                    writeVerticalSelection(selection);
+                    setOpening(true);
+                    router.push(`/lab/vertical?archetype=${encodeURIComponent(selection.archetypeId)}&candidate=${selection.candidateId}`);
+                  }}
+                >
+                  {opening ? "Opening candidate" : "Select for vertical propagation"}
                 </button>
               </div>
             </>

@@ -28,7 +28,7 @@ export default async function VerticalPropagationPage({
       archetypeId={requested.selection.archetypeId}
       archetypeName={archetypeName(requested.selection.archetypeId)}
       candidateId={requested.selection.candidateId}
-      materialization={params.material === "trail" ? "trail" : "void"}
+      materialization={params.material === "trail" ? "trail" : params.material === "shell" ? "shell" : "void"}
     />
   );
 }

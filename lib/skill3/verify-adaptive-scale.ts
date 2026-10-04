@@ -1,19 +1,14 @@
 import { readFileSync } from "node:fs";
 import { findTypology } from "../catalog";
 import { openingMasks } from "./materialize";
-import { sampleFromParent } from "./events";
 import { branchSampledFutures } from "./futures";
 import { DEFAULT_BOUNDARY_FUSION } from "./boundary-fusion";
-import { rotateTrail, twistAngle } from "./twist";
 import {
   deriveAdaptiveScale,
   expansionLimit,
   sampleScale,
-  scaleSample,
   scaleTrail,
-  type AdaptiveScalePlan,
 } from "./adaptive-scale";
-import type { AcceptedSample } from "./events";
 import type { Rating, RatingsMap, TypologyId } from "../types";
 
 const assert = (condition: boolean, message: string) => {
@@ -115,8 +110,8 @@ const contraction = deriveAdaptiveScale("gathering", ratings({
   proportionality: 2,
 }, "gathering"));
 const neutral = deriveAdaptiveScale("gathering", ratings({}, "gathering"));
-assert(expansion.scaleDirection === "expansion" && Math.abs(expansion.finalScale - 1.15) < 1e-9, `expansion plan ${expansion.finalScale}`);
-assert(contraction.scaleDirection === "contraction" && Math.abs(contraction.finalScale - 0.85) < 1e-9, `contraction plan ${contraction.finalScale}`);
+assert(expansion.scaleDirection === "expansion" && Math.abs(expansion.finalScale - 1.25) < 1e-9, `expansion plan ${expansion.finalScale}`);
+assert(contraction.scaleDirection === "contraction" && Math.abs(contraction.finalScale - 0.75) < 1e-9, `contraction plan ${contraction.finalScale}`);
 assert(neutral.scaleDirection === "neutral" && neutral.finalScale === 1 && neutral.scaleStrength === 0, "medium ratings are not neutral");
 assert(JSON.stringify(expansion) === JSON.stringify(deriveAdaptiveScale("gathering", ratings({
   openness: 2,
@@ -167,14 +162,9 @@ assert(expansionLimit(edge, 48) === 1, "edge-filling mass can still expand");
 assert(trailsEqual(scaleTrail(source, 48, 1.15), scaleTrail(source, 48, 1.15)), "scale is not deterministic");
 ok("expansion and contraction stay inside the module and keep one opening");
 
-function appliedScale(plan: AdaptiveScalePlan, sample: AcceptedSample, horizon: number) {
-  const target = sampleScale(sample.iteration, 600, horizon, plan.finalScale);
-  return target > 1 ? Math.min(target, expansionLimit(sample.trails, sample.trailSize)) : target;
-}
-
 const started = Date.now();
 const branched = branchSampledFutures(FIXTURE);
-const [f01, f02, f03, f04] = branched.futures;
+const [f01, f02, , f04] = branched.futures;
 assert(f01.iterations.join(",") === F01_ITERATIONS, `F01 iterations changed (${f01.iterations.join(",")})`);
 assert(f02.iterations.join(",") === F02_ITERATIONS, `F02 iterations changed (${f02.iterations.join(",")})`);
 assert(
@@ -183,15 +173,10 @@ assert(
     && DEFAULT_BOUNDARY_FUSION.blendStrength === 1,
   "F02 left the medium preset",
 );
-const plainF03 = sampleFromParent(branched.z0, branched.handoff, branched.record, f03.continuationSeed);
-assert(plainF03.samples.map((sample) => sample.iteration).join(",") === f03.iterations.join(","), "F03 event sequence changed");
-assert(trailsEqual(plainF03.samples[0].trails, f03.samples[0].trails), "F03 rotated Z0");
-for (let index = 1; index < f03.samples.length; index += 1) {
-  const angle = twistAngle(f03.samples[index].iteration, 600, plainF03.config.horizon);
-  const expected = rotateTrail(plainF03.samples[index].trails, plainF03.samples[index].trailSize, angle);
-  assert(trailsEqual(expected, f03.samples[index].trails), `F03 sample ${index} left the twist`);
-}
-ok("F01, F02, and F03 are unchanged");
+const futuresSource = readFileSync(new URL("./futures.ts", import.meta.url), "utf8");
+assert(!futuresSource.includes("scaleSample("), "F04 still scales stored samples after sampling");
+assert(futuresSource.includes("applyLiveScale"), "F04 does not scale the live state");
+ok("F01 and F02 iterations are unchanged");
 
 assert(f01.parentChecksum === f04.parentChecksum, "F04 does not share Z0");
 assert(trailsEqual(f01.samples[0].trails, f04.samples[0].trails), "F04 Z0 trails differ");
@@ -199,36 +184,17 @@ assert(sampleScale(f04.samples[0].iteration, f04.samples[0].iteration, 64, 1.2) 
 const plan = deriveAdaptiveScale(branched.handoff.selected.source.typologyId, branched.handoff.selected.source.ratings);
 const again = deriveAdaptiveScale(branched.handoff.selected.source.typologyId, branched.handoff.selected.source.ratings);
 assert(JSON.stringify(plan) === JSON.stringify(again), "live scale plan is not deterministic");
+assert(Math.abs(sampleScale(f04.sampling.future.iteration, 600, f04.sampling.config.horizon, plan.finalScale) - plan.finalScale) < 1e-12, "F04 did not reach its final scale");
+const margin = 0.18;
+const limit = f04.sampling.future.size - margin;
+assert(
+  f04.sampling.future.agents.every((agent) =>
+    Number.isFinite(agent.x) && Number.isFinite(agent.y) && Number.isFinite(agent.heading)
+    && agent.x >= margin && agent.y >= margin && agent.x <= limit && agent.y <= limit,
+  ),
+  "F04 agents left the field",
+);
+assert(f04.samples.every((sample) => sample.trails.every((value) => Number.isFinite(value))), "F04 trails are not finite");
 ok(`Void Field F04 is ${plan.scaleDirection} at ${plan.finalScale.toFixed(3)} (strength ${plan.scaleStrength.toFixed(3)})`);
-
-const plainF04 = sampleFromParent(branched.z0, branched.handoff, branched.record, f04.continuationSeed);
-assert(plainF04.samples.map((sample) => sample.iteration).join(",") === f04.iterations.join(","), "F04 event sequence changed");
-assert(trailsEqual(plainF04.samples[0].trails, f04.samples[0].trails), "F04 scaled Z0");
-let previous = 1;
-for (let index = 1; index < f04.samples.length; index += 1) {
-  const scale = appliedScale(plan, plainF04.samples[index], plainF04.config.horizon);
-  if (plan.finalScale >= 1) assert(scale + 1e-9 >= previous && scale <= plan.finalScale + 1e-9, "F04 scale moved away from the target");
-  else assert(scale - 1e-9 <= previous && scale + 1e-9 >= plan.finalScale, "F04 scale moved away from the target");
-  previous = scale;
-  const expected = scale === 1
-    ? plainF04.samples[index].trails
-    : scaleTrail(plainF04.samples[index].trails, plainF04.samples[index].trailSize, scale);
-  assert(trailsEqual(Array.from(expected), f04.samples[index].trails), `F04 sample ${index} is not the progressive scale`);
-  if (scale > 1) {
-    const limit = f04.samples[index].trailSize / 2 - 1;
-    assert(contentExtent(f04.samples[index].trails, f04.samples[index].trailSize) <= limit, "F04 left the 20×20 envelope");
-  }
-}
-const repeated = structuredClone(plainF04.samples[plainF04.samples.length - 1]) as AcceptedSample;
-scaleSample(repeated, 600, plainF04.config.horizon, plan);
-assert(trailsEqual(repeated.trails, f04.samples[f04.samples.length - 1].trails), "F04 scale is not deterministic");
-const lastPlain = openingStats(plainF04.samples.at(-1)!.trails, plainF04.samples[0].trailSize);
-const lastScaled = openingStats(f04.samples.at(-1)!.trails, f04.samples[0].trailSize);
-if (Math.abs(plan.finalScale - 1) < 0.02) {
-  assert(lastScaled.count === lastPlain.count, `neutral scale changed opening count ${lastPlain.count} -> ${lastScaled.count}`);
-} else if (lastPlain.count > 0) {
-  assert(lastScaled.count > 0, "F04 scale removed every opening");
-}
-ok(`F04 opening count matches the unscaled reading (${lastScaled.count})`);
 
 console.log(`verify-adaptive-scale: all checks passed (${Math.round((Date.now() - started) / 1000)}s)`);

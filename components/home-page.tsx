@@ -41,10 +41,9 @@ export function HomePage() {
     const main = root.closest<HTMLElement>(".site-main");
     const shell = root.closest<HTMLElement>(".site-shell");
     const update = () => {
-      const classroom = shell?.dataset.siteDisplay === "classroom";
-      const shellScrolls = classroom && !!shell && shell.scrollHeight > shell.clientHeight + 2;
-      const mainScrolls = !shellScrolls && !!main && main.scrollHeight > main.clientHeight + 2;
-      const viewEl = shellScrolls ? shell : mainScrolls ? main : null;
+      const classroom = shell?.dataset.siteDisplay === "classroom" && !!shell && shell.clientHeight > 0;
+      const mainScrolls = !classroom && !!main && main.scrollHeight > main.clientHeight + 2;
+      const viewEl = classroom ? shell : mainScrolls ? main : null;
       const viewTop = viewEl ? viewEl.getBoundingClientRect().top : 0;
       const viewHeight = viewEl ? viewEl.clientHeight : window.innerHeight;
       root.style.setProperty("--home-view", `${Math.round(viewHeight)}px`);
@@ -74,6 +73,9 @@ export function HomePage() {
     update();
     const observer = new ResizeObserver(update);
     observer.observe(root);
+    if (shell) observer.observe(shell);
+    const displayObserver = new MutationObserver(update);
+    if (shell) displayObserver.observe(shell, { attributes: true, attributeFilter: ["data-site-display"] });
     window.addEventListener("scroll", update, { passive: true });
     main?.addEventListener("scroll", update, { passive: true });
     shell?.addEventListener("scroll", update, { passive: true });
@@ -81,6 +83,7 @@ export function HomePage() {
     window.addEventListener("hashchange", update);
     return () => {
       observer.disconnect();
+      displayObserver.disconnect();
       window.removeEventListener("scroll", update);
       main?.removeEventListener("scroll", update);
       shell?.removeEventListener("scroll", update);

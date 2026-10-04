@@ -1,6 +1,6 @@
 import type { Skill3SourceRequest } from "./source";
 import { branchSampledFutures, BRANCHED_FUTURE_COUNT } from "./futures";
-import { DEFAULT_EVENT_CONFIG, sampleFutureEvents, type AcceptedSample, type EventSamplingResult } from "./events";
+import { DEFAULT_EVENT_CONFIG, type AcceptedSample, type EventSamplingResult } from "./events";
 import { DEFAULT_BOUNDARY_FUSION, type BoundaryFusionConfig } from "./boundary-fusion";
 import { DEFAULT_ADAPTIVE_SCALE } from "./adaptive-scale";
 import { DEFAULT_TWIST } from "./twist";
@@ -104,7 +104,6 @@ export function toVerticalViewerField(result: EventSamplingResult, futureId = "F
   };
 }
 
-const cache = new Map<string, VerticalViewerField>();
 const bundleCache = new Map<string, VerticalViewerBundle>();
 
 export type ViewerFuture = {
@@ -147,14 +146,4 @@ export function loadVerticalViewerBundle(
   };
   bundleCache.set(key, bundle);
   return bundle;
-}
-
-/** Replays the selected candidate once per server process, then reuses the field. */
-export function loadVerticalViewerField(request: Skill3SourceRequest, futureId = "F01"): VerticalViewerField {
-  const key = `${bundleKey(request)}#${futureId}`;
-  const cached = cache.get(key);
-  if (cached) return cached;
-  const field = toVerticalViewerField(sampleFutureEvents(request), futureId);
-  cache.set(key, field);
-  return field;
 }

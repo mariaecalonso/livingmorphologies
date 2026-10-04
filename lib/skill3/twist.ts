@@ -1,17 +1,18 @@
+import type { SimulationState } from "../skill1/types";
 import { MODULE_SIZE_X, MODULE_SIZE_Y } from "./envelope";
-import type { AcceptedSample } from "./events";
 
 /**
- * Post-Z0 rotation of one future's stored samples.
- * The live continuation is not rotated, so event decisions stay on the unrotated field.
+ * Live post-Z0 rotation for F03.
+ * Each continuation step turns the clone by only the new fraction of the horizon.
+ * Event sampling then reads that already turned state.
  */
 export type TwistConfig = {
   /** Radians reached at the end of the continuation horizon. */
   maxTwistAngle: number;
 };
 
-/** One-third turn across the horizon. Visible in the stack, and the openings stay recognizable. */
-export const DEFAULT_MAX_TWIST_ANGLE = Math.PI / 3;
+/** Two-thirds of a turn across the horizon. */
+export const DEFAULT_MAX_TWIST_ANGLE = (2 * Math.PI) / 3;
 
 export const DEFAULT_TWIST: TwistConfig = {
   maxTwistAngle: DEFAULT_MAX_TWIST_ANGLE,
@@ -79,10 +80,47 @@ export function rotateTrail(
   return out;
 }
 
-/** Rewrites a post-Z0 sample's trail. Z0 is left at 0°. Does not write the live simulation. */
-export function twistSample(sample: AcceptedSample, z0Iteration: number, horizon: number, config: TwistConfig = DEFAULT_TWIST) {
-  assertTwistConfig(config);
-  if (sample.iteration <= z0Iteration) return;
-  const angle = twistAngle(sample.iteration, z0Iteration, horizon, config.maxTwistAngle);
-  sample.trails = rotateTrail(sample.trails, sample.trailSize, angle, modulePivot(sample.trailSize));
+const TWO_PI = Math.PI * 2;
+
+function wrapAngle(angle: number) {
+  let next = angle % TWO_PI;
+  if (next < 0) next += TWO_PI;
+  return next;
+}
+
+/** Turns one point counterclockwise about the pivot, matching `rotateTrail`. */
+export function rotateOffset(dx: number, dy: number, angle: number) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: cos * dx - sin * dy, y: sin * dx + cos * dy };
+}
+
+/**
+ * Turns the live trail field, agent positions, headings, and stored path points
+ * by `angle` radians. `angle` is the step increment, not the cumulative target.
+ * Agents that leave the field are brought back onto the domain the stepper uses.
+ */
+export function applyLiveTwist(state: SimulationState, angle: number) {
+  if (!Number.isFinite(angle) || angle === 0) return;
+  state.trails = rotateTrail(state.trails, state.trailSize, angle, modulePivot(state.trailSize));
+  const pivotX = state.size / 2;
+  const pivotY = state.size / 2;
+  const margin = 0.18;
+  const limit = Math.max(margin, state.size - margin);
+  for (const agent of state.agents) {
+    const moved = rotateOffset(agent.x - pivotX, agent.y - pivotY, angle);
+    agent.x = pivotX + moved.x;
+    agent.y = pivotY + moved.y;
+    agent.heading = wrapAngle(agent.heading + angle);
+    for (let i = 0; i < agent.pathX.length; i += 1) {
+      const path = rotateOffset(agent.pathX[i] - pivotX, agent.pathY[i] - pivotY, angle);
+      agent.pathX[i] = pivotX + path.x;
+      agent.pathY[i] = pivotY + path.y;
+    }
+    if (!Number.isFinite(agent.x) || !Number.isFinite(agent.y) || !Number.isFinite(agent.heading)) {
+      throw new Error("live twist produced a non-finite agent");
+    }
+    agent.x = Math.min(limit, Math.max(margin, agent.x));
+    agent.y = Math.min(limit, Math.max(margin, agent.y));
+  }
 }

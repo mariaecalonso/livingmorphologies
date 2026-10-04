@@ -265,6 +265,46 @@ function drawOverlays(
  */
 export const DIRECT_CARVE_THRESHOLD = 0.15;
 
+/**
+ * Skill 2 carving: opaque white solid, black where trail / peak meets the threshold.
+ * Same polarity and threshold as the Lab carving panel.
+ */
+export function paintDirectCarve(
+  ctx: CanvasRenderingContext2D,
+  trails: ArrayLike<number> | null,
+  trailSize: number,
+  width: number,
+  height: number,
+  carveThreshold = DIRECT_CARVE_THRESHOLD,
+) {
+  ctx.fillStyle = "#070707";
+  ctx.fillRect(0, 0, width, height);
+  const field = Math.min(width, height);
+  const ox = (width - field) / 2;
+  const oy = (height - field) / 2;
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, field, field);
+  if (trails && trailSize >= 1) {
+    let maxTrail = 0;
+    for (let i = 0; i < trails.length; i += 1) if (trails[i] > maxTrail) maxTrail = trails[i];
+    const cell = field / trailSize;
+    if (maxTrail > 0) {
+      ctx.fillStyle = "#000000";
+      for (let y = 0; y < trailSize; y += 1) {
+        const row = y * trailSize;
+        for (let x = 0; x < trailSize; x += 1) {
+          const trailNorm = (trails[row + x] ?? 0) / maxTrail;
+          if (trailNorm < carveThreshold) continue;
+          ctx.fillRect(x * cell, field - (y + 1) * cell, cell, cell);
+        }
+      }
+    }
+  }
+  ctx.restore();
+}
+
 export function Skill2DirectInverseField({
   trails,
   trailSize,
@@ -282,32 +322,7 @@ export function Skill2DirectInverseField({
   const ref = useCanvas(
     (ctx, width, height) => {
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "#070707";
-      ctx.fillRect(0, 0, width, height);
-      const scale = Math.min(width, height) / FIELD_SIZE;
-      const fieldH = FIELD_SIZE * scale;
-      const ox = (width - fieldH) / 2;
-      const oy = (height - fieldH) / 2;
-      ctx.save();
-      ctx.translate(ox, oy);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, fieldH, fieldH);
-      if (trails && trailSize >= 1) {
-        let maxTrail = 0;
-        for (const value of trails) if (value > maxTrail) maxTrail = value;
-        const cell = fieldH / trailSize;
-        if (maxTrail > 0) {
-          ctx.fillStyle = "#000000";
-          for (let y = 0; y < trailSize; y += 1) {
-            for (let x = 0; x < trailSize; x += 1) {
-              const trailNorm = (trails[y * trailSize + x] ?? 0) / maxTrail;
-              if (trailNorm < carveThreshold) continue;
-              ctx.fillRect(x * cell, fieldH - (y + 1) * cell, cell, cell);
-            }
-          }
-        }
-      }
-      ctx.restore();
+      paintDirectCarve(ctx, trails, trailSize, width, height, carveThreshold);
       if (showCaption) {
         ctx.fillStyle = "rgba(150,184,196,0.9)";
         ctx.font = "500 10px Rajdhani, sans-serif";

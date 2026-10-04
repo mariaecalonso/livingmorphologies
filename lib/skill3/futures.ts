@@ -3,11 +3,11 @@ import { stepMany } from "../skill1/engine";
 import type { SimulationState } from "../skill1/types";
 import { stateChecksum, type Skill2HandoffRecord } from "../skill2/handoff";
 import type { Skill2Handoff } from "../skill2/types";
-import { deriveAdaptiveScale, scaleSample, type AdaptiveScaleConfig, DEFAULT_ADAPTIVE_SCALE } from "./adaptive-scale";
+import { applyLiveScale, deriveAdaptiveScale, sampleScale, type AdaptiveScaleConfig, DEFAULT_ADAPTIVE_SCALE } from "./adaptive-scale";
 import { circularOpenings, fuseOpeningBoundaries, type BoundaryFusionConfig, DEFAULT_BOUNDARY_FUSION } from "./boundary-fusion";
-import { DEFAULT_EVENT_CONFIG, futureContinuationSeed, sampleFromParent, type ContinuationTransform, type EventSampleConfig, type EventSamplingResult, type SampleTransform } from "./events";
+import { DEFAULT_EVENT_CONFIG, futureContinuationSeed, sampleFromParent, type ContinuationTransform, type EventSampleConfig, type EventSamplingResult } from "./events";
 import { loadValidatedSkill2Handoff, type Skill3SourceRequest } from "./source";
-import { DEFAULT_TWIST, twistSample, type TwistConfig } from "./twist";
+import { applyLiveTwist, twistAngle, type TwistConfig, DEFAULT_TWIST } from "./twist";
 import { cloneSimulationState, openContinuation, posedTranslation } from "./z0";
 
 /** First continuation length. Callers may pass any positive integer horizon. */
@@ -101,9 +101,9 @@ function futureId(index: number) {
 /**
  * Opens the selected candidate once, then runs the event sampler on a fresh
  * clone for each future. F01 is the baseline continuation. F02 applies Boundary
- * Fusion after each post-Z0 step. F03 rotates each accepted post-Z0 sample.
- * F04 scales each accepted post-Z0 sample from the archetype criteria.
- * The pose does not change.
+ * Fusion after each post-Z0 step. F03 turns the live state after each post-Z0
+ * step. F04 scales the live state after each post-Z0 step from the archetype
+ * criteria. Stored plates are the samples of that live state. The pose does not change.
  */
 export function branchSampledFutures(
   request: Skill3SourceRequest,
@@ -121,8 +121,8 @@ export function branchSampledFutures(
   const parentChecksum = stateChecksum(z0);
   const futures: BranchedFuture[] = [];
   const fusion = fusionTransform(handoff, fusionConfig);
-  const twist = twistTransform(twistConfig);
-  const scale = scaleTransform(handoff, scaleConfig);
+  const twist = twistTransform(z0.iteration, config.horizon, twistConfig);
+  const scale = scaleTransform(handoff, z0.iteration, config.horizon, scaleConfig);
   for (let index = 0; index < count; index += 1) {
     const continuationSeed = futureContinuationSeed(record, index);
     const sampling = sampleFromParent(
@@ -131,8 +131,7 @@ export function branchSampledFutures(
       record,
       continuationSeed,
       config,
-      index === 1 ? fusion : undefined,
-      index === 2 ? twist : index === 3 ? scale : undefined,
+      index === 1 ? fusion : index === 2 ? twist : index === 3 ? scale : undefined,
     );
     if (sampling.startChecksum !== parentChecksum) {
       throw new Error(`${futureId(index)} did not start from the replayed Z0`);
@@ -161,18 +160,31 @@ function fusionTransform(handoff: Skill2Handoff, config: BoundaryFusionConfig): 
   };
 }
 
-/** F03 only. Rotates the stored sample. The clone the sampler steps stays unrotated. */
-function twistTransform(config: TwistConfig): SampleTransform {
-  return (sample, z0Iteration, horizon) => {
-    twistSample(sample, z0Iteration, horizon, config);
+/** F03 only. Adds the twist earned since the previous step. Z0 is already stored. */
+function twistTransform(z0Iteration: number, horizon: number, config: TwistConfig): ContinuationTransform {
+  let applied = 0;
+  return (state) => {
+    const target = twistAngle(state.iteration, z0Iteration, horizon, config.maxTwistAngle);
+    const delta = target - applied;
+    if (delta !== 0) applyLiveTwist(state, delta);
+    applied = target;
   };
 }
 
-/** F04 only. Scales the stored sample. The clone the sampler steps stays at scale 1. */
-function scaleTransform(handoff: Skill2Handoff, config: AdaptiveScaleConfig): SampleTransform {
+/** F04 only. Multiplies by the scale earned since the previous step. Z0 stays at 1. */
+function scaleTransform(
+  handoff: Skill2Handoff,
+  z0Iteration: number,
+  horizon: number,
+  config: AdaptiveScaleConfig,
+): ContinuationTransform {
   const source = handoff.selected.source;
   const plan = deriveAdaptiveScale(source.typologyId, source.ratings, config);
-  return (sample, z0Iteration, horizon) => {
-    scaleSample(sample, z0Iteration, horizon, plan, config);
+  let applied = 1;
+  return (state) => {
+    const target = sampleScale(state.iteration, z0Iteration, horizon, plan.finalScale);
+    const factor = applied === 0 ? 1 : target / applied;
+    if (factor !== 1) applyLiveScale(state, factor);
+    applied = target;
   };
 }

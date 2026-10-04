@@ -627,3 +627,200 @@
 .vertical-handoff:not([data-phase="ready"]) .vertical-handoff-viewer {
   pointer-events: none;
 }
+
+/* Presentation framing for the 3D Morphology view only. Desktop and Stack stay on the 320px column. */
+@media (min-width: 1024px) {
+  [data-view-mode="presentation"] .vertical-stage-mesh {
+    grid-template-columns: minmax(0, 72.5%) minmax(0, 27.5%);
+  }
+}
+
+[data-view-mode="presentation"] .vertical-stage-mesh .vertical-stage-view {
+  overflow: hidden;
+}
+
+[data-view-mode="presentation"] .vertical-mesh-canvas {
+  transform: translateY(-4%) scale(2.5);
+  transform-origin: center center;
+}
+
+.vertical-compare-toggle {
+  display: inline-flex;
+}
+
+.vertical-compare-toggle button {
+  border: 1px solid rgba(242, 242, 238, 0.18);
+  padding: 0.55rem 1.15rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.vertical-compare-toggle button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.vertical-compare-toggle button:last-child {
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.vertical-compare-toggle button[data-active] {
+  border-color: #0f7377;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(15, 115, 119, 0.28);
+}
+
+.vertical-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 89%) minmax(0, 11%);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.vertical-compare-futures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vertical-compare-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.7rem 0.65rem 0.55rem;
+  border-left: 1px solid rgba(242, 242, 238, 0.18);
+  background: #000000;
+  cursor: pointer;
+}
+
+.vertical-compare-column:first-child {
+  border-left: 0;
+}
+
+.vertical-compare-column:hover {
+  box-shadow: inset 0 0 0 1px rgba(199, 126, 95, 0.45);
+}
+
+.vertical-compare-id {
+  flex: 0 0 auto;
+  color: #0f7377;
+  font-size: 1.05rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.vertical-compare-name {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  color: #ffffff;
+  font-size: 1.35rem;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.vertical-compare-well {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vertical-compare-frame {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+}
+
+.vertical-compare-canvas,
+.vertical-compare-stack,
+.vertical-compare-box {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-compare-canvas,
+.vertical-compare-stack {
+  cursor: grab;
+}
+
+.vertical-compare-box {
+  pointer-events: none;
+}
+
+.vertical-compare-note {
+  flex: 0 0 auto;
+  padding-top: 0.3rem;
+  overflow: hidden;
+  color: #9b9b98;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vertical-compare-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.75rem 0.7rem;
+  border-left: 1px solid rgba(242, 242, 238, 0.18);
+  background: #000000;
+}
+
+.vertical-compare-mode {
+  display: flex;
+  flex-direction: column;
+}
+
+.vertical-compare-mode button,
+.vertical-compare-play {
+  border: 1px solid rgba(242, 242, 238, 0.18);
+  padding: 0.45rem 0.4rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.vertical-compare-mode button[data-active],
+.vertical-compare-play[data-active] {
+  border-color: #0f7377;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(15, 115, 119, 0.22);
+}
+
+.vertical-compare-rail label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #9b9b98;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vertical-compare-rail label span {
+  color: #f2f2ee;
+}
+
+.vertical-compare-rail input[type="range"] {
+  width: 100%;
+  min-width: 0;
+}

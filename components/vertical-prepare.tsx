@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type RefObject } from "react";
 import { CtScan } from "@/components/ct-scan";
 import { VerticalSelectionNotice } from "@/components/vertical-selection";
+import { orthoStackFrame } from "@/lib/skill3/view-project";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 const STEPS = [
@@ -74,41 +75,9 @@ function paintPreview(canvas: HTMLCanvasElement, image: HTMLImageElement | null,
   const count = Math.max(1, Math.ceil(revealed));
   const pitchY = FINAL_PITCH * (0.28 + 0.72 * spacing);
   const full = (PLATE_COUNT - 1) * FINAL_PITCH;
-  const cy = Math.cos(VIEW_YAW);
-  const sy = Math.sin(VIEW_YAW);
-  const cp = Math.cos(pitch);
-  const sp = Math.sin(pitch);
-  const rot = (x: number, y: number, z: number) => {
-    const x1 = x * cy + z * sy;
-    const z1 = -x * sy + z * cy;
-    return { x: x1, y: y * cp - z1 * sp, z: y * sp + z1 * cp };
-  };
-  const yBottom = -full * 0.5;
-  const yTop = yBottom + full;
-  const bounds = [rot(-0.5, yBottom, -0.5), rot(0.5, yBottom, 0.5), rot(-0.5, yTop, -0.5), rot(0.5, yTop, 0.5)];
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const point of bounds) {
-    minX = Math.min(minX, point.x);
-    maxX = Math.max(maxX, point.x);
-    minY = Math.min(minY, point.y);
-    maxY = Math.max(maxY, point.y);
-  }
-  const scale = Math.min(width, height) * 0.52;
-  const xMid = (minX + maxX) / 2;
-  const yMid = (minY + maxY) / 2;
-  const project = (x: number, y: number, z: number) => {
-    const point = rot(x, y, z);
-    return {
-      x: width / 2 + (point.x - xMid) * scale,
-      y: height / 2 - (point.y - yMid) * scale,
-      z: point.z,
-    };
-  };
-  const du = rot(1, 0, 0);
-  const dv = rot(0, 0, 1);
+  const frame = orthoStackFrame(width, height, VIEW_YAW, pitch, full);
+  const rot = frame.rotate;
+  const project = frame.project;
   const span = Math.max(0, count - 1) * pitchY;
   const plates = Array.from({ length: count }, (_, index) => index * pitchY - span * 0.5);
   const order = plates.map((_, index) => index).sort((a, b) => rot(0, plates[a], 0).z - rot(0, plates[b], 0).z);
@@ -117,15 +86,9 @@ function paintPreview(canvas: HTMLCanvasElement, image: HTMLImageElement | null,
   for (const index of order) {
     const newest = index === count - 1 && count > 1 ? revealed - (count - 1) : 1;
     const origin = rot(-0.5, plates[index], -0.5);
+    const basis = frame.plateBasis(dpr, origin);
     ctx.save();
-    ctx.setTransform(
-      dpr * du.x * scale,
-      dpr * -du.y * scale,
-      dpr * dv.x * scale,
-      dpr * -dv.y * scale,
-      dpr * (width / 2 + (origin.x - xMid) * scale),
-      dpr * (height / 2 - (origin.y - yMid) * scale),
-    );
+    ctx.setTransform(basis.a, basis.b, basis.c, basis.d, basis.e, basis.f);
     ctx.globalAlpha = (index === focus ? 0.2 : 0.08) * newest;
     ctx.fillStyle = "#f2f2ee";
     ctx.fillRect(0, 0, 1, 1);
@@ -291,7 +254,7 @@ export function VerticalPrepare({
   archetypeId: string;
   archetypeName: string;
   candidateId: number;
-  materialization: "void" | "trail";
+  materialization: "void" | "trail" | "shell";
 }) {
   const [fields, setFields] = useState<VerticalViewerField[] | null>(null);
   const [error, setError] = useState<string | null>(null);

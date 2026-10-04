@@ -1,4 +1,5 @@
 import type { IsoMesh } from "./isomesh";
+import { moduleViewFit } from "../skill3/view-project";
 
 const VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
@@ -357,7 +358,7 @@ export function drawIsoMesh(
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uYaw"), yaw);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uPitch"), pitch);
     const aspect = width / Math.max(1, height);
-    const fit = Math.min(1.45, 1.7 / Math.max(1, (column / 2) * aspect * 0.55));
+    const fit = moduleViewFit(column, aspect);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uAspect"), aspect);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uFit"), fit);
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
