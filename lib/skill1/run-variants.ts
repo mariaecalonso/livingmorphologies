@@ -3,6 +3,7 @@ import { FIELD_SIZE } from "./maps";
 import { attractorsFromCompressedSequential, planCompressedSequential } from "./run-compressed-sequential";
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
+import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
 import type { AttractorKind, FieldAttractor } from "./types";
@@ -171,38 +172,9 @@ function linearGallery(_f: Frame): LocalMark[] {
   return [];
 }
 
-/** Orthogonal Balance · Adaptive Module · Engaging */
-function openHall(f: Frame): LocalMark[] {
-  const marks: LocalMark[] = [];
-  const rows = f.int(2, 4);
-  const cols = f.int(2, 4);
-  const pitchU = f.r(2.4, 4.8);
-  const pitchV = f.r(2.4, 4.8);
-  const width = f.r(0.75, 1.8);
-  const spanU = ((cols - 1) / 2) * pitchU + f.r(1.8, 3.2);
-  const spanV = ((rows - 1) / 2) * pitchV + f.r(1.8, 3.2);
-  for (let i = 0; i < rows; i += 1) {
-    const v = (i - (rows - 1) / 2) * pitchV + f.r(-0.4, 0.4);
-    marks.push(seg(f, -spanU, v, spanU, v, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
-  }
-  for (let i = 0; i < cols; i += 1) {
-    const u = (i - (cols - 1) / 2) * pitchU + f.r(-0.4, 0.4);
-    marks.push(seg(f, u, -spanV, u, spanV, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
-  }
-  const modules = f.int(3, 7);
-  for (let i = 0; i < modules; i += 1) {
-    marks.push(
-      disk(
-        f,
-        "point",
-        ((i % cols) - (cols - 1) / 2) * pitchU + f.r(-0.8, 0.8),
-        (Math.floor(i / cols) - (rows - 1) / 2) * pitchV + f.r(-0.8, 0.8),
-        f.r(0.8, 1.8),
-        f.r(0.28, 0.55),
-      ),
-    );
-  }
-  return marks;
+/** Orthogonal Balance · Adaptive Module · Engaging — realized in run-open-hall. */
+function openHall(_f: Frame): LocalMark[] {
+  return [];
 }
 
 /** Articulated · Connected Module · Immersive */
@@ -553,6 +525,9 @@ export function runAttractorsFor(
   }
   if (archetypeId === "linear-gallery") {
     return attractorsFromLinearGallery(planLinearGallery(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "open-hall") {
+    return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
   }
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
   const f = frame(rng);

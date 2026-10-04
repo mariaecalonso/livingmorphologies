@@ -64,7 +64,7 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number; inkGain?: number },
 ) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
@@ -82,7 +82,7 @@ export function drawPlanField(
       options?.attractors?.length
         ? options.attractors
         : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
-    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution);
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution, options?.inkGain ?? 1);
     const sx = snapshot.source.x * scale;
     const sy = toCanvas(snapshot.source.y, fieldH, scale);
     ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -274,9 +274,10 @@ function drawColonyBody(
   attractors?: FieldAttractor[],
   hairThin = false,
   maxResolution?: number,
+  inkGain = 1,
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution, inkGain)) return;
   const dpr = ctx.getTransform().a || 1;
   const res = maxResolution
     ? Math.max(256, Math.min(2048, Math.round(maxResolution)))

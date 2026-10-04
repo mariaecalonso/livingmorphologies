@@ -16,6 +16,15 @@ import {
 } from "@/lib/skill1/lobby-realization";
 import { runAttractorsFor } from "@/lib/skill1/run-variants";
 import {
+  agentsFromOpenHall,
+  attractorsFromOpenHall,
+  paramsFromOpenHall,
+  planOpenHall,
+  recipeFromOpenHall,
+  slimeFromOpenHall,
+} from "@/lib/skill1/run-open-hall";
+import { FLAT_DEEP_RUN_ITERATIONS, FLAT_DEEP_TRAIL_SCALE, flatDeepKept, flatDeepPlatesNeedRedraw, markFlatDeepFluid, realizeFlatDeepRun } from "@/lib/skill1/run-flat-deep-plan";
+import {
   compressedSequentialIdentity,
   isNovelSequence,
   scoreCompressedSequential,
@@ -83,9 +92,18 @@ const TGF_TRAIL_SCALE = 8;
 const TGF_RUN_ITERATIONS = 320;
 const TGF_ID = "topographic-ground-field";
 const LG_TRAIL_SCALE = 16;
+const OH_TRAIL_SCALE = 8;
+const OH_RUN_ITERATIONS = 280;
+const OH_STEP_BUDGET_MS = 18000;
 
 function finePaint(id?: string) {
-  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery";
+  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan";
+}
+
+function cellPeak(id: string | undefined, trails: ArrayLike<number>) {
+  const peak = robustTrailPeak(trails);
+  if (id === "open-hall") return Math.max(0.64, peak * 0.58);
+  return Math.max(1.4, peak);
 }
 
 function emptyRunSlots() {
@@ -96,6 +114,8 @@ function trailScaleFor(id?: string) {
   if (id === "topographic-ground-field") return TGF_TRAIL_SCALE;
   if (id === "compressed-sequential") return CS_TRAIL_SCALE;
   if (id === "linear-gallery") return LG_TRAIL_SCALE;
+  if (id === "open-hall") return OH_TRAIL_SCALE;
+  if (id === "flat-deep-plan") return FLAT_DEEP_TRAIL_SCALE;
   return RUN_TRAIL_SCALE;
 }
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
@@ -195,6 +215,31 @@ function realizeRun(
   index = 0,
 ) {
   const salt: LobbySalt = { seed, attempt, index };
+  if (base.archetypeId === "open-hall") {
+    const plan = planOpenHall(seed, attempt, index);
+    const marks = attractorsFromOpenHall(plan, seed, attempt);
+    const first = marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: agentsFromOpenHall(plan, seed),
+      slime: slimeFromOpenHall(slimeBase, plan, seed),
+      translation: {
+        ...base,
+        params: paramsFromOpenHall(base.params, seed ^ index),
+        recipe: {
+          ...recipeFromOpenHall(base.recipe, seed ^ index),
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
+        },
+      },
+    };
+  }
+  if (base.archetypeId === "flat-deep-plan") {
+    const realized = realizeFlatDeepRun(base, slimeBase, seed, attempt, index);
+    return { seed, agents: realized.agents, slime: realized.slime, translation: realized.translation };
+  }
   const planned = planLobby(base.archetypeId, salt);
   if (planned) {
     const realized = realizeLobbyPlan(base, slimeBase, planned, salt);
@@ -327,8 +372,9 @@ function paintRunCell(
     attractors,
     undefined,
     finePaint(archetypeId) ? 8 : 5,
-    finePaint(archetypeId) ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined,
+    finePaint(archetypeId) ? cellPeak(archetypeId, snapshot.trails) : undefined,
     finePaint(archetypeId),
+    archetypeId === "open-hall" ? 1.75 : 1,
   );
 }
 
@@ -994,7 +1040,21 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     setRunningId(pickedId);
     void (async () => {
       let existing = snapshotsRef.current;
-      if (pickedId === TGF_ID || !existing.some(Boolean)) {
+      if (pickedId === "open-hall") {
+        await clearArchetypeFields("open-hall", RUN_COUNT);
+        await clearRunFields("open-hall");
+        existing = emptyRunSlots();
+        snapshotsRef.current = existing;
+      } else if (pickedId === "flat-deep-plan") {
+        const redrawPlates = flatDeepPlatesNeedRedraw();
+        const loaded = await loadArchetypeFields(pickedId, RUN_COUNT);
+        existing = loaded.map((snap, index) => {
+          if (!snap) return null;
+          if (redrawPlates && flatDeepKept(index)) return null;
+          return snap;
+        });
+        snapshotsRef.current = existing;
+      } else if (pickedId === TGF_ID || !existing.some(Boolean)) {
         existing = await loadArchetypeFields(pickedId, RUN_COUNT);
         snapshotsRef.current = existing;
       }
@@ -1003,7 +1063,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       resumeIndexRef.current = resumeAt;
       completedRef.current = existing.filter(Boolean).length;
       setCompleted(completedRef.current);
-      if (resumeAt === 0) await clearRunFields();
+      if (resumeAt === 0) await clearRunFields(pickedId);
       runningRef.current = true;
       setPaused(false);
       setRunning(true);
@@ -1297,11 +1357,29 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       next.maxIterations = DISPLAY_ITERATIONS;
       const rng = mulberry32(variant.seed ^ 0x9e3779b9);
       const slime = lobbySimulationSlime(variant.translation.archetypeId, variant.slime);
-      const targetSteps =
-        variant.translation.archetypeId === "topographic-ground-field" ? TGF_RUN_ITERATIONS : DISPLAY_ITERATIONS;
+      const openHall = variant.translation.archetypeId === "open-hall";
+      const flatDeep = variant.translation.archetypeId === "flat-deep-plan";
+      const targetSteps = variant.translation.archetypeId === "topographic-ground-field"
+        ? TGF_RUN_ITERATIONS
+        : openHall
+          ? OH_RUN_ITERATIONS
+          : flatDeep
+            ? FLAT_DEEP_RUN_ITERATIONS
+            : DISPLAY_ITERATIONS;
       const steps = targetSteps - next.iteration;
       next.maxIterations = next.iteration + Math.max(1, steps);
-      stepMany(next, variant.translation, rng, Math.max(1, steps), slime.decay, slime, false);
+      if (openHall || flatDeep) {
+        const started = performance.now();
+        const budget = openHall ? OH_STEP_BUDGET_MS : 18000;
+        let left = Math.max(1, steps);
+        while (left > 0 && performance.now() - started < budget) {
+          const batch = Math.min(openHall ? 40 : 30, left);
+          stepMany(next, variant.translation, rng, batch, slime.decay, slime, false);
+          left -= batch;
+        }
+      } else {
+        stepMany(next, variant.translation, rng, Math.max(1, steps), slime.decay, slime, false);
+      }
       return captureSnapshot(next, true);
     };
 
@@ -1466,13 +1544,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const snapshot = chosen.snapshot;
       index += 1;
       setCompleted(snapshotsRef.current.filter(Boolean).length);
-      void (async () => {
-        try {
-          await saveRunSnapshot(cell, snapshot);
-          if (id) await saveArchetypeField(id, cell, snapshot);
-        } catch {
-          /* a failed save should not stop the remaining cells */
-        }
+      const continueRun = () => {
         if (cancelled || !runningRef.current) return;
         if (index >= RUN_COUNT) {
           runningRef.current = false;
@@ -1480,7 +1552,28 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           return;
         }
         frameRef.current = requestAnimationFrame(frame);
+      };
+      if (id === "open-hall") {
+        continueRun();
+        void Promise.race([
+          (async () => {
+            await saveRunSnapshot(cell, snapshot, id);
+            await saveArchetypeField(id, cell, snapshot);
+          })(),
+          new Promise((resolve) => window.setTimeout(resolve, 2500)),
+        ]).catch(() => {});
+      } else {
+      void (async () => {
+        try {
+          await saveRunSnapshot(cell, snapshot, id);
+          if (id) await saveArchetypeField(id, cell, snapshot);
+          if (id === "flat-deep-plan") markFlatDeepFluid(cell);
+        } catch {
+          /* a failed save should not stop the remaining cells */
+        }
+        continueRun();
       })();
+      }
     };
 
     resumeFrameRef.current = frame;
@@ -1569,7 +1662,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             {view === "catalog"
               ? `Generation 01 · Initial morphology population · ${pickedName ?? "Select an archetype"}`
               : pickedName
-                ? `${pickedName} · ${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations`
+                ? `${pickedName} · ${RUN_COUNT} growth variants · ${(runningId ?? pickedId) === "open-hall" ? OH_RUN_ITERATIONS : (runningId ?? pickedId) === "flat-deep-plan" ? FLAT_DEEP_RUN_ITERATIONS : DISPLAY_ITERATIONS} iterations`
                 : "Select an archetype"}
           </p>
           {view === "catalog" ? (

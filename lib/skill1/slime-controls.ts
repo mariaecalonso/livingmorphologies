@@ -171,10 +171,19 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.diffusion = clamp(next.diffusion, 0, 0.22);
     next.stepSize = clamp(next.stepSize, 0.08, 0.32);
   }
-  if (openField) {
+  if (openField && archetypeId !== "open-hall") {
     next.resistance = clamp(next.resistance, 0, 0.45);
     next.trailInfluence = clamp(next.trailInfluence, 0.35, 1.7);
     next.diffusion = clamp(next.diffusion, 0.08, 0.42);
+  }
+  if (archetypeId === "open-hall") {
+    next.resistance = clamp(next.resistance, 0, 0.28);
+    next.persistence = clamp(next.persistence, 0.28, 0.92);
+    next.depositWidth = clamp(next.depositWidth, 0.2, 0.46);
+    next.deposit = clamp(next.deposit, 0.01, 0.05);
+    next.diffusion = 0;
+    next.trailCap = clamp(next.trailCap, 0.28, 0.9);
+    next.trailInfluence = clamp(next.trailInfluence, 0.4, 1.9);
   }
   if (archetypeId === "continuous-hall") {
     next.trailInfluence = clamp(next.trailInfluence, 0.22, 2);
