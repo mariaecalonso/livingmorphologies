@@ -68,6 +68,8 @@ export {
 export type { ArchetypeValidityResult, ValidityCheck, PlateGeometry, ClosedFormDiagnostic } from "./archetype-validity";
 export { runSkill2Audit, skill2AuditSeed, SKILL2_AUDIT_PROTOCOL } from "./audit";
 export type { Skill2AuditResult, Skill2AuditRealization } from "./audit";
+export { realizeLobbyCatalogEntry, simulateLobbyCatalogEntry } from "./lobby-catalog";
+export type { LobbyCatalogEntry } from "./lobby-catalog";
 export {
   CALIBRATION_PROTOCOL,
   calibrationSeed,

@@ -77,8 +77,7 @@ export async function countArchetypeFields(archetypeId: string, count = 100) {
     const n = keys.filter((key) => String(key).startsWith(prefix)).length;
     if (n) return n;
   }
-  const fields = await loadArchetypeFields(archetypeId, count);
-  return fields.reduce((sum, item) => sum + (item ? 1 : 0), 0);
+  return 0;
 }
 
 export async function clearArchetypeFields(archetypeId: string, count = 100) {

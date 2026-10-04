@@ -170,7 +170,7 @@ async function attachImages<T extends CatalogEntry>(db: IDBDatabase, entries: T[
   return next;
 }
 
-async function writeEntryRows<T extends CatalogEntry>(db: IDBDatabase, incoming: T[], staleIds: string[] = []): Promise<boolean> {
+async function writeEntryRows<T extends CatalogEntry>(db: IDBDatabase, incoming: Array<T & { imageBlob?: Blob }>, staleIds: string[] = []): Promise<boolean> {
   const stores = [ENTRY_STORE, IMAGE_STORE].filter((name) => db.objectStoreNames.contains(name));
   if (!stores.includes(ENTRY_STORE)) return false;
   return new Promise((resolve) => {
@@ -182,8 +182,8 @@ async function writeEntryRows<T extends CatalogEntry>(db: IDBDatabase, incoming:
       images?.delete(id);
     }
     for (const item of incoming) {
-      const blob = item.image ? dataUrlToBlob(item.image) : null;
-      const { image: _image, ...meta } = item;
+      const blob = item.imageBlob ?? (item.image ? dataUrlToBlob(item.image) : null);
+      const { image: _image, imageBlob: _blob, ...meta } = item;
       entries.put(blob ? meta : item);
       if (blob) images?.put(blob, item.id);
     }
@@ -227,15 +227,26 @@ export async function writeCatalog<T extends CatalogEntry>(archetypeId: string, 
   }
 }
 
-export async function putCatalogEntries<T extends CatalogEntry>(archetypeId: string, incoming: T[]): Promise<boolean> {
+export async function putCatalogEntries<T extends CatalogEntry>(archetypeId: string, incoming: Array<T & { imageBlob?: Blob }>): Promise<boolean> {
   if (!incoming.length) return true;
   forgetCatalogCleared(archetypeId);
   const db = await openDb();
-  if (db && (await writeEntryRows(db, incoming))) return true;
+  if (db) {
+    const existing = await readEntryRows<T>(db, archetypeId);
+    const incomingIds = new Set(incoming.map((item) => item.id));
+    const incomingRuns = new Set(incoming.map((item) => item.run));
+    const stale = existing.filter((item) => incomingRuns.has(item.run) && !incomingIds.has(item.id)).map((item) => item.id);
+    if (await writeEntryRows(db, incoming, stale)) return true;
+  }
+  const textual = incoming.filter((item) => item.image?.startsWith("data:"));
+  if (!textual.length) return false;
   try {
     const existing = localEntries<T>(archetypeId);
     const byId = new Map(existing.map((item) => [item.id, item]));
-    for (const item of incoming) byId.set(item.id, item);
+    for (const item of textual) {
+      const { imageBlob: _blob, ...meta } = item;
+      byId.set(item.id, meta);
+    }
     window.localStorage.setItem(CATALOG_KEY(archetypeId), JSON.stringify([...byId.values()]));
     return true;
   } catch {

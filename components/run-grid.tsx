@@ -7,62 +7,46 @@ import {
   stepMany,
 } from "@/lib/skill1/engine";
 import { DISPLAY_ITERATIONS, MIN_AGENT_COUNT, robustTrailPeak } from "@/lib/skill1/maps";
+import {
+  lobbySimulationSlime,
+  planLobby,
+  realizeLobbyPlan,
+  type LobbyPlan,
+  type LobbySalt,
+} from "@/lib/skill1/lobby-realization";
 import { runAttractorsFor } from "@/lib/skill1/run-variants";
 import {
-  agentsFromCompressedSequential,
-  attractorsFromCompressedSequential,
   compressedSequentialIdentity,
-  foodFromAttractors,
   isNovelSequence,
-  paramsFromCompressedSequential,
-  planCompressedSequential,
-  recipeFromCompressedSequential,
   scoreCompressedSequential,
   sequenceSignature,
-  slimeFromCompressedSequential,
 } from "@/lib/skill1/run-compressed-sequential";
 import {
-  agentsFromTopographic,
   attractorsFromTopographic,
   isNovelTerrain,
-  paramsFromTopographic,
+  pickMostNovelTerrain,
   planTopographicGroundField,
-  recipeFromTopographic,
   scoreTopographic,
-  slimeFromTopographic,
   topographicIdentity,
   topographicSignature,
 } from "@/lib/skill1/run-topographic-ground-field";
 import {
-  agentsFromLinearGallery,
-  attractorsFromLinearGallery,
   gallerySignature,
   isNovelGallery,
   linearGalleryIdentity,
   pickMostNovelGallery,
-  paramsFromLinearGallery,
   planLinearGallery,
-  recipeFromLinearGallery,
   scoreLinearGallery,
-  slimeFromLinearGallery,
 } from "@/lib/skill1/run-linear-gallery";
 import {
-  agentsFromContinuousHall,
-  attractorsFromContinuousHall,
   continuousHallIdentity,
   hallSignature,
   isNovelHall,
-  paramsFromContinuousHall,
-  planContinuousHall,
-  recipeFromContinuousHall,
-  slimeFromContinuousHall,
 } from "@/lib/skill1/run-continuous-hall";
 import {
   extractMorphFeatures,
   isNovelMorphology,
   pickMostNovel,
-  planVerticalVoid,
-  slimeFromVerticalVoidPlan,
   verticalVoidIdentity,
   type MorphFeatures,
 } from "@/lib/skill1/run-morphology";
@@ -93,11 +77,18 @@ const ALL_ARCHETYPE_IDS = TYPOLOGIES.flatMap((typology) => typology.archetypes.m
 const RUN_TRAIL_SCALE = 8;
 /** Compressed Sequential needs more texels so zoomed white filaments stay hair-thin. */
 const CS_TRAIL_SCALE = 32;
-const TGF_TRAIL_SCALE = 32;
+/** TGF uses the light run grid so each cell finishes well under a minute. */
+const TGF_TRAIL_SCALE = 8;
+const TGF_RUN_ITERATIONS = 320;
+const TGF_ID = "topographic-ground-field";
 const LG_TRAIL_SCALE = 16;
 
 function finePaint(id?: string) {
   return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery";
+}
+
+function emptyRunSlots() {
+  return Array.from({ length: RUN_COUNT }, () => null);
 }
 
 function trailScaleFor(id?: string) {
@@ -132,6 +123,22 @@ function seedFor(id: string, run: number) {
 function rebuildSavedDetail(entry: SavedRun) {
   const base = translateArchetype(entry.archetypeId);
   try {
+    if (entry.lobbyPlan && entry.lobbySalt && entry.lobbyPlan.archetypeId === entry.archetypeId) {
+      const realized = realizeLobbyPlan(base, slimeControlsFromTranslation(base), entry.lobbyPlan, entry.lobbySalt);
+      if (realized.ok) {
+        return {
+          slime: entry.slime ?? realized.slime,
+          translation: {
+            ...realized.translation,
+            params: entry.params ?? realized.translation.params,
+            behavior: entry.behavior ?? realized.translation.behavior,
+            recipe: entry.recipe ?? realized.translation.recipe,
+            topology: entry.topology ?? realized.translation.topology,
+            archetypeName: entry.archetypeName ?? realized.translation.archetypeName,
+          },
+        };
+      }
+    }
     const runTranslation = translationForRun(base, entry.seed, Math.max(0, entry.run - 1));
     const marks = entry.recipe?.attractors ?? runTranslation.recipe.attractors ?? [];
     const slime = entry.slime ?? {
@@ -186,103 +193,29 @@ function realizeRun(
   attempt = 0,
   index = 0,
 ) {
-  const compressedPlan = base.archetypeId === "compressed-sequential" ? planCompressedSequential(seed, attempt, index) : null;
-  const hallPlan = base.archetypeId === "continuous-hall" ? planContinuousHall(seed, attempt, index) : null;
-  const groundPlan = base.archetypeId === "topographic-ground-field" ? planTopographicGroundField(seed, attempt, index) : null;
-  const galleryPlan = base.archetypeId === "linear-gallery" ? planLinearGallery(seed, attempt, index) : null;
-  const runTranslation = translationForRun(base, seed, index, attempt);
-  const tuned = compressedPlan
-    ? {
-        ...runTranslation,
-        params: paramsFromCompressedSequential(base.params, compressedPlan),
-        recipe: {
-          ...recipeFromCompressedSequential(runTranslation.recipe, compressedPlan, seed ^ (attempt * 131)),
-          attractors: attractorsFromCompressedSequential(compressedPlan, seed, attempt),
-          attractorFixed: true,
-          attractorsOnly: compressedPlan.attractorsOnly,
-        },
-      }
-    : hallPlan
-      ? {
-          ...runTranslation,
-          topology: hallPlan.figure === "void-cut" ? "around-absence" : "open-network",
-          params: paramsFromContinuousHall(base.params, hallPlan),
-          recipe: {
-            ...recipeFromContinuousHall(runTranslation.recipe, hallPlan, seed ^ (attempt * 131)),
-            attractors: attractorsFromContinuousHall(hallPlan, seed, attempt),
-          },
-        }
-      : groundPlan
-        ? {
-            ...runTranslation,
-            params: paramsFromTopographic(base.params, seed ^ (attempt * 131)),
-            recipe: {
-              ...recipeFromTopographic(runTranslation.recipe, seed ^ (attempt * 131)),
-              attractors: attractorsFromTopographic(groundPlan, seed, attempt),
-              attractorFixed: true,
-              attractorsOnly: true,
-            },
-          }
-        : galleryPlan
-          ? {
-              ...runTranslation,
-              params: paramsFromLinearGallery(base.params, seed ^ (attempt * 131)),
-              recipe: {
-                ...recipeFromLinearGallery(runTranslation.recipe, seed ^ (attempt * 131)),
-                attractors: attractorsFromLinearGallery(galleryPlan, seed, attempt),
-                attractorFixed: true,
-                attractorsOnly: true,
-              },
-            }
-          : runTranslation;
-  const marks = tuned.recipe.attractors ?? [];
-  const slime =
-    base.archetypeId === "vertical-void"
-      ? {
-          ...slimeFromVerticalVoidPlan(slimeBase, planVerticalVoid(seed, attempt), seed ^ (attempt * 131)),
-          foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
-        }
-      : compressedPlan
-        ? {
-            ...slimeFromCompressedSequential(slimeBase, compressedPlan, seed ^ (attempt * 131)),
-            foodPoints: foodFromAttractors(marks),
-          }
-        : hallPlan
-          ? {
-              ...slimeFromContinuousHall(slimeBase, hallPlan, seed ^ (attempt * 131)),
-              foodPoints: (() => {
-                if (hallPlan.figure !== "void-cut") return foodFromAttractors(marks);
-                const banks = foodFromAttractors(marks.filter((item) => !item.hole && item.kind !== "ring"));
-                return banks.length ? banks : [{ x: hallPlan.cx, y: hallPlan.cy }];
-              })(),
-            }
-        : groundPlan
-          ? {
-              ...slimeFromTopographic(slimeBase, groundPlan, seed ^ (attempt * 131)),
-              foodPoints: foodFromAttractors(marks),
-            }
-        : galleryPlan
-          ? {
-              ...slimeFromLinearGallery(slimeBase, galleryPlan, seed ^ (attempt * 131)),
-              foodPoints: foodFromAttractors(marks),
-            }
-        : {
-            ...varySlimeControls(slimeBase, seed ^ (attempt * 9973), base.archetypeId),
-            foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
-          };
+  const salt: LobbySalt = { seed, attempt, index };
+  const planned = planLobby(base.archetypeId, salt);
+  if (planned) {
+    const realized = realizeLobbyPlan(base, slimeBase, planned, salt);
+    if (!realized.ok) throw new Error(`${base.archetypeId}: ${realized.reasons.join(", ")}`);
+    return {
+      seed,
+      agents: realized.agents,
+      slime: realized.slime,
+      translation: realized.translation,
+      lobbyPlan: realized.plan,
+      lobbySalt: realized.salt,
+    };
+  }
+  const translation = translationForRun(base, seed, index, attempt);
+  const marks = translation.recipe.attractors ?? [];
+  const slime = {
+    ...varySlimeControls(slimeBase, seed ^ (attempt * 9973), base.archetypeId),
+    foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
+  };
   const rng = mulberry32(seed ^ 0x6d2b79f5 ^ attempt);
-  const baseAgents = agentCountFromDensity(densityFromTranslation(base)) + (rng() - 0.5) * 36;
-  const plannedAgents = compressedPlan
-    ? agentsFromCompressedSequential(compressedPlan, seed ^ attempt)
-    : hallPlan
-      ? agentsFromContinuousHall(hallPlan, seed ^ attempt)
-      : groundPlan
-        ? agentsFromTopographic(groundPlan, seed ^ attempt)
-        : galleryPlan
-          ? agentsFromLinearGallery(galleryPlan, seed ^ attempt)
-          : baseAgents;
-  const agents = Math.round(Math.min(600, Math.max(MIN_AGENT_COUNT, plannedAgents)));
-  return { seed, agents, slime, translation: tuned };
+  const agents = Math.round(Math.min(600, Math.max(MIN_AGENT_COUNT, agentCountFromDensity(densityFromTranslation(base)) + (rng() - 0.5) * 36)));
+  return { seed, agents, slime, translation };
 }
 
 /** One saved run in the per-archetype catalog. */
@@ -302,23 +235,52 @@ type SavedRun = {
   behavior?: BiologicalBehavior;
   recipe?: SpatialRecipe;
   topology?: TopologyKind;
+  /** Semantic plan that drew this cell. Absent on rows saved before the Lobby handoff. */
+  lobbyPlan?: LobbyPlan;
+  /** Salt held with that plan. `index` is the grid slot, `attempt` is the try the grid kept. */
+  lobbySalt?: LobbySalt;
 };
 
-function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
+function paintCatalogCanvas(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) return null;
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, size, size);
-  drawPlanField(ctx, snapshot, size, size, { showHud: false, fine: true, density: 5, attractors, showAttractors: false, peak, hairThin: Boolean(peak) });
+  drawPlanField(ctx, snapshot, size, size, {
+    showHud: false,
+    fine: true,
+    density: 5,
+    attractors,
+    showAttractors: false,
+    peak,
+    hairThin: Boolean(peak),
+    maxResolution: size,
+  });
+  return canvas;
+}
+
+function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
+  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak);
+  if (!canvas) return "";
   try {
     return canvas.toDataURL("image/png");
   } catch {
     return "";
   }
 }
+
+function snapshotBlob(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
+  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak);
+  if (!canvas) return Promise.resolve(null);
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((blob) => resolve(blob && blob.size > 32 ? blob : null), "image/png");
+  });
+}
+
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 function canvasImage(canvas: HTMLCanvasElement | null) {
   if (!canvas || canvas.width < 2 || canvas.height < 2) return "";
@@ -531,6 +493,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const [catalogInspected, setCatalogInspected] = useState<number | null>(null);
   const [paused, setPaused] = useState(false);
   const [saveFlash, setSaveFlash] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(null);
   const [catalogEntries, setCatalogEntries] = useState<SavedRun[]>([]);
   const [allQueue, setAllQueue] = useState(false);
   const [allDone, setAllDone] = useState(false);
@@ -540,6 +503,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const allDoneRef = useRef(false);
   const freshQueueRef = useRef(false);
   const savingRef = useRef(false);
+  const fillCatalogRef = useRef(false);
+  const savingCatalogRef = useRef(false);
   const autoStartedRef = useRef<string | null>(null);
   const resumeIndexRef = useRef(0);
   const completedRef = useRef(0);
@@ -553,6 +518,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       agents: number;
       slime: SlimeControls;
       translation: BiologicalTranslation;
+      lobbyPlan?: LobbyPlan;
+      lobbySalt?: LobbySalt;
     }>
   >([]);
   const frameRef = useRef<number | null>(null);
@@ -622,6 +589,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       behavior: variant?.translation.behavior,
       recipe: variant?.translation.recipe,
       topology: variant?.translation.topology,
+      lobbyPlan: variant?.lobbyPlan,
+      lobbySalt: variant?.lobbySalt,
     };
   };
 
@@ -659,12 +628,16 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     iterations: item.iterations,
     image: item.image,
     savedAt: item.savedAt,
+    lobbyPlan: item.lobbyPlan,
+    lobbySalt: item.lobbySalt,
   });
 
   const mergeCatalog = async (id: string) => {
     if (catalogWasCleared(id)) return [];
-    const rebuilt = await catalogFromFields(id);
-    if (rebuilt.length) return rebuilt;
+    if (id !== TGF_ID) {
+      const rebuilt = await catalogFromFields(id);
+      if (rebuilt.length) return rebuilt;
+    }
     const stored = await readCatalog<SavedRun>(id);
     const usable: SavedRun[] = [];
     for (const item of stored) {
@@ -792,28 +765,33 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       behavior: variant?.translation.behavior,
       recipe: variant?.translation.recipe,
       topology: variant?.translation.topology,
+      lobbyPlan: variant?.lobbyPlan,
+      lobbySalt: variant?.lobbySalt,
     };
   };
 
-  const persistEntries = async (id: string, incoming: SavedRun[]) => {
-    incoming = incoming.filter((item) => item.image.startsWith("data:"));
-    if (!incoming.length) return false;
-    const saved = (await putCatalogEntries(id, incoming))
-      ? incoming
-      : await (async () => {
-          const compact = incoming.map((item) => {
-            const index = item.run - 1;
-            const image = entryImage(index, snapshotsRef.current[index], canvasRefs.current[index], 960, variantsRef.current[index]?.translation.recipe.attractors);
-            return image ? { ...item, image } : item;
-          });
-          return (await putCatalogEntries(id, compact)) ? compact : null;
-        })();
-    if (!saved) {
-      void shareCatalogEntries(id, incoming);
-      return incoming.length > 0;
+  const persistEntries = async (id: string, incoming: Array<SavedRun & { imageBlob?: Blob }>) => {
+    const ready = incoming.filter((item) => item.imageBlob || item.image.startsWith("data:"));
+    if (!ready.length) return false;
+    let stored = true;
+    for (let index = 0; index < ready.length; index += 8) {
+      if (!(await putCatalogEntries(id, ready.slice(index, index + 8)))) stored = false;
+      await nextFrame();
     }
-    void shareCatalogEntries(id, saved);
-    return true;
+    if (!stored && ready.every((item) => item.image.startsWith("data:"))) {
+      const compact = ready.map((item) => {
+        const index = item.run - 1;
+        const image = entryImage(index, snapshotsRef.current[index], canvasRefs.current[index], 960, variantsRef.current[index]?.translation.recipe.attractors);
+        return image ? { ...item, image } : item;
+      });
+      stored = await putCatalogEntries(id, compact);
+      if (stored) {
+        void shareCatalogEntries(id, compact);
+        return true;
+      }
+    }
+    void shareCatalogEntries(id, ready);
+    return stored || ready.length > 0;
   };
 
   const catalogOne = async (index: number, archetypeId?: string) => {
@@ -848,27 +826,65 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   };
 
   const saveCatalog = async () => {
+    if (savingCatalogRef.current) return false;
     const id = runningIdRef.current ?? pickedIdRef.current;
     if (!id) return false;
-    const kept = await loadArchetypeFields(id, RUN_COUNT);
-    if (kept.some(Boolean)) {
-      snapshotsRef.current = snapshotsRef.current.map((current, index) => current ?? kept[index] ?? null);
+    savingCatalogRef.current = true;
+    setSaveProgress({ done: 0, total: RUN_COUNT });
+    try {
+      const kept = await loadArchetypeFields(id, RUN_COUNT);
+      if (kept.some(Boolean)) {
+        snapshotsRef.current = snapshotsRef.current.map((current, index) => current ?? kept[index] ?? null);
+      }
+      const savedAt = Date.now();
+      const incoming: Array<SavedRun & { imageBlob?: Blob }> = [];
+      let painted = 0;
+      for (let index = 0; index < RUN_COUNT; index += 1) {
+        const snapshot = snapshotsRef.current[index];
+        const active = runningIdRef.current ?? pickedIdRef.current;
+        const variant = id === active ? variantsRef.current[index] : undefined;
+        const marks = variant?.translation.recipe.attractors;
+        const peak = finePaint(id) && snapshot ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined;
+        const blob = snapshot ? await snapshotBlob(snapshot, CATALOG_IMAGE_SIZE, marks, peak) : null;
+        if (blob) {
+          const seed = variant?.seed ?? seedFor(id, index);
+          incoming.push({
+            id: `${id}-${seed}-${index}-${savedAt}`,
+            archetypeId: id,
+            archetypeName: variant?.translation.archetypeName,
+            run: index + 1,
+            seed,
+            kind: kindLabel(marks),
+            agents: variant?.agents ?? 0,
+            iterations: snapshot?.iteration ?? DISPLAY_ITERATIONS,
+            image: "",
+            imageBlob: blob,
+            savedAt,
+            slime: variant?.slime,
+            params: variant?.translation.params,
+            behavior: variant?.translation.behavior,
+            recipe: variant?.translation.recipe,
+            topology: variant?.translation.topology,
+            lobbyPlan: variant?.lobbyPlan,
+            lobbySalt: variant?.lobbySalt,
+          });
+          painted += 1;
+        }
+        setSaveProgress({ done: index + 1, total: RUN_COUNT });
+        await nextFrame();
+      }
+      if (!painted) return false;
+      if (!(await persistEntries(id, incoming))) return false;
+      const stored = await readCatalog<SavedRun>(id);
+      catalogCacheRef.current[id] = stored;
+      setCatalogEntries(stored);
+      refreshCatalogCounts();
+      markSaved();
+      return true;
+    } finally {
+      savingCatalogRef.current = false;
+      setSaveProgress(null);
     }
-    const savedAt = Date.now();
-    const incoming: SavedRun[] = [];
-    for (let index = 0; index < RUN_COUNT; index += 1) {
-      const entry = buildEntry(index, savedAt, CATALOG_IMAGE_SIZE, id);
-      if (entry) incoming.push(entry);
-      if (index % 4 === 3) await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    }
-    if (!incoming.length) return false;
-    if (!(await persistEntries(id, incoming))) return false;
-    const stored = await readCatalog<SavedRun>(id);
-    catalogCacheRef.current[id] = stored;
-    setCatalogEntries(stored);
-    refreshCatalogCounts();
-    markSaved();
-    return true;
   };
 
   const removeSaved = (id: string) => {
@@ -950,9 +966,17 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     setPickedId(id);
     void (async () => {
       const kept = await loadArchetypeFields(id, RUN_COUNT);
+      if (pickedIdRef.current !== id) return;
       snapshotsRef.current = kept;
       completedRef.current = kept.filter(Boolean).length;
       setCompleted(completedRef.current);
+      requestAnimationFrame(() => {
+        if (pickedIdRef.current !== id) return;
+        kept.forEach((snapshot, index) => {
+          const canvas = canvasRefs.current[index];
+          if (snapshot && canvas) paintRunCell(canvas, snapshot, variantsRef.current[index]?.translation.recipe.attractors, id);
+        });
+      });
       void clearRunFields();
     })();
   };
@@ -969,15 +993,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     setRunningId(pickedId);
     void (async () => {
       let existing = snapshotsRef.current;
-      if (!existing.some(Boolean)) {
+      if (pickedId === TGF_ID || !existing.some(Boolean)) {
         existing = await loadArchetypeFields(pickedId, RUN_COUNT);
         snapshotsRef.current = existing;
       }
       let resumeAt = 0;
       while (resumeAt < RUN_COUNT && existing[resumeAt]) resumeAt += 1;
       resumeIndexRef.current = resumeAt;
-      completedRef.current = resumeAt;
-      setCompleted(resumeAt);
+      completedRef.current = existing.filter(Boolean).length;
+      setCompleted(completedRef.current);
       if (resumeAt === 0) await clearRunFields();
       runningRef.current = true;
       setPaused(false);
@@ -1021,7 +1045,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     setCompleted(0);
     setSelected(null);
     setInspecting(false);
-    snapshotsRef.current = Array.from({ length: RUN_COUNT }, () => null);
+    snapshotsRef.current = emptyRunSlots();
     canvasRefs.current.forEach((canvas) => {
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
@@ -1029,7 +1053,10 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
-    void clearRunFields();
+    void (async () => {
+      await clearRunFields();
+      if (pickedId === TGF_ID) await clearArchetypeFields(TGF_ID, RUN_COUNT);
+    })();
   };
 
   useEffect(() => {
@@ -1063,11 +1090,19 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           /* ignore */
         }
       } else {
+        if (session?.pickedId) {
+          const kept = await loadArchetypeFields(session.pickedId, RUN_COUNT);
+          if (!live) return;
+          if (kept.some(Boolean)) {
+            snapshotsRef.current = kept;
+            completedRef.current = kept.filter(Boolean).length;
+          }
+        }
         if (session) {
-          completedRef.current = session.completed;
+          completedRef.current = snapshotsRef.current.some(Boolean) ? snapshotsRef.current.filter(Boolean).length : session.completed;
           setPickedId(session.pickedId);
           setRunningId(null);
-          setCompleted(session.completed);
+          setCompleted(completedRef.current);
           setPaused(false);
         }
         allDoneRef.current = false;
@@ -1103,6 +1138,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     if (!sessionReady) return;
     refreshCatalogCounts();
   }, [sessionReady]);
+
+  useEffect(() => {
+    if (!sessionReady || running || completed < RUN_COUNT) return;
+    if ((runningId ?? pickedId) !== TGF_ID) return;
+    if (fillCatalogRef.current) return;
+    fillCatalogRef.current = true;
+    void ensureAllCatalogued(TGF_ID);
+  }, [sessionReady, running, completed, runningId, pickedId]);
 
   const finishAllQueue = async () => {
     const currentId = runningIdRef.current ?? pickedIdRef.current;
@@ -1214,7 +1257,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     let cancelled = false;
     let index = Math.min(RUN_COUNT, Math.max(0, resumeIndexRef.current));
     resumeIndexRef.current = 0;
-    if (index <= 0) {
+    if (index <= 0 && !snapshotsRef.current.some(Boolean)) {
       snapshotsRef.current = Array.from({ length: RUN_COUNT }, () => null);
       canvasRefs.current.forEach((canvas) => {
         if (!canvas) return;
@@ -1226,8 +1269,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     } else {
       snapshotsRef.current.forEach((snapshot, cell) => {
         const canvas = canvasRefs.current[cell];
-        if (snapshot && canvas) {
+        if (!canvas) return;
+        if (snapshot) {
           paintRunCell(canvas, snapshot, variantsRef.current[cell]?.translation.recipe.attractors, variantsRef.current[cell]?.translation.archetypeId);
+        } else {
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
       });
     }
@@ -1246,28 +1295,49 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       );
       next.maxIterations = DISPLAY_ITERATIONS;
       const rng = mulberry32(variant.seed ^ 0x9e3779b9);
-      const slime = {
-        ...variant.slime,
-        diffusion:
-          variant.translation.archetypeId === "continuous-hall" || finePaint(variant.translation.archetypeId)
-            ? variant.slime.diffusion
-            : Math.min(variant.slime.diffusion, 0.04),
-      };
-      const steps = DISPLAY_ITERATIONS - next.iteration;
+      const slime = lobbySimulationSlime(variant.translation.archetypeId, variant.slime);
+      const targetSteps =
+        variant.translation.archetypeId === "topographic-ground-field" ? TGF_RUN_ITERATIONS : DISPLAY_ITERATIONS;
+      const steps = targetSteps - next.iteration;
       next.maxIterations = next.iteration + Math.max(1, steps);
       stepMany(next, variant.translation, rng, Math.max(1, steps), slime.decay, slime, false);
       return captureSnapshot(next, true);
     };
 
+    if (archetypeId === "topographic-ground-field") {
+      for (let cell = 0; cell < RUN_COUNT; cell += 1) {
+        if (!snapshotsRef.current[cell]) continue;
+        const seed = variantsRef.current[cell]?.seed ?? seedFor(archetypeId, cell);
+        const planned = planTopographicGroundField(seed, 0, cell);
+        previousSequences.push(
+          topographicSignature(attractorsFromTopographic(planned, seed, 0), {
+            kind: planned.kind,
+            growth: planned.growth,
+            figure: planned.figure,
+            slime: variantsRef.current[cell]?.slime,
+            agents: variantsRef.current[cell]?.agents,
+            snapshot: snapshotsRef.current[cell] ?? undefined,
+          }),
+        );
+      }
+    }
+
     const frame = () => {
-      if (cancelled || !runningRef.current || index >= RUN_COUNT) return;
+      if (cancelled || !runningRef.current) return;
+      while (index < RUN_COUNT && snapshotsRef.current[index]) index += 1;
+      if (index >= RUN_COUNT) {
+        runningRef.current = false;
+        setRunning(false);
+        setCompleted(snapshotsRef.current.filter(Boolean).length);
+        return;
+      }
       const fallback = variantsRef.current[index];
       const tries: Array<{ variant: typeof fallback; snapshot: FieldSnapshot; features: MorphFeatures; identity: boolean; signature: number[]; score: number }> = [];
       const compressed = fallback.translation.archetypeId === "compressed-sequential";
       const hall = fallback.translation.archetypeId === "continuous-hall";
       const ground = fallback.translation.archetypeId === "topographic-ground-field";
       const gallery = fallback.translation.archetypeId === "linear-gallery";
-      const attempts = compressed || ground ? 5 : gallery ? 5 : fallback.translation.archetypeId === "vertical-void" || hall ? 6 : 1;
+      const attempts = compressed ? 5 : ground ? 5 : gallery ? 5 : fallback.translation.archetypeId === "vertical-void" || hall ? 6 : 1;
       let chosen: (typeof tries)[number] | null = null;
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         const variant =
@@ -1292,7 +1362,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           : hall
             ? hallSignature(marks, { slime: variant.slime, agents: variant.agents })
             : ground
-              ? topographicSignature(marks, { slime: variant.slime, agents: variant.agents })
+              ? topographicSignature(marks, {
+                  slime: variant.slime,
+                  agents: variant.agents,
+                  snapshot,
+                  ...(() => {
+                    const planned = planTopographicGroundField(variant.seed, attempt, index);
+                    return { kind: planned.kind, growth: planned.growth, figure: planned.figure };
+                  })(),
+                })
               : gallery
                 ? gallerySignature(marks, {
                     slime: variant.slime,
@@ -1312,7 +1390,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               ? scoreLinearGallery(snapshot, marks)
               : 0;
         tries.push({ variant, snapshot, features, identity, signature, score });
-        if (compressed || ground) continue;
+        if (compressed) continue;
+        if (ground) {
+          if (identity && isNovelTerrain(signature, previousSequences)) {
+            chosen = { variant, snapshot, features, identity, signature, score };
+            break;
+          }
+          continue;
+        }
         if (gallery) {
           if (identity && isNovelGallery(signature, previousSequences)) {
             chosen = { variant, snapshot, features, identity, signature, score };
@@ -1339,7 +1424,9 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           const pool = valid.length ? valid : tries;
           chosen = gallery
             ? pool[pickMostNovelGallery(pool.map((item) => item.signature), previousSequences)] ?? pool[0]
-            : pool.reduce((best, item) => (item.score > best.score ? item : best));
+            : ground
+              ? pool[pickMostNovelTerrain(pool.map((item) => item.signature), previousSequences)] ?? pool[0]
+              : pool.reduce((best, item) => (item.score > best.score ? item : best));
         } else {
           const valid = tries.filter((item) => item.identity);
           const pool = valid.length ? valid : tries;
@@ -1356,10 +1443,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const cell = index;
       const snapshot = chosen.snapshot;
       index += 1;
-      setCompleted(index);
+      setCompleted(snapshotsRef.current.filter(Boolean).length);
       void (async () => {
-        await saveRunSnapshot(cell, snapshot);
-        if (id) await saveArchetypeField(id, cell, snapshot);
+        try {
+          await saveRunSnapshot(cell, snapshot);
+          if (id) await saveArchetypeField(id, cell, snapshot);
+        } catch {
+          /* a failed save should not stop the remaining cells */
+        }
         if (cancelled || !runningRef.current) return;
         if (index >= RUN_COUNT) {
           runningRef.current = false;
@@ -1468,7 +1559,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             <button
               type="button"
               onClick={startRuns}
-              disabled={!pickedId}
+              disabled={!pickedId || running}
               className="runs-control border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--orange-hot)] disabled:opacity-30"
             >
               Start
@@ -1499,14 +1590,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             <button
               type="button"
               onClick={saveCatalog}
-              disabled={completed < 1 && !snapshotsRef.current.some(Boolean)}
+              disabled={saveProgress != null || (completed < 1 && !snapshotsRef.current.some(Boolean))}
               className={`runs-control border px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase disabled:opacity-30 ${
-                saveFlash
+                saveFlash || saveProgress
                   ? "border-[var(--orange)] bg-[rgba(199,126,95,0.16)] text-[var(--orange-hot)]"
                   : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:text-[var(--text)]"
               }`}
             >
-              {saveFlash ? "Saved" : "Save to catalog"}
+              {saveProgress ? `Saving ${saveProgress.done}/${saveProgress.total}` : saveFlash ? "Saved" : "Save to catalog"}
             </button>
           </div>
           )}
@@ -1675,7 +1766,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               ref={(node) => {
                 canvasRefs.current[index] = node;
               }}
-              className="pointer-events-none block h-full w-full"
+              className="pointer-events-none block h-full w-full object-contain"
             />
             <span className="runs-index pointer-events-none absolute left-1 top-0.5 text-[0.55rem] tracking-[0.08em] text-[rgba(242,242,238,0.55)]">
               {String(index + 1).padStart(2, "0")}
@@ -1714,6 +1805,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           slime={variants[selected].slime}
           canvasRef={detailRef}
           saved={saveFlash}
+          saveLabel={saveProgress ? `Saving ${saveProgress.done}/${saveProgress.total}` : undefined}
           onSave={saveCatalog}
           onClose={() => setInspecting(false)}
           onStep={(delta) =>
@@ -1736,6 +1828,7 @@ function RunDetail({
   slime,
   canvasRef,
   saved,
+  saveLabel,
   onSave,
   onClose,
   onStep,
@@ -1748,6 +1841,7 @@ function RunDetail({
   slime: SlimeControls;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   saved: boolean;
+  saveLabel?: string;
   onSave: () => void;
   onClose: () => void;
   onStep: (delta: number) => void;
@@ -1787,10 +1881,10 @@ function RunDetail({
               <button
                 type="button"
                 onClick={onSave}
-                disabled={!snapshot}
+                disabled={!snapshot || Boolean(saveLabel)}
                 className="border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--orange-hot)] disabled:opacity-30"
               >
-                {saved ? "Saved" : "Save to catalog"}
+                {saveLabel ?? (saved ? "Saved" : "Save to catalog")}
               </button>
               <button
                 type="button"
@@ -1851,7 +1945,7 @@ function CatalogFieldThumb({ snapshot }: { snapshot: FieldSnapshot }) {
     ctx.fillRect(0, 0, size, size);
     drawPlanField(ctx, snapshot, size, size, { showHud: false, fine: false, density: 5, showAttractors: false });
   }, [snapshot]);
-  return <canvas ref={ref} className="block h-full w-full" />;
+  return <canvas ref={ref} className="block h-full w-full object-contain" />;
 }
 
 function CatalogDetail({

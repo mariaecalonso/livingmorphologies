@@ -207,15 +207,15 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.diffusion = clamp(next.diffusion, 0, 0.16);
   }
   if (archetypeId === "topographic-ground-field") {
-    next.resistance = clamp(next.resistance, 0, 0.45);
-    next.persistence = clamp(next.persistence, 0.12, 0.9);
-    next.depositWidth = clamp(next.depositWidth, 0.26, 3.5);
-    next.deposit = clamp(next.deposit, 0.008, 0.3);
-    next.trailCap = clamp(next.trailCap, 0.18, 1.95);
-    next.stepSize = clamp(next.stepSize, 0.08, 0.4);
-    next.randomness = clamp(next.randomness, 0.04, 1.05);
-    next.diffusion = clamp(next.diffusion, 0, 0.16);
-    next.trailInfluence = clamp(next.trailInfluence, 0.28, 1.85);
+    next.resistance = clamp(next.resistance, 0.02, 0.28);
+    next.persistence = clamp(next.persistence, 0.26, 0.9);
+    next.depositWidth = clamp(next.depositWidth, 0.65, 2.7);
+    next.deposit = clamp(next.deposit, 0.035, 0.22);
+    next.trailCap = clamp(next.trailCap, 0.45, 1.85);
+    next.stepSize = clamp(next.stepSize, 0.1, 0.3);
+    next.randomness = clamp(next.randomness, 0.04, 0.5);
+    next.diffusion = clamp(next.diffusion, 0.03, 0.14);
+    next.trailInfluence = clamp(next.trailInfluence, 0.4, 1.8);
   }
   if (archetypeId === "linear-gallery") {
     next.resistance = clamp(next.resistance, 0.02, 0.45);

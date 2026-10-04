@@ -41,21 +41,37 @@ async function toDataUrl(image: string): Promise<string> {
   });
 }
 
-export async function shareCatalogEntries<T extends SharedCatalogEntry>(archetypeId: string, incoming: T[]): Promise<boolean> {
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function shareCatalogEntries<T extends SharedCatalogEntry>(
+  archetypeId: string,
+  incoming: Array<T & { imageBlob?: Blob }>,
+): Promise<boolean> {
   if (typeof fetch === "undefined" || !incoming.length) return true;
-  const payload = [];
-  for (const item of incoming) {
-    if (!item.image) continue;
-    try {
-      const image = await toDataUrl(item.image);
-      if (!image.startsWith("data:")) continue;
-      payload.push({ ...item, image });
-    } catch {
-      /* skip a frame that cannot be encoded */
+  for (let index = 0; index < incoming.length; index += 2) {
+    const batch = [];
+    for (const item of incoming.slice(index, index + 2)) {
+      try {
+        const image = item.imageBlob
+          ? await blobToDataUrl(item.imageBlob)
+          : item.image
+            ? await toDataUrl(item.image)
+            : "";
+        if (!image.startsWith("data:")) continue;
+        const { imageBlob: _blob, ...meta } = item;
+        batch.push({ ...meta, image });
+      } catch {
+        /* skip a frame that cannot be encoded */
+      }
     }
-  }
-  for (let index = 0; index < payload.length; index += 2) {
-    const batch = payload.slice(index, index + 2);
+    if (!batch.length) continue;
     const response = await fetch("/api/shared-catalog", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

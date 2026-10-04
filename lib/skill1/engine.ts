@@ -350,6 +350,40 @@ function isVoidCorridor(item: FieldAttractor) {
   return (item.kind === "line" || item.kind === "curve") && item.hole === true;
 }
 
+function isGroundDisk(item: FieldAttractor) {
+  return item.hole !== true && item.kind !== "line" && item.kind !== "curve" && item.kind !== "ring";
+}
+
+function isGroundCorridor(item: FieldAttractor) {
+  return (item.kind === "line" || item.kind === "curve") && item.hole !== true;
+}
+
+function tgfKeepsPads(translation: BiologicalTranslation) {
+  if (translation.archetypeId !== "topographic-ground-field") return false;
+  const list = translation.recipe.attractors;
+  if (!list?.length) return false;
+  return !list.some((item) => item.hole === true || item.kind === "ring");
+}
+
+function insideGroundMass(point: Point, translation: BiologicalTranslation) {
+  if (!tgfKeepsPads(translation)) return true;
+  const list = translation.recipe.attractors;
+  if (!list?.length) return false;
+  for (const item of list) {
+    if (isGroundDisk(item)) {
+      if (Math.hypot(point.x - item.x, point.y - item.y) < Math.max(0.7, item.radius ?? 1.6)) return true;
+      continue;
+    }
+    if (!isGroundCorridor(item)) continue;
+    const radial =
+      item.kind === "curve"
+        ? dist(point, nearestOnCurve(point, item))
+        : distanceToSegment(point.x, point.y, item.x, item.y, item.x2 ?? item.x, item.y2 ?? item.y);
+    if (radial < Math.max(0.45, item.radius ?? 1.1)) return true;
+  }
+  return false;
+}
+
 function polarVoidRadius(item: FieldAttractor, point: Point, slime?: SlimeControls) {
   const base = circleRadius(item);
   if (base <= 0) return 0;
@@ -422,10 +456,53 @@ function holeMaskFor(trailSize: number, fieldSize: number, translation: Biologic
       const fy = Math.floor(i / trailSize) / scale;
       if (insideAttractorHole({ x: fx, y: fy }, translation, slime)) mask[i] = 1;
     }
-    if (holeMasks.size >= 8) holeMasks.delete(holeMasks.keys().next().value as string);
+    if (holeMasks.size >= 16) holeMasks.delete(holeMasks.keys().next().value as string);
     holeMasks.set(key, mask);
   }
   return mask;
+}
+
+function groundMaskFor(trailSize: number, fieldSize: number, translation: BiologicalTranslation) {
+  const list = translation.recipe.attractors ?? [];
+  const key = `g|${trailSize}|${fieldSize}|${list
+    .map((item) => `${item.kind},${item.x},${item.y},${item.x2 ?? ""},${item.y2 ?? ""},${item.cx ?? ""},${item.cy ?? ""},${item.radius ?? 0},${item.hole ? 1 : 0}`)
+    .join(";")}`;
+  let mask = holeMasks.get(key);
+  if (!mask) {
+    const scale = trailSize / fieldSize;
+    mask = new Uint8Array(trailSize * trailSize);
+    for (let i = 0; i < mask.length; i += 1) {
+      const fx = (i % trailSize) / scale;
+      const fy = Math.floor(i / trailSize) / scale;
+      if (insideGroundMass({ x: fx, y: fy }, translation)) mask[i] = 1;
+    }
+    if (holeMasks.size >= 16) holeMasks.delete(holeMasks.keys().next().value as string);
+    holeMasks.set(key, mask);
+  }
+  return mask;
+}
+
+function eraseTrailsOutsideGround(
+  trails: number[],
+  trailSize: number,
+  fieldSize: number,
+  translation: BiologicalTranslation,
+) {
+  if (translation.archetypeId !== "topographic-ground-field") return;
+  const book = trailBook(trails);
+  const keep = groundMaskFor(trailSize, fieldSize, translation);
+  let write = 0;
+  for (let n = 0; n < book.active.length; n += 1) {
+    const i = book.active[n];
+    if (!keep[i]) {
+      trails[i] = 0;
+      book.stamp[i] = 0;
+      continue;
+    }
+    book.active[write] = i;
+    write += 1;
+  }
+  book.active.length = write;
 }
 
 function eraseTrailsInsideCircles(
@@ -435,6 +512,10 @@ function eraseTrailsInsideCircles(
   translation: BiologicalTranslation,
   slime?: SlimeControls,
 ) {
+  if (tgfKeepsPads(translation)) {
+    eraseTrailsOutsideGround(trails, trailSize, fieldSize, translation);
+    return;
+  }
   const list = translation.recipe.attractors;
   if (!list?.some((item) => (isVoidDisk(item) && circleRadius(item) > 0) || isVoidCorridor(item))) return;
   const book = trailBook(trails);
@@ -1080,6 +1161,7 @@ export function stepSimulation(
     const edge = Math.min(agent.x, agent.y, state.size - agent.x, state.size - agent.y);
     if (edge < 2.6 && !fineTrail(translation.archetypeId)) depositAmount *= 0.012;
     if (insideAttractorHole(agent, translation, slime)) depositAmount = 0;
+    if (tgfKeepsPads(translation) && !insideGroundMass(agent, translation)) depositAmount = 0;
     if (aroundAbsence(translation)) {
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
       const limit = slime

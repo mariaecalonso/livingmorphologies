@@ -27,6 +27,17 @@ export {
   SOCIAL_PROXIMITY_SPACING_MAP,
   trailMaskCutoff,
 } from "./maps";
+export {
+  LOBBY_ARCHETYPE_IDS,
+  LOBBY_ATTEMPT_SEARCH,
+  LOBBY_FIELD_GUIDE,
+  isLobbyArchetype,
+  lobbySimulationSlime,
+  planLobby,
+  realizeLobbyPlan,
+  repairLobbyPlan,
+} from "./lobby-realization";
+export type { LobbyArchetypeId, LobbyFieldGuide, LobbyPlan, LobbyRealization, LobbySalt } from "./lobby-realization";
 export { slimeControlsFromTranslation } from "./slime-controls";
 export type { SlimeControls } from "./slime-controls";
 export { CRITERION_TARGETS, behaviorFromRatings, paramsFromRatings, toHandoff, translateArchetype } from "./translate";

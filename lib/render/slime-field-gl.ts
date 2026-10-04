@@ -268,12 +268,15 @@ export function drawSlimeFieldGl(
   cutoff: number,
   attractors?: FieldAttractor[],
   hairThin = false,
+  maxResolution?: number,
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
   const { gl, canvas } = gpu;
   const dpr = Math.max(1, ctx.getTransform().a || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1);
-  const pixels = Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
+  const pixels = maxResolution
+    ? Math.max(256, Math.min(4096, Math.round(maxResolution)))
+    : Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
   if (canvas.width !== pixels || canvas.height !== pixels) {
     canvas.width = pixels;
     canvas.height = pixels;

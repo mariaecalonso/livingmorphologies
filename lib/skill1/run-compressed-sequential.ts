@@ -662,9 +662,9 @@ export type RoomVoice = "disk" | "cloud" | "swarm" | "shell" | "stroke";
 export type NeckVoice = "hair" | "vein" | "corridor" | "steps" | "void";
 export type HaloVoice = "bare" | "mist" | "overgrown";
 
-const ROOM_VOICES: RoomVoice[] = ["disk", "cloud", "swarm", "shell", "stroke"];
-const NECK_VOICES: NeckVoice[] = ["hair", "vein", "corridor", "steps", "void"];
-const HALO_VOICES: HaloVoice[] = ["bare", "mist", "overgrown"];
+export const ROOM_VOICES: RoomVoice[] = ["disk", "cloud", "swarm", "shell", "stroke"];
+export const NECK_VOICES: NeckVoice[] = ["hair", "vein", "corridor", "steps", "void"];
+export const HALO_VOICES: HaloVoice[] = ["bare", "mist", "overgrown"];
 
 export type CompressedSequentialPlan = {
   kind: SequenceKind;

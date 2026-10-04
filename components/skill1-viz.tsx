@@ -64,7 +64,7 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number },
 ) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
@@ -82,7 +82,7 @@ export function drawPlanField(
       options?.attractors?.length
         ? options.attractors
         : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
-    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true);
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution);
     const sx = snapshot.source.x * scale;
     const sy = toCanvas(snapshot.source.y, fieldH, scale);
     ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -273,13 +273,16 @@ function drawColonyBody(
   density: number,
   attractors?: FieldAttractor[],
   hairThin = false,
+  maxResolution?: number,
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution)) return;
   const dpr = ctx.getTransform().a || 1;
-  const res = fine
-    ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
-    : Math.max(160, Math.min(280, Math.round(fieldH)));
+  const res = maxResolution
+    ? Math.max(256, Math.min(2048, Math.round(maxResolution)))
+    : fine
+      ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
+      : Math.max(160, Math.min(280, Math.round(fieldH)));
   let finger = 0;
   const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
   for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
