@@ -283,9 +283,11 @@ function drawColonyBody(
     : fine
       ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
       : Math.max(160, Math.min(280, Math.round(fieldH)));
-  let finger = 0;
-  const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
-  for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
+  let finger = 2166136261;
+  const stride = Math.max(1, Math.floor(snapshot.trails.length / 256));
+  for (let i = 0; i < snapshot.trails.length; i += stride) {
+    finger = Math.imul(finger ^ Math.round(snapshot.trails[i] * 1000), 16777619);
+  }
   const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:vessel:${attractors?.length ?? 0}:${hairThin ? "hair" : "body"}`;
   let scratch = fine ? fineScratch : coarseScratch;
   if (!scratch) {

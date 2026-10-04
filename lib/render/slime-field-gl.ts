@@ -169,12 +169,16 @@ type GlState = {
   texture: WebGLTexture;
   buffer: WebGLBuffer;
   uTexels: WebGLUniformLocation;
-  uCutoff: WebGLUniformLocation;
+  uCutoff: WebGLUniformLocation | null;
   uHairThin: WebGLUniformLocation;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
   pixels: Float32Array;
+  blit: HTMLCanvasElement;
+  blitCtx: CanvasRenderingContext2D;
+  read: Uint8Array;
+  flip: Uint8ClampedArray;
 };
 
 let state: GlState | null = null;
@@ -222,7 +226,7 @@ function createState(): GlState | null {
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uCutoff || !uHairThin || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uHairThin || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -231,6 +235,9 @@ function createState(): GlState | null {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  const blit = document.createElement("canvas");
+  const blitCtx = blit.getContext("2d", { alpha: false });
+  if (!blitCtx) return null;
   return {
     canvas,
     gl,
@@ -244,6 +251,10 @@ function createState(): GlState | null {
     uAttr,
     uKind,
     pixels: new Float32Array(0),
+    blit,
+    blitCtx,
+    read: new Uint8Array(0),
+    flip: new Uint8ClampedArray(0),
   };
 }
 
@@ -293,10 +304,10 @@ export function drawSlimeFieldGl(
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, gpu.texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, gpu.pixels);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, new Float32Array(gpu.pixels));
   gl.uniform1i(gl.getUniformLocation(gpu.program, "uField"), 0);
   gl.uniform1f(gpu.uTexels, trailSize);
-  gl.uniform1f(gpu.uCutoff, cutoff);
+  if (gpu.uCutoff) gl.uniform1f(gpu.uCutoff, cutoff);
   gl.uniform1f(gpu.uHairThin, hairThin ? 1 : 0);
   const packed = new Float32Array(64);
   const kinds = new Float32Array(16);
@@ -324,10 +335,25 @@ export function drawSlimeFieldGl(
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+  const bytes = pixels * pixels * 4;
+  if (gpu.read.length !== bytes) gpu.read = new Uint8Array(bytes);
+  gl.readPixels(0, 0, pixels, pixels, gl.RGBA, gl.UNSIGNED_BYTE, gpu.read);
+  const flipped = new Uint8ClampedArray(bytes);
+  const row = pixels * 4;
+  for (let y = 0; y < pixels; y += 1) {
+    flipped.set(gpu.read.subarray((pixels - 1 - y) * row, (pixels - y) * row), y * row);
+  }
+  const scratch = document.createElement("canvas");
+  scratch.width = pixels;
+  scratch.height = pixels;
+  const scratchCtx = scratch.getContext("2d", { alpha: false });
+  if (!scratchCtx) return false;
+  scratchCtx.putImageData(new ImageData(flipped, pixels, pixels), 0, 0);
+
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(canvas, 0, 0, fieldW, fieldH);
+  ctx.drawImage(scratch, 0, 0, fieldW, fieldH);
   ctx.restore();
   return true;
 }

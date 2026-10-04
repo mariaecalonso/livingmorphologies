@@ -74,8 +74,6 @@ export const GROWTH_MODES: GrowthKind[] = [
   "committed",
 ];
 
-const TWISTS = [0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 4, -Math.PI / 4, 0.7, -1.05];
-
 export type GalleryPlan = {
   kind: GalleryKind;
   growth: GrowthKind;
@@ -112,13 +110,14 @@ function rotate(x: number, y: number, plan: GalleryPlan) {
   const c = Math.cos(plan.twist);
   const s = Math.sin(plan.twist);
   return {
-    x: lim(plan.originX + dx * c - dy * s),
-    y: lim(plan.originY + dx * s + dy * c),
+    x: plan.originX + dx * c - dy * s,
+    y: plan.originY + dx * s + dy * c,
   };
 }
 
+/** Fit the whole figure into the field. Clamping each point was crushing different plans into the same edge bar. */
 function place(marks: FieldAttractor[], plan: GalleryPlan): FieldAttractor[] {
-  return marks.map((mark) => {
+  const mapped = marks.map((mark) => {
     const a = rotate(mark.x, mark.y, plan);
     const out: FieldAttractor = { ...mark, x: a.x, y: a.y, radius: (mark.radius ?? 1.2) * plan.scale };
     if (mark.x2 != null && mark.y2 != null) {
@@ -127,9 +126,33 @@ function place(marks: FieldAttractor[], plan: GalleryPlan): FieldAttractor[] {
       out.y2 = b.y;
     }
     if (mark.cx != null && mark.cy != null) {
-      const c = rotate(mark.cx, mark.cy, plan);
-      out.cx = c.x;
-      out.cy = c.y;
+      const bend = rotate(mark.cx, mark.cy, plan);
+      out.cx = bend.x;
+      out.cy = bend.y;
+    }
+    return out;
+  });
+  const box = boundsOf(mapped);
+  const width = Math.max(0.5, box.maxX - box.minX);
+  const height = Math.max(0.5, box.maxY - box.minY);
+  const margin = 1.2;
+  const fit = Math.min((FIELD_SIZE - margin * 2) / width, (FIELD_SIZE - margin * 2) / height, 1.12);
+  const shift = (x: number, y: number) => ({
+    x: lim(CENTER + (x - box.cx) * fit),
+    y: lim(CENTER + (y - box.cy) * fit),
+  });
+  return mapped.map((mark) => {
+    const a = shift(mark.x, mark.y);
+    const out: FieldAttractor = { ...mark, x: a.x, y: a.y, radius: Math.max(0.16, (mark.radius ?? 1.2) * fit) };
+    if (mark.x2 != null && mark.y2 != null) {
+      const b = shift(mark.x2, mark.y2);
+      out.x2 = b.x;
+      out.y2 = b.y;
+    }
+    if (mark.cx != null && mark.cy != null) {
+      const bend = shift(mark.cx, mark.cy);
+      out.cx = bend.x;
+      out.cy = bend.y;
     }
     return out;
   });
@@ -537,20 +560,24 @@ function familyMarks(kind: GalleryKind, f: Frame): FieldAttractor[] {
   return wrapAroundCenter(f);
 }
 
+const GALLERY_POSES = [0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 5, -Math.PI / 5];
+const GALLERY_SCALES = [0.82, 0.96, 1.1, 0.74, 1.16, 0.9];
+
 export function planLinearGallery(seed: number, attempt = 0, index = 0): GalleryPlan {
   const rng = mulberry32(seed ^ 0x44ac91 ^ (attempt * 0x27d4eb2d) ^ (index * 0x9e3779b9));
   const f = frame(rng);
-  const kind = GALLERY_FAMILIES[(index * 7 + attempt * 5) % GALLERY_FAMILIES.length];
-  const growth = GROWTH_MODES[(index * 11 + attempt * 3) % GROWTH_MODES.length];
+  const cycle = Math.floor(index / GALLERY_FAMILIES.length);
+  const kind = GALLERY_FAMILIES[index % GALLERY_FAMILIES.length];
+  const growth = GROWTH_MODES[(cycle + attempt * 3) % GROWTH_MODES.length];
   return {
     kind,
     growth,
     index,
-    scale: f.r(0.56, 1.2),
-    originX: CENTER + f.r(-2.3, 2.3),
-    originY: CENTER + f.r(-2.3, 2.3),
-    twist: TWISTS[(index * 3 + attempt) % TWISTS.length] + f.r(-0.22, 0.22),
-    flip: ((index + attempt) & 1) === 1,
+    scale: GALLERY_SCALES[cycle % GALLERY_SCALES.length] * f.r(0.96, 1.04),
+    originX: CENTER,
+    originY: CENTER,
+    twist: GALLERY_POSES[(cycle + attempt) % GALLERY_POSES.length] + f.r(-0.04, 0.04),
+    flip: ((cycle + attempt) & 1) === 1,
   };
 }
 
@@ -731,6 +758,35 @@ function fieldProfile(snapshot: FieldSnapshot) {
     minY = Math.min(minY, py);
     maxY = Math.max(maxY, py);
   }
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  for (let i = 0; i < trails.length; i += 1) {
+    if (trails[i] < 0.012) continue;
+    const px = i % ts;
+    const py = Math.floor(i / ts);
+    sx += px;
+    sy += py;
+    sxx += px * px;
+    syy += py * py;
+    sxy += px * py;
+  }
+  let linearity = 0;
+  if (live > 8) {
+    const mx = sx / live;
+    const my = sy / live;
+    const cxx = sxx / live - mx * mx;
+    const cyy = syy / live - my * my;
+    const cxy = sxy / live - mx * my;
+    const trace = cxx + cyy;
+    const det = cxx * cyy - cxy * cxy;
+    const root = Math.sqrt(Math.max(0, (trace * trace) / 4 - det));
+    const eigMajor = trace / 2 + root;
+    const eigMinor = Math.max(0, trace / 2 - root);
+    linearity = eigMajor > 1 ? 1 - eigMinor / eigMajor : 0;
+  }
   const spanX = (maxX - minX) / scale;
   const spanY = (maxY - minY) / scale;
   const major = Math.max(spanX, spanY);
@@ -775,7 +831,31 @@ function fieldProfile(snapshot: FieldSnapshot) {
     contrast: valleyMean > 0 ? peakMean / valleyMean : peakMean > 0 ? 8 : 0,
     anchored: valleys.length > 0 && valleys.every((value) => value > 0.0035),
     meanTrail: live ? mass / live : 0,
+    linearity,
   };
+}
+
+const STRUCT_TERMS = 21;
+
+function galleryOccupancy(snapshot: FieldSnapshot, bins = 8): number[] {
+  const trails = snapshot.trails;
+  const ts = Math.max(1, snapshot.trailSize);
+  const cells = new Float64Array(bins * bins);
+  let peak = 0;
+  for (let i = 0; i < trails.length; i += 1) peak = Math.max(peak, trails[i]);
+  const cut = Math.max(0.02, peak * 0.2);
+  for (let i = 0; i < trails.length; i += 1) {
+    if (trails[i] < cut) continue;
+    const px = i % ts;
+    const py = Math.floor(i / ts);
+    const bx = Math.min(bins - 1, (px / ts) * bins);
+    const by = Math.min(bins - 1, (py / ts) * bins);
+    cells[Math.floor(by) * bins + Math.floor(bx)] += trails[i];
+  }
+  let max = 0;
+  for (let i = 0; i < cells.length; i += 1) max = Math.max(max, cells[i]);
+  const scale = max > 0 ? 1 / max : 0;
+  return Array.from(cells, (value) => value * scale);
 }
 
 function attractorIdentity(attractors: FieldAttractor[]) {
@@ -802,9 +882,10 @@ export function linearGalleryIdentity(_features: unknown, attractors: FieldAttra
   if (!attractorIdentity(attractors)) return false;
   if (!snapshot) return true;
   const profile = fieldProfile(snapshot);
-  if (profile.occupied < 0.015 || profile.occupied > 0.74) return false;
+  if (profile.occupied < 0.05 || profile.occupied > 0.74) return false;
   if (profile.trailSpan < 6.2) return false;
   if (profile.occupied > 0.28 && profile.contrast < 1.25 && profile.anisotropy < 1.08) return false;
+  if (profile.meanTrail < 0.12 && profile.linearity < 0.5) return false;
   return true;
 }
 
@@ -866,19 +947,33 @@ export function gallerySignature(
     profile ? Math.min(1, profile.contrast / 5) : 0,
     profile ? Math.min(1, profile.meanTrail / 1.6) : 0,
     holes / 10,
+    ...(profile && extra?.snapshot ? galleryOccupancy(extra.snapshot) : []),
   ];
+}
+
+function structDistance(a: number[], b: number[]) {
+  let sum = 0;
+  const len = Math.min(STRUCT_TERMS, a.length, b.length);
+  for (let i = 0; i < len; i += 1) {
+    const d = a[i] - b[i];
+    sum += d * d;
+  }
+  return Math.sqrt(sum / Math.max(1, len));
+}
+
+function pictureDistance(a: number[], b: number[]) {
+  if (a.length <= STRUCT_TERMS || b.length <= STRUCT_TERMS) return 1;
+  const n = Math.min(a.length, b.length) - STRUCT_TERMS;
+  let sum = 0;
+  for (let i = 0; i < n; i += 1) sum += Math.abs(a[STRUCT_TERMS + i] - b[STRUCT_TERMS + i]);
+  return sum / Math.max(1, n);
 }
 
 export function isNovelGallery(signature: number[], previous: number[][]): boolean {
   if (!previous.length) return true;
   return previous.every((item) => {
-    let sum = 0;
-    const len = Math.min(signature.length, item.length);
-    for (let i = 0; i < len; i += 1) {
-      const d = signature[i] - item[i];
-      sum += d * d;
-    }
-    const distance = Math.sqrt(sum / Math.max(1, len));
+    const distance = structDistance(signature, item);
+    const picture = pictureDistance(signature, item);
     const occupied = signature[14] ?? 0;
     const otherOccupied = item[14] ?? 0;
     const spanX = signature[15] ?? 0;
@@ -887,7 +982,8 @@ export function isNovelGallery(signature: number[], previous: number[][]): boole
     const otherSpanY = item[16] ?? 0;
     const mean = signature[19] ?? 0;
     const otherMean = item[19] ?? 0;
-    const tealTwin = occupied > 0.36 && otherOccupied > 0.36 && Math.abs(occupied - otherOccupied) < 0.06;
+    const tealTwin = occupied > 0.28 && otherOccupied > 0.28 && Math.abs(occupied - otherOccupied) < 0.1;
+    const massTwin = mean > 0.32 && otherMean > 0.32 && Math.abs(mean - otherMean) < 0.14 && Math.abs(occupied - otherOccupied) < 0.14;
     const smearTwin =
       occupied < 0.3 &&
       otherOccupied < 0.3 &&
@@ -895,7 +991,7 @@ export function isNovelGallery(signature: number[], previous: number[][]): boole
       Math.abs(spanX - otherSpanX) < 0.08 &&
       Math.abs(spanY - otherSpanY) < 0.08 &&
       Math.abs(mean - otherMean) < 0.1;
-    return distance >= 0.46 && !tealTwin && !smearTwin;
+    return distance >= 0.34 && picture >= 0.08 && !tealTwin && !smearTwin && !massTwin;
   });
 }
 
@@ -916,7 +1012,7 @@ export function pickMostNovelGallery(signatures: number[][], previous: number[][
   let bestMin = -1;
   for (let i = 0; i < signatures.length; i += 1) {
     let nearest = Infinity;
-    for (const item of previous) nearest = Math.min(nearest, galleryDistance(signatures[i], item));
+    for (const item of previous) nearest = Math.min(nearest, pictureDistance(signatures[i], item) + structDistance(signatures[i], item));
     if (nearest > bestMin) {
       bestMin = nearest;
       best = i;

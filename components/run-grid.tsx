@@ -31,6 +31,7 @@ import {
   topographicSignature,
 } from "@/lib/skill1/run-topographic-ground-field";
 import {
+  attractorsFromLinearGallery,
   gallerySignature,
   isNovelGallery,
   linearGalleryIdentity,
@@ -1304,6 +1305,23 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       return captureSnapshot(next, true);
     };
 
+    if (archetypeId === "linear-gallery") {
+      for (let cell = 0; cell < RUN_COUNT; cell += 1) {
+        if (!snapshotsRef.current[cell]) continue;
+        const seed = variantsRef.current[cell]?.seed ?? seedFor(archetypeId, cell);
+        const planned = planLinearGallery(seed, 0, cell);
+        previousSequences.push(
+          gallerySignature(attractorsFromLinearGallery(planned, seed, 0), {
+            kind: planned.kind,
+            growth: planned.growth,
+            slime: variantsRef.current[cell]?.slime,
+            agents: variantsRef.current[cell]?.agents,
+            snapshot: snapshotsRef.current[cell] ?? undefined,
+          }),
+        );
+      }
+    }
+
     if (archetypeId === "topographic-ground-field") {
       for (let cell = 0; cell < RUN_COUNT; cell += 1) {
         if (!snapshotsRef.current[cell]) continue;
@@ -1337,7 +1355,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const hall = fallback.translation.archetypeId === "continuous-hall";
       const ground = fallback.translation.archetypeId === "topographic-ground-field";
       const gallery = fallback.translation.archetypeId === "linear-gallery";
-      const attempts = compressed ? 5 : ground ? 5 : gallery ? 5 : fallback.translation.archetypeId === "vertical-void" || hall ? 6 : 1;
+      const attempts = compressed ? 5 : ground ? 5 : gallery ? 6 : fallback.translation.archetypeId === "vertical-void" || hall ? 6 : 1;
       let chosen: (typeof tries)[number] | null = null;
       for (let attempt = 0; attempt < attempts; attempt += 1) {
         const variant =
@@ -1422,8 +1440,12 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           );
           const valid = novel.length ? novel : tries.filter((item) => item.identity);
           const pool = valid.length ? valid : tries;
+          const galleryPool = gallery
+            ? pool.filter((item) => (item.signature[14] ?? 0) >= 0.1)
+            : pool;
+          const ranked = gallery && galleryPool.length ? galleryPool : pool;
           chosen = gallery
-            ? pool[pickMostNovelGallery(pool.map((item) => item.signature), previousSequences)] ?? pool[0]
+            ? ranked[pickMostNovelGallery(ranked.map((item) => item.signature), previousSequences)] ?? ranked[0]
             : ground
               ? pool[pickMostNovelTerrain(pool.map((item) => item.signature), previousSequences)] ?? pool[0]
               : pool.reduce((best, item) => (item.score > best.score ? item : best));
