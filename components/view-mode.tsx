@@ -3,24 +3,22 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { DisplayMode } from "@/components/display-mode-toggle";
+import { LAB_DISPLAY_EVENT, labModeForSite, readStoredLab, readStoredSite, syncSiteFromLab } from "@/components/display-sync";
 
 export const PRESENTATION_WIDTH = 7407;
 export const PRESENTATION_HEIGHT = 2160;
 
-const VIEW_MODE_KEY = "lm-view-mode";
-const VIEW_MODE_EVENT = "lm-view-mode-change";
-
 function subscribeViewMode(onChange: () => void) {
   window.addEventListener("storage", onChange);
-  window.addEventListener(VIEW_MODE_EVENT, onChange);
+  window.addEventListener(LAB_DISPLAY_EVENT, onChange);
   return () => {
     window.removeEventListener("storage", onChange);
-    window.removeEventListener(VIEW_MODE_EVENT, onChange);
+    window.removeEventListener(LAB_DISPLAY_EVENT, onChange);
   };
 }
 
 function readViewMode(): DisplayMode {
-  return window.localStorage.getItem(VIEW_MODE_KEY) === "presentation" ? "presentation" : "desktop";
+  return readStoredLab() ?? labModeForSite(readStoredSite() ?? "laptop");
 }
 
 const subscribeNever = () => () => {};
@@ -43,8 +41,7 @@ export function useFramed(): { framed: boolean; presentationFrame: boolean } | n
 }
 
 export function setViewMode(mode: DisplayMode, returnPath?: string) {
-  window.localStorage.setItem(VIEW_MODE_KEY, mode);
-  window.dispatchEvent(new Event(VIEW_MODE_EVENT));
+  syncSiteFromLab(mode);
   if (returnPath && window.top && window.top !== window.self) window.top.location.assign(returnPath);
 }
 

@@ -1673,7 +1673,8 @@ body:has(.site-shell[data-site-display="classroom"]) {
   overflow: auto;
 }
 
-.site-shell[data-site-display="classroom"][data-site-edit="on"] {
+.site-shell[data-site-display="classroom"][data-site-edit="on"],
+.site-shell[data-presentation-edit="on"] {
   overflow: hidden;
   overscroll-behavior: none;
   scroll-snap-type: none;
@@ -1681,7 +1682,18 @@ body:has(.site-shell[data-site-display="classroom"]) {
   cursor: grab;
 }
 
-.site-shell[data-site-display="classroom"][data-site-edit="on"][data-panning="on"] {
+.site-shell[data-site-edit="on"][data-presentation-edit="on"] > .site-edit-canvas {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+body:has(.site-shell[data-presentation-edit="on"]) {
+  overflow: hidden;
+}
+
+.site-shell[data-site-display="classroom"][data-site-edit="on"][data-panning="on"],
+.site-shell[data-presentation-edit="on"][data-panning="on"] {
   cursor: grabbing;
 }
 
@@ -1836,6 +1848,10 @@ body:has(.site-display-control) .site-nav {
   flex: none;
   height: auto;
   overflow: visible;
+}
+
+.site-shell[data-presentation-edit="on"] .site-main {
+  overflow: hidden;
 }
 
 .site-shell:not([data-site-display="classroom"]):has(.home-page) {

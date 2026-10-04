@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
+import { PresentationEditControls } from "@/components/presentation-edit";
 import { useVerticalView, VERTICAL_VIEWS } from "@/components/vertical-view";
 import { setViewMode } from "@/components/view-mode";
 
@@ -112,6 +113,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
             })}
           </nav>
         ) : null}
+        {mode === "presentation" ? <PresentationEditControls /> : null}
         <div className="stage-nav-mode" role="group" aria-label="View mode">
           {VIEW_MODES.map((item) => (
             <button

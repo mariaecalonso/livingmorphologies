@@ -137,6 +137,35 @@
   color: var(--orange-hot);
 }
 
+.stage-nav-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stage-nav-edit button {
+  border: 1px solid rgba(242, 242, 238, 0.18);
+  border-radius: 4px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: border-color 120ms, color 120ms;
+}
+
+.stage-nav-edit button:hover {
+  border-color: rgba(242, 242, 238, 0.38);
+  color: var(--text);
+}
+
+.stage-nav-edit button[aria-pressed="true"],
+.stage-nav-edit button[data-active="true"] {
+  border-color: rgba(199, 126, 95, 0.55);
+  color: #ffffff;
+}
+
 .stage-nav-mode {
   display: inline-flex;
   padding-left: 0.75rem;
@@ -202,7 +231,8 @@
   padding-left: 1.6rem;
 }
 
-[data-view-mode="presentation"] .stage-nav-mode button {
+[data-view-mode="presentation"] .stage-nav-mode button,
+[data-view-mode="presentation"] .stage-nav-edit button {
   padding: 0.55rem 1.1rem;
   font-size: 1.1rem;
   letter-spacing: 0.12em;
