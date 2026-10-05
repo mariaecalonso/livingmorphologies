@@ -112,6 +112,16 @@ export type FieldAttractor = {
   radius?: number;
   /** Multiplier on the translated attraction strength. */
   strength?: number;
+  /** Terraced stroke width at the start of this mark, in deposit units. */
+  stroke?: number;
+  /** Terraced stroke width at the end of this mark. Falls back to `stroke`. */
+  stroke2?: number;
+  /** Terraced spawn weight and ink amount on this mark. */
+  mass?: number;
+  /** Fraction of this mark that receives ink. */
+  cover?: number;
+  /** Where that covered fraction starts, 0–1 along the mark. */
+  coverAt?: number;
   /** Ring only. Keeps the interior empty so the network loops around it. */
   hole?: boolean;
 };
@@ -135,6 +145,33 @@ export type SpatialRecipe = {
   clustering: number;
   /** Corridor width (cells) of the controlled approach from source → attractor. */
   approachWidth: number;
+  /**
+   * Stepped Amphitheater only. A growth field, not a drawing.
+   * Terraces are the level sets agents prefer while depositing.
+   */
+  saField?: SteppedGrowthField;
+};
+
+export type SteppedGrowthField = {
+  gx: number;
+  gy: number;
+  ex: number;
+  ey: number;
+  axis: number;
+  curve: number;
+  pitch: number;
+  count: number;
+  span: number;
+  asymmetry: number;
+  branch: number;
+  branchAngle: number;
+  gatherU: number;
+  gatherV: number;
+  throat: number;
+  porosity: number;
+  enclosure: number;
+  phase: number;
+  flare: number;
 };
 
 export type ArchetypeConfig = {

@@ -1,0 +1,4534 @@
+[
+  {
+    "id": "flat-deep-plan-334651-0-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 1,
+    "seed": 334651,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-334651-0-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-343502-1-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 2,
+    "seed": 343502,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-343502-1-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-349905-2-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 3,
+    "seed": 349905,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-349905-2-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-356324-3-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 4,
+    "seed": 356324,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-356324-3-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-360687-4-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 5,
+    "seed": 360687,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-360687-4-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-383474-5-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 6,
+    "seed": 383474,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-383474-5-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-389765-6-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 7,
+    "seed": 389765,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-389765-6-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-265096-7-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 8,
+    "seed": 265096,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-265096-7-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-273555-8-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 9,
+    "seed": 273555,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-273555-8-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-279974-9-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 10,
+    "seed": 279974,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-279974-9-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-302761-10-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 11,
+    "seed": 302761,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-302761-10-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-309180-11-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 12,
+    "seed": 309180,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-309180-11-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-313415-12-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 13,
+    "seed": 313415,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-313415-12-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-319818-13-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 14,
+    "seed": 319818,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-319818-13-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-473693-14-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 15,
+    "seed": 473693,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-473693-14-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-480096-15-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 16,
+    "seed": 480096,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-480096-15-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-488555-16-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 17,
+    "seed": 488555,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-488555-16-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-494974-17-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 18,
+    "seed": 494974,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-494974-17-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-501249-18-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 19,
+    "seed": 501249,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-501249-18-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-524052-19-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 20,
+    "seed": 524052,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-524052-19-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-397343-20-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 21,
+    "seed": 397343,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-397343-20-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-403746-21-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 22,
+    "seed": 403746,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-403746-21-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-410165-22-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 23,
+    "seed": 410165,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-410165-22-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-432952-23-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 24,
+    "seed": 432952,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-432952-23-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-441795-24-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 25,
+    "seed": 441795,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-441795-24-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-448214-25-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 26,
+    "seed": 448214,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-448214-25-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-454617-26-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 27,
+    "seed": 454617,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-454617-26-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-65772-27-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 28,
+    "seed": 65772,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-65772-27-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-88567-28-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 29,
+    "seed": 88567,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-88567-28-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-94970-29-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 30,
+    "seed": 94970,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-94970-29-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-101261-30-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 31,
+    "seed": 101261,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-101261-30-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-109712-31-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 32,
+    "seed": 109712,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-109712-31-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-116123-32-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 33,
+    "seed": 116123,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-116123-32-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-7854-33-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 34,
+    "seed": 7854,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-7854-33-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-14257-34-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 35,
+    "seed": 14257,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-14257-34-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-18500-35-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 36,
+    "seed": 18500,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-18500-35-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-24911-36-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 37,
+    "seed": 24911,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-24911-36-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-47698-37-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 38,
+    "seed": 47698,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-47698-37-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-54117-38-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 39,
+    "seed": 54117,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-54117-38-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-62568-39-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 40,
+    "seed": 62568,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-62568-39-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-200051-40-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 41,
+    "seed": 200051,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-200051-40-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-206342-41-1791156663123",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 42,
+    "seed": 206342,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156663123,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-206342-41-1791156663123.png"
+  },
+  {
+    "id": "flat-deep-plan-229129-42-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 43,
+    "seed": 229129,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-229129-42-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-233500-43-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 44,
+    "seed": 233500,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-233500-43-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-239911-44-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 45,
+    "seed": 239911,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-239911-44-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-246314-45-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 46,
+    "seed": 246314,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-246314-45-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-138045-46-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 47,
+    "seed": 138045,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-138045-46-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-146880-47-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 48,
+    "seed": 146880,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-146880-47-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-153291-48-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 49,
+    "seed": 153291,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-153291-48-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-159710-49-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 50,
+    "seed": 159710,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-159710-49-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-164065-50-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 51,
+    "seed": 164065,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-164065-50-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-186868-51-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 52,
+    "seed": 186868,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-186868-51-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-193279-52-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 53,
+    "seed": 193279,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-193279-52-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-854914-53-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 54,
+    "seed": 854914,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-854914-53-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-863381-54-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 55,
+    "seed": 863381,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-863381-54-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-869784-55-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 56,
+    "seed": 869784,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-869784-55-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-892579-56-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 57,
+    "seed": 892579,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-892579-56-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-898998-57-1791157031522",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 58,
+    "seed": 898998,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791157031522,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-898998-57-1791157031522.png"
+  },
+  {
+    "id": "flat-deep-plan-903353-58-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 59,
+    "seed": 903353,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-903353-58-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-909644-59-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 60,
+    "seed": 909644,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-909644-59-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-801367-60-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 61,
+    "seed": 801367,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-801367-60-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-807770-61-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 62,
+    "seed": 807770,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-807770-61-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-816237-62-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 63,
+    "seed": 816237,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-816237-62-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-822640-63-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 64,
+    "seed": 822640,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-822640-63-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-829051-64-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 65,
+    "seed": 829051,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-829051-64-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-851726-65-1791156456220",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 66,
+    "seed": 851726,
+    "kind": "mixed",
+    "agents": 0,
+    "iterations": 160,
+    "savedAt": 1791156456220,
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-851726-65-1791156456220.png"
+  },
+  {
+    "id": "flat-deep-plan-987153-66-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 67,
+    "seed": 987153,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-987153-66-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-993572-67-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 68,
+    "seed": 993572,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-993572-67-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-999983-68-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 69,
+    "seed": 999983,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-999983-68-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-1022770-69-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 70,
+    "seed": 1022770,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-1022770-69-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-1031621-70-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 71,
+    "seed": 1031621,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-1031621-70-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-1038024-71-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 72,
+    "seed": 1038024,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-1038024-71-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-1044435-72-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 73,
+    "seed": 1044435,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-1044435-72-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-917734-73-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 74,
+    "seed": 917734,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-917734-73-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-940521-74-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 75,
+    "seed": 940521,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-940521-74-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-946940-75-1791158066445",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 76,
+    "seed": 946940,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158066445,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-946940-75-1791158066445.png"
+  },
+  {
+    "id": "flat-deep-plan-953223-76-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 77,
+    "seed": 953223,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-953223-76-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-961674-77-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 78,
+    "seed": 961674,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-961674-77-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-968093-78-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 79,
+    "seed": 968093,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-968093-78-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-597664-79-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 80,
+    "seed": 597664,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-597664-79-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-604075-80-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 81,
+    "seed": 604075,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-604075-80-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-608446-81-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 82,
+    "seed": 608446,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-608446-81-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-614721-82-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 83,
+    "seed": 614721,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-614721-82-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-637524-83-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 84,
+    "seed": 637524,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-637524-83-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-643935-84-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 85,
+    "seed": 643935,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-643935-84-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-652386-85-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 86,
+    "seed": 652386,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-652386-85-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-527733-86-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 87,
+    "seed": 527733,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-527733-86-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-534136-87-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 88,
+    "seed": 534136,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-534136-87-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-556803-88-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 89,
+    "seed": 556803,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-556803-88-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-561174-89-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 90,
+    "seed": 561174,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-561174-89-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-567577-90-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 91,
+    "seed": 567577,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-567577-90-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-573996-91-1791158417287",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 92,
+    "seed": 573996,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158417287,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-573996-91-1791158417287.png"
+  },
+  {
+    "id": "flat-deep-plan-727863-92-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 93,
+    "seed": 727863,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-727863-92-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-736314-93-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 94,
+    "seed": 736314,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-736314-93-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-743117-94-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 95,
+    "seed": 743117,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-743117-94-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-749520-95-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 96,
+    "seed": 749520,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-749520-95-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-753883-96-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 97,
+    "seed": 753883,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-753883-96-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-776686-97-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 98,
+    "seed": 776686,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-776686-97-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-783089-98-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 99,
+    "seed": 783089,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-783089-98-1791158694817.png"
+  },
+  {
+    "id": "flat-deep-plan-658308-99-1791158694817",
+    "archetypeId": "flat-deep-plan",
+    "archetypeName": "Flat Deep Plan",
+    "run": 100,
+    "seed": 658308,
+    "kind": "mixed",
+    "agents": 1,
+    "iterations": 160,
+    "savedAt": 1791158694817,
+    "slime": {
+      "sensorDistance": 0.25,
+      "sensorAngle": 0.588,
+      "turnAngle": 0.27999999999999997,
+      "stepSize": 0.1388,
+      "deposit": 0.16519999999999999,
+      "depositWidth": 1.5584615384615383,
+      "diffusion": 0.04065600000000002,
+      "decay": 0.958,
+      "trailInfluence": 0.9040000000000001,
+      "resistance": 0.8132,
+      "randomness": 0.3335,
+      "persistence": 0.342,
+      "trailCap": 1.4025,
+      "foodPoints": [
+        {
+          "x": 10,
+          "y": 10
+        }
+      ],
+      "crowdingLimit": 38,
+      "voidElongation": 1.3776000000000002,
+      "voidRotation": 0.2199114857512855,
+      "voidLobes": 0.124,
+      "voidNotch": -0.27
+    },
+    "params": {
+      "geometryVariation": 0.2,
+      "scaleVariation": 0.2,
+      "flowCoupling": 0.5,
+      "permeability": 0.5,
+      "networkDensity": 0.2,
+      "directionalBias": 0,
+      "attractionStrength": 0.8,
+      "influenceRadius": 3,
+      "nodeSpacing": 0.8,
+      "persistence": 0.2,
+      "sourcePermeability": 0.5,
+      "nodeInteraction": 0.2,
+      "geometricDisplacement": 0.2,
+      "nodeRepetition": 0.8,
+      "gamma": 0.5,
+      "decay": 0.042,
+      "decayMode": "controlled",
+      "randomness": 0.1,
+      "randomnessMode": "medium"
+    },
+    "behavior": {
+      "exploration": "Medium",
+      "attraction": "High",
+      "trailFollowing": "High",
+      "reinforcement": "Medium",
+      "decay": "controlled",
+      "randomness": "medium"
+    },
+    "recipe": {
+      "sourceCorner": "bottom-right",
+      "attractor": {
+        "x": 10,
+        "y": 10
+      },
+      "attractors": [
+        {
+          "kind": "point",
+          "x": 9,
+          "y": 9,
+          "radius": 1.5,
+          "strength": 1
+        },
+        {
+          "kind": "point",
+          "x": 11.5,
+          "y": 10.5,
+          "radius": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "point",
+          "x": 10,
+          "y": 12,
+          "radius": 1.3,
+          "strength": 0.75
+        },
+        {
+          "kind": "ring",
+          "x": 10,
+          "y": 10,
+          "radius": 3.4,
+          "strength": 0.35
+        }
+      ],
+      "coreExposure": 0.26,
+      "enclosureCollar": 3.7,
+      "isolationRadius": 2.35,
+      "clustering": 0.8,
+      "approachWidth": 1.35
+    },
+    "topology": "contained-interior",
+    "image": "/shared-catalog/flat-deep-plan/flat-deep-plan-658308-99-1791158694817.png"
+  }
+]

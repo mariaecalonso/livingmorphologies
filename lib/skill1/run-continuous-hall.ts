@@ -269,6 +269,15 @@ function span(f: Frame, pair: Pair) {
   return f.r(pair[0], pair[1]);
 }
 
+/** Length and width intervals the planner samples for this family and growth. */
+export function continuousHallBands(family: HallFamily, growth: HallGrowth, figure: HallFigure) {
+  const spec = SPECS[growth];
+  const short = growth === "short" || family === "short-beads";
+  const length: [number, number] = short ? [5, 7.6] : growth === "long" ? [11.2, 15.2] : spec.length;
+  const width: [number, number] = figure === "beads" ? [spec.width[0] * 1.15, spec.width[1] * 1.35] : spec.width;
+  return { length, width };
+}
+
 export function figureOf(family: HallFamily): HallFigure {
   if (family === "stroke-h" || family === "stroke-diag") return "stroke";
   if (

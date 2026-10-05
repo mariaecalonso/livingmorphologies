@@ -14,24 +14,27 @@ export function paintMorphology(
   density = 5,
   peak?: number,
   hairThin = false,
+  inkGain = 1,
+  tone = 2,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
-  const rect = box ?? parent.getBoundingClientRect();
-  const width = Math.max(1, Math.floor(rect.width));
-  const height = Math.max(1, Math.floor(rect.height));
-  const dpr = Math.max(window.devicePixelRatio || 1, width >= 200 ? 2 : 1);
-  if (width < 8 || height < 8) return;
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
+  const width = Math.max(1, Math.floor(box?.width ?? parent.clientWidth));
+  const height = Math.max(1, Math.floor(box?.height ?? parent.clientHeight));
+  const side = Math.max(1, Math.min(width, height));
+  const dpr = Math.max(window.devicePixelRatio || 1, side >= 200 ? 2 : 1);
+  if (side < 8) return;
+  canvas.width = side * dpr;
+  canvas.height = side * dpr;
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
+  canvas.style.objectFit = "contain";
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, width, height);
-  drawPlanField(ctx, snapshot, width, height, { showHud: false, fine, density, attractors, showAttractors: false, peak, hairThin });
+  ctx.fillRect(0, 0, side, side);
+  drawPlanField(ctx, snapshot, side, side, { showHud: false, fine, density, attractors, showAttractors: false, peak, hairThin, inkGain, tone });
 }
 
 /** Fills its parent and repaints on resize. Uses layout size, so ancestor transforms do not distort it. */

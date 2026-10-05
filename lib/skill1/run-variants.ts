@@ -1,8 +1,15 @@
 import { mulberry32 } from "../physarum";
 import { FIELD_SIZE } from "./maps";
+import { attractorsFromContainedRoom, planContainedRoom } from "./run-contained-room";
 import { attractorsFromCompressedSequential, planCompressedSequential } from "./run-compressed-sequential";
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
+import { attractorsFromLinearEdgeGallery, planLinearEdgeGallery } from "./run-linear-edge-gallery";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
+import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
+import { attractorsFromSteppedAmphitheater, planSteppedAmphitheater } from "./run-stepped-amphitheater";
+import { attractorsFromTerraced, planTerraced } from "./run-terraced";
+import { attractorsFromInsertedPlate, planInsertedHorizontalPlate } from "./run-inserted-horizontal-plate";
+import { attractorsFromUndulated, planUndulated } from "./run-undulated";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
 import type { AttractorKind, FieldAttractor } from "./types";
@@ -171,70 +178,14 @@ function linearGallery(_f: Frame): LocalMark[] {
   return [];
 }
 
-/** Orthogonal Balance · Adaptive Module · Engaging */
-function openHall(f: Frame): LocalMark[] {
-  const marks: LocalMark[] = [];
-  const rows = f.int(2, 4);
-  const cols = f.int(2, 4);
-  const pitchU = f.r(2.4, 4.8);
-  const pitchV = f.r(2.4, 4.8);
-  const width = f.r(0.75, 1.8);
-  const spanU = ((cols - 1) / 2) * pitchU + f.r(1.8, 3.2);
-  const spanV = ((rows - 1) / 2) * pitchV + f.r(1.8, 3.2);
-  for (let i = 0; i < rows; i += 1) {
-    const v = (i - (rows - 1) / 2) * pitchV + f.r(-0.4, 0.4);
-    marks.push(seg(f, -spanU, v, spanU, v, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
-  }
-  for (let i = 0; i < cols; i += 1) {
-    const u = (i - (cols - 1) / 2) * pitchU + f.r(-0.4, 0.4);
-    marks.push(seg(f, u, -spanV, u, spanV, width * f.r(0.75, 1.15), f.r(0.45, 0.8)));
-  }
-  const modules = f.int(3, 7);
-  for (let i = 0; i < modules; i += 1) {
-    marks.push(
-      disk(
-        f,
-        "point",
-        ((i % cols) - (cols - 1) / 2) * pitchU + f.r(-0.8, 0.8),
-        (Math.floor(i / cols) - (rows - 1) / 2) * pitchV + f.r(-0.8, 0.8),
-        f.r(0.8, 1.8),
-        f.r(0.28, 0.55),
-      ),
-    );
-  }
-  return marks;
+/** Orthogonal Balance · Adaptive Module · Engaging — realized in run-open-hall. */
+function openHall(_f: Frame): LocalMark[] {
+  return [];
 }
 
-/** Articulated · Connected Module · Immersive */
-function terraced(f: Frame): LocalMark[] {
-  const steps = f.int(3, 6);
-  const pitch = f.r(2.2, 4.2);
-  const shift = f.r(0.4, 2.2) * (f.chance(0.5) ? -1 : 1);
-  const marks: LocalMark[] = [];
-  for (let i = 0; i < steps; i += 1) {
-    const v = (i - (steps - 1) / 2) * pitch;
-    const half = f.r(4.2, 8.2) - i * f.r(0.2, 1.6);
-    const u = i * shift + f.r(-0.6, 0.6);
-    const thick = f.r(0.75, 1.7);
-    if (f.chance(0.35)) marks.push(arc(f, u - half, v, u + half, v, u, v + f.r(-1.6, 1.6), thick, 0.5 + i * 0.12));
-    else marks.push(seg(f, u - half, v, u + half, v, thick, 0.5 + i * 0.12));
-  }
-  const links = f.int(1, 3);
-  for (let i = 0; i < links; i += 1) {
-    const connector = f.r(-3.5, 3.5);
-    marks.push(
-      approachPath(
-        f,
-        connector,
-        -((steps - 1) / 2) * pitch - 0.4,
-        connector + shift * (steps - 1) + f.r(-1, 1),
-        ((steps - 1) / 2) * pitch + 0.4,
-        f.r(0.7, 1.3),
-        f.r(0.35, 0.65),
-      ),
-    );
-  }
-  return marks;
+/** Articulated · Connected Module · Immersive — realized in run-terraced. */
+function terraced(_f: Frame): LocalMark[] {
+  return [];
 }
 
 /** Restrained · Rigid Module · Introspective */
@@ -553,6 +504,27 @@ export function runAttractorsFor(
   }
   if (archetypeId === "linear-gallery") {
     return attractorsFromLinearGallery(planLinearGallery(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "linear-edge-gallery") {
+    return attractorsFromLinearEdgeGallery(planLinearEdgeGallery(seed, attempt, index));
+  }
+  if (archetypeId === "undulated") {
+    return attractorsFromUndulated(planUndulated(seed, attempt, index));
+  }
+  if (archetypeId === "open-hall") {
+    return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "terraced") {
+    return attractorsFromTerraced(planTerraced(seed, attempt, index), seed);
+  }
+  if (archetypeId === "contained-room-within-volume") {
+    return attractorsFromContainedRoom(planContainedRoom(seed, attempt, index));
+  }
+  if (archetypeId === "inserted-horizontal-plate") {
+    return attractorsFromInsertedPlate(planInsertedHorizontalPlate(seed, attempt, index));
+  }
+  if (archetypeId === "stepped-amphitheater") {
+    return attractorsFromSteppedAmphitheater(planSteppedAmphitheater(seed, attempt, index));
   }
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
   const f = frame(rng);

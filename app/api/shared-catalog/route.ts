@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rmdir, unlink, writeFile } from "fs/promises";
+import { mkdir, readdir, readFile, rename, rmdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 
@@ -31,12 +31,13 @@ function dataUrlToPng(dataUrl: string): Buffer | null {
   }
 }
 
-async function readEntries(file: string): Promise<IncomingEntry[]> {
+async function readEntries(file: string): Promise<IncomingEntry[] | null> {
   try {
     const parsed = JSON.parse(await readFile(file, "utf8")) as unknown;
     return Array.isArray(parsed) ? (parsed as IncomingEntry[]) : [];
-  } catch {
-    return [];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return [];
+    return null;
   }
 }
 
@@ -52,7 +53,10 @@ export async function POST(request: Request) {
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, "entries.json");
   const existing = body.replace ? [] : await readEntries(file);
-  const byRun = new Map(existing.map((item) => [item.run, item]));
+  if (!body.replace && existing == null) {
+    return NextResponse.json({ ok: false, error: "catalog unreadable" }, { status: 409 });
+  }
+  const byRun = new Map((existing ?? []).map((item) => [item.run, item]));
 
   for (const item of incoming) {
     if (!item?.id || !item.image || typeof item.run !== "number") continue;
@@ -73,7 +77,20 @@ export async function POST(request: Request) {
   }
 
   const entries = [...byRun.values()].sort((a, b) => a.run - b.run);
-  await writeFile(file, `${JSON.stringify(entries, null, 2)}\n`);
+  const next = `${JSON.stringify(entries, null, 2)}\n`;
+  const temp = `${file}.tmp`;
+  await writeFile(temp, next);
+  try {
+    await unlink(file);
+  } catch {
+    /* the first save has no catalog file yet */
+  }
+  try {
+    await rename(temp, file);
+  } catch {
+    await writeFile(file, next);
+    await unlink(temp).catch(() => undefined);
+  }
   return NextResponse.json({ ok: true, archetypeId, count: entries.length });
 }
 

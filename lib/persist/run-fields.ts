@@ -1,7 +1,7 @@
 /** Permanent per-archetype trail fields. Written twice so a catalog can be rebuilt if one store fails. */
 
 import type { FieldSnapshot } from "@/lib/skill1/types";
-import { getSessionValue, packSnapshot, putSessionValue, unpackSnapshot } from "@/lib/persist/session";
+import { deleteSessionValue, getSessionValue, packSnapshot, putSessionValue, unpackSnapshot } from "@/lib/persist/session";
 
 const DB_NAME = "living-morphologies-run-fields";
 const STORE = "fields";
@@ -15,16 +15,23 @@ function sessionKey(archetypeId: string, index: number) {
   return `af:${archetypeId}:${index}`;
 }
 
+let dbPromise: Promise<IDBDatabase | null> | null = null;
+
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  return new Promise((resolve) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
+    request.onerror = () => {
+      dbPromise = null;
+      resolve(null);
+    };
   });
+  return dbPromise;
 }
 
 export async function saveArchetypeField(archetypeId: string, index: number, snapshot: FieldSnapshot) {
@@ -37,6 +44,7 @@ export async function saveArchetypeField(archetypeId: string, index: number, sna
       tx.objectStore(STORE).put(packed, fieldKey(archetypeId, index));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => resolve(false);
+      tx.onabort = () => resolve(false);
     });
   }
   const backup = await putSessionValue(sessionKey(archetypeId, index), packed);
@@ -77,8 +85,30 @@ export async function countArchetypeFields(archetypeId: string, count = 100) {
     const n = keys.filter((key) => String(key).startsWith(prefix)).length;
     if (n) return n;
   }
-  const fields = await loadArchetypeFields(archetypeId, count);
-  return fields.reduce((sum, item) => sum + (item ? 1 : 0), 0);
+  return 0;
+}
+
+export async function clearArchetypeFields(archetypeId: string, count = 100) {
+  const prefix = `${archetypeId}:`;
+  const db = await openDb();
+  if (db) {
+    const keys = await new Promise<IDBValidKey[]>((resolve) => {
+      const tx = db.transaction(STORE, "readonly");
+      const request = tx.objectStore(STORE).getAllKeys();
+      request.onsuccess = () => resolve(request.result ?? []);
+      request.onerror = () => resolve([]);
+    });
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      const store = tx.objectStore(STORE);
+      for (const key of keys) {
+        if (String(key).startsWith(prefix)) store.delete(key);
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  await Promise.all(Array.from({ length: count }, (_, index) => deleteSessionValue(sessionKey(archetypeId, index))));
 }
 
 export async function listArchetypeFieldCounts(archetypeIds: string[], count = 100) {

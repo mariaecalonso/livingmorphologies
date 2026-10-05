@@ -102,7 +102,7 @@ function path(
   return mark;
 }
 
-const CORES: CoreKind[] = [
+export const VERTICAL_VOID_CORES: CoreKind[] = [
   "compact",
   "expanded",
   "elongated",
@@ -116,8 +116,16 @@ const CORES: CoreKind[] = [
   "offset",
   "openings",
 ];
-const APPROACHES: ApproachKind[] = ["single", "pair", "fan", "diagonal", "vertical", "tangential", "branching"];
-const RELATIONS: RelationKind[] = ["tight", "loose", "one-side", "multi", "separated", "asymmetric"];
+export const VERTICAL_VOID_APPROACHES: ApproachKind[] = ["single", "pair", "fan", "diagonal", "vertical", "tangential", "branching"];
+export const VERTICAL_VOID_RELATIONS: RelationKind[] = ["tight", "loose", "one-side", "multi", "separated", "asymmetric"];
+
+/** Legal aspect interval for a core. Skill 2 may move inside the interval. */
+export function verticalVoidAspectBand(core: CoreKind): [number, number] {
+  if (core === "elongated") return [0.42, 2.3];
+  if (core === "compressed") return [0.55, 0.62];
+  if (core === "compact") return [0.85, 1.15];
+  return [0.6, 1.7];
+}
 
 function coreRadius(core: CoreKind, f: Frame) {
   if (core === "compact") return f.pick([1.7, 2.0, 2.3]);
@@ -194,7 +202,7 @@ function buildApproaches(f: Frame, plan: MorphPlan, holes: FieldAttractor[]): Fi
 export function planVerticalVoid(seed: number, attempt = 0): MorphPlan {
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x9e3779b9));
   const f = frame(rng);
-  const core = f.pick(CORES);
+  const core = f.pick(VERTICAL_VOID_CORES);
   const offset = core === "offset" ? f.r(1.8, 2.8) : f.r(0.15, 1.6);
   const bearing = f.r(-Math.PI, Math.PI);
   const aspect =
@@ -204,8 +212,8 @@ export function planVerticalVoid(seed: number, attempt = 0): MorphPlan {
     f.r(0.6, 1.7);
   return {
     core,
-    approach: f.pick(APPROACHES),
-    relation: f.pick(RELATIONS),
+    approach: f.pick(VERTICAL_VOID_APPROACHES),
+    relation: f.pick(VERTICAL_VOID_RELATIONS),
     cx: lim(CENTER + Math.cos(bearing) * offset),
     cy: lim(CENTER + Math.sin(bearing) * offset),
     axis: f.r(-Math.PI, Math.PI),

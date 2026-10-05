@@ -27,6 +27,8 @@ uniform sampler2D uField;
 uniform float uTexels;
 uniform float uCutoff;
 uniform float uHairThin;
+uniform float uInk;
+uniform float uTone;
 uniform int uCount;
 uniform vec4 uAttr[16];
 uniform float uKind[16];
@@ -157,8 +159,14 @@ void main() {
   vec3 organized = vec3(0.059, 0.451, 0.467);
   vec3 ink = mix(search, vein, smoothstep(0.08, 0.34, body));
   float core = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
-  ink = mix(ink, organized, core * mix(0.35, 0.72, body));
-  ink *= depth * membraneTone;
+  if (uTone < 0.5) {
+    ink = search;
+  } else if (uTone < 1.5) {
+    ink = mix(search, vein, smoothstep(0.04, 0.22, body));
+  } else {
+    ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  }
+  ink *= depth * membraneTone * uInk;
   oColor = vec4(ink * cover, 1.0);
 }`;
 
@@ -171,15 +179,21 @@ type GlState = {
   uTexels: WebGLUniformLocation;
   uCutoff: WebGLUniformLocation | null;
   uHairThin: WebGLUniformLocation;
+  uInk: WebGLUniformLocation;
+  uTone: WebGLUniformLocation;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
   pixels: Float32Array;
+  blit: HTMLCanvasElement;
+  blitCtx: CanvasRenderingContext2D;
+  read: Uint8Array;
+  flip: Uint8ClampedArray;
 };
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 29;
+const SHADER_GEN = 31;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -219,10 +233,12 @@ function createState(): GlState | null {
   const uTexels = gl.getUniformLocation(program, "uTexels");
   const uCutoff = gl.getUniformLocation(program, "uCutoff");
   const uHairThin = gl.getUniformLocation(program, "uHairThin");
+  const uInk = gl.getUniformLocation(program, "uInk");
+  const uTone = gl.getUniformLocation(program, "uTone");
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uHairThin || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uHairThin || !uInk || !uTone || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -231,6 +247,9 @@ function createState(): GlState | null {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  const blit = document.createElement("canvas");
+  const blitCtx = blit.getContext("2d", { alpha: false });
+  if (!blitCtx) return null;
   return {
     canvas,
     gl,
@@ -240,10 +259,16 @@ function createState(): GlState | null {
     uTexels,
     uCutoff,
     uHairThin,
+    uInk,
+    uTone,
     uCount,
     uAttr,
     uKind,
     pixels: new Float32Array(0),
+    blit,
+    blitCtx,
+    read: new Uint8Array(0),
+    flip: new Uint8ClampedArray(0),
   };
 }
 
@@ -268,12 +293,17 @@ export function drawSlimeFieldGl(
   cutoff: number,
   attractors?: FieldAttractor[],
   hairThin = false,
+  maxResolution?: number,
+  inkGain = 1,
+  tone = 2,
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
   const { gl, canvas } = gpu;
   const dpr = Math.max(1, ctx.getTransform().a || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1);
-  const pixels = Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
+  const pixels = maxResolution
+    ? Math.max(256, Math.min(4096, Math.round(maxResolution)))
+    : Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
   if (canvas.width !== pixels || canvas.height !== pixels) {
     canvas.width = pixels;
     canvas.height = pixels;
@@ -290,11 +320,13 @@ export function drawSlimeFieldGl(
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, gpu.texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, gpu.pixels);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, new Float32Array(gpu.pixels));
   gl.uniform1i(gl.getUniformLocation(gpu.program, "uField"), 0);
   gl.uniform1f(gpu.uTexels, trailSize);
-  gl.uniform1f(gpu.uCutoff, cutoff);
+  if (gpu.uCutoff) gl.uniform1f(gpu.uCutoff, cutoff);
   gl.uniform1f(gpu.uHairThin, hairThin ? 1 : 0);
+  gl.uniform1f(gpu.uInk, inkGain);
+  gl.uniform1f(gpu.uTone, tone);
   const packed = new Float32Array(64);
   const kinds = new Float32Array(16);
   const list = attractors ?? [];
@@ -321,10 +353,25 @@ export function drawSlimeFieldGl(
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+  const bytes = pixels * pixels * 4;
+  if (gpu.read.length !== bytes) gpu.read = new Uint8Array(bytes);
+  gl.readPixels(0, 0, pixels, pixels, gl.RGBA, gl.UNSIGNED_BYTE, gpu.read);
+  const flipped = new Uint8ClampedArray(bytes);
+  const row = pixels * 4;
+  for (let y = 0; y < pixels; y += 1) {
+    flipped.set(gpu.read.subarray((pixels - 1 - y) * row, (pixels - y) * row), y * row);
+  }
+  const scratch = document.createElement("canvas");
+  scratch.width = pixels;
+  scratch.height = pixels;
+  const scratchCtx = scratch.getContext("2d", { alpha: false });
+  if (!scratchCtx) return false;
+  scratchCtx.putImageData(new ImageData(flipped, pixels, pixels), 0, 0);
+
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(canvas, 0, 0, fieldW, fieldH);
+  ctx.drawImage(scratch, 0, 0, fieldW, fieldH);
   ctx.restore();
   return true;
 }

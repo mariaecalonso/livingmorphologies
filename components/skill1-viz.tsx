@@ -64,7 +64,7 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number; inkGain?: number; tone?: number },
 ) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
@@ -77,17 +77,12 @@ export function drawPlanField(
   ctx.save();
   ctx.translate(ox, oy);
   if (snapshot) {
-    let scannedPeak = 0.0001;
-    if (options?.peak == null && !options?.hairThin) {
-      for (const value of snapshot.trails) if (value > scannedPeak) scannedPeak = value;
-    }
-    const peak = options?.peak ?? (options?.hairThin ? robustTrailPeak(snapshot.trails) : scannedPeak);
-    const hairThin = options?.hairThin === true;
+    const peak = options?.peak ?? robustTrailPeak(snapshot.trails);
     const colorMarks =
       options?.attractors?.length
         ? options.attractors
         : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
-    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, hairThin);
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution, options?.inkGain ?? 1, options?.tone ?? 2);
     const sx = snapshot.source.x * scale;
     const sy = toCanvas(snapshot.source.y, fieldH, scale);
     ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -278,16 +273,23 @@ function drawColonyBody(
   density: number,
   attractors?: FieldAttractor[],
   hairThin = false,
+  maxResolution?: number,
+  inkGain = 1,
+  tone = 2,
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution, inkGain, tone)) return;
   const dpr = ctx.getTransform().a || 1;
-  const res = fine
-    ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
-    : Math.max(160, Math.min(280, Math.round(fieldH)));
-  let finger = 0;
-  const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
-  for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
+  const res = maxResolution
+    ? Math.max(256, Math.min(2048, Math.round(maxResolution)))
+    : fine
+      ? Math.max(4096, Math.min(8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
+      : Math.max(160, Math.min(280, Math.round(fieldH)));
+  let finger = 2166136261;
+  const stride = Math.max(1, Math.floor(snapshot.trails.length / 256));
+  for (let i = 0; i < snapshot.trails.length; i += stride) {
+    finger = Math.imul(finger ^ Math.round(snapshot.trails[i] * 1000), 16777619);
+  }
   const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:vessel:${attractors?.length ?? 0}:${hairThin ? "hair" : "body"}`;
   let scratch = fine ? fineScratch : coarseScratch;
   if (!scratch) {
@@ -374,10 +376,11 @@ function drawColonyBody(
           pull * Math.min(1, Math.max(0, (body - 0.08) / 0.24)),
           Math.min(1, Math.max(0, (body - 0.48) / 0.34)),
         );
-        const mixCore = core * (0.35 + body * 0.37);
-        const r = ((1 * (1 - vein) + 0.78 * vein) * (1 - mixCore) + 0.059 * mixCore) * alpha;
-        const g = ((1 * (1 - vein) + 0.494 * vein) * (1 - mixCore) + 0.451 * mixCore) * alpha;
-        const b = ((1 * (1 - vein) + 0.373 * vein) * (1 - mixCore) + 0.467 * mixCore) * alpha;
+        const mixCore = tone < 1.5 ? 0 : core * (0.35 + body * 0.37);
+        const veinMix = tone < 0.5 ? 0 : tone < 1.5 ? Math.min(1, Math.max(0, (body - 0.04) / 0.22)) : vein;
+        const r = ((1 * (1 - veinMix) + 0.78 * veinMix) * (1 - mixCore) + 0.059 * mixCore) * alpha;
+        const g = ((1 * (1 - veinMix) + 0.494 * veinMix) * (1 - mixCore) + 0.451 * mixCore) * alpha;
+        const b = ((1 * (1 - veinMix) + 0.373 * veinMix) * (1 - mixCore) + 0.467 * mixCore) * alpha;
         const i = (py * res + px) * 4;
         data[i] = Math.round(Math.min(1, r) * 255);
         data[i + 1] = Math.round(Math.min(1, g) * 255);
@@ -940,7 +943,7 @@ export function Skill1PlanView({
     if (!box || !showAttractors) return;
     const marks = () => marksRef.current ?? [];
     const clamp = (value: number) => Math.min(FIELD_SIZE - 0.4, Math.max(0.4, value));
-    const hit = (x: number, y: number) => {
+    const hit = (x: number, y: number): { index: number; mode: "move" | "resize" | "end" | "bend" } | null => {
       let best: { index: number; mode: "move" | "resize" | "end" | "bend" } | null = null;
       let bestScore = 1.2;
       marks().forEach((item, index) => {
