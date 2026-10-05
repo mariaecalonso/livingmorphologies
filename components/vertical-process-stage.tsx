@@ -6,7 +6,6 @@ import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
 import { stackDisplayIndices, stackDisplaySlices } from "@/lib/skill3/stack-display";
-import { orthoStackFrame } from "@/lib/skill3/view-project";
 import type { VerticalViewerField, ViewerSlice } from "@/lib/skill3/viewer-field";
 
 const PLATE = 320;
@@ -91,44 +90,65 @@ export function ProcessStack({
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     if (plates.length === 0) return;
-    const pitch = 0.18;
-    const full = Math.max(1, plates.length - 1) * pitch;
-    const frame = orthoStackFrame(width, height, 0.45, 1.02, full, true);
     const shown = stackDisplayIndices(field.slices.length, plateLimit);
+    const count = plates.length;
+    const marginL = Math.max(34, width * 0.16);
+    const marginR = Math.max(42, width * 0.2);
+    const marginT = Math.max(18, height * 0.05);
+    const marginB = Math.max(22, height * 0.06);
+    const innerH = Math.max(1, height - marginT - marginB);
+    const planeW = Math.max(1, width - marginL - marginR);
+    const planeH = Math.max(12, Math.min(planeW * 0.38, (innerH - Math.max(0, count - 1) * 10) / count));
+    const gap = count > 1 ? (innerH - planeH * count) / (count - 1) : 0;
+    const axisX = marginL * 0.42;
     const nextHits: { index: number; x: number; y: number }[] = [];
-    const order = plates.map((_, index) => index).sort((a, b) => {
-      const ay = (a - (plates.length - 1) / 2) * pitch;
-      const by = (b - (plates.length - 1) / 2) * pitch;
-      return frame.rotate(0, ay, 0).z - frame.rotate(0, by, 0).z;
-    });
-    for (const index of order) {
-      const y = (index - (plates.length - 1) / 2) * pitch;
-      const origin = frame.rotate(-0.5, y, -0.5);
-      const basis = frame.plateBasis(dpr, origin);
-      const reason = reasons?.[shown[index] ?? -1];
-      ctx.save();
-      ctx.setTransform(basis.a, basis.b, basis.c, basis.d, basis.e, basis.f);
-      ctx.globalAlpha = index === plates.length - 1 ? 0.96 : 0.42;
-      ctx.drawImage(plates[index], 0, 0, 1, 1);
-      ctx.globalAlpha = index === plates.length - 1 ? 0.95 : 0.55;
-      ctx.strokeStyle = PLANE_INK[reason ?? ""] ?? "rgba(242,242,238,0.7)";
-      ctx.lineWidth = index === plates.length - 1 ? 0.012 : 0.006;
-      ctx.strokeRect(0, 0, 1, 1);
-      ctx.restore();
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.font = `${Math.max(12, height * 0.045)}px sans-serif`;
+
+    ctx.strokeStyle = "rgba(15,115,119,0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(axisX, marginT);
+    ctx.lineTo(axisX, height - marginB);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(axisX, marginT + 1);
+    ctx.lineTo(axisX - 4, marginT + 9);
+    ctx.lineTo(axisX + 4, marginT + 9);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(199,126,95,0.95)";
+    ctx.fill();
+    ctx.font = `${Math.max(11, height * 0.028)}px sans-serif`;
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    shown.forEach((sourceIndex, plateIndex) => {
-      const y = (plateIndex - (plates.length - 1) / 2) * pitch;
-      const point = frame.project(0, y, 0);
-      nextHits.push({ index: sourceIndex, x: point.x, y: point.y });
+    ctx.fillStyle = "rgba(199,126,95,0.95)";
+    ctx.fillText("Z", axisX, marginT - 8);
+    ctx.fillStyle = "rgba(15,115,119,0.95)";
+    ctx.fillText("T", axisX, height - marginB + 10);
+
+    for (let index = 0; index < count; index += 1) {
+      const sourceIndex = shown[index] ?? index;
+      const y = height - marginB - planeH - index * (planeH + gap);
+      const active = index === count - 1;
+      const reason = reasons?.[sourceIndex];
+      ctx.strokeStyle = "rgba(15,115,119,0.45)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(axisX, y + planeH / 2);
+      ctx.lineTo(marginL, y + planeH / 2);
+      ctx.stroke();
+      ctx.globalAlpha = active ? 1 : 0.5;
+      ctx.drawImage(plates[index], marginL, y, planeW, planeH);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = PLANE_INK[reason ?? ""] ?? "rgba(242,242,238,0.7)";
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.strokeRect(marginL, y, planeW, planeH);
+      nextHits.push({ index: sourceIndex, x: marginL + planeW / 2, y: y + planeH / 2 });
       const label = labels?.[sourceIndex];
-      if (!label) return;
-      const tag = frame.project(0.62, y, -0.42);
-      ctx.fillStyle = PLANE_INK[reasons?.[sourceIndex] ?? ""] ?? "#f2f2ee";
-      ctx.fillText(label, tag.x, tag.y);
-    });
+      if (!label) continue;
+      ctx.font = `${Math.max(11, height * 0.026)}px sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillStyle = active ? "#f2f2ee" : "rgba(242,242,238,0.62)";
+      ctx.fillText(label, marginL + planeW + 6, y + planeH / 2);
+    }
     hits.current = nextHits;
   }, plates);
   return (
@@ -189,7 +209,7 @@ export function ProcessMorphology({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const paint = () => drawIsoMesh(canvas, mesh, 0.62, 0.42, column * 0.42, "shell");
+    const paint = () => drawIsoMesh(canvas, mesh, 0.62, 0.42, column * 0.72, "shell");
     paint();
     const parent = canvas.parentElement;
     if (!parent) return;

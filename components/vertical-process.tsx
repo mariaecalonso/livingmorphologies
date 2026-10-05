@@ -65,7 +65,7 @@ type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
 function handoffStatus(origin: string | undefined, pending: boolean, error: string | null) {
   if (origin === "handoff") return "Validated";
   if (origin === "development-fixture") return "Fixture";
-  if (error) return "Refused";
+  if (error) return "Failed";
   if (pending) return "Checking";
   return "—";
 }
@@ -459,7 +459,7 @@ export function VerticalProcess({
     typology,
     archetypeName,
     candidateId != null ? `Candidate ${candidateId}` : "No candidate",
-    z0Iteration != null ? `Z0 ${z0Iteration}` : pending ? "Checking handoff" : "Z0 withheld",
+    z0Iteration != null ? `Z0 ${z0Iteration}` : error ? "Handoff validation failed" : pending ? "Checking handoff" : "Z0 withheld",
   ].join(" · ");
   const behavior = behaviorOf(set);
   const bars = behavior
@@ -489,8 +489,10 @@ export function VerticalProcess({
   }, [shown, revealedCount]);
   const status = handoffStatus(set?.origin, pending, error);
 
+  const handoffFailed = error != null && !pending;
+
   return (
-    <main className="evo-page vertical-process" data-origin={set?.origin ?? "pending"}>
+    <main className="evo-page vertical-process" data-origin={set?.origin ?? "pending"} data-handoff={handoffFailed ? "failed" : undefined}>
       <header className="evo-header">
         <div>
           <p className="display evo-header-title">Vertical Propagation</p>
@@ -544,15 +546,16 @@ export function VerticalProcess({
             <h2 className="panel-title">Process</h2>
             <div className="vertical-process-replay">
               <span>Iteration {playStep} / {horizon || "—"}</span>
-              <button type="button" onClick={togglePlay} disabled={!shown || horizon <= 0}>{playing ? "Pause" : "Play"}</button>
-              <button type="button" onClick={resetReplay} disabled={!shown}>Reset</button>
+              <button type="button" onClick={togglePlay} disabled={!shown || horizon <= 0 || handoffFailed} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>{playing ? "Pause" : "Play"}</button>
+              <button type="button" onClick={resetReplay} disabled={!shown || handoffFailed} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>Reset</button>
               <input
                 type="range"
                 min={0}
                 max={Math.max(1, horizon)}
                 value={playStep}
                 aria-label="Continuation timeline"
-                disabled={!shown || horizon <= 0}
+                disabled={!shown || horizon <= 0 || handoffFailed}
+                title={handoffFailed ? "Unavailable until the handoff validates" : undefined}
                 onChange={(event) => seek(playOrigin + Number(event.target.value))}
               />
             </div>
@@ -561,8 +564,15 @@ export function VerticalProcess({
             <span className="vertical-process-replay-fill" style={{ width: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
             <span className="vertical-process-replay-head" style={{ left: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
           </div>
+          {handoffFailed && error ? (
+            <div className="vertical-process-handoff-error" role="alert">
+              <p className="vertical-process-handoff-error-title">Handoff validation failed</p>
+              <p>The selected Skill 2 candidate cannot be reproduced exactly with the current upstream simulation state.</p>
+              <p className="vertical-process-handoff-error-detail">{error}</p>
+            </div>
+          ) : null}
           <div className="vertical-process-center">
-            <section className="vertical-process-region" data-balance="visual">
+            <section className="vertical-process-region" data-step="initial" data-balance="visual">
               <header className="vertical-process-label">
                 <p className="eyebrow">01</p>
                 <h2 className="panel-title">Initial state</h2>
@@ -581,7 +591,7 @@ export function VerticalProcess({
                 </div>
               </div>
             </section>
-            <section className="vertical-process-region" data-balance="graph">
+            <section className="vertical-process-region" data-step="continuation" data-balance="graph">
               <header className="vertical-process-label">
                 <p className="eyebrow">02</p>
                 <h2 className="panel-title">Natural continuation</h2>
@@ -619,10 +629,11 @@ export function VerticalProcess({
                 </div>
               </div>
             </section>
-            <section className="vertical-process-region" data-balance="graph">
+            <section className="vertical-process-region" data-step="xyt" data-balance="graph">
               <header className="vertical-process-label">
                 <p className="eyebrow">03</p>
                 <h2 className="panel-title">Event sampling / XYT</h2>
+                <p className="vertical-process-aside">T → Z</p>
               </header>
               <div className="vertical-process-split">
                 <div className="vertical-process-stage">
@@ -662,7 +673,7 @@ export function VerticalProcess({
                 </div>
               </div>
             </section>
-            <section className="vertical-process-region" data-balance="visual">
+            <section className="vertical-process-region" data-step="morphology" data-balance="visual">
               <header className="vertical-process-label">
                 <p className="eyebrow">04</p>
                 <h2 className="panel-title">3D morphology preview</h2>
