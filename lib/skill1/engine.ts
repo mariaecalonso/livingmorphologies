@@ -32,7 +32,8 @@ function fineTrail(archetypeId: string) {
   return (
     archetypeId === "compressed-sequential" ||
     archetypeId === "topographic-ground-field" ||
-    archetypeId === "linear-gallery"
+    archetypeId === "linear-gallery" ||
+    archetypeId === "flat-deep-plan"
   );
 }
 
@@ -358,6 +359,21 @@ function isGroundCorridor(item: FieldAttractor) {
   return (item.kind === "line" || item.kind === "curve") && item.hole !== true;
 }
 
+function onFlatDeepWall(point: Point, translation: BiologicalTranslation) {
+  const list = translation.recipe.attractors;
+  if (!list?.length) return false;
+  for (const item of list) {
+    const d =
+      item.kind === "curve"
+        ? dist(point, nearestOnCurve(point, item))
+        : item.x2 == null
+          ? Math.hypot(point.x - item.x, point.y - item.y)
+          : distanceToSegment(point.x, point.y, item.x, item.y, item.x2, item.y2 ?? item.y);
+    if (d <= 0.34) return true;
+  }
+  return false;
+}
+
 function tgfKeepsPads(translation: BiologicalTranslation) {
   if (translation.archetypeId !== "topographic-ground-field") return false;
   const list = translation.recipe.attractors;
@@ -661,7 +677,24 @@ function spawnAgent(
   let x: number;
   let y: number;
   let heading: number;
-  if (fineTrail(translation.archetypeId)) {
+  if (translation.archetypeId === "flat-deep-plan" && recipe.attractors?.length) {
+    const marks = recipe.attractors;
+    const mark = marks[Math.floor(rng() * marks.length)] ?? marks[0];
+    const t = rng();
+    if (mark.kind === "curve") {
+      const at = pointOnCurve(mark, t);
+      const ahead = pointOnCurve(mark, Math.min(1, t + 0.08));
+      x = clamp(at.x, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(at.y, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(ahead.y - at.y, ahead.x - at.x) + (rng() < 0.5 ? 0 : Math.PI));
+    } else {
+      const x2 = mark.x2 ?? mark.x;
+      const y2 = mark.y2 ?? mark.y;
+      x = clamp(mark.x + (x2 - mark.x) * t, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
+    }
+  } else if (fineTrail(translation.archetypeId)) {
     const marks = recipe.attractors ?? [];
     let minX = FIELD_SIZE;
     let minY = FIELD_SIZE;
@@ -1162,6 +1195,7 @@ export function stepSimulation(
     if (edge < 2.6 && !fineTrail(translation.archetypeId)) depositAmount *= 0.012;
     if (insideAttractorHole(agent, translation, slime)) depositAmount = 0;
     if (tgfKeepsPads(translation) && !insideGroundMass(agent, translation)) depositAmount = 0;
+    if (translation.archetypeId === "flat-deep-plan" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
     if (aroundAbsence(translation)) {
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
       const limit = slime

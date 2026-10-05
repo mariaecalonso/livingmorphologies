@@ -74,7 +74,7 @@ import { TYPOLOGIES } from "@/lib/catalog";
 import { catalogWasCleared, clearCatalog, listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
 import { shareCatalogEntries } from "@/lib/skill1/shared-catalog";
 import { clearArchetypeFields, listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
-import { clearAllDoneFlag, clearRunFields, loadRunsSession, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
+import { clearAllDoneFlag, clearRunFields, loadRunsSession, readRunsTab, rememberRunsTab, saveCatalogIndex, saveRunSnapshot, saveRunsMeta } from "@/lib/persist/session";
 
 const COLUMNS = 20;
 const ROWS = 5;
@@ -886,7 +886,39 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const savedAt = Date.now();
       const incoming: Array<SavedRun & { imageBlob?: Blob }> = [];
       let painted = 0;
+      const alreadyShared = new Set<number>();
+      if (id === "flat-deep-plan") {
+        try {
+          const response = await fetch(`/shared-catalog/${id}/entries.json`, { cache: "no-store" });
+          const entries = response.ok ? ((await response.json()) as Array<{ run?: number; savedAt?: number }>) : [];
+          for (const item of entries) {
+            if (item.run && (item.savedAt ?? 0) > 1791000000000) alreadyShared.add(item.run);
+          }
+        } catch {
+          /* a missing catalog just means every cell is saved */
+        }
+      }
+      const flushIncoming = async () => {
+        if (!incoming.length) return true;
+        const batch = incoming.splice(0, incoming.length);
+        try {
+          await putCatalogEntries(id, batch);
+        } catch {
+          /* the shared catalog is the copy that replaces the old set */
+        }
+        if (id !== "flat-deep-plan") return true;
+        try {
+          return await shareCatalogEntries(id, batch);
+        } catch {
+          return false;
+        }
+      };
       for (let index = 0; index < RUN_COUNT; index += 1) {
+        if (alreadyShared.has(index + 1)) {
+          painted += 1;
+          setSaveProgress({ done: index + 1, total: RUN_COUNT });
+          continue;
+        }
         const snapshot = snapshotsRef.current[index];
         const active = runningIdRef.current ?? pickedIdRef.current;
         const variant = id === active ? variantsRef.current[index] : undefined;
@@ -917,11 +949,14 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           });
           painted += 1;
         }
+        if (id === "flat-deep-plan" && incoming.length >= 2 && !(await flushIncoming())) return false;
         setSaveProgress({ done: index + 1, total: RUN_COUNT });
         await nextFrame();
       }
       if (!painted) return false;
-      if (!(await persistEntries(id, incoming))) return false;
+      if (id === "flat-deep-plan") {
+        if (!(await flushIncoming())) return false;
+      } else if (!(await persistEntries(id, incoming))) return false;
       const stored = await readCatalog<SavedRun>(id);
       catalogCacheRef.current[id] = stored;
       setCatalogEntries(stored);
@@ -1010,6 +1045,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
     setCatalogInspected(null);
+    rememberRunsTab(id);
     setPickedId(id);
     void (async () => {
       const kept = await loadArchetypeFields(id, RUN_COUNT);
@@ -1030,6 +1066,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   const startRuns = () => {
     if (!pickedId) return;
+    rememberRunsTab(pickedId);
     allQueueRef.current = false;
     setAllQueue(false);
     setCatalogOpen(false);
@@ -1123,7 +1160,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   useEffect(() => {
     let live = true;
     void (async () => {
-      const { session } = await loadRunsSession({ snapshots: false });
+      const tabId = readRunsTab();
+      const { session } = await loadRunsSession({ snapshots: false, archetypeId: tabId });
       if (!live) return;
       const params = new URLSearchParams(window.location.search);
       const fresh = params.get("fresh") === "1";
@@ -1151,17 +1189,19 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           /* ignore */
         }
       } else {
-        if (session?.pickedId) {
-          const kept = await loadArchetypeFields(session.pickedId, RUN_COUNT);
+        const restoreId = tabId ?? session?.pickedId;
+        if (restoreId) {
+          const kept = await loadArchetypeFields(restoreId, RUN_COUNT);
           if (!live) return;
           if (kept.some(Boolean)) {
             snapshotsRef.current = kept;
             completedRef.current = kept.filter(Boolean).length;
           }
         }
-        if (session) {
-          completedRef.current = snapshotsRef.current.some(Boolean) ? snapshotsRef.current.filter(Boolean).length : session.completed;
-          setPickedId(session.pickedId);
+        if (session || restoreId) {
+          completedRef.current = snapshotsRef.current.some(Boolean) ? snapshotsRef.current.filter(Boolean).length : session?.completed ?? 0;
+          setPickedId(restoreId ?? session?.pickedId ?? null);
+          if (restoreId) rememberRunsTab(restoreId);
           setRunningId(null);
           setCompleted(completedRef.current);
           setPaused(false);
@@ -1184,6 +1224,13 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   useEffect(() => {
     if (!sessionReady) return;
+    const storedTab = readRunsTab();
+    const current = runningId ?? pickedId;
+    if (storedTab && current === ALL_ARCHETYPE_IDS[0] && storedTab !== current) {
+      setPickedId(storedTab);
+      return;
+    }
+    if (pickedId) rememberRunsTab(runningId ?? pickedId);
     void saveRunsMeta({
       pickedId,
       runningId,
