@@ -34,7 +34,8 @@ function fineTrail(archetypeId: string) {
     archetypeId === "topographic-ground-field" ||
     archetypeId === "linear-gallery" ||
     archetypeId === "flat-deep-plan" ||
-    archetypeId === "undulated"
+    archetypeId === "undulated" ||
+    archetypeId === "terraced"
   );
 }
 
@@ -715,6 +716,115 @@ function followUndulated(agent: { x: number; y: number; heading: number }, trans
   agent.heading = wrapAngle(forward * (1 - lateral) + onto * lateral);
 }
 
+const TERRACE_PLATE = 0.34;
+
+function nearestTerraced(agent: Point, translation: BiologicalTranslation) {
+  const marks = translation.recipe.attractors;
+  if (!marks?.length) return null;
+  let best = Infinity;
+  let found: {
+    d: number;
+    px: number;
+    py: number;
+    ax: number;
+    ay: number;
+    bx: number;
+    by: number;
+    plate: boolean;
+    radius: number;
+    along: number;
+    stroke: number;
+    mass: number;
+    cover: number;
+    coverAt: number;
+  } | null = null;
+  for (const mark of marks) {
+    if (mark.x2 == null && mark.kind !== "curve") continue;
+    let qx = mark.x;
+    let qy = mark.y;
+    let ax = mark.x;
+    let ay = mark.y;
+    let bx = mark.x2 ?? mark.x;
+    let by = mark.y2 ?? mark.y;
+    if (mark.kind === "curve") {
+      const q = nearestOnCurve(agent, mark);
+      qx = q.x;
+      qy = q.y;
+    } else {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const len2 = abx * abx + aby * aby || 1;
+      const t = Math.max(0, Math.min(1, ((agent.x - ax) * abx + (agent.y - ay) * aby) / len2));
+      qx = ax + abx * t;
+      qy = ay + aby * t;
+    }
+    const d = Math.hypot(agent.x - qx, agent.y - qy);
+    const plate = (mark.radius ?? 0) >= TERRACE_PLATE;
+    const score = d - (plate ? 0.4 : 0);
+    if (score < best) {
+      best = score;
+      const span2 = (bx - ax) * (bx - ax) + (by - ay) * (by - ay) || 1;
+      const along = Math.max(0, Math.min(1, ((qx - ax) * (bx - ax) + (qy - ay) * (by - ay)) / span2));
+      const stroke = (mark.stroke ?? 1) + ((mark.stroke2 ?? mark.stroke ?? 1) - (mark.stroke ?? 1)) * along;
+      found = {
+        d,
+        px: qx,
+        py: qy,
+        ax,
+        ay,
+        bx,
+        by,
+        plate,
+        radius: mark.radius ?? (plate ? 0.6 : 0.22),
+        along,
+        stroke,
+        mass: mark.mass ?? 1,
+        cover: mark.cover ?? 1,
+        coverAt: mark.coverAt ?? 0,
+      };
+    }
+  }
+  return found;
+}
+
+function holdTerraced(
+  agent: { x: number; y: number; heading: number },
+  translation: BiologicalTranslation,
+  slime?: SlimeControls,
+) {
+  const near = nearestTerraced(agent, translation);
+  if (!near) return;
+  const band = near.plate ? 0.18 : 0.1;
+  if (near.d > band) {
+    const scale = band / near.d;
+    agent.x = near.px + (agent.x - near.px) * scale;
+    agent.y = near.py + (agent.y - near.py) * scale;
+  }
+  const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
+  const forward =
+    angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
+  const wander = near.plate ? Math.min(0.28, slime?.randomness ?? 0) : 0;
+  let drift = agent.heading - forward;
+  while (drift > Math.PI) drift -= TWO_PI;
+  while (drift < -Math.PI) drift += TWO_PI;
+  agent.heading = wrapAngle(forward + drift * wander);
+  if (near.plate && near.cover < 0.97) {
+    const start = near.coverAt;
+    const end = Math.min(1, start + near.cover);
+    if (near.along < start || near.along > end) {
+      const t = Math.max(start, Math.min(end, near.along));
+      agent.x = near.ax + (near.bx - near.ax) * t;
+      agent.y = near.ay + (near.by - near.ay) * t;
+    }
+  }
+}
+
+function onTerracedPlate(agent: Point, translation: BiologicalTranslation) {
+  const near = nearestTerraced(agent, translation);
+  if (!near) return true;
+  return near.d < (near.plate ? Math.max(0.26, near.radius * 0.98) : 0.22);
+}
+
 function spawnAgent(
   source: Point,
   attractor: Point,
@@ -732,6 +842,37 @@ function spawnAgent(
     if (mark.kind === "curve") {
       const at = pointOnCurve(mark, t);
       const ahead = pointOnCurve(mark, Math.min(1, t + 0.12));
+      x = clamp(at.x, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(at.y, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(ahead.y - at.y, ahead.x - at.x) + (rng() < 0.5 ? 0 : Math.PI));
+    } else {
+      const x2 = mark.x2 ?? mark.x;
+      const y2 = mark.y2 ?? mark.y;
+      x = clamp(mark.x + (x2 - mark.x) * t, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
+    }
+  } else if (translation.archetypeId === "terraced" && recipe.attractors?.length) {
+    const marks = recipe.attractors;
+    const plates = marks.filter((item) => (item.radius ?? 0) >= TERRACE_PLATE);
+    const pool = rng() < 0.9 && plates.length ? plates : marks;
+    let weight = 0;
+    for (const item of pool) weight += Math.max(0.04, item.mass ?? 1);
+    let roll = rng() * weight;
+    let mark = pool[pool.length - 1];
+    for (const item of pool) {
+      roll -= Math.max(0.04, item.mass ?? 1);
+      if (roll <= 0) {
+        mark = item;
+        break;
+      }
+    }
+    const cover = Math.max(0.08, Math.min(1, mark.cover ?? 1));
+    const at = Math.max(0, Math.min(1 - cover, mark.coverAt ?? 0));
+    const t = at + rng() * cover;
+    if (mark.kind === "curve") {
+      const at = pointOnCurve(mark, t);
+      const ahead = pointOnCurve(mark, Math.min(1, t + 0.1));
       x = clamp(at.x, 0.2, FIELD_SIZE - 0.2);
       y = clamp(at.y, 0.2, FIELD_SIZE - 0.2);
       heading = wrapAngle(Math.atan2(ahead.y - at.y, ahead.x - at.x) + (rng() < 0.5 ? 0 : Math.PI));
@@ -1217,6 +1358,7 @@ export function stepSimulation(
         agent.y = near.py + (agent.y - near.py) * 0.08;
       }
     }
+    if (translation.archetypeId === "terraced") holdTerraced(agent, translation, slime);
 
     if (aroundAbsence(translation)) {
       const coreDist = dist(agent, state.attractor);
@@ -1271,6 +1413,7 @@ export function stepSimulation(
     if (tgfKeepsPads(translation) && !insideGroundMass(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "flat-deep-plan" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "undulated" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
+    if (translation.archetypeId === "terraced" && !onTerracedPlate(agent, translation)) depositAmount = 0;
     if (aroundAbsence(translation)) {
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
       const limit = slime

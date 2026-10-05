@@ -4,6 +4,7 @@ import { attractorsFromCompressedSequential, planCompressedSequential } from "./
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
 import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
+import { attractorsFromTerraced, planTerraced } from "./run-terraced";
 import { attractorsFromUndulated, planUndulated } from "./run-undulated";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
@@ -178,36 +179,9 @@ function openHall(_f: Frame): LocalMark[] {
   return [];
 }
 
-/** Articulated · Connected Module · Immersive */
-function terraced(f: Frame): LocalMark[] {
-  const steps = f.int(3, 6);
-  const pitch = f.r(2.2, 4.2);
-  const shift = f.r(0.4, 2.2) * (f.chance(0.5) ? -1 : 1);
-  const marks: LocalMark[] = [];
-  for (let i = 0; i < steps; i += 1) {
-    const v = (i - (steps - 1) / 2) * pitch;
-    const half = f.r(4.2, 8.2) - i * f.r(0.2, 1.6);
-    const u = i * shift + f.r(-0.6, 0.6);
-    const thick = f.r(0.75, 1.7);
-    if (f.chance(0.35)) marks.push(arc(f, u - half, v, u + half, v, u, v + f.r(-1.6, 1.6), thick, 0.5 + i * 0.12));
-    else marks.push(seg(f, u - half, v, u + half, v, thick, 0.5 + i * 0.12));
-  }
-  const links = f.int(1, 3);
-  for (let i = 0; i < links; i += 1) {
-    const connector = f.r(-3.5, 3.5);
-    marks.push(
-      approachPath(
-        f,
-        connector,
-        -((steps - 1) / 2) * pitch - 0.4,
-        connector + shift * (steps - 1) + f.r(-1, 1),
-        ((steps - 1) / 2) * pitch + 0.4,
-        f.r(0.7, 1.3),
-        f.r(0.35, 0.65),
-      ),
-    );
-  }
-  return marks;
+/** Articulated · Connected Module · Immersive — realized in run-terraced. */
+function terraced(_f: Frame): LocalMark[] {
+  return [];
 }
 
 /** Restrained · Rigid Module · Introspective */
@@ -532,6 +506,9 @@ export function runAttractorsFor(
   }
   if (archetypeId === "open-hall") {
     return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "terraced") {
+    return attractorsFromTerraced(planTerraced(seed, attempt, index), seed);
   }
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
   const f = frame(rng);

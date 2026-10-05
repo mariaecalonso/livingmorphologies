@@ -64,7 +64,7 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number; inkGain?: number },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number; inkGain?: number; tone?: number },
 ) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
@@ -82,7 +82,7 @@ export function drawPlanField(
       options?.attractors?.length
         ? options.attractors
         : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
-    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution, options?.inkGain ?? 1);
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.hairThin === true, options?.maxResolution, options?.inkGain ?? 1, options?.tone ?? 2);
     const sx = snapshot.source.x * scale;
     const sy = toCanvas(snapshot.source.y, fieldH, scale);
     ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -275,9 +275,10 @@ function drawColonyBody(
   hairThin = false,
   maxResolution?: number,
   inkGain = 1,
+  tone = 2,
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution, inkGain)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, hairThin, maxResolution, inkGain, tone)) return;
   const dpr = ctx.getTransform().a || 1;
   const res = maxResolution
     ? Math.max(256, Math.min(2048, Math.round(maxResolution)))
@@ -375,10 +376,11 @@ function drawColonyBody(
           pull * Math.min(1, Math.max(0, (body - 0.08) / 0.24)),
           Math.min(1, Math.max(0, (body - 0.48) / 0.34)),
         );
-        const mixCore = core * (0.35 + body * 0.37);
-        const r = ((1 * (1 - vein) + 0.78 * vein) * (1 - mixCore) + 0.059 * mixCore) * alpha;
-        const g = ((1 * (1 - vein) + 0.494 * vein) * (1 - mixCore) + 0.451 * mixCore) * alpha;
-        const b = ((1 * (1 - vein) + 0.373 * vein) * (1 - mixCore) + 0.467 * mixCore) * alpha;
+        const mixCore = tone < 1.5 ? 0 : core * (0.35 + body * 0.37);
+        const veinMix = tone < 0.5 ? 0 : tone < 1.5 ? Math.min(1, Math.max(0, (body - 0.04) / 0.22)) : vein;
+        const r = ((1 * (1 - veinMix) + 0.78 * veinMix) * (1 - mixCore) + 0.059 * mixCore) * alpha;
+        const g = ((1 * (1 - veinMix) + 0.494 * veinMix) * (1 - mixCore) + 0.451 * mixCore) * alpha;
+        const b = ((1 * (1 - veinMix) + 0.373 * veinMix) * (1 - mixCore) + 0.467 * mixCore) * alpha;
         const i = (py * res + px) * 4;
         data[i] = Math.round(Math.min(1, r) * 255);
         data[i + 1] = Math.round(Math.min(1, g) * 255);

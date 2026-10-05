@@ -28,6 +28,7 @@ uniform float uTexels;
 uniform float uCutoff;
 uniform float uHairThin;
 uniform float uInk;
+uniform float uTone;
 uniform int uCount;
 uniform vec4 uAttr[16];
 uniform float uKind[16];
@@ -158,7 +159,13 @@ void main() {
   vec3 organized = vec3(0.059, 0.451, 0.467);
   vec3 ink = mix(search, vein, smoothstep(0.08, 0.34, body));
   float core = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
-  ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  if (uTone < 0.5) {
+    ink = search;
+  } else if (uTone < 1.5) {
+    ink = mix(search, vein, smoothstep(0.04, 0.22, body));
+  } else {
+    ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  }
   ink *= depth * membraneTone * uInk;
   oColor = vec4(ink * cover, 1.0);
 }`;
@@ -173,6 +180,7 @@ type GlState = {
   uCutoff: WebGLUniformLocation | null;
   uHairThin: WebGLUniformLocation;
   uInk: WebGLUniformLocation;
+  uTone: WebGLUniformLocation;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
@@ -185,7 +193,7 @@ type GlState = {
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 30;
+const SHADER_GEN = 31;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -226,10 +234,11 @@ function createState(): GlState | null {
   const uCutoff = gl.getUniformLocation(program, "uCutoff");
   const uHairThin = gl.getUniformLocation(program, "uHairThin");
   const uInk = gl.getUniformLocation(program, "uInk");
+  const uTone = gl.getUniformLocation(program, "uTone");
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uHairThin || !uInk || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uHairThin || !uInk || !uTone || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -251,6 +260,7 @@ function createState(): GlState | null {
     uCutoff,
     uHairThin,
     uInk,
+    uTone,
     uCount,
     uAttr,
     uKind,
@@ -285,6 +295,7 @@ export function drawSlimeFieldGl(
   hairThin = false,
   maxResolution?: number,
   inkGain = 1,
+  tone = 2,
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
@@ -315,6 +326,7 @@ export function drawSlimeFieldGl(
   if (gpu.uCutoff) gl.uniform1f(gpu.uCutoff, cutoff);
   gl.uniform1f(gpu.uHairThin, hairThin ? 1 : 0);
   gl.uniform1f(gpu.uInk, inkGain);
+  gl.uniform1f(gpu.uTone, tone);
   const packed = new Float32Array(64);
   const kinds = new Float32Array(16);
   const list = attractors ?? [];

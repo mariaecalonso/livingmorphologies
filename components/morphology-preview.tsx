@@ -15,6 +15,7 @@ export function paintMorphology(
   peak?: number,
   hairThin = false,
   inkGain = 1,
+  tone = 2,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -33,7 +34,7 @@ export function paintMorphology(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, side, side);
-  drawPlanField(ctx, snapshot, side, side, { showHud: false, fine, density, attractors, showAttractors: false, peak, hairThin, inkGain });
+  drawPlanField(ctx, snapshot, side, side, { showHud: false, fine, density, attractors, showAttractors: false, peak, hairThin, inkGain, tone });
 }
 
 /** Fills its parent and repaints on resize. Uses layout size, so ancestor transforms do not distort it. */

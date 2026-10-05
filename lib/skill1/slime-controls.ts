@@ -247,6 +247,14 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.trailCap = clamp(next.trailCap, 0.9, 1.8);
     next.deposit = clamp(next.deposit, 0.06, 0.22);
   }
+  if (archetypeId === "terraced") {
+    next.depositWidth = clamp(next.depositWidth, 2, 50);
+    next.deposit = clamp(next.deposit, 0.02, 0.16);
+    next.diffusion = clamp(next.diffusion, 0, 0.016);
+    next.decay = clamp(next.decay, 0.955, 0.994);
+    next.trailCap = clamp(next.trailCap, 0.5, 1.9);
+    next.randomness = clamp(next.randomness, 0, 0.28);
+  }
   if (archetypeId === "undulated") {
     next.depositWidth = clamp(next.depositWidth, 0.18, 0.46);
     next.deposit = clamp(next.deposit, 0.03, 0.1);

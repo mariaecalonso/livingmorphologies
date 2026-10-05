@@ -25,6 +25,7 @@ import {
 } from "@/lib/skill1/run-open-hall";
 import { FLAT_DEEP_RUN_ITERATIONS, FLAT_DEEP_TRAIL_SCALE, flatDeepKept, flatDeepPlatesNeedRedraw, markFlatDeepFluid, realizeFlatDeepRun } from "@/lib/skill1/run-flat-deep-plan";
 import { attractorsFromUndulated, planUndulated, tuneUndulatedSlime, undulatedAgentCount } from "@/lib/skill1/run-undulated";
+import { agentsFromTerraced, attractorsFromTerraced, planTerraced, slimeFromTerraced, TERRACE_RUN_ITERATIONS } from "@/lib/skill1/run-terraced";
 import {
   compressedSequentialIdentity,
   isNovelSequence,
@@ -96,9 +97,12 @@ const LG_TRAIL_SCALE = 16;
 const OH_TRAIL_SCALE = 8;
 const OH_RUN_ITERATIONS = 280;
 const OH_STEP_BUDGET_MS = 18000;
+const TR_ID = "terraced";
+const TR_TRAIL_SCALE = 24;
+const TR_STEP_BUDGET_MS = 19000;
 
 function finePaint(id?: string) {
-  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan" || id === "undulated";
+  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan" || id === "undulated" || id === TR_ID;
 }
 
 function cellPeak(id: string | undefined, trails: ArrayLike<number>) {
@@ -117,6 +121,7 @@ function trailScaleFor(id?: string) {
   if (id === "linear-gallery") return LG_TRAIL_SCALE;
   if (id === "open-hall") return OH_TRAIL_SCALE;
   if (id === "flat-deep-plan" || id === "undulated") return FLAT_DEEP_TRAIL_SCALE;
+  if (id === TR_ID) return TR_TRAIL_SCALE;
   return RUN_TRAIL_SCALE;
 }
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
@@ -274,6 +279,29 @@ function realizeRun(
           clustering: 0.86,
           coreExposure: Math.min(base.recipe.coreExposure, 0.28),
           approachWidth: Math.min(base.recipe.approachWidth, 1.25),
+        },
+      },
+    };
+  }
+  if (base.archetypeId === TR_ID) {
+    const plan = planTerraced(seed, attempt, index);
+    const marks = attractorsFromTerraced(plan, seed);
+    const first = marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: agentsFromTerraced(plan),
+      slime: {
+        ...slimeFromTerraced(slimeBase, plan, seed ^ (attempt * 9973)),
+        foodPoints: marks.map((mark) => ({ x: (mark.x + (mark.x2 ?? mark.x)) / 2, y: (mark.y + (mark.y2 ?? mark.y)) / 2 })),
+      },
+      translation: {
+        ...base,
+        recipe: {
+          ...base.recipe,
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
         },
       },
     };
@@ -1115,7 +1143,20 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     setRunningId(pickedId);
     void (async () => {
       let existing = snapshotsRef.current;
-      if (pickedId === "open-hall") {
+      if (pickedId === TR_ID) {
+        const restyle = sessionStorage.getItem("lm-terraced-restyle") === "1";
+        if (restyle) {
+          sessionStorage.removeItem("lm-terraced-restyle");
+          await clearArchetypeFields(TR_ID, RUN_COUNT);
+          await clearRunFields(TR_ID);
+          existing = emptyRunSlots();
+          snapshotsRef.current = existing;
+        } else {
+          const stored = await loadArchetypeFields(TR_ID, RUN_COUNT);
+          existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+          snapshotsRef.current = existing;
+        }
+      } else if (pickedId === "open-hall") {
         await clearArchetypeFields("open-hall", RUN_COUNT);
         await clearRunFields("open-hall");
         existing = emptyRunSlots();
@@ -1283,6 +1324,13 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       void saveRunsMeta(
         { pickedId, runningId, completed, allQueue, allDone, running, paused },
         "undulated",
+      );
+      return;
+    }
+    if (pickedId === TR_ID || runningId === TR_ID) {
+      void saveRunsMeta(
+        { pickedId, runningId, completed, allQueue, allDone, running, paused },
+        TR_ID,
       );
       return;
     }
@@ -1462,13 +1510,16 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const openHall = variant.translation.archetypeId === "open-hall";
       const flatDeep = variant.translation.archetypeId === "flat-deep-plan";
       const undulated = variant.translation.archetypeId === "undulated";
+      const terraced = variant.translation.archetypeId === TR_ID;
       const targetSteps = variant.translation.archetypeId === "topographic-ground-field"
         ? TGF_RUN_ITERATIONS
         : openHall
           ? OH_RUN_ITERATIONS
-          : flatDeep || undulated
-            ? FLAT_DEEP_RUN_ITERATIONS
-            : DISPLAY_ITERATIONS;
+          : terraced
+            ? TERRACE_RUN_ITERATIONS
+            : flatDeep || undulated
+              ? FLAT_DEEP_RUN_ITERATIONS
+              : DISPLAY_ITERATIONS;
       const steps = targetSteps - next.iteration;
       next.maxIterations = next.iteration + Math.max(1, steps);
       if (openHall || flatDeep || undulated) {
@@ -1479,6 +1530,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           const batch = Math.min(openHall ? 40 : 30, left);
           stepMany(next, variant.translation, rng, batch, slime.decay, slime, false);
           left -= batch;
+        }
+      } else if (terraced) {
+        const started = performance.now();
+        let left = Math.max(1, steps);
+        while (left > 0 && performance.now() - started < TR_STEP_BUDGET_MS) {
+          const batch = Math.min(20, left);
+          stepMany(next, variant.translation, rng, batch, slime.decay, slime, false);
+          left -= batch;
+          if (next.converged) break;
         }
       } else {
         stepMany(next, variant.translation, rng, Math.max(1, steps), slime.decay, slime, false);
