@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
-import { ProcessFilmstrip, ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
+import { ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
 
 const TYPOLOGY: Record<string, string> = {
   lobby: "Lobby",
@@ -157,18 +157,29 @@ function HandoffMark({ status }: { status: string }) {
   );
 }
 
+function iterationFromGraph(clientX: number, svg: SVGSVGElement, origin: number, horizon: number, left: number, right: number) {
+  const rect = svg.getBoundingClientRect();
+  const viewX = ((clientX - rect.left) / Math.max(1, rect.width)) * 100;
+  const t = (viewX - left) / (right - left);
+  return origin + Math.round(Math.min(1, Math.max(0, t)) * horizon);
+}
+
 function DeltaGraph({
   events,
   origin,
   horizon,
   threshold,
   marks,
+  step,
+  onSeek,
 }: {
   events: readonly ContinuationEvent[];
   origin: number;
   horizon: number;
   threshold: number;
   marks: readonly { index: number; label: string }[];
+  step: number;
+  onSeek: (iteration: number) => void;
 }) {
   if (events.length === 0 || horizon <= 0) return null;
   const max = Math.max(threshold, ...events.map((event) => event.delta), 0.001) * 1.18;
@@ -180,25 +191,46 @@ function DeltaGraph({
   const yAt = (value: number) => bottom - (value / max) * (bottom - top);
   const path = events.map((event, index) => `${index === 0 ? "M" : "L"}${xAt(event.iteration)},${yAt(event.delta)}`).join(" ");
   const marked = new Map(marks.map((mark) => [mark.index, mark.label]));
+  const now = xAt(origin + step);
   return (
-    <svg className="vertical-process-graph" viewBox="0 0 100 100" role="img" aria-label="Iteration against change for this continuation">
+    <svg
+      className="vertical-process-graph"
+      viewBox="0 0 100 100"
+      role="img"
+      aria-label="Iteration against change for this continuation"
+      onClick={(event) => onSeek(iterationFromGraph(event.clientX, event.currentTarget, origin, horizon, left, right))}
+    >
       <text x={left} y={5} fontSize={4} className="vertical-process-graph-label">Δ</text>
       <text x={right} y={97} textAnchor="end" fontSize={4} className="vertical-process-graph-label">Iteration</text>
       <line x1={left} y1={yAt(0)} x2={right} y2={yAt(0)} className="vertical-process-axis" strokeWidth={0.35} />
       <line x1={left} y1={yAt(threshold)} x2={right} y2={yAt(threshold)} className="vertical-process-threshold" strokeWidth={0.4} />
       <text x={right} y={yAt(threshold) - 1.6} textAnchor="end" fontSize={4} className="vertical-process-graph-label" data-ink="copper">Δ {threshold}</text>
       <path d={path} strokeWidth={0.7} />
+      <rect x={left} y={bottom - 8} width={Math.max(0, now - left)} height={8} className="vertical-process-progress" />
+      <rect x={now - 1.3} y={top} width={2.6} height={bottom - top} className="vertical-process-playhead" />
       {events.map((event, index) => {
         const label = marked.get(index);
         const x = xAt(event.iteration);
+        const ahead = event.iteration > origin + step;
         return (
-          <g key={event.iteration}>
+          <g
+            key={event.iteration}
+            data-state={ahead ? "ahead" : "reached"}
+            onClick={(pointer) => {
+              pointer.stopPropagation();
+              onSeek(event.iteration);
+            }}
+          >
             {label ? <line x1={x} y1={yAt(0)} x2={x} y2={top} className="vertical-process-guide" strokeWidth={0.25} /> : null}
+            <circle cx={x} cy={yAt(event.delta)} r={4} fill="transparent" />
             <circle cx={x} cy={yAt(event.delta)} r={label ? 1.7 : 1.15} data-reason={event.reason} />
             {label ? <text x={x} y={yAt(event.delta) - 4} textAnchor="middle" fontSize={4} className="vertical-process-graph-label" data-ink="mark">{label}</text> : null}
           </g>
         );
       })}
+      <line x1={now} y1={bottom} x2={now} y2={top} className="vertical-process-current" strokeWidth={2.4} />
+      <circle cx={now} cy={bottom - 4} r={3.1} className="vertical-process-current-cap" />
+      <text x={Math.min(right - 6, Math.max(left + 6, now))} y={18} textAnchor="middle" fontSize={8} className="vertical-process-graph-label" data-ink="current">{step}</text>
       <text x={xAt(origin)} y={90} fontSize={4} className="vertical-process-graph-label">{origin}</text>
       <text x={xAt(origin + horizon)} y={90} textAnchor="end" fontSize={4} className="vertical-process-graph-label">{origin + horizon}</text>
     </svg>
@@ -212,6 +244,8 @@ function EventTimeline({
   minGap,
   maxGap,
   tags,
+  step,
+  onSeek,
 }: {
   events: readonly ContinuationEvent[];
   origin: number;
@@ -219,14 +253,23 @@ function EventTimeline({
   minGap: number;
   maxGap: number;
   tags: readonly string[];
+  step: number;
+  onSeek: (iteration: number) => void;
 }) {
   if (events.length === 0 || horizon <= 0) return null;
   const left = 8;
   const right = 96;
   const xAt = (iteration: number) => left + (Math.min(horizon, Math.max(0, iteration - origin)) / horizon) * (right - left);
   const band = (steps: number) => ((Math.min(horizon, steps) / horizon) * (right - left));
+  const now = xAt(origin + step);
   return (
-    <svg className="vertical-process-graph" viewBox="0 0 100 100" role="img" aria-label="Accepted samples across the continuation horizon">
+    <svg
+      className="vertical-process-graph"
+      viewBox="0 0 100 100"
+      role="img"
+      aria-label="Accepted samples across the continuation horizon"
+      onClick={(event) => onSeek(iterationFromGraph(event.clientX, event.currentTarget, origin, horizon, left, right))}
+    >
       <text x={left} y={8} fontSize={4} className="vertical-process-graph-label">0</text>
       <text x={right} y={8} textAnchor="end" fontSize={4} className="vertical-process-graph-label">{horizon}</text>
       <rect x={left} y={28} width={band(maxGap)} height={10} className="vertical-process-gap" data-gap="max" />
@@ -234,12 +277,26 @@ function EventTimeline({
       <text x={left} y={26} fontSize={4} className="vertical-process-graph-label">Min {minGap}</text>
       <text x={left + band(maxGap)} y={26} textAnchor="end" fontSize={4} className="vertical-process-graph-label">Max {maxGap}</text>
       <line x1={left} y1={58} x2={right} y2={58} className="vertical-process-axis" strokeWidth={0.4} />
+      <rect x={left} y={50} width={Math.max(0, now - left)} height={16} className="vertical-process-progress" />
+      <rect x={now - 1.3} y={36} width={2.6} height={40} className="vertical-process-playhead" />
+      <line x1={now} y1={36} x2={now} y2={76} className="vertical-process-current" strokeWidth={2.4} />
+      <circle cx={now} cy={58} r={3.1} className="vertical-process-current-cap" />
+      <text x={Math.min(right - 6, Math.max(left + 6, now))} y={34} textAnchor="middle" fontSize={8} className="vertical-process-graph-label" data-ink="current">{step}</text>
       {events.map((event, index) => {
         const x = xAt(event.iteration);
         const label = tags[index];
+        const ahead = event.iteration > origin + step;
         return (
-          <g key={event.iteration}>
+          <g
+            key={event.iteration}
+            data-state={ahead ? "ahead" : "reached"}
+            onClick={(pointer) => {
+              pointer.stopPropagation();
+              onSeek(event.iteration);
+            }}
+          >
             <line x1={x} y1={48} x2={x} y2={68} className="vertical-process-stem" data-reason={event.reason} strokeWidth={0.45} />
+            <circle cx={x} cy={58} r={4.2} fill="transparent" />
             <circle cx={x} cy={58} r={label ? 2.1 : 1.2} data-reason={event.reason} />
             {label ? <text x={x} y={80} textAnchor="middle" fontSize={4} className="vertical-process-graph-label" data-ink="mark">{label}</text> : null}
           </g>
@@ -320,6 +377,8 @@ export function VerticalProcess({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
   const [triangles, setTriangles] = useState<number | null>(null);
+  const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const onTriangles = useCallback((count: number | null) => setTriangles(count), []);
 
   useEffect(() => {
@@ -348,6 +407,49 @@ export function VerticalProcess({
   }, [candidate, initial]);
 
   const shown = set?.continuations[0] ?? null;
+  const horizon = set?.rules.horizon ?? 0;
+  const playOrigin = shown?.z0Iteration ?? 0;
+  const playStep = horizon > 0 ? Math.min(horizon, Math.max(0, step)) : 0;
+  const playIteration = playOrigin + playStep;
+
+  useEffect(() => {
+    setPlaying(false);
+    setStep(0);
+  }, [shown?.id]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => {
+      setStep((current) => (current >= horizon ? current : current + 1));
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [playing, horizon]);
+
+  useEffect(() => {
+    if (playing && horizon > 0 && step >= horizon) setPlaying(false);
+  }, [playing, step, horizon]);
+
+  const seek = useCallback((iteration: number) => {
+    if (!shown || horizon <= 0) return;
+    setPlaying(false);
+    const next = Math.min(horizon, Math.max(0, iteration - shown.z0Iteration));
+    setStep(next);
+  }, [shown, horizon]);
+
+  const togglePlay = () => {
+    if (!shown || horizon <= 0) return;
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    if (step >= horizon) setStep(0);
+    setPlaying(true);
+  };
+
+  const resetReplay = () => {
+    setPlaying(false);
+    setStep(0);
+  };
   const z0 = shown?.field.slices[0] ?? null;
   const identity = set ?? candidate;
   const typology = identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype";
@@ -374,6 +476,18 @@ export function VerticalProcess({
   const samples = shown?.acceptedIterations ?? [];
   const states = picturedStates(shown?.field.slices.length ?? 0);
   const tags = planeTags(shown?.events.length ?? 0);
+  let activeIndex = 0;
+  if (shown) {
+    for (let index = 0; index < shown.events.length; index += 1) {
+      if (shown.events[index].iteration <= playIteration) activeIndex = index;
+    }
+  }
+  const revealedCount = shown ? activeIndex + 1 : 0;
+  const activeSlice = shown?.field.slices[activeIndex] ?? null;
+  const revealedField = useMemo(() => {
+    if (!shown) return null;
+    return { ...shown.field, slices: shown.field.slices.slice(0, revealedCount) };
+  }, [shown, revealedCount]);
   const status = handoffStatus(set?.origin, pending, error);
 
   return (
@@ -425,11 +539,29 @@ export function VerticalProcess({
           </section>
         </div>
 
-        <section className="vertical-process-board">
+        <section className="vertical-process-board" data-playing={playing || undefined}>
           <header className="vertical-process-label">
             <p className="eyebrow">Skill 3</p>
             <h2 className="panel-title">Process</h2>
+            <div className="vertical-process-replay">
+              <span>Iteration {playStep} / {horizon || "—"}</span>
+              <button type="button" onClick={togglePlay} disabled={!shown || horizon <= 0}>{playing ? "Pause" : "Play"}</button>
+              <button type="button" onClick={resetReplay} disabled={!shown}>Reset</button>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(1, horizon)}
+                value={playStep}
+                aria-label="Continuation timeline"
+                disabled={!shown || horizon <= 0}
+                onChange={(event) => seek(playOrigin + Number(event.target.value))}
+              />
+            </div>
           </header>
+          <div className="vertical-process-replay-bar" aria-hidden="true">
+            <span className="vertical-process-replay-fill" style={{ width: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
+            <span className="vertical-process-replay-head" style={{ left: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
+          </div>
           <div className="vertical-process-center">
             <section className="vertical-process-region" data-balance="visual">
               <header className="vertical-process-label">
@@ -454,10 +586,17 @@ export function VerticalProcess({
               <header className="vertical-process-label">
                 <p className="eyebrow">02</p>
                 <h2 className="panel-title">Natural continuation</h2>
+                <p className="vertical-process-aside">{playStep} / {horizon || "—"}</p>
               </header>
               <div className="vertical-process-split">
                 <div className="vertical-process-stage">
-                  {shown ? <ProcessFilmstrip slices={shown.field.slices} labels={states.map((state) => state.label)} /> : null}
+                  {activeSlice ? <ProcessPlate slice={activeSlice} /> : null}
+                  {shown ? (
+                    <span className="vertical-process-now">
+                      {playStep} / {horizon}
+                      <small>{tags[activeIndex] || shown.id}</small>
+                    </span>
+                  ) : null}
                 </div>
                 <div className="vertical-process-meta" data-layout="plot">
                   <Strip
@@ -474,6 +613,8 @@ export function VerticalProcess({
                       horizon={set.rules.horizon}
                       threshold={set.rules.deltaThreshold}
                       marks={states}
+                      step={playStep}
+                      onSeek={seek}
                     />
                   ) : null}
                 </div>
@@ -486,7 +627,18 @@ export function VerticalProcess({
               </header>
               <div className="vertical-process-split">
                 <div className="vertical-process-stage">
-                  {shown ? <ProcessStack field={shown.field} labels={tags} reasons={shown.events.map((event) => event.reason)} /> : null}
+                  {revealedField ? (
+                    <ProcessStack
+                      field={revealedField}
+                      labels={tags}
+                      reasons={shown?.events.map((event) => event.reason)}
+                      plates={revealedField.slices.length}
+                      onPick={(index) => {
+                        const event = shown?.events[index];
+                        if (event) seek(event.iteration);
+                      }}
+                    />
+                  ) : null}
                 </div>
                 <div className="vertical-process-meta" data-layout="plot">
                   <Strip
@@ -504,6 +656,8 @@ export function VerticalProcess({
                       minGap={set.rules.minGap}
                       maxGap={set.rules.maxGap}
                       tags={tags}
+                      step={playStep}
+                      onSeek={seek}
                     />
                   ) : null}
                 </div>
@@ -513,16 +667,21 @@ export function VerticalProcess({
               <header className="vertical-process-label">
                 <p className="eyebrow">04</p>
                 <h2 className="panel-title">3D morphology preview</h2>
-                {shown ? <p className="vertical-process-aside">{shown.id} · preview outcome</p> : null}
+                {shown ? <p className="vertical-process-aside">{shown.id} · {revealedCount < 2 ? "Z0 only" : `${revealedCount}/${shown.sampleCount} slices`}</p> : null}
               </header>
               <div className="vertical-process-split">
                 <div className="vertical-process-stage">
-                  {shown ? (
+                  {shown && revealedField ? (
                     <ProcessMorphology
-                      field={shown.field}
+                      field={revealedField}
                       cacheIdentity={`${set?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.id}`}
                       onTriangles={onTriangles}
                     />
+                  ) : null}
+                  {shown ? (
+                    <span className="vertical-process-now">
+                      {revealedCount < 2 ? "Waiting for the next sample" : `${revealedCount} / ${shown.sampleCount} slices`}
+                    </span>
                   ) : null}
                 </div>
                 <div className="vertical-process-meta">

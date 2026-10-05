@@ -83,16 +83,24 @@ export function ProcessStack({
   field,
   labels,
   reasons,
+  plates: plateLimit = STACK_DISPLAY_PLATES,
+  onPick,
 }: {
   field: VerticalViewerField;
   labels?: readonly string[];
   reasons?: readonly string[];
+  /** How many accepted samples may be drawn. Replay passes the full revealed count. */
+  plates?: number;
+  onPick?: (index: number) => void;
 }) {
   const [plates, setPlates] = useState<HTMLCanvasElement[]>([]);
+  const hits = useRef<{ index: number; x: number; y: number }[]>([]);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
   useEffect(() => {
-    const slices = stackDisplaySlices(field.slices);
+    const slices = stackDisplaySlices(field.slices, plateLimit);
     setPlates(slices.map((slice) => rasterTrailPlate(slice.trails, slice.trailSize, slice.peak, slice.iteration, PLATE, slice.source, slice.attractor)));
-  }, [field]);
+  }, [field, plateLimit]);
   const ref = useFittedCanvas((canvas, width, height) => {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(width * dpr);
@@ -106,7 +114,8 @@ export function ProcessStack({
     const pitch = 0.18;
     const full = Math.max(1, plates.length - 1) * pitch;
     const frame = orthoStackFrame(width, height, 0.45, 1.02, full, true);
-    const shown = stackDisplayIndices(field.slices.length);
+    const shown = stackDisplayIndices(field.slices.length, plateLimit);
+    const nextHits: { index: number; x: number; y: number }[] = [];
     const order = plates.map((_, index) => index).sort((a, b) => {
       const ay = (a - (plates.length - 1) / 2) * pitch;
       const by = (b - (plates.length - 1) / 2) * pitch;
@@ -131,15 +140,37 @@ export function ProcessStack({
     ctx.font = `${Math.max(12, height * 0.045)}px sans-serif`;
     ctx.textBaseline = "middle";
     shown.forEach((sourceIndex, plateIndex) => {
+      const y = (plateIndex - (plates.length - 1) / 2) * pitch;
+      const point = frame.project(0, y, 0);
+      nextHits.push({ index: sourceIndex, x: point.x, y: point.y });
       const label = labels?.[sourceIndex];
       if (!label) return;
-      const y = (plateIndex - (plates.length - 1) / 2) * pitch;
-      const point = frame.project(0.62, y, -0.42);
+      const tag = frame.project(0.62, y, -0.42);
       ctx.fillStyle = PLANE_INK[reasons?.[sourceIndex] ?? ""] ?? "#f2f2ee";
-      ctx.fillText(label, point.x, point.y);
+      ctx.fillText(label, tag.x, tag.y);
     });
+    hits.current = nextHits;
   }, plates);
-  return <canvas ref={ref} aria-label="Accepted samples stacked through time" />;
+  return (
+    <canvas
+      ref={ref}
+      aria-label="Accepted samples stacked through time"
+      onClick={(event) => {
+        const pick = onPickRef.current;
+        const canvas = ref.current;
+        if (!pick || !canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        let best: { index: number; distance: number } | null = null;
+        for (const hit of hits.current) {
+          const distance = Math.hypot(hit.x - x, hit.y - y);
+          if (!best || distance < best.distance) best = { index: hit.index, distance };
+        }
+        if (best && best.distance <= Math.min(rect.width, rect.height) * 0.22) pick(best.index);
+      }}
+    />
+  );
 }
 
 export function ProcessMorphology({

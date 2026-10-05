@@ -1199,6 +1199,120 @@
   stroke: rgba(15, 115, 119, 0.45);
 }
 
+.vertical-process-progress {
+  fill: #0f7377;
+}
+
+.vertical-process-playhead {
+  fill: rgba(242, 242, 238, 0.22);
+}
+
+.vertical-process-current {
+  stroke: #f2f2ee;
+}
+
+.vertical-process-current-cap {
+  fill: #f2f2ee;
+}
+
+.vertical-process-graph text[data-ink="current"] {
+  fill: #f2f2ee;
+}
+
+.vertical-process-graph [data-state="ahead"] {
+  opacity: 0.22;
+}
+
+.vertical-process-board > .vertical-process-label .panel-title {
+  flex: 0 1 auto;
+}
+
+.vertical-process-replay {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55em;
+  min-width: 18em;
+}
+
+.vertical-process-replay button {
+  border: 0;
+  border-left: 3px solid #0f7377;
+  background: rgba(15, 115, 119, 0.28);
+  color: #f2f2ee;
+  padding: 0.22em 0.7em;
+  font: inherit;
+  font-size: 0.72em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.vertical-process-replay button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.vertical-process-replay input[type="range"] {
+  width: 14em;
+  height: 1.1em;
+  accent-color: #0f7377;
+}
+
+.vertical-process-replay span {
+  color: #f2f2ee;
+  font-size: 0.92em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vertical-process-replay-bar {
+  position: relative;
+  flex: 0 0 auto;
+  height: 0.55em;
+  background: rgba(242, 242, 238, 0.12);
+}
+
+.vertical-process-replay-fill {
+  display: block;
+  height: 100%;
+  background: #0f7377;
+}
+
+.vertical-process-replay-head {
+  position: absolute;
+  top: -0.18em;
+  width: 0.28em;
+  height: 0.9em;
+  background: #f2f2ee;
+  transform: translateX(-50%);
+}
+
+.vertical-process-now {
+  position: absolute;
+  top: 0.22em;
+  left: 0.35em;
+  z-index: 1;
+  color: #f2f2ee;
+  font-size: 1.15em;
+  letter-spacing: 0.1em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 0.35em #000, 0 0 0.12em #000;
+}
+
+.vertical-process-now small {
+  display: block;
+  margin-top: 0.12em;
+  color: #7fd4d6;
+  font-size: 0.62em;
+  letter-spacing: 0.16em;
+}
+
 .vertical-process-stem {
   stroke: rgba(242, 242, 238, 0.45);
 }
