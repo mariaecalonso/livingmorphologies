@@ -36,16 +36,23 @@ export type RunsSession = {
   paused: boolean;
 };
 
+let dbPromise: Promise<IDBDatabase | null> | null = null;
+
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  return new Promise((resolve) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
+    request.onerror = () => {
+      dbPromise = null;
+      resolve(null);
+    };
   });
+  return dbPromise;
 }
 
 export async function putSessionValue(key: string, value: unknown) {
@@ -64,6 +71,7 @@ async function put(key: string, value: unknown) {
     tx.objectStore(STORE).put(value, key);
     tx.oncomplete = () => resolve(true);
     tx.onerror = () => resolve(false);
+    tx.onabort = () => resolve(false);
   });
 }
 

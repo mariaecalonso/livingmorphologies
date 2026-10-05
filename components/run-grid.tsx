@@ -24,6 +24,7 @@ import {
   slimeFromOpenHall,
 } from "@/lib/skill1/run-open-hall";
 import { FLAT_DEEP_RUN_ITERATIONS, FLAT_DEEP_TRAIL_SCALE, flatDeepKept, flatDeepPlatesNeedRedraw, markFlatDeepFluid, realizeFlatDeepRun } from "@/lib/skill1/run-flat-deep-plan";
+import { attractorsFromUndulated, planUndulated, tuneUndulatedSlime, undulatedAgentCount } from "@/lib/skill1/run-undulated";
 import {
   compressedSequentialIdentity,
   isNovelSequence,
@@ -97,7 +98,7 @@ const OH_RUN_ITERATIONS = 280;
 const OH_STEP_BUDGET_MS = 18000;
 
 function finePaint(id?: string) {
-  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan";
+  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan" || id === "undulated";
 }
 
 function cellPeak(id: string | undefined, trails: ArrayLike<number>) {
@@ -115,7 +116,7 @@ function trailScaleFor(id?: string) {
   if (id === "compressed-sequential") return CS_TRAIL_SCALE;
   if (id === "linear-gallery") return LG_TRAIL_SCALE;
   if (id === "open-hall") return OH_TRAIL_SCALE;
-  if (id === "flat-deep-plan") return FLAT_DEEP_TRAIL_SCALE;
+  if (id === "flat-deep-plan" || id === "undulated") return FLAT_DEEP_TRAIL_SCALE;
   return RUN_TRAIL_SCALE;
 }
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
@@ -239,6 +240,43 @@ function realizeRun(
   if (base.archetypeId === "flat-deep-plan") {
     const realized = realizeFlatDeepRun(base, slimeBase, seed, attempt, index);
     return { seed, agents: realized.agents, slime: realized.slime, translation: realized.translation };
+  }
+  if (base.archetypeId === "undulated") {
+    const plan = planUndulated(seed, attempt, index);
+    const marks = attractorsFromUndulated(plan);
+    const first = marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: undulatedAgentCount(plan, seed),
+      slime: {
+        ...tuneUndulatedSlime(slimeBase, plan),
+        foodPoints: marks
+          .filter((_, mark) => mark % 3 === 0)
+          .slice(0, 5)
+          .map((mark) => ({ x: (mark.x + (mark.x2 ?? mark.x)) / 2, y: (mark.y + (mark.y2 ?? mark.y)) / 2 })),
+      },
+      translation: {
+        ...base,
+        params: {
+          ...base.params,
+          geometryVariation: Math.min(base.params.geometryVariation, 0.22),
+          attractionStrength: Math.max(base.params.attractionStrength, 1.15),
+          directionalBias: Math.max(base.params.directionalBias, 0.62),
+          randomness: Math.min(base.params.randomness, 0.08),
+          permeability: Math.min(base.params.permeability, 0.38),
+        },
+        recipe: {
+          ...base.recipe,
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
+          clustering: 0.86,
+          coreExposure: Math.min(base.recipe.coreExposure, 0.28),
+          approachWidth: Math.min(base.recipe.approachWidth, 1.25),
+        },
+      },
+    };
   }
   const planned = planLobby(base.archetypeId, salt);
   if (planned) {
@@ -1082,6 +1120,11 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         await clearRunFields("open-hall");
         existing = emptyRunSlots();
         snapshotsRef.current = existing;
+      } else if (pickedId === "undulated") {
+        await clearArchetypeFields("undulated", RUN_COUNT);
+        await clearRunFields("undulated");
+        existing = emptyRunSlots();
+        snapshotsRef.current = existing;
       } else if (pickedId === "flat-deep-plan") {
         const redrawPlates = flatDeepPlatesNeedRedraw();
         const loaded = await loadArchetypeFields(pickedId, RUN_COUNT);
@@ -1152,6 +1195,11 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
     void (async () => {
+      if (pickedId === "undulated") {
+        await clearArchetypeFields("undulated", RUN_COUNT);
+        await clearRunFields("undulated");
+        return;
+      }
       await clearRunFields();
       if (pickedId === TGF_ID) await clearArchetypeFields(TGF_ID, RUN_COUNT);
     })();
@@ -1231,6 +1279,13 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       return;
     }
     if (pickedId) rememberRunsTab(runningId ?? pickedId);
+    if (pickedId === "undulated" || runningId === "undulated") {
+      void saveRunsMeta(
+        { pickedId, runningId, completed, allQueue, allDone, running, paused },
+        "undulated",
+      );
+      return;
+    }
     void saveRunsMeta({
       pickedId,
       runningId,
@@ -1406,16 +1461,17 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const slime = lobbySimulationSlime(variant.translation.archetypeId, variant.slime);
       const openHall = variant.translation.archetypeId === "open-hall";
       const flatDeep = variant.translation.archetypeId === "flat-deep-plan";
+      const undulated = variant.translation.archetypeId === "undulated";
       const targetSteps = variant.translation.archetypeId === "topographic-ground-field"
         ? TGF_RUN_ITERATIONS
         : openHall
           ? OH_RUN_ITERATIONS
-          : flatDeep
+          : flatDeep || undulated
             ? FLAT_DEEP_RUN_ITERATIONS
             : DISPLAY_ITERATIONS;
       const steps = targetSteps - next.iteration;
       next.maxIterations = next.iteration + Math.max(1, steps);
-      if (openHall || flatDeep) {
+      if (openHall || flatDeep || undulated) {
         const started = performance.now();
         const budget = openHall ? OH_STEP_BUDGET_MS : 18000;
         let left = Math.max(1, steps);
@@ -1600,7 +1656,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         }
         frameRef.current = requestAnimationFrame(frame);
       };
-      if (id === "open-hall") {
+      if (id === "open-hall" || id === "undulated") {
         continueRun();
         void Promise.race([
           (async () => {

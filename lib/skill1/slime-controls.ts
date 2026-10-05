@@ -247,6 +247,15 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.trailCap = clamp(next.trailCap, 0.9, 1.8);
     next.deposit = clamp(next.deposit, 0.06, 0.22);
   }
+  if (archetypeId === "undulated") {
+    next.depositWidth = clamp(next.depositWidth, 0.18, 0.46);
+    next.deposit = clamp(next.deposit, 0.03, 0.1);
+    next.diffusion = 0;
+    next.decay = clamp(next.decay, 0.96, 0.985);
+    next.randomness = clamp(next.randomness, 0.04, 0.6);
+    next.persistence = clamp(next.persistence, 0.28, 0.86);
+    next.resistance = clamp(next.resistance, 0, 0.16);
+  }
   if (archetypeId === "flat-deep-plan") {
     next.sensorDistance = clamp(next.sensorDistance, 0.25, 1.15);
     next.randomness = clamp(next.randomness, 0, 0.55);

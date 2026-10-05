@@ -33,7 +33,8 @@ function fineTrail(archetypeId: string) {
     archetypeId === "compressed-sequential" ||
     archetypeId === "topographic-ground-field" ||
     archetypeId === "linear-gallery" ||
-    archetypeId === "flat-deep-plan"
+    archetypeId === "flat-deep-plan" ||
+    archetypeId === "undulated"
   );
 }
 
@@ -667,6 +668,53 @@ function sampleResistance(point: Point, size: number, amount: number) {
   return Math.min(1, amount * local);
 }
 
+function nearestUndulated(agent: Point, translation: BiologicalTranslation) {
+  const marks = translation.recipe.attractors;
+  if (!marks?.length) return null;
+  let bestD = Infinity;
+  let ax = 0;
+  let ay = 0;
+  let bx = 0;
+  let by = 0;
+  let px = 0;
+  let py = 0;
+  for (const mark of marks) {
+    if (mark.x2 == null) continue;
+    const x2 = mark.x2;
+    const y2 = mark.y2 ?? mark.y;
+    const abx = x2 - mark.x;
+    const aby = y2 - mark.y;
+    const len2 = abx * abx + aby * aby || 1;
+    const t = Math.max(0, Math.min(1, ((agent.x - mark.x) * abx + (agent.y - mark.y) * aby) / len2));
+    const qx = mark.x + abx * t;
+    const qy = mark.y + aby * t;
+    const d = Math.hypot(agent.x - qx, agent.y - qy);
+    if (d < bestD) {
+      bestD = d;
+      ax = mark.x;
+      ay = mark.y;
+      bx = x2;
+      by = y2;
+      px = qx;
+      py = qy;
+    }
+  }
+  if (!Number.isFinite(bestD)) return null;
+  return { d: bestD, ax, ay, bx, by, px, py };
+}
+
+/** Walk the wall so the ink stays a drafted line. */
+function followUndulated(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
+  const near = nearestUndulated(agent, translation);
+  if (!near) return;
+  const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
+  const forward =
+    angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
+  const onto = Math.atan2(near.py - agent.y, near.px - agent.x);
+  const lateral = near.d > 0.08 ? 0.62 : 0.04;
+  agent.heading = wrapAngle(forward * (1 - lateral) + onto * lateral);
+}
+
 function spawnAgent(
   source: Point,
   attractor: Point,
@@ -677,7 +725,24 @@ function spawnAgent(
   let x: number;
   let y: number;
   let heading: number;
-  if (translation.archetypeId === "flat-deep-plan" && recipe.attractors?.length) {
+  if (translation.archetypeId === "undulated" && recipe.attractors?.length) {
+    const marks = recipe.attractors;
+    const mark = marks[Math.floor(rng() * marks.length)] ?? marks[0];
+    const t = rng();
+    if (mark.kind === "curve") {
+      const at = pointOnCurve(mark, t);
+      const ahead = pointOnCurve(mark, Math.min(1, t + 0.12));
+      x = clamp(at.x, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(at.y, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(ahead.y - at.y, ahead.x - at.x) + (rng() < 0.5 ? 0 : Math.PI));
+    } else {
+      const x2 = mark.x2 ?? mark.x;
+      const y2 = mark.y2 ?? mark.y;
+      x = clamp(mark.x + (x2 - mark.x) * t, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
+    }
+  } else if (translation.archetypeId === "flat-deep-plan" && recipe.attractors?.length) {
     const marks = recipe.attractors;
     const mark = marks[Math.floor(rng() * marks.length)] ?? marks[0];
     const t = rng();
@@ -1136,6 +1201,8 @@ export function stepSimulation(
       agent.heading = wrapAngle(agent.heading + (rng() > 0.5 ? 1 : -1) * (Math.PI / 2));
     }
 
+    if (translation.archetypeId === "undulated") followUndulated(agent, translation);
+
     const stepBase = slime?.stepSize ?? agent.speed * (0.7 + params.permeability * 0.35);
     const resistance = sampleResistance(agent, state.size, slime?.resistance ?? 0);
     const step = stepBase * (1 - resistance * 0.82);
@@ -1143,6 +1210,13 @@ export function stepSimulation(
     const fromY = agent.y;
     agent.x += Math.cos(agent.heading) * step;
     agent.y += Math.sin(agent.heading) * step;
+    if (translation.archetypeId === "undulated") {
+      const near = nearestUndulated(agent, translation);
+      if (near && near.d > 0.04) {
+        agent.x = near.px + (agent.x - near.px) * 0.08;
+        agent.y = near.py + (agent.y - near.py) * 0.08;
+      }
+    }
 
     if (aroundAbsence(translation)) {
       const coreDist = dist(agent, state.attractor);
@@ -1192,10 +1266,11 @@ export function stepSimulation(
     state.flow[cell] += 1;
     let depositAmount = slime?.deposit ?? (0.05 + params.flowCoupling * 0.1) * agent.trailStrength;
     const edge = Math.min(agent.x, agent.y, state.size - agent.x, state.size - agent.y);
-    if (edge < 2.6 && !fineTrail(translation.archetypeId)) depositAmount *= 0.012;
+    if (edge < 2.6 && !fineTrail(translation.archetypeId) && translation.archetypeId !== "undulated") depositAmount *= 0.012;
     if (insideAttractorHole(agent, translation, slime)) depositAmount = 0;
     if (tgfKeepsPads(translation) && !insideGroundMass(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "flat-deep-plan" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
+    if (translation.archetypeId === "undulated" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
     if (aroundAbsence(translation)) {
       const angle = Math.atan2(agent.y - state.attractor.y, agent.x - state.attractor.x);
       const limit = slime

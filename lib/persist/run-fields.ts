@@ -15,16 +15,23 @@ function sessionKey(archetypeId: string, index: number) {
   return `af:${archetypeId}:${index}`;
 }
 
+let dbPromise: Promise<IDBDatabase | null> | null = null;
+
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  return new Promise((resolve) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
+    request.onerror = () => {
+      dbPromise = null;
+      resolve(null);
+    };
   });
+  return dbPromise;
 }
 
 export async function saveArchetypeField(archetypeId: string, index: number, snapshot: FieldSnapshot) {
@@ -37,6 +44,7 @@ export async function saveArchetypeField(archetypeId: string, index: number, sna
       tx.objectStore(STORE).put(packed, fieldKey(archetypeId, index));
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => resolve(false);
+      tx.onabort = () => resolve(false);
     });
   }
   const backup = await putSessionValue(sessionKey(archetypeId, index), packed);

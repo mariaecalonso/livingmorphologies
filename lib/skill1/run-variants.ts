@@ -4,6 +4,7 @@ import { attractorsFromCompressedSequential, planCompressedSequential } from "./
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
 import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
+import { attractorsFromUndulated, planUndulated } from "./run-undulated";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
 import type { AttractorKind, FieldAttractor } from "./types";
@@ -525,6 +526,9 @@ export function runAttractorsFor(
   }
   if (archetypeId === "linear-gallery") {
     return attractorsFromLinearGallery(planLinearGallery(seed, attempt, index), seed, attempt);
+  }
+  if (archetypeId === "undulated") {
+    return attractorsFromUndulated(planUndulated(seed, attempt, index));
   }
   if (archetypeId === "open-hall") {
     return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
