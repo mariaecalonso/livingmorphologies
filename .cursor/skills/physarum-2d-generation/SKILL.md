@@ -1,166 +1,59 @@
 ---
 name: physarum-2d-generation
 description: >-
-  Generates multiple abstract 2D protoarchitectural sections from Skill 1
-  Physarum rules, evaluates them against original architectural criteria, and
-  selects one final 2D outcome per archetype. Use when working on Skill 2, 2D
-  Physarum generation, iteration, architectural evaluation, final 2D selection,
-  or the Skill 3 handoff of 15 selected sections. Do not use for Skill 1
-  translation, vertical propagation, 3D geometry, interlocking, or aggregation.
+  Runs the Skill 2 evolutionary search on a Skill 1 semantic plan. Four
+  generations, Formal / Spatial / Atmospheric Pareto, crowding, and phenotype
+  Diversity. Specialists are off by default. Does not pick the one section
+  that goes to vertical propagation. Use for Skill 2 search, evaluation, or
+  the later handoff. Do not use for Skill 1 translation, vertical propagation,
+  3D geometry, interlocking, or aggregation.
 ---
-# Skill 2: 2D Physarum Generation, Iteration, Architectural Evaluation, and Final Selection
+
+# Skill 2: 2D evolutionary search
+
 This is the project-level skill for Skill 2 in the shared repository `livingmorphologies`.
-Apply this skill when generating, iterating, evaluating, and selecting 2D Physarum sections from a Skill 1 translation. Do not apply it to architectural-to-Physarum translation, vertical 3D development, 3D form-making, interlocking, or module aggregation.
-Current status: Skill 1 translation is complete and handed off. Skill 2 generation, evaluation, and selection are not implemented yet. Begin from a `Skill1Handoff`. Do not rewrite Skill 1 translation, edit `lib/catalog.ts`, or implement Skill 3 vertical propagation.
-## Purpose
-Receive the architectural-to-Physarum translation produced by Skill 1 and use it to generate multiple abstract 2D protoarchitectural sections.
-Evaluate those iterations architecturally. Select one final 2D outcome for each of the 15 architectural archetypes.
-Final target: 15 final selected 2D sections.
-## Input
-For each archetype, Skill 2 receives a `Skill1Handoff` (`toHandoff(translateArchetype(id))` in `lib/skill1/`):
-- typology and archetype ids and name
-- topology kind (`around-absence` | `contained-interior` | `open-network`)
-- existing Formal, Spatial, and Atmospheric criteria ratings (locked catalog values)
-- existing Formal, Spatial, and Atmospheric descriptors
-- criterion traces and descriptor rankings
-- Physarum behavioral rules (`behavior`)
-- Physarum parameters (`params`)
-- spatial recipe (`recipe`: source corner, attractor, isolation, clustering, enclosure)
-- field size (20×20 plan, section height 10)
-The official Skill 1 board is `LivingInstrument`. Do not unlock or rewrite catalog ratings. Do not invent missing Skill 1 output. If a field is absent from `Skill1Handoff`, stop and ask rather than reconstructing Skill 1.
-## Generation
-Conceptual workflow:
-```
-ARCHITECTURAL INPUT
-+
-PHYSARUM TRANSLATION
-        ↓
-2D PHYSARUM SIMULATION
-        ↓
-PHYSARUM NETWORK / FIELD
-        ↓
-ABSTRACT SECTIONAL INTERPRETATION
-        ↓
-2D PROTOARCHITECTURAL SECTION
-```
-The output should remain abstract. It does not need to immediately represent conventional architectural spaces, rooms, furniture, or program.
-The goal is to generate sectional spatial conditions through Physarum behavior.
-## Iterations
-For each archetype, generate multiple controlled iterations.
-Conceptually:
-```
-SAME ARCHITECTURAL CONDITION
-        ↓
-Iteration 01
-Iteration 02
-Iteration 03
-Iteration 04
-Iteration 05
-...
-```
-Iterations may vary geometrically but must remain based on the same underlying architectural criteria, descriptors, and Physarum translation.
-Variation may result from:
-- random seed
-- local growth
-- branching
-- trail evolution
-- attractor interaction
-- field variation
-- convergence
-- divergence
-- density variation
-The iterations must not become arbitrary unrelated geometry. Keep the Skill 1 rules and parameters fixed for a given archetype; vary only the controls that produce alternative realizations of the same translation.
-## 2D Section Interpretation
-The Physarum output may need to be interpreted as sectional geometry.
-Possible relationships may eventually include:
-- trail concentration
-- density
-- void
-- mass
-- opening
-- connection
-- branching
-- spatial node
-- boundary
-Do not assume conventional architectural meanings automatically. The interpretation should remain protoarchitectural.
-Do not turn the field into rooms, furniture, or labeled program in order to make it look like architecture.
-## Architectural Evaluation
-Generated iterations must be evaluated against the original architectural condition.
-Evaluation should refer back to:
-- typology
-- archetype
-- Formal criteria
-- Spatial criteria
-- Atmospheric criteria
-- Low / Medium / High values
-- Formal descriptor
-- Spatial descriptor
-- Atmospheric descriptor
-The goal is not simply to select the most visually attractive result.
-The goal is to select the iteration that most successfully expresses the architectural characteristics that produced it.
-Keep evaluation explicit and traceable: state which original criteria the iteration satisfies, weakens, or fails. Do not introduce new architectural criteria in order to score the drawings.
-## Final Selection
-For each archetype:
-```
-MULTIPLE 2D ITERATIONS
-        ↓
-ARCHITECTURAL EVALUATION
-        ↓
-ONE FINAL SELECTED 2D SECTION
-```
-Repeat across all archetypes:
-```
-5 Lobby
-+
-5 Workspace
-+
-5 Gathering
-=
-15 FINAL SELECTED 2D SECTIONS
-```
-Select exactly one final 2D section per archetype. Do not merge iterations into a composite unless the user explicitly requests that, and even then stay inside this skill's 2D boundary.
-## Handoff to Skill 3
-Skill 2 ends after the 15 final 2D outcomes have already been generated, evaluated, and selected.
-Whenever possible, Skill 2 should preserve the underlying generative information that produced the selected outcome.
-The Skill 3 handoff may eventually contain:
-- selected 2D section
-- underlying Physarum state
-- simulation parameters
-- random seed
-- trail information
-- density information
-- attractors
-- boundaries
-- dimensions
-- architectural source information
-Do not reduce the handoff to only a static image when richer generative state information is available.
-Conceptual threshold:
-```
-PHYSARUM RULES
-→ ITERATIONS
-→ ARCHITECTURAL EVALUATION
-→ 15 FINAL 2D SECTIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HANDOFF TO SKILL 3
-```
-Until implementation is requested, this skill's only deliverable is this definition.
-## This Skill Must Not
-- redefine the architectural criteria
-- rewrite descriptors
-- perform Skill 1's translation work
-- perform vertical 3D development
-- create final 3D forms
-- define interlocking systems
-- perform module aggregation
-- replace Physarum with unrelated procedural geometry
-## Agent Rules
-- Treat architectural analysis as existing input.
-- Use the Physarum translation provided by Skill 1.
-- Generate controlled variation rather than arbitrary random forms.
-- Keep 2D outcomes abstract and protoarchitectural.
-- Evaluate results against their original architectural inputs.
-- Select one final outcome per archetype.
-- Preserve enough generative information for Skill 3 whenever possible.
-- Stay strictly inside Skill 2.
-- Begin generation only from a Skill 1 handoff, or when the user is defining this skill without requiring that input yet.
-- When implementation is requested, implement only 2D generation, iteration, architectural evaluation, final selection, and the Skill 3 handoff structure. Do not translate architecture, extrude into 3D, or leave this skill's boundary.
+
+The redesigned search is the semantic controller in `lib/skill2/semantic/`. It evolves a Skill 1 semantic plan. It does not pose one recipe with drift, radius scale, and orientation.
+
+`lib/skill2/evolution.ts` is the legacy pose controller. It still reads historical version-2 runs. Do not use it for the five updated Lobby archetypes.
+
+The search does not pick the section that goes to vertical propagation. A person selects one visible Combined Catalog candidate afterward.
+
+## What is implemented
+
+- Four generation slots. A production run evaluates 100 new candidates each generation, 400 per archetype. Carried parents are not re-simulated and do not count toward the 100.
+- G01 is explorers from that archetype's own sampler. Lobby explorers call `planLobby`.
+- Later generations use an explicit composition profile. There is no production percentage in the code.
+- Objectives stay Formal, Spatial, and Atmospheric. Scoring peaks stay 0.20 / 0.50 / 0.80. Deferred criteria stay out of the means.
+- Technical validity and archetype fidelity are separate. Fidelity is `uncalibrated`, `pass`, or `fail`. Uncalibrated is not pass. No floors are built in.
+- After every generation the current Pareto set, its crowding, Diversity roles, and specialist roles (only if the experiment is on) are recomputed. Snapshots keep the earlier roles.
+- Pareto parents are chosen by a crowding tournament. Crowding is not morphology.
+- Diversity parent selection is explicit. `provisional-uniform` is only a named stand-in, not the research method.
+- A development run may turn an empty parent slot into an explorer and records that change. A production run stops instead of changing the requested mix.
+- Lobby calibration batches are separate from the pose catalog: `npx tsx scripts/semantic-lobby.ts calibrate --archetype <lobby-id> --count <n> --seed <n>`. Output is `data/semantic-runs/<archetypeId>/`. They are uncalibrated explorer evaluations, with previews, and they do not reproduce.
+- Diversity uses an injected phenotype distance and a supplied threshold. Rescue is farthest-first and has no fixed cap. Tag and Rescue are stored separately. Both count as the Diversity role.
+- A candidate is stored once and may sit in more than one parent pool. The selection event chooses the mutation intent. Extra roles do not add children.
+- Orientation elites are not a preservation role.
+- Specialists default off. The old qualification can run for a later comparison. Pose near-duplicates are not used. Objective-specific mutation throws until a mapping exists.
+- The Combined Catalog is built after preservation. Phenotype dedup only hides a designer-facing duplicate. The hidden candidate stays in the research record and can still be a parent. More current roles wins the visible representative. A lower id breaks remaining ties; that is a temporary storage order, not a research rule.
+- Handoff accepts any visible catalog candidate and replays the semantic plan. It does not accept pose genomes for Lobby.
+
+## Still uncalibrated
+
+Do not treat a development run as a research result. These values are not decided:
+
+- fidelity floors, per archetype
+- generation composition
+- mutation amplitudes and which fields a role may change, beyond Lobby's provisional affinity
+- phenotype distance, fingerprint comparison, Diversity threshold, and Diversity parent selection
+- whether Specialists stay
+
+Lobby's provisional affinity is local continuous fields versus discrete and growth fields. It is not a universal genome and it is not an objective map. Workspace and Gathering do not inherit Lobby field names.
+
+## Legacy
+
+Pose runs remain readable. Do not overwrite `data/evolution` history. Do not describe the pose archive, orientation elites, or the 80-candidate mix as the current method.
+
+## Boundary
+
+Skill 1 owns repair, realization, slime, and agent count. Skill 2 chooses parents, roles, and which exposed genes change. Do not edit raw biological parameters. Do not enable deferred criteria. Do not add a winner-selection step inside the search.
