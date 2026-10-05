@@ -24,8 +24,48 @@ import {
   slimeFromOpenHall,
 } from "@/lib/skill1/run-open-hall";
 import { FLAT_DEEP_RUN_ITERATIONS, FLAT_DEEP_TRAIL_SCALE, flatDeepKept, flatDeepPlatesNeedRedraw, markFlatDeepFluid, realizeFlatDeepRun } from "@/lib/skill1/run-flat-deep-plan";
+import { IHP_RUN_ITERATIONS, IHP_STEP_BUDGET_MS, IHP_TRAIL_SCALE, attractorsFromInsertedPlate, insertedPlateAgentCount, planInsertedHorizontalPlate, tuneInsertedPlateSlime } from "@/lib/skill1/run-inserted-horizontal-plate";
 import { attractorsFromUndulated, planUndulated, tuneUndulatedSlime, undulatedAgentCount } from "@/lib/skill1/run-undulated";
 import { agentsFromTerraced, attractorsFromTerraced, planTerraced, slimeFromTerraced, TERRACE_RUN_ITERATIONS } from "@/lib/skill1/run-terraced";
+import {
+  agentsFromVoidField,
+  attractorsFromVoidField,
+  paramsFromVoidField,
+  planVoidField,
+  recipeFromVoidField,
+  slimeFromVoidField,
+} from "@/lib/skill1/run-void-field";
+import {
+  agentsFromContainedRoom,
+  attractorsFromContainedRoom,
+  CONTAINED_ROOM_ID,
+  CONTAINED_RUN_ITERATIONS,
+  CONTAINED_STEP_BUDGET_MS,
+  CONTAINED_TRAIL_SCALE,
+  paramsFromContainedRoom,
+  planContainedRoom,
+  recipeFromContainedRoom,
+  slimeFromContainedRoom,
+} from "@/lib/skill1/run-contained-room";
+import {
+  agentsFromLinearEdgeGallery,
+  attractorsFromLinearEdgeGallery,
+  LEG_ID,
+  LEG_RUN_ITERATIONS,
+  LEG_STEP_BUDGET_MS,
+  LEG_TRAIL_SCALE,
+  planLinearEdgeGallery,
+  slimeFromLinearEdgeGallery,
+} from "@/lib/skill1/run-linear-edge-gallery";
+import {
+  agentsFromSteppedAmphitheater,
+  planSteppedAmphitheater,
+  SA_GENERATION,
+  SA_RUN_ITERATIONS,
+  SA_STEP_BUDGET_MS,
+  SA_TRAIL_SCALE,
+  slimeFromSteppedAmphitheater,
+} from "@/lib/skill1/run-stepped-amphitheater";
 import {
   compressedSequentialIdentity,
   isNovelSequence,
@@ -97,17 +137,22 @@ const LG_TRAIL_SCALE = 16;
 const OH_TRAIL_SCALE = 8;
 const OH_RUN_ITERATIONS = 280;
 const OH_STEP_BUDGET_MS = 18000;
+const VF_ID = "void-field";
+const VF_RUN_ITERATIONS = 320;
+const VF_STEP_BUDGET_MS = 18000;
 const TR_ID = "terraced";
+const SA_ID = "stepped-amphitheater";
 const TR_TRAIL_SCALE = 24;
 const TR_STEP_BUDGET_MS = 19000;
 
 function finePaint(id?: string) {
-  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan" || id === "undulated" || id === TR_ID;
+  return id === "compressed-sequential" || id === "topographic-ground-field" || id === "linear-gallery" || id === "open-hall" || id === "flat-deep-plan" || id === "undulated" || id === "inserted-horizontal-plate" || id === TR_ID || id === SA_ID || id === CONTAINED_ROOM_ID || id === VF_ID || id === LEG_ID;
 }
 
 function cellPeak(id: string | undefined, trails: ArrayLike<number>) {
   const peak = robustTrailPeak(trails);
-  if (id === "open-hall") return Math.max(0.64, peak * 0.58);
+  if (id === "open-hall" || id === SA_ID || id === CONTAINED_ROOM_ID || id === VF_ID || id === LEG_ID) return Math.max(0.64, peak * 0.58);
+  if (id === "inserted-horizontal-plate") return Math.max(0.7, peak * 0.62);
   return Math.max(1.4, peak);
 }
 
@@ -122,6 +167,10 @@ function trailScaleFor(id?: string) {
   if (id === "open-hall") return OH_TRAIL_SCALE;
   if (id === "flat-deep-plan" || id === "undulated") return FLAT_DEEP_TRAIL_SCALE;
   if (id === TR_ID) return TR_TRAIL_SCALE;
+  if (id === SA_ID) return SA_TRAIL_SCALE;
+  if (id === CONTAINED_ROOM_ID) return CONTAINED_TRAIL_SCALE;
+  if (id === "inserted-horizontal-plate") return IHP_TRAIL_SCALE;
+  if (id === LEG_ID) return LEG_TRAIL_SCALE;
   return RUN_TRAIL_SCALE;
 }
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
@@ -283,6 +332,110 @@ function realizeRun(
       },
     };
   }
+  if (base.archetypeId === CONTAINED_ROOM_ID) {
+    const plan = planContainedRoom(seed, attempt, index);
+    const marks = attractorsFromContainedRoom(plan);
+    const core = marks.find((mark) => mark.kind === "point") ?? marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: agentsFromContainedRoom(plan, seed),
+      slime: slimeFromContainedRoom(slimeBase, plan, seed),
+      translation: {
+        ...base,
+        params: paramsFromContainedRoom(base.params, seed ^ index),
+        recipe: {
+          ...recipeFromContainedRoom(base.recipe, plan),
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: core.x, y: core.y },
+          attractors: marks,
+        },
+      },
+    };
+  }
+  if (base.archetypeId === "inserted-horizontal-plate") {
+    const plan = planInsertedHorizontalPlate(seed, attempt, index);
+    const marks = attractorsFromInsertedPlate(plan);
+    const first = marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: insertedPlateAgentCount(plan),
+      slime: {
+        ...tuneInsertedPlateSlime(slimeBase, plan),
+        foodPoints: marks
+          .filter((_, mark) => mark % 2 === 0)
+          .slice(0, 4)
+          .map((mark) => ({ x: (mark.x + (mark.x2 ?? mark.x)) / 2, y: (mark.y + (mark.y2 ?? mark.y)) / 2 })),
+      },
+      translation: {
+        ...base,
+        params: {
+          ...base.params,
+          geometryVariation: Math.min(base.params.geometryVariation, 0.16),
+          attractionStrength: Math.max(base.params.attractionStrength, 1.2),
+          directionalBias: Math.max(base.params.directionalBias, 0.7),
+          randomness: Math.min(base.params.randomness, 0.05),
+          permeability: Math.min(base.params.permeability, 0.28),
+        },
+        recipe: {
+          ...base.recipe,
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
+          clustering: 0.22,
+          coreExposure: Math.max(base.recipe.coreExposure, 0.8),
+          approachWidth: Math.max(base.recipe.approachWidth, 2.4),
+        },
+      },
+    };
+  }
+  if (base.archetypeId === SA_ID) {
+    const plan = planSteppedAmphitheater(seed, attempt, index);
+    return {
+      seed,
+      agents: agentsFromSteppedAmphitheater(plan, seed),
+      slime: slimeFromSteppedAmphitheater(slimeBase, plan, seed ^ (attempt * 9973)),
+      translation: {
+        ...base,
+        params: {
+          ...base.params,
+          directionalBias: 0.02,
+          attractionStrength: 0.06,
+        },
+        recipe: {
+          ...base.recipe,
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: plan.gx, y: plan.gy },
+          attractors: [],
+          saField: plan,
+          clustering: 0.12,
+        },
+      },
+    };
+  }
+  if (base.archetypeId === VF_ID) {
+    const plan = planVoidField(seed, attempt, index);
+    const marks = attractorsFromVoidField(plan);
+    const first = marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: agentsFromVoidField(plan, seed),
+      slime: slimeFromVoidField(slimeBase, plan, seed),
+      translation: {
+        ...base,
+        params: paramsFromVoidField(base.params, plan),
+        recipe: {
+          ...recipeFromVoidField(base.recipe, plan),
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
+        },
+      },
+    };
+  }
   if (base.archetypeId === TR_ID) {
     const plan = planTerraced(seed, attempt, index);
     const marks = attractorsFromTerraced(plan, seed);
@@ -294,6 +447,26 @@ function realizeRun(
         ...slimeFromTerraced(slimeBase, plan, seed ^ (attempt * 9973)),
         foodPoints: marks.map((mark) => ({ x: (mark.x + (mark.x2 ?? mark.x)) / 2, y: (mark.y + (mark.y2 ?? mark.y)) / 2 })),
       },
+      translation: {
+        ...base,
+        recipe: {
+          ...base.recipe,
+          attractorFixed: true,
+          attractorsOnly: true,
+          attractor: { x: first.x, y: first.y },
+          attractors: marks,
+        },
+      },
+    };
+  }
+  if (base.archetypeId === LEG_ID) {
+    const plan = planLinearEdgeGallery(seed, attempt, index);
+    const marks = attractorsFromLinearEdgeGallery(plan);
+    const first = marks.find((mark) => mark.kind === "point") ?? marks[0] ?? { x: 10, y: 10 };
+    return {
+      seed,
+      agents: agentsFromLinearEdgeGallery(plan),
+      slime: slimeFromLinearEdgeGallery(slimeBase, plan, seed ^ (attempt * 9973)),
       translation: {
         ...base,
         recipe: {
@@ -439,8 +612,8 @@ function paintRunCell(
     undefined,
     finePaint(archetypeId) ? 8 : 5,
     finePaint(archetypeId) ? cellPeak(archetypeId, snapshot.trails) : undefined,
-    finePaint(archetypeId),
-    archetypeId === "open-hall" ? 1.75 : 1,
+    finePaint(archetypeId) && archetypeId !== "inserted-horizontal-plate",
+    archetypeId === "open-hall" || archetypeId === SA_ID || archetypeId === CONTAINED_ROOM_ID || archetypeId === VF_ID || archetypeId === LEG_ID ? 1.75 : 1,
   );
 }
 
@@ -1126,13 +1299,27 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           if (snapshot && canvas) paintRunCell(canvas, snapshot, variantsRef.current[index]?.translation.recipe.attractors, id);
         });
       });
-      void clearRunFields();
+      void clearRunFields(id === VF_ID ? VF_ID : undefined);
     })();
   };
 
   const startRuns = () => {
     if (!pickedId) return;
     rememberRunsTab(pickedId);
+    if (pickedId === SA_ID) {
+      try {
+        sessionStorage.setItem("lm-sa-running", "1");
+      } catch {
+        /* ignore */
+      }
+    }
+    if (pickedId === LEG_ID) {
+      try {
+        sessionStorage.setItem("lm-leg-running", "1");
+      } catch {
+        /* ignore */
+      }
+    }
     allQueueRef.current = false;
     setAllQueue(false);
     setCatalogOpen(false);
@@ -1156,6 +1343,33 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
           snapshotsRef.current = existing;
         }
+      } else if (pickedId === CONTAINED_ROOM_ID) {
+        await clearArchetypeFields(CONTAINED_ROOM_ID, RUN_COUNT);
+        await clearRunFields(CONTAINED_ROOM_ID);
+        existing = emptyRunSlots();
+        snapshotsRef.current = existing;
+      } else if (pickedId === SA_ID) {
+        let fresh = false;
+        try {
+          fresh = sessionStorage.getItem("lm-sa-gen") !== SA_GENERATION;
+        } catch {
+          fresh = true;
+        }
+        if (fresh) {
+          await clearArchetypeFields(SA_ID, RUN_COUNT);
+          await clearRunFields(SA_ID);
+          try {
+            sessionStorage.setItem("lm-sa-gen", SA_GENERATION);
+          } catch {
+            /* ignore */
+          }
+          existing = emptyRunSlots();
+          snapshotsRef.current = existing;
+        } else {
+          const stored = await loadArchetypeFields(SA_ID, RUN_COUNT);
+          existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+          snapshotsRef.current = existing;
+        }
       } else if (pickedId === "open-hall") {
         await clearArchetypeFields("open-hall", RUN_COUNT);
         await clearRunFields("open-hall");
@@ -1166,6 +1380,39 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         await clearRunFields("undulated");
         existing = emptyRunSlots();
         snapshotsRef.current = existing;
+      } else if (pickedId === "inserted-horizontal-plate") {
+        await clearArchetypeFields("inserted-horizontal-plate", RUN_COUNT);
+        await clearRunFields("inserted-horizontal-plate");
+        existing = emptyRunSlots();
+        snapshotsRef.current = existing;
+      } else if (pickedId === VF_ID) {
+        await clearArchetypeFields(VF_ID, RUN_COUNT);
+        await clearRunFields(VF_ID);
+        existing = emptyRunSlots();
+        snapshotsRef.current = existing;
+      } else if (pickedId === LEG_ID) {
+        const stored = await loadArchetypeFields(LEG_ID, RUN_COUNT);
+        existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+        snapshotsRef.current = existing;
+      } else if (pickedId === "linear-gallery") {
+        const layout = "spine-5";
+        let restyle = false;
+        try {
+          restyle = window.localStorage.getItem("lm-gallery-layout") !== layout;
+          if (restyle) window.localStorage.setItem("lm-gallery-layout", layout);
+        } catch {
+          restyle = false;
+        }
+        if (restyle) {
+          await clearArchetypeFields("linear-gallery", RUN_COUNT);
+          await clearRunFields("linear-gallery");
+          existing = emptyRunSlots();
+          snapshotsRef.current = existing;
+        } else {
+          const stored = await loadArchetypeFields("linear-gallery", RUN_COUNT);
+          existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+          snapshotsRef.current = existing;
+        }
       } else if (pickedId === "flat-deep-plan") {
         const redrawPlates = flatDeepPlatesNeedRedraw();
         const loaded = await loadArchetypeFields(pickedId, RUN_COUNT);
@@ -1193,6 +1440,20 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   };
 
   const stopRuns = () => {
+    if ((runningIdRef.current ?? pickedIdRef.current) === SA_ID) {
+      try {
+        sessionStorage.removeItem("lm-sa-running");
+      } catch {
+        /* ignore */
+      }
+    }
+    if ((runningIdRef.current ?? pickedIdRef.current) === LEG_ID) {
+      try {
+        sessionStorage.removeItem("lm-leg-running");
+      } catch {
+        /* ignore */
+      }
+    }
     runningRef.current = false;
     setRunning(false);
     setPaused(false);
@@ -1239,6 +1500,11 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       if (pickedId === "undulated") {
         await clearArchetypeFields("undulated", RUN_COUNT);
         await clearRunFields("undulated");
+        return;
+      }
+      if (pickedId === VF_ID) {
+        await clearArchetypeFields(VF_ID, RUN_COUNT);
+        await clearRunFields(VF_ID);
         return;
       }
       await clearRunFields();
@@ -1312,6 +1578,46 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   }, []);
 
   useEffect(() => {
+    if (!sessionReady || running || pickedId !== SA_ID) return;
+    let active = false;
+    try {
+      active = sessionStorage.getItem("lm-sa-running") === "1";
+    } catch {
+      active = false;
+    }
+    if (!active) return;
+    if (snapshotsRef.current.filter(Boolean).length >= RUN_COUNT) {
+      try {
+        sessionStorage.removeItem("lm-sa-running");
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    startRuns();
+  }, [sessionReady, pickedId, running]);
+
+  useEffect(() => {
+    if (!sessionReady || running || paused || pickedId !== LEG_ID) return;
+    let active = false;
+    try {
+      active = sessionStorage.getItem("lm-leg-running") === "1";
+    } catch {
+      active = false;
+    }
+    if (!active) return;
+    if (snapshotsRef.current.filter(Boolean).length >= RUN_COUNT) {
+      try {
+        sessionStorage.removeItem("lm-leg-running");
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    startRuns();
+  }, [sessionReady, pickedId, running, paused]);
+
+  useEffect(() => {
     if (!sessionReady) return;
     const storedTab = readRunsTab();
     const current = runningId ?? pickedId;
@@ -1324,6 +1630,20 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       void saveRunsMeta(
         { pickedId, runningId, completed, allQueue, allDone, running, paused },
         "undulated",
+      );
+      return;
+    }
+    if (pickedId === VF_ID || runningId === VF_ID) {
+      void saveRunsMeta(
+        { pickedId, runningId, completed, allQueue, allDone, running, paused },
+        VF_ID,
+      );
+      return;
+    }
+    if (pickedId === CONTAINED_ROOM_ID || runningId === CONTAINED_ROOM_ID) {
+      void saveRunsMeta(
+        { pickedId, runningId, completed, allQueue, allDone, running, paused },
+        CONTAINED_ROOM_ID,
       );
       return;
     }
@@ -1511,23 +1831,38 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const flatDeep = variant.translation.archetypeId === "flat-deep-plan";
       const undulated = variant.translation.archetypeId === "undulated";
       const terraced = variant.translation.archetypeId === TR_ID;
+      const amphitheater = variant.translation.archetypeId === SA_ID;
+      const contained = variant.translation.archetypeId === CONTAINED_ROOM_ID;
+      const inserted = variant.translation.archetypeId === "inserted-horizontal-plate";
+      const voidField = variant.translation.archetypeId === VF_ID;
+      const edgeGallery = variant.translation.archetypeId === LEG_ID;
       const targetSteps = variant.translation.archetypeId === "topographic-ground-field"
         ? TGF_RUN_ITERATIONS
         : openHall
           ? OH_RUN_ITERATIONS
           : terraced
             ? TERRACE_RUN_ITERATIONS
+            : amphitheater
+              ? SA_RUN_ITERATIONS
+            : contained
+              ? CONTAINED_RUN_ITERATIONS
+            : inserted
+              ? IHP_RUN_ITERATIONS
+            : voidField
+              ? VF_RUN_ITERATIONS
+            : edgeGallery
+              ? LEG_RUN_ITERATIONS
             : flatDeep || undulated
               ? FLAT_DEEP_RUN_ITERATIONS
               : DISPLAY_ITERATIONS;
       const steps = targetSteps - next.iteration;
       next.maxIterations = next.iteration + Math.max(1, steps);
-      if (openHall || flatDeep || undulated) {
+      if (openHall || flatDeep || undulated || amphitheater || contained || inserted || voidField || edgeGallery) {
         const started = performance.now();
-        const budget = openHall ? OH_STEP_BUDGET_MS : 18000;
+        const budget = edgeGallery ? LEG_STEP_BUDGET_MS : voidField ? VF_STEP_BUDGET_MS : inserted ? IHP_STEP_BUDGET_MS : contained ? CONTAINED_STEP_BUDGET_MS : amphitheater ? SA_STEP_BUDGET_MS : openHall ? OH_STEP_BUDGET_MS : 18000;
         let left = Math.max(1, steps);
         while (left > 0 && performance.now() - started < budget) {
-          const batch = Math.min(openHall ? 40 : 30, left);
+          const batch = Math.min(openHall || amphitheater || contained || inserted || voidField || edgeGallery ? 40 : 30, left);
           stepMany(next, variant.translation, rng, batch, slime.decay, slime, false);
           left -= batch;
         }
@@ -1581,16 +1916,47 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       }
     }
 
+    let saveChain: Promise<unknown> = Promise.resolve();
+    const clearEdgeRun = () => {
+      try {
+        sessionStorage.removeItem("lm-leg-running");
+      } catch {
+        /* ignore */
+      }
+    };
     const frame = () => {
+      if ((runningIdRef.current ?? pickedIdRef.current) === LEG_ID) frameRef.current = null;
+      try {
+        stepCell();
+      } catch (error) {
+        if ((runningIdRef.current ?? pickedIdRef.current) !== LEG_ID) throw error;
+        index += 1;
+        if (!cancelled && runningRef.current && index < RUN_COUNT) frameRef.current = requestAnimationFrame(frame);
+        else {
+          runningRef.current = false;
+          setRunning(false);
+          setCompleted(snapshotsRef.current.filter(Boolean).length);
+          if (index >= RUN_COUNT) clearEdgeRun();
+        }
+      }
+    };
+    const stepCell = () => {
       if (cancelled || !runningRef.current) return;
       while (index < RUN_COUNT && snapshotsRef.current[index]) index += 1;
       if (index >= RUN_COUNT) {
         runningRef.current = false;
         setRunning(false);
         setCompleted(snapshotsRef.current.filter(Boolean).length);
+        if ((runningIdRef.current ?? pickedIdRef.current) === LEG_ID) clearEdgeRun();
         return;
       }
       const fallback = variantsRef.current[index];
+      if (!fallback) {
+        if ((runningIdRef.current ?? pickedIdRef.current) === LEG_ID && !cancelled && runningRef.current) {
+          frameRef.current = requestAnimationFrame(frame);
+          return;
+        }
+      }
       const tries: Array<{ variant: typeof fallback; snapshot: FieldSnapshot; features: MorphFeatures; identity: boolean; signature: number[]; score: number }> = [];
       const compressed = fallback.translation.archetypeId === "compressed-sequential";
       const hall = fallback.translation.archetypeId === "continuous-hall";
@@ -1712,19 +2078,28 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         if (index >= RUN_COUNT) {
           runningRef.current = false;
           setRunning(false);
+          if ((runningIdRef.current ?? pickedIdRef.current) === SA_ID) {
+            try {
+              sessionStorage.removeItem("lm-sa-running");
+            } catch {
+              /* ignore */
+            }
+          }
+          if ((runningIdRef.current ?? pickedIdRef.current) === LEG_ID) clearEdgeRun();
           return;
         }
         frameRef.current = requestAnimationFrame(frame);
       };
-      if (id === "open-hall" || id === "undulated") {
+      if (id === "open-hall" || id === "undulated" || id === SA_ID || id === CONTAINED_ROOM_ID || id === "inserted-horizontal-plate" || id === VF_ID || id === LEG_ID) {
         continueRun();
-        void Promise.race([
+        const save = Promise.race([
           (async () => {
             await saveRunSnapshot(cell, snapshot, id);
             await saveArchetypeField(id, cell, snapshot);
           })(),
           new Promise((resolve) => window.setTimeout(resolve, 2500)),
         ]).catch(() => {});
+        if (id === LEG_ID) saveChain = saveChain.then(() => save);
       } else {
       void (async () => {
         try {
@@ -1741,8 +2116,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
     resumeFrameRef.current = frame;
     frameRef.current = requestAnimationFrame(frame);
+    const edgeWatch = window.setInterval(() => {
+      if (cancelled || !runningRef.current) return;
+      if ((runningIdRef.current ?? pickedIdRef.current) !== LEG_ID) return;
+      if (index >= RUN_COUNT || frameRef.current != null) return;
+      frameRef.current = requestAnimationFrame(frame);
+    }, 2500);
     return () => {
       cancelled = true;
+      window.clearInterval(edgeWatch);
       resumeFrameRef.current = null;
       if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
     };
@@ -1825,7 +2207,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             {view === "catalog"
               ? `Generation 01 · Initial morphology population · ${pickedName ?? "Select an archetype"}`
               : pickedName
-                ? `${pickedName} · ${RUN_COUNT} growth variants · ${(runningId ?? pickedId) === "open-hall" ? OH_RUN_ITERATIONS : (runningId ?? pickedId) === "flat-deep-plan" ? FLAT_DEEP_RUN_ITERATIONS : DISPLAY_ITERATIONS} iterations`
+                ? `${pickedName} · ${RUN_COUNT} growth variants · ${(runningId ?? pickedId) === "open-hall" ? OH_RUN_ITERATIONS : (runningId ?? pickedId) === SA_ID ? SA_RUN_ITERATIONS : (runningId ?? pickedId) === CONTAINED_ROOM_ID ? CONTAINED_RUN_ITERATIONS : (runningId ?? pickedId) === "inserted-horizontal-plate" ? IHP_RUN_ITERATIONS : (runningId ?? pickedId) === VF_ID ? VF_RUN_ITERATIONS : (runningId ?? pickedId) === LEG_ID ? LEG_RUN_ITERATIONS : (runningId ?? pickedId) === "flat-deep-plan" ? FLAT_DEEP_RUN_ITERATIONS : DISPLAY_ITERATIONS} iterations`
                 : "Select an archetype"}
           </p>
           {view === "catalog" ? (

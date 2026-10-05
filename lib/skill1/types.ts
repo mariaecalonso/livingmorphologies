@@ -145,6 +145,33 @@ export type SpatialRecipe = {
   clustering: number;
   /** Corridor width (cells) of the controlled approach from source → attractor. */
   approachWidth: number;
+  /**
+   * Stepped Amphitheater only. A growth field, not a drawing.
+   * Terraces are the level sets agents prefer while depositing.
+   */
+  saField?: SteppedGrowthField;
+};
+
+export type SteppedGrowthField = {
+  gx: number;
+  gy: number;
+  ex: number;
+  ey: number;
+  axis: number;
+  curve: number;
+  pitch: number;
+  count: number;
+  span: number;
+  asymmetry: number;
+  branch: number;
+  branchAngle: number;
+  gatherU: number;
+  gatherV: number;
+  throat: number;
+  porosity: number;
+  enclosure: number;
+  phase: number;
+  flare: number;
 };
 
 export type ArchetypeConfig = {

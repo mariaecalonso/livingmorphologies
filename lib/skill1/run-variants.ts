@@ -1,10 +1,14 @@
 import { mulberry32 } from "../physarum";
 import { FIELD_SIZE } from "./maps";
+import { attractorsFromContainedRoom, planContainedRoom } from "./run-contained-room";
 import { attractorsFromCompressedSequential, planCompressedSequential } from "./run-compressed-sequential";
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
+import { attractorsFromLinearEdgeGallery, planLinearEdgeGallery } from "./run-linear-edge-gallery";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
 import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
+import { attractorsFromSteppedAmphitheater, planSteppedAmphitheater } from "./run-stepped-amphitheater";
 import { attractorsFromTerraced, planTerraced } from "./run-terraced";
+import { attractorsFromInsertedPlate, planInsertedHorizontalPlate } from "./run-inserted-horizontal-plate";
 import { attractorsFromUndulated, planUndulated } from "./run-undulated";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
@@ -501,6 +505,9 @@ export function runAttractorsFor(
   if (archetypeId === "linear-gallery") {
     return attractorsFromLinearGallery(planLinearGallery(seed, attempt, index), seed, attempt);
   }
+  if (archetypeId === "linear-edge-gallery") {
+    return attractorsFromLinearEdgeGallery(planLinearEdgeGallery(seed, attempt, index));
+  }
   if (archetypeId === "undulated") {
     return attractorsFromUndulated(planUndulated(seed, attempt, index));
   }
@@ -509,6 +516,15 @@ export function runAttractorsFor(
   }
   if (archetypeId === "terraced") {
     return attractorsFromTerraced(planTerraced(seed, attempt, index), seed);
+  }
+  if (archetypeId === "contained-room-within-volume") {
+    return attractorsFromContainedRoom(planContainedRoom(seed, attempt, index));
+  }
+  if (archetypeId === "inserted-horizontal-plate") {
+    return attractorsFromInsertedPlate(planInsertedHorizontalPlate(seed, attempt, index));
+  }
+  if (archetypeId === "stepped-amphitheater") {
+    return attractorsFromSteppedAmphitheater(planSteppedAmphitheater(seed, attempt, index));
   }
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
   const f = frame(rng);

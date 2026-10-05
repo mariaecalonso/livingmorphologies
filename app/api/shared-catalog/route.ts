@@ -35,7 +35,8 @@ async function readEntries(file: string): Promise<IncomingEntry[] | null> {
   try {
     const parsed = JSON.parse(await readFile(file, "utf8")) as unknown;
     return Array.isArray(parsed) ? (parsed as IncomingEntry[]) : [];
-  } catch {
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return [];
     return null;
   }
 }
@@ -79,7 +80,17 @@ export async function POST(request: Request) {
   const next = `${JSON.stringify(entries, null, 2)}\n`;
   const temp = `${file}.tmp`;
   await writeFile(temp, next);
-  await rename(temp, file);
+  try {
+    await unlink(file);
+  } catch {
+    /* the first save has no catalog file yet */
+  }
+  try {
+    await rename(temp, file);
+  } catch {
+    await writeFile(file, next);
+    await unlink(temp).catch(() => undefined);
+  }
   return NextResponse.json({ ok: true, archetypeId, count: entries.length });
 }
 
