@@ -2,13 +2,13 @@
   "bundle": "lobby-semantic-catalog-v1",
   "archetypes": {
     "topographic-ground-field": {
-      "status": "blocked",
-      "fidelity": "block",
+      "status": "complete",
+      "fidelity": "warn",
       "warnings": [
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 0
+      "catalogCandidates": 144
     },
     "linear-gallery": {
       "status": "blocked",
