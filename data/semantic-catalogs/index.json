@@ -36,6 +36,16 @@
       ],
       "blocks": [],
       "catalogCandidates": 0
+    },
+    "vertical-void": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate",
+        "fidelity pass rate is low"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
     }
   }
 }
