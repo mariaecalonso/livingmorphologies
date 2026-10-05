@@ -44,6 +44,79 @@ function archetypesFor(typologyId: string) {
   return Object.values(ARCHETYPES).filter((item) => item.typologyId === typologyId);
 }
 
+const REASON_LABEL: Record<string, string> = {
+  z0: "Z0",
+  threshold: "Threshold",
+  "max-gap": "Max gap",
+};
+
+function ResultDetail({
+  resultId,
+  continuation,
+  typology,
+  archetype,
+  moduleSize,
+  morphology,
+  triangles,
+  chosen,
+  onBack,
+  onChoose,
+}: {
+  resultId: string;
+  continuation: NaturalContinuation;
+  typology: string;
+  archetype: string;
+  moduleSize: string;
+  morphology: string;
+  triangles: number | null;
+  chosen: boolean;
+  onBack: () => void;
+  onChoose: () => void;
+}) {
+  const marks = continuation.events.slice(0, 8).map((event, index, list) => ({
+    key: `${event.iteration}-${index}`,
+    label: index === 0 ? "Z0" : index === list.length - 1 && continuation.events.length <= 8 && list.length > 1 ? "Late" : String(index).padStart(2, "0"),
+    reason: REASON_LABEL[event.reason] ?? event.reason,
+  }));
+  const hidden = Math.max(0, continuation.events.length - marks.length);
+  return (
+    <div className="vertical-catalogue-detail">
+      <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
+      <h2 className="panel-title">Result {resultId}</h2>
+      <dl className="vertical-catalogue-facts">
+        <div><dt>Result</dt><dd>{resultId}</dd></div>
+        <div><dt>Continuation</dt><dd>{continuation.id}</dd></div>
+        <div><dt>Seed</dt><dd>{String(continuation.continuationSeed)}</dd></div>
+        <div><dt>Typology</dt><dd>{typology}</dd></div>
+        <div><dt>Archetype</dt><dd>{archetype}</dd></div>
+        <div><dt>Candidate</dt><dd>{String(continuation.candidateId)}</dd></div>
+        <div><dt>Z0</dt><dd>{String(continuation.z0Iteration)}</dd></div>
+        <div><dt>Samples</dt><dd>{String(continuation.sampleCount)}</dd></div>
+        <div><dt>Events</dt><dd>{String(continuation.eventCount)}</dd></div>
+        <div><dt>Module</dt><dd>{moduleSize}</dd></div>
+        <div><dt>Mode</dt><dd>{morphology}</dd></div>
+        <div><dt>Triangles</dt><dd>{triangles != null ? String(triangles) : "—"}</dd></div>
+      </dl>
+      <h2 className="panel-title">Behavior profile</h2>
+      <p className="vertical-process-note">Behavior descriptors pending</p>
+      <h2 className="panel-title">Accepted samples</h2>
+      <p className="vertical-process-note">{continuation.events.length} accepted {continuation.events.length === 1 ? "sample" : "samples"}</p>
+      <div className="vertical-catalogue-events">
+        {marks.map((mark) => (
+          <span key={mark.key}>
+            {mark.label}
+            <small>{mark.reason}</small>
+          </span>
+        ))}
+        {hidden > 0 ? <span>+{hidden}</span> : null}
+      </div>
+      <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
+        {chosen ? "Selected for this session" : "Select this morphology"}
+      </button>
+    </div>
+  );
+}
+
 export function VerticalCatalogue({
   initial,
   candidate,
@@ -56,6 +129,9 @@ export function VerticalCatalogue({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [inspecting, setInspecting] = useState(false);
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [triangles, setTriangles] = useState<Record<string, number>>({});
   const [viewReset, setViewReset] = useState(0);
   const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || "continuous-hall");
@@ -103,7 +179,7 @@ export function VerticalCatalogue({
   })), [set?.origin, slots]);
 
   return (
-    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"}>
+    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-inspect={inspecting && selected ? "" : undefined}>
       <header className="evo-header">
         <div>
           <p className="display evo-header-title">3D Catalogue</p>
@@ -140,6 +216,7 @@ export function VerticalCatalogue({
                     const next = archetypesFor(id)[0];
                     if (next) setArchetypeId(next.id);
                     setSelectedId(null);
+                    setInspecting(false);
                   }}
                 >
                   {label}
@@ -158,6 +235,7 @@ export function VerticalCatalogue({
                   onClick={() => {
                     setArchetypeId(item.id);
                     setSelectedId(null);
+                    setInspecting(false);
                   }}
                 >
                   {item.name}
@@ -171,33 +249,58 @@ export function VerticalCatalogue({
             modules={modules}
             origin={set?.origin ?? "pending"}
             selectedId={selected?.id ?? null}
-            onSelect={setSelectedId}
+            onSelect={(id) => {
+              setSelectedId(id);
+              if (id) setInspecting(true);
+            }}
             resetToken={viewReset}
+            inspecting={inspecting && selected != null}
+            onTriangles={(id, count) => {
+              setTriangles((current) => current[id] === count ? current : { ...current, [id]: count });
+            }}
           />
         </section>
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame vertical-catalogue-grow">
-            <h2 className="panel-title">Collection</h2>
-            <dl className="vertical-catalogue-facts">
-              <div><dt>Typology</dt><dd>{TYPOLOGY[typologyId] ?? typologyId}</dd></div>
-              <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
-              <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
-              <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
-              <div><dt>Displayed</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
-              <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
-            </dl>
-            {error ? <p className="vertical-process-note">{error}</p> : null}
-            {pending ? <p className="vertical-process-note">Checking handoff</p> : null}
-            {!matches && !pending && !error ? <p className="vertical-process-note">No continuation set for this archetype</p> : null}
-            {selected ? (
-              <dl className="vertical-catalogue-facts">
-                <div><dt>Result</dt><dd>{modules.find((item) => item.id === selected.id)?.label}</dd></div>
-                <div><dt>Continuation</dt><dd>{selected.id}</dd></div>
-                <div><dt>Seed</dt><dd>{String(selected.continuationSeed)}</dd></div>
-                <div><dt>Z0</dt><dd>{String(selected.z0Iteration)}</dd></div>
-                <div><dt>Samples</dt><dd>{String(selected.sampleCount)}</dd></div>
-              </dl>
-            ) : null}
+            {inspecting && selected && set ? (
+              <ResultDetail
+                resultId={modules.find((item) => item.id === selected.id)?.label ?? selected.id}
+                continuation={selected}
+                typology={TYPOLOGY[typologyId] ?? typologyId}
+                archetype={archetypeName}
+                moduleSize={`${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}`}
+                morphology={set.rules.morphology}
+                triangles={triangles[selected.id] ?? null}
+                chosen={chosenId === selected.id}
+                onBack={() => setInspecting(false)}
+                onChoose={() => setChosenId((current) => current === selected.id ? null : selected.id)}
+              />
+            ) : (
+              <>
+                <h2 className="panel-title">Collection</h2>
+                <dl className="vertical-catalogue-facts">
+                  <div><dt>Typology</dt><dd>{TYPOLOGY[typologyId] ?? typologyId}</dd></div>
+                  <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
+                  <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
+                  <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
+                  <div><dt>Displayed</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+                  <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
+                </dl>
+                {error ? <p className="vertical-process-note">{error}</p> : null}
+                {pending ? <p className="vertical-process-note">Checking handoff</p> : null}
+                {!matches && !pending && !error ? <p className="vertical-process-note">No continuation set for this archetype</p> : null}
+                {selected ? (
+                  <dl className="vertical-catalogue-facts">
+                    <div><dt>Result</dt><dd>{modules.find((item) => item.id === selected.id)?.label}</dd></div>
+                    <div><dt>Continuation</dt><dd>{selected.id}</dd></div>
+                    <div><dt>Seed</dt><dd>{String(selected.continuationSeed)}</dd></div>
+                    <div><dt>Z0</dt><dd>{String(selected.z0Iteration)}</dd></div>
+                    <div><dt>Samples</dt><dd>{String(selected.sampleCount)}</dd></div>
+                  </dl>
+                ) : null}
+                {chosenId ? <p className="vertical-process-note">Session choice {chosenId}</p> : null}
+              </>
+            )}
           </section>
           <section className="vertical-catalogue-frame">
             <h2 className="panel-title">Controls</h2>
@@ -205,7 +308,7 @@ export function VerticalCatalogue({
               <div><dt>Orbit</dt><dd>Drag</dd></div>
               <div><dt>Pan</dt><dd>Shift drag</dd></div>
               <div><dt>Zoom</dt><dd>Wheel</dd></div>
-              <div><dt>Select</dt><dd>Click</dd></div>
+              <div><dt>Inspect</dt><dd>Click</dd></div>
             </dl>
             <button type="button" className="vertical-catalogue-reset" onClick={() => setViewReset((value) => value + 1)}>
               Reset view

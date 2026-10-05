@@ -31,6 +31,7 @@ uniform float uAspect;
 uniform float uZoom;
 uniform vec2 uPan;
 uniform vec3 uOffset;
+uniform float uScale;
 uniform float uShade;
 out vec3 vNormal;
 out float vShade;
@@ -39,7 +40,7 @@ void main() {
   float sy = sin(uYaw);
   float cp = cos(uPitch);
   float sp = sin(uPitch);
-  vec3 p = aPos + uOffset;
+  vec3 p = aPos * uScale + uOffset;
   float x1 = p.x * cy + p.z * sy;
   float z1 = -p.x * sy + p.z * cy;
   float y2 = p.y * cp - z1 * sp;
@@ -60,37 +61,33 @@ in vec3 vNormal;
 in float vShade;
 uniform float uSelected;
 uniform float uPlate;
+uniform float uDim;
 out vec4 oColor;
 void main() {
-  if (uPlate > 2.5) {
-    oColor = vec4(0.045, 0.13, 0.135, 1.0);
-    return;
+  vec3 tone;
+  if (uPlate > 2.5) tone = vec3(0.045, 0.13, 0.135);
+  else if (uPlate > 1.5) tone = vec3(0.055, 0.055, 0.058);
+  else if (uPlate > 0.5) tone = vec3(0.06, 0.06, 0.063);
+  else {
+    vec3 n = normalize(vNormal);
+    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+    if (dot(n, viewDir) < 0.0) n = -n;
+    vec3 key = normalize(vec3(0.28, 0.9, 0.36));
+    vec3 fill = normalize(vec3(-0.48, 0.16, 0.22));
+    float wrap = clamp((dot(n, key) + 0.38) / 1.38, 0.0, 1.0);
+    float bounce = clamp(dot(n, fill), 0.0, 1.0);
+    vec3 halfDir = normalize(key + viewDir);
+    float spec = pow(clamp(dot(n, halfDir), 0.0, 1.0), 36.0);
+    vec3 shadow = vec3(0.62, 0.60, 0.56);
+    vec3 body = vec3(0.95, 0.93, 0.89);
+    vec3 col = mix(shadow, body, wrap);
+    col += vec3(0.96, 0.94, 0.90) * bounce * 0.06;
+    col += vec3(1.0) * spec * 0.018;
+    float lift = mix(1.14, 0.72, clamp(vShade, 0.0, 1.0));
+    if (uSelected > 0.5) lift = 1.16;
+    tone = col * lift;
   }
-  if (uPlate > 1.5) {
-    oColor = vec4(0.055, 0.055, 0.058, 1.0);
-    return;
-  }
-  if (uPlate > 0.5) {
-    oColor = vec4(0.06, 0.06, 0.063, 1.0);
-    return;
-  }
-  vec3 n = normalize(vNormal);
-  vec3 viewDir = vec3(0.0, 0.0, 1.0);
-  if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.28, 0.9, 0.36));
-  vec3 fill = normalize(vec3(-0.48, 0.16, 0.22));
-  float wrap = clamp((dot(n, key) + 0.38) / 1.38, 0.0, 1.0);
-  float bounce = clamp(dot(n, fill), 0.0, 1.0);
-  vec3 halfDir = normalize(key + viewDir);
-  float spec = pow(clamp(dot(n, halfDir), 0.0, 1.0), 36.0);
-  vec3 shadow = vec3(0.62, 0.60, 0.56);
-  vec3 body = vec3(0.95, 0.93, 0.89);
-  vec3 col = mix(shadow, body, wrap);
-  col += vec3(0.96, 0.94, 0.90) * bounce * 0.06;
-  col += vec3(1.0) * spec * 0.018;
-  float lift = mix(1.14, 0.72, clamp(vShade, 0.0, 1.0));
-  if (uSelected > 0.5) lift = 1.16;
-  oColor = vec4(col * lift, 1.0);
+  oColor = vec4(tone * uDim, 1.0);
 }`;
 
 const LINE_VERT = `#version 300 es
@@ -127,11 +124,40 @@ in vec2 vNdc;
 in float vFade;
 uniform vec2 uFieldMin;
 uniform vec2 uFieldMax;
+uniform float uDim;
 out vec4 oColor;
 void main() {
   vec2 outside = max(uFieldMin - vNdc, vNdc - uFieldMax);
   float vignette = 1.0 - smoothstep(0.0, 0.62, length(max(outside, 0.0)));
-  oColor = vec4(vColor.rgb, vColor.a * mix(1.0, vignette, vFade));
+  oColor = vec4(vColor.rgb * uDim, vColor.a * mix(1.0, vignette, vFade) * uDim);
+}`;
+
+const BLIT_VERT = `#version 300 es
+layout(location = 0) in vec2 aPos;
+out vec2 vUv;
+void main() {
+  vUv = aPos * 0.5 + 0.5;
+  gl_Position = vec4(aPos, 0.0, 1.0);
+}`;
+
+const BLIT_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uTex;
+uniform vec2 uTexel;
+in vec2 vUv;
+out vec4 oColor;
+void main() {
+  if (uTexel.x == 0.0 && uTexel.y == 0.0) {
+    oColor = texture(uTex, vUv);
+    return;
+  }
+  oColor = texture(uTex, vUv) * 0.227027
+    + texture(uTex, vUv + uTexel) * 0.1945946
+    + texture(uTex, vUv - uTexel) * 0.1945946
+    + texture(uTex, vUv + uTexel * 2.0) * 0.1216216
+    + texture(uTex, vUv - uTexel * 2.0) * 0.1216216
+    + texture(uTex, vUv + uTexel * 3.0) * 0.0702703
+    + texture(uTex, vUv - uTexel * 3.0) * 0.0702703;
 }`;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -209,6 +235,32 @@ function composedView(width: number, height: number): Camera {
   };
 }
 
+type FocusPose = { x: number; y: number; z: number; scale: number };
+
+function focusPose(ox: number, oy: number, oz: number, camera: Camera, aspect: number, blend: number): FocusPose {
+  const cy = Math.cos(camera.yaw);
+  const sy = Math.sin(camera.yaw);
+  const cp = Math.cos(camera.pitch);
+  const sp = Math.sin(camera.pitch);
+  const x1 = ox * cy + oz * sy;
+  const z1 = -ox * sy + oz * cy;
+  const y2 = oy * cp - z1 * sp;
+  const z2 = oy * sp + z1 * cp;
+  const x1t = -0.04 * aspect / camera.zoom - camera.panX;
+  const y2t = 0.02 / camera.zoom - camera.panY;
+  const z2t = z2 + 24;
+  const y = y2t * cp + z2t * sp;
+  const z1t = z2t * cp - y2t * sp;
+  const x = x1t * cy - z1t * sy;
+  const z = x1t * sy + z1t * cy;
+  return {
+    x: ox + (x - ox) * blend,
+    y: oy + (y - oy) * blend,
+    z: oz + (z - oz) * blend,
+    scale: 1 + blend * 0.72,
+  };
+}
+
 function project(x: number, y: number, z: number, camera: Camera, width: number, height: number) {
   const aspect = width / Math.max(1, height);
   const point = rotateView(x, y, z, camera.yaw, camera.pitch);
@@ -224,8 +276,8 @@ function lineColor(selected: boolean): [number, number, number, number] {
   return selected ? [0.06, 0.45, 0.47, 0.92] : [0.7, 0.69, 0.66, 0.14];
 }
 
-function pushBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number]) {
-  const h = MODULE_HALF;
+function pushBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number], half = MODULE_HALF) {
+  const h = half;
   const corners: [number, number, number][] = [];
   for (const x of [-h, h]) {
     for (const y of [-h, h]) {
@@ -309,31 +361,48 @@ export function CatalogueField({
   selectedId,
   onSelect,
   resetToken,
+  inspecting = false,
+  onTriangles,
 }: {
   modules: readonly CatalogueModule[];
   origin: string;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   resetToken: number;
+  inspecting?: boolean;
+  onTriangles?: (id: string, count: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ yaw: ISO_YAW, pitch: ISO_PITCH, panX: 0, panY: 0, zoom: 0.02 });
   const exploringRef = useRef(false);
+  const cameraSnapshot = useRef<Camera | null>(null);
+  const exploringSnapshot = useRef(false);
+  const composePendingRef = useRef(false);
+  const inspectingRef = useRef(inspecting);
+  const blendRef = useRef(0);
+  const poseRef = useRef<FocusPose | null>(null);
   const meshesRef = useRef<Map<string, IsoMesh>>(new Map());
   const paintRef = useRef<() => void>(() => undefined);
   const modulesRef = useRef(modules);
   const selectedRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
+  const onTrianglesRef = useRef(onTriangles);
+  inspectingRef.current = inspecting;
   modulesRef.current = modules;
   selectedRef.current = selectedId;
   onSelectRef.current = onSelect;
+  onTrianglesRef.current = onTriangles;
 
   useEffect(() => {
     let cancel = false;
     const meshes = meshesRef.current;
     const live = new Set(modules.map((item) => item.id));
     for (const id of meshes.keys()) if (!live.has(id)) meshes.delete(id);
+    for (const item of modules) {
+      const ready = meshes.get(item.id);
+      if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
+    }
     const pending = modules.filter((item) => item.field.slices.length >= 2 && !meshes.has(item.id));
     let index = 0;
     const step = () => {
@@ -342,14 +411,16 @@ export function CatalogueField({
       if (!item) return;
       index += 1;
       try {
-        meshes.set(item.id, cachedOpeningMesh(item.field.slices, {
+        const mesh = cachedOpeningMesh(item.field.slices, {
           identity: item.cacheIdentity,
           sequence: item.field.slices.map((slice) => slice.iteration).join(","),
           field: "network",
           mode: "isomesh",
           iso: 0.48,
           sizeZ: MODULE_SIZE_Z,
-        }));
+        });
+        meshes.set(item.id, mesh);
+        onTrianglesRef.current?.(item.id, mesh.triangles);
       } catch {
         meshes.delete(item.id);
       }
@@ -393,6 +464,65 @@ export function CatalogueField({
     const linePan = gl.getUniformLocation(lines, "uPan");
     const lineFieldMin = gl.getUniformLocation(lines, "uFieldMin");
     const lineFieldMax = gl.getUniformLocation(lines, "uFieldMax");
+    const clayScale = gl.getUniformLocation(clay, "uScale");
+    const clayDim = gl.getUniformLocation(clay, "uDim");
+    const lineDim = gl.getUniformLocation(lines, "uDim");
+    const blit = program(gl, BLIT_VERT, BLIT_FRAG);
+    const blitBuffer = gl.createBuffer();
+    const blitTex = blit ? gl.getUniformLocation(blit, "uTex") : null;
+    const blitTexel = blit ? gl.getUniformLocation(blit, "uTexel") : null;
+    if (blitBuffer) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, blitBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+    }
+    let blurW = 0;
+    let blurH = 0;
+    let texA: WebGLTexture | null = null;
+    let texB: WebGLTexture | null = null;
+    let fboA: WebGLFramebuffer | null = null;
+    let fboB: WebGLFramebuffer | null = null;
+    let depthA: WebGLRenderbuffer | null = null;
+    const allocTarget = (w: number, h: number) => {
+      const tex = gl.createTexture();
+      if (!tex) return null;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return tex;
+    };
+    const ensureBlur = (w: number, h: number) => {
+      if (!blit || !blitBuffer) return false;
+      const hw = Math.max(1, w >> 1);
+      const hh = Math.max(1, h >> 1);
+      if (texA && texB && fboA && fboB && blurW === hw && blurH === hh) return true;
+      if (texA) gl.deleteTexture(texA);
+      if (texB) gl.deleteTexture(texB);
+      if (fboA) gl.deleteFramebuffer(fboA);
+      if (fboB) gl.deleteFramebuffer(fboB);
+      if (depthA) gl.deleteRenderbuffer(depthA);
+      texA = allocTarget(hw, hh);
+      texB = allocTarget(hw, hh);
+      depthA = gl.createRenderbuffer();
+      fboA = gl.createFramebuffer();
+      fboB = gl.createFramebuffer();
+      if (!texA || !texB || !depthA || !fboA || !fboB) return false;
+      gl.bindRenderbuffer(gl.RENDERBUFFER, depthA);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, hw, hh);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fboA);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texA, 0);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthA);
+      const colorA = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texB, 0);
+      const colorB = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      blurW = hw;
+      blurH = hh;
+      return colorA && colorB;
+    };
     const draw = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
@@ -405,72 +535,36 @@ export function CatalogueField({
         canvas.width = pixelsW;
         canvas.height = pixelsH;
       }
-      if (!exploringRef.current) {
+      const blend = blendRef.current;
+      const holdCamera = inspectingRef.current || blend > 0.001;
+      if (composePendingRef.current) {
+        cameraRef.current = composedView(width, height);
+        composePendingRef.current = false;
+        if (cameraSnapshot.current) {
+          cameraSnapshot.current = { ...cameraRef.current };
+          exploringSnapshot.current = false;
+        }
+      } else if (!exploringRef.current && !holdCamera) {
         cameraRef.current = composedView(width, height);
       }
       const camera = cameraRef.current;
       const aspect = width / height;
       const zoom = camera.zoom;
-      gl.viewport(0, 0, pixelsW, pixelsH);
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthFunc(gl.LEQUAL);
-      gl.disable(gl.CULL_FACE);
       const shown = modulesRef.current;
       const selected = selectedRef.current;
+      const selectedIndex = shown.findIndex((item) => item.id === selected);
+      const [stationX, stationY, stationZ] = selectedIndex >= 0 ? catalogueOrigin(selectedIndex) : [0, 0, 0];
+      const pose = blend > 0.001 && selectedIndex >= 0
+        ? focusPose(stationX, stationY, stationZ, camera, aspect, blend)
+        : null;
+      poseRef.current = pose;
       const viewYs = shown.map((_, itemIndex) => {
         const [ox, , oz] = catalogueOrigin(itemIndex);
         return rotateView(ox, 0, oz, camera.yaw, camera.pitch).y;
       });
       const near = viewYs.length ? Math.min(...viewYs) : 0;
       const far = viewYs.length ? Math.max(...viewYs) : 1;
-      const plates: number[] = [];
       const ground = groundBounds(camera, aspect, zoom);
-      pushQuad(plates, -MODULE_HALF - 0.04, ground.x0, ground.z0, ground.x1, ground.z1);
-      const floorCount = plates.length / 6;
-      shown.forEach((item, itemIndex) => {
-        const [ox, , oz] = catalogueOrigin(itemIndex);
-        const pad = 5.2;
-        pushQuad(plates, -MODULE_HALF + 0.04, ox - pad, oz - pad, ox + pad, oz + pad);
-      });
-      gl.useProgram(clay);
-      gl.uniform1f(clayYaw, camera.yaw);
-      gl.uniform1f(clayPitch, camera.pitch);
-      gl.uniform1f(clayAspect, aspect);
-      gl.uniform1f(clayZoom, zoom);
-      gl.uniform2f(clayPan, camera.panX, camera.panY);
-      gl.uniform3f(clayOffset, 0, 0, 0);
-      gl.uniform1f(clayShade, 0);
-      gl.uniform1f(claySelected, 0);
-      gl.bindBuffer(gl.ARRAY_BUFFER, plateBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(plates), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
-      gl.enableVertexAttribArray(1);
-      gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
-      gl.uniform1f(clayPlate, 1);
-      gl.drawArrays(gl.TRIANGLES, 0, floorCount);
-      shown.forEach((item, itemIndex) => {
-        gl.uniform1f(clayPlate, item.id === selected ? 3 : 2);
-        gl.drawArrays(gl.TRIANGLES, floorCount + itemIndex * 6, 6);
-      });
-
-      const lineData = gridLines(ground);
-      shown.forEach((item, itemIndex) => {
-        const [ox, oy, oz] = catalogueOrigin(itemIndex);
-        pushBox(lineData, ox, oy, oz, lineColor(item.id === selected));
-      });
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.useProgram(lines);
-      gl.uniform1f(lineYaw, camera.yaw);
-      gl.uniform1f(linePitch, camera.pitch);
-      gl.uniform1f(lineAspect, aspect);
-      gl.uniform1f(lineZoom, zoom);
-      gl.uniform2f(linePan, camera.panX, camera.panY);
-      gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineData), gl.DYNAMIC_DRAW);
       let fieldMinX = Infinity;
       let fieldMaxX = -Infinity;
       let fieldMinY = Infinity;
@@ -495,51 +589,179 @@ export function CatalogueField({
         fieldMinY = -0.45;
         fieldMaxY = 0.45;
       }
-      gl.uniform2f(lineFieldMin, fieldMinX - 0.06, fieldMinY - 0.06);
-      gl.uniform2f(lineFieldMax, fieldMaxX + 0.06, fieldMaxY + 0.06);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
-      gl.enableVertexAttribArray(1);
-      gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 12);
-      gl.enableVertexAttribArray(2);
-      gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 28);
-      gl.drawArrays(gl.LINES, 0, lineData.length / 8);
-      gl.disableVertexAttribArray(2);
-      gl.disable(gl.BLEND);
 
-      gl.useProgram(clay);
-      gl.uniform1f(clayYaw, camera.yaw);
-      gl.uniform1f(clayPitch, camera.pitch);
-      gl.uniform1f(clayAspect, aspect);
-      gl.uniform1f(clayZoom, zoom);
-      gl.uniform2f(clayPan, camera.panX, camera.panY);
-      shown.forEach((item, itemIndex) => {
-        const mesh = meshesRef.current.get(item.id);
-        if (!mesh || mesh.triangles <= 0) return;
-        const [ox, oy, oz] = catalogueOrigin(itemIndex);
-        gl.bindBuffer(gl.ARRAY_BUFFER, position);
-        gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
+      const paint = (mode: "field" | "focus", dim: number) => {
+        const focus = mode === "focus" ? pose : null;
+        if (mode === "focus" && !focus) return;
+        const plates: number[] = [];
+        let floorCount = 0;
+        if (mode === "field") {
+          pushQuad(plates, -MODULE_HALF - 0.04, ground.x0, ground.z0, ground.x1, ground.z1);
+          floorCount = plates.length / 6;
+          shown.forEach((_, itemIndex) => {
+            const [ox, , oz] = catalogueOrigin(itemIndex);
+            const pad = 5.2;
+            pushQuad(plates, -MODULE_HALF + 0.04, ox - pad, oz - pad, ox + pad, oz + pad);
+          });
+        } else if (focus) {
+          const pad = 5.2 * focus.scale;
+          pushQuad(plates, focus.y - MODULE_HALF * focus.scale + 0.04, focus.x - pad, focus.z - pad, focus.x + pad, focus.z + pad);
+        }
+        gl.useProgram(clay);
+        gl.uniform1f(clayYaw, camera.yaw);
+        gl.uniform1f(clayPitch, camera.pitch);
+        gl.uniform1f(clayAspect, aspect);
+        gl.uniform1f(clayZoom, zoom);
+        gl.uniform2f(clayPan, camera.panX, camera.panY);
+        gl.uniform3f(clayOffset, 0, 0, 0);
+        gl.uniform1f(clayScale, 1);
+        gl.uniform1f(clayShade, 0);
+        gl.uniform1f(claySelected, 0);
+        gl.uniform1f(clayDim, dim);
+        gl.bindBuffer(gl.ARRAY_BUFFER, plateBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(plates), gl.DYNAMIC_DRAW);
         gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, normal);
-        gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.DYNAMIC_DRAW);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
         gl.enableVertexAttribArray(1);
-        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
-        gl.uniform3f(clayOffset, ox, oy, oz);
-        gl.uniform1f(clayPlate, 0);
-        gl.uniform1f(clayShade, (viewYs[itemIndex] - near) / Math.max(0.001, far - near));
-        gl.uniform1f(claySelected, item.id === selected ? 1 : 0);
-        gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
-      });
+        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+        if (mode === "field") {
+          gl.uniform1f(clayPlate, 1);
+          gl.drawArrays(gl.TRIANGLES, 0, floorCount);
+          shown.forEach((item, itemIndex) => {
+            gl.uniform1f(clayPlate, item.id === selected ? 3 : 2);
+            gl.drawArrays(gl.TRIANGLES, floorCount + itemIndex * 6, 6);
+          });
+        } else {
+          gl.uniform1f(clayPlate, 2);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        const lineData = mode === "field" ? gridLines(ground) : [];
+        if (mode === "field") {
+          shown.forEach((item, itemIndex) => {
+            const [ox, oy, oz] = catalogueOrigin(itemIndex);
+            pushBox(lineData, ox, oy, oz, lineColor(item.id === selected));
+          });
+        } else if (focus) {
+          pushBox(lineData, focus.x, focus.y, focus.z, lineColor(true), MODULE_HALF * focus.scale);
+        }
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.useProgram(lines);
+        gl.uniform1f(lineYaw, camera.yaw);
+        gl.uniform1f(linePitch, camera.pitch);
+        gl.uniform1f(lineAspect, aspect);
+        gl.uniform1f(lineZoom, zoom);
+        gl.uniform2f(linePan, camera.panX, camera.panY);
+        gl.uniform1f(lineDim, mode === "field" && blend > 0.001 ? dim * 0.45 : dim);
+        gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineData), gl.DYNAMIC_DRAW);
+        gl.uniform2f(lineFieldMin, fieldMinX - 0.06, fieldMinY - 0.06);
+        gl.uniform2f(lineFieldMax, fieldMaxX + 0.06, fieldMaxY + 0.06);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 12);
+        gl.enableVertexAttribArray(2);
+        gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 28);
+        gl.drawArrays(gl.LINES, 0, lineData.length / 8);
+        gl.disableVertexAttribArray(2);
+        gl.disable(gl.BLEND);
+
+        gl.useProgram(clay);
+        gl.uniform1f(clayYaw, camera.yaw);
+        gl.uniform1f(clayPitch, camera.pitch);
+        gl.uniform1f(clayAspect, aspect);
+        gl.uniform1f(clayZoom, zoom);
+        gl.uniform2f(clayPan, camera.panX, camera.panY);
+        gl.uniform1f(clayDim, mode === "focus" ? 1 : dim);
+        const drawMesh = (item: CatalogueModule, itemIndex: number, at: FocusPose | null) => {
+          const mesh = meshesRef.current.get(item.id);
+          if (!mesh || mesh.triangles <= 0) return;
+          const [ox, oy, oz] = catalogueOrigin(itemIndex);
+          gl.bindBuffer(gl.ARRAY_BUFFER, position);
+          gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+          gl.bindBuffer(gl.ARRAY_BUFFER, normal);
+          gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(1);
+          gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
+          gl.uniform3f(clayOffset, at ? at.x : ox, at ? at.y : oy, at ? at.z : oz);
+          gl.uniform1f(clayScale, at ? at.scale : 1);
+          gl.uniform1f(clayPlate, 0);
+          gl.uniform1f(clayShade, at ? 0 : (viewYs[itemIndex] - near) / Math.max(0.001, far - near));
+          gl.uniform1f(claySelected, item.id === selected ? 1 : 0);
+          gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
+        };
+        if (mode === "focus" && focus && selectedIndex >= 0) drawMesh(shown[selectedIndex], selectedIndex, focus);
+        else shown.forEach((item, itemIndex) => drawMesh(item, itemIndex, null));
+      };
+
+      const begin = () => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, pixelsW, pixelsH);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.disable(gl.CULL_FACE);
+      };
+      begin();
+      if (!pose || !blit || !blitBuffer || !ensureBlur(pixelsW, pixelsH) || !texA || !texB || !fboA || !fboB) {
+        paint("field", pose ? 1 - blend * 0.58 : 1);
+        if (pose) {
+          gl.clear(gl.DEPTH_BUFFER_BIT);
+          paint("focus", 1);
+        }
+      } else {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fboA);
+        gl.viewport(0, 0, blurW, blurH);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+        paint("field", 1 - blend * 0.58);
+        gl.disable(gl.DEPTH_TEST);
+        gl.disableVertexAttribArray(1);
+        gl.disableVertexAttribArray(2);
+        gl.useProgram(blit);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.uniform1i(blitTex, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, blitBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+        gl.viewport(0, 0, blurW, blurH);
+        gl.bindTexture(gl.TEXTURE_2D, texA);
+        gl.uniform2f(blitTexel, 1 / blurW, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, pixelsW, pixelsH);
+        gl.bindTexture(gl.TEXTURE_2D, texB);
+        gl.uniform2f(blitTexel, 0, 1 / blurH);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.enable(gl.DEPTH_TEST);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        paint("focus", 1);
+      }
 
       const nodes = labels.querySelectorAll<HTMLButtonElement>("[data-module]");
       nodes.forEach((node) => {
         const itemIndex = Number(node.dataset.index);
+        const focused = pose != null && shown[itemIndex]?.id === selected;
         const [ox, , oz] = catalogueOrigin(itemIndex);
-        const point = project(ox, -MODULE_HALF, oz, camera, width, height);
+        const point = project(
+          focused && pose ? pose.x : ox,
+          focused && pose ? pose.y - MODULE_HALF * pose.scale : -MODULE_HALF,
+          focused && pose ? pose.z : oz,
+          camera,
+          width,
+          height,
+        );
         node.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -130%)`;
+        node.style.opacity = !pose || shown[itemIndex]?.id === selected ? "1" : String(1 - blend * 0.78);
       });
     };
     paintRef.current = draw;
@@ -549,15 +771,56 @@ export function CatalogueField({
     return () => {
       observer.disconnect();
       paintRef.current = () => undefined;
+      if (texA) gl.deleteTexture(texA);
+      if (texB) gl.deleteTexture(texB);
+      if (fboA) gl.deleteFramebuffer(fboA);
+      if (fboB) gl.deleteFramebuffer(fboB);
+      if (depthA) gl.deleteRenderbuffer(depthA);
+      if (blitBuffer) gl.deleteBuffer(blitBuffer);
     };
   }, []);
 
   useEffect(() => {
     paintRef.current();
-  }, [modules, selectedId]);
+  }, [modules, selectedId, inspecting]);
+
+  useEffect(() => {
+    if (inspecting) {
+      if (!cameraSnapshot.current) {
+        cameraSnapshot.current = { ...cameraRef.current };
+        exploringSnapshot.current = exploringRef.current;
+      }
+      return;
+    }
+    if (!cameraSnapshot.current) return;
+    cameraRef.current = { ...cameraSnapshot.current };
+    exploringRef.current = exploringSnapshot.current;
+    cameraSnapshot.current = null;
+    paintRef.current();
+  }, [inspecting]);
+
+  useEffect(() => {
+    const target = inspecting ? 1 : 0;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      blendRef.current = target;
+      paintRef.current();
+      return;
+    }
+    let frame = 0;
+    const tick = () => {
+      const delta = target - blendRef.current;
+      blendRef.current = Math.abs(delta) < 0.008 ? target : blendRef.current + delta * 0.16;
+      paintRef.current();
+      if (blendRef.current !== target) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [inspecting]);
 
   useEffect(() => {
     exploringRef.current = false;
+    composePendingRef.current = true;
     paintRef.current();
   }, [resetToken]);
 
@@ -612,15 +875,23 @@ export function CatalogueField({
       const width = parent.clientWidth;
       const height = parent.clientHeight;
       let best: { id: string; distance: number } | null = null;
+      const pose = poseRef.current;
+      const selected = selectedRef.current;
       modulesRef.current.forEach((item, itemIndex) => {
-        const [ox, , oz] = catalogueOrigin(itemIndex);
-        const center = project(ox, 0, oz, cameraRef.current, width, height);
-        const edge = project(ox + MODULE_HALF, 0, oz, cameraRef.current, width, height);
+        const focused = pose != null && item.id === selected;
+        const [ox, oy, oz] = catalogueOrigin(itemIndex);
+        const cx = focused && pose ? pose.x : ox;
+        const cy = focused && pose ? pose.y : oy;
+        const cz = focused && pose ? pose.z : oz;
+        const scale = focused && pose ? pose.scale : 1;
+        const center = project(cx, cy, cz, cameraRef.current, width, height);
+        const edge = project(cx + MODULE_HALF * scale, cy, cz, cameraRef.current, width, height);
         const radius = Math.max(28, Math.hypot(edge.x - center.x, edge.y - center.y) * 1.15);
         const distance = Math.hypot(center.x - x, center.y - y);
         if (distance <= radius && (!best || distance < best.distance)) best = { id: item.id, distance };
       });
-      onSelectRef.current(best ? best.id : null);
+      if (best) onSelectRef.current(best.id);
+      else if (!inspectingRef.current) onSelectRef.current(null);
     };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
