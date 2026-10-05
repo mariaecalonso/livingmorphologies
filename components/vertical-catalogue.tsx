@@ -195,10 +195,10 @@ export function VerticalCatalogue({
       <div className="vertical-catalogue-body">
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame">
-            <p className="vertical-catalogue-figure">{slots.length}</p>
-            <p className="vertical-process-note">Representative morphologies shown</p>
             <p className="vertical-catalogue-figure">{generated}</p>
-            <p className="vertical-process-note">Natural continuations generated</p>
+            <p className="vertical-process-note">Generated</p>
+            <p className="vertical-catalogue-figure">{slots.length}</p>
+            <p className="vertical-process-note">Representative</p>
             <p className="vertical-catalogue-figure">{selected ? 1 : 0}</p>
             <p className="vertical-process-note">{selected ? `Selected ${modules.find((item) => item.id === selected.id)?.label}` : "No morphology selected"}</p>
           </section>
@@ -282,7 +282,7 @@ export function VerticalCatalogue({
                   <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
                   <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
                   <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
-                  <div><dt>Displayed</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+                  <div><dt>Representative</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
                   <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
                 </dl>
                 {error ? <p className="vertical-process-note">{error}</p> : null}

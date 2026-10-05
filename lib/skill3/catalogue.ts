@@ -1,7 +1,8 @@
 import type { NaturalContinuation } from "./continuations";
+import { DISPLAY_COUNT, representativeContinuations } from "./representatives";
 
-/** Display slots until a 24→12 filter supplies the twelve results directly. */
-export const CATALOGUE_SLOT_COUNT = 12;
+/** Visible catalogue slots. The same count drives representative coverage. */
+export const CATALOGUE_SLOT_COUNT = DISPLAY_COUNT;
 export const CATALOGUE_COLUMNS = 4;
 export const CATALOGUE_ROWS = 3;
 
@@ -10,7 +11,7 @@ export const CATALOGUE_PITCH = 23;
 export const MODULE_HALF = 10;
 
 export function catalogueSlots(continuations: readonly NaturalContinuation[], count = CATALOGUE_SLOT_COUNT) {
-  return continuations.slice(0, count);
+  return representativeContinuations(continuations, count);
 }
 
 /** Module center in the shared catalogue world. Index 0 is the near-left of a 4×3 field. */

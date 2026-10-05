@@ -67,6 +67,15 @@ function stamp(trails: number[], size: number, cx: number, cy: number, radius: n
   }
 }
 
+const EARLY_ITERATIONS = [Z0_ITERATION, 616, 632, 648, 664];
+
+/** N13–N24 shift only the middle sample. The shared Z0 and the outer samples stay put. */
+function iterationsFor(branch: number) {
+  if (branch <= 12) return EARLY_ITERATIONS;
+  const middle = 624 + ((branch - 13) % 5) * 4;
+  return [Z0_ITERATION, 616, middle, 648, 664];
+}
+
 function plate(step: number, branch: number) {
   const trails = new Array<number>(PLATE * PLATE).fill(0);
   const drift = step * (2.2 + (branch % 5) * 0.15);
@@ -89,9 +98,21 @@ function plate(step: number, branch: number) {
     stroke(trails, PLATE, rootX, rootY, tipX, tipY, 1.35, 0.6);
     stamp(trails, PLATE, tipX, tipY, 3, 0.55);
   }
+  if (branch > 12 && step > 0) addLaterHook(trails, step, branch, rootX, rootY);
   let peak = 0.0001;
   for (const value of trails) if (value > peak) peak = value;
   return { trails, peak };
+}
+
+/** Extra arm on N13–N24 after Z0. The shared fork stays; the hook direction follows the branch. */
+function addLaterHook(trails: number[], step: number, branch: number, rootX: number, rootY: number) {
+  const slot = branch - 13;
+  const sweep = -0.2 + (slot / 11) * 1.6;
+  const reach = 5 + step * 3.2;
+  const armX = rootX + Math.cos(sweep) * reach;
+  const armY = rootY - 4 - Math.sin(sweep + 0.6) * reach;
+  stroke(trails, PLATE, rootX, rootY, armX, armY, 1.45, 0.7);
+  stamp(trails, PLATE, armX, armY, 2.8 + (slot % 3) * 0.35, 0.66);
 }
 
 function eventsFor(iterations: number[]): ContinuationEvent[] {
@@ -116,14 +137,12 @@ function buildDevelopmentSet(richThrough: number): NaturalContinuationSet {
     candidateId: 300,
     runKey: "continuous-hall@development-fixture",
   };
-  const iterations = [Z0_ITERATION, 616, 632, 648, 664];
-  const heights = iterationSpanZ(iterations);
   const continuations: NaturalContinuation[] = [];
   for (let branch = 1; branch <= NATURAL_CONTINUATION_COUNT; branch += 1) {
     const id = naturalContinuationId(branch);
     const shown = branch <= richThrough;
-    const branchIterations = shown ? iterations : [Z0_ITERATION];
-    const branchHeights = shown ? heights : [0];
+    const branchIterations = shown ? iterationsFor(branch) : [Z0_ITERATION];
+    const branchHeights = iterationSpanZ(branchIterations);
     const events = eventsFor(branchIterations);
     const slices: ViewerSlice[] = branchIterations.map((iteration, index) => {
       const drawn = plate(index, branch);
@@ -188,13 +207,11 @@ export function buildDevelopmentFixture(): NaturalContinuationSet {
   return buildDevelopmentSet(1);
 }
 
-/** How many fixture branches carry a multi-sample field for the catalogue. Not a diversity filter. */
-const CATALOGUE_RICH_BRANCHES = 12;
-
 /**
- * Catalogue stand-in. The first 12 branches carry the authored fixture field.
- * This is not a 24→12 diversity filter. Seeds stay the continuation seeds.
+ * Catalogue stand-in. All 24 branches carry a developed multi-sample field.
+ * N13–N24 keep the shared Z0, then add a branch hook and a shifted middle sample.
+ * This is not the representative filter.
  */
 export function buildDevelopmentCatalogueSet(): NaturalContinuationSet {
-  return buildDevelopmentSet(CATALOGUE_RICH_BRANCHES);
+  return buildDevelopmentSet(NATURAL_CONTINUATION_COUNT);
 }
