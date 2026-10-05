@@ -34,13 +34,15 @@ Each archetype derives `g01-lower-mode-v1` once from its own 100 G01 explorers, 
 
 Pareto keeps the stored Formal / Spatial / Atmospheric objectives. A fidelity category mean uses only the criteria still admitted to fidelity. If Receptivity is excluded, fidelity Atmospheric is Immersive plus Visibility, and the Pareto Atmospheric score is not rewritten.
 
-The search writes `data/semantic-runs/<archetypeId>/run.json` after every completed evaluation, and `previews/<id>.png` beside it. Resume continues the saved birth list, so salts and ids stay put.
+The search writes `data/semantic-runs/<archetypeId>/run.json` after every completed evaluation, and `previews/<id>.png` beside it. Candidate ids, plans, and salts are assigned when the birth list is built. Later evaluations may finish out of order; checkpoint writes are serialized and the file keeps candidates in id order. Resume continues the saved birth list and evaluates only unfinished births.
 
-The first five Lobby searches use the versioned profile `lobby-semantic-v1` in `lib/skill2/semantic/lobby-semantic-v1.ts`. It is not a Workspace or Gathering profile. Launch is:
+The first five Lobby searches use the versioned profile `lobby-semantic-v1` in `lib/skill2/semantic/lobby-semantic-v1.ts`. It is not a Workspace or Gathering profile. One archetype runs at a time. `--workers` is how many of that archetype's candidates simulate at once. Launch is:
 
 ```
-npx tsx scripts/lobby-semantic-v1.ts --concurrency 1
+npx tsx scripts/lobby-semantic-v1.ts --workers 5 --publish
 ```
+
+The batch order is topographic ground field, linear gallery, compressed sequential, continuous hall, then vertical void. Each archetype is verified, published, committed, and pushed before the next one starts.
 
 G01 derives fidelity and `descriptor-v1`. The visual fingerprint is stored and not used for selection. Catalog dedup is off. Specialists are off. Diversity parents use the named provisional-uniform draw.
 

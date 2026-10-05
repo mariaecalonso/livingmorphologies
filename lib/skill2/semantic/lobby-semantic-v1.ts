@@ -9,10 +9,11 @@ import type { MutationIntent, MutationProfile, RealizationState, SemanticPlan, S
 
 export const LOBBY_SEMANTIC_V1 = "lobby-semantic-v1" as const;
 
+/** Faster catalogs first, so a later machine can read them while slower searches continue. */
 export const LOBBY_SEMANTIC_V1_ARCHETYPES = [
-  "compressed-sequential",
-  "linear-gallery",
   "topographic-ground-field",
+  "linear-gallery",
+  "compressed-sequential",
   "continuous-hall",
   "vertical-void",
 ] as const;

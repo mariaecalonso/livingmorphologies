@@ -96,7 +96,7 @@ function familyDistance(left: { phenotype: PhenotypeRecord }, right: { phenotype
   return 10;
 }
 
-function testLobbyRealization() {
+async function testLobbyRealization() {
   for (const archetypeId of LOBBY_ARCHETYPE_IDS) {
     const adapter = createLobbyAdapter(archetypeId);
     const first = adapter.sampleExplorer(mulberry32(7));
@@ -139,11 +139,11 @@ function testLobbyRealization() {
   assert(threw, "specialist mutation does not guess a gene");
 }
 
-function testDuplicateAndBudget() {
+async function testDuplicateAndBudget() {
   let calls = 0;
   let threw = false;
   try {
-    runSemanticEvolution({
+    await runSemanticEvolution({
       config: baseConfig({ populationSize: 2, duplicateAttemptBudget: 3 }),
       adapter: fixedAdapter(),
       evaluate: () => {
@@ -162,7 +162,7 @@ function testDuplicateAndBudget() {
     { formal: 1, spatial: 0.2, atmospheric: 0.2 },
     { formal: 0, spatial: 0, atmospheric: 0 },
   ];
-  const run = runSemanticEvolution({
+  const run = await runSemanticEvolution({
     config: baseConfig({ populationSize: 2 }),
     adapter: varyingAdapter(),
     evaluate: () => {
@@ -180,7 +180,7 @@ function testDuplicateAndBudget() {
   assert(run.provisional && run.calibration === "uncalibrated", "development run is provisional");
 }
 
-function testGlobalRecomputeAndResume() {
+async function testGlobalRecomputeAndResume() {
   const scores = [
     { formal: 1, spatial: 0, atmospheric: 0 },
     { formal: 0, spatial: 1, atmospheric: 0 },
@@ -198,7 +198,7 @@ function testGlobalRecomputeAndResume() {
     generations: 2,
     composition: { 2: { explorers: 2, pareto: 0, diversity: 0, specialist: 0 } },
   });
-  const run = runSemanticEvolution({ config, adapter: varyingAdapter(), evaluate });
+  const run = await runSemanticEvolution({ config, adapter: varyingAdapter(), evaluate });
   assert(calls === 4, "two generations evaluate 4 new candidates");
   assert(run.generations[0].paretoIds.includes(1), "G01 keeps the first tradeoff");
   assert(!run.generations[1].paretoIds.includes(1), "later generation removes a dominated candidate");
@@ -207,13 +207,13 @@ function testGlobalRecomputeAndResume() {
   assert(run.generations[0].leftParetoIds.length === 0, "G01 snapshot keeps its own Pareto set");
   assert(!("orientationEliteIds" in run.generations[1]), "orientation elites are not a semantic role");
 
-  const partial = runSemanticEvolution({
+  const partial = await runSemanticEvolution({
     config: { ...config, generations: 1 },
     adapter: varyingAdapter(),
     evaluate: () => evaluation(scores[0], { family: "a" }),
   });
   let resumedCalls = 0;
-  const resumed = runSemanticEvolution({
+  const resumed = await runSemanticEvolution({
     config,
     adapter: varyingAdapter(),
     previous: JSON.parse(JSON.stringify(partial)),
@@ -227,7 +227,7 @@ function testGlobalRecomputeAndResume() {
   assert(resumed.candidates[0].id === 1 && resumed.candidates[2].generation === 2, "carried ids stay put");
 }
 
-function testCrowdingSelection() {
+async function testCrowdingSelection() {
   const scores = [
     { formal: 1, spatial: 0, atmospheric: 0 },
     { formal: 0, spatial: 1, atmospheric: 0 },
@@ -235,7 +235,7 @@ function testCrowdingSelection() {
   ];
   let calls = 0;
   const seed = 19;
-  const gen1 = runSemanticEvolution({
+  const gen1 = await runSemanticEvolution({
     config: baseConfig({ populationSize: 3, generations: 1, runSeed: seed }),
     adapter: varyingAdapter(),
     evaluate: () => {
@@ -251,7 +251,7 @@ function testCrowdingSelection() {
   const a = ids[Math.floor(rng() * ids.length)];
   const b = ids[Math.floor(rng() * ids.length)];
   const expected = preferCrowding(a, b, crowding);
-  const gen2 = runSemanticEvolution({
+  const gen2 = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 3,
       generations: 2,
@@ -282,14 +282,14 @@ function testCrowdingSelection() {
   assert(Object.values(snapshot.crowding).includes("boundary"), "global front stores boundary crowding");
 }
 
-function testDiversityCatalogAndHandoff() {
+async function testDiversityCatalogAndHandoff() {
   const specs = [
     { objectives: { formal: 1, spatial: 1, atmospheric: 1 }, family: "a" },
     { objectives: { formal: 0, spatial: 0, atmospheric: 0 }, family: "b" },
     { objectives: { formal: 0, spatial: 0, atmospheric: 0.1 }, family: "c" },
   ];
   let calls = 0;
-  const run = runSemanticEvolution({
+  const run = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 3,
       diversity: { distance: familyDistance, rescueThreshold: 1, tagThreshold: 0 },
@@ -334,7 +334,7 @@ function testDiversityCatalogAndHandoff() {
   assert(productionBlocked, "development handoff is not a calibrated selection");
 }
 
-function testFidelityGate() {
+async function testFidelityGate() {
   const failing = { id: 9, phenotype: { raw: { family: "z" }, occupancy: [0] } };
   const result = selectDiversityRescue(
     [{ id: 1, phenotype: { raw: { family: "a" }, occupancy: [1] } }],
@@ -347,7 +347,7 @@ function testFidelityGate() {
   assert(gated.rescuedIds.length === 0, "an empty eligible pool rescues nobody");
 
   let calls = 0;
-  const run = runSemanticEvolution({
+  const run = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 2,
       fidelityProfile: { id: "fixture", categoryFloors: { formal: 0.5, spatial: 0.5, atmospheric: 0.5 }, criterionFloors: {} },
@@ -370,13 +370,13 @@ function testFidelityGate() {
   assert(run.provisional, "a development run with a fixture profile is still provisional");
 }
 
-function testMultiRoleAndSpecialists() {
+async function testMultiRoleAndSpecialists() {
   const specs = [
     { objectives: { formal: 1, spatial: 0, atmospheric: 0 }, family: "a" },
     { objectives: { formal: 0, spatial: 1, atmospheric: 0 }, family: "b" },
   ];
   let calls = 0;
-  const run = runSemanticEvolution({
+  const run = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 2,
       generations: 2,
@@ -402,7 +402,7 @@ function testMultiRoleAndSpecialists() {
   assert(new Set(births.map((birth) => birth.mutationIntent)).size === 2, "roles do not blend into one mutation");
   assert(births.length === 2, "two roles do not add children beyond the allocation");
 
-  const bare = runSemanticEvolution({
+  const bare = await runSemanticEvolution({
     config: baseConfig({ populationSize: 1 }),
     adapter: varyingAdapter(),
     evaluate: () => evaluation({ formal: 1, spatial: 1, atmospheric: 1 }, { family: "a" }),
@@ -457,10 +457,10 @@ function specialistFixture(): SemanticCandidate[] {
   ];
 }
 
-function testProductionGuard() {
+async function testProductionGuard() {
   let threw = false;
   try {
-    runSemanticEvolution({
+    await runSemanticEvolution({
       config: baseConfig({ purpose: "production", populationSize: 4, generations: 4 }),
       adapter: varyingAdapter(),
       evaluate: () => evaluation({ formal: 1, spatial: 1, atmospheric: 1 }, { family: "a" }),
@@ -471,7 +471,7 @@ function testProductionGuard() {
   assert(threw, "production keeps the 100-candidate generation budget");
 }
 
-function testOneLobbySimulation() {
+async function testOneLobbySimulation() {
   const adapter = createLobbyAdapter("vertical-void");
   const sampled = adapter.sampleExplorer(mulberry32(4));
   const evaluated = evaluateLobbyCandidate(sampled.plan, sampled.state);
@@ -482,10 +482,10 @@ function testOneLobbySimulation() {
   assert(plan.driftX == null, "simulation did not require a pose genome");
 }
 
-function testCalibrationWorkflow() {
+async function testCalibrationWorkflow() {
   let missingStrategy = false;
   try {
-    runSemanticEvolution({
+    await runSemanticEvolution({
       config: baseConfig({
         populationSize: 1,
         generations: 2,
@@ -500,7 +500,7 @@ function testCalibrationWorkflow() {
   }
   assert(missingStrategy, "uniform Diversity selection is not implied");
 
-  const reallocated = runSemanticEvolution({
+  const reallocated = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 1,
       generations: 2,
@@ -519,7 +519,7 @@ function testCalibrationWorkflow() {
   let researchBlocked = false;
   let researchCalls = 0;
   try {
-    runSemanticEvolution({
+    await runSemanticEvolution({
       config: baseConfig({
         purpose: "production",
         populationSize: 100,
@@ -546,7 +546,7 @@ function testCalibrationWorkflow() {
   assert(researchCalls === 100, "the failure happens before the next generation is evaluated");
 
   let draw = 0;
-  const chosen = runSemanticEvolution({
+  const chosen = await runSemanticEvolution({
     config: baseConfig({
       populationSize: 2,
       generations: 2,
@@ -567,7 +567,7 @@ function testCalibrationWorkflow() {
   assert(chosen.generations[1].births.every((birth) => birth.parentId === 2), "a custom Diversity strategy replaces the provisional draw");
 
   let calls = 0;
-  const batch = runLobbyCalibration({
+  const batch = await runLobbyCalibration({
     archetypeId: "vertical-void",
     count: 3,
     runSeed: 4,
@@ -608,14 +608,18 @@ function testCalibrationWorkflow() {
   assert(blockedPoseDir, "semantic output cannot replace data/evolution");
 }
 
-testLobbyRealization();
-testDuplicateAndBudget();
-testGlobalRecomputeAndResume();
-testCrowdingSelection();
-testDiversityCatalogAndHandoff();
-testFidelityGate();
-testMultiRoleAndSpecialists();
-testProductionGuard();
-testCalibrationWorkflow();
-testOneLobbySimulation();
-console.log("semantic skill 2 checks passed");
+main();
+
+async function main() {
+  await testLobbyRealization();
+  await testDuplicateAndBudget();
+  await testGlobalRecomputeAndResume();
+  await testCrowdingSelection();
+  await testDiversityCatalogAndHandoff();
+  await testFidelityGate();
+  await testMultiRoleAndSpecialists();
+  await testProductionGuard();
+  await testCalibrationWorkflow();
+  await testOneLobbySimulation();
+  console.log("semantic skill 2 checks passed");
+}

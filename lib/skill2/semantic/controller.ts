@@ -41,17 +41,19 @@ type PlannedBirth = PlannedBirthRecord;
  * Parent draws for a generation are a pure function of `runSeed` and the
  * generation index, so a resumed run does not replay finished evaluations.
  */
-export function runSemanticEvolution(args: {
+export async function runSemanticEvolution(args: {
   config: SemanticSearchConfig;
   adapter: ArchetypeSearchAdapter;
-  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation;
+  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation | Promise<SemanticEvaluation>;
   previous?: SemanticRun | null;
   mutate?: typeof mutateSemanticPlan;
+  /** In-flight simulations. Does not change birth order or candidate ids. */
+  workers?: number;
   onEvaluated?: (candidate: SemanticCandidate, evaluation: SemanticEvaluation) => void;
-  checkpoint?: (run: SemanticRun, phase: "birth-plan" | "candidate" | "fidelity" | "descriptor" | "generation") => void;
+  checkpoint?: (run: SemanticRun, phase: "birth-plan" | "candidate" | "fidelity" | "descriptor" | "generation") => void | Promise<void>;
   /** Optional G01 post-process. May install a diversity distance. A block stops before preservation. */
   afterG01?: (run: SemanticRun) => { block?: string } | void;
-}): SemanticRun {
+}): Promise<SemanticRun> {
   const config = { ...args.config, specialists: args.config.specialists ?? false };
   validateConfig(config);
   if (args.previous?.fidelityCalibration?.status === "block" || args.previous?.descriptorProfile?.block) return args.previous;
@@ -63,6 +65,7 @@ export function runSemanticEvolution(args: {
     const pending = run.pendingGeneration?.generation === generation ? run.pendingGeneration : null;
     const planned = pending ?? planGeneration(run, generation, config, args.adapter, rng, mutate, previous);
     if (!pending) {
+      assignBirthIds(planned.births, run.candidates);
       run.pendingGeneration = {
         generation,
         births: planned.births,
@@ -71,36 +74,25 @@ export function runSemanticEvolution(args: {
         reallocatedToExplorer: planned.reallocatedToExplorer,
         reallocatedPools: planned.reallocatedPools,
       };
-      args.checkpoint?.(run, "birth-plan");
+      await args.checkpoint?.(run, "birth-plan");
+    } else {
+      assignBirthIds(planned.births, run.candidates);
     }
-    const done = new Set(run.candidates.filter((candidate) => candidate.generation === generation).map((candidate) => candidate.birthIndex));
-    const births: BirthRecord[] = planned.births.map((birth, index) => {
-      const existing = run.candidates.find((candidate) => candidate.generation === generation && candidate.birthIndex === index);
-      return {
-        candidateId: existing?.id ?? 0,
-        origin: birth.origin,
-        parentId: birth.parentId,
-        parentSelectionRole: birth.parentSelectionRole,
-        mutationIntent: birth.mutationIntent,
-      };
-    });
-    for (let index = 0; index < planned.births.length; index += 1) {
-      if (done.has(index)) continue;
-      const birth = planned.births[index];
-      const evaluation = args.evaluate(birth.plan, birth.state);
-      const id = (run.candidates[run.candidates.length - 1]?.id ?? 0) + 1;
-      const candidate = materialize(id, index, generation, args.adapter, birth, evaluation, config, run.fidelityCalibration);
+    const done = new Set(run.candidates.map((candidate) => candidate.id));
+    await runBirthEvaluations(planned.births, done, args.workers ?? 1, args.evaluate, async (birth, index, evaluation) => {
+      const candidate = materialize(birth.candidateId, index, generation, args.adapter, birth, evaluation, config, run.fidelityCalibration);
       run.candidates.push(candidate);
-      births[index] = {
-        candidateId: id,
-        origin: birth.origin,
-        parentId: birth.parentId,
-        parentSelectionRole: birth.parentSelectionRole,
-        mutationIntent: birth.mutationIntent,
-      };
+      run.candidates.sort((left, right) => left.id - right.id);
       args.onEvaluated?.(candidate, evaluation);
-      args.checkpoint?.(run, "candidate");
-    }
+      await args.checkpoint?.(run, "candidate");
+    });
+    const births: BirthRecord[] = planned.births.map((birth) => ({
+      candidateId: birth.candidateId,
+      origin: birth.origin,
+      parentId: birth.parentId,
+      parentSelectionRole: birth.parentSelectionRole,
+      mutationIntent: birth.mutationIntent,
+    }));
     if (run.candidates.filter((candidate) => candidate.generation === generation).length !== config.populationSize) {
       throw new Error(`generation ${generation} evaluated ${run.candidates.length} candidates`);
     }
@@ -113,23 +105,23 @@ export function runSemanticEvolution(args: {
       for (const candidate of run.candidates) {
         if (candidate.generation === 1) candidate.fidelity = fidelityDetailFor(candidate, record);
       }
-      args.checkpoint?.(run, "fidelity");
+      await args.checkpoint?.(run, "fidelity");
       if (record.status === "block") {
         run.pendingGeneration = null;
         run.generations.push(snapshot(run, generation, births, planned, null, previous));
         run.completedGenerations = generation;
-        args.checkpoint?.(run, "generation");
+        await args.checkpoint?.(run, "generation");
         return run;
       }
     }
     if (generation === 1 && args.afterG01 && !run.descriptorProfile) {
       const outcome = args.afterG01(run);
-      args.checkpoint?.(run, "descriptor");
+      await args.checkpoint?.(run, "descriptor");
       if (outcome?.block || descriptorBlocked(run)) {
         run.pendingGeneration = null;
         run.generations.push(snapshot(run, generation, births, planned, null, previous));
         run.completedGenerations = generation;
-        args.checkpoint?.(run, "generation");
+        await args.checkpoint?.(run, "generation");
         return run;
       }
     }
@@ -144,7 +136,7 @@ export function runSemanticEvolution(args: {
       ? buildCombinedCatalog(run.candidates, preservedIds(preservation), config.catalogDedup)
       : { dedup: "uncalibrated", redundancyThreshold: null, entries: [] };
     run.completedGenerations = generation;
-    args.checkpoint?.(run, "generation");
+    await args.checkpoint?.(run, "generation");
   }
   return run;
 }
@@ -293,6 +285,7 @@ function planExplorer(adapter: ArchetypeSearchAdapter, rng: () => number, seen: 
     if (seen.has(key)) continue;
     seen.add(key);
     return {
+      candidateId: 0,
       plan: repaired.plan,
       state: { ...sampled.state },
       origin: "explorer",
@@ -333,6 +326,7 @@ function planMutant(
     if (seen.has(key)) continue;
     seen.add(key);
     return {
+      candidateId: 0,
       plan: attemptResult.plan,
       state: attemptResult.state,
       origin: "mutant",
@@ -356,6 +350,48 @@ function crowdingMap(run: SemanticRun) {
   if (!latest) return map;
   for (const [id, value] of Object.entries(latest.crowding)) map.set(Number(id), value);
   return map;
+}
+
+function assignBirthIds(births: PlannedBirthRecord[], existing: readonly SemanticCandidate[]) {
+  let next = existing.reduce((max, candidate) => Math.max(max, candidate.id), 0) + 1;
+  for (const birth of births) {
+    if (!birth.candidateId) birth.candidateId = next++;
+  }
+}
+
+/**
+ * Evaluations may finish out of order. Checkpoint writes are chained so only
+ * one runs at a time, and each birth already carries its candidate id.
+ */
+async function runBirthEvaluations(
+  births: readonly PlannedBirthRecord[],
+  done: ReadonlySet<number>,
+  workers: number,
+  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation | Promise<SemanticEvaluation>,
+  onResult: (birth: PlannedBirthRecord, index: number, evaluation: SemanticEvaluation) => Promise<void> | void,
+) {
+  const pending = births.map((birth, index) => ({ birth, index })).filter(({ birth }) => !done.has(birth.candidateId));
+  let cursor = 0;
+  let writes = Promise.resolve();
+  const lane = async () => {
+    for (;;) {
+      const job = pending[cursor];
+      cursor += 1;
+      if (!job) return;
+      const evaluation = await evaluate(job.birth.plan, job.birth.state);
+      const commit = writes.then(() => onResult(job.birth, job.index, evaluation));
+      writes = commit.then(
+        () => undefined,
+        () => undefined,
+      );
+      await commit;
+    }
+  };
+  const lanes = Math.max(1, Math.min(workers, pending.length || 1));
+  const settled = await Promise.allSettled(Array.from({ length: lanes }, () => lane()));
+  await writes;
+  const rejected = settled.find((item) => item.status === "rejected");
+  if (rejected?.status === "rejected") throw rejected.reason;
 }
 
 function descriptorBlocked(run: SemanticRun) {

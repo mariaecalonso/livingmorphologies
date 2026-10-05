@@ -224,6 +224,8 @@ export type MorphologyDistance = (
 ) => number;
 
 export type PlannedBirthRecord = {
+  /** Assigned when the birth list is built, before evaluation starts. */
+  candidateId: number;
   plan: SemanticPlan;
   state: RealizationState;
   origin: "explorer" | "mutant";

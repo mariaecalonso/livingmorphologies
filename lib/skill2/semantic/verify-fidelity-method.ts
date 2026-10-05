@@ -157,12 +157,12 @@ function testFamilyBlockAndRecompute() {
   assert(recomputed.candidates[0].objectives.formal === 0.2, "recompute does not change Pareto scores");
 }
 
-function testCheckpointResume() {
+async function testCheckpointResume() {
   let calls = 0;
   const box: { run: SemanticRun | null } = { run: null };
   const config = { populationSize: 4, generations: 1, runSeed: 3, purpose: "development" as const, duplicateAttemptBudget: 8 };
   try {
-    runSemanticEvolution({
+    await runSemanticEvolution({
       config,
       adapter: varying(),
       evaluate: () => {
@@ -184,7 +184,7 @@ function testCheckpointResume() {
   const stored = saved;
   const firstState = JSON.stringify(stored.candidates[0].state);
   let resumedCalls = 0;
-  const resumed = runSemanticEvolution({
+  const resumed = await runSemanticEvolution({
     config,
     adapter: varying(),
     previous: stored,
@@ -250,8 +250,12 @@ function fakeEval(n: number) {
   };
 }
 
-testNoFixedPercentage();
-testCategorySeparationAndCollapse();
-testFamilyBlockAndRecompute();
-testCheckpointResume();
-console.log("g01 fidelity checks passed");
+main();
+
+async function main() {
+  testNoFixedPercentage();
+  testCategorySeparationAndCollapse();
+  testFamilyBlockAndRecompute();
+  await testCheckpointResume();
+  console.log("g01 fidelity checks passed");
+}

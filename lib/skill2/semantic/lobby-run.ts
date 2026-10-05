@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { isLobbyArchetype } from "../../skill1/lobby-realization";
 import { runSemanticEvolution } from "./controller";
 import { evaluateLobbyCandidate, type SemanticEvaluation } from "./evaluate";
+import { createEvaluationPool } from "./evaluate-pool";
 import type { ArchetypeSearchAdapter } from "./adapter";
 import { deriveG01Fidelity, fidelityDetailFor } from "./fidelity-method";
 import { encodeGrayPng } from "./gray-png";
@@ -40,35 +41,48 @@ export function loadSemanticRun(archetypeId: string, root = SEMANTIC_RUN_ROOT): 
  * A checkpoint writes `run.json` after every completed evaluation.
  * Fidelity is derived from stored G01 and is not a second simulation.
  */
-export function runLobbySemanticSearch(
+export async function runLobbySemanticSearch(
   archetypeId: string,
   config: SemanticSearchConfig,
-  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation = evaluateLobbyCandidate,
+  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation | Promise<SemanticEvaluation> = evaluateLobbyCandidate,
   options?: {
     previous?: SemanticRun | null;
     root?: string;
     checkpoint?: boolean;
+    /** Simulations in flight for this archetype. Archetypes themselves stay sequential. */
+    workers?: number;
     mutate?: typeof mutateSemanticPlan;
     afterG01?: (run: SemanticRun) => { block?: string } | void;
     adapter?: ArchetypeSearchAdapter;
   },
-): LobbySemanticBatch {
+): Promise<LobbySemanticBatch> {
   const adapter = options?.adapter ?? lobbyAdapter(archetypeId);
   const previews = new Map<number, InspectionPreview>();
   const root = options?.root ?? SEMANTIC_RUN_ROOT;
-  const run = runSemanticEvolution({
-    config,
-    adapter,
-    evaluate,
-    previous: options?.previous,
-    mutate: options?.mutate,
-    afterG01: options?.afterG01,
-    onEvaluated: (candidate, evaluation) => {
-      if (evaluation.preview) previews.set(candidate.id, { size: evaluation.previewSize, pixels: evaluation.preview });
-    },
-    checkpoint: options?.checkpoint ? (current) => saveLobbySemanticBatch({ run: current, previews }, root) : undefined,
-  });
-  return { run, previews };
+  const workers = Math.max(1, options?.workers ?? 1);
+  const pool = workers > 1 && evaluate === evaluateLobbyCandidate ? createEvaluationPool(workers) : null;
+  try {
+    const run = await runSemanticEvolution({
+      config,
+      adapter,
+      evaluate: pool ? (plan, state) => pool.evaluate(plan, state) : evaluate,
+      workers,
+      previous: options?.previous,
+      mutate: options?.mutate,
+      afterG01: options?.afterG01,
+      onEvaluated: (candidate, evaluation) => {
+        if (evaluation.preview) previews.set(candidate.id, { size: evaluation.previewSize, pixels: evaluation.preview });
+      },
+      checkpoint: options?.checkpoint
+        ? async (current) => {
+            saveLobbySemanticBatch({ run: current, previews }, root);
+          }
+        : undefined,
+    });
+    return { run, previews };
+  } finally {
+    pool?.close();
+  }
 }
 
 /**
@@ -100,7 +114,7 @@ export function recomputeStoredG01Fidelity(
  * Uncalibrated. No fidelity pass. No mutation. No G02–G04.
  * Every evaluated candidate is kept, including technical failures.
  */
-export function runLobbyCalibration(args: {
+export async function runLobbyCalibration(args: {
   archetypeId: string;
   count: number;
   runSeed: number;
@@ -108,9 +122,9 @@ export function runLobbyCalibration(args: {
   evaluate?: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation;
   checkpoint?: boolean;
   root?: string;
-}): LobbySemanticBatch {
+}): Promise<LobbySemanticBatch> {
   if (args.count < 1) throw new Error("calibration count is required");
-  return runLobbySemanticSearch(
+  return await runLobbySemanticSearch(
     args.archetypeId,
     {
       purpose: "calibration",
@@ -130,9 +144,10 @@ export function saveLobbySemanticBatch(batch: LobbySemanticBatch, root = SEMANTI
   const directory = semanticRunDirectory(batch.run.archetypeId, root);
   const previewDir = join(directory, "previews");
   mkdirSync(previewDir, { recursive: true });
+  const ordered = [...batch.run.candidates].sort((left, right) => left.id - right.id);
   const run: SemanticRun = {
     ...batch.run,
-    candidates: batch.run.candidates.map((candidate) => {
+    candidates: ordered.map((candidate) => {
       const preview = batch.previews.get(candidate.id);
       if (!preview) return candidate;
       const file = join("previews", `${candidate.id}.png`).replace(/\\/g, "/");
