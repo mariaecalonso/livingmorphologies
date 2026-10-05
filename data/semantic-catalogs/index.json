@@ -2,22 +2,22 @@
   "bundle": "lobby-semantic-catalog-v1",
   "archetypes": {
     "topographic-ground-field": {
-      "status": "blocked",
-      "fidelity": "block",
+      "status": "complete",
+      "fidelity": "warn",
       "warnings": [
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 0
+      "catalogCandidates": 144
     },
     "linear-gallery": {
-      "status": "blocked",
-      "fidelity": "block",
+      "status": "complete",
+      "fidelity": "warn",
       "warnings": [
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 0
+      "catalogCandidates": 152
     },
     "compressed-sequential": {
       "status": "blocked",
@@ -33,6 +33,16 @@
       "fidelity": "block",
       "warnings": [
         "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
+    },
+    "vertical-void": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate",
+        "fidelity pass rate is low"
       ],
       "blocks": [],
       "catalogCandidates": 0
