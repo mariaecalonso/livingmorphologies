@@ -1,0 +1,41 @@
+{
+  "bundle": "lobby-semantic-catalog-v1",
+  "archetypes": {
+    "topographic-ground-field": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
+    },
+    "linear-gallery": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
+    },
+    "compressed-sequential": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
+    },
+    "continuous-hall": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
+    }
+  }
+}
