@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { PresentationEditControls } from "@/components/presentation-edit";
-import { useVerticalView, VERTICAL_VIEWS } from "@/components/vertical-view";
 import { setViewMode } from "@/components/view-mode";
 
 type NavItem = { href: string; label: string };
@@ -45,22 +44,17 @@ const isStageActive = (pathname: string, match: string) =>
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
   const pathname = usePathname();
   const search = useSearchParams();
-  const verticalView = useVerticalView();
   const wall = search.get("wall") === "1";
-  const legacy = search.get("legacy") === "1";
   const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
   const activeStage = STAGES.find((stage) => isStageActive(pathname, stage.match));
 
-  const verticalQuery = (nextLegacy: boolean) => {
+  const processQuery = () => {
     const params = new URLSearchParams(search.toString());
-    if (nextLegacy) params.set("legacy", "1");
-    else params.delete("legacy");
     const query = params.toString();
     return query ? `/lab/vertical?${query}` : "/lab/vertical";
   };
   const catalogueQuery = () => {
     const params = new URLSearchParams(search.toString());
-    params.delete("legacy");
     const query = params.toString();
     return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
   };
@@ -122,39 +116,17 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
           </nav>
         ) : activeStage?.match === "/lab/vertical" ? (
           <nav className="stage-nav-sub" aria-label="Vertical Propagation views">
-            {onCatalogue ? (
-              <Link href={verticalQuery(false)} className="stage-nav-subitem">
-                Process
-              </Link>
-            ) : null}
+            <Link
+              href={processQuery()}
+              className="stage-nav-subitem"
+              aria-current={onCatalogue ? undefined : "page"}
+              data-active={onCatalogue ? undefined : true}
+            >
+              Process
+            </Link>
             <Link href={catalogueQuery()} className="stage-nav-subitem" aria-current={onCatalogue ? "page" : undefined} data-active={onCatalogue || undefined}>
               Catalogue
             </Link>
-            {legacy && !onCatalogue ? (
-              <Link href={verticalQuery(false)} className="stage-nav-subitem">
-                Process
-              </Link>
-            ) : null}
-            {legacy && !onCatalogue
-              ? VERTICAL_VIEWS.map((item) => {
-                  const active = item.view === verticalView;
-                  return (
-                    <a
-                      key={item.hash}
-                      href={`${verticalQuery(true)}${item.hash}`}
-                      aria-current={active ? "page" : undefined}
-                      className="stage-nav-subitem"
-                      data-active={active || undefined}
-                    >
-                      {item.label}
-                    </a>
-                  );
-                })
-              : !onCatalogue ? (
-                <Link href={verticalQuery(true)} className="stage-nav-subitem">
-                  Experimental
-                </Link>
-              ) : null}
           </nav>
         ) : null}
         {mode === "presentation" ? <PresentationEditControls /> : null}

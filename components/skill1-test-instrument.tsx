@@ -348,12 +348,6 @@ export function Skill1TestInstrument() {
         </nav>
         <div className="living-instrument-display-mode flex items-center gap-2" aria-label="Display mode">
           <a
-            href="/scan"
-            className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
-          >
-            Scan
-          </a>
-          <a
             href="/runs"
             className="border border-[rgba(242,242,238,0.18)] px-3 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
           >

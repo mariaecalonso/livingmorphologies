@@ -329,7 +329,6 @@ function PropagationMarks({ iterations }: { iterations: number[] }) {
 
 function catalogueHref(search: string) {
   const params = new URLSearchParams(search);
-  params.delete("legacy");
   const query = params.toString();
   return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
 }

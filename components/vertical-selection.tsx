@@ -9,7 +9,6 @@ export function VerticalSelectionNotice({ title, detail }: { title: string; deta
   const search = useSearchParams();
   const fixture = new URLSearchParams(search.toString());
   fixture.set("fixture", "1");
-  fixture.delete("legacy");
   return (
     <main className="flex h-full flex-col justify-center gap-3 bg-black px-8 text-[var(--text)]">
       <p className="display text-[0.95rem] text-white">{title}</p>

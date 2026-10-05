@@ -169,7 +169,6 @@ export function VerticalCatalogue({
     ?? (matches ? set?.archetypeName : null)
     ?? "Archetype";
   const processParams = new URLSearchParams(search.toString());
-  processParams.delete("legacy");
   const processHref = processParams.toString() ? `/lab/vertical?${processParams.toString()}` : "/lab/vertical";
   const modules = useMemo<CatalogueModule[]>(() => slots.map((item, index) => ({
     id: item.id,

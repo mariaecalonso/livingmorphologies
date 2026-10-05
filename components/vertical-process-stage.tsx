@@ -53,26 +53,6 @@ export function ProcessPlate({ slice }: { slice: ViewerSlice }) {
   return <canvas ref={ref} aria-label={`Iteration ${slice.iteration}`} />;
 }
 
-function continuationPlates(slices: readonly ViewerSlice[]) {
-  if (slices.length <= 3) return slices;
-  const mid = Math.round((slices.length - 1) / 2);
-  return [slices[0], slices[mid], slices[slices.length - 1]];
-}
-
-export function ProcessFilmstrip({ slices, labels }: { slices: readonly ViewerSlice[]; labels?: readonly string[] }) {
-  const shown = continuationPlates(slices);
-  return (
-    <div className="vertical-process-film">
-      {shown.map((slice, index) => (
-        <div key={slice.iteration} className="vertical-process-stage">
-          <ProcessPlate slice={slice} />
-          <span className="vertical-process-plate-index">{labels?.[index] ?? (index === 0 ? "Z0" : String(slice.iteration))}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const PLANE_INK: Record<string, string> = {
   z0: "rgba(242,242,238,0.9)",
   threshold: "rgba(199,126,95,1)",

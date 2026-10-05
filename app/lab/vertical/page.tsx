@@ -1,4 +1,3 @@
-import { VerticalPrepare } from "@/components/vertical-prepare";
 import { VerticalProcess, type Skill2Provenance } from "@/components/vertical-process";
 import { VerticalSelectionNotice, VerticalSelectionResume } from "@/components/vertical-selection";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
@@ -41,33 +40,17 @@ export default async function VerticalPropagationPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    material?: string;
     fixture?: string;
-    legacy?: string;
     archetype?: string | string[];
     candidate?: string | string[];
   }>;
 }) {
   const params = await searchParams;
-  if (params.fixture === "1" && params.legacy !== "1") {
+  if (params.fixture === "1") {
     return <VerticalProcess initial={buildDevelopmentFixture()} candidate={null} provenance={null} />;
   }
 
   const requested = selectionFromQuery(params);
-  if (params.legacy === "1") {
-    if ("missing" in requested) return <VerticalSelectionResume />;
-    if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
-    const archetype = archetypeOf(requested.selection.archetypeId);
-    return (
-      <VerticalPrepare
-        archetypeId={requested.selection.archetypeId}
-        archetypeName={archetype?.name ?? requested.selection.archetypeId}
-        candidateId={requested.selection.candidateId}
-        materialization={params.material === "trail" ? "trail" : params.material === "shell" ? "shell" : "void"}
-      />
-    );
-  }
-
   if ("missing" in requested) return <VerticalSelectionResume />;
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
   const archetype = archetypeOf(requested.selection.archetypeId);
