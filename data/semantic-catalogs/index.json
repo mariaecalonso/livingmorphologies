@@ -18,6 +18,15 @@
       ],
       "blocks": [],
       "catalogCandidates": 0
+    },
+    "compressed-sequential": {
+      "status": "blocked",
+      "fidelity": "block",
+      "warnings": [
+        "receptivity is not a level-2 fidelity gate"
+      ],
+      "blocks": [],
+      "catalogCandidates": 0
     }
   }
 }
