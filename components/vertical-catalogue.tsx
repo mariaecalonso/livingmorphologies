@@ -7,6 +7,14 @@ import { CatalogueField, type CatalogueModule } from "@/components/vertical-cata
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { catalogueSlots } from "@/lib/skill3/catalogue";
 import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import {
+  clearSelectedSkill3Morphology,
+  readSelectedSkill3Morphology,
+  sameSelectedMorphology,
+  selectedMorphologyFrom,
+  writeSelectedSkill3Morphology,
+  type SelectedSkill3Morphology,
+} from "@/lib/skill3/morphology-selection";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 const TYPOLOGY: Record<string, string> = {
@@ -111,7 +119,7 @@ function ResultDetail({
         {hidden > 0 ? <span>+{hidden}</span> : null}
       </div>
       <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
-        {chosen ? "Selected for this session" : "Select this morphology"}
+        {chosen ? "Selected" : "Select this morphology"}
       </button>
     </div>
   );
@@ -130,7 +138,7 @@ export function VerticalCatalogue({
   const [pending, setPending] = useState(initial == null && candidate != null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState(false);
-  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [storedChoice, setStoredChoice] = useState<SelectedSkill3Morphology | null>(null);
   const [triangles, setTriangles] = useState<Record<string, number>>({});
   const [viewReset, setViewReset] = useState(0);
   const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
@@ -161,6 +169,11 @@ export function VerticalCatalogue({
     return () => controller.abort();
   }, [candidate, initial]);
 
+  useEffect(() => {
+    if (!set) return;
+    setStoredChoice(readSelectedSkill3Morphology(set.origin));
+  }, [set]);
+
   const matches = set != null && set.typologyId === typologyId && set.archetypeId === archetypeId;
   const slots = useMemo(() => (matches && set ? catalogueSlots(set.continuations) : []), [matches, set]);
   const selected = slots.find((item) => item.id === selectedId) ?? null;
@@ -176,6 +189,22 @@ export function VerticalCatalogue({
     cacheIdentity: `${set?.origin ?? "pending"}:${item.archetypeId}:${item.candidateId}:${item.id}`,
     field: item.field,
   })), [set?.origin, slots]);
+  const chosenContinuation = storedChoice && matches && set && storedChoice.origin === set.origin
+    ? set.continuations.find((item) => sameSelectedMorphology(storedChoice, item)) ?? null
+    : null;
+
+  const chooseInspected = () => {
+    if (!set || !selected) return;
+    const current = readSelectedSkill3Morphology(set.origin);
+    if (current && current.origin === set.origin && sameSelectedMorphology(current, selected)) {
+      clearSelectedSkill3Morphology(set.origin);
+      setStoredChoice(null);
+      return;
+    }
+    const next = selectedMorphologyFrom(set, selected);
+    writeSelectedSkill3Morphology(next);
+    setStoredChoice(next);
+  };
 
   return (
     <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-inspect={inspecting && selected ? "" : undefined}>
@@ -270,9 +299,9 @@ export function VerticalCatalogue({
                 moduleSize={`${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}`}
                 morphology={set.rules.morphology}
                 triangles={triangles[selected.id] ?? null}
-                chosen={chosenId === selected.id}
+                chosen={chosenContinuation?.id === selected.id}
                 onBack={() => setInspecting(false)}
-                onChoose={() => setChosenId((current) => current === selected.id ? null : selected.id)}
+                onChoose={chooseInspected}
               />
             ) : (
               <>
@@ -297,7 +326,7 @@ export function VerticalCatalogue({
                     <div><dt>Samples</dt><dd>{String(selected.sampleCount)}</dd></div>
                   </dl>
                 ) : null}
-                {chosenId ? <p className="vertical-process-note">Session choice {chosenId}</p> : null}
+                {chosenContinuation ? <p className="vertical-process-note">Selected {chosenContinuation.id}</p> : null}
               </>
             )}
           </section>
