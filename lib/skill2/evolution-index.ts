@@ -4,7 +4,6 @@ import { ARCHETYPES } from "../skill1/archetypes";
 import type { TypologyId } from "../types";
 import type { EvolutionRun } from "./evolution";
 import type { Genome } from "./genome";
-import { SEMANTIC_RUN_ROOT } from "./semantic/run-root";
 import type { SemanticRun } from "./semantic/types";
 
 export type EvolutionCandidateView = {
@@ -75,7 +74,7 @@ export function evolutionDir() {
 }
 
 export function semanticRunDir() {
-  return join(process.cwd(), SEMANTIC_RUN_ROOT);
+  return join(process.cwd(), "data", "semantic-runs");
 }
 
 export function loadEvolutionCatalog(): EvolutionCatalog {
@@ -197,7 +196,7 @@ function loadSemanticArchetype(run: SemanticRun): EvolutionArchetypeView {
       candidate.current.diversity !== "none" ? "diversity" : null,
     ].filter((role): role is string => role != null);
     const preview = candidate.preview?.file
-      ? join(semanticRunDir(), run.archetypeId, candidate.preview.file)
+      ? join(process.cwd(), "data", "semantic-runs", run.archetypeId, candidate.preview.file)
       : null;
     return {
       key: `${run.archetypeId}:${candidate.id}`,
@@ -240,7 +239,7 @@ function loadSemanticArchetype(run: SemanticRun): EvolutionArchetypeView {
 
 export function archiveImagePath(archetypeId: string, id: string) {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !/^\d+$/.test(id)) return null;
-  const semantic = join(semanticRunDir(), archetypeId, "previews", `${id}.png`);
+  const semantic = join(process.cwd(), "data", "semantic-runs", archetypeId, "previews", `${id}.png`);
   if (existsSync(semantic)) return semantic;
   const path = join(evolutionDir(), archetypeId, "archive", `${id}.png`);
   return existsSync(path) ? path : null;

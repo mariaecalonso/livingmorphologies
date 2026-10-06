@@ -18,7 +18,7 @@ function safeFileName(id: string) {
 }
 
 function rootDir(archetypeId: string) {
-  return path.join(process.cwd(), "public", "shared-catalog", archetypeId);
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "shared-catalog", archetypeId);
 }
 
 function dataUrlToPng(dataUrl: string): Buffer | null {
@@ -66,12 +66,12 @@ export async function POST(request: Request) {
     const previous = byRun.get(item.run);
     if (previous?.image && previous.image !== image) {
       try {
-        await unlink(path.join(process.cwd(), "public", previous.image.replace(/^\//, "")));
+        await unlink(path.join(/*turbopackIgnore: true*/ process.cwd(), "public", previous.image.replace(/^\//, "")));
       } catch {
         /* leftover blank is fine */
       }
     }
-    await writeFile(path.join(process.cwd(), "public", image.replace(/^\//, "")), png);
+    await writeFile(path.join(/*turbopackIgnore: true*/ process.cwd(), "public", image.replace(/^\//, "")), png);
     const { image: _image, ...meta } = item;
     byRun.set(item.run, { ...meta, image });
   }
@@ -103,7 +103,7 @@ export async function DELETE(request: Request) {
   const dir = rootDir(archetypeId);
   try {
     const names = await readdir(dir);
-    await Promise.all(names.map((name) => unlink(path.join(dir, name)).catch(() => undefined)));
+    await Promise.all(names.map((name) => unlink(path.join(/*turbopackIgnore: true*/ dir, name)).catch(() => undefined)));
     await rmdir(dir).catch(() => undefined);
   } catch {
     /* already gone */
