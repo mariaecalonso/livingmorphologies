@@ -46,6 +46,13 @@
       ],
       "blocks": [],
       "catalogCandidates": 0
+    },
+    "terraced": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 87
     }
   }
 }
