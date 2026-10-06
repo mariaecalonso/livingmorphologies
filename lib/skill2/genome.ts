@@ -4,7 +4,7 @@ import { attractorFromRatings } from "../skill1/translate";
 import type { BiologicalTranslation, FieldAttractor, Point } from "../skill1/types";
 
 /**
- * Version-1 realization genome. A legal pose of the canonical Skill 1
+ * Realization genome. A legal pose of the canonical Skill 1
  * translation; every translated biological quantity stays locked.
  * Drift is in Skill 1 field units (FIELD_SIZE per side), the same units as
  * mark coordinates and the attractor.

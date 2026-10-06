@@ -30,10 +30,11 @@ yarn-error.log*
 .vercel
 AGENTS.md
 CLAUDE.md
-# generated search stills
-/public/void-search/*.png
-/public/contained-search/*.png
+# local measurement dumps
+/scripts/out-*/
 # generated Skill 2 calibration numbers
 /calibration/
+# rendered filament drawings; the setting itself lives in config/filament
+/data/filament-cache/
 # presentation tab exports for PowerPoint
 /exports/

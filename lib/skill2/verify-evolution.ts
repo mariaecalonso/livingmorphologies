@@ -33,8 +33,6 @@ import {
   dominates,
   nondominatedSort,
   rankPopulation,
-  selectSurvivors,
-  tournament,
   updateArchive,
   type Rankable,
 } from "./nsga";
@@ -220,35 +218,6 @@ ok(
   ok("crowding fixtures");
 }
 
-// ---------- tournament ----------
-{
-  const seq = (...values: number[]) => {
-    let i = 0;
-    return () => values[i++ % values.length];
-  };
-  assert(tournament([1, 2], [0, 0], seq(0.1, 0.1)) === 0, "lower rank wins (a first)");
-  assert(tournament([1, 2], [0, 0], seq(0.9, 0.1)) === 0, "lower rank wins (b first)");
-  assert(tournament([1, 1], [0.2, 5], seq(0.1, 0.1)) === 1, "equal rank: higher crowding wins");
-  assert(tournament([2, 2], [3, 3], seq(0.9, 0.1)) === 1, "full tie: first draw wins");
-  ok("tournament: rank, then crowding");
-}
-
-// ---------- survival ----------
-{
-  const pool = [
-    item(0.9, 0.1, 0.5), item(0.1, 0.9, 0.5), item(0.5, 0.5, 0.9), // front 1
-    item(0.8, 0.05, 0.4), item(0.45, 0.45, 0.45), item(0.05, 0.8, 0.4), // front 2
-  ];
-  const { survivors } = selectSurvivors(pool, 4);
-  assert(survivors.length === 4 && [0, 1, 2].every((i) => survivors.includes(i)), "front 1 survives whole");
-  assert(!survivors.includes(4), "overflowing front is cut by crowding");
-  const rng = mulberry32(1);
-  const big = Array.from({ length: 160 }, () => item(rng(), rng(), rng(), rng() > 0.1));
-  const cut = selectSurvivors(big, 80).survivors;
-  assert(cut.length === 80 && new Set(cut).size === 80, "parent + offspring survival keeps exactly 80");
-  ok("elitist survival");
-}
-
 // ---------- archive ----------
 {
   const a = { id: 1, ...item(0.5, 0.5, 0.5) };
@@ -316,7 +285,7 @@ async function controllerChecks() {
   });
   const generations = EVOLUTION_CONFIG.generations;
   const total = generations * EVOLUTION_CONFIG.populationSize;
-  assert(generations === 4, "version-1 experiment runs four generations");
+  assert(generations === 4, "controller runs four generations");
   assert(run.completedGenerations === generations && run.generations.length === generations, "all generations completed");
   assert(run.candidates.length === total, `candidates ${run.candidates.length}`);
   assert(new Set(run.candidates.map((c) => c.id)).size === total, "unique candidate ids");

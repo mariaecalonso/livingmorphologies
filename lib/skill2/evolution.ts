@@ -18,10 +18,10 @@ import { rankPopulation, updateArchive, type Objectives } from "./nsga";
 import { newGenerationMix, selectOrientationElites, selectSpecialists, specialistIdList, tooClose, type SpecialistIds } from "./specialists";
 
 /**
- * Version-2 evolutionary controller. G01 is a legal sample. Later generations
- * evaluate 80 new genomes: mutants from the Pareto archive and the specialist
- * catalog, plus fresh explorers. Elites are carried without being simulated
- * again. The unweighted archive stays separate from the specialist catalog.
+ * Legacy pose controller for version-2 runs. Drift, radius scale, and
+ * orientation are not the genome of the redesigned search. Lobby and later
+ * updated archetypes use `lib/skill2/semantic/controller.ts`. This file remains
+ * so existing pose runs and their tests still load.
  */
 export type EvolutionConfig = {
   generations: number;
@@ -95,7 +95,7 @@ export type GenerationRecord = {
 };
 
 export type EvolutionRun = {
-  version: 1;
+  version: 2;
   archetypeId: string;
   typologyId: TypologyId;
   evaluationSeed: number;

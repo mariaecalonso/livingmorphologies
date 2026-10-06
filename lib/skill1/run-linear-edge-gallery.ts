@@ -6,7 +6,7 @@
  */
 
 import { mulberry32 } from "../physarum";
-import { FIELD_SIZE, MIN_AGENT_COUNT } from "./maps";
+import { FIELD_SIZE } from "./maps";
 import type { SlimeControls } from "./slime-controls";
 import type { FieldAttractor } from "./types";
 
@@ -80,7 +80,7 @@ function node(u: number, v: number, radius: number, strength = 0.82): Local {
 }
 
 function pore(u: number, v: number, radius: number): Local {
-  return { kind: "ring", u, v, radius, strength: 0.62, hole: true };
+  return { kind: "ring", u, v, radius: 2.4 + radius * 2.4, strength: 0.62, hole: true };
 }
 
 function along(count: number, span: number, phase: number) {
@@ -94,45 +94,44 @@ function along(count: number, span: number, phase: number) {
 
 const BUILD: Record<EdgeKind, (cycle: number) => Local[]> = {
   beaded: (cycle) => {
-    const count = 4 + (cycle % 5);
-    const span = 5.4 + (cycle % 4) * 0.85;
-    const xs = along(count, span, cycle * 0.11);
+    const count = 5 + (cycle % 4);
+    const span = 7.2 + (cycle % 3) * 0.45;
+    const xs = along(count, span, cycle * 0.07);
     const marks: Local[] = [ln(xs[0], SPINE, xs[xs.length - 1], SPINE)];
     xs.forEach((x, i) => {
-      const swell = i % 3 === cycle % 3;
-      marks.push(node(x, SPINE + (swell ? 1.4 + (cycle % 3) * 0.45 : 0), swell ? 0.95 : 0.38 + (i % 2) * 0.12));
-      if (i < xs.length - 1 && i % 2 === cycle % 2) marks.push(pore((x + xs[i + 1]) / 2, SPINE + 0.85, 0.42 + (cycle % 3) * 0.1));
+      marks.push(node(x, SPINE, 0.48 + (i % 2) * 0.16 + (cycle % 2) * 0.08));
+      if (i < xs.length - 1) marks.push(pore((x + xs[i + 1]) / 2, SPINE + 0.15, 0.38 + (cycle % 3) * 0.06));
     });
     return marks;
   },
   bow: (cycle) => {
-    const span = 6.2 + (cycle % 3) * 0.7;
-    const lift = 3.4 + (cycle % 4) * 0.75;
-    const marks: Local[] = [cv(-span, SPINE, span, SPINE, (cycle % 2 === 0 ? -1.2 : 1.4), SPINE + lift, 1.2)];
-    const count = 3 + (cycle % 3);
+    const span = 7.4;
+    const lift = 1.5 + (cycle % 4) * 0.45;
+    const marks: Local[] = [cv(-span, SPINE, span, SPINE, 0, SPINE + lift, 1.2)];
+    const count = 4 + (cycle % 3);
     for (let i = 0; i < count; i += 1) {
       const t = (i + 0.5) / count;
       const u = -span + t * span * 2;
-      const v = SPINE + Math.sin(t * Math.PI) * lift * 0.72;
-      marks.push(node(u, v, 0.5 + (i === Math.floor(count / 2) ? 0.35 : 0)));
-      if (i % 2 === cycle % 2) marks.push(pore(u, v + 0.9, 0.4));
+      const v = SPINE + Math.sin(t * Math.PI) * lift * 0.55;
+      marks.push(node(u, v, 0.55 + (cycle % 2) * 0.12));
+      if (i % 2 === 0) marks.push(pore(u, v + 0.7 + (cycle % 3) * 0.15, 0.36));
     }
     return marks;
   },
   stepped: (cycle) => {
-    const steps = 3 + (cycle % 2);
-    const rise = 1.7 + (cycle % 3) * 0.55;
-    const run = 3.1 + (cycle % 2) * 0.8;
+    const steps = 4 + (cycle % 3);
+    const rise = 0.7 + (cycle % 3) * 0.22;
+    const run = 2.4 + (cycle % 2) * 0.35;
     const marks: Local[] = [];
-    let u = -6.4;
+    let u = -7.2;
     let v = SPINE;
     for (let i = 0; i < steps; i += 1) {
       const next = u + run;
       marks.push(ln(u, v, next, v, 1.05));
-      marks.push(node(u + run * (0.35 + (i % 2) * 0.3), v, 0.46 + (i === steps - 1 ? 0.28 : 0)));
+      marks.push(node(u + run * 0.5, v, 0.5 + (i === steps - 1 ? 0.2 : 0)));
       if (i < steps - 1) {
-        marks.push(ln(next, v, next, v + rise, 0.75));
-        marks.push(pore(next + 0.35, v + rise * 0.5, 0.36));
+        marks.push(ln(next, v, next, v + rise, 0.7));
+        marks.push(pore(next, v + rise * 0.45, 0.32));
       }
       u = next;
       v += rise;
@@ -140,216 +139,205 @@ const BUILD: Record<EdgeKind, (cycle: number) => Local[]> = {
     return marks;
   },
   comb: (cycle) => {
-    const teeth = 3 + (cycle % 4);
-    const span = 6.6;
+    const teeth = 4 + (cycle % 3);
+    const span = 7.3;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE)];
     for (let i = 0; i < teeth; i += 1) {
       const u = -span + ((i + 0.5) / teeth) * span * 2;
-      const depth = 2.6 + (i % 3) * (1.15 + (cycle % 3) * 0.35);
-      marks.push(ln(u, SPINE, u + (i % 2 === 0 ? 0.35 : -0.2), SPINE + depth, 0.62));
-      marks.push(node(u, SPINE, 0.42));
-      marks.push(node(u, SPINE + depth, 0.58 + (i === cycle % teeth ? 0.28 : 0)));
+      const depth = 1.6 + (i % 2) * (0.7 + (cycle % 3) * 0.25);
+      marks.push(ln(u, SPINE, u, SPINE + depth, 0.55));
+      marks.push(node(u, SPINE, 0.46));
+      marks.push(node(u, SPINE + depth, 0.62 + (cycle % 2) * 0.1));
     }
     return marks;
   },
   notched: (cycle) => {
-    const span = 6.8 + (cycle % 2) * 0.6;
-    const pores = 2 + (cycle % 3);
+    const span = 7.6;
+    const pores = 3 + (cycle % 3);
     const marks: Local[] = [ln(-span, SPINE, span, SPINE, 1.2)];
     for (let i = 0; i < pores; i += 1) {
-      const u = -span * 0.62 + (i / Math.max(1, pores - 1)) * span * 1.24;
-      const mouth = 1.8 + (cycle % 3) * 0.7 + (i % 2) * 0.8;
-      marks.push(cv(u - 1.1, SPINE, u + 1.1, SPINE, u, SPINE + mouth, 0.7));
-      marks.push(pore(u, SPINE + mouth * 0.45, 0.48 + (cycle % 2) * 0.16));
-      marks.push(node(u, SPINE + mouth, 0.62));
+      const u = -span * 0.72 + (i / Math.max(1, pores - 1)) * span * 1.44;
+      marks.push(pore(u, SPINE, 0.55 + (cycle % 2) * 0.16));
+      marks.push(node(u + (i % 2 ? 1.15 : -1.15), SPINE, 0.58));
     }
     return marks;
   },
   folded: (cycle) => {
-    const arm = 5.4 + (cycle % 3) * 0.8;
-    const turn = 4.4 + (cycle % 4) * 0.7;
+    const arm = 6.2 + (cycle % 3) * 0.5;
+    const turn = 3.2 + (cycle % 4) * 0.45;
     const end = cycle % 2 === 0 ? arm : -arm;
     const marks: Local[] = [
-      ln(-arm, SPINE, arm * 0.15, SPINE),
-      ln(end, SPINE, end, SPINE + turn, 0.95),
-      ln(end, SPINE + turn, end - Math.sign(end) * (2.2 + (cycle % 2)), SPINE + turn, 0.7),
+      ln(-arm, SPINE, arm, SPINE),
+      ln(end, SPINE, end, SPINE + turn, 0.9),
     ];
-    const count = 3 + (cycle % 2);
+    const count = 4 + (cycle % 2);
     for (let i = 0; i < count; i += 1) {
-      const u = -arm + (i / (count - 1)) * arm * 0.7;
-      marks.push(node(u, SPINE, i === count - 1 ? 0.72 : 0.42));
+      const u = -arm + (i / (count - 1)) * arm * 2;
+      marks.push(node(u, SPINE, 0.5));
     }
-    marks.push(node(end, SPINE + turn * 0.55, 0.7));
-    marks.push(pore(end * 0.55, SPINE + 0.4, 0.4));
+    marks.push(node(end, SPINE + turn * 0.65, 0.7));
+    marks.push(pore(end * 0.35, SPINE + 0.2, 0.4));
+    marks.push(pore(end, SPINE + turn * 0.35, 0.34));
     return marks;
   },
   taper: (cycle) => {
-    const count = 5 + (cycle % 3);
-    const span = 6.8;
+    const count = 6 + (cycle % 2);
+    const span = 7.5;
     const dir = cycle % 2 === 0 ? 1 : -1;
-    const marks: Local[] = [ln(-span, SPINE, span * 0.15 * dir, SPINE), ln(span * 0.15 * dir, SPINE, dir * span, SPINE + 1.6 + (cycle % 3) * 0.4, 0.85)];
+    const marks: Local[] = [ln(-span, SPINE, span, SPINE)];
     for (let i = 0; i < count; i += 1) {
       const t = i / (count - 1);
       const u = -span + t * span * 2;
       const grow = dir > 0 ? t : 1 - t;
-      marks.push(node(u, SPINE + grow * (1.2 + (cycle % 2)), 0.32 + grow * 0.7));
+      marks.push(node(u, SPINE, 0.36 + grow * 0.7));
+      if (grow < 0.55 && i % 2 === 0) marks.push(pore(u, SPINE + 0.55, 0.32 + grow));
     }
-    marks.push(node(dir * span * 0.82, SPINE + 2.8 + (cycle % 3) * 0.6, 0.9));
-    marks.push(pore(dir * span * 0.4, SPINE + 0.8, 0.36));
+    marks.push(node(dir * span * 0.92, SPINE + 1.15, 0.95));
     return marks;
   },
   bays: (cycle) => {
-    const bays = 2 + (cycle % 3);
-    const span = 6.6;
+    const bays = 3 + (cycle % 2);
+    const span = 7.4;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE)];
     for (let i = 0; i < bays; i += 1) {
-      const u = -span * 0.72 + (i / Math.max(1, bays - 1)) * span * 1.44;
-      const depth = 2.8 + (cycle % 3) * 0.85 + (i % 2) * 1.2;
-      const half = 1.15 + (i === cycle % bays ? 0.7 : 0.15);
-      marks.push(cv(u - half, SPINE, u + half, SPINE, u + (i % 2 ? 0.4 : -0.3), SPINE + depth, 0.9));
-      marks.push(node(u, SPINE + depth * 0.7, 0.64));
-      marks.push(pore(u, SPINE + 0.45, 0.34));
+      const u = -span * 0.7 + (i / Math.max(1, bays - 1)) * span * 1.4;
+      const depth = 1.8 + (cycle % 3) * 0.4 + (i % 2) * 0.35;
+      const half = 0.85 + (cycle % 2) * 0.25;
+      marks.push(cv(u - half, SPINE, u + half, SPINE, u, SPINE + depth, 0.85));
+      marks.push(node(u, SPINE + depth * 0.72, 0.58));
+      marks.push(pore(u, SPINE + 0.25, 0.3));
     }
     return marks;
   },
   gapped: (cycle) => {
-    const parts = 2 + (cycle % 3);
-    const span = 7.2;
-    const gap = 1.6 + (cycle % 3) * 0.7;
+    const parts = 3 + (cycle % 2);
+    const span = 7.6;
+    const gap = 0.85 + (cycle % 3) * 0.28;
     const marks: Local[] = [];
     const width = (span * 2 - gap * (parts - 1)) / parts;
     let u = -span;
     for (let i = 0; i < parts; i += 1) {
       const next = u + width;
-      const v = SPINE + (i === 1 && parts > 2 ? 1.8 + (cycle % 2) * 0.8 : 0);
-      marks.push(ln(u, v, next, v));
-      marks.push(node(u + width * (0.3 + (i % 2) * 0.35), v, 0.42 + (i % 2) * 0.28));
+      marks.push(ln(u, SPINE, next, SPINE));
+      marks.push(node(u + width * 0.35, SPINE, 0.48));
+      marks.push(node(u + width * 0.7, SPINE, 0.62));
       if (i < parts - 1) {
-        marks.push(pore(next + gap * 0.5, SPINE + 0.2, 0.5 + (cycle % 2) * 0.16));
-        marks.push(ln(next, v, next + gap, SPINE + (i % 2) * 1.4, 0.32));
+        marks.push(pore(next + gap * 0.5, SPINE, 0.42 + (cycle % 2) * 0.1));
+        marks.push(ln(next, SPINE, next + gap, SPINE + 0.15, 0.28));
       }
       u = next + gap;
     }
     return marks;
   },
   wave: (cycle) => {
-    const waves = 1 + (cycle % 3);
-    const span = 6.8;
-    const amp = 2.4 + (cycle % 3) * 0.8;
+    const waves = 2 + (cycle % 2);
+    const span = 7.5;
+    const amp = 0.85 + (cycle % 3) * 0.35;
     const marks: Local[] = [];
-    const steps = 5 + (cycle % 2);
+    const steps = 6 + cycle % 2;
     let prevU = -span;
     let prevV = SPINE;
     for (let i = 1; i <= steps; i += 1) {
       const t = i / steps;
       const u = -span + t * span * 2;
-      const v = SPINE + Math.sin(t * Math.PI * waves + cycle * 0.4) * amp;
-      marks.push(cv(prevU, prevV, u, v, (prevU + u) / 2, (prevV + v) / 2 + (i % 2 === 0 ? 0.6 : -0.2), 1.05));
-      if (i % 2 === 0) marks.push(node(u, Math.max(SPINE, v), 0.56));
-      else marks.push(pore(u, v + 0.7, 0.34));
+      const v = SPINE + Math.sin(t * Math.PI * waves) * amp;
+      marks.push(ln(prevU, prevV, u, v, 1.05));
+      if (i % 2 === 0) marks.push(node(u, v, 0.52 + (cycle % 2) * 0.12));
+      else marks.push(pore(u, v + 0.45, 0.32));
       prevU = u;
       prevV = v;
     }
     return marks;
   },
   rail: (cycle) => {
-    const span = 6.4 + (cycle % 2) * 0.8;
-    const gap = 2.4 + (cycle % 3) * 0.85;
-    const ties = 2 + (cycle % 3);
-    const marks: Local[] = [ln(-span, SPINE, span, SPINE, 1.15), ln(-span * 0.78, SPINE + gap, span * 0.78, SPINE + gap, 0.78)];
+    const span = 7.2;
+    const gap = 1.15 + (cycle % 3) * 0.28;
+    const ties = 3 + (cycle % 2);
+    const marks: Local[] = [ln(-span, SPINE, span, SPINE, 1.15), ln(-span * 0.92, SPINE + gap, span * 0.92, SPINE + gap, 0.72)];
     for (let i = 0; i < ties; i += 1) {
-      const u = -span * 0.55 + (i / Math.max(1, ties - 1)) * span * 1.1;
-      marks.push(ln(u, SPINE, u, SPINE + gap, 0.48));
-      marks.push(node(u, SPINE + gap * (0.35 + (i % 2) * 0.4), 0.5));
+      const u = -span * 0.6 + (i / Math.max(1, ties - 1)) * span * 1.2;
+      marks.push(ln(u, SPINE, u, SPINE + gap, 0.4));
+      marks.push(node(u, SPINE + gap * 0.5, 0.5));
     }
-    marks.push(pore(span * 0.15 * (cycle % 2 === 0 ? 1 : -1), SPINE + gap * 0.5, 0.46));
+    marks.push(pore(0, SPINE + gap * 0.5, 0.36 + (cycle % 2) * 0.08));
     return marks;
   },
   offset: (cycle) => {
-    const count = 4 + (cycle % 3);
-    const span = 6.5;
-    const reach = 2.2 + (cycle % 3) * 0.8;
+    const count = 5 + (cycle % 3);
+    const span = 7.1;
+    const reach = 0.9 + (cycle % 3) * 0.28;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE)];
     for (let i = 0; i < count; i += 1) {
       const u = -span + ((i + 0.5) / count) * span * 2;
-      const v = SPINE + reach * (i % 2 === 0 ? 1 : 0.4);
-      marks.push(ln(u, SPINE, u + (i % 2 ? 0.4 : -0.25), v, 0.48));
-      marks.push(node(u, v, 0.48 + (i % 2) * 0.26));
-      if (i % 2 === cycle % 2) marks.push(pore(u, SPINE + 0.35, 0.32));
+      const v = SPINE + reach * (i % 2 === 0 ? 1 : 0.35);
+      marks.push(ln(u, SPINE, u, v, 0.4));
+      marks.push(node(u, v, 0.5 + (i % 2) * 0.18));
+      if (i % 2 === 1) marks.push(pore(u, SPINE + 0.2, 0.3));
     }
     return marks;
   },
   hook: (cycle) => {
-    const span = 6.2 + (cycle % 3) * 0.5;
-    const hook = 4.2 + (cycle % 4) * 0.65;
+    const span = 7.3;
+    const hook = 2.6 + (cycle % 4) * 0.4;
     const end = cycle % 2 === 0 ? span : -span;
     const marks: Local[] = [
-      ln(-span * Math.sign(end), SPINE, end * 0.2, SPINE),
-      cv(end * 0.2, SPINE, end * 0.55, SPINE + hook, end, SPINE + hook * 0.42, 0.95),
+      ln(-span, SPINE, span, SPINE),
+      cv(end, SPINE, end * 0.72, SPINE + hook, end, SPINE + hook * 0.45, 0.9),
     ];
-    const count = 4 + (cycle % 2);
+    const count = 5 + (cycle % 2);
     for (let i = 0; i < count; i += 1) {
-      const u = -span * Math.sign(end) + (i / (count - 1)) * Math.abs(end * 0.2 + span);
-      marks.push(node(u, SPINE, i === 0 ? 0.7 : 0.4));
+      const u = -span + (i / (count - 1)) * span * 2;
+      marks.push(node(u, SPINE, 0.48));
+      if (i % 2 === 0) marks.push(pore(u, SPINE + 0.5, 0.3));
     }
-    marks.push(node(end * 0.62, SPINE + hook * 0.72, 0.78));
-    marks.push(pore(end * 0.35, SPINE + hook * 0.28, 0.4));
+    marks.push(node(end * 0.78, SPINE + hook * 0.7, 0.72));
     return marks;
   },
   stitch: (cycle) => {
-    const stitches = 3 + (cycle % 3);
-    const span = 6.6;
+    const stitches = 4 + (cycle % 3);
+    const span = 7.4;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE, 1.2)];
     for (let i = 0; i < stitches; i += 1) {
       const u = -span * 0.8 + (i / Math.max(1, stitches - 1)) * span * 1.6;
-      const len = 2.2 + (i % 2) * (1.3 + (cycle % 2) * 0.6);
-      const lean = i % 2 === 0 ? 0.55 : -0.4;
-      marks.push(ln(u, SPINE, u + lean, SPINE + len, 0.5));
-      marks.push(node(u + lean, SPINE + len, 0.48 + (i === cycle % stitches ? 0.24 : 0)));
-      if (i % 2 === 0) marks.push(pore(u + 0.8, SPINE + 0.4, 0.32));
+      const len = 1.1 + (i % 2) * (0.6 + (cycle % 2) * 0.3);
+      marks.push(ln(u, SPINE - 0.25, u, SPINE + len, 0.42));
+      marks.push(node(u, SPINE, 0.44));
+      marks.push(pore(u + 0.7, SPINE + 0.15, 0.28));
     }
     return marks;
   },
   paired: (cycle) => {
-    const pairs = 2 + (cycle % 3);
-    const span = 6.2;
+    const pairs = 3 + (cycle % 2);
+    const span = 7;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE)];
     for (let i = 0; i < pairs; i += 1) {
-      const u = -span * 0.7 + (i / Math.max(1, pairs - 1)) * span * 1.4;
-      const spread = 0.7 + (cycle % 3) * 0.28;
-      const lift = 1.5 + (cycle % 3) * 0.7;
-      marks.push(node(u - spread, SPINE, 0.5));
-      marks.push(node(u + spread, SPINE + (i % 2 === 0 ? lift : lift * 0.35), 0.58));
-      marks.push(ln(u - spread, SPINE, u + spread, SPINE + (i % 2 === 0 ? lift : lift * 0.35), 0.4));
-      if (i < pairs - 1) marks.push(pore(u + span * 0.35, SPINE + 0.3, 0.42));
+      const u = -span * 0.75 + (i / Math.max(1, pairs - 1)) * span * 1.5;
+      const spread = 0.55 + (cycle % 3) * 0.12;
+      marks.push(node(u - spread, SPINE, 0.52));
+      marks.push(node(u + spread, SPINE, 0.52 + (cycle % 2) * 0.12));
+      if (i < pairs - 1) {
+        const mid = u + (span * 1.5) / Math.max(1, pairs - 1) / 2;
+        marks.push(pore(mid, SPINE + 0.2, 0.4 + (cycle % 2) * 0.08));
+      }
     }
     return marks;
   },
   pocket: (cycle) => {
-    const pockets = 2 + (cycle % 2);
-    const span = 6.4;
+    const pockets = 3;
+    const span = 6.8;
+    const depth = 2.1 + (cycle % 4) * 0.35;
     const marks: Local[] = [ln(-span, SPINE, span, SPINE, 1.05)];
     for (let i = 0; i < pockets; i += 1) {
-      const u = -span * 0.55 + (i / Math.max(1, pockets - 1)) * span * 1.1;
-      const depth = 3.2 + (cycle % 4) * 0.7 + (i % 2) * 1.1;
-      const half = 1.2 + (i === 0 ? 0.45 : 0);
-      marks.push(cv(u - half, SPINE, u + half, SPINE, u + (cycle % 2 ? 0.5 : -0.4), SPINE + depth, 0.85));
-      marks.push(node(u, SPINE + depth * 0.68, 0.74));
-      marks.push(pore(u, SPINE + 0.5, 0.38));
+      const u = -span * 0.65 + (i / (pockets - 1)) * span * 1.3;
+      marks.push(cv(u - 1.05, SPINE, u + 1.05, SPINE, u, SPINE + depth, 0.8));
+      marks.push(node(u, SPINE + depth * 0.62, 0.78 + (cycle % 2) * 0.12));
+      marks.push(pore(u, SPINE + 0.35, 0.34));
     }
     return marks;
   },
 };
 
 const TURNS = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
-
-/** Most cells keep a close halo. Some project the white particles much farther, and those reaches differ. */
-export function edgeReachFor(index: number) {
-  const slot = index % 8;
-  if (slot === 1 || slot === 6) return 5.6;
-  if (slot === 4) return 3.9;
-  return 2.15;
-}
 
 export function planLinearEdgeGallery(seed: number, attempt = 0, index = 0): EdgePlan {
   const cycle = Math.floor(index / EDGE_FAMILIES.length);
@@ -366,19 +354,18 @@ export function planLinearEdgeGallery(seed: number, attempt = 0, index = 0): Edg
 }
 
 export function attractorsFromLinearEdgeGallery(plan: EdgePlan): FieldAttractor[] {
-  const locals = BUILD[plan.kind](plan.cycle);
+  const locals = BUILD[plan.kind](plan.cycle % 6);
   const cos = Math.cos(plan.turn);
   const sin = Math.sin(plan.turn);
-  const spanBoost = [0.78, 1.05, 0.66, 0.92, 1.12, 0.74, 0.88][plan.cycle % 7];
-  const corner = ((plan.index + plan.cycle) % 3) - 1;
-  const slide = corner * (spanBoost < 0.85 ? 3.6 : 1.15);
-  const scaleV = 0.9 + (plan.cycle % 3) * 0.04;
+  const slide = ((plan.cycle % 5) - 2) * 1.35;
+  const scaleU = 0.82 + (plan.cycle % 4) * 0.08;
+  const scaleV = 0.78 + (plan.cycle % 5) * 0.1;
   const to = (u: number, v: number) => {
-    const su = (plan.flip ? -u : u) * spanBoost + slide;
-    const sv = (SPINE + (v - SPINE) * (0.92 + (plan.cycle % 3) * 0.16)) * scaleV;
+    const su = (plan.flip ? -u : u) * scaleU + slide;
+    const sv = v * scaleV;
     return { x: lim(CENTER + su * cos - sv * sin), y: lim(CENTER + su * sin + sv * cos) };
   };
-  return locals.map((mark) => {
+  const placed = locals.map((mark) => {
     const a = to(mark.u, mark.v);
     const out: FieldAttractor = { kind: mark.kind, x: a.x, y: a.y, radius: mark.radius, strength: mark.strength };
     if (mark.hole) out.hole = true;
@@ -394,20 +381,34 @@ export function attractorsFromLinearEdgeGallery(plan: EdgePlan): FieldAttractor[
     }
     return out;
   });
+  return separateEdgeVoids(placed);
+}
+
+/** Keep the edge openings large enough to read as volumes, and far enough apart to stay separate. */
+function separateEdgeVoids(marks: FieldAttractor[]): FieldAttractor[] {
+  const holes = marks.filter((mark) => mark.hole && mark.kind === "ring");
+  const rest = marks.filter((mark) => mark.kind !== "point" && !(mark.hole && mark.kind === "ring"));
+  const kept: FieldAttractor[] = [];
+  for (const hole of holes) {
+    const radius = Math.min(3.6, Math.max(2.7, hole.radius ?? 2.8));
+    const next = { ...hole, radius };
+    const crowded = kept.some((other) => Math.hypot(other.x - next.x, other.y - next.y) < radius + (other.radius ?? radius) * 0.85);
+    if (crowded) continue;
+    kept.push(next);
+  }
+  return [...rest, ...kept];
 }
 
 const GROWTH_SLIME: Record<EdgeGrowth, Partial<SlimeControls>> = {
-  filament: { persistence: 0.74, trailInfluence: 1.35, deposit: 0.024, depositWidth: 0.22, randomness: 0.07, trailCap: 0.52, sensorAngle: 0.16, stepSize: 0.14 },
-  sparse: { persistence: 0.52, trailInfluence: 0.95, deposit: 0.016, depositWidth: 0.18, randomness: 0.14, trailCap: 0.4, sensorAngle: 0.26, stepSize: 0.16 },
-  sharp: { persistence: 0.8, trailInfluence: 1.55, deposit: 0.028, depositWidth: 0.2, randomness: 0.04, trailCap: 0.62, sensorAngle: 0.1, stepSize: 0.12 },
-  committed: { persistence: 0.84, trailInfluence: 1.65, deposit: 0.022, depositWidth: 0.24, randomness: 0.05, trailCap: 0.56, sensorAngle: 0.12, stepSize: 0.13 },
+  filament: { persistence: 0.72, trailInfluence: 1.35, deposit: 0.02, depositWidth: 0.22, randomness: 0.06, trailCap: 0.55, sensorAngle: 0.16, stepSize: 0.14 },
+  sparse: { persistence: 0.48, trailInfluence: 0.9, deposit: 0.012, depositWidth: 0.18, randomness: 0.16, trailCap: 0.38, sensorAngle: 0.28, stepSize: 0.16 },
+  sharp: { persistence: 0.8, trailInfluence: 1.6, deposit: 0.028, depositWidth: 0.2, randomness: 0.04, trailCap: 0.7, sensorAngle: 0.1, stepSize: 0.12 },
+  committed: { persistence: 0.84, trailInfluence: 1.7, deposit: 0.024, depositWidth: 0.24, randomness: 0.05, trailCap: 0.62, sensorAngle: 0.12, stepSize: 0.13 },
 };
 
 export function agentsFromLinearEdgeGallery(plan: EdgePlan) {
-  const byGrowth: Record<EdgeGrowth, number> = { filament: 300, sparse: 260, sharp: 340, committed: 360 };
-  const reach = edgeReachFor(plan.index);
-  const extra = reach > 5 ? 90 : reach > 3 ? 40 : 0;
-  return Math.max(MIN_AGENT_COUNT, byGrowth[plan.growth] + (plan.cycle % 5) * 8 + extra);
+  const byGrowth: Record<EdgeGrowth, number> = { filament: 180, sparse: 160, sharp: 200, committed: 220 };
+  return Math.max(160, byGrowth[plan.growth] + (plan.cycle % 5) * 6);
 }
 
 export function slimeFromLinearEdgeGallery(base: SlimeControls, plan: EdgePlan, seed: number): SlimeControls {
@@ -415,32 +416,30 @@ export function slimeFromLinearEdgeGallery(base: SlimeControls, plan: EdgePlan, 
   const jitter = (value: number, amount: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value + (rng() - 0.5) * amount));
   const growth = GROWTH_SLIME[plan.growth];
-  const marks = attractorsFromLinearEdgeGallery(plan);
-  const foodPoints = marks
-    .filter((mark) => mark.kind === "point")
-    .slice(0, 5)
-    .map((mark) => ({ x: mark.x, y: mark.y }));
   return {
     ...base,
     ...growth,
     persistence: jitter(growth.persistence ?? 0.7, 0.08, 0.4, 0.9),
-    deposit: jitter(growth.deposit ?? 0.022, 0.008, 0.012, 0.036),
-    depositWidth: jitter(growth.depositWidth ?? 0.22, 0.04, 0.16, 0.28),
+    deposit: jitter(growth.deposit ?? 0.02, 0.008, 0.008, 0.04),
+    depositWidth: jitter(growth.depositWidth ?? 0.22, 0.06, 0.16, 0.34),
     randomness: jitter(growth.randomness ?? 0.08, 0.04, 0.02, 0.22),
     sensorAngle: jitter(growth.sensorAngle ?? 0.16, 0.06, 0.06, 0.4),
     stepSize: jitter(growth.stepSize ?? 0.14, 0.03, 0.1, 0.2),
     trailInfluence: jitter(growth.trailInfluence ?? 1.2, 0.2, 0.6, 1.9),
-    trailCap: jitter(growth.trailCap ?? 1.05, 0.08, 0.95, 1.15),
+    trailCap: jitter(growth.trailCap ?? 0.5, 0.1, 0.28, 0.85),
     diffusion: 0,
-    decay: 0.996,
-    resistance: 0.04 + rng() * 0.12,
-    turnAngle: 0.06 + rng() * 0.12,
-    sensorDistance: 0.4 + rng() * 0.45,
-    crowdingLimit: 10 + Math.floor(rng() * 8),
-    foodPoints: foodPoints.length ? foodPoints : base.foodPoints,
+    decay: 0.998,
+    resistance: 0.04 + rng() * 0.08,
+    turnAngle: 0.22 + rng() * 0.2,
+    sensorDistance: 0.35 + rng() * 0.25,
+    crowdingLimit: 80,
+    foodPoints: [],
     voidElongation: 1,
     voidLobes: 0,
     voidNotch: 0,
     voidRotation: 0,
+    trailInfluence: 0.22 + rng() * 0.16,
+    randomness: 0.22 + rng() * 0.16,
+    persistence: 0.28 + rng() * 0.16,
   };
 }

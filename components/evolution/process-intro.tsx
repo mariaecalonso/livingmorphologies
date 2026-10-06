@@ -28,12 +28,6 @@ const SOURCE_GROUPS = BRANCHES.map((branch) => ({
 
 const PHYSARUM_FIELD = "/shared-catalog/void-edge/void-edge-333962-1790466058791-0.png";
 
-const SPECIALIST_COPY = {
-  formal: "Favoring formal performance",
-  spatial: "Favoring spatial performance",
-  atmospheric: "Favoring atmospheric performance",
-} as const;
-
 const SHOWCASE_IDS = ["vertical-void", "compressed-sequential", "continuous-hall", "topographic-ground-field", "linear-gallery"] as const;
 
 const PHYSARUM_CATALOG = [
@@ -411,7 +405,9 @@ function VoidPile({ urls }: { urls: string[] }) {
     const draw = () => {
       if (cancelled || !ref.current || !ref.current.parentElement) return;
       const node = ref.current;
-      const box = node.parentElement.getBoundingClientRect();
+      const parent = node.parentElement;
+      if (!parent) return;
+      const box = parent.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       const width = Math.max(1, Math.floor(box.width));
       const height = Math.max(1, Math.floor(box.height));
@@ -428,7 +424,7 @@ function VoidPile({ urls }: { urls: string[] }) {
       const yaw = 0.86;
       const pitch = 0.35;
       const meshYaw = 0.7;
-      const pitchY = 0.04 + 0.1 * 0.42;
+      const pitchY = 0.18;
       const full = (count - 1) * pitchY;
       const cy = Math.cos(meshYaw);
       const sy = Math.sin(meshYaw);
@@ -441,7 +437,8 @@ function VoidPile({ urls }: { urls: string[] }) {
       };
       const yBottom = -full * 0.5;
       const yTop = yBottom + full;
-      const bounds = [rot(-0.5, yBottom, -0.5), rot(0.5, yBottom, 0.5), rot(-0.5, yTop, -0.5), rot(0.5, yTop, 0.5)];
+      const plateCorners = [-0.5, 0.5].flatMap((x) => [-0.5, 0.5].map((z) => [x, z] as const));
+      const bounds = [yBottom, yTop].flatMap((y) => plateCorners.map(([x, z]) => rot(x, y, z)));
       let minX = Infinity;
       let maxX = -Infinity;
       let minY = Infinity;
@@ -452,7 +449,11 @@ function VoidPile({ urls }: { urls: string[] }) {
         minY = Math.min(minY, point.y);
         maxY = Math.max(maxY, point.y);
       }
-      const scale = Math.min(width, height) * 0.72;
+      const spanX = Math.max(0.001, maxX - minX);
+      const spanY = Math.max(0.001, maxY - minY);
+      const side = width * 0.18;
+      const end = height * 0.05;
+      const scale = Math.min((width - side * 2) / spanX, (height - end * 2) / spanY);
       const xMid = (minX + maxX) / 2;
       const yMid = (minY + maxY) / 2;
       const du = rot(1, 0, 0);
@@ -527,6 +528,39 @@ function ParetoPlot({ candidates }: { candidates: EvolutionCandidateView[] }) {
   );
 }
 
+function GenRing({ title, slices }: { title: string; slices: { id: string; tone: string; value: number }[] }) {
+  const radius = 15.5;
+  const circumference = 2 * Math.PI * radius;
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0) || 1;
+  let cursor = 0;
+  return (
+    <div className="evo-ring evo-gen-ring">
+      <p className="evo-ring-title">{title}</p>
+      <span className="evo-ring-plot">
+        <svg viewBox="0 0 42 42" aria-hidden="true">
+          <circle className="evo-donut-track" cx="21" cy="21" r={radius} />
+          {slices.map((slice) => {
+            const share = (slice.value / total) * circumference;
+            const arc = (
+              <circle
+                key={slice.id}
+                cx="21"
+                cy="21"
+                r={radius}
+                data-tone={slice.tone}
+                strokeDasharray={`${share} ${circumference - share}`}
+                strokeDashoffset={-cursor}
+              />
+            );
+            cursor += share;
+            return arc;
+          })}
+        </svg>
+      </span>
+    </div>
+  );
+}
+
 export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
   const catalog = useEvolutionCatalog(initial);
   const archetype = catalog.archetypes.find((item) => item.archetypeId === EXAMPLE_ID) ?? null;
@@ -536,18 +570,6 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
   const paretoHref = useWorkflowHref("/evolution/pareto");
   const hybridHref = useWorkflowHref("/evolution/pareto-catalog");
   const specialists = archetype?.specialists ?? { formal: [], spatial: [], atmospheric: [] };
-  const combined = [
-    ...candidates.filter((candidate) => candidate.archived && candidate.image),
-    ...candidates.filter((candidate) => candidate.specialist && candidate.image),
-  ];
-  const specialistSamples = (["formal", "spatial", "atmospheric"] as const)
-    .map((key) => candidates.find((candidate) => candidate.specialist === key && candidate.image))
-    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate != null);
-  const sampled = new Set(specialistSamples.map((candidate) => candidate.key));
-  const strip = [
-    ...specialistSamples,
-    ...candidates.filter((candidate) => candidate.archived && candidate.image && !sampled.has(candidate.key)),
-  ].slice(0, 10);
   const specialistShot = (key: "formal" | "spatial" | "atmospheric") => {
     const ids = new Set(specialists[key]);
     const named = candidates.find((candidate) => ids.has(candidate.id) && candidate.image);
@@ -556,12 +578,26 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
       .filter((candidate) => candidate.image)
       .sort((a, b) => b[key] - a[key] || a.id - b.id)[0] ?? null;
   };
+  const catalogUsed = new Set<string>();
+  const combinedCatalog = [
+    ...(["formal", "spatial", "atmospheric"] as const).flatMap((key) => {
+      const shot = specialistShot(key);
+      if (!shot?.image) return [];
+      catalogUsed.add(shot.key);
+      return [{ key: shot.key, kind: key, image: shot.image }];
+    }),
+    ...candidates
+      .filter((candidate) => candidate.archived && candidate.image && !candidate.specialist && !catalogUsed.has(candidate.key))
+      .slice(0, 5)
+      .map((candidate) => ({ key: candidate.key, kind: "unweighted" as const, image: candidate.image as string })),
+  ];
   const picks = TYPOLOGIES.flatMap((typology) => typology.archetypes).map((item) => {
     const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
     const chosen = run?.candidates.find((candidate) => candidate.image && (candidate.archived || candidate.specialist)) ?? null;
     return { id: item.id, name: item.name, chosen };
   });
-  const pile = candidates.filter((candidate) => candidate.image && candidate.archetypeId === EXAMPLE_ID).slice(0, 8).map((candidate) => candidate.image as string);
+  const pileSources = candidates.filter((candidate) => candidate.image && candidate.archetypeId === EXAMPLE_ID).map((candidate) => candidate.image as string);
+  const pile = Array.from({ length: 14 }, (_, index) => pileSources[index % Math.max(pileSources.length, 1)]).filter(Boolean);
 
   return (
     <main className="evo-page process-page">
@@ -624,70 +660,86 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
         <section className="gh-group gh-evolution" aria-label="Evolutionary process">
           <header className="evo-logic-head">
             <div>
-              <p className="eyebrow">2D Evolution</p>
+              <p className="eyebrow">02</p>
               <h2 className="panel-title">Evolutionary process</h2>
             </div>
             <span>Void Edge</span>
           </header>
-          <div className="gh-chain">
+          <div className="evo-gen-board">
             {MIX.map((row, index) => {
-              const previous = generations.find((generation) => generation.index === row.generation - 1);
+              const record = generations.find((item) => item.index === row.generation);
+              const cohort = candidates.filter((candidate) => candidate.generation === row.generation);
+              const paretoShot = cohort.find((candidate) => candidate.archived && candidate.image) ?? cohort.find((candidate) => candidate.pareto && candidate.image);
+              const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+              let improved = 0;
+              let offspring = 0;
+              for (const candidate of cohort) {
+                if (candidate.parentId == null) continue;
+                offspring += 1;
+                const parent = byId.get(candidate.parentId);
+                if (!parent) continue;
+                const worse = candidate.formal < parent.formal || candidate.spatial < parent.spatial || candidate.atmospheric < parent.atmospheric;
+                const better = candidate.formal > parent.formal || candidate.spatial > parent.spatial || candidate.atmospheric > parent.atmospheric;
+                if (!worse && better) improved += 1;
+              }
+              const evaluated = record?.evaluated ?? cohort.length;
+              const front = record?.pareto ?? 0;
+              const infeasible = Math.max(0, (record?.evaluated ?? 0) - (record?.feasible ?? 0));
+              const offFront = Math.max(0, evaluated - front - infeasible);
               const mutant = row.pareto + row.specialist;
-              const role = GENERATION_ROLE[index];
+              const shares = [
+                ["explorer", "Explorer", row.explorers],
+                ["mutant", "Mutant", mutant],
+                ["pareto", "Pareto", row.pareto],
+                ["specialist", "Specialist", row.specialist],
+              ] as const;
               return (
-                <article key={row.id} className="gen-step" data-open={row.generation === 1 || undefined}>
-                  <header>
-                    <h3>{row.id}</h3>
-                    <p>{role.title}</p>
+                <article key={row.id} className="panel evo-gen-frame">
+                  <header className="panel-header">
+                    <div>
+                      <p className="eyebrow">{GENERATION_ROLE[index].title}</p>
+                      <h2 className="panel-title">Generation {String(row.generation).padStart(2, "0")}</h2>
+                    </div>
+                    <span className="eyebrow">{record?.archived ?? 0} archived</span>
                   </header>
-                  <ul className="gen-mix">
-                    <li data-tone="explorer">
-                      <span>Explorer</span>
-                      <strong>{shareLabel(row.explorers, row.total)}</strong>
-                      <i><b style={{ width: shareLabel(row.explorers, row.total) }} /></i>
-                    </li>
-                    <li data-tone="mutant">
-                      <span>Mutant</span>
-                      <strong>{shareLabel(mutant, row.total)}</strong>
-                      <i><b style={{ width: shareLabel(mutant, row.total) }} /></i>
-                    </li>
-                    <li data-tone="elite">
-                      <span>Elite</span>
-                      <strong>{row.generation === 1 ? "0" : String(previous?.archived ?? "—")}</strong>
-                      <em>{row.generation === 1 ? "None carried" : "Carried, not re-scored"}</em>
-                    </li>
-                  </ul>
-                  <p>{role.why}</p>
+                  <figure className="evo-gen-shot">
+                    <EvolutionImage src={paretoShot?.image ?? null} />
+                    <figcaption>Pareto</figcaption>
+                  </figure>
+                  <div className="evo-gen-readout">
+                  <div className="evo-gen-mix">
+                    {shares.map(([tone, label, count]) => (
+                      <div key={tone} className="evo-mix-line" data-tone={tone}>
+                        <span>{label}</span>
+                        <b>{shareLabel(count, row.total)}</b>
+                        <i><b style={{ width: shareLabel(count, row.total) }} /></i>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="evo-gen-charts">
+                    <div className="evo-gen-bars">
+                      <p className="evo-ring-title">Front and archive</p>
+                      <span className="evo-run-pair">
+                        <span className="evo-run-bar" data-tone="archive" style={{ height: `${((record?.archived ?? 0) / Math.max(record?.archived ?? 0, front, 1)) * 100}%` }} />
+                        <span className="evo-run-bar" data-tone="front" style={{ height: `${(front / Math.max(record?.archived ?? 0, front, 1)) * 100}%` }} />
+                      </span>
+                      <p className="evo-run-key"><span data-tone="archive">Archive {record?.archived ?? 0}</span><span data-tone="front">Front {front}</span></p>
+                    </div>
+                    <GenRing title="Population" slices={[
+                      { id: "front", tone: "orange", value: front },
+                      { id: "off", tone: "cyan", value: offFront },
+                      { id: "infeasible", tone: "muted", value: infeasible },
+                    ]} />
+                    <GenRing title="Origin" slices={[
+                      { id: "new", tone: "cyan", value: cohort.length - offspring },
+                      { id: "improved", tone: "orange", value: improved },
+                      { id: "other", tone: "muted", value: Math.max(0, offspring - improved) },
+                    ]} />
+                  </div>
+                  </div>
                 </article>
               );
             })}
-          </div>
-          <div className="evo-bottom">
-            <StrategyChart />
-            <article className="evo-diagram">
-              <h3>Each generation</h3>
-              <ol>
-                <li>Score Formal, Spatial, Atmospheric</li>
-                <li>Keep the non-dominated</li>
-                <li>Split Pareto archive and specialist preference</li>
-                <li>Mutate those parents and add explorers</li>
-              </ol>
-            </article>
-            <article className="evo-diagram">
-              <h3>Elites kept</h3>
-              <ul className="evo-elite-bars">
-                {generations.filter((generation) => generation.status === "done").map((generation) => (
-                  <li key={generation.id}>
-                    <span>{generation.id}</span>
-                    <i aria-hidden="true">
-                      <b data-kind="archive" style={{ width: `${generation.evaluated ? (generation.archived / generation.evaluated) * 100 : 0}%` }} />
-                      <b data-kind="front" style={{ width: `${generation.evaluated ? (generation.pareto / generation.evaluated) * 100 : 0}%` }} />
-                    </i>
-                  </li>
-                ))}
-              </ul>
-              <p className="evo-elite-key"><span data-kind="archive">Archive</span><span data-kind="front">Generation front</span></p>
-            </article>
           </div>
         </section>
 
@@ -697,12 +749,12 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
               <h2>Search output</h2>
               <p>From the final generation to the design selection for vertical propagation.</p>
             </header>
-            <div className="so-top">
+            <div className="so-top so-intro">
               <article className="so-panel">
                 <header>
                   <div>
-                    <h3>Pareto archive (non-dominated)</h3>
-                    <p>Final non-dominated set from G04.</p>
+                    <h3>Pareto</h3>
+                    <p>The non-dominated set, continued on the Pareto tab.</p>
                   </div>
                   <span className="so-mark" aria-hidden="true">i</span>
                 </header>
@@ -715,68 +767,44 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
                   <li data-state="archive">Archive</li>
                 </ul>
               </article>
-              <article className="so-panel">
-                <header>
-                  <div>
-                    <h3>Specialist preference archive</h3>
-                    <p>Non-dominated solutions with objective favoring.</p>
-                  </div>
-                  <span className="so-mark" aria-hidden="true">i</span>
-                </header>
-                <ul className="so-specs">
-                  {(["formal", "spatial", "atmospheric"] as const).map((key) => (
-                    <li key={key} data-kind={key}>
-                      <strong>{key}</strong>
-                      <span>{SPECIALIST_COPY[key]}</span>
-                      <span className="so-well">
-                        <EvolutionImage src={specialistShot(key)?.image ?? null} />
-                      </span>
-                      <em>{specialists[key].length} candidates</em>
-                    </li>
-                  ))}
-                </ul>
-                <div className="so-elite-flow">
-                  <ol>
-                    <li>G01</li>
-                    <li>G02</li>
-                    <li>G03</li>
-                    <li>G04</li>
-                  </ol>
-                  <span className="so-flow-arrow" aria-hidden="true" />
-                  <p>Optimal solutions set</p>
-                  <span className="so-flow-arrow" aria-hidden="true" />
-                  <ul>
-                    <li data-kind="formal">Formal</li>
-                    <li data-kind="spatial">Spatial</li>
-                    <li data-kind="atmospheric">Atmospheric</li>
-                    <li data-kind="unweighted">Pareto</li>
+              <div className="so-side">
+                <article className="so-panel so-specialist">
+                  <header>
+                    <div>
+                      <h3>Specialist</h3>
+                      <p>Formal, Spatial, and Atmospheric favoring.</p>
+                    </div>
+                    <span className="so-mark" aria-hidden="true">i</span>
+                  </header>
+                  <ul className="so-specs">
+                    {(["formal", "spatial", "atmospheric"] as const).map((key) => (
+                      <li key={key} data-kind={key}>
+                        <strong>{key}</strong>
+                        <span className="so-well">
+                          <EvolutionImage src={specialistShot(key)?.image ?? null} />
+                        </span>
+                      </li>
+                    ))}
                   </ul>
-                </div>
-              </article>
+                </article>
+                <article className="so-panel so-combined">
+                  <header>
+                    <div>
+                      <h3>Combined catalog</h3>
+                      <p>Pareto and specialists together.</p>
+                    </div>
+                    <span className="so-mark" aria-hidden="true">i</span>
+                  </header>
+                  <Link href={hybridHref} className="so-strip" aria-label="Open the combined catalog">
+                    {combinedCatalog.map((item) => (
+                      <span key={item.key} data-kind={item.kind}>
+                        <EvolutionImage src={item.image} />
+                      </span>
+                    ))}
+                  </Link>
+                </article>
+              </div>
             </div>
-            <span className="source-arrow" aria-hidden="true" />
-            <article className="so-panel so-catalog">
-              <header>
-                <div>
-                  <h3>Combined catalog</h3>
-                  <p>Elites kept from the generations: the Pareto archive, plus Formal, Spatial, and Atmospheric specialists.</p>
-                </div>
-                <span className="so-mark" aria-hidden="true">i</span>
-              </header>
-              <ul className="so-key">
-                <li data-kind="unweighted">Unweighted</li>
-                <li data-kind="formal">Formal</li>
-                <li data-kind="spatial">Spatial</li>
-                <li data-kind="atmospheric">Atmospheric</li>
-              </ul>
-              <Link href={hybridHref} className="so-strip" aria-label="Open the combined catalog">
-                {strip.map((candidate) => (
-                  <span key={candidate.key} data-kind={candidate.specialist ?? "unweighted"}>
-                    <EvolutionImage src={candidate.image} />
-                  </span>
-                ))}
-              </Link>
-            </article>
             <span className="source-arrow" aria-hidden="true" />
             <div className="so-bottom">
               <article className="so-panel">

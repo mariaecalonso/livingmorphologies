@@ -6,11 +6,10 @@ Catalog data in `lib/catalog.ts` is the source of truth for ratings and descript
 npm install
 npm run dev
 ```
-Open [http://127.0.0.1:43141](http://127.0.0.1:43141). Header **Skill 2 Audit** runs one frozen-protocol diagnostic (1000 agents / 600 iter / decay 0.986) without candidate search.
+Open [http://127.0.0.1:43141](http://127.0.0.1:43141). On Physarum Logic, **Skill 2 Audit** runs one frozen-protocol diagnostic (1000 agents / 600 iter / decay 0.986) without candidate search.
 ```bash
-npx tsx lib/skill1/verify.ts   # traces every archetype and distinguishes Void Field from Contained Room
-npm run search:void            # 50 Void Field seeds → screenshots + scores
-npm run search:contained       # 50 Contained Room seeds → screenshots + scores
+npm run verify:skill1
+npm run verify:lobby
 npm run build
 npm start
 ```
@@ -18,6 +17,6 @@ npm start
 Next.js, TypeScript, Tailwind.
 ## Skills
 Cursor skill definitions live in `.cursor/skills/`.
-- Skill 1 (`architecture-to-physarum`) is complete: all 15 archetypes translate into Physarum behavior. The Skill 2 payload is `Skill1Handoff` from `toHandoff()`.
+- Skill 1 (`architecture-to-physarum`) maps all 15 archetypes into Physarum behavior and is still being refined. The Skill 2 payload is `Skill1Handoff` from `toHandoff()`.
 - Skill 2 (`physarum-2d-generation`) starts from that handoff. Do not rewrite Skill 1 translation or `lib/catalog.ts`.
 - Skill 3 (`vertical-propagation`) starts only after Skill 2 has selected 15 2D outcomes.

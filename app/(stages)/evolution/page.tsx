@@ -1,12 +1,15 @@
-import { EvolutionProgress } from "@/components/evolution/evolution-progress";
-import { loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata = {
-  title: "2D Evolution · Living Morphologies",
-};
-
-export default function EvolutionPage() {
-  return <EvolutionProgress initial={loadEvolutionCatalog()} />;
+export default async function EvolutionPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") query.set(key, value);
+  }
+  const suffix = query.toString();
+  redirect(suffix ? `/evolution/process?${suffix}` : "/evolution/process");
 }

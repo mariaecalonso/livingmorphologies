@@ -1,21 +1,22 @@
 import { mulberry32 } from "../../physarum";
 import { createSimulation, stepMany } from "../../skill1/engine";
-import { realizeLobbyPlan, lobbySimulationSlime } from "../../skill1/lobby-realization";
 import { DISPLAY_ITERATIONS, FIELD_SIZE, TRAIL_SCALE } from "../../skill1/maps";
-import { slimeControlsFromTranslation } from "../../skill1/slime-controls";
-import { translateArchetype } from "../../skill1/translate";
 import { EVALUATION_SEED } from "../evolution-evaluate";
 import { morphologyValid } from "../evaluate";
 import { evaluateMorphology } from "../evaluate";
 import { measureMorphologyDetailed } from "../measurements";
 import { searchObjectives } from "../search-objectives";
-import { lobbyState } from "./lobby-adapter";
+import type { SearchRealization } from "./adapter";
+import { createSearchAdapter } from "./registry";
+import { trailsForPreview } from "../preview-ink";
 import type { PhenotypeRecord, RealizationState, SemanticPlan } from "./types";
+import { HAIR_DECAY } from "../../skill1/hair-ink";
+import { captureZ0, type Z0Capture } from "./z0-snapshot";
 
-const TRAIL_DECAY = 0.986;
+const TRAIL_DECAY = HAIR_DECAY;
 
-/** Inspection drawing. The 20×20 occupancy grid stays the raw fingerprint source. */
-export const INSPECTION_PREVIEW_SIZE = 160;
+/** Inspection drawing at the trail grid. Raw occupancy stays the 20×20 fingerprint. */
+export const INSPECTION_PREVIEW_SIZE = FIELD_SIZE * TRAIL_SCALE;
 
 export type SemanticEvaluation = {
   evaluationSeed: number;
@@ -28,18 +29,36 @@ export type SemanticEvaluation = {
   phenotype: PhenotypeRecord;
   preview: Uint8Array | null;
   previewSize: number;
+  /** Present only until the archive snapshot is written. Not stored on the candidate. */
+  z0?: Z0Capture;
 };
 
 /**
- * Lobby evaluation. Realization comes from the stored plan and salt.
+ * Scores any archetype whose adapter can realize a stored plan.
  * The simulation seed stays the fixed evaluation seed and is not the salt.
  */
-export function evaluateLobbyCandidate(plan: SemanticPlan, state: RealizationState): SemanticEvaluation {
-  const base = translateArchetype(plan.archetypeId);
-  const slimeBase = slimeControlsFromTranslation(base);
-  const realized = realizeLobbyPlan(base, slimeBase, plan.body as never, lobbyState(state));
+export function evaluateSearchCandidate(
+  plan: SemanticPlan,
+  state: RealizationState,
+  options?: { preview?: boolean },
+): SemanticEvaluation {
+  const adapter = createSearchAdapter(plan.archetypeId);
+  if (!adapter.realize) return failed(`${plan.archetypeId} has no realization`);
+  const realized = adapter.realize(plan, state);
   if (!realized.ok) return failed(realized.reasons.join(","));
-  const slime = lobbySimulationSlime(plan.archetypeId, realized.simulationSlime);
+  return scoreRealization(plan.archetypeId, realized, options?.preview !== false);
+}
+
+/** Lobby entry. Same scorer as every other typology. */
+export function evaluateLobbyCandidate(plan: SemanticPlan, state: RealizationState): SemanticEvaluation {
+  return evaluateSearchCandidate(plan, state);
+}
+
+function scoreRealization(
+  archetypeId: string,
+  realized: Extract<SearchRealization, { ok: true }>,
+  preview = true,
+): SemanticEvaluation {
   const simulation = createSimulation(realized.translation, EVALUATION_SEED, realized.agents, TRAIL_SCALE);
   simulation.maxIterations = DISPLAY_ITERATIONS;
   stepMany(
@@ -48,13 +67,18 @@ export function evaluateLobbyCandidate(plan: SemanticPlan, state: RealizationSta
     mulberry32(EVALUATION_SEED ^ 0x9e3779b9),
     DISPLAY_ITERATIONS,
     TRAIL_DECAY,
-    slime,
+    realized.slime,
     false,
   );
+  const z0 = captureZ0(simulation, {
+    translation: realized.translation,
+    slime: realized.slime,
+    trailDecay: TRAIL_DECAY,
+  });
   const detailed = measureMorphologyDetailed(simulation);
   const evaluation = evaluateMorphology({
-    typologyId: base.typologyId,
-    archetypeId: plan.archetypeId,
+    typologyId: realized.translation.typologyId,
+    archetypeId,
     measurements: detailed.measurements,
   });
   const objectives = searchObjectives(evaluation.criteria);
@@ -85,8 +109,15 @@ export function evaluateLobbyCandidate(plan: SemanticPlan, state: RealizationSta
       raw: { measurements: detailed.measurements, summary: detailed.summary },
       occupancy: occupancyGrid(simulation.trails, simulation.trailSize, FIELD_SIZE),
     },
-    preview: inspectionPreview(simulation.trails, simulation.trailSize, detailed.summary.occupancyReference),
-    previewSize: INSPECTION_PREVIEW_SIZE,
+    preview: preview
+      ? inspectionPreview(
+          trailsForPreview(simulation.trails, simulation.displayTrails),
+          simulation.trailSize,
+          detailed.summary.occupancyReference,
+        )
+      : null,
+    previewSize: preview ? INSPECTION_PREVIEW_SIZE : 0,
+    z0,
   };
 }
 
@@ -129,8 +160,8 @@ function failed(reason: string): SemanticEvaluation {
   };
 }
 
-/** Display-scaled drawing. Raw occupancy is stored separately and is not resized to each morphology. */
-export function inspectionPreview(trails: readonly number[], trailSize: number, reference: number) {
+/** Untoned plate. Filament refinement is applied later, from the archetype calibration. */
+export function inspectionPreview(trails: ArrayLike<number>, trailSize: number, reference: number) {
   const size = INSPECTION_PREVIEW_SIZE;
   const factor = Math.max(1, Math.round(trailSize / size));
   const out = new Uint8Array(size * size);

@@ -184,7 +184,7 @@ export function isLobbyArchetype(archetypeId: string): archetypeId is LobbyArche
 
 export function planLobby(archetypeId: string, salt: LobbySalt): LobbyPlan | null {
   if (archetypeId === "vertical-void") {
-    return { archetypeId, plan: planVerticalVoid(salt.seed, salt.attempt) };
+    return { archetypeId, plan: planVerticalVoid(salt.seed, salt.attempt, salt.index) };
   }
   if (archetypeId === "compressed-sequential") {
     return { archetypeId, plan: planCompressedSequential(salt.seed, salt.attempt, salt.index) };
@@ -415,7 +415,7 @@ export function realizeLobbyPlan(
     };
     const slime = {
       ...slimeFromVerticalVoidPlan(slimeBase, plan, slimeSalt),
-      foodPoints: marks.map((mark) => ({ x: mark.x, y: mark.y })),
+      foodPoints: [],
     };
     const rng = mulberry32(seed ^ 0x6d2b79f5 ^ attempt);
     const agents = clampAgents(agentCountFromDensity(densityFromTranslation(base)) + (rng() - 0.5) * 36);
@@ -452,7 +452,7 @@ export function realizeLobbyPlan(
     const marks = attractorsFromContinuousHall(plan, seed, attempt);
     const translation: BiologicalTranslation = {
       ...runTranslation,
-      topology: plan.figure === "void-cut" ? "around-absence" : "open-network",
+      topology: "open-network",
       params: paramsFromContinuousHall(base.params, plan),
       recipe: {
         ...recipeFromContinuousHall(runTranslation.recipe, plan, slimeSalt),
@@ -461,11 +461,7 @@ export function realizeLobbyPlan(
     };
     const slime = {
       ...slimeFromContinuousHall(slimeBase, plan, slimeSalt),
-      foodPoints: (() => {
-        if (plan.figure !== "void-cut") return foodFromAttractors(marks);
-        const banks = foodFromAttractors(marks.filter((item) => !item.hole && item.kind !== "ring"));
-        return banks.length ? banks : [{ x: plan.cx, y: plan.cy }];
-      })(),
+      foodPoints: [],
     };
     const agents = clampAgents(agentsFromContinuousHall(plan, agentSalt));
     return pack(nextPlan, salt, repaired.repaired, agents, slime, translation);
@@ -487,7 +483,7 @@ export function realizeLobbyPlan(
     };
     const slime = {
       ...slimeFromTopographic(slimeBase, plan, slimeSalt),
-      foodPoints: foodFromAttractors(marks),
+      foodPoints: [],
     };
     const agents = clampAgents(agentsFromTopographic(plan, agentSalt));
     return pack(nextPlan, salt, repaired.repaired, agents, slime, translation);
@@ -508,7 +504,7 @@ export function realizeLobbyPlan(
   };
   const slime = {
     ...slimeFromLinearGallery(slimeBase, plan, slimeSalt),
-    foodPoints: foodFromAttractors(marks),
+    foodPoints: [],
   };
   const agents = clampAgents(agentsFromLinearGallery(plan, agentSalt));
   return pack(nextPlan, salt, repaired.repaired, agents, slime, translation);

@@ -1,15 +1,14 @@
 import { mulberry32 } from "../physarum";
 import { FIELD_SIZE } from "./maps";
-import { attractorsFromContainedRoom, planContainedRoom } from "./run-contained-room";
 import { attractorsFromCompressedSequential, planCompressedSequential } from "./run-compressed-sequential";
+import { attractorsFromContainedRoom, planContainedRoom } from "./run-contained-room";
 import { attractorsFromContinuousHall, planContinuousHall } from "./run-continuous-hall";
+import { attractorsFromInsertedPlate, planInsertedHorizontalPlate } from "./run-inserted-horizontal-plate";
 import { attractorsFromLinearEdgeGallery, planLinearEdgeGallery } from "./run-linear-edge-gallery";
 import { attractorsFromLinearGallery, planLinearGallery } from "./run-linear-gallery";
-import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
 import { attractorsFromSteppedAmphitheater, planSteppedAmphitheater } from "./run-stepped-amphitheater";
-import { attractorsFromTerraced, planTerraced } from "./run-terraced";
-import { attractorsFromInsertedPlate, planInsertedHorizontalPlate } from "./run-inserted-horizontal-plate";
-import { attractorsFromUndulated, planUndulated } from "./run-undulated";
+import { attractorsFromVoidField, planVoidField } from "./run-void-field";
+import { attractorsFromOpenHall, planOpenHall } from "./run-open-hall";
 import { attractorsFromTopographic, planTopographicGroundField } from "./run-topographic-ground-field";
 import { attractorsFromVerticalVoidPlan, planVerticalVoid } from "./run-morphology";
 import type { AttractorKind, FieldAttractor } from "./types";
@@ -183,9 +182,36 @@ function openHall(_f: Frame): LocalMark[] {
   return [];
 }
 
-/** Articulated · Connected Module · Immersive — realized in run-terraced. */
-function terraced(_f: Frame): LocalMark[] {
-  return [];
+/** Articulated · Connected Module · Immersive */
+function terraced(f: Frame): LocalMark[] {
+  const steps = f.int(3, 6);
+  const pitch = f.r(2.2, 4.2);
+  const shift = f.r(0.4, 2.2) * (f.chance(0.5) ? -1 : 1);
+  const marks: LocalMark[] = [];
+  for (let i = 0; i < steps; i += 1) {
+    const v = (i - (steps - 1) / 2) * pitch;
+    const half = f.r(4.2, 8.2) - i * f.r(0.2, 1.6);
+    const u = i * shift + f.r(-0.6, 0.6);
+    const thick = f.r(0.75, 1.7);
+    if (f.chance(0.35)) marks.push(arc(f, u - half, v, u + half, v, u, v + f.r(-1.6, 1.6), thick, 0.5 + i * 0.12));
+    else marks.push(seg(f, u - half, v, u + half, v, thick, 0.5 + i * 0.12));
+  }
+  const links = f.int(1, 3);
+  for (let i = 0; i < links; i += 1) {
+    const connector = f.r(-3.5, 3.5);
+    marks.push(
+      approachPath(
+        f,
+        connector,
+        -((steps - 1) / 2) * pitch - 0.4,
+        connector + shift * (steps - 1) + f.r(-1, 1),
+        ((steps - 1) / 2) * pitch + 0.4,
+        f.r(0.7, 1.3),
+        f.r(0.35, 0.65),
+      ),
+    );
+  }
+  return marks;
 }
 
 /** Restrained · Rigid Module · Introspective */
@@ -270,185 +296,6 @@ function undulated(f: Frame): LocalMark[] {
   return marks;
 }
 
-/**
- * Enclosed Threshold · Incidental Threshold · Contained Commons
- * Nested oval loops around an empty bowl. Solid stacked disks collapse into
- * one hole, so each tier is a closed corridor the slime can thicken.
- */
-function ovalLoop(f: Frame, rx: number, ry: number, width: number, strength: number): LocalMark[] {
-  const lift = ry * 1.62;
-  return [
-    arc(f, -rx, 0, rx, 0, 0, -lift, width, strength),
-    arc(f, -rx, 0, rx, 0, 0, lift, width, strength),
-  ];
-}
-
-function steppedAmphitheater(f: Frame): LocalMark[] {
-  const tiers = f.int(3, 6);
-  const stretch = f.r(1.08, 1.95);
-  const innerRx = f.r(2.2, 3.6);
-  const step = f.r(1.05, 1.9);
-  const marks: LocalMark[] = [disk(f, "ring", 0, 0, f.r(1.1, 2.1), f.r(0.7, 1.05), true)];
-  const mode = f.pick(["oval", "polygon", "seats", "bands"] as const);
-
-  for (let i = 0; i < tiers; i += 1) {
-    const rx = innerRx + i * step;
-    const ry = rx / stretch;
-    const width = f.r(0.42, 0.85) + i * 0.04;
-    const strength = 1.25 - i * 0.08;
-    if (mode === "polygon") {
-      const sides = f.int(6, 10);
-      for (let s = 0; s < sides; s += 1) {
-        const a0 = (s / sides) * Math.PI * 2;
-        const a1 = ((s + 1) / sides) * Math.PI * 2;
-        marks.push(seg(f, Math.cos(a0) * rx, Math.sin(a0) * ry, Math.cos(a1) * rx, Math.sin(a1) * ry, width, strength));
-      }
-    } else if (mode === "seats") {
-      const seats = f.int(5, 12);
-      for (let s = 0; s < seats; s += 1) {
-        if (f.chance(0.1)) continue;
-        const a = (s / seats) * Math.PI * 2 + f.r(-0.18, 0.18);
-        marks.push(disk(f, "point", Math.cos(a) * rx, Math.sin(a) * ry, f.r(0.35, 1.6), strength * f.r(0.55, 1.1)));
-      }
-    } else if (mode === "bands") {
-      marks.push(arc(f, -rx, -ry * 0.15, rx, -ry * 0.15, 0, -ry, width, strength));
-      marks.push(arc(f, -rx, ry * 0.15, rx, ry * 0.15, 0, ry, width, strength * 0.85));
-    } else {
-      marks.push(...ovalLoop(f, rx, ry, width, strength));
-    }
-  }
-
-  const outerRy = (innerRx + (tiers - 1) * step) / stretch;
-  const approaches = f.int(1, 3);
-  for (let i = 0; i < approaches; i += 1) {
-    const a = f.pick([-Math.PI / 2, Math.PI / 2, 0, Math.PI]) + f.r(-0.35, 0.35);
-    marks.push(
-      approachPath(
-        f,
-        Math.cos(a) * (outerRy + f.r(1.4, 2.8)),
-        Math.sin(a) * (outerRy + f.r(1.4, 2.8)),
-        Math.cos(a) * (innerRx * 0.4),
-        Math.sin(a) * (innerRx * 0.4),
-        f.r(0.55, 1.1),
-        0.38,
-      ),
-    );
-  }
-  return marks;
-}
-
-/** Visually Exposed Core · Isolated Anchor · Expansive Commons */
-function voidField(f: Frame): LocalMark[] {
-  const coreU = f.r(-2.8, 2.8);
-  const coreV = f.r(-2.8, 2.8);
-  const ringR = f.r(2.8, 6.6);
-  const marks = [disk(f, "ring", coreU, coreV, ringR, f.r(0.75, 1.15), true)];
-  const framing = f.int(2, 6);
-  const start = f.r(0, Math.PI * 2);
-  for (let i = 0; i < framing; i += 1) {
-    const a = start + (i / framing) * Math.PI * 2 + f.r(-0.4, 0.4);
-    const d = ringR + f.r(2.2, 5.4);
-    marks.push(disk(f, "point", coreU + Math.cos(a) * d, coreV + Math.sin(a) * d, f.r(1.2, 2.8), f.r(0.18, 0.38)));
-  }
-  const paths = f.int(1, 4);
-  for (let i = 0; i < paths; i += 1) {
-    const a = f.r(-Math.PI, Math.PI);
-    const far = ringR + f.r(3.4, 6.4);
-    marks.push(
-      approachPath(
-        f,
-        coreU + Math.cos(a) * far,
-        coreV + Math.sin(a) * far,
-        coreU + Math.cos(a) * (ringR + f.r(0.8, 2.2)),
-        coreV + Math.sin(a) * (ringR + f.r(0.8, 2.2)),
-        f.r(0.55, 1.5),
-        f.r(0.18, 0.36),
-      ),
-    );
-  }
-  return marks;
-}
-
-/** Modular Nodes · Visually Disturbed Nodes · Distributed Retreat */
-function insertedHorizontalPlate(f: Frame): LocalMark[] {
-  const nodes = f.int(3, 7);
-  const marks: LocalMark[] = [];
-  const plates: Array<{ u: number; v: number }> = [];
-  for (let i = 0; i < nodes; i += 1) {
-    const u = -7.4 + ((i + 0.5) / nodes) * 14.8 + f.r(-1.4, 1.4);
-    const v = (i % 2 ? -1 : 1) * f.r(1.6, 5.8) + f.r(-1.2, 1.2);
-    plates.push({ u, v });
-    marks.push(disk(f, f.chance(0.25) ? "ring" : "point", u, v, f.r(1.0, 2.4), f.r(0.55, 1.05)));
-    if (f.chance(0.45)) {
-      marks.push(seg(f, u - f.r(1.4, 2.6), v, u + f.r(1.4, 2.6), v, f.r(0.7, 1.3), 0.7));
-    }
-  }
-  for (let i = 0; i < plates.length - 1; i += 1) {
-    const a = plates[i];
-    const b = plates[i + 1];
-    marks.push(approachPath(f, a.u, a.v, b.u, b.v, f.r(0.55, 1.3), f.r(0.35, 0.7)));
-  }
-  if (f.chance(0.5) && plates.length > 2) {
-    const a = plates[0];
-    const b = plates[plates.length - 1];
-    marks.push(approachPath(f, a.u, a.v, b.u, b.v, f.r(0.45, 1), 0.3));
-  }
-  return marks;
-}
-
-/** Magnetic Enclosed Core · Isolated Attractor · Immersive Core */
-function containedRoomWithinVolume(f: Frame): LocalMark[] {
-  const roomU = f.r(-1.8, 1.8);
-  const roomV = f.r(-1.8, 1.8);
-  const roomR = f.r(0.9, 2.1);
-  const ringR = roomR + f.r(1.8, 3.6);
-  const marks = [disk(f, "point", roomU, roomV, roomR, f.r(0.95, 1.25))];
-  marks.push(disk(f, "ring", roomU + f.r(-0.4, 0.4), roomV + f.r(-0.4, 0.4), ringR, f.r(0.45, 0.8)));
-  const outer = f.int(1, 3);
-  for (let i = 0; i < outer; i += 1) {
-    marks.push(disk(f, "ring", roomU, roomV, ringR + (i + 1) * f.r(1.1, 2.0), f.r(0.22, 0.45)));
-  }
-  const openings = f.int(1, 4);
-  const start = f.r(0, Math.PI * 2);
-  for (let i = 0; i < openings; i += 1) {
-    const a = start + (i / openings) * Math.PI * 2 + f.r(-0.4, 0.4);
-    const far = ringR + f.r(2.8, 6.4);
-    marks.push(
-      approachPath(
-        f,
-        roomU + Math.cos(a) * far,
-        roomV + Math.sin(a) * far,
-        roomU + Math.cos(a) * (roomR + 0.35),
-        roomV + Math.sin(a) * (roomR + 0.35),
-        f.r(0.55, 1.3),
-        f.r(0.4, 0.75),
-      ),
-    );
-  }
-  return marks;
-}
-
-/** Porous Spine · Integrated Nodes · Social Commons */
-function linearEdgeGallery(f: Frame): LocalMark[] {
-  const v = f.r(4.6, 7.1);
-  const bend = f.chance(0.55) ? f.r(-2.4, 2.4) : 0;
-  const half = f.r(6.2, 8);
-  const marks = [
-    bend ? arc(f, -half, v, half, v, 0, v + bend, f.r(0.85, 1.7), 1.05) : seg(f, -half, v, half, v, f.r(0.85, 1.7), 1.05),
-  ];
-  const nodes = f.int(3, 7);
-  for (let i = 0; i < nodes; i += 1) {
-    const u = -half + ((i + 0.5) / nodes) * half * 2 + f.r(-0.9, 0.9);
-    marks.push(disk(f, "point", u, v + (bend ? bend * 0.25 : 0), f.r(0.9, 2.0), f.r(0.5, 0.9)));
-  }
-  const pores = f.int(2, 5);
-  for (let i = 0; i < pores; i += 1) {
-    const u = -half + ((i + 0.5) / pores) * half * 2 + f.r(-1.3, 1.3);
-    marks.push(approachPath(f, u, v - 0.4, u + f.r(-1.2, 1.2), v - f.r(2.4, 6.2), f.r(0.5, 1.2), f.r(0.28, 0.55)));
-  }
-  return marks;
-}
-
 const GENERATORS: Record<string, { angles: number[]; build: (f: Frame) => LocalMark[] }> = {
   "vertical-void": { angles: ANY, build: verticalVoid },
   "compressed-sequential": { angles: ANY, build: compressedSequential },
@@ -460,11 +307,6 @@ const GENERATORS: Record<string, { angles: number[]; build: (f: Frame) => LocalM
   "flat-deep-plan": { angles: ORTHO, build: flatDeepPlan },
   "void-edge": { angles: CARDINAL, build: voidEdge },
   undulated: { angles: ANY, build: undulated },
-  "stepped-amphitheater": { angles: CARDINAL, build: steppedAmphitheater },
-  "void-field": { angles: ANY, build: voidField },
-  "inserted-horizontal-plate": { angles: ORTHO, build: insertedHorizontalPlate },
-  "contained-room-within-volume": { angles: ANY, build: containedRoomWithinVolume },
-  "linear-edge-gallery": { angles: CARDINAL, build: linearEdgeGallery },
 };
 
 /** Legal layout orientations (radians) for an archetype. Read-only copy; no generator means no rotation. */
@@ -508,15 +350,6 @@ export function runAttractorsFor(
   if (archetypeId === "linear-edge-gallery") {
     return attractorsFromLinearEdgeGallery(planLinearEdgeGallery(seed, attempt, index));
   }
-  if (archetypeId === "undulated") {
-    return attractorsFromUndulated(planUndulated(seed, attempt, index));
-  }
-  if (archetypeId === "open-hall") {
-    return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
-  }
-  if (archetypeId === "terraced") {
-    return attractorsFromTerraced(planTerraced(seed, attempt, index), seed);
-  }
   if (archetypeId === "contained-room-within-volume") {
     return attractorsFromContainedRoom(planContainedRoom(seed, attempt, index));
   }
@@ -526,11 +359,17 @@ export function runAttractorsFor(
   if (archetypeId === "stepped-amphitheater") {
     return attractorsFromSteppedAmphitheater(planSteppedAmphitheater(seed, attempt, index));
   }
+  if (archetypeId === "void-field") {
+    return attractorsFromVoidField(planVoidField(seed, attempt, index));
+  }
+  if (archetypeId === "open-hall") {
+    return attractorsFromOpenHall(planOpenHall(seed, attempt, index), seed, attempt);
+  }
   const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x27d4eb2d));
   const f = frame(rng);
   const generator = GENERATORS[archetypeId];
   if (!generator) return jitteredRecipe(f, recipe);
-  return place(generator.build(f), rng, generator.angles, archetypeId === "stepped-amphitheater");
+  return place(generator.build(f), rng, generator.angles, false);
 }
 
 function pathPoint(mark: FieldAttractor, t: number) {

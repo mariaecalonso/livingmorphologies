@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, rmdir, unlink, writeFile } from "fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 
@@ -31,18 +31,17 @@ function dataUrlToPng(dataUrl: string): Buffer | null {
   }
 }
 
-async function readEntries(file: string): Promise<IncomingEntry[] | null> {
+async function readEntries(file: string): Promise<IncomingEntry[]> {
   try {
     const parsed = JSON.parse(await readFile(file, "utf8")) as unknown;
     return Array.isArray(parsed) ? (parsed as IncomingEntry[]) : [];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException)?.code === "ENOENT") return [];
-    return null;
+  } catch {
+    return [];
   }
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { archetypeId?: string; entries?: IncomingEntry[]; replace?: boolean };
+  const body = (await request.json()) as { archetypeId?: string; entries?: IncomingEntry[] };
   const archetypeId = body.archetypeId;
   const incoming = Array.isArray(body.entries) ? body.entries : [];
   if (!archetypeId || !incoming.length) {
@@ -52,11 +51,7 @@ export async function POST(request: Request) {
   const dir = rootDir(archetypeId);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, "entries.json");
-  const existing = body.replace ? [] : await readEntries(file);
-  if (!body.replace && existing == null) {
-    return NextResponse.json({ ok: false, error: "catalog unreadable" }, { status: 409 });
-  }
-  const byRun = new Map((existing ?? []).map((item) => [item.run, item]));
+  const byRun = new Map((await readEntries(file)).map((item) => [item.run, item]));
 
   for (const item of incoming) {
     if (!item?.id || !item.image || typeof item.run !== "number") continue;
@@ -77,36 +72,6 @@ export async function POST(request: Request) {
   }
 
   const entries = [...byRun.values()].sort((a, b) => a.run - b.run);
-  const next = `${JSON.stringify(entries, null, 2)}\n`;
-  const temp = `${file}.tmp`;
-  await writeFile(temp, next);
-  try {
-    await unlink(file);
-  } catch {
-    /* the first save has no catalog file yet */
-  }
-  try {
-    await rename(temp, file);
-  } catch {
-    await writeFile(file, next);
-    await unlink(temp).catch(() => undefined);
-  }
+  await writeFile(file, `${JSON.stringify(entries, null, 2)}\n`);
   return NextResponse.json({ ok: true, archetypeId, count: entries.length });
-}
-
-export async function DELETE(request: Request) {
-  const archetypeId = new URL(request.url).searchParams.get("archetypeId") ?? "";
-  if (!/^[a-z0-9-]+$/.test(archetypeId)) {
-    return NextResponse.json({ ok: false, error: "bad archetype" }, { status: 400 });
-  }
-
-  const dir = rootDir(archetypeId);
-  try {
-    const names = await readdir(dir);
-    await Promise.all(names.map((name) => unlink(path.join(dir, name)).catch(() => undefined)));
-    await rmdir(dir).catch(() => undefined);
-  } catch {
-    /* already gone */
-  }
-  return NextResponse.json({ ok: true, archetypeId, count: 0 });
 }

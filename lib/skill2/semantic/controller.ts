@@ -1,10 +1,11 @@
 import { mulberry32 } from "../../physarum";
 import type { ArchetypeSearchAdapter } from "./adapter";
-import { buildCombinedCatalog } from "./catalog";
+import { buildCombinedCatalog, type CatalogVisibility } from "./catalog";
 import { assignFidelity } from "./fidelity";
 import { deriveG01Fidelity, fidelityDetailFor } from "./fidelity-method";
 import { semanticIdentity } from "./identity";
 import { mutateSemanticPlan, type MutationAttempt } from "./mutation";
+import { archetypeHasRefineGene, diversityGenes, mutateByPolicy, usesDeclaredFields } from "./policy";
 import { recomputePreservation, type PreservationResult } from "./preservation";
 import type {
   BirthRecord,
@@ -51,17 +52,25 @@ export async function runSemanticEvolution(args: {
   workers?: number;
   onEvaluated?: (candidate: SemanticCandidate, evaluation: SemanticEvaluation) => void;
   checkpoint?: (run: SemanticRun, phase: "birth-plan" | "candidate" | "fidelity" | "descriptor" | "generation") => void | Promise<void>;
-  /** Optional G01 post-process. May install a diversity distance. A block stops before preservation. */
+  /** Optional G01 post-process. May install a diversity distance. A block is recorded and the remaining generations still run. */
   afterG01?: (run: SemanticRun) => { block?: string } | void;
 }): Promise<SemanticRun> {
   const config = { ...args.config, specialists: args.config.specialists ?? false };
   validateConfig(config);
-  if (args.previous?.fidelityCalibration?.status === "block" || args.previous?.descriptorProfile?.block) return args.previous;
   const run = args.previous ? continueRun(args.previous, config, args.adapter) : createRun(config, args.adapter);
-  const mutate = args.mutate ?? mutateSemanticPlan;
+  const mutate = args.mutate ?? defaultMutate;
   for (let generation = run.completedGenerations + 1; generation <= config.generations; generation += 1) {
     const rng = mulberry32((config.runSeed ^ Math.imul(generation, 0x9e3779b1)) >>> 0);
+    if (run.config.diversity) config.diversity = run.config.diversity;
     const previous = run.generations[run.generations.length - 1] ?? null;
+    if (config.diversity && run.generations.some((stored) => stored.preservationApplied && stored.diversityStatus === "uncalibrated")) {
+      for (const stored of run.generations) {
+        if (stored.preservationApplied && stored.diversityStatus === "uncalibrated") {
+          reapplyStoredDiversity(run, stored, config.diversity, args.adapter);
+        }
+      }
+      await args.checkpoint?.(run, "generation");
+    }
     const pending = run.pendingGeneration?.generation === generation ? run.pendingGeneration : null;
     const planned = pending ?? planGeneration(run, generation, config, args.adapter, rng, mutate, previous);
     if (!pending) {
@@ -106,25 +115,12 @@ export async function runSemanticEvolution(args: {
         if (candidate.generation === 1) candidate.fidelity = fidelityDetailFor(candidate, record);
       }
       await args.checkpoint?.(run, "fidelity");
-      if (record.status === "block") {
-        run.pendingGeneration = null;
-        run.generations.push(snapshot(run, generation, births, planned, null, previous));
-        run.completedGenerations = generation;
-        await args.checkpoint?.(run, "generation");
-        return run;
-      }
     }
     if (generation === 1 && args.afterG01 && !run.descriptorProfile) {
-      const outcome = args.afterG01(run);
+      args.afterG01(run);
       await args.checkpoint?.(run, "descriptor");
-      if (outcome?.block || descriptorBlocked(run)) {
-        run.pendingGeneration = null;
-        run.generations.push(snapshot(run, generation, births, planned, null, previous));
-        run.completedGenerations = generation;
-        await args.checkpoint?.(run, "generation");
-        return run;
-      }
     }
+    if (run.config.diversity) config.diversity = run.config.diversity;
     const preservation =
       config.purpose === "calibration"
         ? null
@@ -133,7 +129,7 @@ export async function runSemanticEvolution(args: {
     run.pendingGeneration = null;
     run.generations.push(snapshot(run, generation, births, planned, preservation, previous));
     run.catalog = preservation
-      ? buildCombinedCatalog(run.candidates, preservedIds(preservation), config.catalogDedup)
+      ? buildCombinedCatalog(run.candidates, preservedIds(preservation), config.catalogDedup, catalogVisibility(args.adapter, config))
       : { dedup: "uncalibrated", redundancyThreshold: null, entries: [] };
     run.completedGenerations = generation;
     await args.checkpoint?.(run, "generation");
@@ -237,31 +233,46 @@ function planGeneration(
 ): { requested: PoolMix; used: PoolMix; reallocatedToExplorer: number; reallocatedPools: ("pareto" | "diversity")[]; births: PlannedBirth[] } {
   const requested = mixFor(config, generation);
   let explorers = requested.explorers;
+  let paretoCount = requested.pareto;
+  let diversityCount = requested.diversity;
   let reallocated = 0;
   const reallocatedPools: ("pareto" | "diversity")[] = [];
+  if (generation > 1 && paretoCount > 0 && !usesDeclaredFields(config.paretoMutation) && !archetypeHasRefineGene(adapter)) {
+    explorers += paretoCount;
+    reallocated += paretoCount;
+    reallocatedPools.push("pareto");
+    paretoCount = 0;
+  }
+  if (generation > 1 && diversityCount > 0 && !usesDeclaredFields(config.diversityMutation) && diversityGenes(adapter).length === 0) {
+    explorers += diversityCount;
+    reallocated += diversityCount;
+    reallocatedPools.push("diversity");
+    diversityCount = 0;
+  }
   const births: PlannedBirth[] = [];
   const seen = new Set(run.candidates.map((candidate) => semanticIdentity(candidate.plan, candidate.state)));
-  const allowReallocation = config.purpose === "development";
   const take = (role: "pareto" | "diversity", count: number) => {
     const pool = previous ? poolFor(previous, role) : [];
     if (count > 0 && pool.length === 0) {
-      if (!allowReallocation) {
-        throw new Error(
-          `generation ${generation} ${role} parent pool is empty. The requested composition was not changed. Review the experimental configuration.`,
-        );
-      }
       explorers += count;
       reallocated += count;
       reallocatedPools.push(role);
       return;
     }
     for (let slot = 0; slot < count; slot += 1) {
-      births.push(planMutant(run, adapter, pool, role, config, rng, mutate, seen));
+      const birth = planMutant(run, adapter, pool, role, config, rng, mutate, seen);
+      if (birth) {
+        births.push(birth);
+        continue;
+      }
+      explorers += 1;
+      reallocated += 1;
+      if (!reallocatedPools.includes(role)) reallocatedPools.push(role);
     }
   };
   for (let slot = 0; slot < explorers; slot += 1) births.push(planExplorer(adapter, rng, seen, config.duplicateAttemptBudget));
-  take("pareto", requested.pareto);
-  take("diversity", requested.diversity);
+  take("pareto", paretoCount);
+  take("diversity", diversityCount);
   // Explorer slots that were increased by reallocation are already included in `explorers`
   // only for the initial loop. Reallocation happens inside `take`, after explorers were planned.
   // Plan the reallocated explorers now.
@@ -277,26 +288,36 @@ function planGeneration(
 }
 
 function planExplorer(adapter: ArchetypeSearchAdapter, rng: () => number, seen: Set<string>, budget: number): PlannedBirth {
+  let duplicate: PlannedBirth | null = null;
   for (let attempt = 0; attempt < budget; attempt += 1) {
     const sampled = adapter.sampleExplorer(rng);
     const repaired = adapter.repair(sampled.plan);
     if (!repaired.ok) continue;
-    const key = semanticIdentity(repaired.plan, sampled.state);
-    if (seen.has(key)) continue;
+    const birth = explorerBirth(repaired.plan, sampled.state, repaired.repairedFields);
+    const key = semanticIdentity(birth.plan, birth.state);
+    if (seen.has(key)) {
+      duplicate = birth;
+      continue;
+    }
     seen.add(key);
-    return {
-      candidateId: 0,
-      plan: repaired.plan,
-      state: { ...sampled.state },
-      origin: "explorer",
-      parentId: null,
-      parentSelectionRole: null,
-      mutationIntent: null,
-      changes: [],
-      repairedFields: repaired.repairedFields,
-    };
+    return birth;
   }
-  throw new Error("duplicate attempt budget exhausted while sampling explorers");
+  if (duplicate) return duplicate;
+  throw new Error(`${adapter.archetypeId}: explorer sample did not repair`);
+}
+
+function explorerBirth(plan: SemanticPlan, state: RealizationState, repairedFields: string[]): PlannedBirth {
+  return {
+    candidateId: 0,
+    plan,
+    state: { ...state },
+    origin: "explorer",
+    parentId: null,
+    parentSelectionRole: null,
+    mutationIntent: null,
+    changes: [],
+    repairedFields,
+  };
 }
 
 function planMutant(
@@ -308,7 +329,7 @@ function planMutant(
   rng: () => number,
   mutate: typeof mutateSemanticPlan,
   seen: Set<string>,
-): PlannedBirth {
+): PlannedBirth | null {
   const intent: MutationIntent = role === "pareto" ? "local-refinement" : "morphological-exploration";
   const profile = role === "pareto" ? config.paretoMutation : config.diversityMutation;
   if (!profile) throw new Error(`missing ${role} mutation profile`);
@@ -337,7 +358,7 @@ function planMutant(
       repairedFields: attemptResult.repairedFields,
     };
   }
-  throw new Error(`duplicate attempt budget exhausted while mutating ${role} parents`);
+  return null;
 }
 
 function poolFor(snapshot: GenerationSnapshot, role: "pareto" | "diversity") {
@@ -394,10 +415,6 @@ async function runBirthEvaluations(
   if (rejected?.status === "rejected") throw rejected.reason;
 }
 
-function descriptorBlocked(run: SemanticRun) {
-  return run.descriptorProfile?.block ?? null;
-}
-
 function derivesG01(config: SemanticSearchConfig) {
   if (config.deriveG01Fidelity === false) return false;
   if (config.deriveG01Fidelity === true) return true;
@@ -446,6 +463,57 @@ function materialize(
   };
 }
 
+function defaultMutate(
+  adapter: ArchetypeSearchAdapter,
+  plan: SemanticPlan,
+  state: RealizationState,
+  intent: MutationIntent,
+  profile: NonNullable<SemanticSearchConfig["paretoMutation"]>,
+  rng: () => number,
+) {
+  if (usesDeclaredFields(profile)) return mutateSemanticPlan(adapter, plan, state, intent, profile, rng);
+  return mutateByPolicy(adapter, plan, state, intent, rng);
+}
+
+function catalogVisibility(adapter: ArchetypeSearchAdapter, config: SemanticSearchConfig): CatalogVisibility {
+  return { adapter, distance: config.diversity?.distance ?? null };
+}
+
+function reapplyStoredDiversity(
+  run: SemanticRun,
+  stored: GenerationSnapshot,
+  diversity: NonNullable<SemanticSearchConfig["diversity"]>,
+  adapter: ArchetypeSearchAdapter,
+) {
+  const generationCandidates = run.candidates.filter((candidate) => candidate.generation <= stored.generation);
+  const preservation = recomputePreservation(generationCandidates, run.purpose, run.config.specialists ?? false, diversity);
+  applyCurrent(generationCandidates, preservation);
+  const earlier = run.generations.filter((item) => item.generation < stored.generation).at(-1) ?? null;
+  Object.assign(
+    stored,
+    snapshot(
+      run,
+      stored.generation,
+      stored.births,
+      {
+        requested: stored.compositionRequested,
+        used: stored.compositionUsed,
+        reallocatedToExplorer: stored.reallocatedToExplorer,
+        reallocatedPools: stored.reallocatedPools,
+      },
+      preservation,
+      earlier,
+      generationCandidates,
+    ),
+  );
+  run.catalog = buildCombinedCatalog(
+    generationCandidates,
+    preservedIds(preservation),
+    run.config.catalogDedup,
+    catalogVisibility(adapter, { ...run.config, diversity }),
+  );
+}
+
 function applyCurrent(candidates: SemanticCandidate[], preservation: PreservationResult) {
   const pareto = new Set(preservation.paretoIds);
   const tags = new Set(preservation.diversityTagIds);
@@ -482,6 +550,7 @@ function snapshot(
   planned: { requested: PoolMix; used: PoolMix; reallocatedToExplorer: number; reallocatedPools: ("pareto" | "diversity")[] },
   preservation: PreservationResult | null,
   previous: GenerationSnapshot | null,
+  included: readonly SemanticCandidate[] = run.candidates,
 ): GenerationSnapshot {
   const previousPareto = new Set(previous?.paretoIds ?? []);
   const paretoIds = preservation?.paretoIds ?? [];
@@ -497,18 +566,18 @@ function snapshot(
   };
   return {
     generation,
-    candidateIds: run.candidates.map((candidate) => candidate.id),
+    candidateIds: included.map((candidate) => candidate.id),
     newCandidateIds: births.map((birth) => birth.candidateId),
-    technicallyValidIds: run.candidates.filter((candidate) => candidate.technicalValid).map((candidate) => candidate.id),
+    technicallyValidIds: included.filter((candidate) => candidate.technicalValid).map((candidate) => candidate.id),
     fidelityEligibleIds: preservation?.eligibleIds ?? [],
     paretoIds: [...paretoIds],
     enteredParetoIds: paretoIds.filter((id) => !previousPareto.has(id)),
     leftParetoIds: [...previousPareto].filter((id) => !pareto.has(id)),
     crowding,
     objectiveExtremes: {
-      formal: extreme(run.candidates, paretoIds, "formal"),
-      spatial: extreme(run.candidates, paretoIds, "spatial"),
-      atmospheric: extreme(run.candidates, paretoIds, "atmospheric"),
+      formal: extreme(included, paretoIds, "formal"),
+      spatial: extreme(included, paretoIds, "spatial"),
+      atmospheric: extreme(included, paretoIds, "atmospheric"),
     },
     diversityStatus: preservation?.diversityStatus ?? "uncalibrated",
     diversityTagIds: [...(preservation?.diversityTagIds ?? [])],
@@ -518,7 +587,7 @@ function snapshot(
     parentPools: {
       pareto: [...paretoIds],
       diversity: preservation
-        ? run.candidates
+        ? included
             .filter((candidate) => candidate.current.diversity === "tag" || candidate.current.diversity === "rescue")
             .map((candidate) => candidate.id)
         : [],

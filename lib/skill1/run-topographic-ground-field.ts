@@ -102,14 +102,6 @@ function pt(x: number, y: number, radius: number, strength: number, hole = false
   return { kind: hole ? "ring" : "point", x: lim(x), y: lim(y), radius, strength, hole };
 }
 
-function ln(x: number, y: number, x2: number, y2: number, radius: number, strength: number): FieldAttractor {
-  return { kind: "line", x: lim(x), y: lim(y), x2: lim(x2), y2: lim(y2), radius, strength };
-}
-
-function cv(x: number, y: number, x2: number, y2: number, cx: number, cy: number, radius: number, strength: number): FieldAttractor {
-  return { kind: "curve", x: lim(x), y: lim(y), x2: lim(x2), y2: lim(y2), cx: lim(cx), cy: lim(cy), radius, strength };
-}
-
 function rotate(x: number, y: number, plan: TopographicPlan) {
   const dx = (x - CENTER) * plan.scale * (plan.flip ? -1 : 1);
   const dy = (y - CENTER) * plan.scale;
@@ -139,62 +131,60 @@ function place(marks: FieldAttractor[], plan: TopographicPlan): FieldAttractor[]
   });
 }
 
-function link(marks: FieldAttractor[], a: FieldAttractor, b: FieldAttractor, radius: number) {
-  marks.push(cv(a.x, a.y, b.x, b.y, (a.x + b.x) / 2, (a.y + b.y) / 2, radius, 0.28));
-}
-
 function isPad(mark: FieldAttractor) {
   return mark.kind !== "line" && mark.kind !== "curve" && mark.hole !== true;
 }
 
-function carveFromPads(marks: FieldAttractor[], radiusMul: number, kind: TerrainKind, f: Frame): FieldAttractor[] {
-  const pads = marks.filter(isPad);
-  const links = marks.filter((mark) => mark.kind === "line" || mark.kind === "curve");
-  const out: FieldAttractor[] = [];
-  for (const pad of pads) {
-    out.push(pt(pad.x, pad.y, Math.max(2.6, (pad.radius ?? 2) * 1.85 * radiusMul), (pad.strength ?? 0.45) * 0.58));
-  }
-  for (const link of links) {
-    out.push({ ...link, hole: false, radius: Math.max(1.6, (link.radius ?? 0.7) * 2.8 * radiusMul) });
-  }
-  const channel = kind === "valley" || kind === "channel" || kind === "flowing" || kind === "ridge" || kind === "spine";
-  if (channel) {
-    for (const link of links) {
-      out.push({ ...link, hole: true, radius: Math.max(0.65, (link.radius ?? 0.7) * 1.05) });
+/** Push grounds apart so the space between them stays an opening. */
+function spreadPads(pads: FieldAttractor[]) {
+  const points = pads.map((pad) => ({ x: pad.x, y: pad.y, radius: pad.radius, strength: pad.strength }));
+  const gap = 5.6;
+  for (let pass = 0; pass < 10; pass += 1) {
+    for (let i = 0; i < points.length; i += 1) {
+      for (let j = i + 1; j < points.length; j += 1) {
+        let dx = points[j].x - points[i].x;
+        let dy = points[j].y - points[i].y;
+        let d = Math.hypot(dx, dy);
+        if (d >= gap) continue;
+        if (d < 0.01) {
+          dx = 1;
+          dy = 0.2;
+          d = Math.hypot(dx, dy);
+        }
+        const push = (gap - d) / 2;
+        points[i].x = lim(points[i].x - (dx / d) * push);
+        points[i].y = lim(points[i].y - (dy / d) * push);
+        points[j].x = lim(points[j].x + (dx / d) * push);
+        points[j].y = lim(points[j].y + (dy / d) * push);
+      }
     }
   }
-  for (const pad of pads) {
-    out.push({
-      kind: "ring",
-      x: lim(pad.x),
-      y: lim(pad.y),
-      radius: Math.max(1.05, (pad.radius ?? 2) * f.r(0.5, 0.76)),
-      strength: 0.16,
-      hole: true,
-    });
-  }
-  return out;
+  return points;
 }
 
-function growMarks(marks: FieldAttractor[], growth: GrowthKind, figure: GroundFigure, kind: TerrainKind, f: Frame): FieldAttractor[] {
+function growMarks(marks: FieldAttractor[], growth: GrowthKind, figure: GroundFigure, _kind: TerrainKind, _f: Frame): FieldAttractor[] {
   const radiusMul =
-    growth === "mass" ? 1.2 : growth === "bloom" ? 1.08 : growth === "filament" ? 0.84 : growth === "sparse" ? 0.88 : 1;
-  if (figure === "carve") return carveFromPads(marks, radiusMul, kind, f);
-  return marks.map((mark) => ({
-    ...mark,
-    hole: false,
-    kind: mark.kind === "ring" ? "point" : mark.kind,
-    radius: Math.max(mark.kind === "line" || mark.kind === "curve" ? 0.45 : 1.5, (mark.radius ?? 1.2) * radiusMul),
-  }));
+    growth === "mass" ? 1.12 : growth === "bloom" ? 1.04 : growth === "filament" ? 0.9 : growth === "sparse" ? 0.88 : 1;
+  const open = figure === "carve" ? 0.82 : 1;
+  const pads = spreadPads(marks.filter(isPad));
+  return pads.map((pad) => {
+    let nearest = 8;
+    for (const other of pads) {
+      if (other === pad) continue;
+      nearest = Math.min(nearest, Math.hypot(pad.x - other.x, pad.y - other.y));
+    }
+    const want = Math.max(1.7, (pad.radius ?? 2.1) * open * radiusMul);
+    const radius = Math.min(want, Math.max(1.55, nearest * 0.34));
+    return pt(pad.x, pad.y, radius, (pad.strength ?? 0.45) * 0.7);
+  });
 }
 
 function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
   const marks: FieldAttractor[] = [];
   if (kind === "rolling") {
-    for (let i = 0; i < 6; i += 1) {
-      marks.push(pt(4.4 + i * 2.1 + f.r(-0.35, 0.35), CENTER + Math.sin(i * 0.95) * f.r(1.2, 2.8), f.r(1.9, 2.7), 0.48));
+    for (let i = 0; i < 4; i += 1) {
+      marks.push(pt(4.2 + i * 3.6 + f.r(-0.2, 0.2), CENTER + Math.sin(i * 0.95) * f.r(1.2, 2.4), f.r(1.9, 2.4), 0.48));
     }
-    for (let i = 0; i < 5; i += 1) link(marks, marks[i], marks[i + 1], 0.7);
     return marks;
   }
   if (kind === "valley") {
@@ -204,17 +194,12 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
     marks.push(pt(5.4, CENTER + 2.8, 2.4, 0.5));
     marks.push(pt(10.2, CENTER + 2.5, 2.2, 0.46));
     marks.push(pt(14.6, CENTER + 2.7, 2.4, 0.5));
-    link(marks, marks[0], marks[1], 0.65);
-    link(marks, marks[1], marks[2], 0.65);
-    link(marks, marks[3], marks[4], 0.65);
-    link(marks, marks[4], marks[5], 0.65);
     return marks;
   }
   if (kind === "plateau") {
     marks.push(pt(CENTER - 1.6, CENTER - 0.4, 3.6, 0.58));
     marks.push(pt(CENTER + 2.4, CENTER + 1.1, 3.2, 0.52));
     marks.push(pt(CENTER + 0.4, CENTER + 2.8, 2.3, 0.4));
-    link(marks, marks[0], marks[1], 0.8);
     return marks;
   }
   if (kind === "dune") {
@@ -223,8 +208,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       marks.push(pt(5.4, y + f.r(-0.3, 0.3), 2.3, 0.46));
       marks.push(pt(10, y + (i % 2 ? 1.2 : -1.2), 2.5, 0.48));
       marks.push(pt(14.6, y + f.r(-0.3, 0.3), 2.3, 0.46));
-      link(marks, marks[i * 3], marks[i * 3 + 1], 0.7);
-      link(marks, marks[i * 3 + 1], marks[i * 3 + 2], 0.7);
     }
     return marks;
   }
@@ -233,14 +216,12 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       const a = (i / 5) * Math.PI * 2 + f.r(-0.15, 0.15);
       marks.push(pt(CENTER + Math.cos(a) * 4.8, CENTER + Math.sin(a) * 4.8, f.r(2.2, 2.9), 0.5));
     }
-    for (let i = 0; i < 5; i += 1) link(marks, marks[i], marks[(i + 1) % 5], 0.55);
     return marks;
   }
   if (kind === "ridge") {
     for (let i = 0; i < 5; i += 1) {
       marks.push(pt(4.8 + i * 2.6, CENTER + (i % 2 ? 1.6 : -1.6), f.r(2, 2.6), 0.48));
     }
-    for (let i = 0; i < 4; i += 1) link(marks, marks[i], marks[i + 1], 0.72);
     return marks;
   }
   if (kind === "terrace") {
@@ -248,7 +229,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       const y = 5.4 + i * 3;
       marks.push(pt(6.2, y, 2.2, 0.4 + i * 0.04));
       marks.push(pt(13.6, y, 2.2, 0.4 + i * 0.04));
-      link(marks, marks[i * 2], marks[i * 2 + 1], 0.75);
     }
     return marks;
   }
@@ -261,8 +241,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       [5.6, 11.6],
     ];
     for (const [x, y] of spots) marks.push(pt(x + f.r(-0.4, 0.4), y + f.r(-0.4, 0.4), f.r(2.3, 3.2), 0.52));
-    link(marks, marks[0], marks[1], 0.55);
-    link(marks, marks[2], marks[3], 0.55);
     return marks;
   }
   if (kind === "channel") {
@@ -271,10 +249,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
     marks.push(pt(14.4, 13.6, 2.3, 0.46));
     marks.push(pt(5.8, 13.8, 2.2, 0.44));
     marks.push(pt(14.2, 6.4, 2.2, 0.44));
-    link(marks, marks[0], marks[1], 0.7);
-    link(marks, marks[1], marks[2], 0.7);
-    link(marks, marks[3], marks[1], 0.7);
-    link(marks, marks[4], marks[1], 0.7);
     return marks;
   }
   if (kind === "hollow") {
@@ -282,8 +256,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
     marks.push(pt(CENTER + 3.2, CENTER, 2.6, 0.48));
     marks.push(pt(CENTER, CENTER - 3.1, 2.4, 0.44));
     marks.push(pt(CENTER, CENTER + 3.1, 2.4, 0.44));
-    link(marks, marks[0], marks[2], 0.6);
-    link(marks, marks[1], marks[3], 0.6);
     return marks;
   }
   if (kind === "ripple") {
@@ -291,14 +263,14 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       const y = 5 + i * 2.5;
       marks.push(pt(6.2 + (i % 2 ? 1.6 : 0), y, 2, 0.42));
       marks.push(pt(13.4 - (i % 2 ? 1.6 : 0), y, 2, 0.42));
-      link(marks, marks[i * 2], marks[i * 2 + 1], 0.62);
     }
     return marks;
   }
   if (kind === "crater") {
-    marks.push(pt(CENTER, CENTER, 3.8, 0.56));
-    marks.push(pt(CENTER - 4.2, CENTER + 2.2, 2.4, 0.44));
-    marks.push(pt(CENTER + 4.4, CENTER - 1.8, 2.4, 0.44));
+    for (let i = 0; i < 5; i += 1) {
+      const a = (i / 5) * Math.PI * 2 + f.r(-0.12, 0.12);
+      marks.push(pt(CENTER + Math.cos(a) * 5.2, CENTER + Math.sin(a) * 4.6, f.r(1.8, 2.3), 0.46));
+    }
     return marks;
   }
   if (kind === "layered") {
@@ -306,7 +278,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       const t = i / 3;
       marks.push(pt(CENTER - 3.4 + t * 1.2, 5.6 + t * 8.2, 2.3, 0.4 + t * 0.1));
       marks.push(pt(CENTER + 3.4 - t * 1.2, 5.6 + t * 8.2, 2.3, 0.4 + t * 0.1));
-      link(marks, marks[i * 2], marks[i * 2 + 1], 0.7);
     }
     return marks;
   }
@@ -315,9 +286,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
     marks.push(pt(10, 10, 2.8, 0.54));
     marks.push(pt(13.8, 13.4, 2.4, 0.48));
     marks.push(pt(8.2, 12.6, 2, 0.4));
-    link(marks, marks[0], marks[1], 0.75);
-    link(marks, marks[1], marks[2], 0.75);
-    link(marks, marks[1], marks[3], 0.55);
     return marks;
   }
   if (kind === "slope") {
@@ -325,14 +293,12 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
       const t = i / 3;
       marks.push(pt(CENTER, 5.4 + t * 8.6, 2.6 - t * 0.7, 0.36 + t * 0.14));
     }
-    for (let i = 0; i < 3; i += 1) link(marks, marks[i], marks[i + 1], 0.7);
     return marks;
   }
   if (kind === "organic") {
     for (let i = 0; i < 5; i += 1) {
       marks.push(pt(5.6 + i * 2.2 + f.r(-0.5, 0.5), 5.8 + i * 1.7 + f.r(-0.8, 0.8), f.r(1.9, 2.6), 0.44));
     }
-    for (let i = 0; i < 4; i += 1) link(marks, marks[i], marks[i + 1], 0.6);
     return marks;
   }
   if (kind === "pockets") {
@@ -348,7 +314,6 @@ function familyMarks(kind: TerrainKind, f: Frame): FieldAttractor[] {
     marks.push(pt(13.8, 8.8, 2.4, 0.48));
     marks.push(pt(12.4, 13.2, 2.3, 0.46));
     marks.push(pt(7.2, 12.8, 2.2, 0.44));
-    for (let i = 0; i < 4; i += 1) link(marks, marks[i], marks[i + 1], 0.68);
     return marks;
   }
   if (kind === "depression") {
@@ -471,17 +436,21 @@ export function slimeFromTopographic(base: SlimeControls, plan: TopographicPlan,
   return {
     ...base,
     ...byGrowth[plan.growth],
-    sensorAngle: f.r(0.16, 0.7),
-    sensorDistance: f.r(0.48, 1.5),
-    turnAngle: f.r(0.1, 0.52),
-    stepSize: f.r(0.1, 0.28),
-    resistance: f.r(0.02, 0.24),
-    decay: f.r(0.96, 0.992),
-    voidElongation: plan.figure === "carve" ? f.r(0.62, 1.55) : 1,
-    voidRotation: plan.figure === "carve" ? f.r(0, Math.PI) : 0,
-    voidLobes: plan.figure === "carve" ? f.r(0.12, 0.48) : 0,
-    voidNotch: plan.figure === "carve" ? f.r(-0.35, 0.35) : 0,
-    foodPoints: [{ x: plan.originX, y: plan.originY }],
+    sensorAngle: f.r(0.45, 0.75),
+    sensorDistance: f.r(0.32, 0.55),
+    turnAngle: f.r(0.28, 0.48),
+    stepSize: f.r(0.12, 0.2),
+    resistance: f.r(0.02, 0.08),
+    decay: 0.998,
+    trailInfluence: f.r(0.18, 0.32),
+    randomness: f.r(0.28, 0.46),
+    persistence: f.r(0.18, 0.34),
+    diffusion: 0,
+    voidElongation: 1,
+    voidRotation: 0,
+    voidLobes: 0,
+    voidNotch: 0,
+    foodPoints: [],
   };
 }
 
@@ -489,11 +458,12 @@ export function paramsFromTopographic(base: BiologicalParams, seed: number): Bio
   const rng = mulberry32(seed ^ 0x70fa11);
   return {
     ...base,
-    attractionStrength: 0.28 + rng() * 0.5,
-    networkDensity: 0.42 + rng() * 0.48,
+    attractionStrength: 0.06 + rng() * 0.08,
+    networkDensity: 0.22 + rng() * 0.2,
     permeability: 0.48 + rng() * 0.42,
-    flowCoupling: 0.28 + rng() * 0.5,
-    geometryVariation: 0.38 + rng() * 0.52,
+    flowCoupling: 0.12 + rng() * 0.16,
+    geometryVariation: 0.2 + rng() * 0.2,
+    directionalBias: 0.02,
   };
 }
 
@@ -512,14 +482,14 @@ export function recipeFromTopographic(recipe: SpatialRecipe, seed: number): Spat
 export function agentsFromTopographic(plan: TopographicPlan, seed: number) {
   const rng = mulberry32(seed ^ 0x70a11e ^ plan.index);
   const byGrowth: Record<GrowthKind, [number, number]> = {
-    mesh: [120, 155],
-    filament: [95, 130],
-    sparse: [80, 115],
-    bloom: [115, 155],
-    mass: [135, 175],
-    wander: [100, 140],
-    committed: [110, 150],
-    patchy: [105, 145],
+    mesh: [160, 200],
+    filament: [150, 190],
+    sparse: [140, 180],
+    bloom: [160, 210],
+    mass: [180, 230],
+    wander: [150, 200],
+    committed: [160, 200],
+    patchy: [155, 200],
   };
   const [min, max] = byGrowth[plan.growth];
   const count = min + rng() * (max - min);

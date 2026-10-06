@@ -26,9 +26,6 @@ precision highp float;
 uniform sampler2D uField;
 uniform float uTexels;
 uniform float uCutoff;
-uniform float uHairThin;
-uniform float uInk;
-uniform float uTone;
 uniform int uCount;
 uniform vec4 uAttr[16];
 uniform float uKind[16];
@@ -43,18 +40,6 @@ float bspline0(float t) { return (1.0 - t) * (1.0 - t) * (1.0 - t) / 6.0; }
 float bspline1(float t) { return (3.0 * t * t * t - 6.0 * t * t + 4.0) / 6.0; }
 float bspline2(float t) { return (-3.0 * t * t * t + 3.0 * t * t + 3.0 * t + 1.0) / 6.0; }
 float bspline3(float t) { return t * t * t / 6.0; }
-
-float bilinear(vec2 uv) {
-  vec2 p = clamp(uv, 0.0, 1.0) * uTexels - 0.5;
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 d = vec2(1.0) / uTexels;
-  float a = tap((i + 0.5) * d);
-  float b = tap((i + vec2(1.5, 0.5)) * d);
-  float c = tap((i + vec2(0.5, 1.5)) * d);
-  float e = tap((i + vec2(1.5, 1.5)) * d);
-  return mix(mix(a, b, f.x), mix(c, e, f.x), f.y);
-}
 
 float fieldAt(vec2 uv) {
   vec2 p = clamp(uv, 0.0, 1.0) * uTexels - 0.5;
@@ -104,25 +89,22 @@ float attractorNear(vec2 uv) {
 
 void main() {
   float t = 1.0 / uTexels;
-  float vSmooth = fieldAt(vUv);
-  float vSharp = bilinear(vUv);
-  float v = uHairThin > 0.5 && vSmooth < 0.14 ? vSharp : vSmooth;
-  float e = uHairThin > 0.5 ? bilinear(vUv + vec2(t, 0.0)) : fieldAt(vUv + vec2(t, 0.0));
-  float w = uHairThin > 0.5 ? bilinear(vUv - vec2(t, 0.0)) : fieldAt(vUv - vec2(t, 0.0));
-  float n = uHairThin > 0.5 ? bilinear(vUv + vec2(0.0, t)) : fieldAt(vUv + vec2(0.0, t));
-  float s = uHairThin > 0.5 ? bilinear(vUv - vec2(0.0, t)) : fieldAt(vUv - vec2(0.0, t));
-  float ne = uHairThin > 0.5 ? bilinear(vUv + vec2(t, t)) : fieldAt(vUv + vec2(t, t));
-  float nw = uHairThin > 0.5 ? bilinear(vUv + vec2(-t, t)) : fieldAt(vUv + vec2(-t, t));
-  float se = uHairThin > 0.5 ? bilinear(vUv + vec2(t, -t)) : fieldAt(vUv + vec2(t, -t));
-  float sw = uHairThin > 0.5 ? bilinear(vUv + vec2(-t, -t)) : fieldAt(vUv + vec2(-t, -t));
+  float v = fieldAt(vUv);
+  float e = fieldAt(vUv + vec2(t, 0.0));
+  float w = fieldAt(vUv - vec2(t, 0.0));
+  float n = fieldAt(vUv + vec2(0.0, t));
+  float s = fieldAt(vUv - vec2(0.0, t));
+  float ne = fieldAt(vUv + vec2(t, t));
+  float nw = fieldAt(vUv + vec2(-t, t));
+  float se = fieldAt(vUv + vec2(t, -t));
+  float sw = fieldAt(vUv + vec2(-t, -t));
   float around = 0.125 * (e + w + n + s + ne + nw + se + sw);
   float ridge = max(0.0, v - around * 0.62);
   vec2 g = vec2(e - w, n - s);
   float glen = length(g);
   vec2 along = glen > 1.0e-6 ? vec2(-g.y, g.x) / glen : vec2(1.0, 0.0);
   float tissue = v;
-  bool link = uHairThin > 0.5 ? (v > 0.12 || ridge > 0.02) : (v > 0.04 || ridge > 0.005);
-  if (link) {
+  if (v > 0.04 || ridge > 0.005) {
     float linked = v;
     for (int i = 1; i <= 8; i++) {
       float step = float(i) * t * 1.6;
@@ -134,9 +116,7 @@ void main() {
 
   float membrane = smoothstep(0.14, 0.28, tissue);
   float tube = smoothstep(0.045, 0.12, tissue) * smoothstep(0.004, 0.016, ridge);
-  float hair = uHairThin > 0.5
-    ? smoothstep(0.010, 0.020, v) * (1.0 - smoothstep(0.070, 0.140, v)) * smoothstep(max(fwidth(v), t) * 0.35, max(fwidth(v), t) * 1.4, ridge)
-    : smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
+  float hair = smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
   float mask = max(membrane, max(tube, hair));
   if (mask < 0.02) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -144,7 +124,7 @@ void main() {
   }
 
   float aa = max(fwidth(mask), 0.008);
-  float cover = smoothstep((uHairThin > 0.5 ? 0.12 : 0.22) - aa, (uHairThin > 0.5 ? 0.12 : 0.22) + aa, mask);
+  float cover = smoothstep(0.22 - aa, 0.22 + aa, mask);
   if (cover < 0.03) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
@@ -159,20 +139,8 @@ void main() {
   vec3 organized = vec3(0.059, 0.451, 0.467);
   vec3 ink = mix(search, vein, smoothstep(0.08, 0.34, body));
   float core = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
-  if (uTone < 0.5) {
-    ink = search;
-  } else if (uTone < 1.5) {
-    ink = mix(search, vein, smoothstep(0.04, 0.22, body));
-  } else if (uTone < 2.5) {
-    ink = mix(ink, organized, core * mix(0.35, 0.72, body));
-  } else {
-    float veinMix = smoothstep(0.14, 0.36, body);
-    float solid = smoothstep(0.46, 0.84, body);
-    vec3 rested = mix(search, vein, veinMix);
-    ink = mix(rested, organized, solid * 0.62);
-    ink *= mix(1.0, 0.78, solid);
-  }
-  ink *= depth * membraneTone * uInk;
+  ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  ink *= depth * membraneTone;
   oColor = vec4(ink * cover, 1.0);
 }`;
 
@@ -183,23 +151,16 @@ type GlState = {
   texture: WebGLTexture;
   buffer: WebGLBuffer;
   uTexels: WebGLUniformLocation;
-  uCutoff: WebGLUniformLocation | null;
-  uHairThin: WebGLUniformLocation;
-  uInk: WebGLUniformLocation;
-  uTone: WebGLUniformLocation;
+  uCutoff: WebGLUniformLocation;
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
   pixels: Float32Array;
-  blit: HTMLCanvasElement;
-  blitCtx: CanvasRenderingContext2D;
-  read: Uint8Array;
-  flip: Uint8ClampedArray;
 };
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 35;
+const SHADER_GEN = 28;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -238,13 +199,10 @@ function createState(): GlState | null {
   const texture = gl.createTexture();
   const uTexels = gl.getUniformLocation(program, "uTexels");
   const uCutoff = gl.getUniformLocation(program, "uCutoff");
-  const uHairThin = gl.getUniformLocation(program, "uHairThin");
-  const uInk = gl.getUniformLocation(program, "uInk");
-  const uTone = gl.getUniformLocation(program, "uTone");
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uHairThin || !uInk || !uTone || !uCount || !uAttr || !uKind) return null;
+  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -253,9 +211,6 @@ function createState(): GlState | null {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-  const blit = document.createElement("canvas");
-  const blitCtx = blit.getContext("2d", { alpha: false });
-  if (!blitCtx) return null;
   return {
     canvas,
     gl,
@@ -264,17 +219,10 @@ function createState(): GlState | null {
     buffer,
     uTexels,
     uCutoff,
-    uHairThin,
-    uInk,
-    uTone,
     uCount,
     uAttr,
     uKind,
     pixels: new Float32Array(0),
-    blit,
-    blitCtx,
-    read: new Uint8Array(0),
-    flip: new Uint8ClampedArray(0),
   };
 }
 
@@ -298,18 +246,12 @@ export function drawSlimeFieldGl(
   fieldH: number,
   cutoff: number,
   attractors?: FieldAttractor[],
-  hairThin = false,
-  maxResolution?: number,
-  inkGain = 1,
-  tone = 2,
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
   const { gl, canvas } = gpu;
   const dpr = Math.max(1, ctx.getTransform().a || (typeof window !== "undefined" ? window.devicePixelRatio : 1) || 1);
-  const pixels = maxResolution
-    ? Math.max(256, Math.min(4096, Math.round(maxResolution)))
-    : Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
+  const pixels = Math.max(256, Math.min(8192, Math.round(Math.max(fieldW, fieldH) * dpr * 2)));
   if (canvas.width !== pixels || canvas.height !== pixels) {
     canvas.width = pixels;
     canvas.height = pixels;
@@ -326,13 +268,10 @@ export function drawSlimeFieldGl(
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, gpu.texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, new Float32Array(gpu.pixels));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, trailSize, trailSize, 0, gl.RED, gl.FLOAT, gpu.pixels);
   gl.uniform1i(gl.getUniformLocation(gpu.program, "uField"), 0);
   gl.uniform1f(gpu.uTexels, trailSize);
-  if (gpu.uCutoff) gl.uniform1f(gpu.uCutoff, cutoff);
-  gl.uniform1f(gpu.uHairThin, hairThin ? 1 : 0);
-  gl.uniform1f(gpu.uInk, inkGain);
-  gl.uniform1f(gpu.uTone, tone);
+  gl.uniform1f(gpu.uCutoff, cutoff);
   const packed = new Float32Array(64);
   const kinds = new Float32Array(16);
   const list = attractors ?? [];
@@ -359,25 +298,10 @@ export function drawSlimeFieldGl(
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-  const bytes = pixels * pixels * 4;
-  if (gpu.read.length !== bytes) gpu.read = new Uint8Array(bytes);
-  gl.readPixels(0, 0, pixels, pixels, gl.RGBA, gl.UNSIGNED_BYTE, gpu.read);
-  const flipped = new Uint8ClampedArray(bytes);
-  const row = pixels * 4;
-  for (let y = 0; y < pixels; y += 1) {
-    flipped.set(gpu.read.subarray((pixels - 1 - y) * row, (pixels - y) * row), y * row);
-  }
-  const scratch = document.createElement("canvas");
-  scratch.width = pixels;
-  scratch.height = pixels;
-  const scratchCtx = scratch.getContext("2d", { alpha: false });
-  if (!scratchCtx) return false;
-  scratchCtx.putImageData(new ImageData(flipped, pixels, pixels), 0, 0);
-
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(scratch, 0, 0, fieldW, fieldH);
+  ctx.drawImage(canvas, 0, 0, fieldW, fieldH);
   ctx.restore();
   return true;
 }

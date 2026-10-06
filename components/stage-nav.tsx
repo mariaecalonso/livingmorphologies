@@ -26,12 +26,21 @@ const STAGES: (NavItem & { match: string; sub?: NavItem[] })[] = [
     match: "/evolution",
     sub: [
       { href: "/evolution/process", label: "Process" },
-      { href: "/evolution", label: "Evolution" },
       { href: "/evolution/pareto", label: "Pareto" },
       { href: "/evolution/pareto-catalog", label: "Pareto Catalog" },
     ],
   },
   { href: "/vertical", label: "Vertical Propagation", match: "/vertical" },
+  {
+    href: "/hybrid",
+    label: "Hybrid Connection",
+    match: "/hybrid",
+    sub: [
+      { href: "/hybrid", label: "Process" },
+      { href: "/hybrid/assembly", label: "Assembly" },
+      { href: "/hybrid/connections", label: "Connections" },
+    ],
+  },
 ];
 
 const VIEW_MODES: { id: DisplayMode; label: string }[] = [
@@ -45,7 +54,8 @@ const isStageActive = (pathname: string, match: string) =>
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
   const pathname = usePathname();
   const verticalView = useVerticalView();
-  const suffix = "";
+  const wall = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("wall") === "1";
+  const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
   const activeStage = STAGES.find((stage) => isStageActive(pathname, stage.match));
 
   const changeMode = (next: DisplayMode) => {

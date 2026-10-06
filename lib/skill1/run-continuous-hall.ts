@@ -132,25 +132,25 @@ type GrowthSpec = {
 
 const SPECS: Record<HallGrowth, GrowthSpec> = {
   hairline: spec("white", [0.3, 0.5], [7.4, 12], [55, 110], [0.84, 0.94], [0.05, 0.12], [0.8, 0.92]),
-  ribbon: spec("vein", [0.7, 1.15], [8, 12.8], [200, 300], [0.55, 0.75], [0.12, 0.24], [0.55, 0.74]),
-  bloom: spec("green", [1.15, 1.9], [7.2, 12], [460, 580], [0.32, 0.55], [0.22, 0.42], [0.38, 0.58]),
-  heavy: spec("green", [1.3, 2.1], [7, 11.8], [500, 600], [0.3, 0.5], [0.18, 0.34], [0.42, 0.62]),
+  ribbon: spec("vein", [0.7, 1.15], [8, 12.8], [48, 80], [0.55, 0.75], [0.12, 0.24], [0.55, 0.74]),
+  bloom: spec("green", [1.15, 1.9], [7.2, 12], [48, 72], [0.32, 0.55], [0.22, 0.42], [0.38, 0.58]),
+  heavy: spec("green", [1.3, 2.1], [7, 11.8], [56, 80], [0.3, 0.5], [0.18, 0.34], [0.42, 0.62]),
   faint: spec("white", [0.35, 0.65], [6.8, 11.2], [60, 120], [0.8, 0.93], [0.04, 0.11], [0.76, 0.9]),
-  wet: spec("green", [0.95, 1.7], [7.4, 12.2], [440, 580], [0.34, 0.56], [0.2, 0.4], [0.4, 0.6]),
+  wet: spec("green", [0.95, 1.7], [7.4, 12.2], [48, 72], [0.34, 0.56], [0.2, 0.4], [0.4, 0.6]),
   dry: spec("white", [0.38, 0.7], [8.2, 13.2], [65, 125], [0.82, 0.94], [0.04, 0.12], [0.8, 0.92]),
   tight: spec("white", [0.42, 0.78], [8, 12.6], [55, 115], [0.86, 0.95], [0.04, 0.1], [0.84, 0.94]),
-  loose: spec("vein", [0.8, 1.5], [7.6, 12.4], [190, 290], [0.48, 0.7], [0.16, 0.3], [0.45, 0.66]),
-  slow: spec("vein", [0.55, 1.05], [7.4, 12], [210, 310], [0.5, 0.72], [0.12, 0.24], [0.55, 0.74]),
-  fast: spec("vein", [0.45, 0.9], [8.2, 13], [180, 280], [0.58, 0.76], [0.1, 0.22], [0.6, 0.78]),
-  biased: spec("vein", [0.4, 0.75], [8.6, 13.6], [170, 260], [0.7, 0.86], [0.08, 0.18], [0.72, 0.88]),
-  soft: spec("green", [0.9, 1.6], [7.2, 11.8], [430, 560], [0.34, 0.56], [0.2, 0.38], [0.4, 0.62]),
+  loose: spec("vein", [0.8, 1.5], [7.6, 12.4], [44, 72], [0.48, 0.7], [0.16, 0.3], [0.45, 0.66]),
+  slow: spec("vein", [0.55, 1.05], [7.4, 12], [48, 76], [0.5, 0.72], [0.12, 0.24], [0.55, 0.74]),
+  fast: spec("vein", [0.45, 0.9], [8.2, 13], [44, 72], [0.58, 0.76], [0.1, 0.22], [0.6, 0.78]),
+  biased: spec("vein", [0.4, 0.75], [8.6, 13.6], [40, 68], [0.7, 0.86], [0.08, 0.18], [0.72, 0.88]),
+  soft: spec("green", [0.9, 1.6], [7.2, 11.8], [44, 68], [0.34, 0.56], [0.2, 0.38], [0.4, 0.62]),
   hard: spec("white", [0.36, 0.62], [8.4, 13], [50, 105], [0.84, 0.94], [0.03, 0.09], [0.84, 0.94]),
   sparse: spec("white", [0.5, 1.1], [6.8, 11.4], [50, 100], [0.72, 0.9], [0.08, 0.18], [0.68, 0.84]),
-  packed: spec("green", [0.7, 1.3], [8, 12.4], [520, 600], [0.36, 0.58], [0.16, 0.3], [0.42, 0.64]),
+  packed: spec("green", [0.7, 1.3], [8, 12.4], [60, 84], [0.36, 0.58], [0.16, 0.3], [0.42, 0.64]),
   short: spec("white", [0.55, 1.2], [5.2, 8], [60, 120], [0.7, 0.88], [0.08, 0.18], [0.64, 0.82]),
-  long: spec("vein", [0.45, 0.95], [11, 15.2], [200, 300], [0.52, 0.74], [0.1, 0.22], [0.6, 0.78]),
-  banked: spec("green", [0.85, 1.45], [8.2, 13.4], [450, 580], [0.28, 0.5], [0.2, 0.4], [0.34, 0.56]),
-  open: spec("green", [1.05, 1.85], [7.6, 12.6], [440, 570], [0.3, 0.52], [0.22, 0.42], [0.32, 0.54]),
+  long: spec("vein", [0.45, 0.95], [11, 15.2], [48, 80], [0.52, 0.74], [0.1, 0.22], [0.6, 0.78]),
+  banked: spec("green", [0.85, 1.45], [8.2, 13.4], [48, 72], [0.28, 0.5], [0.2, 0.4], [0.34, 0.56]),
+  open: spec("green", [1.05, 1.85], [7.6, 12.6], [44, 70], [0.3, 0.52], [0.22, 0.42], [0.32, 0.54]),
 };
 
 const WHITE_GROWTHS = HALL_GROWTHS.filter((item) => SPECS[item].density === "white");
@@ -170,49 +170,49 @@ function spec(
     density === "white"
       ? {
           persistence: [0.62, 0.82] as Pair,
-          trailInfluence: [0.28, 0.62] as Pair,
+          trailInfluence: [0.7, 1.1] as Pair,
           sensorAngle: [0.14, 0.34] as Pair,
           sensorDistance: [0.35, 0.75] as Pair,
           turnAngle: [0.14, 0.32] as Pair,
           stepSize: [0.1, 0.16] as Pair,
-          deposit: [0.003, 0.009] as Pair,
-          depositWidth: [0.16, 0.32] as Pair,
+          deposit: [0.08, 0.12] as Pair,
+          depositWidth: [2.4, 2.9] as Pair,
           diffusion: [0, 0.001] as Pair,
-          decay: [0.9, 0.934] as Pair,
+          decay: [0.993, 0.997] as Pair,
           resistance: [0.18, 0.4] as Pair,
-          randomness: [0.24, 0.42] as Pair,
-          trailCap: [0.16, 0.34] as Pair,
+          randomness: [0.08, 0.16] as Pair,
+          trailCap: [0.28, 0.42] as Pair,
         }
       : density === "vein"
         ? {
             persistence: [0.55, 0.78] as Pair,
-            trailInfluence: [0.85, 1.25] as Pair,
+            trailInfluence: [0.75, 1.15] as Pair,
             sensorAngle: [0.1, 0.22] as Pair,
             sensorDistance: [0.32, 0.7] as Pair,
             turnAngle: [0.08, 0.2] as Pair,
             stepSize: [0.1, 0.16] as Pair,
-            deposit: [0.045, 0.085] as Pair,
-            depositWidth: [0.85, 1.35] as Pair,
+            deposit: [0.08, 0.12] as Pair,
+            depositWidth: [2.5, 2.95] as Pair,
             diffusion: [0.006, 0.018] as Pair,
-            decay: [0.966, 0.982] as Pair,
+            decay: [0.993, 0.997] as Pair,
             resistance: [0.12, 0.28] as Pair,
             randomness: [0.08, 0.2] as Pair,
-            trailCap: [0.68, 1.02] as Pair,
+            trailCap: [0.3, 0.46] as Pair,
           }
         : {
             persistence: [0.3, 0.52] as Pair,
-            trailInfluence: [1.45, 2] as Pair,
+            trailInfluence: [0.8, 1.2] as Pair,
             sensorAngle: [0.18, 0.42] as Pair,
             sensorDistance: [0.5, 1.1] as Pair,
             turnAngle: [0.16, 0.34] as Pair,
             stepSize: [0.12, 0.2] as Pair,
-            deposit: [0.18, 0.28] as Pair,
-            depositWidth: [2.3, 3.4] as Pair,
-            diffusion: [0.05, 0.12] as Pair,
-            decay: [0.99, 0.998] as Pair,
-            resistance: [0.02, 0.1] as Pair,
-            randomness: [0.02, 0.1] as Pair,
-            trailCap: [1.55, 1.95] as Pair,
+            deposit: [0.09, 0.13] as Pair,
+            depositWidth: [2.6, 3] as Pair,
+            diffusion: [0, 0.004] as Pair,
+            decay: [0.994, 0.997] as Pair,
+            resistance: [0.04, 0.14] as Pair,
+            randomness: [0.08, 0.18] as Pair,
+            trailCap: [0.32, 0.48] as Pair,
           };
   return {
     density,
@@ -356,6 +356,63 @@ function flare(t: number, pinch: number) {
   return 1 - (1 - pinch) * mid;
 }
 
+type HallGesture = {
+  amp: number;
+  freq: number;
+  bow: number;
+  gap: number;
+  shift: number;
+  reach: number;
+  diverge: number;
+};
+
+/** Each family is a different bend of the same two halls. */
+function gestureOf(plan: ContinuousHallPlan): HallGesture {
+  const soft = { amp: 0.55, freq: 1.35, bow: 0, gap: 1, shift: 0, reach: 1, diverge: 0 };
+  switch (plan.family) {
+    case "stroke-h":
+      return { ...soft, amp: 0.32, freq: 1.05, gap: 0.82 };
+    case "stroke-diag":
+      return { ...soft, amp: 0.55, freq: 1.5, gap: 0.95 };
+    case "beads-h":
+      return { ...soft, amp: 0.75, freq: 2.45 };
+    case "beads-v":
+      return { ...soft, amp: 0.9, freq: 1.65, gap: 1.08 };
+    case "beads-diag":
+      return { ...soft, amp: 1.05, freq: 2.15, gap: 1.12 };
+    case "beads-anti":
+      return { ...soft, amp: 1.05, freq: 2.15, gap: 1.12 };
+    case "beads-tight":
+      return { ...soft, amp: 0.4, freq: 2.7, gap: 0.62 };
+    case "beads-loose":
+      return { ...soft, amp: 1.35, freq: 1.25, gap: 1.4 };
+    case "rings-h":
+      return { ...soft, amp: 0.2, bow: 1.7, freq: 1, gap: 1.05 };
+    case "rings-diag":
+      return { ...soft, amp: 0.28, bow: 2.15, freq: 1, gap: 1.18 };
+    case "taper-beads":
+      return { ...soft, amp: 0.65, freq: 1.8, diverge: 1.15, gap: 0.78 };
+    case "offset-beads":
+      return { ...soft, amp: 0.8, freq: 1.9, shift: 0.24 };
+    case "twin-beads":
+      return { ...soft, amp: 0.38, freq: 1.45, gap: 0.58 };
+    case "short-beads":
+      return { ...soft, amp: 0.95, freq: 1.7, reach: 0.55, gap: 0.9 };
+    case "void-h":
+      return { ...soft, amp: 0.6, freq: 1.2, gap: 1.05 };
+    case "void-v":
+      return { ...soft, amp: 0.8, freq: 1.7 };
+    case "void-diag":
+      return { ...soft, amp: 1.05, freq: 1.15, gap: 1.22 };
+    case "void-slash":
+      return { ...soft, amp: 1.2, freq: 2.05, gap: 0.92 };
+    case "banks-h":
+      return { ...soft, amp: 0.36, freq: 0.9, gap: 0.7 };
+    case "banks-diag":
+      return { ...soft, amp: 1.25, freq: 1.55, gap: 1.35 };
+  }
+}
+
 function flaredCorridor(
   cx: number,
   cy: number,
@@ -365,15 +422,25 @@ function flaredCorridor(
   radius: number,
   pinch: number,
   strength: number,
-  hole = false,
+  gesture: HallGesture,
+  drift: number,
+  phase: number,
 ): FieldAttractor[] {
   const marks: FieldAttractor[] = [];
-  const steps = 5;
+  const steps = 6;
+  const side = perp(dx, dy);
+  const bend = (t: number) =>
+    Math.sin(t * Math.PI * gesture.freq + phase) * gesture.amp + Math.sin(t * Math.PI) * gesture.bow;
+  const open = (t: number) => (t - 0.5) * drift;
   for (let i = 0; i < steps; i += 1) {
     const t0 = i / steps;
     const t1 = (i + 1) / steps;
-    const a = along(cx, cy, dx, dy, length, t0);
-    const b = along(cx, cy, dx, dy, length, t1);
+    const a0 = along(cx, cy, dx, dy, length, t0);
+    const b0 = along(cx, cy, dx, dy, length, t1);
+    const wa = bend(t0) + open(t0);
+    const wb = bend(t1) + open(t1);
+    const a = { x: lim(a0.x + side.x * wa), y: lim(a0.y + side.y * wa) };
+    const b = { x: lim(b0.x + side.x * wb), y: lim(b0.y + side.y * wb) };
     marks.push({
       kind: "line",
       x: a.x,
@@ -382,7 +449,7 @@ function flaredCorridor(
       y2: b.y,
       radius: radius * flare((t0 + t1) / 2, pinch),
       strength,
-      hole: hole || undefined,
+      cover: i === 0 || i === steps - 1 ? 1 : 0,
     });
   }
   return marks;
@@ -411,124 +478,70 @@ export function planContinuousHall(seed: number, attempt = 0, index = 0): Contin
   };
 }
 
-export function attractorsFromContinuousHall(plan: ContinuousHallPlan, seed: number, attempt = 0): FieldAttractor[] {
-  const rng = mulberry32(seed ^ 0x11a11 ^ (attempt * 0x85ebca6b) ^ (plan.index * 0x165667b1));
-  const f = frame(rng);
+/** Two trail banks. The open measure between them is the hall. */
+function hallBanks(plan: ContinuousHallPlan, dx: number, dy: number): FieldAttractor[] {
+  const gesture = gestureOf(plan);
+  const side = perp(dx, dy);
+  const half = Math.min(1.62, Math.max(1.12, 1.05 + (gesture.gap - 0.55) * 0.55));
+  const radius = 0.3;
+  const n = Math.hypot(dx, dy) || 1;
+  const sx = (dx / n) * plan.length * gesture.shift;
+  const sy = (dy / n) * plan.length * gesture.shift;
+  const phase = plan.twist + plan.cx * 0.17;
+  const drift = gesture.diverge;
+  return [
+    ...flaredCorridor(plan.cx + side.x * half, plan.cy + side.y * half, dx, dy, plan.length, radius, plan.pinch, 1, gesture, drift, phase),
+    ...flaredCorridor(
+      plan.cx - side.x * half + sx,
+      plan.cy - side.y * half + sy,
+      dx,
+      dy,
+      plan.length * gesture.reach,
+      radius,
+      plan.pinch,
+      1,
+      gesture,
+      -drift,
+      phase + 0.6,
+    ),
+  ];
+}
+
+export function attractorsFromContinuousHall(plan: ContinuousHallPlan, _seed = 0, _attempt = 0): FieldAttractor[] {
   const axis = axisOf(plan.family);
   const cos = Math.cos(plan.twist);
   const sin = Math.sin(plan.twist);
-  const rdx = (plan.flip ? -axis.dx : axis.dx) * cos - (plan.flip ? -axis.dy : axis.dy) * sin;
-  const rdy = (plan.flip ? -axis.dx : axis.dx) * sin + (plan.flip ? -axis.dy : axis.dy) * cos;
-  const dx = rdx;
-  const dy = rdy;
-  if (plan.figure === "stroke") {
-    return flaredCorridor(plan.cx, plan.cy, dx, dy, plan.length, plan.width, plan.pinch, 1.15);
-  }
-  if (plan.figure === "void-cut") {
-    return voidCutMarks(plan, f, dx, dy);
-  }
-  return beadMarks(plan, f, dx, dy);
-}
-
-function beadMarks(plan: ContinuousHallPlan, f: Frame, dx: number, dy: number): FieldAttractor[] {
-  const hollow = plan.family === "rings-h" || plan.family === "rings-diag";
-  const count =
-    plan.family === "short-beads"
-      ? f.int(3, 4)
-      : plan.family === "beads-loose"
-        ? f.int(3, 5)
-        : plan.family === "beads-tight"
-          ? f.int(7, 10)
-          : f.int(5, 8);
-  const marks: FieldAttractor[] = [];
-  const rows = plan.family === "twin-beads" ? 2 : 1;
-  const side = perp(dx, dy);
-  for (let row = 0; row < rows; row += 1) {
-    const shift = rows === 1 ? 0 : (row === 0 ? -1 : 1) * (plan.width * 1.15);
-    for (let i = 0; i < count; i += 1) {
-      const t = count === 1 ? 0.5 : i / (count - 1);
-      const p = along(plan.cx + side.x * shift, plan.cy + side.y * shift, dx, dy, plan.length, t);
-      const radius = plan.width * flare(t, plan.pinch) * f.r(0.88, 1.22);
-      marks.push({
-        kind: hollow ? "ring" : "point",
-        x: p.x,
-        y: p.y,
-        radius,
-        strength: hollow ? 0.95 : 0.85,
-        hole: hollow || undefined,
-      });
-    }
-  }
-  marks.push(...flaredCorridor(plan.cx, plan.cy, dx, dy, plan.length * 0.92, plan.width * 0.32, plan.pinch, 0.38));
-  return marks;
-}
-
-function voidCutMarks(plan: ContinuousHallPlan, f: Frame, dx: number, dy: number): FieldAttractor[] {
-  const marks: FieldAttractor[] = flaredCorridor(plan.cx, plan.cy, dx, dy, plan.length, plan.width * 1.15, plan.pinch, 1.05, true);
-  const disks = f.int(4, 7);
-  for (let i = 0; i < disks; i += 1) {
-    const t = disks === 1 ? 0.5 : i / (disks - 1);
-    const p = along(plan.cx, plan.cy, dx, dy, plan.length, t);
-    marks.push({
-      kind: "ring",
-      x: p.x,
-      y: p.y,
-      radius: plan.width * flare(t, plan.pinch) * f.r(0.95, 1.3),
-      strength: 1,
-      hole: true,
-    });
-  }
-  if (plan.family === "banks-h" || plan.family === "banks-diag") {
-    const side = perp(dx, dy);
-    const banks = f.int(4, 6);
-    for (let i = 0; i < banks; i += 1) {
-      const t = banks === 1 ? 0.5 : i / (banks - 1);
-      const p = along(plan.cx, plan.cy, dx, dy, plan.length * 0.88, t);
-      const reach = plan.width * flare(t, plan.pinch) * f.r(2.1, 3.2);
-      marks.push({
-        kind: "point",
-        x: lim(p.x + side.x * reach),
-        y: lim(p.y + side.y * reach),
-        radius: plan.width * f.r(1.3, 2.1),
-        strength: 0.7,
-      });
-      marks.push({
-        kind: "point",
-        x: lim(p.x - side.x * reach),
-        y: lim(p.y - side.y * reach),
-        radius: plan.width * f.r(1.2, 2),
-        strength: 0.7,
-      });
-    }
-  }
-  return marks;
+  const flippedDx = plan.flip ? -axis.dx : axis.dx;
+  const flippedDy = plan.flip ? -axis.dy : axis.dy;
+  const dx = flippedDx * cos - flippedDy * sin;
+  const dy = flippedDx * sin + flippedDy * cos;
+  return hallBanks(plan, dx, dy);
 }
 
 export function slimeFromContinuousHall(base: SlimeControls, plan: ContinuousHallPlan, seed: number): SlimeControls {
   const rng = mulberry32(seed ^ 0x11c0de ^ plan.index);
   const f = frame(rng);
-  const s = SPECS[plan.growth].slime;
-  const cut = plan.figure === "void-cut";
   return {
     ...base,
-    persistence: span(f, s.persistence),
-    trailInfluence: span(f, s.trailInfluence),
-    sensorAngle: span(f, s.sensorAngle),
-    sensorDistance: span(f, s.sensorDistance),
-    turnAngle: span(f, s.turnAngle),
-    stepSize: span(f, s.stepSize),
-    deposit: f.r(0.003, 0.28),
-    depositWidth: f.r(0.16, 3.4),
-    diffusion: f.r(0, 0.12),
-    decay: f.r(0.9, 0.998),
-    resistance: span(f, s.resistance),
-    randomness: span(f, s.randomness),
-    trailCap: f.r(0.16, 1.95),
-    voidElongation: cut ? span(f, [1.4, 2.4]) : 1,
-    voidRotation: cut ? Math.atan2(axisOf(plan.family).dy, axisOf(plan.family).dx) : 0,
+    sensorAngle: f.r(0.42, 0.66),
+    sensorDistance: f.r(0.4, 0.72),
+    turnAngle: f.r(0.18, 0.36),
+    stepSize: f.r(0.12, 0.16),
+    deposit: 0.016,
+    depositWidth: 0.14,
+    diffusion: 0,
+    decay: 0.998,
+    trailInfluence: f.r(0.12, 0.22),
+    resistance: 0,
+    randomness: f.r(0.2, 0.32),
+    persistence: f.r(0.3, 0.42),
+    trailCap: 0.36,
+    crowdingLimit: 80,
+    voidElongation: 1,
+    voidRotation: 0,
     voidLobes: 0,
-    voidNotch: cut ? span(f, [-0.25, 0.25]) : 0,
-    foodPoints: [{ x: plan.cx, y: plan.cy }],
+    voidNotch: 0,
+    foodPoints: [],
   };
 }
 
@@ -538,7 +551,9 @@ export function paramsFromContinuousHall(base: BiologicalParams, plan: Continuou
   return {
     ...base,
     ...extra,
-    directionalBias: extra.directionalBias ?? (tone === "green" ? 0.4 : 0.78),
+    directionalBias: 0.02,
+    attractionStrength: 0.05,
+    networkDensity: Math.min(base.networkDensity, 0.12),
     randomnessMode: tone === "white" ? "high" : tone === "vein" ? "medium" : "low",
     decayMode: tone === "white" ? "aggressive" : "controlled",
   };
@@ -564,7 +579,8 @@ export function recipeFromContinuousHall(recipe: SpatialRecipe, plan: Continuous
 export function agentsFromContinuousHall(plan: ContinuousHallPlan, seed: number) {
   const rng = mulberry32(seed ^ 0x0a11ce);
   const [lo, hi] = SPECS[plan.growth].agents;
-  return Math.round(lo + rng() * (hi - lo));
+  const count = Math.round(lo + rng() * (hi - lo));
+  return Math.max(240, Math.min(320, count + 160));
 }
 
 function trailBounds(snapshot: FieldSnapshot) {
