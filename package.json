@@ -22,7 +22,9 @@
     "verify:skill2-section": "npx --yes tsx lib/skill2/verify-section-translate.ts",
     "verify:skill2-validity": "npx --yes tsx lib/skill2/verify-archetype-validity.ts",
     "verify:skill2-morphogenesis": "npx --yes tsx lib/skill2/verify-section-morphogenesis.ts",
+    "verify:skill4-handoff": "npx --yes tsx lib/skill4/verify-handoff.ts && npx --yes tsx lib/skill4/verify-connections.ts && npx --yes tsx lib/skill4/verify-candidates.ts && npx --yes tsx lib/skill4/verify-generator.ts && npx --yes tsx lib/skill4/verify-assembly.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
+    "export:presentation": "node scripts/export-presentation-pdfs.mjs",
     "search:void": "npx --yes tsx scripts/search-void-field.ts",
     "search:contained": "npx --yes tsx scripts/search-contained-room.ts"
   },
@@ -38,6 +40,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "gifenc": "^1.0.3",
+    "puppeteer-core": "^25.12.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -30,6 +30,7 @@ export function mutateSemanticPlan(
     throw new Error("specialist mutation refuses to guess a gene-to-objective mapping");
   }
   const names = fieldsFor(adapter, intent, profile);
+  if (!names.length) return { status: "rejected", reasons: ["no fields"] };
   const chosen = pickFields(names, profile.fieldCount, rng);
   const genes = new Map(adapter.genes().map((gene) => [gene.name, gene]));
   let next = plan;

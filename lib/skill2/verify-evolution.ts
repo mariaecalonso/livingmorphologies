@@ -27,13 +27,12 @@ import {
   legalOrientations,
   type Genome,
 } from "./genome";
+import { selectSpecialists } from "./specialists";
 import {
   crowdingDistances,
   dominates,
   nondominatedSort,
   rankPopulation,
-  selectSurvivors,
-  tournament,
   updateArchive,
   type Rankable,
 } from "./nsga";
@@ -219,35 +218,6 @@ ok(
   ok("crowding fixtures");
 }
 
-// ---------- tournament ----------
-{
-  const seq = (...values: number[]) => {
-    let i = 0;
-    return () => values[i++ % values.length];
-  };
-  assert(tournament([1, 2], [0, 0], seq(0.1, 0.1)) === 0, "lower rank wins (a first)");
-  assert(tournament([1, 2], [0, 0], seq(0.9, 0.1)) === 0, "lower rank wins (b first)");
-  assert(tournament([1, 1], [0.2, 5], seq(0.1, 0.1)) === 1, "equal rank: higher crowding wins");
-  assert(tournament([2, 2], [3, 3], seq(0.9, 0.1)) === 1, "full tie: first draw wins");
-  ok("tournament: rank, then crowding");
-}
-
-// ---------- survival ----------
-{
-  const pool = [
-    item(0.9, 0.1, 0.5), item(0.1, 0.9, 0.5), item(0.5, 0.5, 0.9), // front 1
-    item(0.8, 0.05, 0.4), item(0.45, 0.45, 0.45), item(0.05, 0.8, 0.4), // front 2
-  ];
-  const { survivors } = selectSurvivors(pool, 4);
-  assert(survivors.length === 4 && [0, 1, 2].every((i) => survivors.includes(i)), "front 1 survives whole");
-  assert(!survivors.includes(4), "overflowing front is cut by crowding");
-  const rng = mulberry32(1);
-  const big = Array.from({ length: 160 }, () => item(rng(), rng(), rng(), rng() > 0.1));
-  const cut = selectSurvivors(big, 80).survivors;
-  assert(cut.length === 80 && new Set(cut).size === 80, "parent + offspring survival keeps exactly 80");
-  ok("elitist survival");
-}
-
 // ---------- archive ----------
 {
   const a = { id: 1, ...item(0.5, 0.5, 0.5) };
@@ -260,6 +230,24 @@ ok(
   archive = updateArchive(archive, [c, d, e]);
   assert(archive.map((x) => x.id).sort().join() === "2,3", "newly dominated entry removed; infeasible and dominated newcomers rejected");
   ok("external archive");
+}
+
+{
+  const archive = [1];
+  const candidates = [
+    { id: 1, feasible: true, objectives: { formal: 0.9, spatial: 0.4, atmospheric: 0.4 }, genome: { ...CANONICAL_GENOME, driftX: 0 } },
+    { id: 2, feasible: true, objectives: { formal: 0.2, spatial: 0.2, atmospheric: 0.2 }, genome: { ...CANONICAL_GENOME, driftX: 0.4 } },
+    { id: 3, feasible: true, objectives: { formal: 0.8, spatial: 0.7, atmospheric: 0.7 }, genome: { ...CANONICAL_GENOME, driftX: 0.8 } },
+    { id: 4, feasible: true, objectives: { formal: 0.79, spatial: 0.7, atmospheric: 0.7 }, genome: { ...CANONICAL_GENOME, driftX: 0.82 } },
+  ];
+  const picked = selectSpecialists(candidates, archive);
+  const flat = [...picked.formal, ...picked.spatial, ...picked.atmospheric];
+  assert(new Set(flat).size === flat.length, "a specialist belongs to only one preference");
+  assert(!picked.formal.includes(1) && !picked.spatial.includes(1) && !picked.atmospheric.includes(1), "Pareto members are not specialists");
+  assert(!flat.includes(2), "below-median quality is not a specialist");
+  assert(picked.formal.includes(3), "a strong Formal-biased candidate can be a specialist");
+  assert(!flat.includes(4), "a near-duplicate does not fill another specialist row");
+  ok("specialist gate, single preference, and catalog-wide diversity");
 }
 
 // ---------- controller with a synthetic evaluator ----------
@@ -297,7 +285,7 @@ async function controllerChecks() {
   });
   const generations = EVOLUTION_CONFIG.generations;
   const total = generations * EVOLUTION_CONFIG.populationSize;
-  assert(generations === 4, "version-1 experiment runs four generations");
+  assert(generations === 4, "controller runs four generations");
   assert(run.completedGenerations === generations && run.generations.length === generations, "all generations completed");
   assert(run.candidates.length === total, `candidates ${run.candidates.length}`);
   assert(new Set(run.candidates.map((c) => c.id)).size === total, "unique candidate ids");
@@ -306,15 +294,26 @@ async function controllerChecks() {
   assert(g01.length === 80 && g01.every((c) => c.parentId === null), "G01 has 80 founders");
   assert(g01[0].flags.includes("canonical") && genomeKey(g01[0].genome) === genomeKey(CANONICAL_GENOME), "canonical founder");
   for (const record of run.generations) {
-    assert(record.survivorIds.length === 80 && new Set(record.survivorIds).size === 80, `G${record.generation} survivors`);
-    assert(record.pool.length === (record.generation === 1 ? 80 : 160), `G${record.generation} pool size`);
-    assert(record.frontIds.every((id) => record.pool.find((e) => e.id === id)!.rank === 1), "front ids are rank 1 in pool");
+    const born = run.candidates.filter((candidate) => candidate.generation === record.generation);
+    assert(born.length === 80, `G${record.generation} evaluates 80 new genomes`);
+    assert(record.pool.length === 80, `G${record.generation} pool is the evaluated generation`);
+    const mutants = born.filter((candidate) => candidate.flags.includes("mutant")).length;
+    const explorers = born.filter((candidate) => candidate.flags.includes("explorer")).length;
+    if (record.generation === 1) assert(mutants === 0 && explorers === 80, "G01 is explorers");
+    if (record.generation === 2) assert(mutants === 24 && explorers === 56, `G02 mix mutants=${mutants} explorers=${explorers}`);
+    if (record.generation === 3) assert(mutants === 40 && explorers === 40, `G03 mix mutants=${mutants} explorers=${explorers}`);
+    if (record.generation === 4) assert(mutants === 56 && explorers === 24, `G04 mix mutants=${mutants} explorers=${explorers}`);
     if (record.generation > 1) {
-      const previousSurvivors = new Set(run.generations[record.generation - 2].survivorIds);
-      const born = run.candidates.filter((c) => c.generation === record.generation);
-      assert(born.length === 80 && born.every((c) => previousSurvivors.has(c.parentId!)), "parents come from previous survivors");
+      const elites = new Set(run.generations[record.generation - 2].survivorIds);
+      assert(born.filter((candidate) => candidate.parentId != null).every((candidate) => elites.has(candidate.parentId!)), "mutant parents are elites");
     }
   }
+  for (const emphasis of ["formal", "spatial", "atmospheric"] as const) {
+    assert(run.specialistIds[emphasis].length <= 4, `${emphasis} specialists stay within 4`);
+    assert(run.specialistIds[emphasis].every((id) => !run.archiveIds.includes(id)), `${emphasis} specialists stay out of the Pareto archive`);
+  }
+  assert(run.orientationEliteIds.length <= legal.length, "at most one elite per legal orientation");
+  assert(new Set(run.orientationEliteIds).size === run.orientationEliteIds.length, "orientation elites are unique");
   for (const candidate of run.candidates) {
     assert(candidate.evaluationSeed === EVALUATION_SEED, "fixed evaluation seed recorded");
     assert(withinBounds(candidate.genome) && isLegalGenome(base, candidate.genome, legal), "controller genome legal");

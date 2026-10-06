@@ -239,9 +239,9 @@ function collar(spec: Spec, rng: Rng, hole: Hole, layers: number, gapped: number
     const pad = 0.42 + layer * 0.92;
     const count = Math.max(12, Math.round((hole.r + pad) * 2.55));
     for (let i = 0; i < count; i += 1) {
-      const a = spec.rot + (i / count) * TWO_PI + (rng() - 0.5) * 0.16;
+      const a = spec.rot + (i / count) * TWO_PI + (rng() - 0.5) * 0.55;
       if (layer < gapped && Math.abs(angDiff(a, spec.mouthAt)) < spec.mouth * 0.5) continue;
-      const dist = voidRadius(a, hole.r, shape) + pad + (rng() - 0.5) * 0.22;
+      const dist = voidRadius(a, hole.r, shape) + pad + (rng() - 0.5) * (0.85 + layer * 0.35);
       const x = hole.x + Math.cos(a) * dist;
       const y = hole.y + Math.sin(a) * dist;
       if (x < LO || y < LO || x > HI || y > HI) continue;
@@ -326,7 +326,7 @@ export function attractorsFromContainedRoom(plan: ContainedRoomPlan): FieldAttra
     kind: "ring" as const,
     x: hole.x,
     y: hole.y,
-    radius: hole.r,
+    radius: hole.r * 0.42,
     strength: 0.04,
     hole: true,
   }));
@@ -354,17 +354,21 @@ export function slimeFromContainedRoom(base: SlimeControls, plan: ContainedRoomP
   return {
     ...base,
     ...growth,
+    randomness: 0.24 + rng() * 0.08,
+    persistence: 0.34,
+    sensorAngle: 0.5,
+    trailInfluence: 0.32,
     deposit: (growth.deposit ?? 0.04) + rng() * 0.006,
-    depositWidth: 0.22,
+    depositWidth: 0.14,
     diffusion: 0,
-    decay: 0.993,
-    trailCap: 0.72,
+    decay: 0.998,
+    trailCap: 0.36,
     resistance: 0,
     foodPoints: [],
     voidElongation: spec.elong,
     voidRotation: spec.rot,
-    voidLobes: spec.lobes,
-    voidNotch: spec.notch,
+    voidLobes: 0,
+    voidNotch: 0,
   };
 }
 

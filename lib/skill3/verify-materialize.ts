@@ -67,8 +67,8 @@ assert(cracked.openingCount === 2, `a one-cell crack should not merge the holes,
 assert(cracked.opening[24 * 48 + 24] === 0, "the crack is sealed into the mass");
 ok("thin void cracks become mass and fat cavities stay open");
 
-const dim = 0.2;
-const bright = 1;
+const dim: number = 0.2;
+const bright: number = 1;
 const body = massVolume([twoHoles(48, 0, false), twoHoles(48, 1, false)], 5);
 const at = (layer: number, x: number, y: number) => body.field[(layer * 48 + y) * 48 + x];
 assert(at(0, 16, 24) === 0, "cavity center is empty");

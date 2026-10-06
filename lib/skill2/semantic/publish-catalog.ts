@@ -1,5 +1,6 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { loadFilamentCalibration, refinePreviewPng } from "../filament";
 import { visibleIds } from "./catalog";
 import { buildSemanticHandoff, lobbyRealizationChecksum } from "./handoff";
 import type { SemanticCandidate, SemanticRun } from "./types";
@@ -132,7 +133,8 @@ export function writePublishedCatalog(catalog: PublishedCatalog, directory: stri
     const source = join(previewSourceDir, `${candidate.id}.png`);
     if (!existsSync(source)) return { ...candidate, preview: null };
     const file = join("previews", `${candidate.id}.png`).replace(/\\/g, "/");
-    copyFileSync(source, join(directory, file));
+    const refined = refinePreviewPng(readFileSync(source), loadFilamentCalibration(catalog.archetypeId));
+    writeFileSync(join(directory, file), refined);
     return { ...candidate, preview: { size: candidate.preview.size, file } };
   });
   const written = { ...catalog, candidates };

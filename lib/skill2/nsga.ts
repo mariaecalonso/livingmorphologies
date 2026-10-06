@@ -1,7 +1,9 @@
 /**
- * NSGA-II-style ranking for the version-1 evolutionary search. Pure functions.
+ * Ranking for the version-2 evolutionary search. Pure functions.
  * Formal, Spatial, and Atmospheric are maximized independently; there is no
  * scalarized best. A feasible candidate dominates any infeasible one.
+ * Crowding is recorded with each generation's rank. The controller does not
+ * use it to choose parents or the global archive.
  */
 
 export type Objectives = {
@@ -119,34 +121,6 @@ export function rankPopulation(items: readonly Rankable[]): RankResult {
     }
   });
   return { rank, crowding, fronts };
-}
-
-/** Binary tournament: lower rank wins, then higher crowding, then the first draw. */
-export function tournament(rank: readonly number[], crowding: readonly number[], rng: () => number): number {
-  const n = rank.length;
-  const a = Math.floor(rng() * n);
-  if (n < 2) return a;
-  let b = Math.floor(rng() * (n - 1));
-  if (b >= a) b += 1;
-  if (rank[a] !== rank[b]) return rank[a] < rank[b] ? a : b;
-  if (crowding[a] !== crowding[b]) return crowding[a] > crowding[b] ? a : b;
-  return a;
-}
-
-/** Elitist survival: whole fronts in order, the overflowing front cut by crowding. */
-export function selectSurvivors(items: readonly Rankable[], size: number): { survivors: number[]; ranking: RankResult } {
-  const ranking = rankPopulation(items);
-  const survivors: number[] = [];
-  for (const front of ranking.fronts) {
-    if (survivors.length + front.length <= size) {
-      survivors.push(...front);
-      continue;
-    }
-    const rest = [...front].sort((a, b) => ranking.crowding[b] - ranking.crowding[a] || a - b);
-    survivors.push(...rest.slice(0, size - survivors.length));
-    break;
-  }
-  return { survivors, ranking };
 }
 
 /**

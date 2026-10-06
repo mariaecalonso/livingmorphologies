@@ -540,17 +540,23 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
                   <dd>{selected.paretoRank}</dd>
                 </div>
               </dl>
-              <dl className="pareto-genome">
-                <div>
-                  Drift <b>{selected.genome.driftX.toFixed(2)}</b>, <b>{selected.genome.driftY.toFixed(2)}</b>
-                </div>
-                <div>
-                  Radius <b>{selected.genome.uniformRadiusScale.toFixed(3)}</b>
-                </div>
-                <div>
-                  Orientation <b>{selected.genome.orientation.toFixed(2)}</b>
-                </div>
-              </dl>
+              {selected.genome ? (
+                <dl className="pareto-genome">
+                  <div>
+                    Drift <b>{selected.genome.driftX.toFixed(2)}</b>, <b>{selected.genome.driftY.toFixed(2)}</b>
+                  </div>
+                  <div>
+                    Radius <b>{selected.genome.uniformRadiusScale.toFixed(3)}</b>
+                  </div>
+                  <div>
+                    Orientation <b>{selected.genome.orientation.toFixed(2)}</b>
+                  </div>
+                </dl>
+              ) : (
+                <p className="evo-empty">
+                  Semantic plan. Roles: {(selected.preservationRoles ?? []).join(", ") || "none"}. Fidelity: {selected.fidelity ?? "unrecorded"}.
+                </p>
+              )}
               {selected.archived && selected.image ? (
                 <Link
                   className="pareto-catalog-link"

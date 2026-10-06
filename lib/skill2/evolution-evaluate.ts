@@ -7,6 +7,8 @@ import { evaluateMorphology } from "./evaluate";
 import { applyGenome, type Genome } from "./genome";
 import { measureMorphologyDetailed } from "./measurements";
 import type { Objectives } from "./nsga";
+import { DEFAULT_FILAMENT, refineFilament } from "./filament";
+import { trailsForPreview } from "./preview-ink";
 import { searchObjectives } from "./search-objectives";
 
 /** Every candidate in every generation is simulated with this seed. Not a gene. */
@@ -34,7 +36,7 @@ export type GenomeEvaluation = {
   preview: Uint8Array;
 };
 
-function previewFromTrails(trails: readonly number[], trailSize: number, reference: number): Uint8Array {
+function previewFromTrails(trails: ArrayLike<number>, trailSize: number, reference: number): Uint8Array {
   const factor = Math.max(1, Math.round(trailSize / PREVIEW_SIZE));
   const out = new Uint8Array(PREVIEW_SIZE * PREVIEW_SIZE);
   const scale = reference > 0 ? 1 / reference : 0;
@@ -56,7 +58,7 @@ function previewFromTrails(trails: readonly number[], trailSize: number, referen
       out[y * PREVIEW_SIZE + x] = Math.round(Math.min(1, Math.max(0, value)) * 255);
     }
   }
-  return out;
+  return refineFilament(out, DEFAULT_FILAMENT);
 }
 
 /**
@@ -103,6 +105,10 @@ export function evaluateGenomeAtTrailScale(archetypeId: string, genome: Genome, 
     },
     criterionMatch,
     observed,
-    preview: previewFromTrails(state.trails, state.trailSize, detailed.summary.occupancyReference),
+    preview: previewFromTrails(
+      trailsForPreview(state.trails, state.displayTrails),
+      state.trailSize,
+      detailed.summary.occupancyReference,
+    ),
   };
 }

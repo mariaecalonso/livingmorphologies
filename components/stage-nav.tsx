@@ -31,6 +31,16 @@ const STAGES: (NavItem & { match: string; sub?: NavItem[] })[] = [
     ],
   },
   { href: "/lab/vertical", label: "Vertical Propagation", match: "/lab/vertical" },
+  {
+    href: "/hybrid",
+    label: "Hybrid Connection",
+    match: "/hybrid",
+    sub: [
+      { href: "/hybrid", label: "Process" },
+      { href: "/hybrid/assembly", label: "Assembly" },
+      { href: "/hybrid/connections", label: "Connections" },
+    ],
+  },
 ];
 
 const VIEW_MODES: { id: DisplayMode; label: string }[] = [

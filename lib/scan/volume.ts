@@ -1,6 +1,7 @@
 import { mulberry32 } from "../physarum";
 import { createSimulation, stepMany } from "../skill1/engine";
 import { DEFAULT_AGENT_COUNT } from "../skill1/maps";
+import type { SlimeControls } from "../skill1/slime-controls";
 import { translateArchetype } from "../skill1/translate";
 import type { BiologicalTranslation, Point, SimulationState } from "../skill1/types";
 
@@ -21,6 +22,7 @@ export type ScanRun = {
   translation: BiologicalTranslation;
   state: SimulationState;
   rng: () => number;
+  slime?: SlimeControls;
 };
 
 export function startScan(archetypeId: string, seed: number): ScanRun {
@@ -29,6 +31,36 @@ export function startScan(archetypeId: string, seed: number): ScanRun {
     translation,
     state: createSimulation(translation, seed, DEFAULT_AGENT_COUNT),
     rng: mulberry32(seed ^ 0x9e3779b9),
+  };
+}
+
+/** Continue a checked Z0 snapshot. The branch seed is Skill 3's stream, not the evaluation stream. */
+export function startScanFromZ0(input: {
+  translation: BiologicalTranslation;
+  slime: SlimeControls;
+  state: SimulationState;
+  branchSeed: number;
+}): ScanRun {
+  return {
+    translation: input.translation,
+    slime: input.slime,
+    state: input.state,
+    rng: mulberry32(input.branchSeed),
+  };
+}
+
+/** Continue one Skill 2 selection. The catalog, previews, and other candidates are not kept. */
+export function startScanFromSelection(selection: {
+  translation: BiologicalTranslation;
+  agents: number;
+  slime: SlimeControls;
+  seed: number;
+}): ScanRun {
+  return {
+    translation: selection.translation,
+    slime: selection.slime,
+    state: createSimulation(selection.translation, selection.seed, selection.agents),
+    rng: mulberry32(selection.seed ^ 0x9e3779b9),
   };
 }
 
@@ -51,12 +83,15 @@ export function takeSlice(state: SimulationState, index: number): ScanSlice {
   };
 }
 
-export function advanceScan(run: ScanRun) {
+export function advanceScan(run: ScanRun, steps = STEPS_BETWEEN_SLICES) {
   run.state = stepMany(
     run.state,
     run.translation,
     run.rng,
-    STEPS_BETWEEN_SLICES,
+    steps,
+    0.986,
+    run.slime,
+    false,
   );
   return run.state;
 }

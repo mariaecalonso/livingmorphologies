@@ -1,8 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ARCHETYPES } from "../skill1/archetypes";
+import type { TypologyId } from "../types";
 import type { EvolutionRun } from "./evolution";
 import type { Genome } from "./genome";
+import { SEMANTIC_RUN_ROOT } from "./semantic/run-root";
+import type { SemanticRun } from "./semantic/types";
 
 export type EvolutionCandidateView = {
   key: string;
@@ -16,18 +19,20 @@ export type EvolutionCandidateView = {
   pareto: boolean;
   paretoRank: number;
   archived: boolean;
-  feasible: boolean;
   /** Preference direction when this candidate is in the specialist catalog. */
   specialist: "formal" | "spatial" | "atmospheric" | null;
-  /** Stored semantic diversity role. Pose-run views omit it. */
-  diversity?: "none" | "tag" | "rescue";
   /** Best of its legal orientation, shown when it is not already in the Pareto archive. */
   orientationElite: boolean;
   image: string | null;
   observed: Record<string, number>;
   parentId: number | null;
-  /** Pose genome from data/evolution. Published semantic entries do not carry one. */
-  genome?: Genome;
+  genome: Genome | null;
+  schema: "pose" | "semantic";
+  preservationRoles?: string[];
+  diversity?: "none" | "tag" | "rescue";
+  fidelity?: string;
+  provisional?: boolean;
+  catalogVisible?: boolean;
 };
 
 export type EvolutionGenerationView = {
@@ -45,7 +50,7 @@ export type EvolutionGenerationView = {
 export type EvolutionArchetypeView = {
   archetypeId: string;
   name: string;
-  typologyId: string;
+  typologyId: TypologyId;
   completedGenerations: number;
   generationCount: number;
   populationSize: number;
@@ -69,29 +74,47 @@ export function evolutionDir() {
   return join(process.cwd(), "data", "evolution");
 }
 
+export function semanticRunDir() {
+  return join(process.cwd(), SEMANTIC_RUN_ROOT);
+}
+
 export function loadEvolutionCatalog(): EvolutionCatalog {
-  const dir = evolutionDir();
-  if (!existsSync(dir)) return { archetypes: [] };
-  const archetypes = readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && /^[a-z0-9-]+$/.test(entry.name))
-    .map((entry) => loadArchetype(entry.name))
-    .filter((item): item is EvolutionArchetypeView => item !== null)
-    .sort(
-      (a, b) =>
-        TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
-    );
+  const pose = loadRunDir(evolutionDir(), "pose");
+  const semantic = loadRunDir(semanticRunDir(), "semantic");
+  const byId = new Map<string, EvolutionArchetypeView>();
+  for (const archetype of pose) byId.set(archetype.archetypeId, archetype);
+  for (const archetype of semantic) byId.set(archetype.archetypeId, archetype);
+  const archetypes = [...byId.values()].sort(
+    (a, b) =>
+      TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
+  );
   return { archetypes };
 }
 
-function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
-  const file = join(evolutionDir(), archetypeId, "run.json");
+function loadRunDir(dir: string, kind: "pose" | "semantic"): EvolutionArchetypeView[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && /^[a-z0-9-]+$/.test(entry.name))
+    .map((entry) => loadArchetype(entry.name, dir, kind))
+    .filter((item): item is EvolutionArchetypeView => item !== null);
+}
+
+function loadArchetype(archetypeId: string, dir: string, kind: "pose" | "semantic"): EvolutionArchetypeView | null {
+  const file = join(dir, archetypeId, "run.json");
   if (!existsSync(file)) return null;
-  const run = JSON.parse(readFileSync(file, "utf8")) as EvolutionRun;
+  let run: EvolutionRun | SemanticRun;
+  try {
+    run = JSON.parse(readFileSync(file, "utf8")) as EvolutionRun | SemanticRun;
+  } catch {
+    return null;
+  }
   if (run.archetypeId !== archetypeId) return null;
+  if (kind === "semantic" || ("schemaVersion" in run && run.schemaVersion === 3)) return loadSemanticArchetype(run as SemanticRun);
+  const pose = run as EvolutionRun;
   const name = Object.values(ARCHETYPES).find((item) => item.id === archetypeId)?.name ?? archetypeId;
   const generations: EvolutionGenerationView[] = [];
-  for (let index = 1; index <= run.config.generations; index += 1) {
-    const record = run.generations.find((item) => item.generation === index);
+  for (let index = 1; index <= pose.config.generations; index += 1) {
+    const record = pose.generations.find((item) => item.generation === index);
     generations.push({
       id: `G${String(index).padStart(2, "0")}`,
       index,
@@ -104,11 +127,11 @@ function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
     });
   }
   const root = join(evolutionDir(), archetypeId);
-  const specialists = run.specialistIds ?? { formal: [], spatial: [], atmospheric: [] };
-  const orientationElites = new Set(run.orientationEliteIds ?? []);
+  const specialists = pose.specialistIds ?? { formal: [], spatial: [], atmospheric: [] };
+  const orientationElites = new Set(pose.orientationEliteIds ?? []);
   const specialistOf = (id: number) =>
     (["formal", "spatial", "atmospheric"] as const).find((emphasis) => specialists[emphasis].includes(id)) ?? null;
-  const candidates = run.candidates.map((candidate) => {
+  const candidates = pose.candidates.map((candidate) => {
     const rel = candidate.preview.file;
     const emphasis = specialistOf(candidate.id);
     const orientationElite = orientationElites.has(candidate.id);
@@ -125,31 +148,100 @@ function loadArchetype(archetypeId: string): EvolutionArchetypeView | null {
       pareto: candidate.rank === 1,
       paretoRank: candidate.rank,
       archived: candidate.archived,
-      feasible: candidate.feasible,
       specialist: emphasis,
       orientationElite,
       image: hasImage ? `/api/evolution/${archetypeId}/${candidate.id}` : null,
       observed: candidate.observed,
       parentId: candidate.parentId,
       genome: candidate.genome,
+      schema: "pose" as const,
     };
   });
   return {
     archetypeId,
     name,
-    typologyId: run.typologyId,
+    typologyId: pose.typologyId,
+    completedGenerations: pose.completedGenerations,
+    generationCount: pose.config.generations,
+    populationSize: pose.config.populationSize,
+    generations,
+    candidates,
+    archiveCount: pose.archiveIds.length,
+    specialists,
+  };
+}
+
+function loadSemanticArchetype(run: SemanticRun): EvolutionArchetypeView {
+  const name = Object.values(ARCHETYPES).find((item) => item.id === run.archetypeId)?.name ?? run.archetypeId;
+  const visible = new Set(run.catalog.entries.map((entry) => entry.representativeId));
+  const generations: EvolutionGenerationView[] = [];
+  for (let index = 1; index <= run.config.generations; index += 1) {
+    const record = run.generations.find((item) => item.generation === index);
+    generations.push({
+      id: `G${String(index).padStart(2, "0")}`,
+      index,
+      status: record ? "done" : "waiting",
+      evaluated: record?.newCandidateIds.length ?? 0,
+      feasible: record?.technicallyValidIds.length ?? 0,
+      pareto: record?.paretoIds.length ?? 0,
+      archived: record?.paretoIds.length ?? 0,
+      archiveIds: record?.paretoIds ?? [],
+    });
+  }
+  const latest = run.generations[run.generations.length - 1];
+  const specialists = latest?.specialistIds ?? { formal: [], spatial: [], atmospheric: [] };
+  const candidates = run.candidates.map((candidate) => {
+    const roles = [
+      candidate.current.pareto ? "pareto" : null,
+      candidate.current.specialist ? `specialist-${candidate.current.specialist}` : null,
+      candidate.current.diversity !== "none" ? "diversity" : null,
+    ].filter((role): role is string => role != null);
+    const preview = candidate.preview?.file
+      ? join(semanticRunDir(), run.archetypeId, candidate.preview.file)
+      : null;
+    return {
+      key: `${run.archetypeId}:${candidate.id}`,
+      archetypeId: run.archetypeId,
+      id: candidate.id,
+      generation: candidate.generation,
+      formal: candidate.objectives.formal,
+      spatial: candidate.objectives.spatial,
+      atmospheric: candidate.objectives.atmospheric,
+      pareto: candidate.current.pareto,
+      paretoRank: candidate.current.pareto ? 1 : 0,
+      archived: candidate.current.pareto,
+      specialist: candidate.current.specialist,
+      orientationElite: false,
+      image: preview && existsSync(preview) ? `/api/evolution/${run.archetypeId}/${candidate.id}` : null,
+      observed: candidate.observed,
+      parentId: candidate.lineage.parentId,
+      genome: null,
+      schema: "semantic" as const,
+      preservationRoles: roles,
+      diversity: candidate.current.diversity,
+      fidelity: candidate.fidelity.status,
+      provisional: run.provisional,
+      catalogVisible: visible.has(candidate.id),
+    };
+  });
+  return {
+    archetypeId: run.archetypeId,
+    name,
+    typologyId: run.typologyId as TypologyId,
     completedGenerations: run.completedGenerations,
     generationCount: run.config.generations,
     populationSize: run.config.populationSize,
     generations,
     candidates,
-    archiveCount: run.archiveIds.length,
+    archiveCount: latest?.paretoIds.length ?? 0,
     specialists,
   };
 }
 
 export function archiveImagePath(archetypeId: string, id: string) {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !/^\d+$/.test(id)) return null;
+  const semantic = join(semanticRunDir(), archetypeId, "previews", `${id}.png`);
+  if (existsSync(semantic)) return semantic;
   const path = join(evolutionDir(), archetypeId, "archive", `${id}.png`);
   return existsSync(path) ? path : null;
 }

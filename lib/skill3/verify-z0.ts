@@ -25,7 +25,7 @@ assert(run.candidates.some((candidate) => candidate.id === FIXTURE.candidateId &
 const outsider = run.candidates.find((candidate) => !run.archiveIds.includes(candidate.id));
 assert(outsider != null, "run contains a non-archive candidate");
 assert(
-  throws(() => loadSkill2Handoff({ archetypeId: FIXTURE.archetypeId, candidateId: outsider.id }), "not in the global Pareto archive"),
+  throws(() => loadSkill2Handoff({ archetypeId: FIXTURE.archetypeId, candidateId: outsider!.id }), "not in the global Pareto archive"),
   "non-archive candidate rejected",
 );
 assert(

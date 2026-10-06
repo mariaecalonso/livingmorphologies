@@ -7,6 +7,8 @@ import { translateArchetype } from "../../skill1/translate";
 import { realizeLobbyPlan } from "../../skill1/lobby-realization";
 import { selectDiversityRescue } from "./diversity";
 import { descriptorDistance, deriveDescriptorV1 } from "./descriptor-v1";
+import { buildCombinedCatalog } from "./catalog";
+import { runSemanticEvolution } from "./controller";
 import { createLobbyAdapter } from "./lobby-adapter";
 import {
   LOBBY_SEMANTIC_V1_ARCHETYPES,
@@ -130,16 +132,24 @@ function testComposition() {
   assert(config.specialists === false, "the profile does not enable specialists");
 }
 
+const REFINE_READY = new Set(["continuous-hall", "vertical-void"]);
+const PLACEMENT = ["cx", "cy", "originX", "originY"];
+
 function testArchetypeGenes() {
   for (const archetypeId of LOBBY_SEMANTIC_V1_ARCHETYPES) {
     const source = createLobbyAdapter(archetypeId);
     const first = source.sampleExplorer(mulberry32(1));
     const second = source.sampleExplorer(mulberry32(1));
     const readiness = assessLobbySemanticV1(source, first);
-    assert(readiness.status === "ready", `${archetypeId} is not ready: ${readiness.reasons.join("; ")}`);
-    assert(readiness.paretoGenes.length > 0, `${archetypeId} has a spanned numeric gene`);
     for (const name of LOBBY_V1_UNSPANNED[archetypeId]) assert(!readiness.paretoGenes.includes(name), `${archetypeId} does not invent a span for ${name}`);
+    for (const name of PLACEMENT) assert(!readiness.paretoGenes.includes(name), `${archetypeId} does not refine placement gene ${name}`);
     assert(readiness.diversityGene != null && !readiness.paretoGenes.includes(readiness.diversityGene), `${archetypeId} keeps the family gene out of Pareto mutation`);
+    assert(readiness.status === "ready", `${archetypeId} is not runnable: ${readiness.reasons.join("; ")}`);
+    if (REFINE_READY.has(archetypeId)) {
+      assert(readiness.paretoGenes.length > 0, `${archetypeId} has a declared refinement gene`);
+    } else {
+      assert(readiness.paretoGenes.length === 0, `${archetypeId} has no Pareto gene and keeps its explorer slots`);
+    }
     const base = translateArchetype(archetypeId);
     const one = realizeLobbyPlan(base, slimeControlsFromTranslation(base), first.plan.body as never, lobbyState(first.state));
     const two = realizeLobbyPlan(base, slimeControlsFromTranslation(base), second.plan.body as never, lobbyState(second.state));
@@ -148,23 +158,82 @@ function testArchetypeGenes() {
 }
 
 function testMutation() {
-  const source = createLobbyAdapter("compressed-sequential");
+  const source = createLobbyAdapter("continuous-hall");
   const sampled = source.sampleExplorer(mulberry32(4));
   const pareto = mutateLobbySemanticV1(source, sampled.plan, sampled.state, "local-refinement", { fieldCount: 1 }, mulberry32(5));
   assert(pareto.status !== "rejected", "pareto mutation repairs");
   if (pareto.status !== "rejected") {
     assert(JSON.stringify(pareto.state) === JSON.stringify(sampled.state), "pareto mutation keeps the salt");
     assert(pareto.changes.length === 1, "pareto mutation changes one gene");
-    assert(lobbyParetoGenes(source, sampled.plan).includes(pareto.changes[0].field), "the gene is a spanned local field");
-    assert(pareto.changes[0].field !== "kind", "pareto mutation does not change the family gene");
+    assert(lobbyParetoGenes(source, sampled.plan).includes(pareto.changes[0].field), "the gene is a declared refinement field");
+    assert(pareto.changes[0].field === "length" || pareto.changes[0].field === "width", "pareto mutation stays on length or width");
   }
-  const diversity = mutateLobbySemanticV1(source, sampled.plan, sampled.state, "morphological-exploration", { fieldCount: 1 }, mulberry32(6));
-  assert(diversity.status === "changed", "diversity mutation changes the family");
+  const gallery = createLobbyAdapter("linear-gallery");
+  const galleryPlan = gallery.sampleExplorer(mulberry32(4));
+  const refused = mutateLobbySemanticV1(gallery, galleryPlan.plan, galleryPlan.state, "local-refinement", { fieldCount: 1 }, mulberry32(5));
+  assert(refused.status === "rejected" && refused.reasons.includes("no refinement gene"), "linear gallery does not mutate origin when no refinement gene exists");
+  const sequence = createLobbyAdapter("compressed-sequential");
+  const sequencePlan = sequence.sampleExplorer(mulberry32(4));
+  const diversity = mutateLobbySemanticV1(sequence, sequencePlan.plan, sequencePlan.state, "morphological-exploration", { fieldCount: 1 }, mulberry32(6));
+  assert(diversity.status === "changed", "diversity mutation changes growth");
   if (diversity.status === "changed") {
-    assert(diversity.changes.every((change) => change.field === "kind"), "diversity mutation does not perturb numeric genes");
-    assert(diversity.changes[0].oldValue !== diversity.changes[0].requestedValue, "the family value actually changes");
-    assert(JSON.stringify(diversity.state) === JSON.stringify(sampled.state), "diversity mutation keeps the salt");
+    assert(diversity.changes.every((change) => change.field === "growth"), "diversity mutation stays on growth");
+    assert(diversity.changes[0].oldValue !== diversity.changes[0].requestedValue, "the diversity value actually changes");
+    assert(sequence.readGene(diversity.plan, "kind") === sequence.readGene(sequencePlan.plan, "kind"), "diversity keeps the sampled family");
+    assert(JSON.stringify(diversity.state) === JSON.stringify(sequencePlan.state), "diversity mutation keeps the salt");
   }
+  const vertical = createLobbyAdapter("vertical-void");
+  const verticalPlan = vertical.sampleExplorer(mulberry32(4));
+  const verticalDiversity = mutateLobbySemanticV1(vertical, verticalPlan.plan, verticalPlan.state, "morphological-exploration", { fieldCount: 1 }, mulberry32(6));
+  assert(verticalDiversity.status === "rejected" && verticalDiversity.reasons.includes("no growth gene"), "vertical void keeps its sampled core and samples again");
+}
+
+function testPlacementHidden() {
+  const adapter = createLobbyAdapter("linear-gallery");
+  const sampled = adapter.sampleExplorer(mulberry32(8));
+  const origin = Number(adapter.readGene(sampled.plan, "originX"));
+  const moved = adapter.writeGene(sampled.plan, "originX", origin + 4);
+  const kept = descriptorCandidate(1, 0.2);
+  kept.plan = sampled.plan;
+  const copy = descriptorCandidate(2, 0.9);
+  copy.plan = moved;
+  copy.phenotype = kept.phenotype;
+  const catalog = buildCombinedCatalog([kept, copy], [1, 2], null, { adapter, distance: () => 0 });
+  assert(catalog.entries.length === 1 && catalog.entries[0].hiddenIds.includes(2), "a placement-only copy stays out of the visible catalog");
+  assert(catalog.dedup === "uncalibrated", "the structural hide is not a calibrated similarity threshold");
+}
+
+async function testMissingRefineBecomesExplorers() {
+  let n = 0;
+  const run = await runSemanticEvolution({
+    config: {
+      ...lobbySemanticV1Config("linear-gallery"),
+      purpose: "development",
+      populationSize: 4,
+      generations: 2,
+      composition: { 2: { explorers: 1, pareto: 2, diversity: 1, specialist: 0 } },
+    },
+    adapter: createLobbyAdapter("linear-gallery"),
+    evaluate: () => {
+      n += 1;
+      return {
+        evaluationSeed: 1,
+        technicalValid: true,
+        failureReason: null,
+        objectives: { formal: n / 10, spatial: 0.4, atmospheric: 0.5 },
+        criterionMatch: {},
+        observed: {},
+        criterionCategory: {},
+        phenotype: { raw: { n }, occupancy: [n] },
+        preview: null,
+        previewSize: 0,
+      };
+    },
+  });
+  const generation = run.generations[1];
+  assert(generation.reallocatedPools.includes("pareto"), "Pareto slots are recorded as explorers");
+  assert(generation.births.every((birth) => birth.parentSelectionRole !== "pareto"), "no child is a Pareto mutation");
+  assert(generation.births.filter((birth) => birth.origin === "explorer").length >= 3, "the Pareto quota joined the explorers");
 }
 
 function testDescriptor() {
@@ -239,9 +308,15 @@ function descriptorCandidate(id: number, anisotropy: number): SemanticCandidate 
   };
 }
 
-testComposition();
-testArchetypeGenes();
-testMutation();
-testDescriptor();
-testPublishedBundle();
-console.log("lobby-semantic-v1 checks passed");
+async function main() {
+  testComposition();
+  testArchetypeGenes();
+  testMutation();
+  testPlacementHidden();
+  testDescriptor();
+  testPublishedBundle();
+  await testMissingRefineBecomesExplorers();
+  console.log("lobby-semantic-v1 checks passed");
+}
+
+main();

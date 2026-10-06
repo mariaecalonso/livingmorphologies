@@ -100,12 +100,20 @@ function toView(archetypeId: string, candidate: PublishedCandidate): EvolutionCa
     pareto: candidate.current.pareto,
     paretoRank: candidate.current.pareto ? 1 : 0,
     archived: candidate.current.pareto,
-    feasible: candidate.fidelity.status !== "fail",
     specialist: candidate.current.specialist,
     diversity: candidate.current.diversity,
     orientationElite: false,
     image: hasPreview ? `/api/semantic-catalog/${archetypeId}/${candidate.id}` : null,
     observed: candidate.observed,
     parentId: candidate.lineage.parentId,
+    genome: null,
+    schema: "semantic",
+    preservationRoles: [
+      candidate.current.pareto ? "pareto" : null,
+      candidate.current.specialist ? `specialist-${candidate.current.specialist}` : null,
+      candidate.current.diversity !== "none" ? "diversity" : null,
+    ].filter((role): role is string => role != null),
+    fidelity: candidate.fidelity.status,
+    catalogVisible: true,
   };
 }

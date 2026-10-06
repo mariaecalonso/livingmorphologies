@@ -7,6 +7,8 @@ export type EvaluationJob = {
   id: number;
   plan: SemanticPlan;
   state: RealizationState;
+  /** Catalog pictures are drawn later, only for candidates the catalog keeps. */
+  preview?: boolean;
 };
 
 type WorkerReply = { id: number; result?: SemanticEvaluation; error?: string };
@@ -26,7 +28,7 @@ export function createEvaluationPool(workers: number) {
   const waiting: Array<() => void> = [];
   let sequence = 0;
 
-  function evaluate(plan: SemanticPlan, state: RealizationState): Promise<SemanticEvaluation> {
+  function evaluate(plan: SemanticPlan, state: RealizationState, options?: { preview?: boolean }): Promise<SemanticEvaluation> {
     return new Promise((resolve, reject) => {
       const start = () => {
         const child = free.pop();
@@ -52,7 +54,7 @@ export function createEvaluationPool(workers: number) {
         const onExit = (code: number | null) => finish(new Error(`evaluation worker exited (${code})`));
         child.on("message", onMessage);
         child.on("exit", onExit);
-        child.send({ id, plan, state } satisfies EvaluationJob);
+        child.send({ id, plan, state, preview: options?.preview === true } satisfies EvaluationJob);
       };
       start();
     });

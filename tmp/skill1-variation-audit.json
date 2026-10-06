@@ -1,0 +1,2511 @@
+{
+  "seed": 42,
+  "attempt": 0,
+  "index": 0,
+  "iterations": [
+    80,
+    200,
+    420,
+    600
+  ],
+  "displayIterations": 600,
+  "rows": [
+    {
+      "archetype": "Vertical Void",
+      "id": "vertical-void",
+      "planner": "planVerticalVoid",
+      "plan": {
+        "core": "split",
+        "approach": "tangential",
+        "relation": "loose",
+        "cx": 9.461167039443913,
+        "cy": 9.765121039617659,
+        "axis": 1.7557225664921994,
+        "span": 3.95127097889781,
+        "aspect": 1.2830650141462683
+      },
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 9.461167039443913,
+        "y": 9.765121039617659
+      },
+      "attractors": {
+        "count": 6,
+        "kinds": {
+          "ring": 2,
+          "curve": 1,
+          "point": 3
+        },
+        "holes": 2
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.16,
+        "isolationRadius": 4.3,
+        "enclosureCollar": 0.85,
+        "approachWidth": 3.3,
+        "coreExposure": 0.9,
+        "attractorsOnly": true,
+        "topology": "around-absence"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 600,
+      "speed": 0.267,
+      "decay": 0.958,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.575,
+        "sensorDistance": 0.894,
+        "sensorAngle": 0.448
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.1254,
+        "trailInfluence": 1.303,
+        "persistence": 0.345
+      },
+      "directionalBias": 0.5,
+      "turnAngle": 0.579,
+      "resistance": 0.148,
+      "diffusion": 0.0231,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.17036,
+          "streak": 0,
+          "occupied": 0.2239,
+          "mass": 0.0909,
+          "cx": 9.82,
+          "cy": 11.14,
+          "anisotropy": 2.318,
+          "angle": 0.374,
+          "aspect": 1.008,
+          "fill": 0.395,
+          "components": 1,
+          "branches": 6,
+          "holes": 2,
+          "lines": 1,
+          "marks": 6
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.15495,
+          "streak": 0,
+          "occupied": 0.2279,
+          "mass": 0.0826,
+          "cx": 9.78,
+          "cy": 11.4,
+          "anisotropy": 1.852,
+          "angle": 0.183,
+          "aspect": 1.008,
+          "fill": 0.395,
+          "components": 1,
+          "branches": 7,
+          "holes": 2,
+          "lines": 1,
+          "marks": 6
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.1586,
+          "streak": 0,
+          "occupied": 0.229,
+          "mass": 0.0846,
+          "cx": 9.64,
+          "cy": 11.36,
+          "anisotropy": 1.863,
+          "angle": 0.233,
+          "aspect": 1.008,
+          "fill": 0.404,
+          "components": 1,
+          "branches": 8,
+          "holes": 2,
+          "lines": 1,
+          "marks": 6
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.15115,
+          "streak": 0,
+          "occupied": 0.2366,
+          "mass": 0.0806,
+          "cx": 10.04,
+          "cy": 11.48,
+          "anisotropy": 1.973,
+          "angle": 0.194,
+          "aspect": 1,
+          "fill": 0.414,
+          "components": 1,
+          "branches": 6,
+          "holes": 2,
+          "lines": 1,
+          "marks": 6
+        }
+      ],
+      "migration": 0.405,
+      "lateOccupyChange": 0.0076,
+      "ms": 5131
+    },
+    {
+      "archetype": "Compressed Sequential",
+      "id": "compressed-sequential",
+      "planner": "planCompressedSequential",
+      "plan": {
+        "kind": "dumbbell-d",
+        "growth": "point-cluster",
+        "index": 0,
+        "scale": 0.8239857472060248,
+        "fill": 0.9617247043759563,
+        "flip": false,
+        "originX": 10.82622043043375,
+        "originY": 10.865181533433496,
+        "twist": 0.13670463280286643,
+        "neckW": 0.12172128066420555,
+        "attractorsOnly": false,
+        "roomVoice": "disk",
+        "neckVoice": "hair",
+        "halo": "overgrown",
+        "openLo": 2.8865964801982047,
+        "openHi": 3.6303751427680258
+      },
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 3.078519723469391,
+        "y": 3.078519723469391
+      },
+      "attractors": {
+        "count": 5,
+        "kinds": {
+          "point": 3,
+          "line": 2
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.859,
+        "isolationRadius": 3.488,
+        "enclosureCollar": 1.7,
+        "approachWidth": 2.945,
+        "coreExposure": 0.592,
+        "attractorsOnly": false,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "Low",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 4,
+      "agents": 320,
+      "speed": 0.177,
+      "decay": 0.9901,
+      "exploration": {
+        "label": "Low",
+        "randomness": 0.341,
+        "sensorDistance": 0.985,
+        "sensorAngle": 0.37
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.1053,
+        "trailInfluence": 0.854,
+        "persistence": 0.568
+      },
+      "directionalBias": 0.5,
+      "turnAngle": 0.278,
+      "resistance": 0.082,
+      "diffusion": 0.0954,
+      "trailScale": 32,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 3.20417,
+          "streak": 0,
+          "occupied": 0.5361,
+          "mass": 0.2508,
+          "cx": 9.3,
+          "cy": 11.04,
+          "anisotropy": 2.077,
+          "angle": 0.814,
+          "aspect": 1.017,
+          "fill": 0.545,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 3.41181,
+          "streak": 0,
+          "occupied": 0.5666,
+          "mass": 0.267,
+          "cx": 9.27,
+          "cy": 11.88,
+          "anisotropy": 2.013,
+          "angle": 0.842,
+          "aspect": 1.009,
+          "fill": 0.572,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 3.03091,
+          "streak": 0,
+          "occupied": 0.4807,
+          "mass": 0.2372,
+          "cx": 8.94,
+          "cy": 12.37,
+          "anisotropy": 3.404,
+          "angle": 0.805,
+          "aspect": 1.044,
+          "fill": 0.502,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 3.09574,
+          "streak": 0,
+          "occupied": 0.5197,
+          "mass": 0.2423,
+          "cx": 8.64,
+          "cy": 11.81,
+          "anisotropy": 2.417,
+          "angle": 0.748,
+          "aspect": 1.006,
+          "fill": 0.526,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 2,
+          "marks": 5
+        }
+      ],
+      "migration": 1.014,
+      "lateOccupyChange": 0.039,
+      "ms": 25734
+    },
+    {
+      "archetype": "Continuous Hall",
+      "id": "continuous-hall",
+      "planner": "planContinuousHall",
+      "plan": {
+        "family": "beads-tight",
+        "growth": "dry",
+        "figure": "beads",
+        "index": 0,
+        "cx": 9.246570780873299,
+        "cy": 11.847338545322417,
+        "length": 12.502105791866779,
+        "width": 0.5695260381642728,
+        "pinch": 0.4324106631847099,
+        "flip": true,
+        "twist": -0.4302890331717208
+      },
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 9.246570780873299,
+        "y": 11.847338545322417
+      },
+      "attractors": {
+        "count": 13,
+        "kinds": {
+          "point": 8,
+          "line": 5
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.721,
+        "isolationRadius": 3.548,
+        "enclosureCollar": 1.15,
+        "approachWidth": 0.945,
+        "coreExposure": 0.475,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 7,
+      "agents": 73,
+      "speed": 0.14,
+      "decay": 0.9043,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.28,
+        "sensorDistance": 0.609,
+        "sensorAngle": 0.177
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.1504,
+        "trailInfluence": 0.314,
+        "persistence": 0.668
+      },
+      "directionalBias": 0.86,
+      "turnAngle": 0.18,
+      "resistance": 0.224,
+      "diffusion": 0.0168,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.31113,
+          "streak": 0,
+          "occupied": 0.0369,
+          "mass": 0.0084,
+          "cx": 10.55,
+          "cy": 14.12,
+          "anisotropy": 35.539,
+          "angle": -0.128,
+          "aspect": 3.167,
+          "fill": 0.23,
+          "components": 1,
+          "branches": 4,
+          "holes": 0,
+          "lines": 5,
+          "marks": 13
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.06245,
+          "streak": 0,
+          "occupied": 0.0107,
+          "mass": 0.0017,
+          "cx": 11.73,
+          "cy": 14.62,
+          "anisotropy": 9.015,
+          "angle": 0.216,
+          "aspect": 2.3,
+          "fill": 0.047,
+          "components": 8,
+          "branches": 7,
+          "holes": 0,
+          "lines": 5,
+          "marks": 13
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.11049,
+          "streak": 0,
+          "occupied": 0.02,
+          "mass": 0.003,
+          "cx": 12.34,
+          "cy": 14.72,
+          "anisotropy": 7.01,
+          "angle": 0.257,
+          "aspect": 2.294,
+          "fill": 0.086,
+          "components": 5,
+          "branches": 6,
+          "holes": 0,
+          "lines": 5,
+          "marks": 13
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.21458,
+          "streak": 0,
+          "occupied": 0.036,
+          "mass": 0.0058,
+          "cx": 11.37,
+          "cy": 15.29,
+          "anisotropy": 7.584,
+          "angle": -0.017,
+          "aspect": 2.231,
+          "fill": 0.153,
+          "components": 2,
+          "branches": 6,
+          "holes": 0,
+          "lines": 5,
+          "marks": 13
+        }
+      ],
+      "migration": 1.429,
+      "lateOccupyChange": 0.016,
+      "ms": 407
+    },
+    {
+      "archetype": "Topographic Ground Field",
+      "id": "topographic-ground-field",
+      "planner": "planTopographicGroundField",
+      "plan": {
+        "kind": "ridge",
+        "index": 0,
+        "scale": 1.0135777482250705,
+        "originX": 9.17151879258454,
+        "originY": 9.801517917402089,
+        "twist": 0.5105269060470163,
+        "flip": true
+      },
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 15.470224121315486,
+        "y": 13.329112152685358
+      },
+      "attractors": {
+        "count": 15,
+        "kinds": {
+          "curve": 1,
+          "line": 7,
+          "point": 7
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.303,
+        "isolationRadius": 5.437,
+        "enclosureCollar": 0.55,
+        "approachWidth": 3.262,
+        "coreExposure": 0.738,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 7,
+      "agents": 312,
+      "speed": 0.22,
+      "decay": 0.9901,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.771,
+        "sensorDistance": 1.535,
+        "sensorAngle": 0.35
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.1053,
+        "trailInfluence": 0.763,
+        "persistence": 0.842
+      },
+      "directionalBias": 0.5,
+      "turnAngle": 0.222,
+      "resistance": 0.066,
+      "diffusion": 0.1113,
+      "trailScale": 32,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 7.06359,
+          "streak": 0,
+          "occupied": 0.8636,
+          "mass": 0.539,
+          "cx": 9.45,
+          "cy": 10.96,
+          "anisotropy": 1.216,
+          "angle": 0.712,
+          "aspect": 1.017,
+          "fill": 0.879,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 8,
+          "marks": 15
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 7.05917,
+          "streak": 0,
+          "occupied": 0.8586,
+          "mass": 0.5387,
+          "cx": 9.43,
+          "cy": 11.1,
+          "anisotropy": 1.207,
+          "angle": 0.62,
+          "aspect": 1.044,
+          "fill": 0.896,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 8,
+          "marks": 15
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 7.26982,
+          "streak": 0,
+          "occupied": 0.865,
+          "mass": 0.5548,
+          "cx": 9.47,
+          "cy": 11,
+          "anisotropy": 1.129,
+          "angle": 0.597,
+          "aspect": 1.034,
+          "fill": 0.894,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 8,
+          "marks": 15
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 7.3538,
+          "streak": 0,
+          "occupied": 0.8896,
+          "mass": 0.5612,
+          "cx": 9.29,
+          "cy": 10.71,
+          "anisotropy": 1.243,
+          "angle": 0.894,
+          "aspect": 1,
+          "fill": 0.89,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 8,
+          "marks": 15
+        }
+      ],
+      "migration": 0.297,
+      "lateOccupyChange": 0.0246,
+      "ms": 102146
+    },
+    {
+      "archetype": "Linear Gallery",
+      "id": "linear-gallery",
+      "planner": "planLinearGallery",
+      "plan": {
+        "kind": "enfilade",
+        "growth": "filament",
+        "index": 0,
+        "scale": 0.7473224087059498,
+        "originX": 8.048503928072751,
+        "originY": 8.328029018174856,
+        "twist": -0.15839632255956532,
+        "flip": false
+      },
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 2.9861576272152783,
+        "y": 9.135554288430736
+      },
+      "attractors": {
+        "count": 14,
+        "kinds": {
+          "line": 9,
+          "point": 5
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.71,
+        "isolationRadius": 2.64,
+        "enclosureCollar": 1.05,
+        "approachWidth": 2.522,
+        "coreExposure": 0.752,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "Medium",
+        "attraction": "Medium",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 112,
+      "speed": 0.321,
+      "decay": 0.9667,
+      "exploration": {
+        "label": "Medium",
+        "randomness": 0.044,
+        "sensorDistance": 1.512,
+        "sensorAngle": 0.125
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.0391,
+        "trailInfluence": 1.836,
+        "persistence": 0.793
+      },
+      "directionalBias": 0.638,
+      "turnAngle": 0.079,
+      "resistance": 0.038,
+      "diffusion": 0.0035,
+      "trailScale": 16,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.09954,
+          "streak": 0,
+          "occupied": 0.0969,
+          "mass": 0.0032,
+          "cx": 10.39,
+          "cy": 13.03,
+          "anisotropy": 3.668,
+          "angle": -0.011,
+          "aspect": 1.237,
+          "fill": 0.149,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 9,
+          "marks": 14
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.10015,
+          "streak": 0,
+          "occupied": 0.0968,
+          "mass": 0.0032,
+          "cx": 10.36,
+          "cy": 11.99,
+          "anisotropy": 3.062,
+          "angle": 0.146,
+          "aspect": 1.203,
+          "fill": 0.142,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 9,
+          "marks": 14
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.10003,
+          "streak": 0,
+          "occupied": 0.0984,
+          "mass": 0.0032,
+          "cx": 11.68,
+          "cy": 14.76,
+          "anisotropy": 3.03,
+          "angle": 0.633,
+          "aspect": 1.072,
+          "fill": 0.122,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 9,
+          "marks": 14
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.10029,
+          "streak": 0,
+          "occupied": 0.0994,
+          "mass": 0.0032,
+          "cx": 10.23,
+          "cy": 13.09,
+          "anisotropy": 3.446,
+          "angle": 0.547,
+          "aspect": 1.118,
+          "fill": 0.14,
+          "components": 3,
+          "branches": 8,
+          "holes": 0,
+          "lines": 9,
+          "marks": 14
+        }
+      ],
+      "migration": 0.171,
+      "lateOccupyChange": 0.001,
+      "ms": 2577
+    },
+    {
+      "archetype": "Open Hall",
+      "id": "open-hall",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 12.466925593539704,
+        "y": 4.407198014207365
+      },
+      "attractors": {
+        "count": 8,
+        "kinds": {
+          "line": 5,
+          "point": 3
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.2,
+        "isolationRadius": 5.6,
+        "enclosureCollar": 1,
+        "approachWidth": 3.85,
+        "coreExposure": 0.84,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "Medium",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 600,
+      "speed": 0.343,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.308,
+        "sensorDistance": 2.175,
+        "sensorAngle": 0.623
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.0758,
+        "trailInfluence": 0.35,
+        "persistence": 0.096
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.377,
+      "resistance": 0.376,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.0892,
+          "streak": 0,
+          "occupied": 0.2763,
+          "mass": 0.1053,
+          "cx": 8.85,
+          "cy": 7.36,
+          "anisotropy": 1.51,
+          "angle": 0.304,
+          "aspect": 1.057,
+          "fill": 0.607,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 5,
+          "marks": 8
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.09543,
+          "streak": 0,
+          "occupied": 0.271,
+          "mass": 0.1126,
+          "cx": 8.56,
+          "cy": 7.22,
+          "anisotropy": 1.49,
+          "angle": 0.1,
+          "aspect": 1.152,
+          "fill": 0.711,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 5,
+          "marks": 8
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.09739,
+          "streak": 0,
+          "occupied": 0.2707,
+          "mass": 0.115,
+          "cx": 8.49,
+          "cy": 7.19,
+          "anisotropy": 1.515,
+          "angle": 0.011,
+          "aspect": 1.165,
+          "fill": 0.719,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 5,
+          "marks": 8
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.09641,
+          "streak": 0,
+          "occupied": 0.2781,
+          "mass": 0.1138,
+          "cx": 8.67,
+          "cy": 7.22,
+          "anisotropy": 1.581,
+          "angle": 0.109,
+          "aspect": 1.14,
+          "fill": 0.722,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 5,
+          "marks": 8
+        }
+      ],
+      "migration": 0.228,
+      "lateOccupyChange": 0.0074,
+      "ms": 3599
+    },
+    {
+      "archetype": "Terraced",
+      "id": "terraced",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 7.936180389705887,
+        "y": 10.973691558429241
+      },
+      "attractors": {
+        "count": 6,
+        "kinds": {
+          "curve": 3,
+          "line": 3
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.5,
+        "isolationRadius": 4.35,
+        "enclosureCollar": 1.85,
+        "approachWidth": 2.95,
+        "coreExposure": 0.68,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 7,
+      "agents": 600,
+      "speed": 0.343,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.308,
+        "sensorDistance": 2.093,
+        "sensorAngle": 0.776
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.101,
+        "trailInfluence": 0.814,
+        "persistence": 0.177
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.495,
+      "resistance": 0.492,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.13188,
+          "streak": 0,
+          "occupied": 0.3337,
+          "mass": 0.1557,
+          "cx": 8.97,
+          "cy": 9.4,
+          "anisotropy": 1.182,
+          "angle": -1.168,
+          "aspect": 0.992,
+          "fill": 0.619,
+          "components": 3,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 6
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.13617,
+          "streak": 0,
+          "occupied": 0.3222,
+          "mass": 0.1607,
+          "cx": 8.89,
+          "cy": 9.06,
+          "anisotropy": 1.39,
+          "angle": -0.923,
+          "aspect": 0.974,
+          "fill": 0.618,
+          "components": 3,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 6
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.13367,
+          "streak": 0,
+          "occupied": 0.31,
+          "mass": 0.1578,
+          "cx": 8.96,
+          "cy": 9.07,
+          "anisotropy": 1.288,
+          "angle": -1.151,
+          "aspect": 1.018,
+          "fill": 0.633,
+          "components": 3,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 6
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.13671,
+          "streak": 0,
+          "occupied": 0.3098,
+          "mass": 0.1614,
+          "cx": 9.15,
+          "cy": 8.9,
+          "anisotropy": 1.27,
+          "angle": -0.98,
+          "aspect": 1.038,
+          "fill": 0.68,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 6
+        }
+      ],
+      "migration": 0.531,
+      "lateOccupyChange": 0.0002,
+      "ms": 6971
+    },
+    {
+      "archetype": "Flat Deep Plan",
+      "id": "flat-deep-plan",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-right",
+      "source": {
+        "x": 18,
+        "y": 1
+      },
+      "attractor": {
+        "x": 9.022868539439624,
+        "y": 14.738019619288167
+      },
+      "attractors": {
+        "count": 10,
+        "kinds": {
+          "line": 7,
+          "point": 3
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-right",
+        "clustering": 0.8,
+        "isolationRadius": 2.35,
+        "enclosureCollar": 3.7,
+        "approachWidth": 1.35,
+        "coreExposure": 0.26,
+        "attractorsOnly": true,
+        "topology": "contained-interior"
+      },
+      "behavior": {
+        "exploration": "Medium",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 600,
+      "speed": 0.13,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "Medium",
+        "randomness": 0.188,
+        "sensorDistance": 0.576,
+        "sensorAngle": 0.414
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.147,
+        "trailInfluence": 0.478,
+        "persistence": 0.258
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.053,
+      "resistance": 0.95,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.05604,
+          "streak": 0,
+          "occupied": 0.0871,
+          "mass": 0.0661,
+          "cx": 9.18,
+          "cy": 14.3,
+          "anisotropy": 4.544,
+          "angle": -0.947,
+          "aspect": 0.869,
+          "fill": 0.173,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 7,
+          "marks": 10
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.05301,
+          "streak": 0,
+          "occupied": 0.089,
+          "mass": 0.0626,
+          "cx": 10.24,
+          "cy": 12.77,
+          "anisotropy": 11.306,
+          "angle": -0.946,
+          "aspect": 0.846,
+          "fill": 0.178,
+          "components": 7,
+          "branches": 5,
+          "holes": 0,
+          "lines": 7,
+          "marks": 10
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.0674,
+          "streak": 0,
+          "occupied": 0.1167,
+          "mass": 0.0795,
+          "cx": 10.72,
+          "cy": 12,
+          "anisotropy": 10.534,
+          "angle": -0.947,
+          "aspect": 0.844,
+          "fill": 0.238,
+          "components": 4,
+          "branches": 6,
+          "holes": 0,
+          "lines": 7,
+          "marks": 10
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.06419,
+          "streak": 0,
+          "occupied": 0.1327,
+          "mass": 0.0757,
+          "cx": 10.76,
+          "cy": 12.15,
+          "anisotropy": 5.583,
+          "angle": -0.841,
+          "aspect": 0.806,
+          "fill": 0.235,
+          "components": 5,
+          "branches": 6,
+          "holes": 0,
+          "lines": 7,
+          "marks": 10
+        }
+      ],
+      "migration": 2.668,
+      "lateOccupyChange": 0.016,
+      "ms": 2609
+    },
+    {
+      "archetype": "Void Edge",
+      "id": "void-edge",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 6.216602844772408,
+        "y": 8.353638110026683
+      },
+      "attractors": {
+        "count": 6,
+        "kinds": {
+          "ring": 1,
+          "line": 1,
+          "point": 2,
+          "curve": 2
+        },
+        "holes": 1
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.2,
+        "isolationRadius": 3.7,
+        "enclosureCollar": 1.15,
+        "approachWidth": 2.75,
+        "coreExposure": 0.72,
+        "attractorsOnly": true,
+        "topology": "around-absence"
+      },
+      "behavior": {
+        "exploration": "Medium",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 5,
+      "agents": 600,
+      "speed": 0.206,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "Medium",
+        "randomness": 0.308,
+        "sensorDistance": 1.763,
+        "sensorAngle": 0.623
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.095,
+        "trailInfluence": 0.634,
+        "persistence": 0.096
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.377,
+      "resistance": 0.497,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.07765,
+          "streak": 0,
+          "occupied": 0.1967,
+          "mass": 0.0915,
+          "cx": 9.83,
+          "cy": 11.48,
+          "anisotropy": 1.682,
+          "angle": -0.782,
+          "aspect": 0.967,
+          "fill": 0.356,
+          "components": 2,
+          "branches": 8,
+          "holes": 1,
+          "lines": 3,
+          "marks": 6
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.0742,
+          "streak": 0,
+          "occupied": 0.1727,
+          "mass": 0.0874,
+          "cx": 8.81,
+          "cy": 12.45,
+          "anisotropy": 1.392,
+          "angle": -0.689,
+          "aspect": 0.983,
+          "fill": 0.307,
+          "components": 3,
+          "branches": 8,
+          "holes": 1,
+          "lines": 3,
+          "marks": 6
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.07129,
+          "streak": 0,
+          "occupied": 0.1673,
+          "mass": 0.0839,
+          "cx": 8.85,
+          "cy": 12.82,
+          "anisotropy": 1.413,
+          "angle": -0.389,
+          "aspect": 0.975,
+          "fill": 0.3,
+          "components": 4,
+          "branches": 7,
+          "holes": 1,
+          "lines": 3,
+          "marks": 6
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.0696,
+          "streak": 0,
+          "occupied": 0.1623,
+          "mass": 0.082,
+          "cx": 8.71,
+          "cy": 12.71,
+          "anisotropy": 1.335,
+          "angle": -0.522,
+          "aspect": 0.893,
+          "fill": 0.318,
+          "components": 3,
+          "branches": 7,
+          "holes": 1,
+          "lines": 3,
+          "marks": 6
+        }
+      ],
+      "migration": 1.664,
+      "lateOccupyChange": 0.005,
+      "ms": 7580
+    },
+    {
+      "archetype": "Undulated",
+      "id": "undulated",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 4.244208087151689,
+        "y": 7.644450395790055
+      },
+      "attractors": {
+        "count": 11,
+        "kinds": {
+          "curve": 6,
+          "point": 5
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.34,
+        "isolationRadius": 4.7,
+        "enclosureCollar": 1.45,
+        "approachWidth": 3.25,
+        "coreExposure": 0.76,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 600,
+      "speed": 0.343,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.429,
+        "sensorDistance": 2.12,
+        "sensorAngle": 0.985
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.0978,
+        "trailInfluence": 0.725,
+        "persistence": 0.134
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.708,
+      "resistance": 0.436,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.09906,
+          "streak": 0,
+          "occupied": 0.2002,
+          "mass": 0.1169,
+          "cx": 7.15,
+          "cy": 10.21,
+          "anisotropy": 1.102,
+          "angle": 0.422,
+          "aspect": 0.962,
+          "fill": 0.474,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 11
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.09123,
+          "streak": 0,
+          "occupied": 0.1777,
+          "mass": 0.1077,
+          "cx": 6.85,
+          "cy": 10.16,
+          "anisotropy": 1.177,
+          "angle": -1.201,
+          "aspect": 0.976,
+          "fill": 0.677,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 11
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.08893,
+          "streak": 0,
+          "occupied": 0.168,
+          "mass": 0.105,
+          "cx": 6.68,
+          "cy": 10.17,
+          "anisotropy": 1.267,
+          "angle": -1.033,
+          "aspect": 0.977,
+          "fill": 0.568,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 11
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.08701,
+          "streak": 0,
+          "occupied": 0.1669,
+          "mass": 0.1027,
+          "cx": 6.67,
+          "cy": 10.15,
+          "anisotropy": 1.298,
+          "angle": -0.908,
+          "aspect": 1.094,
+          "fill": 0.541,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 11
+        }
+      ],
+      "migration": 0.484,
+      "lateOccupyChange": 0.0011,
+      "ms": 12257
+    },
+    {
+      "archetype": "Stepped Amphitheater",
+      "id": "stepped-amphitheater",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 8.55996736823256,
+        "y": 10.236407271019118
+      },
+      "attractors": {
+        "count": 11,
+        "kinds": {
+          "ring": 1,
+          "curve": 10
+        },
+        "holes": 1
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.82,
+        "isolationRadius": 2.55,
+        "enclosureCollar": 3.55,
+        "approachWidth": 1.65,
+        "coreExposure": 0.24,
+        "attractorsOnly": true,
+        "topology": "around-absence"
+      },
+      "behavior": {
+        "exploration": "Low",
+        "attraction": "Low",
+        "trailFollowing": "High",
+        "reinforcement": "High",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 7,
+      "agents": 600,
+      "speed": 0.161,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "Low",
+        "randomness": 0.08,
+        "sensorDistance": 1.506,
+        "sensorAngle": 0.226
+      },
+      "reinforcement": {
+        "label": "High",
+        "deposit": 0.0668,
+        "trailInfluence": 1.274,
+        "persistence": 0.656
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.353,
+      "resistance": 0.248,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.07681,
+          "streak": 0,
+          "occupied": 0.2501,
+          "mass": 0.0906,
+          "cx": 10.48,
+          "cy": 11.12,
+          "anisotropy": 1.532,
+          "angle": -0.073,
+          "aspect": 1.025,
+          "fill": 0.448,
+          "components": 2,
+          "branches": 8,
+          "holes": 1,
+          "lines": 10,
+          "marks": 11
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.08542,
+          "streak": 0,
+          "occupied": 0.1827,
+          "mass": 0.1008,
+          "cx": 9.89,
+          "cy": 12.14,
+          "anisotropy": 2.571,
+          "angle": 0.239,
+          "aspect": 0.992,
+          "fill": 0.333,
+          "components": 5,
+          "branches": 8,
+          "holes": 1,
+          "lines": 10,
+          "marks": 11
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.0869,
+          "streak": 0,
+          "occupied": 0.1484,
+          "mass": 0.1025,
+          "cx": 8.5,
+          "cy": 13.37,
+          "anisotropy": 2.403,
+          "angle": 0.197,
+          "aspect": 1.155,
+          "fill": 0.31,
+          "components": 3,
+          "branches": 7,
+          "holes": 1,
+          "lines": 10,
+          "marks": 11
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.06428,
+          "streak": 0,
+          "occupied": 0.1843,
+          "mass": 0.0758,
+          "cx": 9.26,
+          "cy": 12.38,
+          "anisotropy": 1.621,
+          "angle": 0.134,
+          "aspect": 0.983,
+          "fill": 0.333,
+          "components": 1,
+          "branches": 7,
+          "holes": 1,
+          "lines": 10,
+          "marks": 11
+        }
+      ],
+      "migration": 1.754,
+      "lateOccupyChange": 0.0359,
+      "ms": 10802
+    },
+    {
+      "archetype": "Void Field",
+      "id": "void-field",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 6.878554191942037,
+        "y": 9.319018344486373
+      },
+      "attractors": {
+        "count": 8,
+        "kinds": {
+          "ring": 1,
+          "point": 5,
+          "curve": 1,
+          "line": 1
+        },
+        "holes": 1
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.12,
+        "isolationRadius": 4.6,
+        "enclosureCollar": 0.8,
+        "approachWidth": 3.4,
+        "coreExposure": 0.92,
+        "attractorsOnly": true,
+        "topology": "around-absence"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 5,
+      "agents": 600,
+      "speed": 0.259,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.188,
+        "sensorDistance": 1.658,
+        "sensorAngle": 0.49
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.0934,
+        "trailInfluence": 0.338,
+        "persistence": 0.075
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.322,
+      "resistance": 0.341,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.07481,
+          "streak": 0,
+          "occupied": 0.1627,
+          "mass": 0.0881,
+          "cx": 8.99,
+          "cy": 10.48,
+          "anisotropy": 1.54,
+          "angle": 0.96,
+          "aspect": 0.959,
+          "fill": 0.297,
+          "components": 3,
+          "branches": 7,
+          "holes": 1,
+          "lines": 2,
+          "marks": 8
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.07189,
+          "streak": 0,
+          "occupied": 0.1474,
+          "mass": 0.0846,
+          "cx": 8.43,
+          "cy": 10.99,
+          "anisotropy": 1.551,
+          "angle": 0.894,
+          "aspect": 0.935,
+          "fill": 0.267,
+          "components": 4,
+          "branches": 8,
+          "holes": 1,
+          "lines": 2,
+          "marks": 8
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.07383,
+          "streak": 0,
+          "occupied": 0.1498,
+          "mass": 0.0869,
+          "cx": 8.9,
+          "cy": 10.9,
+          "anisotropy": 1.88,
+          "angle": 0.827,
+          "aspect": 0.927,
+          "fill": 0.273,
+          "components": 3,
+          "branches": 7,
+          "holes": 1,
+          "lines": 2,
+          "marks": 8
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.07538,
+          "streak": 0,
+          "occupied": 0.1555,
+          "mass": 0.0887,
+          "cx": 8.82,
+          "cy": 10.68,
+          "anisotropy": 1.734,
+          "angle": 0.882,
+          "aspect": 0.935,
+          "fill": 0.281,
+          "components": 1,
+          "branches": 7,
+          "holes": 1,
+          "lines": 2,
+          "marks": 8
+        }
+      ],
+      "migration": 0.262,
+      "lateOccupyChange": 0.0057,
+      "ms": 6383
+    },
+    {
+      "archetype": "Inserted Horizontal Plate",
+      "id": "inserted-horizontal-plate",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 6.470132236657534,
+        "y": 6.9369605521553
+      },
+      "attractors": {
+        "count": 12,
+        "kinds": {
+          "point": 3,
+          "line": 4,
+          "ring": 2,
+          "curve": 3
+        },
+        "holes": 2
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.14,
+        "isolationRadius": 5.9,
+        "enclosureCollar": 0.7,
+        "approachWidth": 3.7,
+        "coreExposure": 0.86,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "Medium",
+        "trailFollowing": "High",
+        "reinforcement": "High",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 7,
+      "agents": 600,
+      "speed": 0.343,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.188,
+        "sensorDistance": 1.998,
+        "sensorAngle": 0.49
+      },
+      "reinforcement": {
+        "label": "High",
+        "deposit": 0.0974,
+        "trailInfluence": 0.505,
+        "persistence": 0.458
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.317,
+      "resistance": 0.341,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.12041,
+          "streak": 0,
+          "occupied": 0.3526,
+          "mass": 0.142,
+          "cx": 8.74,
+          "cy": 11.09,
+          "anisotropy": 1.573,
+          "angle": 0.688,
+          "aspect": 0.992,
+          "fill": 0.622,
+          "components": 3,
+          "branches": 8,
+          "holes": 2,
+          "lines": 7,
+          "marks": 12
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.12714,
+          "streak": 0,
+          "occupied": 0.3202,
+          "mass": 0.1499,
+          "cx": 8.39,
+          "cy": 11.38,
+          "anisotropy": 1.486,
+          "angle": 0.763,
+          "aspect": 0.975,
+          "fill": 0.574,
+          "components": 2,
+          "branches": 8,
+          "holes": 2,
+          "lines": 7,
+          "marks": 12
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.1274,
+          "streak": 0,
+          "occupied": 0.3208,
+          "mass": 0.1502,
+          "cx": 8.29,
+          "cy": 11.41,
+          "anisotropy": 1.489,
+          "angle": 0.775,
+          "aspect": 0.967,
+          "fill": 0.571,
+          "components": 1,
+          "branches": 8,
+          "holes": 2,
+          "lines": 7,
+          "marks": 12
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.12359,
+          "streak": 0,
+          "occupied": 0.309,
+          "mass": 0.1457,
+          "cx": 8.4,
+          "cy": 11.6,
+          "anisotropy": 1.508,
+          "angle": 0.772,
+          "aspect": 0.975,
+          "fill": 0.554,
+          "components": 1,
+          "branches": 8,
+          "holes": 2,
+          "lines": 7,
+          "marks": 12
+        }
+      ],
+      "migration": 0.613,
+      "lateOccupyChange": 0.0118,
+      "ms": 6079
+    },
+    {
+      "archetype": "Contained Room Within Volume",
+      "id": "contained-room-within-volume",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-right",
+      "source": {
+        "x": 18,
+        "y": 1
+      },
+      "attractor": {
+        "x": 9.320548760076685,
+        "y": 8.065796210252067
+      },
+      "attractors": {
+        "count": 5,
+        "kinds": {
+          "point": 1,
+          "ring": 2,
+          "curve": 2
+        },
+        "holes": 2
+      },
+      "recipe": {
+        "sourceCorner": "bottom-right",
+        "clustering": 0.86,
+        "isolationRadius": 2.1,
+        "enclosureCollar": 3.4,
+        "approachWidth": 1.55,
+        "coreExposure": 0.34,
+        "attractorsOnly": true,
+        "topology": "contained-interior"
+      },
+      "behavior": {
+        "exploration": "High",
+        "attraction": "High",
+        "trailFollowing": "High",
+        "reinforcement": "High",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 6,
+      "agents": 600,
+      "speed": 0.183,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "High",
+        "randomness": 0.429,
+        "sensorDistance": 1.466,
+        "sensorAngle": 0.909
+      },
+      "reinforcement": {
+        "label": "High",
+        "deposit": 0.171,
+        "trailInfluence": 0.512,
+        "persistence": 0.653
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.48,
+      "resistance": 0.872,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.05776,
+          "streak": 0,
+          "occupied": 0.0864,
+          "mass": 0.0679,
+          "cx": 11.43,
+          "cy": 9.26,
+          "anisotropy": 1.997,
+          "angle": -1.425,
+          "aspect": 0.828,
+          "fill": 0.163,
+          "components": 2,
+          "branches": 7,
+          "holes": 2,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.05878,
+          "streak": 0,
+          "occupied": 0.0857,
+          "mass": 0.0692,
+          "cx": 11.37,
+          "cy": 9.37,
+          "anisotropy": 1.278,
+          "angle": -1.528,
+          "aspect": 0.829,
+          "fill": 0.159,
+          "components": 2,
+          "branches": 8,
+          "holes": 2,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.05759,
+          "streak": 0,
+          "occupied": 0.0855,
+          "mass": 0.0678,
+          "cx": 11.43,
+          "cy": 9.49,
+          "anisotropy": 1.438,
+          "angle": 1.205,
+          "aspect": 0.829,
+          "fill": 0.159,
+          "components": 1,
+          "branches": 8,
+          "holes": 2,
+          "lines": 2,
+          "marks": 5
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.0565,
+          "streak": 0,
+          "occupied": 0.0862,
+          "mass": 0.0665,
+          "cx": 11.52,
+          "cy": 9.99,
+          "anisotropy": 1.482,
+          "angle": 1.467,
+          "aspect": 0.871,
+          "fill": 0.165,
+          "components": 1,
+          "branches": 8,
+          "holes": 2,
+          "lines": 2,
+          "marks": 5
+        }
+      ],
+      "migration": 0.736,
+      "lateOccupyChange": 0.0007,
+      "ms": 3433
+    },
+    {
+      "archetype": "Linear Edge Gallery",
+      "id": "linear-edge-gallery",
+      "planner": "runAttractorsFor+varySlimeControls",
+      "plan": null,
+      "sourceCorner": "bottom-left",
+      "source": {
+        "x": 1,
+        "y": 1
+      },
+      "attractor": {
+        "x": 14.307811130307366,
+        "y": 4.850612826442872
+      },
+      "attractors": {
+        "count": 10,
+        "kinds": {
+          "curve": 3,
+          "point": 4,
+          "line": 3
+        },
+        "holes": 0
+      },
+      "recipe": {
+        "sourceCorner": "bottom-left",
+        "clustering": 0.56,
+        "isolationRadius": 2.75,
+        "enclosureCollar": 1.35,
+        "approachWidth": 1.8,
+        "coreExposure": 0.48,
+        "attractorsOnly": true,
+        "topology": "open-network"
+      },
+      "behavior": {
+        "exploration": "Medium",
+        "attraction": "Medium",
+        "trailFollowing": "High",
+        "reinforcement": "Medium",
+        "decay": "controlled",
+        "randomness": "medium"
+      },
+      "densitySlider": 4,
+      "agents": 600,
+      "speed": 0.29,
+      "decay": 0.9805,
+      "exploration": {
+        "label": "Medium",
+        "randomness": 0.188,
+        "sensorDistance": 1.988,
+        "sensorAngle": 0.49
+      },
+      "reinforcement": {
+        "label": "Medium",
+        "deposit": 0.083,
+        "trailInfluence": 0.236,
+        "persistence": 0.572
+      },
+      "directionalBias": 0,
+      "turnAngle": 0.21,
+      "resistance": 0.561,
+      "diffusion": 0.04,
+      "trailScale": 8,
+      "frames": [
+        {
+          "iteration": 80,
+          "converged": false,
+          "delta": 0.08412,
+          "streak": 0,
+          "occupied": 0.3387,
+          "mass": 0.0993,
+          "cx": 9.48,
+          "cy": 10.55,
+          "anisotropy": 1.394,
+          "angle": 0.401,
+          "aspect": 1.017,
+          "fill": 0.592,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 10
+        },
+        {
+          "iteration": 200,
+          "converged": false,
+          "delta": 0.08434,
+          "streak": 0,
+          "occupied": 0.3536,
+          "mass": 0.0995,
+          "cx": 9.5,
+          "cy": 10.75,
+          "anisotropy": 1.298,
+          "angle": 0.395,
+          "aspect": 0.992,
+          "fill": 0.613,
+          "components": 2,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 10
+        },
+        {
+          "iteration": 420,
+          "converged": false,
+          "delta": 0.08843,
+          "streak": 0,
+          "occupied": 0.4252,
+          "mass": 0.1044,
+          "cx": 9.82,
+          "cy": 10.56,
+          "anisotropy": 1.239,
+          "angle": 0.347,
+          "aspect": 1.008,
+          "fill": 0.725,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 10
+        },
+        {
+          "iteration": 600,
+          "converged": true,
+          "delta": 0.08047,
+          "streak": 0,
+          "occupied": 0.3863,
+          "mass": 0.095,
+          "cx": 9.61,
+          "cy": 10.77,
+          "anisotropy": 1.344,
+          "angle": 0.234,
+          "aspect": 1.008,
+          "fill": 0.659,
+          "components": 1,
+          "branches": 8,
+          "holes": 0,
+          "lines": 6,
+          "marks": 10
+        }
+      ],
+      "migration": 0.256,
+      "lateOccupyChange": 0.0389,
+      "ms": 4409
+    }
+  ],
+  "nearest": [
+    {
+      "id": "vertical-void",
+      "nearest": "void-field",
+      "distance": 0.077,
+      "closest": [
+        {
+          "id": "void-field",
+          "d": 0.077
+        },
+        {
+          "id": "void-edge",
+          "d": 0.118
+        },
+        {
+          "id": "contained-room-within-volume",
+          "d": 0.124
+        }
+      ]
+    },
+    {
+      "id": "compressed-sequential",
+      "nearest": "linear-edge-gallery",
+      "distance": 0.124,
+      "closest": [
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.124
+        },
+        {
+          "id": "open-hall",
+          "d": 0.135
+        },
+        {
+          "id": "vertical-void",
+          "d": 0.138
+        }
+      ]
+    },
+    {
+      "id": "continuous-hall",
+      "nearest": "flat-deep-plan",
+      "distance": 0.165,
+      "closest": [
+        {
+          "id": "flat-deep-plan",
+          "d": 0.165
+        },
+        {
+          "id": "linear-gallery",
+          "d": 0.189
+        },
+        {
+          "id": "void-field",
+          "d": 0.248
+        }
+      ]
+    },
+    {
+      "id": "topographic-ground-field",
+      "nearest": "linear-edge-gallery",
+      "distance": 0.157,
+      "closest": [
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.157
+        },
+        {
+          "id": "terraced",
+          "d": 0.19
+        },
+        {
+          "id": "inserted-horizontal-plate",
+          "d": 0.194
+        }
+      ]
+    },
+    {
+      "id": "linear-gallery",
+      "nearest": "stepped-amphitheater",
+      "distance": 0.143,
+      "closest": [
+        {
+          "id": "stepped-amphitheater",
+          "d": 0.143
+        },
+        {
+          "id": "flat-deep-plan",
+          "d": 0.178
+        },
+        {
+          "id": "undulated",
+          "d": 0.185
+        }
+      ]
+    },
+    {
+      "id": "open-hall",
+      "nearest": "terraced",
+      "distance": 0.07,
+      "closest": [
+        {
+          "id": "terraced",
+          "d": 0.07
+        },
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.074
+        },
+        {
+          "id": "undulated",
+          "d": 0.09
+        }
+      ]
+    },
+    {
+      "id": "terraced",
+      "nearest": "linear-edge-gallery",
+      "distance": 0.063,
+      "closest": [
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.063
+        },
+        {
+          "id": "open-hall",
+          "d": 0.07
+        },
+        {
+          "id": "undulated",
+          "d": 0.073
+        }
+      ]
+    },
+    {
+      "id": "flat-deep-plan",
+      "nearest": "continuous-hall",
+      "distance": 0.165,
+      "closest": [
+        {
+          "id": "continuous-hall",
+          "d": 0.165
+        },
+        {
+          "id": "linear-gallery",
+          "d": 0.178
+        },
+        {
+          "id": "void-edge",
+          "d": 0.231
+        }
+      ]
+    },
+    {
+      "id": "void-edge",
+      "nearest": "void-field",
+      "distance": 0.109,
+      "closest": [
+        {
+          "id": "void-field",
+          "d": 0.109
+        },
+        {
+          "id": "vertical-void",
+          "d": 0.118
+        },
+        {
+          "id": "undulated",
+          "d": 0.124
+        }
+      ]
+    },
+    {
+      "id": "undulated",
+      "nearest": "terraced",
+      "distance": 0.073,
+      "closest": [
+        {
+          "id": "terraced",
+          "d": 0.073
+        },
+        {
+          "id": "open-hall",
+          "d": 0.09
+        },
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.099
+        }
+      ]
+    },
+    {
+      "id": "stepped-amphitheater",
+      "nearest": "inserted-horizontal-plate",
+      "distance": 0.117,
+      "closest": [
+        {
+          "id": "inserted-horizontal-plate",
+          "d": 0.117
+        },
+        {
+          "id": "linear-gallery",
+          "d": 0.143
+        },
+        {
+          "id": "undulated",
+          "d": 0.144
+        }
+      ]
+    },
+    {
+      "id": "void-field",
+      "nearest": "vertical-void",
+      "distance": 0.077,
+      "closest": [
+        {
+          "id": "vertical-void",
+          "d": 0.077
+        },
+        {
+          "id": "contained-room-within-volume",
+          "d": 0.077
+        },
+        {
+          "id": "void-edge",
+          "d": 0.109
+        }
+      ]
+    },
+    {
+      "id": "inserted-horizontal-plate",
+      "nearest": "linear-edge-gallery",
+      "distance": 0.086,
+      "closest": [
+        {
+          "id": "linear-edge-gallery",
+          "d": 0.086
+        },
+        {
+          "id": "terraced",
+          "d": 0.115
+        },
+        {
+          "id": "undulated",
+          "d": 0.117
+        }
+      ]
+    },
+    {
+      "id": "contained-room-within-volume",
+      "nearest": "void-field",
+      "distance": 0.077,
+      "closest": [
+        {
+          "id": "void-field",
+          "d": 0.077
+        },
+        {
+          "id": "vertical-void",
+          "d": 0.124
+        },
+        {
+          "id": "void-edge",
+          "d": 0.142
+        }
+      ]
+    },
+    {
+      "id": "linear-edge-gallery",
+      "nearest": "terraced",
+      "distance": 0.063,
+      "closest": [
+        {
+          "id": "terraced",
+          "d": 0.063
+        },
+        {
+          "id": "open-hall",
+          "d": 0.074
+        },
+        {
+          "id": "inserted-horizontal-plate",
+          "d": 0.086
+        }
+      ]
+    }
+  ]
+}

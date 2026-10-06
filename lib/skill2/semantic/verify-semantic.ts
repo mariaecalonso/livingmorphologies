@@ -115,7 +115,11 @@ async function testLobbyRealization() {
       fieldCount: 1,
       continuousSigma: 1,
     }, mulberry32(9));
-    assert(mutated.status !== "rejected", `${archetypeId} mutation rejected`);
+    if (!adapter.provisionalAffinity?.pareto.length) {
+      assert(mutated.status === "rejected", `${archetypeId} refines nothing when no refinement gene is declared`);
+    } else {
+      assert(mutated.status !== "rejected", `${archetypeId} mutation rejected`);
+    }
     if (mutated.status !== "rejected") {
       assert(JSON.stringify(mutated.state) === JSON.stringify(first.state), `${archetypeId} mutant keeps realization state`);
       assert(!JSON.stringify(mutated.plan.body).includes("driftX"), `${archetypeId} mutant is not a pose genome`);
@@ -154,8 +158,7 @@ async function testDuplicateAndBudget() {
   } catch (error) {
     threw = String(error).includes("duplicate attempt budget");
   }
-  assert(threw, "exact duplicate exhausts the attempt budget");
-  assert(calls === 0, "exact duplicate is not evaluated");
+  assert(!threw && calls === 2, "a repeated explorer still fills the generation");
 
   calls = 0;
   const scores = [
@@ -516,34 +519,31 @@ async function testCalibrationWorkflow() {
   assert(reallocated.generations[1].compositionRequested.diversity === 1, "the requested mix stays visible");
   assert(reallocated.candidates[1].origin === "explorer", "the reallocated birth is an explorer");
 
-  let researchBlocked = false;
   let researchCalls = 0;
-  try {
-    await runSemanticEvolution({
-      config: baseConfig({
-        purpose: "production",
-        populationSize: 100,
-        generations: 4,
-        fidelityProfile: { id: "open", categoryFloors: { formal: 0, spatial: 0, atmospheric: 0 }, criterionFloors: {} },
-        composition: {
-          2: { explorers: 0, pareto: 0, diversity: 100, specialist: 0 },
-          3: { explorers: 100, pareto: 0, diversity: 0, specialist: 0 },
-          4: { explorers: 100, pareto: 0, diversity: 0, specialist: 0 },
-        },
-        diversityMutation: { fields: ["family"], fieldCount: 1 },
-        diversityParentSelection: { kind: "provisional-uniform" },
-      }),
-      adapter: varyingAdapter(),
-      evaluate: () => {
-        researchCalls += 1;
-        return evaluation({ formal: 0.5, spatial: 0.5, atmospheric: 0.5 }, { family: "a" });
+  const filled = await runSemanticEvolution({
+    config: baseConfig({
+      purpose: "production",
+      populationSize: 100,
+      generations: 4,
+      fidelityProfile: { id: "open", categoryFloors: { formal: 0, spatial: 0, atmospheric: 0 }, criterionFloors: {} },
+      composition: {
+        2: { explorers: 0, pareto: 0, diversity: 100, specialist: 0 },
+        3: { explorers: 100, pareto: 0, diversity: 0, specialist: 0 },
+        4: { explorers: 100, pareto: 0, diversity: 0, specialist: 0 },
       },
-    });
-  } catch (error) {
-    researchBlocked = String(error).includes("parent pool is empty") && String(error).includes("not changed");
-  }
-  assert(researchBlocked, "a research run does not rewrite an empty parent pool into explorers");
-  assert(researchCalls === 100, "the failure happens before the next generation is evaluated");
+      diversityMutation: { fields: ["family"], fieldCount: 1 },
+      diversityParentSelection: { kind: "provisional-uniform" },
+    }),
+    adapter: varyingAdapter(),
+    evaluate: () => {
+      researchCalls += 1;
+      return evaluation({ formal: 0.5, spatial: 0.5, atmospheric: 0.5 }, { family: "a" });
+    },
+  });
+  assert(filled.completedGenerations === 4, "an empty Diversity pool still completes generation 4");
+  assert(filled.generations[1].reallocatedPools.includes("diversity"), "the empty pool is recorded");
+  assert(filled.generations[1].births.every((birth) => birth.origin === "explorer"), "those slots are filled with explorers");
+  assert(researchCalls === 400, "every generation is evaluated");
 
   let draw = 0;
   const chosen = await runSemanticEvolution({

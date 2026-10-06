@@ -86,252 +86,516 @@ export type GalleryPlan = {
 };
 
 type Station = { x: number; y: number };
+type Fragment = { at: number; side: number; stem: number; radius: number };
+
 function pt(x: number, y: number, radius: number, strength: number): FieldAttractor {
   return { kind: "point", x: lim(x), y: lim(y), radius, strength };
+}
+
+function ln(x: number, y: number, x2: number, y2: number, radius: number, strength: number, hole = false): FieldAttractor {
+  return { kind: "line", x: lim(x), y: lim(y), x2: lim(x2), y2: lim(y2), radius, strength, hole: hole || undefined };
+}
+
+function ring(x: number, y: number, radius: number, strength: number): FieldAttractor {
+  return { kind: "ring", x: lim(x), y: lim(y), radius, strength, hole: true };
 }
 
 function cv(x: number, y: number, x2: number, y2: number, cx: number, cy: number, radius: number, strength: number, hole = false): FieldAttractor {
   return { kind: "curve", x: lim(x), y: lim(y), x2: lim(x2), y2: lim(y2), cx: lim(cx), cy: lim(cy), radius, strength, hole: hole || undefined };
 }
 
-type Pose = "center" | "upper" | "lower" | "diagonal" | "soft" | "strong" | "split" | "loop" | "offset" | "fragment";
-
-function poseOf(kind: GalleryKind): Pose {
-  if (kind === "enfilade" || kind === "arcade") return "center";
-  if (kind === "alcove") return "upper";
-  if (kind === "switchback") return "lower";
-  if (kind === "dogleg") return "diagonal";
-  if (kind === "meander" || kind === "wrap") return "soft";
-  if (kind === "ladder" || kind === "fan") return "strong";
-  if (kind === "fork" || kind === "braid") return "split";
-  if (kind === "hook" || kind === "loop") return "loop";
-  if (kind === "bay") return "offset";
-  return "fragment";
+function rotate(x: number, y: number, plan: GalleryPlan) {
+  const dx = (x - CENTER) * plan.scale * (plan.flip ? -1 : 1);
+  const dy = (y - CENTER) * plan.scale;
+  const c = Math.cos(plan.twist);
+  const s = Math.sin(plan.twist);
+  return {
+    x: plan.originX + dx * c - dy * s,
+    y: plan.originY + dx * s + dy * c,
+  };
 }
 
-const X0 = 1.45;
-const X1 = 18.55;
-
-function smoothstep(value: number) {
-  const t = Math.max(0, Math.min(1, value));
-  return t * t * (3 - 2 * t);
-}
-
-function cycleOf(plan: GalleryPlan) {
-  return Math.floor(plan.index / GALLERY_FAMILIES.length);
-}
-
-function spineAt(pose: Pose, u: number, plan: GalleryPlan): Station {
-  const flip = plan.flip ? -1 : 1;
-  const cycle = cycleOf(plan);
-  const x = X0 + u * (X1 - X0);
-  const phase = ((plan.index + cycle * 2) % 7) * 0.06;
-  const kind = plan.kind;
-
-  if (kind === "switchback") {
-    const top = 3.1 + (cycle % 3) * 0.7;
-    const bottom = 16.7 - (cycle % 3) * 0.7;
-    const knee = 0.38 + (cycle % 4) * 0.06;
-    const drop = smoothstep((u - knee) / 0.14);
-    const y = (flip > 0 ? top : bottom) + ((flip > 0 ? bottom : top) - (flip > 0 ? top : bottom)) * drop;
-    const wave = Math.sin((u + phase) * Math.PI * 2) * (0.35 + (cycle % 2) * 0.25);
-    return { x, y: lim(y + wave * flip) };
-  }
-
-  if (kind === "dogleg") {
-    const knee = 0.28 + ((plan.index + cycle) % 5) * 0.09;
-    const rise = (4.2 + (cycle % 3) * 1.6) * flip;
-    const y = CENTER - rise * 0.45 + rise * smoothstep((u - knee) / 0.1);
-    return { x, y: lim(y + Math.sin(u * Math.PI) * 0.35 * flip) };
-  }
-
-  if (kind === "hook") {
-    const curl = smoothstep((u - (0.62 + (cycle % 3) * 0.06)) / 0.2);
-    const y = CENTER + ((cycle % 3) - 1) * 1.4 + curl * (5.4 + (cycle % 2) * 1.2) * flip;
-    return { x, y: lim(y + Math.sin(u * Math.PI) * 0.4 * flip) };
-  }
-
-  if (pose === "diagonal") {
-    const steep = (plan.index + cycle) % 2 === 0;
-    const y0 = flip > 0 ? (steep ? 17.1 : 13.6) : (steep ? 2.7 : 6.2);
-    const y1 = flip > 0 ? (steep ? 2.7 : 6.2) : (steep ? 17.1 : 13.6);
-    const bow = Math.sin((u + phase) * Math.PI) * (steep ? 1.7 : 0.4) * (cycle % 2 === 0 ? 1 : -1);
-    return { x, y: lim(y0 + (y1 - y0) * u + bow) };
-  }
-
-  if (pose === "offset") {
-    const rise = (3.6 + (cycle % 3) * 1.7) * flip;
-    const knee = 0.22 + ((plan.index + cycle) % 5) * 0.1;
-    const y = CENTER - rise * 0.5 + rise * smoothstep((u - knee) / 0.11);
-    return { x, y: lim(y + Math.sin((u + phase) * Math.PI) * (0.25 + (cycle % 2) * 0.45) * flip) };
-  }
-
-  if (pose === "strong") {
-    const amp = 4.8 + (cycle % 3) * 0.9;
-    const y = kind === "fan"
-      ? CENTER + Math.sin((u * 2 + phase) * Math.PI) * amp * 0.78 * flip
-      : CENTER + (((cycle % 3) - 1) * 0.4) + Math.sin((u + phase) * Math.PI) * amp * flip;
-    return { x, y: lim(y) };
-  }
-
-  if (pose === "soft") {
-    const bends = kind === "wrap" ? 3 : 2;
-    const amp = 1.6 + (cycle % 3) * 0.85;
-    const drift = ((cycle % 2 === 0 ? u : 1 - u) - 0.5) * (1.2 + (plan.index % 3) * 0.6) * flip;
-    return { x, y: lim(CENTER + drift + Math.sin((u * bends + phase) * Math.PI) * amp * flip) };
-  }
-
-  if (pose === "upper" || pose === "lower") {
-    const slot = cycle % 3;
-    const edge = pose === "upper" ? 2.7 + slot * 1.05 : 17.15 - slot * 1.05;
-    const sag = ((plan.index + cycle) % 3 === 0) ? u * (2.4 + slot) * (pose === "upper" ? 1 : -1) : 0;
-    const amp = 0.45 + slot * 0.7;
-    return { x, y: lim(edge + sag + Math.sin((u + phase) * Math.PI) * amp * flip) };
-  }
-
-  if (pose === "fragment") {
-    const knee = 0.3 + (cycle % 4) * 0.08;
-    const jog = smoothstep((u - knee) / 0.07) * (1.8 + (cycle % 3) * 1.1) * flip;
-    const amp = kind === "broken" ? 0.55 : 1.35 + (cycle % 2) * 0.6;
-    return { x, y: lim(CENTER + ((cycle % 3) - 1) * 1.2 + jog + Math.sin((u + phase) * Math.PI) * amp * flip) };
-  }
-
-  if (pose === "loop" || pose === "split") {
-    const base = CENTER + ((cycle % 5) - 2) * 1.35;
-    const amp = 0.35 + (cycle % 3) * 0.4;
-    return { x, y: lim(base + Math.sin((u + phase) * Math.PI) * amp * flip) };
-  }
-
-  const mode = (plan.index + cycle) % 4;
-  const amp = kind === "arcade" ? 1.5 + (cycle % 3) * 0.7 : mode === 0 ? 0.22 : mode === 1 ? 1.15 : mode === 2 ? 2.5 : 0.55;
-  const base = CENTER + ((cycle % 5) - 2) * (kind === "enfilade" ? 1.5 : 0.45);
-  return { x, y: lim(base + Math.sin((u + phase) * Math.PI) * amp * flip) };
-}
-
-function spineRadius(u: number, swell: number, pattern: number) {
-  const bell = Math.exp(-((u - swell) ** 2) * 12);
-  const bell2 = Math.exp(-((u - Math.min(0.9, swell + 0.38)) ** 2) * 14);
-  if (pattern === 1) return 1.05 - bell * 0.78;
-  if (pattern === 2) return 0.2 + bell * 1.05 + bell2 * 0.55;
-  if (pattern === 3) return 0.24 + (0.5 + 0.5 * Math.sin(u * Math.PI * 3)) * 0.55;
-  return 0.18 + bell * 1.15;
-}
-
-function bowLink(a: Station, b: Station, radius: number, strength: number, bow: number): FieldAttractor {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return cv(a.x, a.y, b.x, b.y, (a.x + b.x) / 2 + (-dy / len) * bow, (a.y + b.y) / 2 + (dx / len) * bow, radius, strength);
-}
-
-function offsetStation(a: Station, b: Station, reach: number): Station {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return { x: lim((a.x + b.x) / 2 + (-dy / len) * reach), y: lim((a.y + b.y) / 2 + (dx / len) * reach) };
-}
-
-/** One continuous spine from edge to edge. Nodes and branches stay attached to it. */
-function progressionMarks(plan: GalleryPlan, f: Frame): FieldAttractor[] {
-  const pose = poseOf(plan.kind);
-  const flip = plan.flip ? -1 : 1;
-  const cycle = cycleOf(plan);
-  const swell = 0.16 + ((plan.index * 3 + cycle) % 8) * 0.08;
-  const pattern = (plan.index + cycle) % 4;
-  const calm = plan.kind === "switchback" || plan.kind === "dogleg" || plan.kind === "hook" || pose === "offset";
-  const steps = pose === "soft" || plan.kind === "switchback" || pose === "strong" ? 12 : 8;
-  const path = Array.from({ length: steps + 1 }, (_, step) => {
-    const u = step === 0 || step === steps ? step / steps : step / steps + f.r(-0.01, 0.01);
-    return spineAt(pose, Math.max(0, Math.min(1, u)), plan);
-  });
-  const marks: FieldAttractor[] = [];
-  const necks = pose === "fragment" ? [0.28 + (cycle % 4) * 0.05, 0.62 + (plan.index % 3) * 0.06] : [];
-  for (let i = 0; i < path.length - 1; i += 1) {
-    const u = (i + 0.5) / steps;
-    let radius = spineRadius(u, swell, pattern);
-    const bowAmp = calm ? 0.16 : pose === "soft" ? 0.85 : pose === "strong" ? 0.55 : 0.38;
-    let bow = f.r(bowAmp * 0.35, bowAmp) * (i % 2 === 0 ? 1 : -1) * flip;
-    if (necks.some((gap) => Math.abs(u - gap) < 0.05)) radius *= 0.34;
-    marks.push(bowLink(path[i], path[i + 1], radius, 1.85, bow));
-  }
-
-  const nodeCount = 2 + ((plan.index + cycle) % 4);
-  const used: number[] = [];
-  for (let i = 0; i < nodeCount; i += 1) {
-    let u = 0.1 + ((i * 5 + plan.index * 2 + cycle * 3) % 17) / 20;
-    if (used.some((other) => Math.abs(other - u) < 0.14)) u = Math.min(0.9, u + 0.16);
-    used.push(u);
-    const at = spineAt(pose, u, plan);
-    const grown = Math.abs(u - swell) < 0.1 || (pattern === 2 && Math.abs(u - Math.min(0.9, swell + 0.38)) < 0.08);
-    marks.push(pt(at.x, at.y, grown ? f.r(0.9, 1.2) : f.r(0.56, 0.78), grown ? 0.62 : 0.42));
-  }
-
-  const branch = (fromU: number, toU: number, reach: number, radius: number, strength: number) => {
-    const parts = 4;
-    const side = Array.from({ length: parts + 1 }, (_, step) => {
-      const t = step / parts;
-      const u = fromU + (toU - fromU) * t;
-      const on = spineAt(pose, u, plan);
-      const ahead = spineAt(pose, Math.min(1, u + 0.04), plan);
-      const lift = Math.sin(t * Math.PI) * reach;
-      return offsetStation(on, ahead, lift);
-    });
-    side[0] = spineAt(pose, fromU, plan);
-    side[side.length - 1] = spineAt(pose, toU, plan);
-    for (let i = 0; i < side.length - 1; i += 1) {
-      marks.push(bowLink(side[i], side[i + 1], radius, strength, f.r(0.2, 0.7) * flip));
+/** Fit the whole figure into the field. Clamping each point was crushing different plans into the same edge bar. */
+function place(marks: FieldAttractor[], plan: GalleryPlan): FieldAttractor[] {
+  const mapped = marks.map((mark) => {
+    const a = rotate(mark.x, mark.y, plan);
+    const out: FieldAttractor = { ...mark, x: a.x, y: a.y, radius: (mark.radius ?? 1.2) * plan.scale };
+    if (mark.x2 != null && mark.y2 != null) {
+      const b = rotate(mark.x2, mark.y2, plan);
+      out.x2 = b.x;
+      out.y2 = b.y;
     }
-    const mid = side[Math.floor(side.length / 2)];
-    marks.push(pt(mid.x, mid.y, f.r(0.55, 0.82), 0.45));
-  };
+    if (mark.cx != null && mark.cy != null) {
+      const bend = rotate(mark.cx, mark.cy, plan);
+      out.cx = bend.x;
+      out.cy = bend.y;
+    }
+    return out;
+  });
+  const box = boundsOf(mapped);
+  const width = Math.max(0.5, box.maxX - box.minX);
+  const height = Math.max(0.5, box.maxY - box.minY);
+  const margin = 1.2;
+  const fit = Math.min((FIELD_SIZE - margin * 2) / width, (FIELD_SIZE - margin * 2) / height, 1.12);
+  const shift = (x: number, y: number) => ({
+    x: lim(CENTER + (x - box.cx) * fit),
+    y: lim(CENTER + (y - box.cy) * fit),
+  });
+  return mapped.map((mark) => {
+    const a = shift(mark.x, mark.y);
+    const out: FieldAttractor = { ...mark, x: a.x, y: a.y, radius: Math.max(0.16, (mark.radius ?? 1.2) * fit) };
+    if (mark.x2 != null && mark.y2 != null) {
+      const b = shift(mark.x2, mark.y2);
+      out.x2 = b.x;
+      out.y2 = b.y;
+    }
+    if (mark.cx != null && mark.cy != null) {
+      const bend = shift(mark.cx, mark.cy);
+      out.cx = bend.x;
+      out.cy = bend.y;
+    }
+    return out;
+  });
+}
 
-  const spur = (anchor: number, reach: number) => {
-    const on = spineAt(pose, anchor, plan);
-    const ahead = spineAt(pose, Math.min(1, anchor + 0.05), plan);
-    const sign = Math.abs(CENTER - on.y) > 2.2 ? Math.sign(CENTER - on.y) || flip : flip;
-    const room = Math.max(1.4, Math.min(Math.abs(reach), Math.abs(CENTER - on.y) + 2.4));
-    const tip = offsetStation(on, ahead, room * sign);
-    marks.push(bowLink(on, tip, f.r(0.16, 0.28), 0.48, f.r(0.25, 0.7) * sign));
-    marks.push(pt(tip.x, tip.y, f.r(0.5, 0.78), 0.4));
-  };
+function along(count: number, span: number, y: number, f: Frame, jitter = 0.2): Station[] {
+  const start = CENTER - span;
+  const step = (span * 2) / Math.max(1, count - 1);
+  return Array.from({ length: count }, (_, i) => ({
+    x: start + i * step + f.r(-jitter, jitter),
+    y: y + f.r(-jitter * 0.6, jitter * 0.6),
+  }));
+}
 
-  if (pose === "split") {
-    const reach = (3.6 + (cycle % 3) * 1.15) * flip;
-    const from = 0.16 + (cycle % 3) * 0.06;
-    const to = plan.kind === "braid" ? 0.62 : 0.84;
-    branch(from, to, reach, 0.28, 0.72);
-    if (plan.kind === "braid") branch(0.4, 0.9, reach * -0.55, 0.18, 0.46);
-  } else if (pose === "loop" && plan.kind !== "hook") {
-    branch(0.18 + (cycle % 3) * 0.05, 0.72 + (plan.index % 3) * 0.05, (4.4 + (cycle % 3) * 0.9) * flip, 0.26, 0.64);
-  } else if (plan.kind !== "switchback") {
-    const spurs = (plan.index + cycle) % 4;
-    if (spurs > 0) spur(0.18 + ((plan.index + cycle) % 5) * 0.08, 2.2 + (cycle % 3) * 0.9);
-    if (spurs > 2) spur(0.55 + (cycle % 3) * 0.08, -(1.6 + (plan.index % 3) * 0.7));
+function addSpine(marks: FieldAttractor[], path: Station[], width: number, style: "line" | "curve") {
+  for (let i = 0; i < path.length - 1; i += 1) {
+    const a = path[i];
+    const b = path[i + 1];
+    if (style === "curve") {
+      marks.push(cv(a.x, a.y, b.x, b.y, (a.x + b.x) / 2, (a.y + b.y) / 2 + (b.x - a.x) * 0.08, width, 1.4));
+    } else {
+      marks.push(ln(a.x, a.y, b.x, b.y, width, 1.4));
+    }
+  }
+}
+
+function addFragments(marks: FieldAttractor[], path: Station[], items: Fragment[], spine: number) {
+  for (const item of items) {
+    const node = path[Math.min(path.length - 1, Math.max(0, item.at))];
+    const x = node.x;
+    const y = node.y + item.side * item.stem;
+    marks.push(ln(node.x, node.y, x, y, Math.min(0.4, spine * 0.9), 0.7));
+    marks.push(pt(x, y, item.radius, 0.88));
+  }
+}
+
+function compose(path: Station[], fragments: Fragment[], spine: number, style: "line" | "curve"): FieldAttractor[] {
+  const marks: FieldAttractor[] = [];
+  addSpine(marks, path, spine, style);
+  addFragments(marks, path, fragments, spine);
+  return marks;
+}
+
+function boundsOf(marks: FieldAttractor[]) {
+  let minX = FIELD_SIZE;
+  let minY = FIELD_SIZE;
+  let maxX = 0;
+  let maxY = 0;
+  for (const item of marks) {
+    minX = Math.min(minX, item.x, item.x2 ?? item.x, item.cx ?? item.x);
+    minY = Math.min(minY, item.y, item.y2 ?? item.y, item.cy ?? item.y);
+    maxX = Math.max(maxX, item.x, item.x2 ?? item.x, item.cx ?? item.x);
+    maxY = Math.max(maxY, item.y, item.y2 ?? item.y, item.cy ?? item.y);
+  }
+  return { minX, minY, maxX, maxY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+}
+
+function organicBite(x: number, y: number, radius: number, f: Frame): FieldAttractor[] {
+  const bites = [ring(x, y, radius, 1)];
+  const extra = f.int(1, 3);
+  for (let i = 0; i < extra; i += 1) {
+    const a = f.r(0, Math.PI * 2);
+    const d = radius * f.r(0.28, 0.78);
+    bites.push(ring(x + Math.cos(a) * d, y + Math.sin(a) * d, radius * f.r(0.38, 0.78), 0.82));
+  }
+  return bites;
+}
+
+function wavyVoid(marks: FieldAttractor[], f: Frame): FieldAttractor[] {
+  const { minX, minY, maxX, maxY, cx, cy } = boundsOf(marks);
+  const horizontal = maxX - minX >= maxY - minY;
+  const pad = f.r(0.55, 1.25);
+  const n = f.int(4, 6);
+  const amp = f.r(0.7, 1.8);
+  const waves = f.r(1.1, 2.6);
+  const phase = f.r(0, Math.PI * 2);
+  const stations: Station[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const t = n === 1 ? 0.5 : i / (n - 1);
+    const wobble = Math.sin(t * Math.PI * waves + phase) * amp;
+    stations.push(
+      horizontal
+        ? { x: minX + pad + (maxX - minX - pad * 2) * t, y: cy + wobble }
+        : { x: cx + wobble, y: minY + pad + (maxY - minY - pad * 2) * t },
+    );
+  }
+  const voids: FieldAttractor[] = [];
+  for (let i = 0; i < stations.length - 1; i += 1) {
+    const a = stations[i];
+    const b = stations[i + 1];
+    const bow = f.r(-1.15, 1.15);
+    voids.push(
+      cv(
+        a.x,
+        a.y,
+        b.x,
+        b.y,
+        (a.x + b.x) / 2 + (horizontal ? 0 : bow),
+        (a.y + b.y) / 2 + (horizontal ? bow : 0),
+        f.r(0.42, 0.98),
+        1.05,
+        true,
+      ),
+    );
+  }
+  const bites = f.int(2, 4);
+  for (let i = 0; i < bites; i += 1) {
+    const t = f.r(0.15, 0.85);
+    const off = f.r(-1.4, 1.4);
+    const x = horizontal ? minX + pad + (maxX - minX - pad * 2) * t : cx + off;
+    const y = horizontal ? cy + off : minY + pad + (maxY - minY - pad * 2) * t;
+    voids.push(...organicBite(x, y, f.r(0.55, 1.15), f));
+  }
+  return [...marks, ...voids];
+}
+
+function carveOrganicVoid(marks: FieldAttractor[], f: Frame): FieldAttractor[] {
+  return wavyVoid(marks, f);
+}
+
+function addWraps(marks: FieldAttractor[], f: Frame): FieldAttractor[] {
+  const { cx, cy, minX, maxX, minY, maxY } = boundsOf(marks);
+  const rx = Math.max(2.1, (maxX - minX) * 0.38);
+  const ry = Math.max(1.8, (maxY - minY) * 0.48);
+  const wraps = f.int(4, 7);
+  const extra: FieldAttractor[] = [];
+  for (let i = 0; i < wraps; i += 1) {
+    const a0 = (i / wraps) * Math.PI * 2 + f.r(-0.28, 0.28);
+    const span = f.r(1.45, 2.7);
+    const rIn = f.r(0.85, 1.15);
+    const rOut = f.r(1.25, 1.85);
+    const p1 = { x: cx + Math.cos(a0) * rx * rIn, y: cy + Math.sin(a0) * ry * rIn };
+    const p2 = {
+      x: cx + Math.cos(a0 + span) * rx * rIn * f.r(0.86, 1.18),
+      y: cy + Math.sin(a0 + span) * ry * rIn * f.r(0.86, 1.18),
+    };
+    const c = { x: cx + Math.cos(a0 + span * 0.5) * rx * rOut, y: cy + Math.sin(a0 + span * 0.5) * ry * rOut };
+    extra.push(cv(p1.x, p1.y, p2.x, p2.y, c.x, c.y, f.r(0.18, 0.4), f.r(0.55, 0.95)));
+    if (f.chance(0.55)) {
+      const bead = a0 + span * f.r(0.28, 0.72);
+      extra.push(pt(cx + Math.cos(bead) * rx * 1.25, cy + Math.sin(bead) * ry * 1.25, f.r(0.42, 0.82), 0.68));
+    }
+  }
+  return marks.concat(extra);
+}
+
+function wrapAroundCenter(f: Frame): FieldAttractor[] {
+  const marks: FieldAttractor[] = [];
+  const coreAng = f.r(-0.55, 0.55);
+  const coreLen = f.r(1.4, 2.6);
+  const dx = Math.cos(coreAng) * coreLen;
+  const dy = Math.sin(coreAng) * coreLen;
+  marks.push(pt(CENTER, CENTER, f.r(1.5, 2.3), 1.85));
+  marks.push(ln(CENTER - dx, CENTER - dy, CENTER + dx, CENTER + dy, f.r(0.55, 0.95), 1.7));
+  const wraps = f.int(5, 8);
+  for (let i = 0; i < wraps; i += 1) {
+    const a0 = (i / wraps) * Math.PI * 2 + f.r(-0.18, 0.18);
+    const span = f.r(1.7, 2.9);
+    const rIn = f.r(0.7, 1.35);
+    const rOut = f.r(3.0, 5.2);
+    const rEnd = f.r(2.2, 4.0);
+    const p1 = { x: CENTER + Math.cos(a0) * rIn, y: CENTER + Math.sin(a0) * rIn };
+    const p2 = { x: CENTER + Math.cos(a0 + span) * rEnd, y: CENTER + Math.sin(a0 + span) * rEnd };
+    const c = { x: CENTER + Math.cos(a0 + span * 0.45) * rOut, y: CENTER + Math.sin(a0 + span * 0.45) * rOut };
+    marks.push(cv(p1.x, p1.y, p2.x, p2.y, c.x, c.y, f.r(0.2, 0.38), f.r(1.15, 1.55)));
+    if (f.chance(0.7)) {
+      marks.push(pt(p2.x, p2.y, f.r(0.45, 0.85), 0.78));
+    }
   }
   return marks;
 }
+
+function familyMarks(kind: GalleryKind, f: Frame): FieldAttractor[] {
+  if (kind === "enfilade") {
+    const n = f.int(5, 7);
+    const path = along(n, f.r(6.8, 8.1), CENTER, f, 0.12);
+    return compose(
+      path,
+      path.map((_, i) => ({ at: i, side: i % 2 ? 1 : -1, stem: f.r(1.4, 2.0), radius: f.r(0.7, 1.05) })),
+      f.r(0.22, 0.34),
+      "line",
+    );
+  }
+  if (kind === "dogleg") {
+    const mid = CENTER + f.r(-1.2, 1.2);
+    const path = [
+      { x: CENTER - 7.4, y: CENTER - 2.8 },
+      { x: mid, y: CENTER - 2.8 },
+      { x: mid, y: CENTER + 3.0 },
+      { x: CENTER + 7.2, y: CENTER + 3.0 },
+    ];
+    return compose(
+      path,
+      [
+        { at: 0, side: 1, stem: f.r(1.6, 2.4), radius: f.r(1.5, 2.2) },
+        { at: 1, side: -1, stem: f.r(1.3, 2.1), radius: f.r(1.1, 1.7) },
+        { at: 2, side: 1, stem: f.r(1.4, 2.2), radius: f.r(1.2, 1.9) },
+        { at: 3, side: -1, stem: f.r(1.6, 2.5), radius: f.r(1.5, 2.2) },
+      ],
+      f.r(0.28, 0.44),
+      "line",
+    );
+  }
+  if (kind === "alcove") {
+    const path = along(4, 7.0, CENTER + 1.6, f, 0.15);
+    return compose(
+      path,
+      [
+        { at: 0, side: -1, stem: f.r(2.6, 3.8), radius: f.r(1.3, 1.9) },
+        { at: 1, side: -1, stem: f.r(3.2, 4.4), radius: f.r(1.6, 2.3) },
+        { at: 2, side: -1, stem: f.r(2.4, 3.6), radius: f.r(1.2, 1.8) },
+        { at: 3, side: -1, stem: f.r(2.8, 4.0), radius: f.r(1.4, 2.0) },
+      ],
+      f.r(0.4, 0.7),
+      "line",
+    );
+  }
+  if (kind === "switchback") {
+    const y0 = CENTER - 3.2;
+    const y1 = CENTER;
+    const y2 = CENTER + 3.2;
+    const path = [
+      { x: CENTER - 7.0, y: y0 },
+      { x: CENTER + 5.4, y: y0 },
+      { x: CENTER + 5.4, y: y1 },
+      { x: CENTER - 5.4, y: y1 },
+      { x: CENTER - 5.4, y: y2 },
+      { x: CENTER + 7.0, y: y2 },
+    ];
+    return compose(
+      path,
+      [
+        { at: 0, side: -1, stem: f.r(1.1, 1.7), radius: f.r(1.0, 1.5) },
+        { at: 1, side: -1, stem: f.r(1.1, 1.7), radius: f.r(1.0, 1.5) },
+        { at: 3, side: 1, stem: f.r(1.0, 1.6), radius: f.r(0.95, 1.45) },
+        { at: 5, side: 1, stem: f.r(1.1, 1.8), radius: f.r(1.1, 1.7) },
+      ],
+      f.r(0.24, 0.38),
+      "line",
+    );
+  }
+  if (kind === "meander") {
+    const path = [
+      { x: CENTER - 7.3, y: CENTER + 2.6 },
+      { x: CENTER - 2.4, y: CENTER - 2.8 },
+      { x: CENTER + 2.4, y: CENTER + 2.8 },
+      { x: CENTER + 7.3, y: CENTER - 2.4 },
+    ];
+    return compose(
+      path,
+      [
+        { at: 0, side: 1, stem: f.r(1.5, 2.3), radius: f.r(1.2, 1.9) },
+        { at: 1, side: -1, stem: f.r(1.6, 2.5), radius: f.r(1.3, 2.0) },
+        { at: 2, side: 1, stem: f.r(1.5, 2.4), radius: f.r(1.2, 1.9) },
+        { at: 3, side: -1, stem: f.r(1.5, 2.3), radius: f.r(1.2, 1.9) },
+      ],
+      f.r(0.26, 0.42),
+      "curve",
+    );
+  }
+  if (kind === "fork") {
+    const split = CENTER + f.r(-0.8, 0.8);
+    const marks: FieldAttractor[] = [
+      ln(CENTER - 7.4, CENTER, split, CENTER, f.r(0.28, 0.48), 1.5),
+      ln(split, CENTER, CENTER + 6.8, CENTER - 3.4, f.r(0.22, 0.4), 1.25),
+      ln(split, CENTER, CENTER + 6.8, CENTER + 3.4, f.r(0.22, 0.4), 1.25),
+      pt(CENTER - 7.4, CENTER, f.r(1.1, 1.8), 1.05),
+      pt(CENTER + 6.8, CENTER - 3.4, f.r(1.3, 2.1), 1),
+      pt(CENTER + 6.8, CENTER + 3.4, f.r(1.3, 2.1), 1),
+      pt(split, CENTER, f.r(0.7, 1.2), 0.85),
+    ];
+    return marks;
+  }
+  if (kind === "bay") {
+    const path = along(3, 6.4, CENTER, f, 0.1);
+    return compose(
+      path,
+      [
+        { at: 0, side: 1, stem: f.r(2.0, 2.8), radius: f.r(2.0, 2.7) },
+        { at: 1, side: -1, stem: f.r(2.1, 3.0), radius: f.r(2.1, 2.8) },
+        { at: 2, side: 1, stem: f.r(2.0, 2.8), radius: f.r(2.0, 2.7) },
+      ],
+      f.r(0.36, 0.58),
+      "line",
+    );
+  }
+  if (kind === "ladder") {
+    const y0 = CENTER - f.r(2.4, 3.4);
+    const y1 = CENTER + f.r(2.4, 3.4);
+    const marks: FieldAttractor[] = [
+      ln(CENTER - 7.2, y0, CENTER + 7.2, y0, f.r(0.22, 0.38), 1.35),
+      ln(CENTER - 7.2, y1, CENTER + 7.2, y1, f.r(0.22, 0.38), 1.35),
+    ];
+    const rungs = f.int(4, 6);
+    for (let i = 0; i < rungs; i += 1) {
+      const x = CENTER - 6.4 + (12.8 * i) / Math.max(1, rungs - 1) + f.r(-0.2, 0.2);
+      marks.push(ln(x, y0, x, y1, f.r(0.16, 0.3), 0.75));
+      if (i === 0 || i === rungs - 1 || f.chance(0.55)) marks.push(pt(x, (y0 + y1) / 2, f.r(0.7, 1.3), 0.8));
+    }
+    return marks;
+  }
+  if (kind === "braid") {
+    const marks: FieldAttractor[] = [
+      cv(CENTER - 7.2, CENTER - 2.2, CENTER + 7.2, CENTER + 2.0, CENTER, CENTER + 3.6, f.r(0.22, 0.38), 1.3),
+      cv(CENTER - 7.2, CENTER + 2.2, CENTER + 7.2, CENTER - 2.0, CENTER, CENTER - 3.6, f.r(0.22, 0.38), 1.3),
+      pt(CENTER - 7.2, CENTER - 2.2, f.r(1.1, 1.8), 0.95),
+      pt(CENTER + 7.2, CENTER + 2.0, f.r(1.2, 1.9), 0.95),
+      pt(CENTER - 7.2, CENTER + 2.2, f.r(1.0, 1.7), 0.9),
+      pt(CENTER + 7.2, CENTER - 2.0, f.r(1.1, 1.8), 0.9),
+    ];
+    return marks;
+  }
+  if (kind === "islands") {
+    const nodes = [
+      { x: CENTER - 6.6, y: CENTER + f.r(-2.2, 2.2) },
+      { x: CENTER + f.r(-1.2, 1.2), y: CENTER + f.r(-3.2, 3.2) },
+      { x: CENTER + 6.4, y: CENTER + f.r(-2.4, 2.4) },
+    ];
+    if (f.chance(0.5)) nodes.splice(2, 0, { x: CENTER + 2.4, y: CENTER + f.r(-3.6, 3.6) });
+    const marks: FieldAttractor[] = [];
+    for (let i = 0; i < nodes.length; i += 1) {
+      marks.push(pt(nodes[i].x, nodes[i].y, f.r(1.6, 2.6), 1.1));
+      if (i > 0) marks.push(ln(nodes[i - 1].x, nodes[i - 1].y, nodes[i].x, nodes[i].y, f.r(0.12, 0.24), 0.7));
+    }
+    return marks;
+  }
+  if (kind === "hook") {
+    const marks: FieldAttractor[] = [
+      ln(CENTER - 7.4, CENTER + 2.2, CENTER + 4.2, CENTER + 2.2, f.r(0.26, 0.44), 1.4),
+      cv(CENTER + 4.2, CENTER + 2.2, CENTER + 1.2, CENTER - 3.6, CENTER + 7.4, CENTER - 1.4, f.r(0.24, 0.4), 1.25),
+      pt(CENTER - 7.4, CENTER + 2.2, f.r(1.0, 1.6), 0.9),
+      pt(CENTER + 1.2, CENTER - 3.6, f.r(1.5, 2.4), 1.1),
+      pt(CENTER + 4.2, CENTER + 2.2, f.r(0.7, 1.2), 0.75),
+    ];
+    return marks;
+  }
+  if (kind === "fan") {
+    const origin = { x: CENTER - 6.6, y: CENTER };
+    const marks: FieldAttractor[] = [pt(origin.x, origin.y, f.r(1.4, 2.2), 1.25)];
+    const rays = f.int(4, 6);
+    for (let i = 0; i < rays; i += 1) {
+      const t = rays === 1 ? 0.5 : i / (rays - 1);
+      const a = -0.7 + t * 1.4;
+      const len = f.r(8.2, 11.4);
+      const x = origin.x + Math.cos(a) * len;
+      const y = origin.y + Math.sin(a) * len;
+      marks.push(ln(origin.x, origin.y, x, y, f.r(0.16, 0.3), 0.85));
+      marks.push(pt(x, y, f.r(0.7, 1.4), 0.8));
+    }
+    return marks;
+  }
+  if (kind === "arcade") {
+    const path = along(5, 7.0, CENTER + 2.2, f, 0.1);
+    const marks = compose(
+      path,
+      path.map((_, i) => ({ at: i, side: -1, stem: f.r(1.6, 2.2), radius: f.r(0.85, 1.25) })),
+      f.r(0.28, 0.42),
+      "line",
+    );
+    for (let i = 0; i < path.length - 1; i += 1) {
+      const a = path[i];
+      const b = path[i + 1];
+      marks.push(cv(a.x, a.y - 0.2, b.x, b.y - 0.2, (a.x + b.x) / 2, a.y - f.r(2.2, 3.4), f.r(0.22, 0.36), 0.55));
+    }
+    return marks;
+  }
+  if (kind === "loop") {
+    const x0 = CENTER - 6.2;
+    const x1 = CENTER + 6.2;
+    const y0 = CENTER - 3.0;
+    const y1 = CENTER + 3.0;
+    const marks: FieldAttractor[] = [
+      ln(x0, y0, x1, y0, f.r(0.22, 0.38), 1.2),
+      ln(x1, y0, x1, y1, f.r(0.22, 0.38), 1.2),
+      ln(x1, y1, x0, y1, f.r(0.22, 0.38), 1.2),
+      ln(x0, y1, x0, y0, f.r(0.22, 0.38), 1.2),
+      pt(x0, y0, f.r(0.9, 1.5), 0.85),
+      pt(x1, y1, f.r(1.1, 1.8), 0.9),
+      pt((x0 + x1) / 2, y0, f.r(0.8, 1.3), 0.75),
+    ];
+    const side = f.chance(0.5) ? 1 : -1;
+    marks.push(ln((x0 + x1) / 2, side > 0 ? y1 : y0, (x0 + x1) / 2, CENTER + side * 5.2, 0.24, 0.7));
+    marks.push(pt((x0 + x1) / 2, CENTER + side * 5.2, f.r(1.3, 2.1), 0.95));
+    return marks;
+  }
+  if (kind === "broken") {
+    const marks: FieldAttractor[] = [];
+    const chunks = [
+      { x0: CENTER - 7.4, x1: CENTER - 3.2, y: CENTER + f.r(-2.8, -0.8) },
+      { x0: CENTER - 1.6, x1: CENTER + 1.8, y: CENTER + f.r(-0.6, 0.6) },
+      { x0: CENTER + 3.4, x1: CENTER + 7.4, y: CENTER + f.r(0.8, 2.8) },
+    ];
+    for (let i = 0; i < chunks.length; i += 1) {
+      const c = chunks[i];
+      marks.push(ln(c.x0, c.y, c.x1, c.y, f.r(0.28, 0.5), 1.25));
+      marks.push(pt(c.x0, c.y, f.r(1.0, 1.7), 0.9));
+      marks.push(pt(c.x1, c.y, f.r(1.0, 1.7), 0.9));
+      if (i > 0) {
+        const prev = chunks[i - 1];
+        marks.push(ln(prev.x1, prev.y, c.x0, c.y, f.r(0.1, 0.2), 0.55));
+      }
+    }
+    return marks;
+  }
+  return wrapAroundCenter(f);
+}
+
+const GALLERY_POSES = [0, Math.PI / 2, Math.PI, -Math.PI / 2, Math.PI / 5, -Math.PI / 5];
+const GALLERY_SCALES = [0.82, 0.96, 1.1, 0.74, 1.16, 0.9];
 
 export function planLinearGallery(seed: number, attempt = 0, index = 0): GalleryPlan {
   const rng = mulberry32(seed ^ 0x44ac91 ^ (attempt * 0x27d4eb2d) ^ (index * 0x9e3779b9));
   const f = frame(rng);
   const cycle = Math.floor(index / GALLERY_FAMILIES.length);
-  const kind = GALLERY_FAMILIES[(index + attempt * 3) % GALLERY_FAMILIES.length];
-  const growth = GROWTH_MODES[(index + attempt) % GROWTH_MODES.length];
+  const kind = GALLERY_FAMILIES[index % GALLERY_FAMILIES.length];
+  const growth = GROWTH_MODES[(cycle + attempt * 3) % GROWTH_MODES.length];
   return {
     kind,
     growth,
     index,
-    scale: 0.82 + (index % 4) * 0.06 + f.r(-0.02, 0.02),
-    originX: lim(CENTER + ((cycle % 5) - 2) * 1.15),
-    originY: lim(CENTER + (((index + cycle) % 5) - 2) * 0.95),
-    twist: ((index % 7) - 3) * 0.16 + f.r(-0.04, 0.04),
-    flip: (index + cycle) % 3 !== 1,
+    scale: GALLERY_SCALES[cycle % GALLERY_SCALES.length] * f.r(0.96, 1.04),
+    originX: CENTER,
+    originY: CENTER,
+    twist: GALLERY_POSES[(cycle + attempt) % GALLERY_POSES.length] + f.r(-0.04, 0.04),
+    flip: ((cycle + attempt) & 1) === 1,
   };
 }
 
 export function attractorsFromLinearGallery(plan: GalleryPlan, seed: number, attempt = 0): FieldAttractor[] {
   const rng = mulberry32(seed ^ 0x11f22ed ^ (attempt * 0x85ebca6b) ^ (plan.index * 0x165667b1));
-  return progressionMarks(plan, frame(rng));
+  const f = frame(rng);
+  let marks = familyMarks(plan.kind, f);
+  if (plan.kind !== "wrap" && (plan.kind === "meander" || plan.kind === "arcade") && f.chance(0.45)) {
+    marks = addWraps(marks, f);
+  }
+  if ((plan.growth === "mass" || plan.growth === "bloom" || plan.growth === "heavy") && f.chance(0.7) && plan.kind !== "wrap") {
+    marks = carveOrganicVoid(marks, f);
+  }
+  return place(marks, plan).map((mark) => ({
+    ...mark,
+    hole: false,
+    kind: mark.kind === "ring" ? "point" : mark.kind,
+  }));
 }
 
 export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, seed: number): SlimeControls {
@@ -349,34 +613,34 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
       sensorAngle: f.r(0.08, 0.28),
     },
     mass: {
-      persistence: f.r(0.48, 0.74),
-      trailInfluence: f.r(0.7, 1.3),
-      deposit: f.r(0.04, 0.07),
-      depositWidth: f.r(0.42, 0.6),
-      diffusion: f.r(0.01, 0.03),
-      randomness: f.r(0.08, 0.26),
-      trailCap: f.r(0.7, 1.1),
-      sensorAngle: f.r(0.18, 0.42),
+      persistence: f.r(0.5, 0.78),
+      trailInfluence: f.r(0.7, 1.4),
+      deposit: f.r(0.12, 0.26),
+      depositWidth: f.r(1.6, 3.1),
+      diffusion: f.r(0.02, 0.08),
+      randomness: f.r(0.06, 0.28),
+      trailCap: f.r(1.1, 1.85),
+      sensorAngle: f.r(0.16, 0.42),
     },
     sparse: {
       persistence: f.r(0.28, 0.55),
       trailInfluence: f.r(0.35, 0.85),
-      deposit: f.r(0.015, 0.05),
-      depositWidth: f.r(0.24, 0.42),
+      deposit: f.r(0.015, 0.06),
+      depositWidth: f.r(0.28, 0.8),
       diffusion: f.r(0, 0.03),
       randomness: f.r(0.35, 0.85),
       trailCap: f.r(0.3, 0.85),
       sensorAngle: f.r(0.28, 0.7),
     },
     bloom: {
-      persistence: f.r(0.4, 0.66),
-      trailInfluence: f.r(0.55, 1.15),
-      deposit: f.r(0.03, 0.06),
-      depositWidth: f.r(0.36, 0.55),
-      diffusion: f.r(0.015, 0.035),
-      randomness: f.r(0.14, 0.38),
-      trailCap: f.r(0.55, 0.95),
-      sensorAngle: f.r(0.24, 0.55),
+      persistence: f.r(0.4, 0.68),
+      trailInfluence: f.r(0.55, 1.2),
+      deposit: f.r(0.06, 0.16),
+      depositWidth: f.r(1.2, 2.4),
+      diffusion: f.r(0.06, 0.14),
+      randomness: f.r(0.12, 0.4),
+      trailCap: f.r(0.8, 1.5),
+      sensorAngle: f.r(0.22, 0.55),
     },
     sharp: {
       persistence: f.r(0.62, 0.88),
@@ -389,21 +653,21 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
       sensorAngle: f.r(0.08, 0.26),
     },
     heavy: {
-      persistence: f.r(0.55, 0.82),
-      trailInfluence: f.r(0.85, 1.5),
-      deposit: f.r(0.045, 0.075),
-      depositWidth: f.r(0.48, 0.62),
-      diffusion: f.r(0.008, 0.028),
-      randomness: f.r(0.05, 0.2),
-      trailCap: f.r(0.75, 1.12),
-      sensorAngle: f.r(0.14, 0.34),
+      persistence: f.r(0.55, 0.84),
+      trailInfluence: f.r(0.8, 1.6),
+      deposit: f.r(0.1, 0.24),
+      depositWidth: f.r(1.8, 3.2),
+      diffusion: f.r(0.01, 0.06),
+      randomness: f.r(0.05, 0.24),
+      trailCap: f.r(1.3, 1.95),
+      sensorAngle: f.r(0.12, 0.36),
     },
     wander: {
       persistence: f.r(0.22, 0.48),
       trailInfluence: f.r(0.28, 0.75),
-      deposit: f.r(0.025, 0.06),
-      depositWidth: f.r(0.3, 0.5),
-      diffusion: f.r(0.01, 0.03),
+      deposit: f.r(0.03, 0.1),
+      depositWidth: f.r(0.4, 1.2),
+      diffusion: f.r(0.02, 0.08),
       randomness: f.r(0.45, 0.95),
       trailCap: f.r(0.4, 1.1),
       sensorAngle: f.r(0.35, 0.85),
@@ -411,37 +675,45 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
     committed: {
       persistence: f.r(0.7, 0.92),
       trailInfluence: f.r(1.2, 1.9),
-      deposit: f.r(0.03, 0.065),
-      depositWidth: f.r(0.34, 0.55),
+      deposit: f.r(0.04, 0.12),
+      depositWidth: f.r(0.35, 1.0),
       diffusion: f.r(0, 0.03),
       randomness: f.r(0.02, 0.16),
       trailCap: f.r(0.5, 1.2),
       sensorAngle: f.r(0.08, 0.24),
     },
   };
-  const carved = plan.kind === "loop" || plan.kind === "islands" || plan.growth === "mass" || plan.growth === "bloom" || plan.growth === "heavy";
   return {
     ...base,
-    stepSize: f.r(0.18, 0.3),
+    stepSize: f.r(0.1, 0.36),
     sensorDistance: f.r(0.35, 1.7),
     turnAngle: f.r(0.06, 0.7),
-    decay: f.r(0.94, 0.994),
     resistance: f.r(0.02, 0.4),
-    voidElongation: carved ? f.r(0.55, 1.85) : 1,
-    voidRotation: carved ? f.r(0, Math.PI) : 0,
-    voidLobes: carved ? f.r(0.16, 0.58) : 0,
-    voidNotch: carved ? f.r(-0.42, 0.42) : 0,
-    foodPoints: [{ x: plan.originX, y: plan.originY }],
+    foodPoints: [],
     ...byGrowth[plan.growth],
-    persistence: Math.max(byGrowth[plan.growth].persistence ?? 0.7, 0.7),
-    randomness: Math.min(byGrowth[plan.growth].randomness ?? 0.2, 0.3),
-    diffusion: Math.min(byGrowth[plan.growth].diffusion ?? 0.01, 0.02),
-    depositWidth: 0.22 + ((plan.index * 5 + cycleOf(plan)) % 6) * 0.065,
+    trailInfluence: f.r(0.2, 0.38),
+    randomness: f.r(0.16, 0.3),
+    persistence: f.r(0.28, 0.46),
+    decay: 0.998,
+    diffusion: 0,
+    voidElongation: 1,
+    voidRotation: 0,
+    voidLobes: 0,
+    voidNotch: 0,
   };
 }
 
-export function paramsFromLinearGallery(base: BiologicalParams, _seed: number): BiologicalParams {
-  return base;
+export function paramsFromLinearGallery(base: BiologicalParams, seed: number): BiologicalParams {
+  const rng = mulberry32(seed ^ 0x11fa22);
+  return {
+    ...base,
+    attractionStrength: 0.32 + rng() * 0.55,
+    networkDensity: 0.22 + rng() * 0.62,
+    permeability: 0.28 + rng() * 0.55,
+    flowCoupling: 0.28 + rng() * 0.55,
+    directionalBias: 0.4 + rng() * 0.5,
+    geometryVariation: 0.3 + rng() * 0.58,
+  };
 }
 
 export function recipeFromLinearGallery(recipe: SpatialRecipe, seed: number): SpatialRecipe {
@@ -459,18 +731,17 @@ export function recipeFromLinearGallery(recipe: SpatialRecipe, seed: number): Sp
 export function agentsFromLinearGallery(plan: GalleryPlan, seed: number) {
   const rng = mulberry32(seed ^ 0x11a22e ^ plan.index);
   const byGrowth: Record<GrowthKind, [number, number]> = {
-    filament: [110, 170],
-    mass: [180, 260],
-    sparse: [90, 140],
-    bloom: [150, 220],
-    sharp: [120, 180],
-    heavy: [190, 260],
-    wander: [100, 170],
-    committed: [140, 210],
+    filament: [160, 200],
+    mass: [190, 240],
+    sparse: [150, 190],
+    bloom: [170, 220],
+    sharp: [160, 200],
+    heavy: [190, 240],
+    wander: [150, 200],
+    committed: [170, 220],
   };
   const [min, max] = byGrowth[plan.growth];
-  const count = Math.round(min + rng() * (max - min));
-  return Math.round(count * 0.62);
+  return Math.round(min + rng() * (max - min));
 }
 
 function fieldProfile(snapshot: FieldSnapshot) {
@@ -611,54 +882,17 @@ function attractorIdentity(attractors: FieldAttractor[]) {
     minY = Math.min(minY, item.y, item.y2 ?? item.y);
     maxY = Math.max(maxY, item.y, item.y2 ?? item.y);
   }
-  return Math.max(maxX - minX, maxY - minY) >= 14;
-}
-
-function journeyProfile(snapshot: FieldSnapshot) {
-  const trails = snapshot.trails;
-  const ts = Math.max(1, snapshot.trailSize);
-  const columns = 36;
-  const runs: number[] = [];
-  let covered = 0;
-  for (let col = 0; col < columns; col += 1) {
-    const x0 = Math.floor((col / columns) * ts);
-    const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / columns) * ts));
-    let inRun = false;
-    let count = 0;
-    let ink = false;
-    for (let y = 0; y < ts; y += 1) {
-      let hot = false;
-      for (let x = x0; x < x1; x += 1) {
-        if (trails[y * ts + x] >= 0.02) {
-          hot = true;
-          break;
-        }
-      }
-      if (hot) ink = true;
-      if (hot && !inRun) count += 1;
-      inRun = hot;
-    }
-    if (ink) {
-      covered += 1;
-      runs.push(count);
-    }
-  }
-  runs.sort((a, b) => a - b);
-  const median = runs.length ? runs[Math.floor(runs.length / 2)] : 0;
-  return { coverage: covered / columns, median };
+  return Math.max(maxX - minX, maxY - minY) >= 7.2;
 }
 
 export function linearGalleryIdentity(_features: unknown, attractors: FieldAttractor[], snapshot?: FieldSnapshot): boolean {
   if (!attractorIdentity(attractors)) return false;
   if (!snapshot) return true;
   const profile = fieldProfile(snapshot);
-  if (profile.occupied < 0.012 || profile.occupied > 0.42) return false;
-  if (profile.trailSpan < 12) return false;
-  if (profile.spanX < 12) return false;
-  const journey = journeyProfile(snapshot);
-  if (journey.coverage < 0.72) return false;
-  if (journey.median < 1 || journey.median > 3) return false;
-  if (profile.meanTrail < 0.08 && profile.linearity < 0.45) return false;
+  if (profile.occupied < 0.05 || profile.occupied > 0.74) return false;
+  if (profile.trailSpan < 6.2) return false;
+  if (profile.occupied > 0.28 && profile.contrast < 1.25 && profile.anisotropy < 1.08) return false;
+  if (profile.meanTrail < 0.12 && profile.linearity < 0.5) return false;
   return true;
 }
 

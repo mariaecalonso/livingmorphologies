@@ -419,12 +419,12 @@ export function PhysarumParameterPanel({
         </button>
         {selected && onAttractorsEdit ? (
           <>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[0.68rem] uppercase tracking-[0.08em] text-[var(--text)]">
+            <div className="attractor-nav mt-2 flex items-center justify-between gap-2 text-[0.68rem] uppercase tracking-[0.08em] text-[var(--text)]">
               <button type="button" onClick={() => setSelection([(index - 1 + marks.length) % marks.length])} className="border border-[rgba(242,242,238,0.28)] px-2 py-1">Prev</button>
               <span>Attractor {index + 1} / {marks.length}</span>
               <button type="button" onClick={() => setSelection([(index + 1) % marks.length])} className="border border-[rgba(242,242,238,0.28)] px-2 py-1">Next</button>
             </div>
-            <ul className="mt-2 space-y-1">
+            <ul className="attractor-list mt-2 space-y-1">
               {marks.map((item, itemIndex) => (
                 <li key={`${item.kind}-${itemIndex}`} className="flex items-center justify-between gap-2 text-[0.68rem] uppercase tracking-[0.08em] text-[var(--text)]">
                   <button
@@ -448,7 +448,7 @@ export function PhysarumParameterPanel({
             >
               Add
             </button>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="attractor-kinds mt-2 flex flex-wrap gap-2">
               {(
                 [
                   ["point", "Point"],

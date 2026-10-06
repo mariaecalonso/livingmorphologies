@@ -1,18 +1,20 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { SEMANTIC_RUN_ROOT } from "./run-root";
+import { promoteArchiveZ0, writePendingZ0 } from "./z0-snapshot";
 import { isLobbyArchetype } from "../../skill1/lobby-realization";
 import { runSemanticEvolution } from "./controller";
-import { evaluateLobbyCandidate, type SemanticEvaluation } from "./evaluate";
+import { evaluateLobbyCandidate, evaluateSearchCandidate, type SemanticEvaluation } from "./evaluate";
 import { createEvaluationPool } from "./evaluate-pool";
 import type { ArchetypeSearchAdapter } from "./adapter";
 import { deriveG01Fidelity, fidelityDetailFor } from "./fidelity-method";
 import { encodeGrayPng } from "./gray-png";
+import { visibleIds } from "./catalog";
 import { createLobbyAdapter } from "./lobby-adapter";
 import { mutateSemanticPlan } from "./mutation";
 import type { SemanticPlan, SemanticRun, SemanticSearchConfig, RealizationState } from "./types";
 
-/** New semantic records. Legacy pose runs stay in `data/evolution`. */
-export const SEMANTIC_RUN_ROOT = join("data", "semantic-runs");
+export { SEMANTIC_RUN_ROOT } from "./run-root";
 
 export type InspectionPreview = { size: number; pixels: Uint8Array };
 
@@ -44,7 +46,7 @@ export function loadSemanticRun(archetypeId: string, root = SEMANTIC_RUN_ROOT): 
 export async function runLobbySemanticSearch(
   archetypeId: string,
   config: SemanticSearchConfig,
-  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation | Promise<SemanticEvaluation> = evaluateLobbyCandidate,
+  evaluate: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation | Promise<SemanticEvaluation> = evaluateSearchCandidate,
   options?: {
     previous?: SemanticRun | null;
     root?: string;
@@ -60,22 +62,48 @@ export async function runLobbySemanticSearch(
   const previews = new Map<number, InspectionPreview>();
   const root = options?.root ?? SEMANTIC_RUN_ROOT;
   const workers = Math.max(1, options?.workers ?? 1);
-  const pool = workers > 1 && evaluate === evaluateLobbyCandidate ? createEvaluationPool(workers) : null;
+  const deferDrawings = evaluate === evaluateSearchCandidate || evaluate === evaluateLobbyCandidate;
+  const pool = workers > 1 && deferDrawings ? createEvaluationPool(workers) : null;
+  const draw = async (plan: SemanticPlan, state: RealizationState) =>
+    pool
+      ? pool.evaluate(plan, state, { preview: true })
+      : evaluateSearchCandidate(plan, state, { preview: true });
   try {
     const run = await runSemanticEvolution({
       config,
       adapter,
-      evaluate: pool ? (plan, state) => pool.evaluate(plan, state) : evaluate,
+      evaluate: deferDrawings
+        ? (plan, state) => (pool ? pool.evaluate(plan, state) : evaluateSearchCandidate(plan, state, { preview: false }))
+        : pool
+          ? (plan, state) => pool.evaluate(plan, state)
+          : evaluate,
       workers,
       previous: options?.previous,
       mutate: options?.mutate,
       afterG01: options?.afterG01,
       onEvaluated: (candidate, evaluation) => {
+        if (config.purpose === "production" && evaluation.z0) {
+          writePendingZ0(semanticRunDirectory(archetypeId, root), candidate, evaluation.z0, config.runSeed);
+        }
+        delete evaluation.z0;
         if (evaluation.preview) previews.set(candidate.id, { size: evaluation.previewSize, pixels: evaluation.preview });
       },
       checkpoint: options?.checkpoint
-        ? async (current) => {
+        ? async (current, phase) => {
+            if (phase === "generation" && deferDrawings) {
+              for (const id of visibleIds(current.catalog)) {
+                if (previews.has(id)) continue;
+                const candidate = current.candidates.find((item) => item.id === id);
+                if (!candidate) continue;
+                const drawn = await draw(candidate.plan, candidate.state);
+                if (drawn.preview) previews.set(id, { size: drawn.previewSize, pixels: drawn.preview });
+              }
+            }
             saveLobbySemanticBatch({ run: current, previews }, root);
+            if (phase === "generation") {
+              const archived = current.candidates.filter((item) => item.current.pareto).map((item) => item.id);
+              promoteArchiveZ0(semanticRunDirectory(archetypeId, root), archived);
+            }
           }
         : undefined,
     });
@@ -122,6 +150,7 @@ export async function runLobbyCalibration(args: {
   evaluate?: (plan: SemanticPlan, state: RealizationState) => SemanticEvaluation;
   checkpoint?: boolean;
   root?: string;
+  workers?: number;
 }): Promise<LobbySemanticBatch> {
   if (args.count < 1) throw new Error("calibration count is required");
   return await runLobbySemanticSearch(
@@ -135,7 +164,7 @@ export async function runLobbyCalibration(args: {
       specialists: false,
     },
     args.evaluate,
-    { checkpoint: args.checkpoint === true, root: args.root },
+    { checkpoint: args.checkpoint === true, root: args.root, workers: args.workers },
   );
 }
 

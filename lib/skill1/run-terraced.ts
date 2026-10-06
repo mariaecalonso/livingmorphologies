@@ -1,10 +1,7 @@
 /**
- * Terraced sections: Articulated levels, Connected Modules, Immersive depth.
- *
- * A cell is an architectural section, not a row of bars.
- * Levels sit at unequal heights and unequal lengths.
- * Stairs and walls are part of the structure, so the levels step and connect.
- * Some sections stagger, split, nest, or branch. The gaps stay open enough to read.
+ * Terraced workspace. Levels still step and connect, but each member bows
+ * and changes direction. Families stay distinct arrangements of those levels.
+ * Diffusion stays off.
  */
 
 import { mulberry32 } from "../physarum";
@@ -516,8 +513,43 @@ function sectionFor(plan: TerracePlan): Plate[] {
   }
 }
 
-function draw(plates: Plate[]): FieldAttractor[] {
-  return plates.map((plate) => ({
+function bowOf(growth: TerraceGrowth) {
+  if (growth === "sharp") return { amp: 0.95, turns: 1 };
+  if (growth === "filament") return { amp: 0.4, turns: 2.4 };
+  if (growth === "wander") return { amp: 0.72, turns: 2 };
+  if (growth === "sparse") return { amp: 0.55, turns: 1 };
+  return { amp: 0.5, turns: 1.3 };
+}
+
+/** Keep the endpoints. The middle of each slab, stair, and wall leaves the straight line. */
+function bend(plate: Plate, plan: TerracePlan): Plate[] {
+  const dx = plate.x1 - plate.x0;
+  const dy = plate.y1 - plate.y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.85) return [plate];
+  const { amp, turns } = bowOf(plan.growth);
+  const nx = -dy / len;
+  const ny = dx / len;
+  const steps = Math.max(12, Math.round(len * 2.8));
+  const phase = plan.index * 0.37 + plate.y0 * 0.8 + plate.x0 * 0.15;
+  const reach = amp * Math.min(1.5, len * 0.2);
+  const pieces: Plate[] = [];
+  let px = plate.x0;
+  let py = plate.y0;
+  for (let i = 1; i <= steps; i += 1) {
+    const t = i / steps;
+    const off = Math.sin(phase + t * Math.PI * 2 * turns) * Math.sin(Math.PI * t) * reach;
+    const x = plate.x0 + dx * t + nx * off;
+    const y = plate.y0 + dy * t + ny * off;
+    pieces.push({ ...plate, x0: px, y0: py, x1: x, y1: y });
+    px = x;
+    py = y;
+  }
+  return pieces;
+}
+
+function draw(plates: Plate[], plan: TerracePlan): FieldAttractor[] {
+  return plates.flatMap((plate) => bend(plate, plan)).map((plate) => ({
     kind: "line" as const,
     x: plate.x0,
     y: plate.y0,
@@ -627,33 +659,33 @@ export function planTerraced(seed: number, attempt = 0, index = 0): TerracePlan 
 }
 
 export function attractorsFromTerraced(plan: TerracePlan, _seed = 0): FieldAttractor[] {
-  return settle(draw(sectionFor(plan)), plan);
+  return settle(draw(sectionFor(plan), plan), plan);
 }
 
-export function agentsFromTerraced(plan: TerracePlan) {
-  return 84 + (plan.index % 5) * 6;
+export function agentsFromTerraced(_plan: TerracePlan) {
+  return 120;
 }
 
-/** Same hair-thin physarum ink as Flat Deep Plan. The section geometry stays on the marks. */
+/** Hair body along the levels. Same ink as void field. */
 export function slimeFromTerraced(base: SlimeControls, plan: TerracePlan, seed: number): SlimeControls {
   const rng = mulberry32(seed ^ 0x51c0de ^ plan.index);
   const span = (min: number, max: number) => min + rng() * (max - min);
   return {
     ...base,
-    sensorAngle: span(0.06, 0.16),
-    sensorDistance: span(0.32, 0.52),
-    turnAngle: span(0.08, 0.18),
-    stepSize: span(0.14, 0.22),
-    deposit: span(0.08, 0.12),
-    depositWidth: span(0.24, 0.38),
+    sensorAngle: span(0.42, 0.66),
+    sensorDistance: span(0.4, 0.72),
+    turnAngle: span(0.18, 0.36),
+    stepSize: span(0.12, 0.16),
+    deposit: 0.016,
+    depositWidth: 0.14,
     diffusion: 0,
-    decay: span(0.995, 0.998),
-    trailInfluence: span(1.25, 1.7),
-    resistance: span(0.01, 0.05),
-    randomness: span(0.02, 0.06),
-    persistence: span(0.86, 0.95),
-    trailCap: span(0.7, 1.05),
-    crowdingLimit: 12,
+    decay: 0.998,
+    trailInfluence: span(0.22, 0.36),
+    resistance: 0,
+    randomness: span(0.2, 0.32),
+    persistence: span(0.3, 0.42),
+    trailCap: 0.36,
+    crowdingLimit: 5,
     foodPoints: [],
     voidElongation: 1,
     voidRotation: 0,

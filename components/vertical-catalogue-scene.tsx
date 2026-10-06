@@ -874,7 +874,8 @@ export function CatalogueField({
       const y = event.clientY - rect.top;
       const width = parent.clientWidth;
       const height = parent.clientHeight;
-      let best: { id: string; distance: number } | null = null;
+      let bestId: string | null = null;
+      let bestDistance = Infinity;
       const pose = poseRef.current;
       const selected = selectedRef.current;
       modulesRef.current.forEach((item, itemIndex) => {
@@ -888,9 +889,12 @@ export function CatalogueField({
         const edge = project(cx + MODULE_HALF * scale, cy, cz, cameraRef.current, width, height);
         const radius = Math.max(28, Math.hypot(edge.x - center.x, edge.y - center.y) * 1.15);
         const distance = Math.hypot(center.x - x, center.y - y);
-        if (distance <= radius && (!best || distance < best.distance)) best = { id: item.id, distance };
+        if (distance <= radius && distance < bestDistance) {
+          bestId = item.id;
+          bestDistance = distance;
+        }
       });
-      if (best) onSelectRef.current(best.id);
+      if (bestId) onSelectRef.current(bestId);
       else if (!inspectingRef.current) onSelectRef.current(null);
     };
     const wheel = (event: WheelEvent) => {

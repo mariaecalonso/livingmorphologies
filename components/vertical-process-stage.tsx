@@ -5,7 +5,7 @@ import { rasterTrailPlate } from "@/components/vertical-render";
 import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
-import { stackDisplayIndices, stackDisplaySlices } from "@/lib/skill3/stack-display";
+import { STACK_DISPLAY_PLATES, stackDisplayIndices, stackDisplaySlices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField, ViewerSlice } from "@/lib/skill3/viewer-field";
 
 const PLATE = 320;

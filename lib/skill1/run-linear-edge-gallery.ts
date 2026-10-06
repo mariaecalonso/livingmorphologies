@@ -6,7 +6,7 @@
  */
 
 import { mulberry32 } from "../physarum";
-import { FIELD_SIZE, MIN_AGENT_COUNT } from "./maps";
+import { FIELD_SIZE } from "./maps";
 import type { SlimeControls } from "./slime-controls";
 import type { FieldAttractor } from "./types";
 
@@ -80,7 +80,7 @@ function node(u: number, v: number, radius: number, strength = 0.82): Local {
 }
 
 function pore(u: number, v: number, radius: number): Local {
-  return { kind: "ring", u, v, radius, strength: 0.62, hole: true };
+  return { kind: "ring", u, v, radius: 2.4 + radius * 2.4, strength: 0.62, hole: true };
 }
 
 function along(count: number, span: number, phase: number) {
@@ -365,7 +365,7 @@ export function attractorsFromLinearEdgeGallery(plan: EdgePlan): FieldAttractor[
     const sv = v * scaleV;
     return { x: lim(CENTER + su * cos - sv * sin), y: lim(CENTER + su * sin + sv * cos) };
   };
-  return locals.map((mark) => {
+  const placed = locals.map((mark) => {
     const a = to(mark.u, mark.v);
     const out: FieldAttractor = { kind: mark.kind, x: a.x, y: a.y, radius: mark.radius, strength: mark.strength };
     if (mark.hole) out.hole = true;
@@ -381,6 +381,22 @@ export function attractorsFromLinearEdgeGallery(plan: EdgePlan): FieldAttractor[
     }
     return out;
   });
+  return separateEdgeVoids(placed);
+}
+
+/** Keep the edge openings large enough to read as volumes, and far enough apart to stay separate. */
+function separateEdgeVoids(marks: FieldAttractor[]): FieldAttractor[] {
+  const holes = marks.filter((mark) => mark.hole && mark.kind === "ring");
+  const rest = marks.filter((mark) => mark.kind !== "point" && !(mark.hole && mark.kind === "ring"));
+  const kept: FieldAttractor[] = [];
+  for (const hole of holes) {
+    const radius = Math.min(3.6, Math.max(2.7, hole.radius ?? 2.8));
+    const next = { ...hole, radius };
+    const crowded = kept.some((other) => Math.hypot(other.x - next.x, other.y - next.y) < radius + (other.radius ?? radius) * 0.85);
+    if (crowded) continue;
+    kept.push(next);
+  }
+  return [...rest, ...kept];
 }
 
 const GROWTH_SLIME: Record<EdgeGrowth, Partial<SlimeControls>> = {
@@ -391,8 +407,8 @@ const GROWTH_SLIME: Record<EdgeGrowth, Partial<SlimeControls>> = {
 };
 
 export function agentsFromLinearEdgeGallery(plan: EdgePlan) {
-  const byGrowth: Record<EdgeGrowth, number> = { filament: 96, sparse: 72, sharp: 110, committed: 128 };
-  return Math.max(MIN_AGENT_COUNT, byGrowth[plan.growth] + (plan.cycle % 5) * 6);
+  const byGrowth: Record<EdgeGrowth, number> = { filament: 180, sparse: 160, sharp: 200, committed: 220 };
+  return Math.max(160, byGrowth[plan.growth] + (plan.cycle % 5) * 6);
 }
 
 export function slimeFromLinearEdgeGallery(base: SlimeControls, plan: EdgePlan, seed: number): SlimeControls {
@@ -400,32 +416,27 @@ export function slimeFromLinearEdgeGallery(base: SlimeControls, plan: EdgePlan, 
   const jitter = (value: number, amount: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value + (rng() - 0.5) * amount));
   const growth = GROWTH_SLIME[plan.growth];
-  const marks = attractorsFromLinearEdgeGallery(plan);
-  const foodPoints = marks
-    .filter((mark) => mark.kind === "point")
-    .slice(0, 5)
-    .map((mark) => ({ x: mark.x, y: mark.y }));
   return {
     ...base,
     ...growth,
-    persistence: jitter(growth.persistence ?? 0.7, 0.08, 0.4, 0.9),
     deposit: jitter(growth.deposit ?? 0.02, 0.008, 0.008, 0.04),
     depositWidth: jitter(growth.depositWidth ?? 0.22, 0.06, 0.16, 0.34),
-    randomness: jitter(growth.randomness ?? 0.08, 0.04, 0.02, 0.22),
     sensorAngle: jitter(growth.sensorAngle ?? 0.16, 0.06, 0.06, 0.4),
     stepSize: jitter(growth.stepSize ?? 0.14, 0.03, 0.1, 0.2),
-    trailInfluence: jitter(growth.trailInfluence ?? 1.2, 0.2, 0.6, 1.9),
     trailCap: jitter(growth.trailCap ?? 0.5, 0.1, 0.28, 0.85),
     diffusion: 0,
-    decay: 0.974 + rng() * 0.014,
-    resistance: 0.04 + rng() * 0.12,
-    turnAngle: 0.06 + rng() * 0.12,
-    sensorDistance: 0.4 + rng() * 0.45,
-    crowdingLimit: 10 + Math.floor(rng() * 8),
-    foodPoints: foodPoints.length ? foodPoints : base.foodPoints,
+    decay: 0.998,
+    resistance: 0.04 + rng() * 0.08,
+    turnAngle: 0.22 + rng() * 0.2,
+    sensorDistance: 0.35 + rng() * 0.25,
+    crowdingLimit: 80,
+    foodPoints: [],
     voidElongation: 1,
     voidLobes: 0,
     voidNotch: 0,
     voidRotation: 0,
+    trailInfluence: 0.22 + rng() * 0.16,
+    randomness: 0.22 + rng() * 0.16,
+    persistence: 0.28 + rng() * 0.16,
   };
 }

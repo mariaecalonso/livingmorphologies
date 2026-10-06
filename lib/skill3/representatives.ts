@@ -69,7 +69,8 @@ function spatialDescriptor(continuation: NaturalContinuation) {
   const slices = continuation.field.slices;
   if (slices.length === 0) return out;
   for (let plane = 0; plane < SPATIAL_PLANES; plane += 1) {
-    const target = SPATIAL_PLANES === 1 ? 0 : plane / (SPATIAL_PLANES - 1);
+    const planeCount: number = SPATIAL_PLANES;
+    const target = planeCount === 1 ? 0 : plane / (planeCount - 1);
     let slice = slices[0];
     let best = Math.abs(slice.z - target);
     for (let index = 1; index < slices.length; index += 1) {
