@@ -53,6 +53,13 @@
       "warnings": [],
       "blocks": [],
       "catalogCandidates": 87
+    },
+    "undulated": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 83
     }
   }
 }
