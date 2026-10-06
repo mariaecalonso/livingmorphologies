@@ -198,6 +198,15 @@ function cacheKey(request: Skill3SourceRequest, count: number, config: EventSamp
   return `${source}#${request.candidateId}#${count}#${config.horizon}#${config.minGap}#${config.maxGap}#${config.deltaThreshold}`;
 }
 
+/** Cached bundle only. Does not start a replay. */
+export function peekNaturalContinuations(
+  request: Skill3SourceRequest,
+  count = NATURAL_CONTINUATION_COUNT,
+  config: EventSampleConfig = DEFAULT_EVENT_CONFIG,
+): NaturalContinuationSet | null {
+  return continuationCache.get(cacheKey(request, count, config)) ?? null;
+}
+
 /** One validated replay per request identity, then the cached N01–N24 bundle. */
 export function loadNaturalContinuations(
   request: Skill3SourceRequest,

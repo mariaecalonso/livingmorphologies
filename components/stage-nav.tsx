@@ -58,7 +58,14 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
     const query = params.toString();
     return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
   };
+  const onProcess = pathname === "/lab/vertical";
   const onCatalogue = pathname.startsWith("/lab/vertical/catalogue");
+  const onFinal = pathname.startsWith("/lab/vertical/final");
+  const finalQuery = () => {
+    const params = new URLSearchParams(search.toString());
+    const query = params.toString();
+    return query ? `/lab/vertical/final?${query}` : "/lab/vertical/final";
+  };
 
   const changeMode = (next: DisplayMode) => {
     if (next === mode) return;
@@ -119,13 +126,16 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
             <Link
               href={processQuery()}
               className="stage-nav-subitem"
-              aria-current={onCatalogue ? undefined : "page"}
-              data-active={onCatalogue ? undefined : true}
+              aria-current={onProcess ? "page" : undefined}
+              data-active={onProcess || undefined}
             >
               Process
             </Link>
             <Link href={catalogueQuery()} className="stage-nav-subitem" aria-current={onCatalogue ? "page" : undefined} data-active={onCatalogue || undefined}>
               Catalogue
+            </Link>
+            <Link href={finalQuery()} className="stage-nav-subitem" aria-current={onFinal ? "page" : undefined} data-active={onFinal || undefined}>
+              Final
             </Link>
           </nav>
         ) : null}

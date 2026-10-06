@@ -171,7 +171,7 @@ export function VerticalCatalogue({
 
   useEffect(() => {
     if (!set) return;
-    setStoredChoice(readSelectedSkill3Morphology(set.origin));
+    setStoredChoice(readSelectedSkill3Morphology(set.origin, set.archetypeId));
   }, [set]);
 
   const matches = set != null && set.typologyId === typologyId && set.archetypeId === archetypeId;
@@ -195,9 +195,9 @@ export function VerticalCatalogue({
 
   const chooseInspected = () => {
     if (!set || !selected) return;
-    const current = readSelectedSkill3Morphology(set.origin);
+    const current = readSelectedSkill3Morphology(set.origin, set.archetypeId);
     if (current && current.origin === set.origin && sameSelectedMorphology(current, selected)) {
-      clearSelectedSkill3Morphology(set.origin);
+      clearSelectedSkill3Morphology(set.origin, set.archetypeId);
       setStoredChoice(null);
       return;
     }

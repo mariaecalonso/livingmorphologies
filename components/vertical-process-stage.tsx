@@ -177,10 +177,14 @@ export function ProcessMorphology({
   field,
   cacheIdentity,
   onTriangles,
+  orbit = false,
+  float = false,
 }: {
   field: VerticalViewerField;
   cacheIdentity: string;
   onTriangles?: (count: number | null) => void;
+  orbit?: boolean;
+  float?: boolean;
 }) {
   const [mesh, setMesh] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
   useEffect(() => {
@@ -209,13 +213,31 @@ export function ProcessMorphology({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const paint = () => drawIsoMesh(canvas, mesh, 0.62, 0.42, column * 0.72, "shell");
+    canvas.dataset.present = float ? "float" : "";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const spinning = orbit && !reduced;
+    const started = performance.now();
+    let frame = 0;
+    const paint = (now = started) => {
+      const yaw = spinning ? ((now - started) / 22000) * Math.PI * 2 : float ? 0 : 0.62;
+      const pitch = float || spinning ? 0.36 : 0.42;
+      drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, "shell", { transparent: float });
+    };
     paint();
     const parent = canvas.parentElement;
-    if (!parent) return;
-    const observer = new ResizeObserver(paint);
-    observer.observe(parent);
-    return () => observer.disconnect();
-  }, [column, mesh]);
+    const observer = parent ? new ResizeObserver(() => paint(performance.now())) : null;
+    if (parent && observer) observer.observe(parent);
+    if (spinning) {
+      const loop = (now: number) => {
+        paint(now);
+        frame = window.requestAnimationFrame(loop);
+      };
+      frame = window.requestAnimationFrame(loop);
+    }
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [column, float, mesh, orbit]);
   return <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
 }

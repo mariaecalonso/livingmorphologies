@@ -1,9 +1,12 @@
 import type { ContinuationOrigin, NaturalContinuation, NaturalContinuationSet } from "./continuations";
 
-/** Human choice of one Skill 3 morphology. Not the Skill 2 candidate handoff. */
+/**
+ * Production collection. One selected morphology per archetype.
+ * A legacy single-record value is migrated on read.
+ */
 export const SKILL3_MORPHOLOGY_KEY = "lm-skill3-morphology";
 
-/** Development fixture choice. Never written into the production key. */
+/** Development fixture collection. Never written into the production key. */
 export const SKILL3_FIXTURE_MORPHOLOGY_KEY = "lm-skill3-fixture-morphology";
 
 export type SelectedSkill3Morphology = {
@@ -111,33 +114,69 @@ export function parseSelectedSkill3Morphology(value: unknown): SelectedSkill3Mor
   };
 }
 
-export function readSelectedSkill3Morphology(origin: ContinuationOrigin): SelectedSkill3Morphology | null {
-  if (typeof window === "undefined") return null;
+export type SelectedSkill3Collection = Record<string, SelectedSkill3Morphology>;
+
+/** Every saved morphology for this origin. Keys are archetype ids. */
+export function readSelectedSkill3Collection(origin: ContinuationOrigin): SelectedSkill3Collection {
+  if (typeof window === "undefined") return {};
   const key = morphologyStorageKey(origin);
   const raw = window.localStorage.getItem(key);
-  if (!raw) return null;
+  if (!raw) return {};
   try {
-    const parsed = parseSelectedSkill3Morphology(JSON.parse(raw));
-    if (!parsed || parsed.origin !== origin) {
-      window.localStorage.removeItem(key);
-      return null;
-    }
-    return parsed;
+    const { collection, rewrite } = coerceCollection(JSON.parse(raw), origin);
+    if (rewrite) persistCollection(key, collection);
+    return collection;
   } catch {
     window.localStorage.removeItem(key);
-    return null;
+    return {};
   }
 }
 
+export function readSelectedSkill3Morphology(origin: ContinuationOrigin, archetypeId: string): SelectedSkill3Morphology | null {
+  return readSelectedSkill3Collection(origin)[archetypeId] ?? null;
+}
+
+/** Replaces only this archetype. Other archetypes in the same collection stay. */
 export function writeSelectedSkill3Morphology(selection: SelectedSkill3Morphology) {
   const parsed = parseSelectedSkill3Morphology(selection);
   if (!parsed || typeof window === "undefined") return;
-  window.localStorage.setItem(morphologyStorageKey(parsed.origin), JSON.stringify(parsed));
+  const collection = readSelectedSkill3Collection(parsed.origin);
+  collection[parsed.archetypeId] = parsed;
+  persistCollection(morphologyStorageKey(parsed.origin), collection);
 }
 
-export function clearSelectedSkill3Morphology(origin: ContinuationOrigin) {
+/** Removes one archetype. The other origin's collection is left untouched. */
+export function clearSelectedSkill3Morphology(origin: ContinuationOrigin, archetypeId: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(morphologyStorageKey(origin));
+  const collection = readSelectedSkill3Collection(origin);
+  if (!collection[archetypeId]) return;
+  delete collection[archetypeId];
+  persistCollection(morphologyStorageKey(origin), collection);
+}
+
+function persistCollection(key: string, collection: SelectedSkill3Collection) {
+  if (Object.keys(collection).length === 0) window.localStorage.removeItem(key);
+  else window.localStorage.setItem(key, JSON.stringify(collection));
+}
+
+function coerceCollection(value: unknown, origin: ContinuationOrigin): { collection: SelectedSkill3Collection; rewrite: boolean } {
+  const legacy = parseSelectedSkill3Morphology(value);
+  if (legacy) {
+    if (legacy.origin !== origin) return { collection: {}, rewrite: true };
+    return { collection: { [legacy.archetypeId]: legacy }, rewrite: true };
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { collection: {}, rewrite: true };
+  const collection: SelectedSkill3Collection = {};
+  let rewrite = false;
+  for (const [id, entry] of Object.entries(value)) {
+    const parsed = parseSelectedSkill3Morphology(entry);
+    if (!parsed || parsed.origin !== origin || parsed.archetypeId !== id) {
+      rewrite = true;
+      continue;
+    }
+    collection[parsed.archetypeId] = parsed;
+  }
+  return { collection, rewrite };
 }
 
 function parseRules(value: unknown): SelectedSkill3Morphology["rules"] | null {

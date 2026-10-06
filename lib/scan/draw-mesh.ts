@@ -163,9 +163,27 @@ void main() {
   oColor = vec4(col, 1.0);
 }`;
 
+const FLOAT_AO_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uColor;
+uniform sampler2D uDepth;
+uniform vec2 uTexel;
+in vec2 vUv;
+out vec4 oColor;
+
+void main() {
+  float z = texture(uDepth, vUv).r;
+  if (z <= 0.001) {
+    oColor = vec4(0.0);
+    return;
+  }
+  vec3 col = texture(uColor, vUv).rgb;
+  oColor = vec4(col, 1.0);
+}`;
+
 export type IsoMeshStyle = "field" | "shell";
 
-const DRAW_MESH_GEN = 2;
+const DRAW_MESH_GEN = 3;
 
 type MeshGl = {
   gl: WebGL2RenderingContext;
@@ -174,6 +192,7 @@ type MeshGl = {
   aoProgram: WebGLProgram;
   shellProgram: WebGLProgram;
   shellAoProgram: WebGLProgram;
+  floatAoProgram: WebGLProgram;
   position: WebGLBuffer;
   normal: WebGLBuffer;
   index: WebGLBuffer;
@@ -250,14 +269,18 @@ function resizeTargets(gpu: MeshGl, width: number, height: number) {
 function setup(canvas: HTMLCanvasElement): MeshGl | null {
   const existing = cache.get(canvas);
   if (existing && existing.gen === DRAW_MESH_GEN && !existing.gl.isContextLost()) return existing;
-  const gl = existing?.gl ?? canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
+  const float = canvas.dataset.present === "float";
+  const gl = existing?.gl ?? canvas.getContext("webgl2", float
+    ? { antialias: true, alpha: true, premultipliedAlpha: false, depth: true, preserveDrawingBuffer: true }
+    : { antialias: false, alpha: false, depth: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = program(gl, VERT, FRAG);
   const aoProgram = program(gl, AO_VERT, AO_FRAG);
   const shellProgram = program(gl, VERT, SHELL_FRAG);
   const shellAoProgram = program(gl, AO_VERT, SHELL_AO_FRAG);
-  if (!meshProgram || !aoProgram || !shellProgram || !shellAoProgram) return null;
+  const floatAoProgram = program(gl, AO_VERT, FLOAT_AO_FRAG);
+  if (!meshProgram || !aoProgram || !shellProgram || !shellAoProgram || !floatAoProgram) return null;
   const position = gl.createBuffer();
   const normal = gl.createBuffer();
   const index = gl.createBuffer();
@@ -288,6 +311,7 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
     aoProgram,
     shellProgram,
     shellAoProgram,
+    floatAoProgram,
     position,
     normal,
     index,
@@ -315,6 +339,7 @@ export function drawIsoMesh(
   pitch: number,
   column: number,
   style: IsoMeshStyle = "field",
+  options?: { transparent?: boolean },
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -335,14 +360,16 @@ export function drawIsoMesh(
   resizeTargets(gpu, pixelsW, pixelsH);
   gl.bindFramebuffer(gl.FRAMEBUFFER, gpu.fbo);
   gl.viewport(0, 0, pixelsW, pixelsH);
-  gl.clearColor(0, 0, 0, 1);
+  gl.clearColor(0, 0, 0, options?.transparent ? 0 : 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
   const meshProgram = style === "shell" ? gpu.shellProgram : gpu.program;
-  const compositeProgram = style === "shell" ? gpu.shellAoProgram : gpu.aoProgram;
+  const compositeProgram = options?.transparent
+    ? gpu.floatAoProgram
+    : style === "shell" ? gpu.shellAoProgram : gpu.aoProgram;
   if (mesh && mesh.triangles > 0) {
     gl.useProgram(meshProgram);
     gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
@@ -364,6 +391,10 @@ export function drawIsoMesh(
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  if (options?.transparent) {
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(compositeProgram);
   gl.bindBuffer(gl.ARRAY_BUFFER, gpu.quad);
