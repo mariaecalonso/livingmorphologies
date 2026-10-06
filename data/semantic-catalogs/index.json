@@ -60,6 +60,13 @@
       "warnings": [],
       "blocks": [],
       "catalogCandidates": 83
+    },
+    "contained-room-within-volume": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 39
     }
   }
 }
