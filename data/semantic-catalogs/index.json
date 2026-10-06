@@ -67,6 +67,17 @@
       "warnings": [],
       "blocks": [],
       "catalogCandidates": 39
+    },
+    "void-field": {
+      "status": "complete",
+      "fidelity": "block",
+      "warnings": [
+        "semantic family toward was eliminated from a small sample"
+      ],
+      "blocks": [
+        "semantic family aside was eliminated"
+      ],
+      "catalogCandidates": 138
     }
   }
 }
