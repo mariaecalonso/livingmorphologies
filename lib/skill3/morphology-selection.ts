@@ -9,6 +9,9 @@ export const SKILL3_MORPHOLOGY_KEY = "lm-skill3-morphology";
 /** Development fixture collection. Never written into the production key. */
 export const SKILL3_FIXTURE_MORPHOLOGY_KEY = "lm-skill3-fixture-morphology";
 
+/** Provisional current-engine preview. Never written into the production key. */
+export const SKILL3_PROVISIONAL_MORPHOLOGY_KEY = "lm-skill3-provisional-morphology";
+
 export type SelectedSkill3Morphology = {
   origin: ContinuationOrigin;
   typologyId: string;
@@ -41,7 +44,9 @@ const ARCHETYPE_ID = /^[a-z0-9-]+$/;
 const CONTINUATION_ID = /^N\d{2}$/;
 
 export function morphologyStorageKey(origin: ContinuationOrigin) {
-  return origin === "development-fixture" ? SKILL3_FIXTURE_MORPHOLOGY_KEY : SKILL3_MORPHOLOGY_KEY;
+  if (origin === "development-fixture") return SKILL3_FIXTURE_MORPHOLOGY_KEY;
+  if (origin === "provisional") return SKILL3_PROVISIONAL_MORPHOLOGY_KEY;
+  return SKILL3_MORPHOLOGY_KEY;
 }
 
 export function selectedMorphologyFrom(set: NaturalContinuationSet, continuation: NaturalContinuation): SelectedSkill3Morphology {
@@ -88,7 +93,7 @@ export function sameSelectedMorphology(stored: SelectedSkill3Morphology, continu
 export function parseSelectedSkill3Morphology(value: unknown): SelectedSkill3Morphology | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Partial<SelectedSkill3Morphology>;
-  if (record.origin !== "handoff" && record.origin !== "development-fixture") return null;
+  if (record.origin !== "handoff" && record.origin !== "development-fixture" && record.origin !== "provisional") return null;
   if (!isText(record.typologyId) || !isArchetypeId(record.archetypeId) || !isText(record.archetypeName)) return null;
   if (!isPositiveInteger(record.candidateId) || !isText(record.runKey) || !isContinuationId(record.continuationId)) return null;
   if (!isPositiveInteger(record.branchIndex) || !isInteger(record.continuationSeed)) return null;

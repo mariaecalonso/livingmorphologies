@@ -6,7 +6,7 @@
   background: #000000;
 }
 
-/* The lab sits under the site nav, so a full viewport here clips the bottom of the stage. */
+/* The stage fills the site shell. The global site header is hidden on Lab routes. */
 @media (min-width: 768px) {
   .site-shell:has(.stage-shell) {
     height: 100dvh;
@@ -69,6 +69,16 @@
   padding: 0.45rem 0.75rem;
   border-bottom: 1px solid var(--line);
   background: var(--panel-strong);
+}
+
+.stage-nav-identity {
+  --font-site-display: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
+  text-decoration: none;
+}
+
+/* The stage title is the only project title in the Lab. */
+.stage-body .living-instrument-header-identity .display {
+  display: none;
 }
 
 .stage-nav-identity .display {
@@ -537,6 +547,53 @@
   display: grid;
   justify-content: center;
   align-content: start;
+}
+
+/* Pareto catalog fills the lab stage. The fit math reads this height; do not set card pixels here. */
+.stage-body:has(.pareto-catalog-page) {
+  display: flex;
+  flex-direction: column;
+}
+
+.pareto-catalog-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-page .runs-catalog {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pareto-catalog-stack {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-page .runs-catalog-grid {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  align-content: start;
+  justify-content: start;
+}
+
+.pareto-catalog-detail {
+  flex: 0 1 18rem;
+  width: auto;
+  max-width: 22rem;
+  min-width: 15rem;
+  min-height: 0;
+  align-self: stretch;
+  overflow: hidden;
 }
 
 .runs-g01-slot {

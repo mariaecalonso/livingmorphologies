@@ -1,8 +1,9 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Panel, PanelHeader } from "@/components/hud";
+import { useViewMode } from "@/components/view-mode";
 import {
   ArchetypeSwitch,
   EvolutionImage,
@@ -11,9 +12,10 @@ import {
   useSelectedArchetype,
 } from "@/components/evolution/evolution-data";
 import { EvolutionHeader } from "@/components/evolution/evolution-header";
-import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
-
-const pad = (value: number) => String(value).padStart(2, "0");
+import { SearchStats } from "@/components/evolution/search-stats";
+import { ParetoAnalyticsBand } from "@/components/evolution/pareto-analytics-band";
+import { archiveTurnover, generationAnalytics } from "@/lib/skill2/pareto-analytics";
+import type { EvolutionCandidateView, EvolutionCatalog, EvolutionGenerationView } from "@/lib/skill2/evolution-index";
 
 /** Same opening camera as the Pareto page, so this thumbnail matches that view. */
 const PREVIEW_YAW = -0.65;
@@ -63,61 +65,123 @@ function useWorkflowHref(path: string) {
   return `${path}${suffix}`;
 }
 
-function ParetoDestination({ candidates }: { candidates: EvolutionCandidateView[] }) {
-  const href = useWorkflowHref("/lab/evolution/pareto");
+function ParetoDestination({
+  candidates,
+  generations,
+  archiveCandidates,
+}: {
+  candidates: EvolutionCandidateView[];
+  generations: EvolutionGenerationView[];
+  archiveCandidates: EvolutionCandidateView[];
+}) {
+  const href = useWorkflowHref("/evolution/pareto");
+  const presentation = useViewMode() === "presentation";
+  const [focus, setFocus] = useState<number | null>(null);
+  const evidence = useMemo(() => {
+    const done = generations.filter((generation) => generation.status === "done");
+    const archives = done.map((generation) => ({ index: generation.index, archiveIds: generation.archiveIds }));
+    const byId = new Map(
+      archiveCandidates.map((candidate) => [
+        candidate.id,
+        { id: candidate.id, formal: candidate.formal, spatial: candidate.spatial, atmospheric: candidate.atmospheric },
+      ]),
+    );
+    return {
+      series: generationAnalytics(archives, byId),
+      turnovers: archives
+        .slice(1)
+        .map((item, index) => archiveTurnover(archives[index].archiveIds, item.archiveIds, archives[index].index, item.index)),
+    };
+  }, [generations, archiveCandidates]);
   const points = candidates
     .map((candidate) => ({ candidate, ...projectPreview([candidate.formal, candidate.spatial, candidate.atmospheric]) }))
     .sort((a, b) => a.depth - b.depth);
+  const plot = (
+    <svg className="evo-pareto-plot" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      {CUBE_EDGES.map(([from, to], index) => {
+        const a = projectPreview(from);
+        const b = projectPreview(to);
+        return <line key={index} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="pareto-cube" />;
+      })}
+      {AXES.map((axis) => {
+        const origin = projectPreview([0, 0, 0]);
+        const end = projectPreview(axis.to);
+        return (
+          <g key={axis.label}>
+            <line x1={origin.sx} y1={origin.sy} x2={end.sx} y2={end.sy} className="pareto-axis" />
+            <text x={end.sx} y={end.sy} className="pareto-axis-label" textAnchor="middle" dy={-1.2}>
+              {axis.label}
+            </text>
+          </g>
+        );
+      })}
+      {points.map(({ candidate, sx, sy, depth }) => {
+        const state = pointState(candidate);
+        const radius = { dominated: 0.7, pareto: 1, archive: 1.2 }[state] * (0.85 + depth * 0.3);
+        return <circle key={candidate.key} cx={sx} cy={sy} r={radius} className="pareto-point" data-state={state} />;
+      })}
+    </svg>
+  );
+  const legend = (
+    <ul className="pareto-legend evo-destination-legend">
+      <li data-state="dominated">Dominated</li>
+      <li data-state="pareto">Pareto</li>
+      <li data-state="archive">Archive</li>
+    </ul>
+  );
+  const header = (
+    <header className="evo-destination-head">
+      <div>
+        <p className="eyebrow">Next · Objective space</p>
+        <h2 className="panel-title">Pareto</h2>
+      </div>
+      <span className="evo-destination-open" aria-hidden="true">Open</span>
+    </header>
+  );
+
+  if (presentation) {
+    return (
+      <div className="panel evo-destination">
+        {header}
+        {points.length === 0 ? (
+          <p className="evo-empty">The final front appears here after a generation is saved.</p>
+        ) : (
+          <div className="evo-destination-plot">
+            <ParetoAnalyticsBand
+              series={evidence.series}
+              turnovers={evidence.turnovers}
+              focus={focus}
+              membership={null}
+              onFocus={setFocus}
+              onPick={setFocus}
+              onMembership={() => {}}
+            />
+            <Link href={href} className="evo-pareto-open" aria-label="Open Pareto">
+              {plot}
+            </Link>
+          </div>
+        )}
+        {legend}
+      </div>
+    );
+  }
 
   return (
     <Link href={href} className="panel evo-destination" aria-label="Open Pareto">
-      <header className="evo-destination-head">
-        <div>
-          <p className="eyebrow">Next · Objective space</p>
-          <h2 className="panel-title">Pareto</h2>
-        </div>
-        <span className="evo-destination-open" aria-hidden="true">Open</span>
-      </header>
+      {header}
       {points.length === 0 ? (
         <p className="evo-empty">The final front appears here after a generation is saved.</p>
       ) : (
-        <svg className="evo-pareto-plot" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          {CUBE_EDGES.map(([from, to], index) => {
-            const a = projectPreview(from);
-            const b = projectPreview(to);
-            return <line key={index} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="pareto-cube" />;
-          })}
-          {AXES.map((axis) => {
-            const origin = projectPreview([0, 0, 0]);
-            const end = projectPreview(axis.to);
-            return (
-              <g key={axis.label}>
-                <line x1={origin.sx} y1={origin.sy} x2={end.sx} y2={end.sy} className="pareto-axis" />
-                <text x={end.sx} y={end.sy} className="pareto-axis-label" textAnchor="middle" dy={-1.2}>
-                  {axis.label}
-                </text>
-              </g>
-            );
-          })}
-          {points.map(({ candidate, sx, sy, depth }) => {
-            const state = pointState(candidate);
-            const radius = { dominated: 0.7, pareto: 1, archive: 1.2 }[state] * (0.85 + depth * 0.3);
-            return <circle key={candidate.key} cx={sx} cy={sy} r={radius} className="pareto-point" data-state={state} />;
-          })}
-        </svg>
+        <div className="evo-destination-plot">{plot}</div>
       )}
-      <ul className="pareto-legend evo-destination-legend">
-        <li data-state="dominated">Dominated</li>
-        <li data-state="pareto">Pareto</li>
-        <li data-state="archive">Archive</li>
-      </ul>
+      {legend}
     </Link>
   );
 }
 
 function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) {
-  const href = useWorkflowHref("/lab/evolution/pareto-catalog");
-  const thumbs = archive.filter((candidate) => candidate.image).slice(0, 8);
+  const href = useWorkflowHref("/evolution/pareto-catalog");
+  const thumbs = archive.filter((candidate) => candidate.image).slice(0, 72);
 
   return (
     <Link href={href} className="panel evo-destination" aria-label="Open Pareto Catalog">
@@ -132,9 +196,9 @@ function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) 
         <p className="evo-empty">Archive morphologies appear here after a generation is saved.</p>
       ) : (
         <ul className="evo-mosaic" aria-hidden="true">
-          {Array.from({ length: 8 }, (_, index) => thumbs[index] ?? null).map((candidate, index) => (
-            <li key={candidate?.key ?? `empty-${index}`}>
-              {candidate ? <EvolutionImage src={candidate.image} /> : null}
+          {thumbs.map((candidate) => (
+            <li key={candidate.key}>
+              <EvolutionImage src={candidate.image} />
             </li>
           ))}
         </ul>
@@ -151,19 +215,18 @@ export function EvolutionProgress({ initial }: { initial: EvolutionCatalog }) {
   const { archetype, select } = useSelectedArchetype(catalog);
   const generations = archetype?.generations ?? [];
   const completed = generations.filter((generation) => generation.status === "done");
-  const latest = completed[completed.length - 1] ?? null;
-  const finished = archetype != null && archetype.completedGenerations >= archetype.generationCount;
+  const [focus, setFocus] = useState<number | null>(null);
+  const selected = completed.find((generation) => generation.index === focus) ?? completed[completed.length - 1] ?? null;
   const preview =
-    archetype?.candidates.find((candidate) => candidate.image && candidate.generation === latest?.index && candidate.archived) ??
-    archetype?.candidates.find((candidate) => candidate.image && candidate.generation === latest?.index) ??
+    archetype?.candidates.find((candidate) => candidate.image && candidate.generation === selected?.index && candidate.archived) ??
+    archetype?.candidates.find((candidate) => candidate.image && candidate.generation === selected?.index) ??
     archetype?.candidates.find((candidate) => candidate.image) ??
     null;
-  const percent = latest && archetype ? (latest.evaluated / archetype.populationSize) * 100 : 0;
-  const front = archetype?.candidates.filter((candidate) => candidate.generation === archetype.completedGenerations) ?? [];
+  const cohort = archetype?.candidates.filter((candidate) => candidate.generation === selected?.index) ?? [];
   const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
 
   return (
-    <main className="evo-page">
+    <main className="evo-page" style={{ ["--evo-cols" as string]: Math.max(generations.length, 1) }}>
       <EvolutionHeader
         title="Evolutionary Search"
         detail={
@@ -181,26 +244,37 @@ export function EvolutionProgress({ initial }: { initial: EvolutionCatalog }) {
       >
         {generations.map((generation) => {
           const thumb = archetype?.candidates.find((candidate) => candidate.image && candidate.generation === generation.index);
+          const done = generation.status === "done";
           return (
-            <li key={generation.id} className="evo-generation" data-status={generation.status}>
-              <span className="evo-generation-thumb" aria-hidden="true">
-                {generation.status === "done" ? <EvolutionImage src={thumb?.image ?? null} /> : null}
-              </span>
-              <span className="evo-generation-text">
-                <span className="display evo-generation-id">{generation.id}</span>
-                <span className="evo-generation-status">{generation.status === "done" ? "Complete" : "Waiting"}</span>
-                <span className="evo-generation-bar" aria-hidden="true">
-                  <span style={{ width: `${archetype ? (generation.evaluated / archetype.populationSize) * 100 : 0}%` }} />
+            <li key={generation.id}>
+              <button
+                type="button"
+                className="evo-generation"
+                data-status={generation.status}
+                data-selected={done && generation.index === selected?.index ? "" : undefined}
+                disabled={!done}
+                aria-pressed={done ? generation.index === selected?.index : undefined}
+                onClick={() => setFocus(generation.index)}
+              >
+                <span className="evo-generation-thumb" aria-hidden="true">
+                  {done ? <EvolutionImage src={thumb?.image ?? null} /> : null}
                 </span>
-                <span className="evo-generation-meta">
-                  {generation.status === "done" ? (
-                    <>
-                      <span>{generation.pareto} Pareto</span>
-                      <span>{generation.archived} archived</span>
-                    </>
-                  ) : null}
+                <span className="evo-generation-text">
+                  <span className="display evo-generation-id">{generation.id}</span>
+                  <span className="evo-generation-status">{done ? "Complete" : "Waiting"}</span>
+                  <span className="evo-generation-bar" aria-hidden="true">
+                    <span style={{ width: `${archetype ? (generation.evaluated / archetype.populationSize) * 100 : 0}%` }} />
+                  </span>
+                  <span className="evo-generation-meta">
+                    {done ? (
+                      <>
+                        <span>{generation.pareto} Pareto</span>
+                        <span>{generation.archived} archived</span>
+                      </>
+                    ) : null}
+                  </span>
                 </span>
-              </span>
+              </button>
             </li>
           );
         })}
@@ -209,27 +283,17 @@ export function EvolutionProgress({ initial }: { initial: EvolutionCatalog }) {
       <div className="evo-main">
         <Panel className="evo-active">
           <PanelHeader
-            kicker={finished ? "Search" : "Latest saved generation"}
-            title={latest ? `${latest.id} / ${pad(archetype?.generationCount ?? 0)}` : "Waiting"}
+            kicker="This run"
+            title={selected ? selected.id : "Waiting"}
+            aside={<span className="eyebrow">{archetype?.name ?? ""}</span>}
           />
           <div className="evo-active-body">
-            <div className="evo-active-readout">
-              <p className="display evo-active-count">
-                {latest?.evaluated ?? 0}
-                <span className="evo-active-slash">/</span>
-                {archetype?.populationSize ?? 0}
-              </p>
-              <p className="eyebrow evo-active-label">{finished ? "Search complete" : "Candidates evaluated"}</p>
-              <div className="evo-progress" role="progressbar" aria-valuemin={0} aria-valuemax={archetype?.populationSize ?? 0} aria-valuenow={latest?.evaluated ?? 0}>
-                <span style={{ width: `${percent}%` }} />
-              </div>
-            </div>
-            <dl className="evo-search-note">
-              <div>
-                <dt>Feasible</dt>
-                <dd>{latest?.feasible ?? 0}</dd>
-              </div>
-            </dl>
+            <SearchStats
+              generations={generations}
+              candidates={archetype?.candidates ?? []}
+              selectedIndex={selected?.index ?? null}
+              onSelect={setFocus}
+            />
           </div>
         </Panel>
 
@@ -242,11 +306,13 @@ export function EvolutionProgress({ initial }: { initial: EvolutionCatalog }) {
           <div className="evo-preview-frame">
             <EvolutionImage src={preview?.image ?? null} />
           </div>
-          <p className="eyebrow evo-preview-caption">Nondominated morphology from the latest saved generation</p>
+          <p className="eyebrow evo-preview-caption">
+            {selected ? `Nondominated morphology from ${selected.id}` : "Nondominated morphology from the latest saved generation"}
+          </p>
         </Panel>
 
         <div className="evo-next">
-          <ParetoDestination candidates={front} />
+          <ParetoDestination candidates={cohort} generations={generations} archiveCandidates={archetype?.candidates ?? []} />
           <CatalogDestination archive={archive} />
         </div>
       </div>

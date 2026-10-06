@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { loadNaturalContinuations, peekNaturalContinuations } from "@/lib/skill3/continuations";
+import { loadNaturalContinuations, peekNaturalContinuations, type NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
+import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 
 export const runtime = "nodejs";
@@ -26,18 +27,21 @@ export function GET(request: Request) {
     return NextResponse.json({ error }, { status: 400 });
   }
 
+  const preview = url.searchParams.get("preview") === "1";
   if (url.searchParams.get("cache") === "1") {
-    const set = peekNaturalContinuations(requested.selection);
+    const set = preview ? peekProvisionalContinuations(requested.selection) : peekNaturalContinuations(requested.selection);
     const continuationId = url.searchParams.get("continuation");
     const continuation = set?.continuations.find((item) => item.id === continuationId) ?? null;
-    if (!set || !continuation) {
+    if (!set || !continuation || (preview && set.origin !== "provisional")) {
       return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
     }
     return NextResponse.json({ continuation });
   }
 
   try {
-    const set = loadNaturalContinuations(requested.selection);
+    const set: NaturalContinuationSet = preview
+      ? loadProvisionalContinuations(requested.selection)
+      : loadNaturalContinuations(requested.selection);
     const { continuations, ...source } = set;
     return NextResponse.json({
       ...source,

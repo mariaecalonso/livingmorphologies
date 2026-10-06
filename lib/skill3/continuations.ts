@@ -1,4 +1,5 @@
 import { stateChecksum, type Skill2HandoffRecord } from "../skill2/handoff";
+import type { Skill2Handoff } from "../skill2/types";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "./envelope";
 import {
   DEFAULT_EVENT_CONFIG,
@@ -65,10 +66,10 @@ export type NaturalContinuationRules = {
   transform: "none";
 };
 
-export type ContinuationOrigin = "handoff" | "development-fixture";
+export type ContinuationOrigin = "handoff" | "development-fixture" | "provisional";
 
 export type NaturalContinuationSet = {
-  /** `handoff` passed exact Z0 validation. `development-fixture` did not. */
+  /** `handoff` passed exact Z0 validation. `development-fixture` and `provisional` did not. */
   origin: ContinuationOrigin;
   typologyId: string;
   archetypeId: string;
@@ -121,19 +122,22 @@ function rulesFrom(config: EventSampleConfig): NaturalContinuationRules {
 }
 
 /**
- * Opens the selected candidate once, then samples `count` clones of that Z0.
+ * Samples clones of an already opened Z0. Sampling itself is unchanged.
+ * Production calls this only after `openValidatedHandoff`. The provisional preview calls it
+ * with a current-engine replay that did not pass the archived-score check.
  * No boundary, twist, or scale transform is applied. Full-resolution plates are
  * dropped after the viewer field is built.
  */
-export function runNaturalContinuations(
-  request: Skill3SourceRequest,
+export function continuationsFromOpenedZ0(
+  record: Skill2HandoffRecord,
+  handoff: Skill2Handoff,
+  origin: ContinuationOrigin,
   count = NATURAL_CONTINUATION_COUNT,
   config: EventSampleConfig = DEFAULT_EVENT_CONFIG,
 ): NaturalContinuationSet {
   if (!Number.isInteger(count) || count < 1) {
     throw new Error(`continuation count ${count} is not a positive integer`);
   }
-  const { record, handoff } = loadValidatedSkill2Handoff(request);
   const z0 = handoff.selected.simulationState;
   const parentChecksum = stateChecksum(z0);
   if (parentChecksum !== record.z0.checksum || z0.iteration !== record.z0.iteration) {
@@ -181,7 +185,7 @@ export function runNaturalContinuations(
   }
   if (stateChecksum(z0) !== parentChecksum) throw new Error("Z0 changed while continuations were sampled");
   return {
-    origin: "handoff",
+    origin,
     ...identity,
     z0Iteration: z0.iteration,
     parentChecksum,
@@ -189,6 +193,15 @@ export function runNaturalContinuations(
     rules: rulesFrom(config),
     continuations,
   };
+}
+
+export function runNaturalContinuations(
+  request: Skill3SourceRequest,
+  count = NATURAL_CONTINUATION_COUNT,
+  config: EventSampleConfig = DEFAULT_EVENT_CONFIG,
+): NaturalContinuationSet {
+  const { record, handoff } = loadValidatedSkill2Handoff(request);
+  return continuationsFromOpenedZ0(record, handoff, "handoff", count, config);
 }
 
 const continuationCache = new Map<string, NaturalContinuationSet>();

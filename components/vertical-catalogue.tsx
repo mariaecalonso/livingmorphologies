@@ -133,6 +133,7 @@ export function VerticalCatalogue({
   candidate: CandidateRequest | null;
 }) {
   const search = useSearchParams();
+  const preview = search.get("preview") === "1";
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
@@ -151,6 +152,7 @@ export function VerticalCatalogue({
       archetype: candidate.archetypeId,
       candidate: String(candidate.candidateId),
     });
+    if (preview) params.set("preview", "1");
     setPending(true);
     setError(null);
     void fetch(`/api/vertical?${params}`, { signal: controller.signal })
@@ -167,7 +169,7 @@ export function VerticalCatalogue({
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [candidate, initial]);
+  }, [candidate, initial, preview]);
 
   useEffect(() => {
     if (!set) return;
@@ -218,6 +220,7 @@ export function VerticalCatalogue({
         </div>
         <div className="vertical-catalogue-nav">
           {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+          {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
           <Link href={processHref} className="vertical-catalogue-back">Process</Link>
         </div>
       </header>
@@ -315,7 +318,7 @@ export function VerticalCatalogue({
                   <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
                 </dl>
                 {error ? <p className="vertical-process-note">{error}</p> : null}
-                {pending ? <p className="vertical-process-note">Checking handoff</p> : null}
+                {pending ? <p className="vertical-process-note">{preview ? "Provisional replay" : "Checking handoff"}</p> : null}
                 {!matches && !pending && !error ? <p className="vertical-process-note">No continuation set for this archetype</p> : null}
                 {selected ? (
                   <dl className="vertical-catalogue-facts">

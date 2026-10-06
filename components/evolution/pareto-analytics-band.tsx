@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useState, type ReactNode } from "react";
 import { useViewMode } from "@/components/view-mode";
+import { formatMatch } from "@/components/evolution/format-match";
+import { MetricInfo, type ExplainSection } from "@/components/evolution/metric-info";
 import type { GenerationAnalytics, Turnover, TurnoverKind } from "@/lib/skill2/pareto-analytics";
 
 const formatGeneration = (index: number) => `G${String(index).padStart(2, "0")}`;
@@ -44,8 +45,6 @@ function valueY(value: number, min: number, max: number) {
   const span = max - min || 1;
   return 30 - ((value - min) / span) * 24;
 }
-
-type ExplainSection = { label: string; text: string };
 
 const EXPLANATIONS: Record<string, ExplainSection[]> = {
   hypervolume: [
@@ -95,7 +94,7 @@ const EXPLANATIONS: Record<string, ExplainSection[]> = {
     },
     {
       label: "How to read it",
-      text: "Entered members are new non-dominated solutions. Displaced members were removed because a newer candidate dominated them. A large retained share means the front is stable. Click a segment to highlight those candidates in the objective space.",
+      text: "Entered members are new non-dominated solutions. Displaced members were removed because a newer candidate dominated them. A large retained share means the front is stable. Click a point to highlight those candidates in the objective space.",
     },
     {
       label: "Method",
@@ -146,149 +145,6 @@ function ChartFrame({
       </header>
       {children}
     </article>
-  );
-}
-
-function MetricInfo({ label, sections }: { label: string; sections: ExplainSection[] }) {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const closeTimer = useRef<number | null>(null);
-  const pinned = useRef(false);
-  const token = useRef(Symbol());
-  const [open, setOpen] = useState(false);
-  const [placed, setPlaced] = useState(false);
-  const [box, setBox] = useState({ top: 0, left: 0, fontSize: "16px" });
-
-  const clearClose = () => {
-    if (closeTimer.current != null) window.clearTimeout(closeTimer.current);
-    closeTimer.current = null;
-  };
-  const show = () => {
-    clearClose();
-    window.dispatchEvent(new CustomEvent("pareto-info-open", { detail: token.current }));
-    setOpen(true);
-  };
-  const hide = () => {
-    clearClose();
-    closeTimer.current = window.setTimeout(() => {
-      if (!pinned.current) setOpen(false);
-    }, 140);
-  };
-
-  useEffect(() => {
-    const onOther = (event: Event) => {
-      if ((event as CustomEvent<symbol>).detail === token.current) return;
-      pinned.current = false;
-      setOpen(false);
-    };
-    window.addEventListener("pareto-info-open", onOther);
-    return () => window.removeEventListener("pareto-info-open", onOther);
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!open || !triggerRef.current || !panelRef.current) return;
-    const place = () => {
-      const trigger = triggerRef.current;
-      const panel = panelRef.current;
-      if (!trigger || !panel) return;
-      const triggerBox = trigger.getBoundingClientRect();
-      const panelBox = panel.getBoundingClientRect();
-      const margin = 10;
-      let top = triggerBox.top - panelBox.height - margin;
-      let left = triggerBox.left;
-      if (top < margin) top = triggerBox.bottom + margin;
-      if (left + panelBox.width > window.innerWidth - margin) left = window.innerWidth - margin - panelBox.width;
-      if (left < margin) left = margin;
-      if (top + panelBox.height > window.innerHeight - margin) top = Math.max(margin, window.innerHeight - margin - panelBox.height);
-      const page = document.querySelector(".evo-page");
-      const fontSize = page ? getComputedStyle(page).fontSize : "16px";
-      setBox({ top, left, fontSize });
-      setPlaced(true);
-    };
-    place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [open, label]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      pinned.current = false;
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-    const onPointer = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (triggerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      pinned.current = false;
-      setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onPointer);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onPointer);
-    };
-  }, [open]);
-
-  useEffect(() => () => clearClose(), []);
-
-  return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="pareto-info"
-        data-open={open || undefined}
-        aria-expanded={open}
-        aria-label={`About ${label}`}
-        onMouseEnter={show}
-        onMouseLeave={hide}
-        onFocus={show}
-        onBlur={(event) => {
-          if (panelRef.current?.contains(event.relatedTarget as Node)) return;
-          hide();
-        }}
-        onClick={() => {
-          const next = !pinned.current;
-          pinned.current = next;
-          clearClose();
-          if (next) show();
-          else setOpen(false);
-        }}
-      >
-        i
-      </button>
-      {open
-        ? createPortal(
-            <div
-              ref={panelRef}
-              className="pareto-explain"
-              role="dialog"
-              aria-label={label}
-              style={{ top: box.top, left: box.left, fontSize: box.fontSize, visibility: placed ? "visible" : "hidden" }}
-              onMouseEnter={show}
-              onMouseLeave={hide}
-            >
-              <p className="pareto-explain-title">{label}</p>
-              <dl>
-                {sections.map((section) => (
-                  <div key={section.label}>
-                    <dt>{section.label}</dt>
-                    <dd>{section.text}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
   );
 }
 
@@ -363,6 +219,7 @@ function Dots({
   max,
   tone,
   focus,
+  onSelect,
 }: {
   values: (number | null)[];
   generations: number[];
@@ -370,6 +227,7 @@ function Dots({
   max: number;
   tone: string;
   focus: number | null;
+  onSelect?: (index: number) => void;
 }) {
   return (
     <>
@@ -379,10 +237,12 @@ function Dots({
             key={`${tone}-${generations[index]}`}
             className="pareto-chart-dot"
             data-tone={tone}
+            data-pick={onSelect ? true : undefined}
             data-hot={focus === generations[index] || undefined}
             cx={slotX(index, values.length)}
             cy={valueY(value, min, max)}
-            r={focus === generations[index] ? 1.45 : 1.05}
+            r={focus === generations[index] ? 1.15 : 0.85}
+            onClick={onSelect ? () => onSelect(index) : undefined}
           />
         ),
       )}
@@ -445,11 +305,29 @@ export function ParetoAnalyticsBand({ series, turnovers, focus, membership, onFo
       : [],
   );
   const spreadDomain = domain(spreadValues, true);
-  const turnoverMax = Math.max(1, ...turnovers.map((item) => item.retained + item.entrants + item.displaced));
+  const turnoverCount = (pick: (item: (typeof turnovers)[number]) => number) =>
+    series.map((item) => {
+      const step = turnovers.find((entry) => entry.to === item.index);
+      return step ? pick(step) : null;
+    });
+  const retainedLine = turnoverCount((item) => item.retained);
+  const entrantLine = turnoverCount((item) => item.entrants);
+  const displacedLine = turnoverCount((item) => item.displaced);
+  const turnoverDomain = domain(
+    [...retainedLine, ...entrantLine, ...displacedLine].filter((value): value is number => value != null),
+    true,
+  );
+  const pickTurnover = (index: number, kind: TurnoverKind) => {
+    const step = turnovers.find((entry) => entry.to === series[index]?.index);
+    if (!step) return;
+    const ids = kind === "retained" ? step.retainedIds : kind === "entrants" ? step.entrantIds : step.displacedIds;
+    if (ids.length === 0) return;
+    onMembership(step.to, kind, ids);
+  };
   const turnoverReadout = turnovers.find((item) => item.to === pinned?.index) ?? (presentation ? turnovers[turnovers.length - 1] : undefined);
   const hyperNote = pinned ? `${formatGeneration(pinned.index)} ${formatNumber(pinned.hypervolume, 3)}` : "\u00a0";
   const progressionNote = pinned
-    ? `${formatGeneration(pinned.index)} F ${formatNumber(pinned.medians.formal)} · S ${formatNumber(pinned.medians.spatial)} · A ${formatNumber(pinned.medians.atmospheric)}`
+    ? `${formatGeneration(pinned.index)} F ${formatMatch(pinned.medians.formal)} · S ${formatMatch(pinned.medians.spatial)} · A ${formatMatch(pinned.medians.atmospheric)}`
     : "\u00a0";
   const turnoverNote = turnoverReadout
     ? `${formatGeneration(turnoverReadout.from)}→${formatGeneration(turnoverReadout.to)} ${turnoverReadout.retained} retained · ${turnoverReadout.entrants} entered · ${turnoverReadout.displaced} displaced`
@@ -481,6 +359,9 @@ export function ParetoAnalyticsBand({ series, turnovers, focus, membership, onFo
           <GenerationHits generations={generations} focus={focus} onFocus={pointAt} onPick={onPick} />
           <Labels labels={labels} />
         </svg>
+        <p className="pareto-chart-key">
+          <span data-tone="volume">Volume</span>
+        </p>
       </ChartFrame>
 
       <ChartFrame
@@ -547,57 +428,15 @@ export function ParetoAnalyticsBand({ series, turnovers, focus, membership, onFo
           <p className="pareto-chart-empty">A second generation is required.</p>
         ) : (
           <svg viewBox="0 0 100 36" role="img" aria-label="Archive members retained, entered, and displaced between generations">
-            {turnovers.map((item, index) => {
-              const x = turnovers.length === 1 ? 38 : 10 + (index * 76) / (turnovers.length - 1);
-              const unit = 22 / turnoverMax;
-              const displaced = item.displaced * unit;
-              const retained = item.retained * unit;
-              const entrants = item.entrants * unit;
-              const base = 28;
-              const active = (kind: TurnoverKind) => membership?.generation === item.to && membership.kind === kind;
-              const select = (kind: TurnoverKind, ids: number[]) => {
-                if (ids.length === 0) return;
-                onMembership(item.to, kind, ids);
-              };
-              return (
-                <g key={`${item.from}-${item.to}`} onMouseEnter={() => pointAt(item.to)} onMouseLeave={() => pointAt(null)}>
-                  {focus === item.to ? <line className="pareto-chart-rule" x1={x + 7} x2={x + 7} y1={3} y2={28} /> : null}
-                  <rect
-                    x={x}
-                    y={base - displaced}
-                    width="14"
-                    height={Math.max(displaced, 0)}
-                    className="pareto-chart-bar"
-                    data-tone="displaced"
-                    data-active={active("displaced") || undefined}
-                    onClick={() => select("displaced", item.displacedIds)}
-                  />
-                  <rect
-                    x={x}
-                    y={base - displaced - retained}
-                    width="14"
-                    height={Math.max(retained, 0)}
-                    className="pareto-chart-bar"
-                    data-tone="retained"
-                    data-active={active("retained") || undefined}
-                    onClick={() => select("retained", item.retainedIds)}
-                  />
-                  <rect
-                    x={x}
-                    y={base - displaced - retained - entrants}
-                    width="14"
-                    height={Math.max(entrants, 0)}
-                    className="pareto-chart-bar"
-                    data-tone="entrants"
-                    data-active={active("entrants") || undefined}
-                    onClick={() => select("entrants", item.entrantIds)}
-                  />
-                  <text className="pareto-chart-labels" x={x + 7} y={35.2} textAnchor="middle">
-                    {formatGeneration(item.to)}
-                  </text>
-                </g>
-              );
-            })}
+            <FocusRule count={series.length} focusIndex={focusIndex} />
+            <path d={polyline(retainedLine, turnoverDomain.min, turnoverDomain.max)} className="pareto-chart-line" data-tone="retained" />
+            <path d={polyline(entrantLine, turnoverDomain.min, turnoverDomain.max)} className="pareto-chart-line" data-tone="entrants" />
+            <path d={polyline(displacedLine, turnoverDomain.min, turnoverDomain.max)} className="pareto-chart-line" data-tone="displaced" />
+            <GenerationHits generations={generations} focus={focus} onFocus={pointAt} onPick={onPick} />
+            <Dots values={retainedLine} min={turnoverDomain.min} max={turnoverDomain.max} tone="retained" focus={focus} generations={generations} onSelect={(index) => pickTurnover(index, "retained")} />
+            <Dots values={entrantLine} min={turnoverDomain.min} max={turnoverDomain.max} tone="entrants" focus={focus} generations={generations} onSelect={(index) => pickTurnover(index, "entrants")} />
+            <Dots values={displacedLine} min={turnoverDomain.min} max={turnoverDomain.max} tone="displaced" focus={focus} generations={generations} onSelect={(index) => pickTurnover(index, "displaced")} />
+            <Labels labels={labels} />
           </svg>
         )}
         <p className="pareto-chart-key">

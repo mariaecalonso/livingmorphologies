@@ -82,6 +82,7 @@ function roundedScore(value: number | null | undefined) {
 
 function handoffStatus(origin: string | undefined, pending: boolean, error: string | null) {
   if (origin === "handoff") return "Validated";
+  if (origin === "provisional") return "Provisional";
   if (origin === "development-fixture") return "Fixture";
   if (error) return "Failed";
   if (pending) return "Checking";
@@ -376,6 +377,7 @@ export function VerticalProcess({
   provenance?: Skill2Provenance | null;
 }) {
   const search = useSearchParams();
+  const preview = search.get("preview") === "1";
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
@@ -391,6 +393,7 @@ export function VerticalProcess({
       archetype: candidate.archetypeId,
       candidate: String(candidate.candidateId),
     });
+    if (preview) params.set("preview", "1");
     setSet(null);
     setError(null);
     setPending(true);
@@ -412,7 +415,7 @@ export function VerticalProcess({
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [candidate, initial]);
+  }, [candidate, initial, preview]);
 
   const matchesSelection = set != null && (
     candidate == null
@@ -515,6 +518,7 @@ export function VerticalProcess({
           <p className="eyebrow evo-header-detail">{context}</p>
         </div>
         {activeSet?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+        {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
       </header>
 
       <div className="vertical-process-body">

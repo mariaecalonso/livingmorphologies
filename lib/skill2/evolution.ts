@@ -94,7 +94,7 @@ export type GenerationRecord = {
 };
 
 export type EvolutionRun = {
-  version: 1;
+  version: 1 | 2;
   archetypeId: string;
   typologyId: TypologyId;
   evaluationSeed: number;
@@ -108,6 +108,17 @@ export type EvolutionRun = {
   candidates: Candidate[];
   /** Current global archive; the Pareto Catalog reads this, not rank 1. */
   archiveIds: number[];
+  /**
+   * Present on stored version-2 archives. This controller does not select them.
+   * The catalog reader falls back to empty lists when a run omits them.
+   */
+  specialistIds?: {
+    formal: number[];
+    spatial: number[];
+    atmospheric: number[];
+  };
+  /** Best feasible candidate for each legal orientation, when a stored run recorded one. */
+  orientationEliteIds?: number[];
 };
 
 export type EvaluateBatch = (genomes: Genome[]) => Promise<GenomeEvaluation[]>;

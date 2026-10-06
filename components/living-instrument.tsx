@@ -934,7 +934,7 @@ export function LivingInstrument() {
                 </div>
               </aside>
 
-              <div className="agent-compare">
+              <div className="agent-compare agent-compare-field">
                 <div className="agent-compare-head">
                   <p className="eyebrow agent-zone-title">Physarum field</p>
                   <div className="flex flex-wrap items-center justify-end gap-1">
@@ -970,7 +970,7 @@ export function LivingInstrument() {
                     </button>
                   </div>
                 </div>
-                <div className="agent-compare-head">
+                <div className="agent-compare-head agent-carving">
                   <p className="eyebrow agent-zone-title">Carving</p>
                   <button
                     type="button"
@@ -1005,7 +1005,7 @@ export function LivingInstrument() {
                     />
                   </div>
                 </div>
-                <div className="agent-stage" ref={carvingExportRef}>
+                <div className="agent-stage agent-carving" ref={carvingExportRef}>
                   <div className="agent-stage-square agent-field bg-[#000000]">
                     <Skill2DirectInverseField
                       trails={liveSnapshot?.trails ?? null}
@@ -1019,7 +1019,7 @@ export function LivingInstrument() {
                 <p className="agent-compare-foot text-[0.52rem] uppercase tracking-[0.12em] text-[var(--muted)]">
                   {simulating ? "Running" : state?.converged ? "Converged" : "Ready"}
                 </p>
-                <label className="agent-carve-control flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
+                <label className="agent-carve-control agent-carving flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
                   <span className="flex items-center justify-between gap-2">
                     <span>Carving threshold</span>
                     <span className="tabular-nums text-[var(--text)]">{carveThreshold.toFixed(2)}</span>

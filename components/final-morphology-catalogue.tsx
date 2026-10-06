@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
 import type { NaturalContinuation } from "@/lib/skill3/continuations";
@@ -83,6 +84,8 @@ function ModuleMark({ id }: { id: string }) {
 }
 
 export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
+  const search = useSearchParams();
+  const preview = search.get("preview") === "1";
   const rows = ROWS.map((row) => ({ ...row, slots: slotsFor(row) }));
   const [indexes, setIndexes] = useState<Record<RowId, number>>({ lobby: 2, workspace: 2, gathering: 2 });
   const [focus, setFocus] = useState<Focus>({ row: "lobby", index: 2 });
@@ -94,8 +97,13 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
   }, []);
 
   useEffect(() => {
-    setCollection(readSelectedSkill3Collection(fixture ? "development-fixture" : "handoff"));
-  }, [fixture]);
+    const origin = preview ? "provisional" : fixture ? "development-fixture" : "handoff";
+    setCollection(readSelectedSkill3Collection(origin));
+    if (preview) {
+      setIndexes((current) => ({ ...current, workspace: 0 }));
+      setFocus({ row: "workspace", index: 0 });
+    }
+  }, [fixture, preview]);
 
   useEffect(() => {
     const selections = Object.values(collection);
@@ -110,22 +118,15 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
         cancel = true;
       };
     }
-    if (fixture) {
-      const next: Record<string, VerticalViewerField | null> = {};
-      void Promise.all(selections.map(async (selection) => {
-        next[selection.archetypeId] = await loadCachedField(selection, controller.signal, true);
-      })).then(() => apply(next));
-    } else {
-      const next: Record<string, VerticalViewerField | null> = {};
-      void Promise.all(selections.map(async (selection) => {
-        next[selection.archetypeId] = await loadCachedField(selection, controller.signal, false);
-      })).then(() => apply(next));
-    }
+    const next: Record<string, VerticalViewerField | null> = {};
+    void Promise.all(selections.map(async (selection) => {
+      next[selection.archetypeId] = await loadCachedField(selection, controller.signal, preview ? "provisional" : fixture ? "fixture" : "handoff");
+    })).then(() => apply(next));
     return () => {
       cancel = true;
       controller.abort();
     };
-  }, [collection, fixture]);
+  }, [collection, fixture, preview]);
 
   const focusRow = rows.find((row) => row.id === focus.row) ?? rows[0];
   const focusSlot = focusRow.slots[focus.index] ?? focusRow.slots[0];
@@ -141,7 +142,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
 
   return (
     <main className="final-catalogue">
-      <Summary rows={rows} collection={collection} selectedCount={selectedCount} />
+      <Summary rows={rows} collection={collection} selectedCount={selectedCount} preview={preview} />
       <div className="final-rows">
         {rows.map((row) => (
           <TypologyBand
@@ -174,14 +175,16 @@ function Summary({
   rows,
   collection,
   selectedCount,
+  preview,
 }: {
   rows: { id: RowId; label: string; slots: Slot[] }[];
   collection: SelectedSkill3Collection;
   selectedCount: number;
+  preview: boolean;
 }) {
   return (
     <aside className="final-summary">
-      <p className="eyebrow">Curated morphology archive</p>
+      <p className="eyebrow">{preview ? "Provisional preview" : "Curated morphology archive"}</p>
       <h1 className="display">Final Morphology Catalogue</h1>
       <p className="final-summary-lead">One selected morphology per archetype</p>
       <p className="final-summary-count">
@@ -372,15 +375,20 @@ function SlotMesh({
   );
 }
 
-async function loadCachedField(selection: SelectedSkill3Morphology, signal: AbortSignal, fixture: boolean): Promise<VerticalViewerField | null> {
+async function loadCachedField(
+  selection: SelectedSkill3Morphology,
+  signal: AbortSignal,
+  source: "handoff" | "fixture" | "provisional",
+): Promise<VerticalViewerField | null> {
   const params = new URLSearchParams({
     continuation: selection.continuationId,
   });
-  if (fixture) params.set("fixture", "1");
+  if (source === "fixture") params.set("fixture", "1");
   else {
     params.set("cache", "1");
     params.set("archetype", selection.archetypeId);
     params.set("candidate", String(selection.candidateId));
+    if (source === "provisional") params.set("preview", "1");
   }
   try {
     const response = await fetch(`/api/vertical?${params}`, { signal });
@@ -388,7 +396,7 @@ async function loadCachedField(selection: SelectedSkill3Morphology, signal: Abor
     const body = await response.json() as { continuation?: NaturalContinuation };
     const continuation = body.continuation;
     if (!continuation?.field || !sameSelectedMorphology(selection, continuation)) return null;
-    if (fixture && continuation.archetypeId !== selection.archetypeId) return null;
+    if (source === "fixture" && continuation.archetypeId !== selection.archetypeId) return null;
     return continuation.field;
   } catch {
     return null;

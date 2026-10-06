@@ -1,0 +1,22 @@
+{
+  "profile": "lobby-semantic-v1",
+  "archetypeId": "linear-gallery",
+  "runSeed": 1,
+  "populationSize": 100,
+  "generations": 4,
+  "purpose": "production",
+  "duplicateAttemptBudget": 30,
+  "specialists": false,
+  "deriveG01Fidelity": true,
+  "diversityParentSelection": { "kind": "provisional-uniform" },
+  "catalogDedup": null,
+  "descriptor": "descriptor-v1",
+  "fidelity": "g01-lower-mode-v1",
+  "paretoMutation": "one spanned numeric gene, sigma = 0.1 of its Skill 1 span",
+  "diversityMutation": "primary family gene to a different legal value",
+  "composition": {
+    "2": { "explorers": 70, "pareto": 22, "diversity": 8, "specialist": 0 },
+    "3": { "explorers": 50, "pareto": 37, "diversity": 13, "specialist": 0 },
+    "4": { "explorers": 30, "pareto": 52, "diversity": 18, "specialist": 0 }
+  }
+}
