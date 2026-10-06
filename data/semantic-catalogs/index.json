@@ -8,16 +8,18 @@
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 144
+      "catalogCandidates": 88
     },
     "linear-gallery": {
       "status": "complete",
-      "fidelity": "warn",
+      "fidelity": "block",
       "warnings": [
         "receptivity is not a level-2 fidelity gate"
       ],
-      "blocks": [],
-      "catalogCandidates": 152
+      "blocks": [
+        "technical validity collapsed"
+      ],
+      "catalogCandidates": 23
     },
     "compressed-sequential": {
       "status": "complete",
@@ -26,26 +28,31 @@
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 178
+      "catalogCandidates": 94
     },
     "continuous-hall": {
-      "status": "blocked",
+      "status": "complete",
       "fidelity": "block",
       "warnings": [
-        "receptivity is not a level-2 fidelity gate"
+        "receptivity is not a level-2 fidelity gate",
+        "technical validity is low",
+        "fidelity pass rate is low"
       ],
-      "blocks": [],
-      "catalogCandidates": 0
+      "blocks": [
+        "semantic family banks-h was eliminated",
+        "semantic family taper-beads was eliminated"
+      ],
+      "catalogCandidates": 47
     },
     "vertical-void": {
-      "status": "blocked",
-      "fidelity": "block",
+      "status": "complete",
+      "fidelity": "warn",
       "warnings": [
         "receptivity is not a level-2 fidelity gate",
         "fidelity pass rate is low"
       ],
       "blocks": [],
-      "catalogCandidates": 0
+      "catalogCandidates": 89
     },
     "terraced": {
       "status": "complete",
@@ -92,6 +99,36 @@
       "warnings": [],
       "blocks": [],
       "catalogCandidates": 102
+    },
+    "flat-deep-plan": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 112
+    },
+    "inserted-horizontal-plate": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 133
+    },
+    "stepped-amphitheater": {
+      "status": "complete",
+      "fidelity": "warn",
+      "warnings": [
+        "no primary family gene was declared"
+      ],
+      "blocks": [],
+      "catalogCandidates": 102
+    },
+    "void-edge": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 125
     }
   }
 }
