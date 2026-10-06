@@ -37,8 +37,6 @@ export type Skill2Provenance = {
   } | null;
 };
 
-const SEARCH_STAGES = ["G01", "G02", "G03", "G04"] as const;
-
 const CUBE_EDGES: [number[], number[]][] = [
   [[0, 0, 0], [1, 0, 0]], [[0, 1, 0], [1, 1, 0]], [[0, 0, 1], [1, 0, 1]], [[0, 1, 1], [1, 1, 1]],
   [[0, 0, 0], [0, 1, 0]], [[1, 0, 0], [1, 1, 0]], [[0, 0, 1], [0, 1, 1]], [[1, 0, 1], [1, 1, 1]],
@@ -72,11 +70,14 @@ type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
   fields: VerticalViewerField[];
 };
 
-function crowdingLabel(value: number | "boundary" | null | undefined) {
-  if (value == null) return "No crowding";
-  if (value === "boundary") return "Crowding boundary";
-  const text = Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return `Crowding ${text}`;
+function crowdingValue(value: number | "boundary" | null | undefined) {
+  if (value == null) return "—";
+  if (value === "boundary") return "Boundary";
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function roundedScore(value: number | null | undefined) {
+  return value == null ? "—" : value.toFixed(2);
 }
 
 function handoffStatus(origin: string | undefined, pending: boolean, error: string | null) {
@@ -97,26 +98,6 @@ function Strip({ items }: { items: readonly (readonly [string, string])[] }) {
         </div>
       ))}
     </dl>
-  );
-}
-
-function SearchTrace({
-  generations,
-  current,
-}: {
-  generations: Skill2Provenance["generations"] | null;
-  current: string | null;
-}) {
-  const slots = generations ?? SEARCH_STAGES.map((id) => ({ id, status: "schema" as const, front: null }));
-  return (
-    <ol className="vertical-process-search" aria-label="Evolutionary search">
-      {slots.map((slot) => (
-        <li key={slot.id} data-status={slot.status} data-current={slot.id === current || undefined}>
-          <span>{slot.id}</span>
-          {slot.front != null ? <span>{slot.front}</span> : null}
-        </li>
-      ))}
-    </ol>
   );
 }
 
@@ -489,7 +470,7 @@ export function VerticalProcess({
   const archetypeName = identity?.archetypeName ?? "Selected candidate";
   const candidateId = identity?.candidateId;
   const z0Iteration = activeSet?.z0Iteration;
-  const selectionZ0 = provenance?.candidate?.z0Iteration ?? z0Iteration;
+  const selectionZ0 = pending || error ? null : (provenance?.candidate?.z0Iteration ?? z0Iteration);
   const context = [
     typology,
     archetypeName,
@@ -543,41 +524,46 @@ export function VerticalProcess({
               <p className="eyebrow">01</p>
               <h2 className="panel-title">Evolutionary search</h2>
             </header>
-            <SearchTrace
-              generations={provenance?.generations ?? null}
-              current={provenance?.candidate ? `G${String(provenance.candidate.generation).padStart(2, "0")}` : null}
-            />
-            {provenance?.candidate ? (
-              <p className="vertical-process-note">
-                {`G${String(provenance.candidate.generation).padStart(2, "0")}`}
-                {" · "}
-                {provenance.candidate.id}
-                {" · "}
-                {provenance.candidate.parentId != null ? `Parent ${provenance.candidate.parentId}` : "No parent"}
-                {" · "}
-                {provenance.candidate.technicalValid ? "Technically valid" : "Technically invalid"}
-                {" · "}
-                {provenance.candidate.pareto ? "Pareto front" : "Not on front"}
-                {" · "}
-                {crowdingLabel(provenance.candidate.crowding)}
-              </p>
-            ) : null}
+            <ol className="vertical-process-search" aria-label="Evolutionary search">
+              <li>
+                <span>Generation</span>
+                <span>{provenance?.candidate ? `G${String(provenance.candidate.generation).padStart(2, "0")}` : "—"}</span>
+              </li>
+              <li>
+                <span>Candidate</span>
+                <span>{provenance?.candidate ? provenance.candidate.id : "—"}</span>
+              </li>
+              <li>
+                <span>Parent</span>
+                <span>{provenance?.candidate ? (provenance.candidate.parentId ?? "Explorer") : "—"}</span>
+              </li>
+              <li>
+                <span>Technical</span>
+                <span>{provenance?.candidate ? (provenance.candidate.technicalValid ? "Valid" : "Invalid") : "—"}</span>
+              </li>
+              <li>
+                <span>Pareto</span>
+                <span>{provenance?.candidate ? (provenance.candidate.pareto ? "Front" : "Off") : "—"}</span>
+              </li>
+              <li>
+                <span>Crowding</span>
+                <span>{provenance?.candidate ? crowdingValue(provenance.candidate.crowding) : "—"}</span>
+              </li>
+            </ol>
           </section>
           <section className="vertical-process-frame">
             <header className="vertical-process-label">
               <p className="eyebrow">02</p>
-              <h2 className="panel-title">Pareto + specialists</h2>
+              <h2 className="panel-title">Pareto + evaluation</h2>
             </header>
             <ParetoSketch objectives={provenance?.objectives ?? null} />
-            <p className="vertical-process-note">
-              {provenance?.objectives
-                ? `F ${provenance.objectives.formal.toFixed(2)} · S ${provenance.objectives.spatial.toFixed(2)} · A ${provenance.objectives.atmospheric.toFixed(2)}`
-                : "Formal · spatial · atmospheric"}
-            </p>
+            <p className="vertical-process-note">{`Formal ${roundedScore(provenance?.objectives?.formal)}`}</p>
+            <p className="vertical-process-note">{`Spatial ${roundedScore(provenance?.objectives?.spatial)}`}</p>
+            <p className="vertical-process-note">{`Atmospheric ${roundedScore(provenance?.objectives?.atmospheric)}`}</p>
             <p className="vertical-process-note">
               {provenance?.candidate
-                ? `${provenance.candidate.pareto ? "Pareto front" : "Not on front"} · ${crowdingLabel(provenance.candidate.crowding)}`
-                : "Pareto · crowding"}
+                ? `${provenance.candidate.pareto ? "Pareto front" : "Not on front"} · ${crowdingValue(provenance.candidate.crowding)}`
+                : "Pareto front · —"}
             </p>
           </section>
           <section className="vertical-process-frame vertical-process-selection">
@@ -597,11 +583,12 @@ export function VerticalProcess({
                 <ProcessPlate slice={z0} />
               ) : null}
             </div>
+            <p className="vertical-process-note">Selected 2D state</p>
             <p className="vertical-process-note">{typology}</p>
             <p className="vertical-process-note">{archetypeName}</p>
             <p className="vertical-process-note">{candidateId != null ? String(candidateId) : "—"}</p>
-            <p className="vertical-process-note">{selectionZ0 != null ? `Z0 ${selectionZ0}` : "Z0 withheld"}</p>
-            <p className="vertical-process-note">{status}</p>
+            {selectionZ0 != null ? <p className="vertical-process-note">{`Z0 ${selectionZ0}`}</p> : null}
+            <p className="vertical-process-note">{`Handoff → Skill 3 · ${status}`}</p>
           </section>
         </div>
 
