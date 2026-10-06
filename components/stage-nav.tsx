@@ -8,39 +8,43 @@ import { setViewMode } from "@/components/view-mode";
 
 type NavItem = { href: string; label: string };
 
-const STAGES: (NavItem & { match: string; sub?: NavItem[] })[] = [
-  { href: "/lab", label: "Workflow", match: "/lab" },
+const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[] })[] = [
+  { href: "/lab", label: "Workflow", active: (pathname) => pathname === "/lab" },
   {
     href: "/lab/physarum",
     label: "Physarum Logic",
-    match: "/lab/physarum",
+    active: (pathname) => pathname.startsWith("/lab/physarum") || pathname === "/scan" || pathname === "/screen" || pathname === "/vertical",
     sub: [
       { href: "/lab/physarum", label: "Translation" },
       { href: "/lab/physarum/runs", label: "Runs" },
       { href: "/lab/physarum/catalog", label: "Catalog" },
+      { href: "/scan", label: "Scan" },
+      { href: "/screen", label: "Screen" },
     ],
   },
   {
     href: "/lab/evolution",
     label: "2D Evolution",
-    match: "/lab/evolution",
+    active: (pathname) => pathname.startsWith("/lab/evolution") || pathname.startsWith("/evolution"),
     sub: [
       { href: "/lab/evolution", label: "Evolution" },
       { href: "/lab/evolution/pareto", label: "Pareto" },
       { href: "/lab/evolution/pareto-catalog", label: "Pareto Catalog" },
+      { href: "/evolution/pareto-catalog", label: "Run catalog" },
     ],
   },
-  { href: "/lab/vertical", label: "Vertical Propagation", match: "/lab/vertical" },
+  { href: "/lab/vertical", label: "Vertical Propagation", active: (pathname) => pathname === "/lab/vertical" || pathname.startsWith("/lab/vertical/") },
   {
     href: "/hybrid",
     label: "Hybrid Connection",
-    match: "/hybrid",
+    active: (pathname) => pathname === "/hybrid" || pathname.startsWith("/hybrid/"),
     sub: [
       { href: "/hybrid", label: "Process" },
       { href: "/hybrid/assembly", label: "Assembly" },
       { href: "/hybrid/connections", label: "Connections" },
     ],
   },
+  { href: "/filament", label: "Filament", active: (pathname) => pathname === "/filament" || pathname.startsWith("/filament/") },
 ];
 
 const VIEW_MODES: { id: DisplayMode; label: string }[] = [
@@ -48,15 +52,12 @@ const VIEW_MODES: { id: DisplayMode; label: string }[] = [
   { id: "presentation", label: "Presentation" },
 ];
 
-const isStageActive = (pathname: string, match: string) =>
-  match === "/lab" ? pathname === "/lab" : pathname === match || pathname.startsWith(`${match}/`);
-
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
   const pathname = usePathname();
   const search = useSearchParams();
   const wall = search.get("wall") === "1";
   const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
-  const activeStage = STAGES.find((stage) => isStageActive(pathname, stage.match));
+  const activeStage = STAGES.find((stage) => stage.active(pathname));
 
   const processQuery = () => {
     const params = new URLSearchParams(search.toString());
@@ -117,7 +118,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
         {activeStage?.sub ? (
           <nav className="stage-nav-sub" aria-label={`${activeStage.label} views`}>
             {activeStage.sub.map((item) => {
-              const active = pathname === item.href;
+              const active = pathname === item.href || (item.href === "/scan" && (pathname === "/scan" || pathname === "/vertical"));
               return (
                 <Link
                   key={item.href}
@@ -131,7 +132,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
               );
             })}
           </nav>
-        ) : activeStage?.match === "/lab/vertical" ? (
+        ) : activeStage?.href === "/lab/vertical" ? (
           <nav className="stage-nav-sub" aria-label="Vertical Propagation views">
             <Link
               href={processQuery()}

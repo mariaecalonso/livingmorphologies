@@ -12,7 +12,16 @@ const SECTIONS = [
 
 export function SiteNav() {
   const pathname = usePathname();
-  if (pathname === "/" || pathname.startsWith("/lab")) return null;
+  const stageRoute =
+    pathname === "/" ||
+    pathname.startsWith("/lab") ||
+    pathname.startsWith("/evolution") ||
+    pathname.startsWith("/hybrid") ||
+    pathname.startsWith("/filament") ||
+    pathname === "/scan" ||
+    pathname === "/screen" ||
+    pathname === "/vertical";
+  if (stageRoute) return null;
 
   return (
     <header className="site-nav">

@@ -154,25 +154,15 @@ function CandidateCard({
   );
 }
 
-function storedRoles(candidate: EvolutionCandidateView) {
-  const parts = [
-    candidate.pareto ? "Pareto" : null,
-    candidate.specialist,
-    candidate.diversity && candidate.diversity !== "none" ? candidate.diversity : null,
-  ].filter((part): part is string => part != null);
-  return parts.join(" · ");
-}
-
 export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const catalog = initial;
   const { archetype, select } = useSelectedArchetype(catalog);
   const [wall, setWall] = useState(false);
   const stackRef = useRef<HTMLDivElement>(null);
-  const published = archetype?.candidates ?? [];
+  const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
   const specialists = (["formal", "spatial", "atmospheric"] as const).flatMap((emphasis) =>
-    published.filter((candidate) => candidate.specialist === emphasis),
+    archetype?.candidates.filter((candidate) => candidate.specialist === emphasis && candidate.image) ?? [],
   );
-  const archive = published.filter((candidate) => candidate.specialist == null);
   const cardRows = wall ? 5 : 3;
   const weightedRows = specialists.length > 0 ? (wall ? 2 : 1) : 0;
   const archiveRows = Math.max(1, cardRows - weightedRows);
@@ -247,7 +237,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
       <header className="runs-header border-b border-[var(--line)] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
           <p className="display text-[0.72rem] text-white">Pareto Catalog</p>
-          <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{published.length} published</p>
+          <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{archive.length} Pareto</p>
         </div>
         <p className="eyebrow mt-0.5 min-w-0 truncate">
           {archetype
@@ -271,7 +261,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 <div className="flex min-h-0 flex-1 flex-col gap-1.5">
                   {typology.archetypes.map((item) => {
                     const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
-                    const count = run?.candidates.length ?? 0;
+                    const count = run?.candidates.filter((candidate) => candidate.archived && candidate.image).length ?? 0;
                     const active = item.id === archetype?.archetypeId;
                     const progress =
                       run && run.completedGenerations < run.generationCount
@@ -284,7 +274,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                         key={item.id}
                         type="button"
                         disabled={!run}
-                        title={run ? undefined : "No published semantic catalogue"}
+                        title={run ? undefined : "Search not run yet"}
                         onClick={() => run && choose(item.id)}
                         className={`flex min-h-0 flex-1 items-center border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition disabled:opacity-30 ${
                           active
@@ -318,10 +308,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
               note="One objective preferred"
               items={specialists}
               selectedKey={selectedKey}
-              meta={(candidate) => {
-                const roles = storedRoles(candidate);
-                return roles ? `${roles} · ${formatCandidateId(candidate.id)}` : formatCandidateId(candidate.id);
-              }}
+              meta={(candidate) => `${candidate.specialist} · ${formatCandidateId(candidate.id)}`}
               columns={fit.columns}
               rows={weightedRows}
               cardSize={fit.size}
@@ -332,17 +319,17 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
           ) : null}
           <div className="pareto-band-head pareto-archive-label">
             <p className="eyebrow pareto-band-label">
-              Published catalog
-              <span>Stored combined catalog</span>
+              Unweighted archive
+              <span>No objective preferred</span>
             </p>
             <StripPager page={current} pageCount={pageCount} onPage={setPage} />
           </div>
           <div className="runs-catalog-body">
-            {published.length === 0 ? (
+            {archive.length === 0 ? (
               <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-                This archetype has no published semantic candidates
+                This archetype has no archive images yet
               </p>
-            ) : archive.length === 0 ? null : (
+            ) : (
               <div
                 className="runs-catalog-grid"
                 style={{
@@ -356,11 +343,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     key={candidate.key}
                     candidate={candidate}
                     active={candidate.key === selectedKey}
-                    meta={(() => {
-                      const roles = storedRoles(candidate);
-                      const identity = `${formatGeneration(candidate.generation)} · ${formatCandidateId(candidate.id)}`;
-                      return roles ? `${identity} · ${roles}` : identity;
-                    })()}
+                    meta={`${formatGeneration(candidate.generation)} · ${formatCandidateId(candidate.id)}`}
                     width={fit.size}
                     maxHeight={fit.row}
                     onClick={() => setSelectedKey((key) => (key === candidate.key ? null : candidate.key))}
@@ -429,15 +412,12 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                   </div>
                   <div>
                     <dt>Pareto status</dt>
-                    <dd>{storedRoles(selected) || "Published catalog"}</dd>
+                    <dd>
+                      {selected.specialist ? `Specialist · ${selected.specialist}` : "Non-dominated archive"}
+                    </dd>
                   </div>
                 </dl>
-                <button
-                  type="button"
-                  className="archive-handoff"
-                  disabled
-                  title="Vertical propagation waits for a published semantic Z0 checksum"
-                >
+                <button type="button" className="archive-handoff" disabled title="Available once vertical propagation is connected">
                   Select for vertical propagation
                 </button>
               </div>

@@ -11,5 +11,5 @@ export default async function EvolutionPage({
     if (typeof value === "string") query.set(key, value);
   }
   const suffix = query.toString();
-  redirect(suffix ? `/evolution/process?${suffix}` : "/evolution/process");
+  redirect(suffix ? `/lab/evolution?${suffix}` : "/lab/evolution");
 }

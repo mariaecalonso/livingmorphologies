@@ -1,5 +1,4 @@
 import { Fragment } from "react";
-import { WorkflowNetwork } from "@/components/workflow-network";
 
 type WorkflowStage = {
   title: string;
@@ -9,12 +8,17 @@ type WorkflowStage = {
   note?: string;
 };
 
+type WorkflowHandoff = {
+  label: string;
+};
+
 const STAGES: WorkflowStage[] = [
   {
     title: "Architectural Input",
     summary: "The design brief, expressed as rated architectural criteria.",
     steps: ["Typology", "Archetype", "Criteria", "Ratings", "Descriptors"],
     chain: false,
+    note: "Ratings and descriptors are locked. They are the brief every later stage reads.",
   },
   {
     title: "Physarum Logic",
@@ -27,6 +31,7 @@ const STAGES: WorkflowStage[] = [
       "2D morphology generation",
     ],
     chain: true,
+    note: "The translation stays fixed. Its generated morphologies are what 2D evolution searches.",
   },
   {
     title: "2D Evolution",
@@ -47,29 +52,31 @@ const STAGES: WorkflowStage[] = [
     summary: "The chosen section grows through successive states into volume.",
     steps: ["Selected 2D morphology", "Successive states", "Vertical propagation", "Volumetric morphology"],
     chain: true,
+    note: "The chosen section grows through successive states into one volumetric morphology.",
+  },
+  {
+    title: "Tiling",
+    summary: "The fifteen volumetric models interlock and aggregate.",
+    steps: ["15 volumetric models", "Interlocking", "Aggregation"],
+    chain: true,
+    note: "In construction",
   },
 ];
 
-const HANDOFFS = ["Criteria ratings + descriptors", "2D morphology + translation state", "Selected non-dominated morphology"];
+const HANDOFFS: WorkflowHandoff[] = [
+  { label: "Criteria ratings + descriptors" },
+  { label: "2D morphology + translation state" },
+  { label: "Selected non-dominated morphology" },
+  { label: "15 volumetric models" },
+];
 
 export function WorkflowOverview() {
   return (
     <main className="workflow-page">
-      <header className="workflow-hero">
-        <div className="workflow-hero-text">
-          <p className="display workflow-title">Living Morphologies</p>
-          <p className="workflow-lede">
-            Architectural criteria translated through emergent growth, evolutionary selection, and vertical propagation.
-          </p>
-          <p className="eyebrow workflow-hero-note">Illustrative · not simulation output</p>
-        </div>
-        <WorkflowNetwork />
-      </header>
-
       <ol className="workflow-flow">
         {STAGES.map((stage, index) => (
           <Fragment key={stage.title}>
-            <li className="workflow-stage" data-input={index === 0 || undefined}>
+            <li className="workflow-stage">
               <p className="eyebrow workflow-stage-kicker">{index === 0 ? "Input" : "Stage"}</p>
               <h2 className="display workflow-stage-title">{stage.title}</h2>
               <p className="workflow-stage-summary">{stage.summary}</p>
@@ -81,9 +88,12 @@ export function WorkflowOverview() {
               {stage.note ? <p className="workflow-stage-note">{stage.note}</p> : null}
             </li>
             {index < HANDOFFS.length ? (
-              <li className="workflow-handoff" aria-label={`Handoff: ${HANDOFFS[index]}`}>
+              <li
+                className="workflow-handoff"
+                aria-label={`Handoff: ${HANDOFFS[index].label}`}
+              >
                 <span className="workflow-handoff-arrow" aria-hidden="true" />
-                <span className="workflow-handoff-label">{HANDOFFS[index]}</span>
+                <span className="workflow-handoff-label">{HANDOFFS[index].label}</span>
               </li>
             ) : null}
           </Fragment>

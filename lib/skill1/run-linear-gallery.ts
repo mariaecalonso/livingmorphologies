@@ -683,7 +683,6 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
       sensorAngle: f.r(0.08, 0.24),
     },
   };
-  const carved = plan.kind === "loop" || plan.kind === "islands" || plan.growth === "mass" || plan.growth === "bloom" || plan.growth === "heavy";
   return {
     ...base,
     stepSize: f.r(0.1, 0.36),
@@ -695,10 +694,10 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
     trailInfluence: f.r(0.2, 0.38),
     randomness: f.r(0.16, 0.3),
     persistence: f.r(0.28, 0.46),
+    decay: 0.998,
     diffusion: 0,
-    decay: f.r(0.94, 0.994),
-    voidElongation: carved ? f.r(0.55, 1.85) : 1,
-    voidRotation: carved ? f.r(0, Math.PI) : 0,
+    voidElongation: 1,
+    voidRotation: 0,
     voidLobes: 0,
     voidNotch: 0,
   };
