@@ -1,46 +1,221 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
-  ArchetypeSwitch,
   EvolutionImage,
   formatCandidateId,
   formatGeneration,
-  useEvolutionCatalog,
   useSelectedArchetype,
 } from "@/components/evolution/evolution-data";
-import { EvolutionHeader } from "@/components/evolution/evolution-header";
+import { formatMatch } from "@/components/evolution/format-match";
 import { ObjectiveBars } from "@/components/evolution/pareto-space";
-import { useSquareGridFit } from "@/components/use-square-grid-fit";
-import { useViewMode } from "@/components/view-mode";
-import { BRANCHES } from "@/lib/catalog";
-import { writeVerticalSelection } from "@/lib/skill3/selection";
-import type { EvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { BRANCHES, TYPOLOGIES } from "@/lib/catalog";
+import type { TypologyId } from "@/lib/types";
+import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
+
+function isTypologyId(value: string | undefined): value is TypologyId {
+  return value === "lobby" || value === "workspace" || value === "gathering";
+}
+
+function observedCriteria(typologyId: string | undefined) {
+  const typology = isTypologyId(typologyId) ? typologyId : null;
+  return BRANCHES.flatMap((branch) =>
+    [...branch.shared, ...(typology ? [branch.specific[typology]] : [])].map((criterion) => ({
+      id: criterion.id,
+      label: criterion.label,
+      branch: branch.title,
+    })),
+  );
+}
+
+function StripPager({
+  page,
+  pageCount,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  onPage: (page: number) => void;
+}) {
+  return (
+    <div className="runs-catalog-pager">
+      <button type="button" onClick={() => onPage(page - 1)} disabled={page === 0} aria-label="Previous page">
+        ‹
+      </button>
+      <span>
+        {page + 1} / {pageCount}
+      </span>
+      <button type="button" onClick={() => onPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
+        ›
+      </button>
+    </div>
+  );
+}
+
+function PagedStrip({
+  label,
+  note,
+  items,
+  selectedKey,
+  meta,
+  columns,
+  rows,
+  cardSize,
+  rowHeight,
+  gap,
+  onSelect,
+}: {
+  label: string;
+  note: string;
+  items: EvolutionCandidateView[];
+  selectedKey: string | null;
+  meta: (candidate: EvolutionCandidateView) => string;
+  columns: number;
+  rows: number;
+  cardSize: number;
+  rowHeight: number;
+  gap: number;
+  onSelect: (key: string) => void;
+}) {
+  const [page, setPage] = useState(0);
+  const perPage = Math.max(1, columns * rows);
+  const pageCount = Math.max(1, Math.ceil(items.length / perPage));
+  const current = Math.min(page, pageCount - 1);
+  const visible = items.slice(current * perPage, current * perPage + perPage);
+  return (
+    <div className="pareto-band">
+      <div className="pareto-band-head">
+        <p className="eyebrow pareto-band-label">
+          {label}
+          <span>{note}</span>
+        </p>
+        <StripPager page={current} pageCount={pageCount} onPage={setPage} />
+      </div>
+      <div
+        className="pareto-specialist-row"
+        aria-label={label}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, ${cardSize}px)`,
+          gridTemplateRows: `repeat(${rows}, ${rowHeight}px)`,
+          gap,
+        }}
+      >
+        {visible.map((candidate) => (
+          <CandidateCard
+            key={candidate.key}
+            candidate={candidate}
+            active={candidate.key === selectedKey}
+            meta={meta(candidate)}
+            width={cardSize}
+            maxHeight={rowHeight}
+            onClick={() => onSelect(candidate.key)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CandidateCard({
+  candidate,
+  active,
+  meta,
+  width,
+  maxHeight,
+  onClick,
+}: {
+  candidate: EvolutionCandidateView;
+  active: boolean;
+  meta: string;
+  width?: number;
+  maxHeight?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="runs-catalog-card"
+      data-active={active || undefined}
+      onClick={onClick}
+      style={width ? { width, flexBasis: width, maxHeight } : undefined}
+    >
+      <span className="runs-catalog-card-image">
+        <EvolutionImage src={candidate.image} />
+      </span>
+      <span className="pareto-catalog-copy">
+        <span>
+          F {formatMatch(candidate.formal)} · S {formatMatch(candidate.spatial)} · A {formatMatch(candidate.atmospheric)}
+        </span>
+        <span>{meta}</span>
+      </span>
+    </button>
+  );
+}
+
+function storedRoles(candidate: EvolutionCandidateView) {
+  const parts = [
+    candidate.pareto ? "Pareto" : null,
+    candidate.specialist,
+    candidate.diversity && candidate.diversity !== "none" ? candidate.diversity : null,
+  ].filter((part): part is string => part != null);
+  return parts.join(" · ");
+}
 
 export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
-  const router = useRouter();
-  const catalog = useEvolutionCatalog(initial);
+  const catalog = initial;
   const { archetype, select } = useSelectedArchetype(catalog);
-  const presentation = useViewMode() === "presentation";
-  const gridRef = useRef<HTMLDivElement>(null);
-  const fit = useSquareGridFit(gridRef, {
-    minimum: presentation ? 340 : 150,
-    caption: presentation ? 104 : 50,
-    gap: presentation ? 20 : 8,
-  });
+  const [wall, setWall] = useState(false);
+  const stackRef = useRef<HTMLDivElement>(null);
+  const published = archetype?.candidates ?? [];
+  const specialists = (["formal", "spatial", "atmospheric"] as const).flatMap((emphasis) =>
+    published.filter((candidate) => candidate.specialist === emphasis),
+  );
+  const archive = published.filter((candidate) => candidate.specialist == null);
+  const cardRows = wall ? 5 : 3;
+  const weightedRows = specialists.length > 0 ? (wall ? 2 : 1) : 0;
+  const archiveRows = Math.max(1, cardRows - weightedRows);
+  const [fit, setFit] = useState({ columns: 6, size: 120, row: 156 });
+  useEffect(() => {
+    setWall(new URLSearchParams(window.location.search).get("wall") === "1");
+  }, []);
+  useEffect(() => {
+    const node = stackRef.current;
+    if (!node) return;
+    const measure = () => {
+      const { width, height } = node.getBoundingClientRect();
+      if (width < 40 || height < 40) return;
+      const gap = wall ? 12 : 8;
+      const caption = wall ? 64 : 36;
+      const labels = [...node.querySelectorAll<HTMLElement>(".pareto-band-head")];
+      const labelH = labels.reduce((sum, label) => {
+        const style = getComputedStyle(label);
+        return sum + label.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      }, 0);
+      const rows = cardRows;
+      const usable = Math.max(rows * 48, height - labelH);
+      const row = Math.max(48, Math.floor((usable - gap * (rows - 1)) / rows));
+      const sizeFromHeight = Math.max(48, row - caption);
+      const widthColumns = Math.max(1, Math.floor((width + gap) / (sizeFromHeight + gap)));
+      const columns = wall ? Math.max(1, Math.floor((width + gap) / (row + gap))) : widthColumns;
+      const fitted = Math.floor((width - gap * (columns - 1)) / columns);
+      setFit({ columns, size: Math.max(48, fitted), row });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    const frame = requestAnimationFrame(measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [wall, cardRows, weightedRows, specialists.length, archive.length, archiveRows]);
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [opening, setOpening] = useState(false);
   const appliedFocus = useRef<string | null>(null);
-
-  useEffect(() => {
-    setOpening(false);
-  }, [selectedKey]);
-  const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
-  const selected = archive.find((candidate) => candidate.key === selectedKey) ?? null;
-  const pageSize = Math.max(1, fit.columns * fit.rows);
+  const selected = [...specialists, ...archive].find((candidate) => candidate.key === selectedKey) ?? null;
+  const cardGap = wall ? 12 : 8;
+  const pageSize = Math.max(1, fit.columns * archiveRows);
 
   useEffect(() => {
     const stored = window.sessionStorage.getItem("lm-pareto-candidate");
@@ -56,69 +231,143 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const current = Math.min(page, pageCount - 1);
   const visible = archive.slice(current * pageSize, current * pageSize + pageSize);
 
-  return (
-    <main className="evo-page">
-      <EvolutionHeader
-        title="Pareto Catalog"
-        detail={
-          archetype
-            ? `${archetype.name} · non-dominated archive · ${archive.length} alternatives`
-            : "No completed searches yet"
-        }
-        aside={<ArchetypeSwitch catalog={catalog} archetypeId={archetype?.archetypeId ?? null} onChange={(id) => { setPage(0); setSelectedKey(null); select(id); }} />}
-      />
+  const choose = (id: string) => {
+    setPage(0);
+    setSelectedKey(null);
+    select(id);
+  };
 
-      <div className="archive-layout">
-        <section className="archive-browser">
-          <div className="archive-pager">
-            <span className="eyebrow">No candidate is ranked as best</span>
-            <button type="button" onClick={() => setPage(current - 1)} disabled={current === 0} aria-label="Previous page">
-              ‹
-            </button>
-            <span>
-              {current + 1} / {pageCount}
-            </span>
-            <button type="button" onClick={() => setPage(current + 1)} disabled={current >= pageCount - 1} aria-label="Next page">
-              ›
-            </button>
+  return (
+    <main className={`pareto-catalog-page flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
+      <header className="runs-header border-b border-[var(--line)] px-3 py-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="display text-[0.72rem] text-white">Pareto Catalog</p>
+          <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{published.length} published</p>
+        </div>
+        <p className="eyebrow mt-0.5 min-w-0 truncate">
+          {archetype
+            ? `${archetype.name} · ${specialists.length} specialists · no candidate is ranked as best`
+            : "No completed searches yet"}
+        </p>
+      </header>
+
+      <div className="flex min-h-0 flex-1">
+        <aside className="runs-aside panel m-2 flex w-[15.5rem] shrink-0 flex-col" aria-label="Archetype catalog">
+          <header className="panel-header">
+            <div className="panel-header-content">
+              <p className="hud-panel-kicker">Input</p>
+              <h2 className="panel-title">Archetype</h2>
+            </div>
+          </header>
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            {TYPOLOGIES.map((typology) => (
+              <section key={typology.id} className="flex min-h-0 flex-1 flex-col gap-1.5">
+                <p className="eyebrow shrink-0">{typology.label}</p>
+                <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+                  {typology.archetypes.map((item) => {
+                    const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
+                    const count = run?.candidates.length ?? 0;
+                    const active = item.id === archetype?.archetypeId;
+                    const progress =
+                      run && run.completedGenerations < run.generationCount
+                        ? ` ${run.completedGenerations}/${run.generationCount}`
+                        : count
+                          ? ` · ${count}`
+                          : "";
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={!run}
+                        title={run ? undefined : "No published semantic catalogue"}
+                        onClick={() => run && choose(item.id)}
+                        className={`flex min-h-0 flex-1 items-center border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition disabled:opacity-30 ${
+                          active
+                            ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
+                            : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
+                        }`}
+                      >
+                        {item.name}
+                        {progress}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
-          <div ref={gridRef} className="archive-grid-frame">
-            {archive.length === 0 ? (
-              <p className="evo-empty">This archetype has no archive images yet. A finished generation adds its nondominated set here.</p>
-            ) : (
-              <ul
-                className="archive-grid"
-                style={{ gridTemplateColumns: `repeat(${fit.columns}, ${fit.size}px)`, gap: presentation ? 20 : 8 }}
+        </aside>
+
+        <section className="runs-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Pareto catalog">
+          <header className="panel-header">
+            <div className="panel-header-content">
+              <p className="hud-panel-kicker">Catalog</p>
+              <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
+            </div>
+          </header>
+          <div ref={stackRef} className="pareto-catalog-stack">
+          {specialists.length > 0 ? (
+            <PagedStrip
+              key={`${archetype?.archetypeId}-specialists`}
+              label="Weighted · specialists"
+              note="One objective preferred"
+              items={specialists}
+              selectedKey={selectedKey}
+              meta={(candidate) => {
+                const roles = storedRoles(candidate);
+                return roles ? `${roles} · ${formatCandidateId(candidate.id)}` : formatCandidateId(candidate.id);
+              }}
+              columns={fit.columns}
+              rows={weightedRows}
+              cardSize={fit.size}
+              rowHeight={fit.row}
+              gap={cardGap}
+              onSelect={(key) => setSelectedKey((currentKey) => (currentKey === key ? null : key))}
+            />
+          ) : null}
+          <div className="pareto-band-head pareto-archive-label">
+            <p className="eyebrow pareto-band-label">
+              Published catalog
+              <span>Stored combined catalog</span>
+            </p>
+            <StripPager page={current} pageCount={pageCount} onPage={setPage} />
+          </div>
+          <div className="runs-catalog-body">
+            {published.length === 0 ? (
+              <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
+                This archetype has no published semantic candidates
+              </p>
+            ) : archive.length === 0 ? null : (
+              <div
+                className="runs-catalog-grid"
+                style={{
+                  gridTemplateColumns: `repeat(${fit.columns}, ${fit.size}px)`,
+                  gridTemplateRows: `repeat(${archiveRows}, ${fit.row}px)`,
+                  gap: cardGap,
+                }}
               >
                 {visible.map((candidate) => (
-                  <li key={candidate.key}>
-                    <button
-                      type="button"
-                      className="archive-card"
-                      data-active={candidate.key === selectedKey || undefined}
-                      onClick={() => setSelectedKey((key) => (key === candidate.key ? null : candidate.key))}
-                    >
-                      <span className="archive-card-image">
-                        <EvolutionImage src={candidate.image} />
-                      </span>
-                      <span className="archive-card-scores">
-                        <span>F {candidate.formal.toFixed(2)}</span>
-                        <span>S {candidate.spatial.toFixed(2)}</span>
-                        <span>A {candidate.atmospheric.toFixed(2)}</span>
-                      </span>
-                      <span className="archive-card-meta">
-                        <span>{formatGeneration(candidate.generation)}</span>
-                        <span>{formatCandidateId(candidate.id)}</span>
-                      </span>
-                    </button>
-                  </li>
+                  <CandidateCard
+                    key={candidate.key}
+                    candidate={candidate}
+                    active={candidate.key === selectedKey}
+                    meta={(() => {
+                      const roles = storedRoles(candidate);
+                      const identity = `${formatGeneration(candidate.generation)} · ${formatCandidateId(candidate.id)}`;
+                      return roles ? `${identity} · ${roles}` : identity;
+                    })()}
+                    width={fit.size}
+                    maxHeight={fit.row}
+                    onClick={() => setSelectedKey((key) => (key === candidate.key ? null : candidate.key))}
+                  />
                 ))}
-              </ul>
+              </div>
             )}
+          </div>
           </div>
         </section>
 
-        <Panel className="archive-detail">
+        <Panel className="archive-detail pareto-catalog-detail">
           {selected ? (
             <>
               <PanelHeader
@@ -138,7 +387,6 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 <EvolutionImage src={selected.image} />
               </div>
               <div className="archive-detail-data">
-                <div className="archive-detail-scroll">
                 <ObjectiveBars candidate={selected} />
                 <div className="archive-criteria">
                   <p className="eyebrow">Observed criteria</p>
@@ -150,16 +398,14 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {BRANCHES.flatMap((branch) =>
-                        branch.shared.map((criterion) => (
-                          <tr key={criterion.id}>
-                            <td>
-                              <span className="archive-branch">{branch.title}</span> {criterion.label}
-                            </td>
-                            <td>{selected.observed[criterion.id]?.toFixed(2) ?? "—"}</td>
-                          </tr>
-                        )),
-                      )}
+                      {observedCriteria(archetype?.typologyId).map((criterion) => (
+                        <tr key={criterion.id}>
+                          <td>
+                            <span className="archive-branch">{criterion.branch}</span> {criterion.label}
+                          </td>
+                          <td>{formatMatch(selected.observed[criterion.id])}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -174,23 +420,16 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                   </div>
                   <div>
                     <dt>Pareto status</dt>
-                    <dd>Non-dominated archive</dd>
+                    <dd>{storedRoles(selected) || "Published catalog"}</dd>
                   </div>
                 </dl>
-                </div>
                 <button
                   type="button"
                   className="archive-handoff"
-                  disabled={opening}
-                  onClick={() => {
-                    if (!archetype || opening) return;
-                    const selection = { archetypeId: archetype.archetypeId, candidateId: selected.id };
-                    writeVerticalSelection(selection);
-                    setOpening(true);
-                    router.push(`/lab/vertical?archetype=${encodeURIComponent(selection.archetypeId)}&candidate=${selection.candidateId}`);
-                  }}
+                  disabled
+                  title="Vertical propagation waits for a published semantic Z0 checksum"
                 >
-                  {opening ? "Opening candidate" : "Select for vertical propagation"}
+                  Select for vertical propagation
                 </button>
               </div>
             </>

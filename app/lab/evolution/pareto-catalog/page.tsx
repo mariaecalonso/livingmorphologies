@@ -1,5 +1,5 @@
 import { ParetoCatalog } from "@/components/evolution/pareto-catalog";
-import { loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { loadPublishedSemanticCatalog } from "@/lib/skill2/published-catalog-view";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +8,5 @@ export const metadata = {
 };
 
 export default function ParetoCatalogPage() {
-  return <ParetoCatalog initial={loadEvolutionCatalog()} />;
+  return <ParetoCatalog initial={loadPublishedSemanticCatalog()} />;
 }
