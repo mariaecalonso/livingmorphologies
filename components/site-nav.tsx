@@ -12,7 +12,7 @@ const SECTIONS = [
 
 export function SiteNav() {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname.startsWith("/lab")) return null;
 
   return (
     <header className="site-nav">

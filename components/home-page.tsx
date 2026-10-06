@@ -2,22 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { HomeLabPreview } from "@/components/home-lab-preview";
 import { HomePrecedent } from "@/components/home-precedent";
-import { HomeWorkflow } from "@/components/home-workflow";
+import { HomeResults } from "@/components/home-results";
+import { HomeWorkflowPrototype } from "@/components/home-workflow-prototype";
 
 const RAIL = [
   { href: "#home", id: "home", label: "Home" },
   { href: "#workflow", id: "workflow", label: "Workflow" },
   { href: "#precedent-analysis", id: "precedent-analysis", label: "Precedent Analysis" },
-  { href: "#lab", id: "lab", label: "Lab" },
   { href: "#results", id: "results", label: "Results" },
 ] as const;
 
 const STORY = [
   { id: "precedent-analysis", number: "02", title: "Precedent Analysis" },
-  { id: "lab", number: "03", title: "Live Lab Preview" },
-  { id: "results", number: "04", title: "Results" },
+  { id: "results", number: "03", title: "Results" },
 ] as const;
 
 function HomeSectionHeading({ number, title }: { number: string; title: string }) {
@@ -55,8 +53,7 @@ export function HomePage() {
         travel = Math.min(RAIL.length - 1, Math.max(0, scrolled / viewHeight));
       }
       root.style.setProperty("--rail-travel", travel.toFixed(3));
-      const nearest = Math.round(travel);
-      const next = Math.abs(travel - nearest) < 0.08 ? nearest : railIndexRef.current;
+      const next = Math.min(RAIL.length - 1, Math.max(0, Math.round(travel)));
       if (next !== railIndexRef.current) {
         railIndexRef.current = next;
         setRailIndex(next);
@@ -81,14 +78,85 @@ export function HomePage() {
     shell?.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     window.addEventListener("hashchange", update);
+
+    const scroller = () => {
+      const classroom = shell?.dataset.siteDisplay === "classroom" && !!shell && shell.clientHeight > 0;
+      const mainScrolls = !classroom && !!main && main.scrollHeight > main.clientHeight + 2;
+      return classroom ? shell : mainScrolls ? main : document.scrollingElement;
+    };
+    let frame = 0;
+    const settle = (view: Element, top: number) => {
+      if (view instanceof HTMLElement) view.style.scrollSnapType = "";
+      (view as HTMLElement).scrollTop = top;
+    };
+    const go = (index: number) => {
+      const view = scroller();
+      if (!view) return;
+      const height = view.clientHeight || window.innerHeight;
+      const target = Math.round(index * height);
+      const start = view.scrollTop;
+      const distance = target - start;
+      if (Math.abs(distance) < 2) return;
+      const steps = Math.max(1, Math.round(Math.abs(distance) / height));
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) {
+        settle(view, target);
+        return;
+      }
+      const duration = Math.min(1500, 520 + steps * 280);
+      const t0 = performance.now();
+      if (view instanceof HTMLElement) view.style.scrollSnapType = "none";
+      cancelAnimationFrame(frame);
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - t0) / duration);
+        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        view.scrollTop = start + distance * eased;
+        if (t < 1) frame = requestAnimationFrame(tick);
+        else settle(view, target);
+      };
+      frame = requestAnimationFrame(tick);
+    };
+    const onRail = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element | null)?.closest("a.home-rail-link");
+      if (!link || !root.contains(link)) return;
+      const id = (link.getAttribute("href") || "").replace(/^#/, "");
+      const index = RAIL.findIndex((item) => item.id === id);
+      if (index < 0) return;
+      event.preventDefault();
+      history.pushState(null, "", `#${id}`);
+      go(index);
+    };
+    root.addEventListener("click", onRail);
+
+    const alignToHash = (animate: boolean) => {
+      const index = RAIL.findIndex((item) => item.id === location.hash.replace(/^#/, ""));
+      if (index < 0) return;
+      if (animate) {
+        go(index);
+        return;
+      }
+      const view = scroller();
+      if (!view) return;
+      settle(view, Math.round(index * (view.clientHeight || window.innerHeight)));
+    };
+    alignToHash(false);
+    const onPop = () => alignToHash(true);
+    window.addEventListener("popstate", onPop);
+
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       displayObserver.disconnect();
+      root.removeEventListener("click", onRail);
+      window.removeEventListener("popstate", onPop);
       window.removeEventListener("scroll", update);
       main?.removeEventListener("scroll", update);
       shell?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
       window.removeEventListener("hashchange", update);
+      if (shell) shell.style.scrollSnapType = "";
+      if (main) main.style.scrollSnapType = "";
     };
   }, []);
 
@@ -147,23 +215,29 @@ export function HomePage() {
       </section>
 
       <section className="home-overview home-workflow" id="workflow" data-rail-target="workflow">
-        <HomeSectionHeading number="01" title="Overall Workflow" />
-        <HomeWorkflow />
+        <header className="home-section-heading wf-section-heading" data-wf-heading>
+          <div className="wf-heading-face is-macro">
+            <p className="home-index">01</p>
+            <h2 className="home-overview-title">Overall Workflow</h2>
+          </div>
+          <div className="wf-heading-face is-detail" aria-hidden="true">
+            <p className="home-index" data-wf-index>
+              01
+            </p>
+            <h2 className="home-overview-title" data-wf-label>
+              Decomposition
+            </h2>
+          </div>
+        </header>
+        {/* Spatial zoom trial. Restore <HomeWorkflow /> from components/home-workflow.tsx to revert. */}
+        <HomeWorkflowPrototype />
       </section>
 
       {STORY.map((section) => (
         <section className="home-overview" id={section.id} data-rail-target={section.id} key={section.id}>
           <HomeSectionHeading number={section.number} title={section.title} />
           {section.id === "precedent-analysis" ? <HomePrecedent /> : null}
-          {section.id === "lab" ? <HomeLabPreview /> : null}
-          {section.id === "results" ? (
-            <Link className="results-generate" href="/results">
-              <span>See More Results</span>
-              <span className="results-generate-arrow" aria-hidden="true">
-                →
-              </span>
-            </Link>
-          ) : null}
+          {section.id === "results" ? <HomeResults /> : null}
         </section>
       ))}
 

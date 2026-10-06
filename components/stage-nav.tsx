@@ -82,8 +82,8 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
 
   return (
     <header className="stage-nav">
-      <Link href={`/lab${suffix}`} className="stage-nav-identity">
-        <span className="display">Living Morphologies</span>
+      <Link href="/" className="stage-nav-identity" target={presentationFrame ? "_top" : undefined}>
+        <span className="display site-nav-title">Living Morphologies</span>
       </Link>
       <nav className="stage-nav-stages" aria-label="Workflow stages">
         {STAGES.map((stage, index) => {
