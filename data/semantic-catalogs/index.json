@@ -8,7 +8,7 @@
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 144
+      "catalogCandidates": 194
     },
     "linear-gallery": {
       "status": "complete",
@@ -17,7 +17,7 @@
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 152
+      "catalogCandidates": 168
     },
     "compressed-sequential": {
       "status": "complete",
@@ -26,7 +26,7 @@
         "receptivity is not a level-2 fidelity gate"
       ],
       "blocks": [],
-      "catalogCandidates": 178
+      "catalogCandidates": 235
     },
     "continuous-hall": {
       "status": "complete",

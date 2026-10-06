@@ -5,6 +5,7 @@
  */
 import { mulberry32 } from "../lib/physarum";
 import { createSimulation, stepMany, captureSnapshot } from "../lib/skill1/engine";
+import { robustTrailPeak } from "../lib/skill1/maps";
 import { lobbySimulationSlime } from "../lib/skill1/lobby-realization";
 import { FLAT_DEEP_RUN_ITERATIONS, FLAT_DEEP_TRAIL_SCALE } from "../lib/skill1/run-flat-deep-plan";
 import {
@@ -167,12 +168,16 @@ function paint(snapshot: FieldSnapshot, attractors?: FieldAttractor[]) {
   if (!ctx) throw new Error("no 2d context");
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, IMAGE_SIZE, IMAGE_SIZE);
+  const peak = Math.max(1.4, robustTrailPeak(snapshot.trails));
   drawPlanField(ctx, snapshot, IMAGE_SIZE, IMAGE_SIZE, {
     showHud: false,
     fine: true,
     density: 5,
     attractors,
     showAttractors: false,
+    peak,
+    hairThin: true,
+    maxResolution: IMAGE_SIZE,
   });
   const sample = ctx.getImageData(0, 0, IMAGE_SIZE, IMAGE_SIZE).data;
   let lit = 0;

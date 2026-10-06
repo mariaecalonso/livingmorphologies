@@ -10,6 +10,7 @@ import {
 } from "@/components/evolution/evolution-data";
 import { formatMatch } from "@/components/evolution/format-match";
 import { ObjectiveBars } from "@/components/evolution/pareto-space";
+import { PropagationPreview } from "@/components/evolution/propagation-preview";
 import { BRANCHES, TYPOLOGIES } from "@/lib/catalog";
 import type { TypologyId } from "@/lib/types";
 import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
@@ -212,6 +213,10 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   }, [wall, cardRows, weightedRows, specialists.length, archive.length, archiveRows]);
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [display, setDisplay] = useState<"morphology" | "propagation">("morphology");
+  useEffect(() => {
+    setDisplay("morphology");
+  }, [selectedKey]);
   const appliedFocus = useRef<string | null>(null);
   const selected = [...specialists, ...archive].find((candidate) => candidate.key === selectedKey) ?? null;
   const cardGap = wall ? 12 : 8;
@@ -376,15 +381,19 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 aside={<span className="eyebrow">{formatGeneration(selected.generation)}</span>}
               />
               <div className="evo-segment archive-display" role="group" aria-label="Display">
-                <button type="button" data-active>
+                <button type="button" data-active={display === "morphology" || undefined} onClick={() => setDisplay("morphology")}>
                   Morphology
                 </button>
-                <button type="button" disabled title="Available once the vertical propagation handoff exists">
+                <button type="button" data-active={display === "propagation" || undefined} onClick={() => setDisplay("propagation")}>
                   Propagation preview
                 </button>
               </div>
               <div className="archive-detail-image">
-                <EvolutionImage src={selected.image} />
+                {display === "propagation" ? (
+                  <PropagationPreview archetypeId={selected.archetypeId} candidateId={selected.id} />
+                ) : (
+                  <EvolutionImage src={selected.image} />
+                )}
               </div>
               <div className="archive-detail-data">
                 <ObjectiveBars candidate={selected} />
