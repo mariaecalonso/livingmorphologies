@@ -184,8 +184,8 @@ function spineAt(pose: Pose, u: number, plan: GalleryPlan): Station {
   if (pose === "upper" || pose === "lower") {
     const slot = cycle % 3;
     const edge = pose === "upper" ? 2.7 + slot * 1.05 : 17.15 - slot * 1.05;
-    const sag = ((plan.index + cycle) % 3 === 0) ? u * (2.4 + slot) * (pose === "upper" ? 1 : -1) : 0;
-    const amp = 0.45 + slot * 0.7;
+    const sag = u * (1.3 + slot * 1.1) * (pose === "upper" ? 1 : -1) * (((plan.index + cycle) % 2 === 0) ? 1 : 0.35);
+    const amp = 1.05 + slot * 0.55;
     return { x, y: lim(edge + sag + Math.sin((u + phase) * Math.PI) * amp * flip) };
   }
 
@@ -203,9 +203,10 @@ function spineAt(pose: Pose, u: number, plan: GalleryPlan): Station {
   }
 
   const mode = (plan.index + cycle) % 4;
-  const amp = kind === "arcade" ? 1.5 + (cycle % 3) * 0.7 : mode === 0 ? 0.22 : mode === 1 ? 1.15 : mode === 2 ? 2.5 : 0.55;
-  const base = CENTER + ((cycle % 5) - 2) * (kind === "enfilade" ? 1.5 : 0.45);
-  return { x, y: lim(base + Math.sin((u + phase) * Math.PI) * amp * flip) };
+  const amp = kind === "arcade" ? 1.5 + (cycle % 3) * 0.7 : mode === 0 ? 0.9 : mode === 1 ? 1.15 : mode === 2 ? 2.5 : 0.7;
+  const jog = mode === 0 ? smoothstep((u - (0.42 + (cycle % 3) * 0.1)) / 0.14) * 2.4 * flip : 0;
+  const base = CENTER + ((cycle % 5) - 2) * (kind === "enfilade" ? 1.7 : 0.45);
+  return { x, y: lim(base + jog + Math.sin((u + phase) * Math.PI) * amp * flip) };
 }
 
 function spineRadius(u: number, swell: number, pattern: number) {
@@ -299,10 +300,10 @@ function progressionMarks(plan: GalleryPlan, f: Frame): FieldAttractor[] {
     const reach = (3.6 + (cycle % 3) * 1.15) * flip;
     const from = 0.16 + (cycle % 3) * 0.06;
     const to = plan.kind === "braid" ? 0.62 : 0.84;
-    branch(from, to, reach, 0.28, 0.72);
-    if (plan.kind === "braid") branch(0.4, 0.9, reach * -0.55, 0.18, 0.46);
+    branch(from, to, reach, 0.42, 0.95);
+    if (plan.kind === "braid") branch(0.4, 0.9, reach * -0.55, 0.28, 0.7);
   } else if (pose === "loop" && plan.kind !== "hook") {
-    branch(0.18 + (cycle % 3) * 0.05, 0.72 + (plan.index % 3) * 0.05, (4.4 + (cycle % 3) * 0.9) * flip, 0.26, 0.64);
+    branch(0.18 + (cycle % 3) * 0.05, 0.72 + (plan.index % 3) * 0.05, (4.4 + (cycle % 3) * 0.9) * flip, 0.4, 0.9);
   } else if (plan.kind !== "switchback") {
     const spurs = (plan.index + cycle) % 4;
     if (spurs > 0) spur(0.18 + ((plan.index + cycle) % 5) * 0.08, 2.2 + (cycle % 3) * 0.9);

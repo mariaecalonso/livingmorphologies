@@ -163,8 +163,14 @@ void main() {
     ink = search;
   } else if (uTone < 1.5) {
     ink = mix(search, vein, smoothstep(0.04, 0.22, body));
-  } else {
+  } else if (uTone < 2.5) {
     ink = mix(ink, organized, core * mix(0.35, 0.72, body));
+  } else {
+    float veinMix = smoothstep(0.14, 0.36, body);
+    float solid = smoothstep(0.46, 0.84, body);
+    vec3 rested = mix(search, vein, veinMix);
+    ink = mix(rested, organized, solid * 0.62);
+    ink *= mix(1.0, 0.78, solid);
   }
   ink *= depth * membraneTone * uInk;
   oColor = vec4(ink * cover, 1.0);
@@ -193,7 +199,7 @@ type GlState = {
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 31;
+const SHADER_GEN = 35;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {

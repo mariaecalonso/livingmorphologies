@@ -150,6 +150,8 @@ export type SpatialRecipe = {
    * Terraces are the level sets agents prefer while depositing.
    */
   saField?: SteppedGrowthField;
+  /** Linear Edge Gallery only. How far the white particle halo may sit from the figure. */
+  edgeReach?: number;
 };
 
 export type SteppedGrowthField = {

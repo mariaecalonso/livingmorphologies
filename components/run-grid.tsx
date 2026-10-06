@@ -38,6 +38,7 @@ import {
 import {
   agentsFromContainedRoom,
   attractorsFromContainedRoom,
+  CONTAINED_GENERATION,
   CONTAINED_ROOM_ID,
   CONTAINED_RUN_ITERATIONS,
   CONTAINED_STEP_BUDGET_MS,
@@ -50,6 +51,7 @@ import {
 import {
   agentsFromLinearEdgeGallery,
   attractorsFromLinearEdgeGallery,
+  edgeReachFor,
   LEG_ID,
   LEG_RUN_ITERATIONS,
   LEG_STEP_BUDGET_MS,
@@ -151,8 +153,7 @@ function finePaint(id?: string) {
 
 function cellPeak(id: string | undefined, trails: ArrayLike<number>) {
   const peak = robustTrailPeak(trails);
-  if (id === "open-hall" || id === SA_ID || id === CONTAINED_ROOM_ID || id === VF_ID || id === LEG_ID) return Math.max(0.64, peak * 0.58);
-  if (id === "inserted-horizontal-plate") return Math.max(0.7, peak * 0.62);
+  if (id === "open-hall" || id === SA_ID || id === CONTAINED_ROOM_ID || id === VF_ID || id === LEG_ID || id === "inserted-horizontal-plate") return Math.max(0.64, peak * 0.58);
   return Math.max(1.4, peak);
 }
 
@@ -360,22 +361,16 @@ function realizeRun(
     return {
       seed,
       agents: insertedPlateAgentCount(plan),
-      slime: {
-        ...tuneInsertedPlateSlime(slimeBase, plan),
-        foodPoints: marks
-          .filter((_, mark) => mark % 2 === 0)
-          .slice(0, 4)
-          .map((mark) => ({ x: (mark.x + (mark.x2 ?? mark.x)) / 2, y: (mark.y + (mark.y2 ?? mark.y)) / 2 })),
-      },
+      slime: tuneInsertedPlateSlime(slimeBase, plan),
       translation: {
         ...base,
         params: {
           ...base.params,
-          geometryVariation: Math.min(base.params.geometryVariation, 0.16),
-          attractionStrength: Math.max(base.params.attractionStrength, 1.2),
-          directionalBias: Math.max(base.params.directionalBias, 0.7),
-          randomness: Math.min(base.params.randomness, 0.05),
-          permeability: Math.min(base.params.permeability, 0.28),
+          geometryVariation: Math.max(base.params.geometryVariation, 0.34),
+          attractionStrength: Math.max(base.params.attractionStrength, 1.15),
+          directionalBias: Math.max(base.params.directionalBias, 0.62),
+          randomness: Math.min(base.params.randomness, 0.08),
+          permeability: Math.min(base.params.permeability, 0.38),
         },
         recipe: {
           ...base.recipe,
@@ -383,9 +378,9 @@ function realizeRun(
           attractorsOnly: true,
           attractor: { x: first.x, y: first.y },
           attractors: marks,
-          clustering: 0.22,
-          coreExposure: Math.max(base.recipe.coreExposure, 0.8),
-          approachWidth: Math.max(base.recipe.approachWidth, 2.4),
+          clustering: 0.86,
+          coreExposure: Math.min(base.recipe.coreExposure, 0.28),
+          approachWidth: Math.min(base.recipe.approachWidth, 1.25),
         },
       },
     };
@@ -475,6 +470,7 @@ function realizeRun(
           attractorsOnly: true,
           attractor: { x: first.x, y: first.y },
           attractors: marks,
+          edgeReach: edgeReachFor(index),
         },
       },
     };
@@ -526,7 +522,7 @@ type SavedRun = {
   lobbySalt?: LobbySalt;
 };
 
-function paintCatalogCanvas(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
+function paintCatalogCanvas(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number, tone = 2, inkGain = 1) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -543,12 +539,14 @@ function paintCatalogCanvas(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, 
     peak,
     hairThin: Boolean(peak),
     maxResolution: size,
+    inkGain,
+    tone,
   });
   return canvas;
 }
 
-function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
-  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak);
+function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number, tone = 2) {
+  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak, tone);
   if (!canvas) return "";
   try {
     return canvas.toDataURL("image/png");
@@ -557,8 +555,8 @@ function snapshotImage(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attra
   }
 }
 
-function snapshotBlob(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number) {
-  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak);
+function snapshotBlob(snapshot: FieldSnapshot, size = CATALOG_IMAGE_SIZE, attractors?: FieldAttractor[], peak?: number, tone = 2, inkGain = 1) {
+  const canvas = paintCatalogCanvas(snapshot, size, attractors, peak, tone, inkGain);
   if (!canvas) return Promise.resolve(null);
   return new Promise<Blob | null>((resolve) => {
     canvas.toBlob((blob) => resolve(blob && blob.size > 32 ? blob : null), "image/png");
@@ -608,12 +606,13 @@ function paintRunCell(
     canvas,
     snapshot,
     fine,
-    attractors,
+    archetypeId === LEG_ID ? undefined : attractors,
     undefined,
     finePaint(archetypeId) ? 8 : 5,
     finePaint(archetypeId) ? cellPeak(archetypeId, snapshot.trails) : undefined,
-    finePaint(archetypeId) && archetypeId !== "inserted-horizontal-plate",
-    archetypeId === "open-hall" || archetypeId === SA_ID || archetypeId === CONTAINED_ROOM_ID || archetypeId === VF_ID || archetypeId === LEG_ID ? 1.75 : 1,
+    finePaint(archetypeId),
+    archetypeId === "open-hall" || archetypeId === SA_ID || archetypeId === CONTAINED_ROOM_ID || archetypeId === VF_ID || archetypeId === LEG_ID || archetypeId === "inserted-horizontal-plate" ? 1.75 : 1,
+    archetypeId === LEG_ID ? 3 : 2,
   );
 }
 
@@ -1162,8 +1161,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         const active = runningIdRef.current ?? pickedIdRef.current;
         const variant = id === active ? variantsRef.current[index] : undefined;
         const marks = variant?.translation.recipe.attractors;
-        const peak = finePaint(id) && snapshot ? Math.max(1.4, robustTrailPeak(snapshot.trails)) : undefined;
-        const blob = snapshot ? await snapshotBlob(snapshot, CATALOG_IMAGE_SIZE, marks, peak) : null;
+        const edge = id === LEG_ID;
+        const peak = snapshot
+          ? edge
+            ? cellPeak(id, snapshot.trails)
+            : finePaint(id)
+              ? Math.max(1.4, robustTrailPeak(snapshot.trails))
+              : undefined
+          : undefined;
+        const blob = snapshot ? await snapshotBlob(snapshot, CATALOG_IMAGE_SIZE, edge ? undefined : marks, peak, edge ? 3 : 2, edge ? 1.75 : 1) : null;
         if (blob) {
           const seed = variant?.seed ?? seedFor(id, index);
           incoming.push({
@@ -1188,14 +1194,17 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           });
           painted += 1;
         }
-        if (id === "flat-deep-plan" && incoming.length >= 2 && !(await flushIncoming())) return false;
+        if (id === LEG_ID && incoming.length >= 4) {
+          const batch = incoming.splice(0, incoming.length);
+          if (!(await persistEntries(LEG_ID, batch))) return false;
+        } else if (id === "flat-deep-plan" && incoming.length >= 2 && !(await flushIncoming())) return false;
         setSaveProgress({ done: index + 1, total: RUN_COUNT });
         await nextFrame();
       }
       if (!painted) return false;
       if (id === "flat-deep-plan") {
         if (!(await flushIncoming())) return false;
-      } else if (!(await persistEntries(id, incoming))) return false;
+      } else if (incoming.length && !(await persistEntries(id, incoming))) return false;
       const stored = await readCatalog<SavedRun>(id);
       catalogCacheRef.current[id] = stored;
       setCatalogEntries(stored);
@@ -1344,10 +1353,27 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           snapshotsRef.current = existing;
         }
       } else if (pickedId === CONTAINED_ROOM_ID) {
-        await clearArchetypeFields(CONTAINED_ROOM_ID, RUN_COUNT);
-        await clearRunFields(CONTAINED_ROOM_ID);
-        existing = emptyRunSlots();
-        snapshotsRef.current = existing;
+        let fresh = false;
+        try {
+          fresh = sessionStorage.getItem("lm-contained-gen") !== CONTAINED_GENERATION;
+        } catch {
+          fresh = true;
+        }
+        if (fresh) {
+          await clearArchetypeFields(CONTAINED_ROOM_ID, RUN_COUNT);
+          await clearRunFields(CONTAINED_ROOM_ID);
+          try {
+            sessionStorage.setItem("lm-contained-gen", CONTAINED_GENERATION);
+          } catch {
+            /* ignore */
+          }
+          existing = emptyRunSlots();
+          snapshotsRef.current = existing;
+        } else {
+          const stored = await loadArchetypeFields(CONTAINED_ROOM_ID, RUN_COUNT);
+          existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+          snapshotsRef.current = existing;
+        }
       } else if (pickedId === SA_ID) {
         let fresh = false;
         try {
@@ -1391,9 +1417,28 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         existing = emptyRunSlots();
         snapshotsRef.current = existing;
       } else if (pickedId === LEG_ID) {
-        const stored = await loadArchetypeFields(LEG_ID, RUN_COUNT);
-        existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
-        snapshotsRef.current = existing;
+        const layout = "edge-7";
+        let restyle = false;
+        try {
+          restyle = window.localStorage.getItem("lm-edge-layout") !== layout;
+        } catch {
+          restyle = false;
+        }
+        if (restyle) {
+          await clearArchetypeFields(LEG_ID, RUN_COUNT);
+          await clearRunFields(LEG_ID);
+          try {
+            window.localStorage.setItem("lm-edge-layout", layout);
+          } catch {
+            /* ignore */
+          }
+          existing = emptyRunSlots();
+          snapshotsRef.current = existing;
+        } else {
+          const stored = await loadArchetypeFields(LEG_ID, RUN_COUNT);
+          existing = snapshotsRef.current.map((snap, index) => snap ?? stored[index] ?? null);
+          snapshotsRef.current = existing;
+        }
       } else if (pickedId === "linear-gallery") {
         const layout = "spine-5";
         let restyle = false;
@@ -1551,6 +1596,15 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           if (kept.some(Boolean)) {
             snapshotsRef.current = kept;
             completedRef.current = kept.filter(Boolean).length;
+            requestAnimationFrame(() => {
+              if (!live) return;
+              kept.forEach((snapshot, index) => {
+                const canvas = canvasRefs.current[index];
+                if (snapshot && canvas) {
+                  paintRunCell(canvas, snapshot, variantsRef.current[index]?.translation.recipe.attractors, restoreId);
+                }
+              });
+            });
           }
         }
         if (session || restoreId) {
@@ -1596,6 +1650,19 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     }
     startRuns();
   }, [sessionReady, pickedId, running]);
+
+  useEffect(() => {
+    if (!sessionReady || running || paused || pickedId !== CONTAINED_ROOM_ID) return;
+    let stale = true;
+    try {
+      stale = sessionStorage.getItem("lm-contained-gen") !== CONTAINED_GENERATION;
+    } catch {
+      stale = true;
+    }
+    const done = snapshotsRef.current.filter(Boolean).length;
+    if (!stale && (done === 0 || done >= RUN_COUNT)) return;
+    startRuns();
+  }, [sessionReady, pickedId, running, paused]);
 
   useEffect(() => {
     if (!sessionReady || running || paused || pickedId !== LEG_ID) return;
@@ -1929,7 +1996,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       try {
         stepCell();
       } catch (error) {
-        if ((runningIdRef.current ?? pickedIdRef.current) !== LEG_ID) throw error;
+        const active = runningIdRef.current ?? pickedIdRef.current;
+        if (active !== LEG_ID && active !== CONTAINED_ROOM_ID) throw error;
         index += 1;
         if (!cancelled && runningRef.current && index < RUN_COUNT) frameRef.current = requestAnimationFrame(frame);
         else {

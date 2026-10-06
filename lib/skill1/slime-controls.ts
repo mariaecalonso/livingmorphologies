@@ -233,9 +233,9 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
   if (archetypeId === "linear-edge-gallery") {
     next.resistance = clamp(next.resistance, 0.02, 0.22);
     next.persistence = clamp(next.persistence, 0.4, 0.9);
-    next.depositWidth = clamp(next.depositWidth, 0.16, 0.34);
-    next.deposit = clamp(next.deposit, 0.008, 0.04);
-    next.trailCap = clamp(next.trailCap, 0.28, 0.85);
+    next.depositWidth = clamp(next.depositWidth, 0.16, 0.28);
+    next.deposit = clamp(next.deposit, 0.012, 0.036);
+    next.trailCap = clamp(next.trailCap, 0.95, 1.15);
     next.stepSize = clamp(next.stepSize, 0.1, 0.2);
     next.randomness = clamp(next.randomness, 0.02, 0.22);
     next.diffusion = 0;
@@ -278,12 +278,13 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.randomness = clamp(next.randomness, 0, 0.28);
   }
   if (archetypeId === "inserted-horizontal-plate") {
-    next.depositWidth = clamp(next.depositWidth, 0.18, 0.34);
-    next.deposit = clamp(next.deposit, 0.1, 0.18);
+    next.depositWidth = clamp(next.depositWidth, 0.16, 0.36);
+    next.deposit = clamp(next.deposit, 0.04, 0.075);
+    next.trailCap = clamp(next.trailCap, 0.7, 1.15);
     next.diffusion = 0;
     next.decay = clamp(next.decay, 0.994, 0.998);
-    next.randomness = clamp(next.randomness, 0, 0.06);
-    next.persistence = clamp(next.persistence, 0.84, 0.97);
+    next.randomness = clamp(next.randomness, 0, 0.1);
+    next.persistence = clamp(next.persistence, 0.82, 0.95);
   }
   if (archetypeId === "undulated") {
     next.depositWidth = clamp(next.depositWidth, 0.18, 0.46);

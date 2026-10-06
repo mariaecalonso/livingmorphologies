@@ -376,11 +376,29 @@ function drawColonyBody(
           pull * Math.min(1, Math.max(0, (body - 0.08) / 0.24)),
           Math.min(1, Math.max(0, (body - 0.48) / 0.34)),
         );
-        const mixCore = tone < 1.5 ? 0 : core * (0.35 + body * 0.37);
-        const veinMix = tone < 0.5 ? 0 : tone < 1.5 ? Math.min(1, Math.max(0, (body - 0.04) / 0.22)) : vein;
-        const r = ((1 * (1 - veinMix) + 0.78 * veinMix) * (1 - mixCore) + 0.059 * mixCore) * alpha;
-        const g = ((1 * (1 - veinMix) + 0.494 * veinMix) * (1 - mixCore) + 0.451 * mixCore) * alpha;
-        const b = ((1 * (1 - veinMix) + 0.373 * veinMix) * (1 - mixCore) + 0.467 * mixCore) * alpha;
+        let r: number;
+        let g: number;
+        let b: number;
+        if (tone > 2.5) {
+          const veinMix = Math.min(1, Math.max(0, (body - 0.14) / 0.22));
+          const veinS = veinMix * veinMix * (3 - 2 * veinMix);
+          const solid = Math.min(1, Math.max(0, (body - 0.46) / 0.38));
+          const solidS = solid * solid * (3 - 2 * solid);
+          const toward = solidS * 0.62;
+          const quiet = 1 - solidS * 0.22;
+          const restedR = 1 * (1 - veinS) + 0.78 * veinS;
+          const restedG = 1 * (1 - veinS) + 0.494 * veinS;
+          const restedB = 1 * (1 - veinS) + 0.373 * veinS;
+          r = (restedR * (1 - toward) + 0.059 * toward) * alpha * quiet;
+          g = (restedG * (1 - toward) + 0.451 * toward) * alpha * quiet;
+          b = (restedB * (1 - toward) + 0.467 * toward) * alpha * quiet;
+        } else {
+          const mixCore = tone < 1.5 ? 0 : core * (0.35 + body * 0.37);
+          const veinMix = tone < 0.5 ? 0 : tone < 1.5 ? Math.min(1, Math.max(0, (body - 0.04) / 0.22)) : vein;
+          r = ((1 * (1 - veinMix) + 0.78 * veinMix) * (1 - mixCore) + 0.059 * mixCore) * alpha;
+          g = ((1 * (1 - veinMix) + 0.494 * veinMix) * (1 - mixCore) + 0.451 * mixCore) * alpha;
+          b = ((1 * (1 - veinMix) + 0.373 * veinMix) * (1 - mixCore) + 0.467 * mixCore) * alpha;
+        }
         const i = (py * res + px) * 4;
         data[i] = Math.round(Math.min(1, r) * 255);
         data[i + 1] = Math.round(Math.min(1, g) * 255);
