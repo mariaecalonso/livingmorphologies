@@ -156,7 +156,7 @@ function statusLabel(candidate: EvolutionCandidateView) {
 export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
   const catalog = useEvolutionCatalog(initial);
   const { archetype, select } = useSelectedArchetype(catalog);
-  const catalogHref = useStageHref("/evolution/pareto-catalog");
+  const catalogHref = useStageHref("/lab/evolution/pareto-catalog");
   const reducedMotion = useReducedMotion();
   const [generation, setGeneration] = useState<GenerationPick>("all");
   const [filter, setFilter] = useState<Filter>("all");

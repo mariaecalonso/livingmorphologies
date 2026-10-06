@@ -568,7 +568,7 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
   const generations = archetype?.generations ?? [];
   const catalogHref = useWorkflowHref("/physarum/catalog");
   const paretoHref = useWorkflowHref("/evolution/pareto");
-  const hybridHref = useWorkflowHref("/evolution/pareto-catalog");
+  const hybridHref = useWorkflowHref("/lab/evolution/pareto-catalog");
   const specialists = archetype?.specialists ?? { formal: [], spatial: [], atmospheric: [] };
   const specialistShot = (key: "formal" | "spatial" | "atmospheric") => {
     const ids = new Set(specialists[key]);

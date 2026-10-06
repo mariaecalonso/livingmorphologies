@@ -30,7 +30,6 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[
       { href: "/lab/evolution", label: "Evolution" },
       { href: "/lab/evolution/pareto", label: "Pareto" },
       { href: "/lab/evolution/pareto-catalog", label: "Pareto Catalog" },
-      { href: "/evolution/pareto-catalog", label: "Run catalog" },
     ],
   },
   { href: "/lab/vertical", label: "Vertical Propagation", active: (pathname) => pathname === "/lab/vertical" || pathname.startsWith("/lab/vertical/") },

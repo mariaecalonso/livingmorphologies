@@ -180,7 +180,7 @@ function ParetoDestination({
 }
 
 function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) {
-  const href = useWorkflowHref("/evolution/pareto-catalog");
+  const href = useWorkflowHref("/lab/evolution/pareto-catalog");
   const thumbs = archive.filter((candidate) => candidate.image).slice(0, 72);
 
   return (
