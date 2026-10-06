@@ -23,8 +23,18 @@ type CandidateRequest = {
 };
 
 export type Skill2Provenance = {
-  generations: { id: string; status: "done" | "waiting"; archived: number; pareto: number }[];
+  generations: { id: string; status: "done" | "waiting"; front: number | null }[];
   objectives: { formal: number; spatial: number; atmospheric: number } | null;
+  candidate: {
+    id: number;
+    generation: number;
+    parentId: number | null;
+    technicalValid: boolean;
+    pareto: boolean;
+    crowding: number | "boundary" | null;
+    preview: boolean;
+    z0Iteration: number | null;
+  } | null;
 };
 
 const SEARCH_STAGES = ["G01", "G02", "G03", "G04"] as const;
@@ -62,6 +72,13 @@ type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
   fields: VerticalViewerField[];
 };
 
+function crowdingLabel(value: number | "boundary" | null | undefined) {
+  if (value == null) return "No crowding";
+  if (value === "boundary") return "Crowding boundary";
+  const text = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return `Crowding ${text}`;
+}
+
 function handoffStatus(origin: string | undefined, pending: boolean, error: string | null) {
   if (origin === "handoff") return "Validated";
   if (origin === "development-fixture") return "Fixture";
@@ -83,14 +100,20 @@ function Strip({ items }: { items: readonly (readonly [string, string])[] }) {
   );
 }
 
-function SearchTrace({ generations }: { generations: Skill2Provenance["generations"] | null }) {
-  const slots = generations ?? SEARCH_STAGES.map((id) => ({ id, status: "schema" as const, archived: null, pareto: null }));
+function SearchTrace({
+  generations,
+  current,
+}: {
+  generations: Skill2Provenance["generations"] | null;
+  current: string | null;
+}) {
+  const slots = generations ?? SEARCH_STAGES.map((id) => ({ id, status: "schema" as const, front: null }));
   return (
     <ol className="vertical-process-search" aria-label="Evolutionary search">
       {slots.map((slot) => (
-        <li key={slot.id} data-status={slot.status}>
+        <li key={slot.id} data-status={slot.status} data-current={slot.id === current || undefined}>
           <span>{slot.id}</span>
-          {slot.archived != null ? <span>{slot.archived}</span> : null}
+          {slot.front != null ? <span>{slot.front}</span> : null}
         </li>
       ))}
     </ol>
@@ -387,8 +410,12 @@ export function VerticalProcess({
       archetype: candidate.archetypeId,
       candidate: String(candidate.candidateId),
     });
-    setPending(true);
+    setSet(null);
     setError(null);
+    setPending(true);
+    setTriangles(null);
+    setPlaying(false);
+    setStep(0);
     void fetch(`/api/vertical?${params}`, { signal: controller.signal })
       .then(async (response) => {
         const body = (await response.json()) as ApiSet & { error?: string };
@@ -397,6 +424,7 @@ export function VerticalProcess({
       })
       .catch((caught) => {
         if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
+        setSet(null);
         setError(caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.");
       })
       .finally(() => {
@@ -405,8 +433,13 @@ export function VerticalProcess({
     return () => controller.abort();
   }, [candidate, initial]);
 
-  const shown = set?.continuations[0] ?? null;
-  const horizon = set?.rules.horizon ?? 0;
+  const matchesSelection = set != null && (
+    candidate == null
+    || (set.archetypeId === candidate.archetypeId && set.candidateId === candidate.candidateId)
+  );
+  const activeSet = matchesSelection ? set : null;
+  const shown = activeSet?.continuations[0] ?? null;
+  const horizon = activeSet?.rules.horizon ?? 0;
   const playOrigin = shown?.z0Iteration ?? 0;
   const playStep = horizon > 0 ? Math.min(horizon, Math.max(0, step)) : 0;
   const playIteration = playOrigin + playStep;
@@ -414,7 +447,8 @@ export function VerticalProcess({
   useEffect(() => {
     setPlaying(false);
     setStep(0);
-  }, [shown?.id]);
+    setTriangles(null);
+  }, [candidate?.archetypeId, candidate?.candidateId, shown?.parentChecksum, shown?.continuationSeed]);
 
   useEffect(() => {
     if (!playing) return;
@@ -450,18 +484,19 @@ export function VerticalProcess({
     setStep(0);
   };
   const z0 = shown?.field.slices[0] ?? null;
-  const identity = set ?? candidate;
+  const identity = activeSet ?? candidate;
   const typology = identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype";
   const archetypeName = identity?.archetypeName ?? "Selected candidate";
   const candidateId = identity?.candidateId;
-  const z0Iteration = set?.z0Iteration;
+  const z0Iteration = activeSet?.z0Iteration;
+  const selectionZ0 = provenance?.candidate?.z0Iteration ?? z0Iteration;
   const context = [
     typology,
     archetypeName,
     candidateId != null ? `Candidate ${candidateId}` : "No candidate",
     z0Iteration != null ? `Z0 ${z0Iteration}` : error ? "Handoff validation failed" : pending ? "Checking handoff" : "Z0 withheld",
   ].join(" · ");
-  const behavior = behaviorOf(set);
+  const behavior = behaviorOf(activeSet);
   const bars = behavior
     ? ([
         ["Persistence", behavior.persistence],
@@ -487,18 +522,18 @@ export function VerticalProcess({
     if (!shown) return null;
     return { ...shown.field, slices: shown.field.slices.slice(0, revealedCount) };
   }, [shown, revealedCount]);
-  const status = handoffStatus(set?.origin, pending, error);
+  const status = handoffStatus(activeSet?.origin, pending, error);
 
   const handoffFailed = error != null && !pending;
 
   return (
-    <main className="evo-page vertical-process" data-origin={set?.origin ?? "pending"} data-handoff={handoffFailed ? "failed" : undefined}>
+    <main className="evo-page vertical-process" data-origin={activeSet?.origin ?? "pending"} data-handoff={handoffFailed ? "failed" : undefined}>
       <header className="evo-header">
         <div>
           <p className="display evo-header-title">Vertical Propagation</p>
           <p className="eyebrow evo-header-detail">{context}</p>
         </div>
-        {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+        {activeSet?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
       </header>
 
       <div className="vertical-process-body">
@@ -508,7 +543,25 @@ export function VerticalProcess({
               <p className="eyebrow">01</p>
               <h2 className="panel-title">Evolutionary search</h2>
             </header>
-            <SearchTrace generations={provenance?.generations ?? null} />
+            <SearchTrace
+              generations={provenance?.generations ?? null}
+              current={provenance?.candidate ? `G${String(provenance.candidate.generation).padStart(2, "0")}` : null}
+            />
+            {provenance?.candidate ? (
+              <p className="vertical-process-note">
+                {`G${String(provenance.candidate.generation).padStart(2, "0")}`}
+                {" · "}
+                {provenance.candidate.id}
+                {" · "}
+                {provenance.candidate.parentId != null ? `Parent ${provenance.candidate.parentId}` : "No parent"}
+                {" · "}
+                {provenance.candidate.technicalValid ? "Technically valid" : "Technically invalid"}
+                {" · "}
+                {provenance.candidate.pareto ? "Pareto front" : "Not on front"}
+                {" · "}
+                {crowdingLabel(provenance.candidate.crowding)}
+              </p>
+            ) : null}
           </section>
           <section className="vertical-process-frame">
             <header className="vertical-process-label">
@@ -516,7 +569,16 @@ export function VerticalProcess({
               <h2 className="panel-title">Pareto + specialists</h2>
             </header>
             <ParetoSketch objectives={provenance?.objectives ?? null} />
-            <p className="vertical-process-note">Pareto · specialist</p>
+            <p className="vertical-process-note">
+              {provenance?.objectives
+                ? `F ${provenance.objectives.formal.toFixed(2)} · S ${provenance.objectives.spatial.toFixed(2)} · A ${provenance.objectives.atmospheric.toFixed(2)}`
+                : "Formal · spatial · atmospheric"}
+            </p>
+            <p className="vertical-process-note">
+              {provenance?.candidate
+                ? `${provenance.candidate.pareto ? "Pareto front" : "Not on front"} · ${crowdingLabel(provenance.candidate.crowding)}`
+                : "Pareto · crowding"}
+            </p>
           </section>
           <section className="vertical-process-frame vertical-process-selection">
             <header className="vertical-process-label">
@@ -524,10 +586,11 @@ export function VerticalProcess({
               <h2 className="panel-title">Human selection</h2>
             </header>
             <div className="vertical-process-stage">
-              {candidate ? (
+              {candidate && provenance?.candidate?.preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/evolution/${candidate.archetypeId}/${candidate.candidateId}`}
+                  key={`${candidate.archetypeId}:${candidate.candidateId}`}
+                  src={`/api/semantic-run/${candidate.archetypeId}/${candidate.candidateId}`}
                   alt={`${archetypeName} candidate ${candidate.candidateId}`}
                 />
               ) : z0 ? (
@@ -537,6 +600,8 @@ export function VerticalProcess({
             <p className="vertical-process-note">{typology}</p>
             <p className="vertical-process-note">{archetypeName}</p>
             <p className="vertical-process-note">{candidateId != null ? String(candidateId) : "—"}</p>
+            <p className="vertical-process-note">{selectionZ0 != null ? `Z0 ${selectionZ0}` : "Z0 withheld"}</p>
+            <p className="vertical-process-note">{status}</p>
           </section>
         </div>
 
@@ -683,8 +748,9 @@ export function VerticalProcess({
                 <div className="vertical-process-stage">
                   {shown && revealedField ? (
                     <ProcessMorphology
+                      key={`${activeSet?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.parentChecksum}`}
                       field={revealedField}
-                      cacheIdentity={`${set?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.id}`}
+                      cacheIdentity={`${activeSet?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.id}`}
                       onTriangles={onTriangles}
                     />
                   ) : null}
@@ -745,8 +811,8 @@ export function VerticalProcess({
           <details className="vertical-process-rules">
             <summary>Rules</summary>
             <p>
-              {set
-                ? `Horizon ${set.rules.horizon}. Samples no closer than ${set.rules.minGap} steps, and at least every ${set.rules.maxGap}. Envelope ${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}. Morphology ${set.rules.morphology}.`
+              {activeSet
+                ? `Horizon ${activeSet.rules.horizon}. Samples no closer than ${activeSet.rules.minGap} steps, and at least every ${activeSet.rules.maxGap}. Envelope ${activeSet.rules.envelope.sizeX}×${activeSet.rules.envelope.sizeY}×${activeSet.rules.envelope.sizeZ}. Morphology ${activeSet.rules.morphology}.`
                 : "The continuation uses the inherited slime and the current sampling horizon."}
             </p>
             <p>Further morphology rules can be added here if the 3D outcomes need them.</p>
