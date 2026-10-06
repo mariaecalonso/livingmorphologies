@@ -85,6 +85,13 @@
       "warnings": [],
       "blocks": [],
       "catalogCandidates": 73
+    },
+    "linear-edge-gallery": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 102
     }
   }
 }
