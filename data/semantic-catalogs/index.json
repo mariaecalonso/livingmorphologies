@@ -78,6 +78,13 @@
         "semantic family aside was eliminated"
       ],
       "catalogCandidates": 138
+    },
+    "open-hall": {
+      "status": "complete",
+      "fidelity": "pass",
+      "warnings": [],
+      "blocks": [],
+      "catalogCandidates": 73
     }
   }
 }
