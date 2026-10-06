@@ -570,6 +570,10 @@
   min-height: 0;
 }
 
+[data-view-mode="desktop"] .vertical-process-body {
+  grid-template-columns: minmax(0, 0.138fr) minmax(0, 0.647fr) minmax(0, 0.215fr);
+}
+
 .vertical-process-inputs,
 .vertical-process-logic {
   display: flex;
@@ -577,6 +581,11 @@
   gap: 0.28em;
   min-height: 0;
   overflow: hidden;
+}
+
+.vertical-process-inputs {
+  gap: 0.55em;
+  justify-content: flex-start;
 }
 
 .vertical-process-board,
@@ -659,19 +668,106 @@
 }
 
 .vertical-process-inputs .vertical-process-frame {
-  flex: 0.8 1 0;
-  gap: 0.12em;
-  padding: 0.22em 0.24em 0.24em;
-  background: rgba(8, 10, 10, 0.72);
+  position: relative;
+  flex: 26 1 0;
+  gap: 0.32em;
+  padding: 0.5em 0.48em 0.46em;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 0.56em;
+  background: linear-gradient(145deg, rgba(28, 28, 28, 0.76), rgba(5, 5, 5, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0.45em 1.4em rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-.vertical-process-selection {
-  flex: 1.35 1 0;
+.vertical-process-inputs .vertical-process-frame::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.vertical-process-inputs .vertical-process-frame:nth-child(2) {
+  flex: 30 1 0;
+}
+
+.vertical-process-inputs .vertical-process-frame:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 0.72em;
+  bottom: -0.55em;
+  width: 1px;
+  height: 0.55em;
+  background: linear-gradient(180deg, rgba(15, 115, 119, 0.9), rgba(199, 126, 95, 0.45));
+}
+
+.vertical-process-inputs .vertical-process-selection {
+  flex: 44 1 0;
 }
 
 .vertical-process-inputs .vertical-process-label {
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  margin: 0;
+  padding-bottom: 0.32em;
+  border-bottom: 1px solid rgba(242, 242, 238, 0.16);
+}
+
+.vertical-process-inputs .vertical-process-label .eyebrow {
+  font-size: 0.4em;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+}
+
+.vertical-process-inputs .vertical-process-label .panel-title {
+  font-size: 0.5em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.vertical-process-inputs .vertical-process-search {
+  flex: 1 1 auto;
+  justify-content: space-between;
+  gap: 0.26em;
+  padding-left: 0.42em;
+  border-left: 1px solid rgba(15, 115, 119, 0.75);
+}
+
+.vertical-process-inputs .vertical-process-search li span:first-child {
+  color: var(--muted);
+}
+
+.vertical-process-inputs .vertical-process-search li span:last-child {
+  color: var(--text);
+}
+
+.vertical-process-inputs .vertical-process-pareto {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.vertical-process-inputs .vertical-process-note {
+  font-size: 0.4em;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.vertical-process-inputs .vertical-process-selection .vertical-process-note:last-child {
+  color: var(--text);
+}
+
+.vertical-process-inputs .vertical-process-stage {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  border: 1px solid rgba(242, 242, 238, 0.14);
+  border-radius: 0.28em;
 }
 
 .vertical-process-inputs .vertical-process-label .panel-title,
