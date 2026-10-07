@@ -24,7 +24,7 @@ export async function GET(request: Request, context: { params: Promise<{ archety
     organic: numberOr("organic"),
     thickness: numberOr("thickness"),
   });
-  const png = refinePreviewPng(readFileSync(source), calibration);
+  const png = refinePreviewPng(readFileSync(source), calibration, archetype);
   return new NextResponse(new Uint8Array(png), {
     headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
   });

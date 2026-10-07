@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SEMANTIC_RUN_ROOT } from "./run-root";
-import { promoteArchiveZ0, writePendingZ0 } from "./z0-snapshot";
+import { discardUncataloguedZ0, promoteArchiveZ0, writePendingZ0 } from "./z0-snapshot";
 import { isLobbyArchetype } from "../../skill1/lobby-realization";
 import { runSemanticEvolution } from "./controller";
 import { evaluateLobbyCandidate, evaluateSearchCandidate, type SemanticEvaluation } from "./evaluate";
@@ -101,8 +101,10 @@ export async function runLobbySemanticSearch(
             }
             saveLobbySemanticBatch({ run: current, previews }, root);
             if (phase === "generation") {
+              const directory = semanticRunDirectory(archetypeId, root);
               const archived = current.candidates.filter((item) => item.current.pareto).map((item) => item.id);
-              promoteArchiveZ0(semanticRunDirectory(archetypeId, root), archived);
+              promoteArchiveZ0(directory, archived);
+              discardUncataloguedZ0(directory, visibleIds(current.catalog));
             }
           }
         : undefined,
@@ -185,8 +187,24 @@ export function saveLobbySemanticBatch(batch: LobbySemanticBatch, root = SEMANTI
     }),
   };
   writeFileSync(`${join(directory, "run.json")}.tmp`, JSON.stringify(run));
-  renameSync(`${join(directory, "run.json")}.tmp`, join(directory, "run.json"));
+  replaceFile(`${join(directory, "run.json")}.tmp`, join(directory, "run.json"));
   return directory;
+}
+
+function replaceFile(from: string, to: string) {
+  let last: unknown;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (error) {
+      last = error;
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EPERM" && code !== "EACCES" && code !== "EBUSY") throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * (attempt + 1));
+    }
+  }
+  throw last;
 }
 
 function lobbyAdapter(archetypeId: string) {

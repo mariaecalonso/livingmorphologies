@@ -37,7 +37,6 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[
     label: "Hybrid Connection",
     active: (pathname) => pathname === "/lab/hybrid" || pathname.startsWith("/lab/hybrid/"),
   },
-  { href: "/filament", label: "Filament", active: (pathname) => pathname === "/filament" || pathname.startsWith("/filament/") },
 ];
 
 const VIEW_MODES: { id: DisplayMode; label: string }[] = [

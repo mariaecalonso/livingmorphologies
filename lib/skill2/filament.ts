@@ -3,17 +3,19 @@ import { join } from "node:path";
 import { inflateSync } from "node:zlib";
 import { ARCHETYPE_VISUAL_REFERENCES } from "./archetype-visual-references";
 import { encodeGrayPng } from "./semantic/gray-png";
-import { SEMANTIC_RUN_ROOT } from "./semantic/run-root";
+import { semanticRunFile } from "./semantic/run-root";
 import { visibleIds } from "./semantic/catalog";
 import type { SemanticRun } from "./semantic/types";
 import {
   DEFAULT_FILAMENT,
+  exploratoryHairPlate,
+  hairPlateStamp,
   normalizeFilamentCalibration,
   refineFilament,
   type FilamentCalibration,
 } from "./filament-draw";
 
-export { downsampleGray, filamentField, toneFilament, refineFilament } from "./filament-draw";
+export { downsampleGray, exploratoryHairPlate, filamentField, galleryPropagationPlate, hairPlateStamp, toneFilament, refineFilament } from "./filament-draw";
 export { DEFAULT_FILAMENT, normalizeFilamentCalibration, type FilamentCalibration };
 
 /**
@@ -80,15 +82,15 @@ export function filamentArchetypeStatus(): FilamentArchetypeStatus[] {
 /** A few real drawings from the finished run, spread across the catalog when one exists. */
 export function filamentSampleIds(archetypeId: string) {
   if (!isArchetypeId(archetypeId)) return [];
-  const runFile = join(SEMANTIC_RUN_ROOT, archetypeId, "run.json");
-  if (!existsSync(runFile)) return [];
+  const runFile = semanticRunFile(archetypeId, "run.json");
+  if (!runFile) return [];
   let run: SemanticRun;
   try {
     run = JSON.parse(readFileSync(runFile, "utf8")) as SemanticRun;
   } catch {
     return [];
   }
-  const previewDir = join(SEMANTIC_RUN_ROOT, archetypeId, "previews");
+  const previewDir = join(runFile, "..", "previews");
   const ready = run.candidates.filter((candidate) => candidate.preview && existsSync(join(previewDir, `${candidate.id}.png`)));
   const visible = new Set(visibleIds(run.catalog));
   const catalog = ready.filter((candidate) => visible.has(candidate.id));
@@ -103,14 +105,13 @@ export function filamentSampleIds(archetypeId: string) {
 
 export function semanticPreviewPath(archetypeId: string, id: string) {
   if (!isArchetypeId(archetypeId) || !/^\d+$/.test(id)) return null;
-  const path = join(SEMANTIC_RUN_ROOT, archetypeId, "previews", `${id}.png`);
-  return existsSync(path) ? path : null;
+  return semanticRunFile(archetypeId, "previews", `${id}.png`);
 }
 
 /** Catalog image. Uses the saved calibration and a disk cache so the page does not re-tone every request. */
 export function readCatalogFilament(archetypeId: string, sourcePath: string, id: string) {
   const calibration = loadFilamentCalibration(archetypeId);
-  const stamp = JSON.stringify(calibration);
+  const stamp = `${JSON.stringify(calibration)}:${hairPlateStamp(archetypeId)}`;
   const dir = join(CACHE_DIR, archetypeId);
   const cache = join(dir, `${id}.png`);
   const mark = join(dir, `${id}.stamp`);
@@ -118,17 +119,18 @@ export function readCatalogFilament(archetypeId: string, sourcePath: string, id:
   if (existsSync(cache) && existsSync(mark) && readFileSync(mark, "utf8") === stamp && statSync(cache).mtimeMs >= sourceTime) {
     return readFileSync(cache);
   }
-  const refined = refinePreviewPng(readFileSync(sourcePath), calibration);
+  const refined = refinePreviewPng(readFileSync(sourcePath), calibration, archetypeId);
   mkdirSync(dir, { recursive: true });
   writeFileSync(cache, refined);
   writeFileSync(mark, stamp);
   return refined;
 }
 
-export function refinePreviewPng(png: Buffer, calibration: FilamentCalibration) {
+export function refinePreviewPng(png: Buffer, calibration: FilamentCalibration, archetypeId?: string) {
   const decoded = decodeGrayPng(png);
   if (!decoded) return png;
-  return encodeGrayPng(decoded.size, refineFilament(decoded.pixels, calibration));
+  const plate = exploratoryHairPlate(decoded.pixels, archetypeId ?? "");
+  return encodeGrayPng(decoded.size, refineFilament(plate, calibration));
 }
 
 /** Our inspection PNGs are 8-bit gray with filter 0. Anything else is left untouched. */

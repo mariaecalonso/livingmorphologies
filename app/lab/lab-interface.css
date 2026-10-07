@@ -79,25 +79,11 @@
   gap: 0.4rem 0.9rem;
 }
 
-.stage-nav-site,
 .stage-nav-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem 0.55rem;
-}
-
-.stage-nav-site a {
-  padding: 0.12rem 0.2rem;
-  font-size: 0.56rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.stage-nav-site a:hover {
-  color: #ffffff;
 }
 
 .stage-nav-bottom .stage-nav-end {
@@ -172,12 +158,22 @@
 
 .stage-nav-subitem {
   border-color: transparent;
-  font-size: 0.6rem;
+  background: transparent;
+  padding: 0.12rem 0.28rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  color: rgba(242, 242, 238, 0.38);
+}
+
+.stage-nav-subitem:hover {
+  border-color: transparent;
+  color: rgba(242, 242, 238, 0.7);
 }
 
 .stage-nav-subitem[data-active] {
-  border-color: var(--orange);
-  color: var(--orange-hot);
+  border-color: transparent;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.86);
 }
 
 .stage-nav-edit {
@@ -216,17 +212,17 @@
 }
 
 .stage-nav-mode button {
-  border-radius: 0;
-  font-size: 0.56rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  padding: 0.28rem;
+  border-radius: 4px;
 }
 
-.stage-nav-mode button:first-child {
-  border-radius: 4px 0 0 4px;
-}
-
-.stage-nav-mode button:last-child {
-  border-left: 0;
-  border-radius: 0 4px 4px 0;
+.stage-nav-mode svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .stage-nav-mode button[data-active] {
@@ -243,11 +239,6 @@
 [data-view-mode="presentation"] .stage-nav-top,
 [data-view-mode="presentation"] .stage-nav-bottom {
   gap: 0.8rem 1.6rem;
-}
-
-[data-view-mode="presentation"] .stage-nav-site a {
-  font-size: 1.15rem;
-  letter-spacing: 0.12em;
 }
 
 [data-view-mode="presentation"] .stage-nav-identity .display {
@@ -275,16 +266,34 @@
 }
 
 [data-view-mode="presentation"] .stage-nav-subitem {
-  padding: 0.55rem 1.1rem;
-  font-size: 1.3rem;
-  letter-spacing: 0.12em;
+  padding: 0.15rem 0.45rem;
+  border-color: transparent;
+  background: transparent;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: rgba(242, 242, 238, 0.42);
+}
+
+[data-view-mode="presentation"] .stage-nav-subitem[data-active] {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.88);
 }
 
 [data-view-mode="presentation"] .stage-nav-mode {
   padding-left: 1.6rem;
 }
 
-[data-view-mode="presentation"] .stage-nav-mode button,
+[data-view-mode="presentation"] .stage-nav-mode button {
+  width: 3.6rem;
+  padding: 0.55rem;
+}
+
+[data-view-mode="presentation"] .stage-nav-mode svg {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
 [data-view-mode="presentation"] .stage-nav-edit button {
   padding: 0.55rem 1.1rem;
   font-size: 1.1rem;
@@ -576,7 +585,7 @@
   justify-content: center;
   overflow: hidden;
   padding: 0.65rem 0.85rem 0.75rem;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 [data-view-mode="desktop"] .workflow-flow {
@@ -627,7 +636,7 @@
   align-content: center;
   padding: 0 56px;
   overflow: hidden;
-  font-size: 28px;
+  font-size: 38px;
 }
 
 [data-view-mode="presentation"] .workflow-hero-text {
@@ -673,6 +682,38 @@
   height: 2px;
 }
 
+.lab-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 1rem;
+  padding: 0.32rem 0.75rem;
+  border-bottom: 1px solid rgba(242, 242, 238, 0.1);
+}
+
+.lab-tools .eyebrow,
+.lab-tools p {
+  margin: 0;
+}
+
+.evo-header.lab-tools {
+  align-items: center;
+}
+
+[data-view-mode="presentation"] .runs-wall > .lab-tools {
+  padding: 14px 28px;
+}
+
+[data-view-mode="presentation"] .runs-wall > .lab-tools .eyebrow,
+[data-view-mode="presentation"] .runs-wall > .lab-tools p,
+[data-view-mode="presentation"] .runs-wall > .lab-tools button,
+[data-view-mode="presentation"] .runs-wall > .lab-tools a,
+[data-view-mode="presentation"] .runs-wall > .lab-tools .runs-g01-slot {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
 /* Physarum catalog */
 
 .runs-catalog-pager {
@@ -693,6 +734,438 @@
   display: grid;
   justify-content: center;
   align-content: start;
+}
+
+.physarum-catalog .runs-catalog-grid {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  align-content: stretch;
+  align-items: center;
+  justify-items: center;
+  container-type: size;
+}
+
+.physarum-catalog .runs-catalog-card {
+  position: relative;
+  display: flex;
+  width: min(100%, calc((100cqh - (var(--catalog-rows, 4) - 1) * var(--catalog-gap, 8px)) / var(--catalog-rows, 4)));
+  height: auto;
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 9px;
+  background: #000000;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 28px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-catalog .runs-catalog-card {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.physarum-catalog .runs-catalog-card::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.physarum-catalog .runs-catalog-card-image {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: #000000;
+}
+
+.physarum-catalog .runs-catalog-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.physarum-catalog .runs-catalog-spec {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  padding: 0.08rem 0.28rem 0.1rem;
+  background: #000000;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.46rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.physarum-catalog .runs-catalog-spec button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.physarum-catalog .runs-catalog-spec button:hover {
+  color: #ffffff;
+}
+
+.physarum-catalog .runs-catalog-spec svg {
+  width: 0.48rem;
+  height: 0.48rem;
+}
+
+.physarum-catalog .runs-catalog-spec path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.physarum-catalog-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+  grid-template-rows: minmax(0, auto) auto;
+  width: min(92vw, 1120px);
+  height: fit-content;
+  max-height: min(74dvh, 520px);
+  overflow: hidden;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(28, 28, 28, 0.92), rgba(5, 5, 5, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.physarum-catalog-detail-stage {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: stretch;
+  justify-self: stretch;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0.55rem 0 0.3rem 0.55rem;
+  border: 1px solid rgba(242, 242, 238, 0.16);
+  border-radius: 6px;
+  background: #000000;
+  overflow: hidden;
+}
+
+.physarum-catalog-detail-sheet {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  flex-direction: column;
+  margin: 0.4rem 0.6rem 0.25rem 0.45rem;
+  overflow: hidden;
+  container-type: inline-size;
+  container-name: catalog-sheet;
+}
+
+.physarum-catalog-detail-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.1rem 0.15rem 0.3rem;
+}
+
+.physarum-catalog-detail-head .display {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+}
+
+.physarum-catalog-detail-head p:last-child {
+  margin: 0.2rem 0 0;
+  color: rgba(242, 242, 238, 0.62);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.physarum-catalog-detail-head button {
+  border: 1px solid rgba(242, 242, 238, 0.22);
+  border-radius: 4px;
+  padding: 0.28rem 0.55rem;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.physarum-catalog-detail-head button:hover {
+  color: #ffffff;
+}
+
+.physarum-catalog-detail-nav {
+  display: flex;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 0.35rem 0.55rem 0.45rem;
+  border-top: 1px solid rgba(242, 242, 238, 0.14);
+}
+
+.physarum-catalog-detail-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+}
+
+.physarum-catalog-detail-nav button:hover:not(:disabled) {
+  border-color: rgba(242, 242, 238, 0.55);
+}
+
+.physarum-catalog-detail-nav button:disabled {
+  opacity: 0.28;
+}
+
+.physarum-catalog-detail-nav svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.physarum-catalog-detail-nav path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.physarum-catalog-detail > aside,
+.physarum-catalog-detail-sheet {
+  width: auto;
+  min-width: 0;
+}
+
+.physarum-catalog-specs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  column-gap: 0.85rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0.05rem 0.1rem 0.15rem;
+  font-size: 0.68rem;
+}
+
+.physarum-catalog-spec-col {
+  grid-row: 1;
+  min-width: 0;
+}
+
+.physarum-catalog-spec-col:nth-child(2) {
+  grid-column: 2;
+}
+
+.physarum-catalog-spec-physarum {
+  grid-column: 3;
+}
+
+.physarum-catalog-specs > section,
+.physarum-catalog-spec-col > section {
+  min-width: 0;
+  margin: 0 0 0.28rem;
+}
+
+.physarum-catalog-specs h3 {
+  margin: 0 0 0.12rem;
+  padding-bottom: 0.1rem;
+  border-bottom: 1px solid rgba(242, 242, 238, 0.14);
+  color: rgba(242, 242, 238, 0.46);
+  font-size: 0.52rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.physarum-catalog-specs dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  align-items: start;
+  margin: 0;
+  gap: 0.08rem 0.4rem;
+  font-size: 0.64rem;
+  line-height: 1.15;
+}
+
+.physarum-catalog-specs dt {
+  min-width: 0;
+  color: rgba(242, 242, 238, 0.52);
+  overflow-wrap: break-word;
+}
+
+.physarum-catalog-specs dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: rgba(242, 242, 238, 0.92);
+  text-align: right;
+}
+
+@container catalog-sheet (max-width: 520px) {
+  .physarum-catalog-specs {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  .physarum-catalog-spec-col,
+  .physarum-catalog-spec-col:nth-child(2),
+  .physarum-catalog-spec-physarum {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog .runs-catalog-spec {
+  padding: 2px 6px 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog .runs-catalog-spec button {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font-size: 0;
+}
+
+[data-view-mode="presentation"] .physarum-catalog .runs-catalog-spec svg {
+  width: 16px;
+  height: 16px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail {
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  grid-template-rows: minmax(0, auto) auto;
+  width: min(42vw, 2400px);
+  height: fit-content;
+  max-height: min(62dvh, 1080px);
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-stage {
+  margin: 28px 0 16px 28px;
+  border-radius: 10px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-sheet {
+  margin: 22px 28px 16px 22px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-head .display {
+  font-size: 36px;
+  letter-spacing: 0.1em;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-head p:last-child {
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-head button {
+  padding: 10px 16px;
+  font-size: 16px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-nav {
+  gap: 24px;
+  padding: 12px 28px 14px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-nav button {
+  width: 64px;
+  height: 64px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-nav svg {
+  width: 28px;
+  height: 28px;
+}
+
+[data-view-mode="presentation"] .runs-wall .runs-detail.physarum-catalog-detail > aside,
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-detail-sheet {
+  width: auto;
+  max-width: none;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-specs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 36px;
+  padding: 8px 8px 12px;
+  overflow: hidden;
+  font-size: 18px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-spec-physarum {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-spec-col:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-specs > section,
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-spec-col > section {
+  margin-bottom: 16px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-specs h3 {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  font-size: 14px;
+}
+
+[data-view-mode="presentation"] .runs-wall .physarum-catalog-specs dl {
+  font-size: 18px;
+  line-height: 1.2;
+  gap: 4px 16px;
 }
 
 /* Pareto catalog fills the lab stage. The fit math reads this height; do not set card pixels here. */
@@ -1681,7 +2154,7 @@
 [data-view-mode="presentation"] .vertical-process {
   gap: 0.4em;
   padding: 0.4em 0.55em 0.45em;
-  font-size: 44px;
+  font-size: 38px;
 }
 
 @media (max-width: 980px) {
@@ -1967,7 +2440,7 @@
 [data-view-mode="presentation"] .vertical-catalogue {
   gap: 0.22em;
   padding: 0.22em 0.32em 0.24em;
-  font-size: 44px;
+  font-size: 38px;
 }
 
 [data-view-mode="presentation"] .vertical-catalogue-body {
@@ -2365,8 +2838,14 @@
 }
 
 .runs-catalog-card[data-selected] {
-  border-color: var(--cyan);
-  box-shadow: inset 0 0 0 1px var(--cyan);
+  border-color: #c77e5f;
+  box-shadow:
+    inset 0 1px 0 rgba(217, 161, 141, 0.7),
+    0 0 16px rgba(199, 126, 95, 0.45);
+}
+
+.runs-catalog-card[data-selected]::before {
+  box-shadow: inset 0 0 0 1px rgba(199, 126, 95, 0.85);
 }
 
 .skill2-selected-badge {
@@ -2375,7 +2854,7 @@
   left: 0.35rem;
   z-index: 1;
   padding: 0.15rem 0.35rem;
-  border: 1px solid var(--cyan);
+  border: 1px solid #c77e5f;
   background: rgba(0, 0, 0, 0.82);
   color: #ffffff;
   font-size: 0.55rem;
@@ -2449,7 +2928,123 @@
 }
 
 .runs-aside button[data-chosen] {
-  box-shadow: inset 3px 0 0 var(--cyan);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+.pareto-workspace,
+.hybrid-assembly {
+  display: flex;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-workspace > .pareto-page,
+.hybrid-work {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hybrid-stage {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-stage-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-work {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr) minmax(16rem, 22rem);
+  grid-template-rows: minmax(0, 1.3fr) minmax(8rem, 0.7fr);
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+}
+
+.hybrid-tile {
+  grid-column: 1;
+  grid-row: 1;
+  overflow: auto;
+}
+
+.hybrid-canvas {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 0;
+}
+
+.hybrid-som {
+  grid-column: 3;
+  grid-row: 1;
+  overflow: auto;
+}
+
+.hybrid-summary {
+  grid-column: 1;
+  grid-row: 2;
+  overflow: auto;
+}
+
+.hybrid-operations {
+  grid-column: 3;
+  grid-row: 2;
+  overflow: auto;
+}
+
+.hybrid-assembly[data-hybrid-view="process"] .hybrid-som,
+.hybrid-assembly[data-hybrid-view="process"] .hybrid-summary {
+  display: none;
+}
+
+.hybrid-assembly[data-hybrid-view="process"] .hybrid-tile,
+.hybrid-assembly[data-hybrid-view="process"] .hybrid-operations {
+  grid-row: 1 / span 2;
+}
+
+.hybrid-assembly[data-hybrid-view="catalog"] .hybrid-tile,
+.hybrid-assembly[data-hybrid-view="catalog"] .hybrid-canvas,
+.hybrid-assembly[data-hybrid-view="catalog"] .hybrid-operations {
+  display: none;
+}
+
+.hybrid-assembly[data-hybrid-view="catalog"] .hybrid-som {
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 2;
+}
+
+.hybrid-assembly[data-hybrid-view="catalog"] .hybrid-summary {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+[data-view-mode="presentation"] .lab-rail {
+  width: 520px;
+  margin: 16px;
+}
+
+[data-view-mode="presentation"] .lab-rail .panel-title {
+  font-size: 32px;
+}
+
+[data-view-mode="presentation"] .lab-rail .eyebrow,
+[data-view-mode="presentation"] .lab-rail .hud-panel-kicker {
+  font-size: 20px;
+}
+
+[data-view-mode="presentation"] .lab-rail button {
+  padding: 12px 14px;
+  font-size: 22px;
+  line-height: 1.2;
 }
 
 .skill2-selection-board {
@@ -2616,5 +3211,137 @@
 
   .final-row {
     min-height: 11rem;
+  }
+}
+
+/* Filament calibration. A drawing tool inside the stage shell, not a second site header. */
+
+.filament-page {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem clamp(1rem, 3vw, 3rem) 1.2rem;
+  color: var(--text);
+}
+
+.filament-heading {
+  max-width: 68ch;
+}
+
+.filament-heading .eyebrow {
+  margin: 0 0 0.35rem;
+}
+
+.filament-heading h1 {
+  margin: 0 0 0.45rem;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.filament-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.filament-layout {
+  display: grid;
+  grid-template-columns: 17.5rem minmax(0, 1fr);
+  gap: 1.75rem;
+  margin-top: 1.25rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.filament-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filament-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.filament-controls select,
+.filament-controls button {
+  background: #111;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+}
+
+.filament-controls button {
+  cursor: pointer;
+}
+
+.filament-controls input[type="range"] {
+  width: 100%;
+  accent-color: #0f7377;
+}
+
+.filament-hint,
+.filament-note,
+.filament-waiting {
+  color: var(--muted);
+}
+
+.filament-hint {
+  font-size: 0.75rem;
+}
+
+.filament-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.filament-grid figure {
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.filament-grid img {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  object-fit: contain;
+  background: #000;
+  display: block;
+}
+
+.filament-grid figcaption {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .filament-page {
+    height: auto;
+    overflow: auto;
+  }
+
+  .filament-layout,
+  .filament-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filament-grid {
+    grid-template-rows: none;
+    overflow: visible;
   }
 }

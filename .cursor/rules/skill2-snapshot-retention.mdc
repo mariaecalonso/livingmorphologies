@@ -1,0 +1,24 @@
+---
+description: When a Skill 2 semantic archetype is run or resumed, keep run.json, preview PNGs, and z0 snapshots only for visible catalog drawings.
+alwaysApply: false
+globs: lib/skill2/semantic/**/*.ts,scripts/lobby-semantic-v1.ts,scripts/semantic-lobby.ts
+---
+
+# Skill 2 snapshot retention
+
+A production search still writes a `z0` snapshot for every evaluated candidate. The catalog is only known after that generation's preservation. At each generation checkpoint, `discardUncataloguedZ0` deletes the `.bin` and `.json` for ids that are not `catalog.entries[].representativeId`.
+
+Keep, for each archetype under `data/semantic-runs/<archetypeId>/`:
+
+- `run.json` — plans, salts, scores, parents, generations, and catalog membership. Charts, the next generation, and skill handoff read this.
+- `previews/<id>.png` — filament and chart images.
+- `z0/<id>.bin` and `z0/<id>.json` — only when `id` is a visible catalog representative. Vertical propagation and the Skill 3 trail handoff need that pair.
+
+Trash:
+
+- `z0/<id>.bin` and `z0/<id>.json` for every other id, including hidden near-duplicates and Pareto members who are not the visible representative.
+- `data/filament-cache/` — rebuilt from the preview PNG when a drawing is toned.
+
+Do not delete a snapshot pair when the catalog has no entries yet. Do not prune `run.json` or previews to save space. A non-catalog point can still be charted and can still parent the next generation from `run.json`; it will not have a saved trail.
+
+This does not make the search faster. The simulation of every candidate still runs, and the snapshot is still written before the catalog is known. The checkpoint only stops those files from staying on disk.

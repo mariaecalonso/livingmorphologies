@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ARCHETYPES } from "../skill1/archetypes";
 import type { EvolutionArchetypeView, EvolutionCandidateView, EvolutionCatalog } from "./evolution-index";
+import { loadEvolutionCatalog } from "./evolution-index";
 import type { CatalogIndex, PublishedCandidate, PublishedCatalog } from "./semantic/publish-catalog";
 
 const TYPOLOGY_ORDER = ["lobby", "workspace", "gathering"];
@@ -39,6 +40,22 @@ export function loadPublishedSemanticCatalog(): EvolutionCatalog {
       (a, b) =>
         TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
     );
+  return { archetypes };
+}
+
+/** The page shows a finished local run when one exists. Otherwise it shows the published catalog. */
+export function loadShownCatalog(): EvolutionCatalog {
+  const published = loadPublishedSemanticCatalog();
+  const byId = new Map(published.archetypes.map((item) => [item.archetypeId, item]));
+  for (const archetype of loadEvolutionCatalog().archetypes) {
+    const semantic = archetype.candidates.some((candidate) => candidate.schema === "semantic");
+    if (!semantic || archetype.completedGenerations < archetype.generationCount) continue;
+    byId.set(archetype.archetypeId, archetype);
+  }
+  const archetypes = [...byId.values()].sort(
+    (a, b) =>
+      TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
+  );
   return { archetypes };
 }
 

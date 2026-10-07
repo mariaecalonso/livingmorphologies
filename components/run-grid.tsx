@@ -17,8 +17,10 @@ import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTra
 import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { paintMorphology as paintSnapshot } from "@/components/morphology-preview";
+import { ArchetypeRail } from "@/components/archetype-rail";
 import { FilamentRefine } from "@/components/filament-refine";
 import { TYPOLOGIES } from "@/lib/catalog";
+import { labWorkspace } from "@/lib/site-map";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
 import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
 import { listArchetypeFieldCounts, loadArchetypeFields, saveArchetypeField } from "@/lib/persist/run-fields";
@@ -217,6 +219,7 @@ function RunInfoLists({
   behavior,
   recipe,
   topology,
+  fit = false,
 }: {
   seed: number;
   agents: number;
@@ -227,39 +230,68 @@ function RunInfoLists({
   behavior?: BiologicalBehavior;
   recipe?: SpatialRecipe;
   topology?: TopologyKind | string;
+  fit?: boolean;
 }) {
+  const simulation = (
+    <ParamList
+      title="Simulation"
+      place="simulation"
+      rows={[
+        ["seed", seed],
+        ["agents", agents],
+        ["iterations", iterations],
+        ["maxIterations", DISPLAY_ITERATIONS],
+        ["field", field],
+      ]}
+    />
+  );
+  const slimeList = slime ? <ParamList title="Slime mold" place="slime" rows={slimeRows(slime)} /> : null;
+  const physarumList = params ? <ParamList title="Physarum" place="physarum" rows={Object.entries(params)} /> : null;
+  const behaviorList = behavior ? <ParamList title="Behavior" place="behavior" rows={Object.entries(behavior)} /> : null;
+  const attractorList = <ParamList title="Attractors" place="attractors" rows={attractorRows(recipe?.attractors)} />;
+  const recipeList = recipe ? (
+    <ParamList
+      title="Recipe"
+      place="recipe"
+      rows={[
+        ["topology", topology ?? ""],
+        ["sourceCorner", recipe.sourceCorner],
+        ["attractor", recipe.attractor],
+        ["attractorTypes", (recipe.attractors ?? []).map((item) => item.kind).join(", ")],
+        ["coreExposure", recipe.coreExposure],
+        ["enclosureCollar", recipe.enclosureCollar],
+        ["isolationRadius", recipe.isolationRadius],
+        ["clustering", recipe.clustering],
+        ["approachWidth", recipe.approachWidth],
+      ]}
+    />
+  ) : null;
+  if (!fit) {
+    return (
+      <div className="min-h-0 flex-1 space-y-5 overflow-auto px-4 py-4">
+        {simulation}
+        {slimeList}
+        {physarumList}
+        {behaviorList}
+        {attractorList}
+        {recipeList}
+      </div>
+    );
+  }
   return (
-    <div className="min-h-0 flex-1 space-y-5 overflow-auto px-4 py-4">
-      <ParamList
-        title="Simulation"
-        rows={[
-          ["seed", seed],
-          ["agents", agents],
-          ["iterations", iterations],
-          ["maxIterations", DISPLAY_ITERATIONS],
-          ["field", field],
-        ]}
-      />
-      {slime ? <ParamList title="Slime mold" rows={slimeRows(slime)} /> : null}
-      {params ? <ParamList title="Physarum" rows={Object.entries(params)} /> : null}
-      {behavior ? <ParamList title="Behavior" rows={Object.entries(behavior)} /> : null}
-      <ParamList title="Attractors" rows={attractorRows(recipe?.attractors)} />
-      {recipe ? (
-        <ParamList
-          title="Recipe"
-          rows={[
-            ["topology", topology ?? ""],
-            ["sourceCorner", recipe.sourceCorner],
-            ["attractor", recipe.attractor],
-            ["attractorTypes", (recipe.attractors ?? []).map((item) => item.kind).join(", ")],
-            ["coreExposure", recipe.coreExposure],
-            ["enclosureCollar", recipe.enclosureCollar],
-            ["isolationRadius", recipe.isolationRadius],
-            ["clustering", recipe.clustering],
-            ["approachWidth", recipe.approachWidth],
-          ]}
-        />
-      ) : null}
+    <div className="physarum-catalog-specs">
+      <div className="physarum-catalog-spec-col">
+        {simulation}
+        {behaviorList}
+        {attractorList}
+        {recipeList}
+      </div>
+      <div className="physarum-catalog-spec-col">
+        {slimeList}
+      </div>
+      <div className="physarum-catalog-spec-col physarum-catalog-spec-physarum">
+        {physarumList}
+      </div>
     </div>
   );
 }
@@ -267,12 +299,14 @@ function RunInfoLists({
 function ParamList({
   title,
   rows,
+  place,
 }: {
   title: string;
   rows: Array<[string, unknown]>;
+  place?: string;
 }) {
   return (
-    <section>
+    <section data-spec={place}>
       <h3 className="text-[0.62rem] uppercase tracking-[0.16em] text-[var(--orange-hot)]">{title}</h3>
       <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[0.78rem]">
         {rows.map(([key, value]) => (
@@ -311,9 +345,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   const runningRef = useRef(false);
   const allQueueRef = useRef(false);
   const allDoneRef = useRef(false);
-  const freshQueueRef = useRef(false);
   const savingRef = useRef(false);
-  const autoStartedRef = useRef<string | null>(null);
   const resumeIndexRef = useRef(0);
   const completedRef = useRef(0);
   const wallRef = useRef(false);
@@ -763,8 +795,6 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
       const allSaved = !fresh && ALL_ARCHETYPE_IDS.every((id) => savedFor(id) >= RUN_COUNT);
       if (fresh) {
         clearAllDoneFlag();
-        freshQueueRef.current = true;
-        autoStartedRef.current = null;
         snapshotsRef.current = Array.from({ length: RUN_COUNT }, () => null);
         completedRef.current = 0;
         setPickedId(ALL_ARCHETYPE_IDS[0] ?? null);
@@ -792,7 +822,6 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           setRunningId(session.runningId);
           setCompleted(session.completed);
           setPaused(false);
-          if (session.pickedId) autoStartedRef.current = session.completed > 0 ? session.pickedId : autoStartedRef.current;
         }
         const firstMissing = ALL_ARCHETYPE_IDS.find((id) => savedFor(id) < RUN_COUNT) ?? null;
         if (!allSaved) clearAllDoneFlag();
@@ -905,7 +934,6 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         clearAllDoneFlag();
         allDoneRef.current = false;
         allQueueRef.current = true;
-        freshQueueRef.current = true;
         setAllDone(false);
         setAllQueue(true);
         setPickedId(ALL_ARCHETYPE_IDS[0] ?? null);
@@ -936,65 +964,6 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   }, []);
 
   useEffect(() => {
-    if (!sessionReady) return;
-    if (allDoneRef.current || catalogOpen) return;
-    if (!allQueueRef.current || !pickedId || running || paused || savingRef.current) return;
-    void (async () => {
-      if (freshQueueRef.current) {
-        freshQueueRef.current = false;
-        autoStartedRef.current = pickedId;
-        startRuns();
-        return;
-      }
-      const [images, fields] = await Promise.all([
-        listCatalogCounts(ALL_ARCHETYPE_IDS),
-        listArchetypeFieldCounts(ALL_ARCHETYPE_IDS, RUN_COUNT),
-      ]);
-      const savedFor = (id: string) => Math.max(images[id] ?? 0, fields[id] ?? 0);
-      if (ALL_ARCHETYPE_IDS.every((id) => savedFor(id) >= RUN_COUNT)) {
-        await finishAllQueue();
-        return;
-      }
-      const stored = savedFor(pickedId);
-      if (stored >= RUN_COUNT) {
-        const nextId = ALL_ARCHETYPE_IDS.find((id) => savedFor(id) < RUN_COUNT);
-        if (!nextId) {
-          await finishAllQueue();
-          return;
-        }
-        autoStartedRef.current = null;
-        pickArchetype(nextId, true);
-        return;
-      }
-      if (completed === RUN_COUNT) return;
-      if (stored > 0 && stored < RUN_COUNT) {
-        const kept = await loadArchetypeFields(pickedId, RUN_COUNT);
-        snapshotsRef.current = kept;
-        autoStartedRef.current = pickedId;
-        resumeIndexRef.current = stored;
-        runningRef.current = true;
-        setCompleted(stored);
-        setRunning(true);
-        setRunningId(pickedId);
-        setRunToken((current) => current + 1);
-        return;
-      }
-      if (completed > 0 && snapshotsRef.current.some(Boolean) && stored < RUN_COUNT) {
-        autoStartedRef.current = pickedId;
-        resumeIndexRef.current = completed;
-        runningRef.current = true;
-        setRunning(true);
-        setRunningId(pickedId);
-        setRunToken((current) => current + 1);
-        return;
-      }
-      if (autoStartedRef.current === pickedId) return;
-      autoStartedRef.current = pickedId;
-      startRuns();
-    })();
-  }, [sessionReady, allQueue, pickedId, running, paused, completed]);
-
-  useEffect(() => {
     if (completed !== RUN_COUNT || savingRef.current) return;
     if (allDoneRef.current) return;
     savingRef.current = true;
@@ -1019,7 +988,6 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
         /* ignore */
       }
       pendingSavesRef.current = [];
-      autoStartedRef.current = null;
       pickArchetype(nextId, true);
       savingRef.current = false;
     })();
@@ -1150,8 +1118,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   const selectedSnapshot = selected == null ? null : snapshotsRef.current[selected];
   const pickedName = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === (catalogOpen ? pickedId : runningId ?? pickedId))?.name;
-  const catalogColumns = wall ? 16 : 8;
-  const catalogRows = 5;
+  const catalogColumns = wall ? 20 : 10;
+  const catalogRows = wall ? 5 : 4;
   const pageSize = Math.max(1, catalogColumns * catalogRows);
   const pageCount = Math.max(1, Math.ceil(catalog.length / pageSize));
   const page = Math.min(catalogPage, pageCount - 1);
@@ -1159,25 +1127,21 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   return (
     <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
-      <header className="runs-header border-b border-[var(--line)] px-3 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <p className="display text-[0.72rem] text-white">{view === "catalog" ? "Physarum Catalog" : "20 × 4 runs"}</p>
-          <div className="flex items-center gap-2">
-            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-              {view === "catalog" ? `${catalog.length} saved` : `${completed} / ${RUN_COUNT}`}
-            </p>
-          </div>
-        </div>
-        <div className="mt-0.5 flex items-center">
+      <div className="lab-tools">
           <p className={view === "catalog" ? "eyebrow min-w-0 truncate" : "eyebrow shrink-0"}>
             {view === "catalog"
-              ? `Generation 01 · Initial morphology population · ${pickedName ?? "Select an archetype"}`
+              ? "Initial morphology population"
               : pickedName
                 ? `${pickedName} · ${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations`
                 : "Select an archetype"}
           </p>
           {view === "catalog" ? (
-            <p className="runs-g01-slot" title="This catalog becomes the G01 population of 2D Evolution. Saved entries are legacy studies until validated against the locked generation rules.">
+            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{catalog.length} saved</p>
+          ) : (
+            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{completed} / {RUN_COUNT}</p>
+          )}
+          {view === "catalog" ? (
+            <p className="runs-g01-slot" title={`This catalog becomes the G01 population of ${labWorkspace("optimization").label}. Saved entries are legacy studies until validated against the locked generation rules.`}>
               Legacy entries · G01 validity not confirmed
             </p>
           ) : (
@@ -1227,46 +1191,22 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             </button>
           </div>
           )}
-        </div>
-      </header>
+      </div>
       <div className="flex min-h-0 flex-1">
-      <aside className="runs-aside panel m-2 flex w-[15.5rem] shrink-0 flex-col" aria-label="Archetype runs">
-        <header className="panel-header">
-          <div className="panel-header-content">
-            <p className="hud-panel-kicker">Input</p>
-            <h2 className="panel-title">Archetype</h2>
-          </div>
-        </header>
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          {TYPOLOGIES.map((typology) => (
-            <section key={typology.id} className="flex min-h-0 flex-1 flex-col gap-1.5">
-              <p className="eyebrow shrink-0">{typology.label}</p>
-              <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-                {typology.archetypes.map((item) => {
-                  const active = item.id === pickedId;
-                  const saved = catalogCounts[item.id] ?? 0;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => pickArchetype(item.id)}
-                      className={`flex min-h-0 flex-1 items-center border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
-                        active
-                          ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
-                          : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
-                      }`}
-                    >
-                      {item.name}{saved ? ` · ${saved}` : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </div>
-      </aside>
+      <ArchetypeRail
+        activeId={pickedId}
+        onPick={pickArchetype}
+        note={
+          view === "catalog"
+            ? undefined
+            : (id) => {
+                const saved = catalogCounts[id] ?? 0;
+                return saved ? ` · ${saved}` : "";
+              }
+        }
+      />
       {catalogOpen ? (
-        <section className="runs-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Saved runs catalog">
+        <section className="runs-catalog physarum-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Saved runs catalog">
           <header className="panel-header">
             <div className="panel-header-content">
               <p className="hud-panel-kicker">Catalog</p>
@@ -1297,6 +1237,8 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
                 gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
                 gap: wall ? 12 : 8,
+                ["--catalog-rows" as string]: catalogRows,
+                ["--catalog-gap" as string]: wall ? "12px" : "8px",
               }}
             >
               {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
@@ -1309,16 +1251,12 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
                   >
                     <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} />
                   </button>
-                  <figcaption className="flex items-center justify-between gap-2 px-1.5 py-1 text-[0.55rem] tracking-[0.08em] uppercase text-[var(--muted)]">
-                    <span className="truncate">
-                      Run {String(entry.run).padStart(2, "0")} · {entry.kind} · {entry.agents} agents
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeSaved(entry.id)}
-                      className="border border-[rgba(242,242,238,0.18)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.1em] uppercase text-[var(--muted)] hover:text-[var(--text)]"
-                    >
-                      Remove
+                  <figcaption className="runs-catalog-spec">
+                    <span>Run {String(entry.run).padStart(2, "0")}</span>
+                    <button type="button" onClick={() => removeSaved(entry.id)} aria-label={`Remove run ${String(entry.run).padStart(2, "0")}`}>
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M4 4l8 8M12 4l-8 8" />
+                      </svg>
                     </button>
                   </figcaption>
                 </figure>
@@ -1555,32 +1493,26 @@ function CatalogDetail({
       role="presentation"
     >
       <div
-        className="runs-detail grid h-[min(94dvh,920px)] w-[min(98vw,1480px)] grid-cols-[minmax(0,1fr)_22rem] overflow-hidden border border-[var(--line)] bg-[#050505]"
+        className="runs-detail physarum-catalog-detail"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={`Saved run ${String(entry.run).padStart(2, "0")} parameters`}
       >
-        <div className="relative min-h-0 min-w-0 bg-black">
+        <div className="physarum-catalog-detail-stage">
           {snapshot ? (
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
           ) : (
             <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} className="absolute inset-0 h-full w-full object-contain" />
           )}
         </div>
-        <aside className="flex min-h-0 w-[22rem] shrink-0 flex-col border-l border-[var(--line)]">
-          <header className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-4 py-3">
+        <aside className="physarum-catalog-detail-sheet">
+          <header className="physarum-catalog-detail-head">
             <div>
-              <p className="display text-[0.95rem] text-white">Run {String(entry.run).padStart(2, "0")}</p>
-              <p className="mt-1 text-[0.68rem] uppercase tracking-[0.12em] text-[var(--muted)]">
-                {translation.archetypeName} · {entry.kind}
-              </p>
+              <p className="display">Run {String(entry.run).padStart(2, "0")}</p>
+              <p>{translation.archetypeName} · {entry.kind}</p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="border border-[rgba(242,242,238,0.18)] px-2 py-1 text-[0.68rem] uppercase tracking-[0.14em] text-[var(--muted)] hover:text-[var(--text)]"
-            >
+            <button type="button" onClick={onClose}>
               Close
             </button>
           </header>
@@ -1594,26 +1526,21 @@ function CatalogDetail({
             behavior={translation.behavior}
             recipe={translation.recipe}
             topology={translation.topology}
+            fit
           />
-          <footer className="flex items-center justify-between border-t border-[var(--line)] px-4 py-3">
-            <button
-              type="button"
-              onClick={() => onStep(-1)}
-              disabled={!canPrev}
-              className="border border-[rgba(242,242,238,0.18)] px-3 py-1 text-[0.68rem] uppercase tracking-[0.14em] disabled:opacity-30"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => onStep(1)}
-              disabled={!canNext}
-              className="border border-[rgba(242,242,238,0.18)] px-3 py-1 text-[0.68rem] uppercase tracking-[0.14em] disabled:opacity-30"
-            >
-              Next
-            </button>
-          </footer>
         </aside>
+        <footer className="physarum-catalog-detail-nav">
+          <button type="button" onClick={() => onStep(-1)} disabled={!canPrev} aria-label="Previous iteration">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M14.5 5.5 8 12l6.5 6.5" />
+            </svg>
+          </button>
+          <button type="button" onClick={() => onStep(1)} disabled={!canNext} aria-label="Next iteration">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5 5.5 16 12l-6.5 6.5" />
+            </svg>
+          </button>
+        </footer>
       </div>
     </div>
   );

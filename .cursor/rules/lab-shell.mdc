@@ -9,7 +9,7 @@ Skill labs live under `/lab/<name>`. Hybrid Connection is `/lab/hybrid`. `/hybri
 
 The stage bar (`components/stage-nav.tsx`, `components/stage-shell.tsx`) is the one header and footer. A lab screen does not add a second header, footer, or site navigation. Desktop and Presentation stay on that shell.
 
-Filament is a catalog drawing tool, not a skill lab. It stays off the presentation front end.
+Filament is the ink control inside each archetype. It is not a stage on the stage bar, and it stays off the presentation front end.
 
 If a skill needs a different address, a second header or footer, or any other departure from this shell:
 

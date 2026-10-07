@@ -144,10 +144,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "skill-3",
     next: null,
     tone: "copper",
-    lab: [
-      { href: "/lab/hybrid", label: "Hybrid" },
-      { href: "/filament", label: "Filament" },
-    ],
+    lab: [{ href: "/lab/hybrid", label: "Hybrid" }],
   },
 ];
 

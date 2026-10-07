@@ -139,7 +139,7 @@ export function writePublishedCatalog(catalog: PublishedCatalog, directory: stri
     const file = join("previews", `${candidate.id}.png`).replace(/\\/g, "/");
     const plate = readFileSync(source);
     writeFileSync(join(plateDir, `${candidate.id}.png`), plate);
-    const refined = refinePreviewPng(plate, loadFilamentCalibration(catalog.archetypeId));
+    const refined = refinePreviewPng(plate, loadFilamentCalibration(catalog.archetypeId), catalog.archetypeId);
     writeFileSync(join(directory, file), refined);
     return { ...candidate, preview: { size: candidate.preview.size, file } };
   });

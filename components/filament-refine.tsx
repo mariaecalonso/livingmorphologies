@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { HAIR_CAP, HAIR_DECAY, HAIR_DEPOSIT, HAIR_WIDTH } from "@/lib/skill1/hair-ink";
-import { filamentField, toneFilament, type FilamentCalibration } from "@/lib/skill2/filament-draw";
+import type { FilamentCalibration } from "@/lib/skill2/filament-draw";
 
 type Calibration = FilamentCalibration;
-
-type Plate = {
-  id: string;
-  pixels: Uint8Array;
-  size: number;
-  scale: number;
-};
 
 type ArchetypeStatus = {
   archetypeId: string;
@@ -44,49 +37,22 @@ export function FilamentRefine({
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ArchetypeStatus | null>(null);
   const [draft, setDraft] = useState<Calibration | null>(null);
-  const [plates, setPlates] = useState<Plate[]>([]);
+  const [shown, setShown] = useState<Calibration | null>(null);
   const [note, setNote] = useState("");
-  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
-  const fields = useRef(new Map<string, { key: string; field: Float32Array }>());
 
   useEffect(() => {
     setOpen(false);
     setStatus(null);
     setDraft(null);
-    setPlates([]);
+    setShown(null);
     setNote("");
-    fields.current.clear();
   }, [archetypeId]);
 
   useEffect(() => {
-    if (!open || !draft || plates.length === 0) return;
-    const frame = window.requestAnimationFrame(() => {
-      const key = `${draft.thickness.toFixed(2)}|${draft.organic.toFixed(2)}`;
-      plates.forEach((plate, index) => {
-        const canvas = canvasRefs.current[index];
-        const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx) return;
-        let cached = fields.current.get(plate.id);
-        if (!cached || cached.key !== key) {
-          cached = { key, field: filamentField(plate.pixels, draft, plate.scale) };
-          fields.current.set(plate.id, cached);
-        }
-        const out = toneFilament(cached.field, draft, plate.scale);
-        const image = ctx.createImageData(plate.size, plate.size);
-        const data = image.data;
-        for (let pixel = 0; pixel < out.length; pixel += 1) {
-          const offset = pixel * 4;
-          const value = out[pixel];
-          data[offset] = value;
-          data[offset + 1] = value;
-          data[offset + 2] = value;
-          data[offset + 3] = 255;
-        }
-        ctx.putImageData(image, 0, 0);
-      });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [open, draft, plates]);
+    if (!draft) return;
+    const timer = window.setTimeout(() => setShown(draft), 160);
+    return () => window.clearTimeout(timer);
+  }, [draft]);
 
   useEffect(() => {
     if (!open) return;
@@ -129,43 +95,10 @@ export function FilamentRefine({
   };
 
   const name = archetypeName || status?.name || archetypeId;
-  const drawingKey = useMemo(() => (sampleIds.length ? sampleIds.slice(0, 3) : (status?.sampleIds ?? []).slice(0, 3).map(String)).join(","), [sampleIds, status]);
-
-  useEffect(() => {
-    if (!open || !drawingKey) {
-      setPlates([]);
-      return;
-    }
-    let cancel = false;
-    const ids = drawingKey.split(",");
-    void Promise.all(
-      ids.map(async (id) => {
-        const response = await fetch(`/api/filament/plate/${archetypeId}/${id}`, { cache: "no-store" });
-        if (!response.ok) return null;
-        const full = Number(response.headers.get("X-Filament-Full")) || 1280;
-        const bitmap = await createImageBitmap(await response.blob());
-        const size = bitmap.width;
-        const scratch = document.createElement("canvas");
-        scratch.width = size;
-        scratch.height = size;
-        const ctx = scratch.getContext("2d", { willReadFrequently: true });
-        if (!ctx || !size) return null;
-        ctx.drawImage(bitmap, 0, 0);
-        const data = ctx.getImageData(0, 0, size, size).data;
-        const pixels = new Uint8Array(size * size);
-        for (let pixel = 0; pixel < pixels.length; pixel += 1) pixels[pixel] = data[pixel * 4];
-        bitmap.close();
-        return { id, pixels, size, scale: size / full };
-      }),
-    ).then((loaded) => {
-      if (cancel) return;
-      fields.current.clear();
-      setPlates(loaded.filter((plate): plate is Plate => plate !== null));
-    });
-    return () => {
-      cancel = true;
-    };
-  }, [open, archetypeId, drawingKey]);
+  const ids = (sampleIds.length ? sampleIds : (status?.sampleIds ?? []).map(String)).slice(0, 6);
+  const query = shown
+    ? `white=${shown.white.toFixed(3)}&black=${shown.black.toFixed(3)}&organic=${shown.organic.toFixed(3)}&thickness=${shown.thickness.toFixed(3)}`
+    : "";
 
   return (
     <span className="filament-refine">
@@ -203,7 +136,7 @@ export function FilamentRefine({
                 <div className="filament-refine-body">
                   <div className="filament-refine-controls">
                     <p className="filament-refine-copy">
-                      The archetype places the body. The pen is a hair, fixed in the run and shared by every catalogue. These three drawings follow the sliders. Save applies that ink to the whole catalogue.
+                      The archetype places the body. The pen is a hair, fixed in the run and shared by every catalogue. These drawings follow the sliders. Save applies that ink to the whole catalogue.
                     </p>
                     <ul className="filament-refine-hair">
                       <li className="filament-refine-pen">Pen</li>
@@ -229,21 +162,16 @@ export function FilamentRefine({
                     )}
                     {note ? <p className="filament-refine-copy">{note}</p> : null}
                   </div>
-                    {plates.length ? (
+                    {ids.length && query ? (
                       <div className="filament-refine-samples">
-                        {plates.map((plate, index) => (
-                          <canvas
-                            key={plate.id}
-                            ref={(node) => {
-                              canvasRefs.current[index] = node;
-                            }}
-                            width={plate.size}
-                            height={plate.size}
-                          />
+                        {ids.map((id) => (
+                          // The query is the ink being judged, so a slider change loads the full drawing again.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={id} src={`/api/filament/${archetypeId}/${id}?${query}`} alt={`${name} iteration ${id}`} />
                         ))}
                       </div>
                     ) : (
-                      <p className="filament-refine-copy">{drawingKey ? "Loading these drawings." : ""}</p>
+                      <p className="filament-refine-copy">{open && !ids.length ? note || "This archetype has no finished drawings yet." : ""}</p>
                     )}
                 </div>
               </div>
@@ -283,6 +211,7 @@ export function FilamentRefine({
           display: flex;
           flex-direction: column;
           padding: 18px 20px 16px;
+          overflow: hidden;
           background: rgba(0, 0, 0, 0.96);
           border: 1px solid rgba(242, 242, 238, 0.18);
           color: var(--text, #f2f2ee);
@@ -318,12 +247,14 @@ export function FilamentRefine({
           display: flex;
           flex-direction: column;
           gap: 14px;
+          overflow: hidden;
         }
         .filament-refine-controls {
           display: grid;
-          grid-template-columns: minmax(180px, 1.3fr) repeat(4, minmax(0, 1fr)) auto;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
           gap: 8px 16px;
           align-items: end;
+          flex: 0 0 auto;
         }
         .filament-refine-copy { margin: 0; color: var(--muted, #9b9b98); font-size: 0.68rem; line-height: 1.45; grid-column: 1 / -1; }
         .filament-refine-hair { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; grid-column: 1 / -1; }
@@ -349,14 +280,18 @@ export function FilamentRefine({
           min-height: 0;
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
-          align-content: center;
+          grid-template-rows: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          align-items: center;
           justify-items: center;
+          overflow: hidden;
         }
         .filament-refine-samples img,
         .filament-refine-samples canvas {
-          width: min(100%, 42vh);
-          aspect-ratio: 1;
+          width: auto;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
           object-fit: contain;
           background: #000;
         }
@@ -364,8 +299,7 @@ export function FilamentRefine({
           .filament-refine-window { height: min(94vh, 980px); }
           .filament-refine-controls { grid-template-columns: 1fr 1fr; }
           .filament-refine-save { grid-column: 1 / -1; }
-          .filament-refine-samples img,
-          .filament-refine-samples canvas { width: min(100%, 28vh); }
+          .filament-refine-samples { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, minmax(0, 1fr)); }
         }
       `}</style>
     </span>

@@ -28,20 +28,18 @@ export default function FilamentCalibrationPage() {
       .then((response) => response.json())
       .then((body: StatusResponse & { shared?: FilamentCalibration }) => {
         setArchetypes(body.archetypes);
-        const ink = {
-          white: body.shared?.white ?? DEFAULT_FILAMENT.white,
-          black: body.shared?.black ?? DEFAULT_FILAMENT.black,
-          organic: DEFAULT_FILAMENT.organic,
-          thickness: DEFAULT_FILAMENT.thickness,
-        };
-        setDraft(ink);
-        setShown(ink);
         const requested = new URLSearchParams(window.location.search).get("archetype");
         const first =
           body.archetypes.find((item) => item.archetypeId === requested) ??
           body.archetypes.find((item) => item.hasRun) ??
           body.archetypes[0];
         if (!first) return;
+        const ink = {
+          ...DEFAULT_FILAMENT,
+          ...first.calibration,
+        };
+        setDraft(ink);
+        setShown(ink);
         setArchetypeId(first.archetypeId);
       });
   }, []);
@@ -58,6 +56,7 @@ export default function FilamentCalibrationPage() {
     const next = archetypes.find((item) => item.archetypeId === id);
     if (!next) return;
     setArchetypeId(id);
+    setDraft({ ...DEFAULT_FILAMENT, ...next.calibration });
     setSavedNote("");
   };
 
@@ -85,12 +84,10 @@ export default function FilamentCalibrationPage() {
 
   return (
     <main className="filament-page">
-      <header>
-        <p className="filament-kicker">Filament calibration</p>
-        <h1>Ink after the run</h1>
-        <p>
-          One ink for every catalogue. White lifts the hair. Black decides how much faint trail stays. Thickness and organic stay with the pen. This page is not in the workflow navigation.
-        </p>
+      <header className="filament-heading">
+        <p className="eyebrow">Filament</p>
+        <h1 className="display">Ink after the run</h1>
+        <p>One ink for every catalogue. White lifts the hair. Black decides how much faint trail stays. Thickness and organic stay with the pen.</p>
       </header>
       {current && draft ? (
         <div className="filament-layout">
@@ -106,9 +103,9 @@ export default function FilamentCalibrationPage() {
                 ))}
               </select>
             </label>
-            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
-            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
-            <p className="filament-note">Thickness {DEFAULT_FILAMENT.thickness} and organic {DEFAULT_FILAMENT.organic} stay with the pen.</p>
+            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white })} />
+            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black })} />
+            <p className="filament-note">Thickness {draft.thickness.toFixed(2)} and organic {draft.organic.toFixed(2)} stay with this archetype.</p>
             <button type="button" onClick={() => void save()}>
               Save for every catalogue
             </button>
@@ -135,27 +132,6 @@ export default function FilamentCalibrationPage() {
       ) : (
         <p className="filament-waiting">Loading archetypes.</p>
       )}
-      <style>{`
-        .filament-page { min-height: 100vh; background: #000; color: #f2f2ee; padding: 28px 32px 48px; font-family: Helvetica, Arial, sans-serif; }
-        .filament-kicker { margin: 0 0 8px; letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; color: #7db8b8; }
-        h1 { margin: 0 0 8px; font-family: var(--font-orbitron), Helvetica, sans-serif; font-size: 22px; font-weight: 500; }
-        header p { max-width: 68ch; color: #9b9b98; margin: 0; }
-        .filament-layout { display: grid; grid-template-columns: 280px 1fr; gap: 28px; margin-top: 28px; align-items: start; }
-        .filament-controls { display: flex; flex-direction: column; gap: 16px; }
-        label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
-        select, button { background: #111; color: #f2f2ee; border: 1px solid rgba(242,242,238,0.28); padding: 8px 10px; font: inherit; }
-        button { cursor: pointer; }
-        input[type="range"] { width: 100%; accent-color: #0f7377; }
-        .filament-hint { color: #9b9b98; font-size: 12px; }
-        .filament-note, .filament-waiting { color: #9b9b98; }
-        .filament-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-        figure { margin: 0; }
-        img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #000; display: block; }
-        figcaption { margin-top: 6px; color: #9b9b98; font-size: 12px; }
-        @media (max-width: 900px) {
-          .filament-layout, .filament-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </main>
   );
 }
