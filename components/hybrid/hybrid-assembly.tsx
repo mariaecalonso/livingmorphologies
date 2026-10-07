@@ -3,6 +3,7 @@
 import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
 import { aggregationAssemblyLabel, aggregationStatusLabel, evaluateAggregation, type AggregationStatus } from "@/lib/skill4/aggregation";
+import { booleanPlanLabel, buildBooleanPlan } from "@/lib/skill4/boolean-plan";
 import { buildInterlocks, interlockAssemblyLabel } from "@/lib/skill4/interlock";
 import { resolveAssemblyHybrid } from "@/lib/skill4/assembly-hybrid";
 import { gridShape, mockSummary } from "@/lib/skill4/assembly-layout";
@@ -43,6 +44,7 @@ export function HybridAssembly() {
   const detected = detectAdjacencies(tiles);
   const aggregation = evaluateAggregation(connections, tiles, loaded);
   const interlocks = buildInterlocks(aggregation, tiles);
+  const booleanPlan = buildBooleanPlan(interlocks);
   const placed: PlacedMesh[] = [
     ...tiles.flatMap((tile) => {
       const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -168,6 +170,14 @@ export function HybridAssembly() {
         <p className="hybrid-units" data-interlock={interlocks.status}>
           INTERLOCK GEOMETRY · {interlockAssemblyLabel(interlocks.status)} · {interlocks.readyCount} / {interlocks.connections.length}
         </p>
+        <p className="hybrid-units" data-boolean-plan={booleanPlan.status}>
+          BOOLEAN PLAN · {booleanPlanLabel(booleanPlan.status)} · {booleanPlan.readyConnectionCount} / {booleanPlan.connections.length}
+        </p>
+        {booleanPlan.tiles.map((tile) => (
+          <p key={tile.tileId} className="hybrid-units" data-boolean-tile={tile.tileId}>
+            Tile {tile.tileId} · {tile.operations.length} cuts{tile.operations.some((cut) => cut.potentialCutConflict) ? " · potential conflict" : ""}
+          </p>
+        ))}
         <p className="hybrid-pending">Repeat · Pending</p>
       </Panel>
     </main>

@@ -33,6 +33,7 @@
     "verify:skill4-assembly-hybrid": "npx --yes tsx lib/skill4/verify-assembly-hybrid.ts",
     "verify:skill4-aggregation": "npx --yes tsx lib/skill4/verify-aggregation.ts",
     "verify:skill4-interlock": "npx --yes tsx lib/skill4/verify-interlock.ts",
+    "verify:skill4-boolean-plan": "npx --yes tsx lib/skill4/verify-boolean-plan.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },
