@@ -12,14 +12,13 @@
     },
     "linear-gallery": {
       "status": "complete",
-      "fidelity": "block",
+      "fidelity": "warn",
       "warnings": [
-        "receptivity is not a level-2 fidelity gate"
+        "receptivity is not a level-2 fidelity gate",
+        "technical validity is low"
       ],
-      "blocks": [
-        "technical validity collapsed"
-      ],
-      "catalogCandidates": 23
+      "blocks": [],
+      "catalogCandidates": 58
     },
     "compressed-sequential": {
       "status": "complete",
