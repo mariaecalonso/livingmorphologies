@@ -220,8 +220,11 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selections, setSelections] = useState<Skill2Selections>({});
-  const [handoff, setHandoff] = useState<"verified" | "pending">("pending");
+  const [handoff, setHandoff] = useState<"verified" | "pending" | "preparing">("pending");
+  const [prepareError, setPrepareError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const commitToken = useRef(0);
+  const preparingKey = useRef<string | null>(null);
   const [selectionsReady, setSelectionsReady] = useState(false);
   const [display, setDisplay] = useState<"morphology" | "propagation">("morphology");
   useEffect(() => {
@@ -260,6 +263,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
     void fetch(`/api/semantic-catalog/${committed.archetypeId}/${committed.candidateId}/selection`, { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((body: { handoff?: string } | null) => {
+        if (preparingKey.current === `${committed.archetypeId}:${committed.candidateId}`) return;
         setHandoff(body?.handoff === "verified" ? "verified" : "pending");
       })
       .catch(() => undefined);
@@ -268,16 +272,53 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
 
   const commitSelection = () => {
     if (!selected) return;
+    const token = ++commitToken.current;
+    const archetypeId = selected.archetypeId;
+    const candidateId = selected.id;
     setSaving(true);
-    void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.id}/selection`)
+    setPrepareError(null);
+    const applySelection = (selection: Skill2Selection) => {
+      setSelections((current) => {
+        const existing = current[selection.archetypeId];
+        if (token !== commitToken.current && existing && existing.candidateId !== selection.candidateId) return current;
+        return writeSkill2Selection(selection);
+      });
+    };
+    void fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`)
       .then(async (response) => {
         const body = (await response.json()) as { selection?: Skill2Selection; handoff?: string };
         if (!response.ok || !body.selection) return;
-        setSelections(writeSkill2Selection(body.selection));
-        setHandoff(body.handoff === "verified" ? "verified" : "pending");
+        applySelection(body.selection);
+        if (token !== commitToken.current) return;
+        if (body.handoff === "verified") {
+          setHandoff("verified");
+          setSaving(false);
+          return;
+        }
+        setHandoff("preparing");
+        preparingKey.current = `${archetypeId}:${candidateId}`;
+        const prepared = await fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`, { method: "POST" });
+        const result = (await prepared.json()) as { selection?: Skill2Selection; handoff?: string; error?: string };
+        if (result.selection) applySelection(result.selection);
+        if (token !== commitToken.current) return;
+        preparingKey.current = null;
+        if (prepared.ok && result.handoff === "verified") {
+          setHandoff("verified");
+          setPrepareError(null);
+        } else {
+          setHandoff("pending");
+          setPrepareError(result.error ?? "The Z0 could not be verified.");
+        }
       })
-      .catch(() => undefined)
-      .finally(() => setSaving(false));
+      .catch(() => {
+        if (token !== commitToken.current) return;
+        preparingKey.current = null;
+        setHandoff("pending");
+        setPrepareError("The Z0 could not be verified.");
+      })
+      .finally(() => {
+        if (token === commitToken.current) setSaving(false);
+      });
   };
 
   useEffect(() => {
@@ -500,7 +541,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 </button>
                 {chosenHere && committed ? (
                   <p className="skill2-selection-note">
-                    {handoff === "verified" ? "Ready" : "Selected — Z0 handoff pending"}
+                    {handoff === "preparing" ? "Preparing Z0…" : handoff === "verified" ? "Ready" : prepareError ?? "Selected — Z0 handoff pending"}
                   </p>
                 ) : null}
               </div>

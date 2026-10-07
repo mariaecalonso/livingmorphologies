@@ -67,6 +67,7 @@ export function Skill2SelectionBoard() {
   const activate = (archetypeId: string) => {
     setActiveId(archetypeId);
     writeActiveArchetype(archetypeId);
+    window.dispatchEvent(new Event("lm-skill3-source"));
   };
 
   const active = SLOTS.find((slot) => slot.archetypeId === activeId) ?? SLOTS[0];

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { TYPOLOGIES } from "@/lib/catalog";
+import { readActiveArchetype, readSkill2Selections } from "@/lib/skill2/published-selection";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
@@ -384,42 +386,88 @@ export function VerticalProcess({
   const [triangles, setTriangles] = useState<number | null>(null);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [readyCandidate, setReadyCandidate] = useState<CandidateRequest | null>(null);
   const onTriangles = useCallback((count: number | null) => setTriangles(count), []);
+  const source = candidate ?? readyCandidate;
 
   useEffect(() => {
-    if (initial || !candidate) return;
+    if (initial || candidate) return;
     const controller = new AbortController();
-    const params = new URLSearchParams({
-      archetype: candidate.archetypeId,
-      candidate: String(candidate.candidateId),
-    });
-    if (preview) params.set("preview", "1");
+    const load = () => {
+      const activeId = readActiveArchetype();
+      const selected = activeId ? readSkill2Selections()[activeId] : undefined;
+      if (!selected) {
+        setReadyCandidate(null);
+        return;
+      }
+      void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body: { handoff?: string } | null) => {
+          if (controller.signal.aborted) return;
+          if (body?.handoff !== "verified") {
+            setReadyCandidate(null);
+            return;
+          }
+          const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
+          setReadyCandidate({
+            archetypeId: selected.archetypeId,
+            archetypeName: name ?? selected.archetypeId,
+            typologyId: selected.typologyId,
+            candidateId: selected.candidateId,
+          });
+        })
+        .catch(() => undefined);
+    };
+    load();
+    window.addEventListener("lm-skill3-source", load);
+    return () => {
+      controller.abort();
+      window.removeEventListener("lm-skill3-source", load);
+    };
+  }, [candidate, initial]);
+
+  const continuationRequest = useRef(0);
+
+  useEffect(() => {
+    if (initial) return;
     setSet(null);
-    setError(null);
-    setPending(true);
-    setTriangles(null);
     setPlaying(false);
     setStep(0);
-    void fetch(`/api/vertical?${params}`, { signal: controller.signal })
+    setError(null);
+  }, [initial, source?.archetypeId, source?.candidateId]);
+  const beginContinuation = () => {
+    if (initial || !source || pending) return;
+    const token = ++continuationRequest.current;
+    const params = new URLSearchParams({
+      archetype: source.archetypeId,
+      candidate: String(source.candidateId),
+    });
+    if (preview) params.set("preview", "1");
+    setError(null);
+    setPending(true);
+    setPlaying(false);
+    setStep(0);
+    void fetch(`/api/vertical?${params}`)
       .then(async (response) => {
         const body = (await response.json()) as ApiSet & { error?: string };
         if (!response.ok) throw new Error(body.error ?? "The selected candidate could not be reconstructed.");
-        if (!controller.signal.aborted) setSet(joinSet(body));
+        if (token !== continuationRequest.current) return;
+        setSet(joinSet(body));
+        setPlaying(true);
       })
       .catch((caught) => {
-        if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
+        if (token !== continuationRequest.current) return;
         setSet(null);
         setError(caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.");
       })
       .finally(() => {
-        if (!controller.signal.aborted) setPending(false);
+        if (token === continuationRequest.current) setPending(false);
       });
-    return () => controller.abort();
-  }, [candidate, initial, preview]);
+  };
 
   const matchesSelection = set != null && (
-    candidate == null
-    || (set.archetypeId === candidate.archetypeId && set.candidateId === candidate.candidateId)
+    source == null
+    || (set.archetypeId === source.archetypeId && set.candidateId === source.candidateId)
   );
   const activeSet = matchesSelection ? set : null;
   const shown = activeSet?.continuations[0] ?? null;
@@ -432,7 +480,7 @@ export function VerticalProcess({
     setPlaying(false);
     setStep(0);
     setTriangles(null);
-  }, [candidate?.archetypeId, candidate?.candidateId, shown?.parentChecksum, shown?.continuationSeed]);
+  }, [source?.archetypeId, source?.candidateId, shown?.parentChecksum, shown?.continuationSeed]);
 
   useEffect(() => {
     if (!playing) return;
@@ -454,9 +502,12 @@ export function VerticalProcess({
   }, [shown, horizon]);
 
   const togglePlay = () => {
-    if (!shown || horizon <= 0) return;
     if (playing) {
       setPlaying(false);
+      return;
+    }
+    if (!shown || horizon <= 0) {
+      beginContinuation();
       return;
     }
     if (step >= horizon) setStep(0);
@@ -468,7 +519,7 @@ export function VerticalProcess({
     setStep(0);
   };
   const z0 = shown?.field.slices[0] ?? null;
-  const identity = activeSet ?? candidate;
+  const identity = activeSet ?? source;
   const typology = identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype";
   const archetypeName = identity?.archetypeName ?? "Selected candidate";
   const candidateId = identity?.candidateId;
@@ -602,7 +653,7 @@ export function VerticalProcess({
             <h2 className="panel-title">Process</h2>
             <div className="vertical-process-replay">
               <span>Iteration {playStep} / {horizon || "—"}</span>
-              <button type="button" onClick={togglePlay} disabled={!shown || horizon <= 0 || handoffFailed} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>{playing ? "Pause" : "Play"}</button>
+              <button type="button" onClick={togglePlay} disabled={(!shown && !source) || handoffFailed || pending} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>{playing ? "Pause" : "Play"}</button>
               <button type="button" onClick={resetReplay} disabled={!shown || handoffFailed} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>Reset</button>
               <input
                 type="range"

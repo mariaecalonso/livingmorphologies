@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { loadNaturalContinuations, peekNaturalContinuations, type NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { peekNaturalContinuations, type NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { loadVerifiedContinuations } from "@/lib/skill3/semantic-handoff";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 600;
 
 /** Viewer plates for the current vertical page. Meshes stay lazy on the client. */
 export function GET(request: Request) {
@@ -41,7 +43,7 @@ export function GET(request: Request) {
   try {
     const set: NaturalContinuationSet = preview
       ? loadProvisionalContinuations(requested.selection)
-      : loadNaturalContinuations(requested.selection);
+      : loadVerifiedContinuations(requested.selection);
     const { continuations, ...source } = set;
     return NextResponse.json({
       ...source,
