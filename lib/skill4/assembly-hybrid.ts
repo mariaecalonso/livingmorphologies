@@ -2,7 +2,7 @@ import type { IsoMesh } from "../scan/isomesh";
 import type { ModuleHandoff, ReadyModule } from "./adapt";
 import { mockPlacementSupported } from "./assembly-layout";
 import { detectAdjacencies, type TileConnection } from "./connections";
-import type { FaceFrame, FaceId, Vec3 } from "./contract";
+import type { FaceFrame, Vec3 } from "./contract";
 import { connectorFrame } from "./hybrid-deformation";
 import { currentGeneratedField } from "./hybrid-display";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
@@ -13,7 +13,8 @@ import type { TileInstance } from "./tiles";
  * A stored connector is lofted between unplaced registration frames.
  * Display placement rebuilds a mesh so ring 0 sits on tile A's placed
  * section and the last ring sits on tile B's placed section.
- * Rotation, mirror, and vertical faces stay unresolved.
+ * Tile rotation, mirror, and translation follow the assembly shader:
+ * mirror, then a quarter-turn yaw, then translation.
  */
 export type AssemblyHybridSource = "real" | "mock" | "none";
 
@@ -32,7 +33,20 @@ export type AssemblyHybrid = {
 };
 
 const ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
-const SIDE_FACES = new Set<FaceId>(["E", "W", "N", "S"]);
+
+/** Placed face frame. Same order as the assembly preview: mirror, yaw, translation. */
+export function placedFaceFrame(
+  frame: FaceFrame,
+  tile: Pick<TileInstance, "transform" | "rotationQuarter" | "mirror">,
+): FaceFrame {
+  const turned = {
+    origin: yaw(mirrorVec(frame.origin, tile.mirror), tile.rotationQuarter),
+    normal: yaw(mirrorVec(frame.normal, tile.mirror), tile.rotationQuarter),
+    u: yaw(mirrorVec(frame.u, tile.mirror), tile.rotationQuarter),
+    v: yaw(mirrorVec(frame.v, tile.mirror), tile.rotationQuarter),
+  };
+  return { ...frame, ...turned, origin: add(turned.origin, tile.transform) };
+}
 
 export function sectionCenter(frame: FaceFrame, depth: number, shift: Vec3 = ORIGIN): Vec3 {
   return {
@@ -66,9 +80,11 @@ export function placeGeneratedHybrid(
   const targetSpan = sub(targetEnd, targetStart);
   const targetLength = length(targetSpan);
   if (!source || !face || targetLength <= 1e-6) return null;
-  const targetDirection = scale(targetSpan, 1 / targetLength);
   if (Math.abs(dot(source.direction, face.direction)) < 0.999) return null;
-  if (Math.abs(dot(face.direction, targetDirection)) < 0.999) return null;
+  const targetDirection = scale(targetSpan, 1 / targetLength);
+  const basisA = transportBasis(sourceA, targetA, source.tangent, source.bitangent);
+  const basisB = transportBasis(sourceB, targetB, source.tangent, source.bitangent);
+  if (!basisA || !basisB) return null;
 
   const positions = new Float32Array(mesh.positions.length);
   const normals = new Float32Array(mesh.normals.length);
@@ -77,23 +93,20 @@ export function placeGeneratedHybrid(
     const t = ring / (steps - 1);
     const sourceAxis = lerp(sourceStart, sourceEnd, t);
     const targetAxis = lerp(targetStart, targetEnd, t);
+    const basis = sectionBasis(basisA, basisB, t);
     const point = read(mesh.positions, vertex);
     const delta = sub(point, sourceAxis);
-    const placed = add(
-      targetAxis,
-      add(
-        scale(targetDirection, dot(delta, source.direction)),
-        add(scale(source.tangent, dot(delta, source.tangent)), scale(source.bitangent, dot(delta, source.bitangent))),
-      ),
-    );
-    write(positions, vertex, placed);
+    const along = dot(delta, source.direction);
+    const sectionU = dot(delta, source.tangent);
+    const sectionV = dot(delta, source.bitangent);
+    write(positions, vertex, add(targetAxis, add(scale(targetDirection, along), add(scale(basis.u, sectionU), scale(basis.v, sectionV)))));
     const normal = read(mesh.normals, vertex);
     const turned = add(
       scale(targetDirection, dot(normal, source.direction)),
-      add(scale(source.tangent, dot(normal, source.tangent)), scale(source.bitangent, dot(normal, source.bitangent))),
+      add(scale(basis.u, dot(normal, source.tangent)), scale(basis.v, dot(normal, source.bitangent))),
     );
     const turnedLength = length(turned);
-    write(normals, vertex, turnedLength > 1e-8 ? scale(turned, 1 / turnedLength) : turned);
+    write(normals, vertex, turnedLength > 1e-8 ? scale(turned, 1 / turnedLength) : { x: 0, y: 1, z: 0 });
   }
   return {
     positions,
@@ -150,25 +163,25 @@ function placeConnection(
   loaded: ReadonlyMap<string, ModuleHandoff>,
   mesh: IsoMesh,
 ): IsoMesh | null {
-  if (!SIDE_FACES.has(connection.faceA) || !SIDE_FACES.has(connection.faceB)) return null;
   const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
   const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
   if (!tileA || !tileB) return null;
-  if (tileA.rotationQuarter !== 0 || tileB.rotationQuarter !== 0 || tileA.mirror || tileB.mirror) return null;
-  if (!mockPlacementSupported(connection, tiles)) return null;
   const moduleA = readyModule(tileA, loaded);
   const moduleB = readyModule(tileB, loaded);
   if (!moduleA || !moduleB) return null;
+  const sourceA = moduleA.faces[connection.faceA];
+  const sourceB = moduleB.faces[connection.faceB];
+  if (!sourceA || !sourceB) return null;
   const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
   const vertexCount = mesh.positions.length / 3;
   if (vertexCount % steps !== 0) return null;
   const sampleCount = vertexCount / steps;
   return placeGeneratedHybrid(
     mesh,
-    moduleA.faces[connection.faceA],
-    moduleB.faces[connection.faceB],
-    shiftFrame(moduleA.faces[connection.faceA], tileA.transform),
-    shiftFrame(moduleB.faces[connection.faceB], tileB.transform),
+    sourceA,
+    sourceB,
+    placedFaceFrame(sourceA, tileA),
+    placedFaceFrame(sourceB, tileB),
     sampleCount,
     steps,
   );
@@ -179,8 +192,60 @@ function readyModule(tile: TileInstance, loaded: ReadonlyMap<string, ModuleHando
   return handoff?.status === "ready" ? handoff : null;
 }
 
-function shiftFrame(frame: FaceFrame, translate: Vec3): FaceFrame {
-  return { ...frame, origin: add(frame.origin, translate) };
+function transportBasis(sourceFace: FaceFrame, targetFace: FaceFrame, tangent: Vec3, bitangent: Vec3): { u: Vec3; v: Vec3 } | null {
+  const u = carry(sourceFace, targetFace, tangent);
+  const v = carry(sourceFace, targetFace, bitangent);
+  if (length(u) < 1e-6 || length(v) < 1e-6) return null;
+  return { u, v };
+}
+
+function carry(sourceFace: FaceFrame, targetFace: FaceFrame, vector: Vec3): Vec3 {
+  return add(
+    scale(targetFace.u, dot(vector, sourceFace.u)),
+    add(scale(targetFace.v, dot(vector, sourceFace.v)), scale(targetFace.normal, dot(vector, sourceFace.normal))),
+  );
+}
+
+function sectionBasis(start: { u: Vec3; v: Vec3 }, end: { u: Vec3; v: Vec3 }, t: number) {
+  if (t <= 0) return start;
+  if (t >= 1) return end;
+  return rigidize(slerp(start.u, end.u, t), slerp(start.v, end.v, t));
+}
+
+function rigidize(u: Vec3, v: Vec3) {
+  const tangent = normalize(u);
+  const projected = sub(v, scale(tangent, dot(v, tangent)));
+  const bitangent = length(projected) > 1e-6 ? normalize(projected) : unitPerp(tangent);
+  return { u: tangent, v: bitangent };
+}
+
+function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  const aligned = Math.min(1, Math.max(-1, dot(a, b)));
+  if (aligned > 0.999999) return normalize(lerp(a, b, t));
+  if (aligned < -0.999999) return rodrigues(a, unitPerp(a), Math.PI * t);
+  const angle = Math.acos(aligned);
+  const sine = Math.sin(angle);
+  return add(scale(a, Math.sin((1 - t) * angle) / sine), scale(b, Math.sin(t * angle) / sine));
+}
+
+function rodrigues(vector: Vec3, axis: Vec3, angle: number): Vec3 {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return add(add(scale(vector, cosine), scale(cross(axis, vector), sine)), scale(axis, dot(axis, vector) * (1 - cosine)));
+}
+
+function yaw(vector: Vec3, quarter: 0 | 1 | 2 | 3): Vec3 {
+  const angle = quarter * Math.PI / 2;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return { x: vector.x * cosine + vector.z * sine, y: vector.y, z: -vector.x * sine + vector.z * cosine };
+}
+
+function mirrorVec(vector: Vec3, axis: TileInstance["mirror"]): Vec3 {
+  if (axis === "x") return { x: -vector.x, y: vector.y, z: vector.z };
+  if (axis === "y") return { x: vector.x, y: -vector.y, z: vector.z };
+  if (axis === "z") return { x: vector.x, y: vector.y, z: -vector.z };
+  return vector;
 }
 
 function blank(source: "none", candidateId: string | null, status: AssemblyHybridStatus): AssemblyHybrid {
@@ -234,6 +299,19 @@ function scale(value: Vec3, factor: number): Vec3 {
 
 function lerp(a: Vec3, b: Vec3, t: number): Vec3 {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t };
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+}
+
+function normalize(value: Vec3): Vec3 {
+  return scale(value, 1 / length(value));
+}
+
+function unitPerp(value: Vec3): Vec3 {
+  const helper = Math.abs(value.y) < 0.9 ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 };
+  return normalize(cross(value, helper));
 }
 
 function dot(a: Vec3, b: Vec3) {

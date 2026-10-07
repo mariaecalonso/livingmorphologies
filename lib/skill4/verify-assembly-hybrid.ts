@@ -1,9 +1,9 @@
 import type { IsoMesh } from "../scan/isomesh";
-import { placeGeneratedHybrid, resolveAssemblyHybrid, sectionCenter } from "./assembly-hybrid";
+import { placeGeneratedHybrid, placedFaceFrame, resolveAssemblyHybrid, sectionCenter } from "./assembly-hybrid";
 import { layoutTiles } from "./assembly-layout";
 import type { HybridCandidate } from "./candidate-field";
 import { reconcileConnections, type TileConnection } from "./connections";
-import type { FaceFrame, Vec3 } from "./contract";
+import { registrationEnvelope, VIEW_SCAN, type FaceFrame, type FaceId, type Vec3 } from "./contract";
 import { PROVISIONAL_MOCK_IDS, readProvisionalMock } from "./fixtures";
 import { GENERATED_HYBRID_FIELD_SETTINGS, type GeneratedHybridCandidate, type GeneratedHybridField } from "./generated-hybrid-field";
 import { connectorFrame } from "./hybrid-deformation";
@@ -189,13 +189,71 @@ for (const status of ["empty", "blocked", "invalid"] as const) {
   assert(resolved.source === "none" && resolved.geometry === null && resolved.status === status, `${status} draws no connector`);
 }
 
-const turnedTiles = tiles.map((tile) => tile.instanceId === "A" ? { ...tile, rotationQuarter: 1 as const } : tile);
-const mirroredTiles = tiles.map((tile) => tile.instanceId === "A" ? { ...tile, mirror: "x" as const } : tile);
-const turned = resolveAssemblyHybrid(withField(east, eastField, "H05"), turnedTiles, loaded);
-const mirrored = resolveAssemblyHybrid(withField(east, eastField, "H05"), mirroredTiles, loaded);
-const vertical = resolveAssemblyHybrid(withField({ ...east, faceA: "T", faceB: "B" }, eastField, "H05"), tiles, loaded);
-assert(turned.status === "unresolved" && mirrored.status === "unresolved" && vertical.status === "unresolved", "rotation, mirror, and vertical faces stay unresolved");
-assert(turned.geometry === null && mirrored.geometry === null && vertical.geometry === null, "unsupported placements draw no connector");
+function placedEnds(faceA: FaceId, faceB: FaceId, nextA: TileInstance, nextB: TileInstance) {
+  const moduleFor = (tile: TileInstance) => tile.archetypeId === tileA.archetypeId ? moduleA : moduleB;
+  return {
+    a: sectionCenter(placedFaceFrame(moduleFor(nextA).faces[faceA], nextA), DEPTH),
+    b: sectionCenter(placedFaceFrame(moduleFor(nextB).faces[faceB], nextB), DEPTH),
+  };
+}
+
+function attach(label: string, faceA: FaceId, faceB: FaceId, mesh: IsoMesh, nextTiles: TileInstance[]) {
+  const link = withField({ ...east, faceA, faceB }, field(east.signature, new Map([["H05", { status: "ready", geometry: mesh }]])), "H05");
+  const resolved = resolveAssemblyHybrid(link, nextTiles, loaded);
+  assert(resolved.source === "real" && resolved.geometry !== null, `${label} resolves a real mesh`);
+  if (!resolved.geometry) throw new Error("unreachable");
+  const nextA = nextTiles.find((tile) => tile.instanceId === "A");
+  const nextB = nextTiles.find((tile) => tile.instanceId === "B");
+  if (!nextA || !nextB) throw new Error("tiles are missing");
+  const ends = placedEnds(faceA, faceB, nextA, nextB);
+  near(ringCenter(resolved.geometry, 0), ends.a, `${label} ring 0 stays on the transformed face`);
+  near(ringCenter(resolved.geometry, STEPS - 1), ends.b, `${label} final ring stays on the transformed face`);
+  return resolved.geometry;
+}
+
+for (const quarter of [1, 2, 3] as const) {
+  const turned = tiles.map((tile) => tile.instanceId === "A" ? { ...tile, rotationQuarter: quarter } : tile);
+  const mesh = attach(`${quarter * 90}°`, "E", "W", eastMesh, turned);
+  const turnedBulge = distance(read(mesh, middle * SAMPLES), ringCenter(mesh, middle));
+  assert(Math.abs(sourceBulge - turnedBulge) < TOLERANCE, `${quarter * 90}° keeps the middle-ring offset`);
+}
+
+const mirroredTiles = tiles.map((tile) => {
+  if (tile.instanceId === "A") return { ...tile, mirror: "x" as const };
+  if (tile.instanceId === "B") return { ...tile, mirror: "z" as const };
+  return tile;
+});
+const mirroredMesh = attach("mirror", "E", "W", eastMesh, mirroredTiles);
+for (let index = 0; index < mirroredMesh.normals.length; index += 1) {
+  assert(Number.isFinite(mirroredMesh.normals[index]), "mirrored normals stay finite");
+}
+for (let vertex = 0; vertex < mirroredMesh.normals.length / 3; vertex += 1) {
+  const offset = vertex * 3;
+  const normal = { x: mirroredMesh.normals[offset], y: mirroredMesh.normals[offset + 1], z: mirroredMesh.normals[offset + 2] };
+  assert(distance(normal, { x: 0, y: 0, z: 0 }) > 0.5, "mirrored normals stay usable");
+}
+
+const height = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).max.y - registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).min.y;
+const stacked = tiles.map((tile) => tile.instanceId === "B" ? { ...tile, transform: { x: tile.transform.x, y: height, z: tile.transform.z } } : tile);
+const lowered = tiles.map((tile) => tile.instanceId === "B" ? { ...tile, transform: { x: tile.transform.x, y: -height, z: tile.transform.z } } : tile);
+const topBottom = loftMesh(sectionCenter(moduleA.faces.T, DEPTH), sectionCenter(moduleB.faces.B, DEPTH), 0.05);
+const bottomTop = loftMesh(sectionCenter(moduleA.faces.B, DEPTH), sectionCenter(moduleB.faces.T, DEPTH), 0.05);
+attach("T-B", "T", "B", topBottom, stacked);
+attach("B-T", "B", "T", bottomTop, lowered);
+
+const turnedBoard = tiles.map((tile) => tile.instanceId === "A" ? { ...tile, rotationQuarter: 1 as const } : tile);
+const turnedEast = resolveAssemblyHybrid(withField(east, eastField, "H05"), turnedBoard, loaded);
+const turnedNorth = resolveAssemblyHybrid(withField(north, northField, "H17"), turnedBoard, loaded);
+assert(turnedEast.geometry !== null && turnedNorth.geometry !== null && turnedEast.geometry !== turnedNorth.geometry, "rotated connections keep separate meshes");
+if (!turnedEast.geometry || !turnedNorth.geometry) throw new Error("unreachable");
+const turnedA = turnedBoard.find((tile) => tile.instanceId === "A");
+if (!turnedA) throw new Error("tile A is missing");
+near(ringCenter(turnedEast.geometry, 0), sectionCenter(placedFaceFrame(moduleA.faces.E, turnedA), DEPTH), "the turned east ring uses face E");
+near(ringCenter(turnedNorth.geometry, 0), sectionCenter(placedFaceFrame(moduleA.faces.N, turnedA), DEPTH), "the turned north ring uses face N");
+near(ringCenter(turnedNorth.geometry, STEPS - 1), sectionCenter(moduleA.faces.S, DEPTH, tileC.transform), "turning A leaves tile C's south face in place");
+
+const misaligned = resolveAssemblyHybrid(withField({ ...east, faceA: "T", faceB: "B" }, eastField, "H05"), stacked, loaded);
+assert(misaligned.status === "unresolved" && misaligned.geometry === null, "a connector that does not run between its source faces stays unresolved");
 
 assert(JSON.stringify(eastField.candidates.map((item) => [item.candidateId, item.status])) === before, "the generated field is not rewritten");
 for (let index = 0; index < sourceA.length; index += 1) assert(moduleA.geometry.positions[index] === sourceA[index], "source module A is unchanged");
