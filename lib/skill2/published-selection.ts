@@ -2,7 +2,7 @@ import type { RealizationState, SemanticPlan } from "@/lib/skill2/semantic/types
 
 /** One published Skill 2 candidate per archetype. Not a Skill 3 handoff. */
 export const SKILL2_SELECTIONS_KEY = "lm-skill2-selections";
-/** Previous single-candidate key. Read once so an existing session is kept. */
+/** Previous single-candidate key. Copied into localStorage once, then removed. */
 export const SKILL2_SELECTION_KEY = "lm-skill2-selection";
 /** Archetype whose morphology Skill 3 is showing. Does not start propagation. */
 export const SKILL3_ACTIVE_KEY = "lm-skill3-active";
@@ -74,9 +74,52 @@ function parseSkill2Selections(value: unknown): Skill2Selections {
   return selections;
 }
 
+function storageGet(store: Storage, key: string): string | null {
+  try {
+    return store.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(store: Storage, key: string, value: string): boolean {
+  try {
+    store.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function storageRemove(store: Storage, key: string) {
+  try {
+    store.removeItem(key);
+  } catch {
+    // The copy is already in localStorage. Leaving the session copy is safe.
+  }
+}
+
+function usableSelections(raw: string | null): Skill2Selections | null {
+  if (!raw) return null;
+  try {
+    const parsed = parseSkill2Selections(JSON.parse(raw));
+    return Object.keys(parsed).length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Copies a session selection into localStorage. The session value stays until that copy succeeds. */
+function migrateSessionSelections() {
+  const sessionRaw = storageGet(window.sessionStorage, SKILL2_SELECTIONS_KEY);
+  if (!sessionRaw || !usableSelections(sessionRaw)) return;
+  if (usableSelections(storageGet(window.localStorage, SKILL2_SELECTIONS_KEY))) return;
+  if (!storageSet(window.localStorage, SKILL2_SELECTIONS_KEY, sessionRaw)) return;
+  storageRemove(window.sessionStorage, SKILL2_SELECTIONS_KEY);
+}
+
 function readLegacySelection(): Skill2Selection | null {
-  if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(SKILL2_SELECTION_KEY);
+  const raw = storageGet(window.sessionStorage, SKILL2_SELECTION_KEY);
   if (!raw) return null;
   try {
     return parseSkill2Selection(JSON.parse(raw));
@@ -87,18 +130,23 @@ function readLegacySelection(): Skill2Selection | null {
 
 export function readSkill2Selections(): Skill2Selections {
   if (typeof window === "undefined") return {};
-  const raw = window.sessionStorage.getItem(SKILL2_SELECTIONS_KEY);
+  migrateSessionSelections();
+  const raw = storageGet(window.localStorage, SKILL2_SELECTIONS_KEY);
   if (raw) {
     try {
       return parseSkill2Selections(JSON.parse(raw));
     } catch {
-      return {};
+      const pending = usableSelections(storageGet(window.sessionStorage, SKILL2_SELECTIONS_KEY));
+      return pending ?? {};
     }
   }
+  const pending = usableSelections(storageGet(window.sessionStorage, SKILL2_SELECTIONS_KEY));
+  if (pending) return pending;
   const legacy = readLegacySelection();
   if (!legacy) return {};
   const selections = { [legacy.archetypeId]: legacy };
-  window.sessionStorage.setItem(SKILL2_SELECTIONS_KEY, JSON.stringify(selections));
+  if (!storageSet(window.localStorage, SKILL2_SELECTIONS_KEY, JSON.stringify(selections))) return selections;
+  storageRemove(window.sessionStorage, SKILL2_SELECTION_KEY);
   return selections;
 }
 
@@ -107,7 +155,7 @@ export function writeSkill2Selection(selection: Skill2Selection): Skill2Selectio
   const parsed = parseSkill2Selection(selection);
   if (!parsed || typeof window === "undefined") return readSkill2Selections();
   const selections = { ...readSkill2Selections(), [parsed.archetypeId]: parsed };
-  window.sessionStorage.setItem(SKILL2_SELECTIONS_KEY, JSON.stringify(selections));
+  if (!storageSet(window.localStorage, SKILL2_SELECTIONS_KEY, JSON.stringify(selections))) return readSkill2Selections();
   return selections;
 }
 

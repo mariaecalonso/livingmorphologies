@@ -8429,3 +8429,244 @@ button.evo-generation:disabled {
   min-height: 0;
 }
 
+/* Pareto catalog layout from origin/main. Scoped so other lab catalogs keep their cards. */
+.stage-body:has(.pareto-catalog-page) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pareto-catalog-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-page .runs-catalog {
+  flex: 1 1 20rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pareto-catalog-page .runs-catalog-pager {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.pareto-catalog-stack {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-page .runs-catalog-grid {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  align-content: start;
+  justify-content: start;
+}
+
+.pareto-catalog-page .runs-catalog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+  padding: 4px;
+  border: 1px solid rgba(242, 242, 238, 0.16);
+  border-radius: 6px;
+  background: linear-gradient(145deg, rgba(28, 28, 28, 0.76), rgba(5, 5, 5, 0.88));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pareto-catalog-page .runs-catalog-grid .runs-catalog-card {
+  height: 100%;
+  align-self: start;
+  overflow: hidden;
+}
+
+.pareto-catalog-page .runs-catalog-card-image {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #000000;
+}
+
+.pareto-catalog-page .runs-catalog-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  background: #000000;
+  object-fit: contain;
+}
+
+.pareto-catalog-page .runs-catalog-card[data-active] {
+  border-color: var(--orange);
+}
+
+.pareto-catalog-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 2px 2px;
+  font-size: 0.55rem;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.pareto-catalog-copy span:last-child {
+  color: var(--muted);
+}
+
+.pareto-band {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.pareto-band-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.pareto-band-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.7rem;
+  margin: 0;
+  padding: 0 0.15rem;
+  min-width: 0;
+}
+
+.pareto-band-label span {
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.pareto-archive-label {
+  margin-top: 0.85rem;
+}
+
+.pareto-specialist-row {
+  display: grid;
+  flex: 0 0 auto;
+  justify-content: start;
+  align-content: start;
+  gap: 8px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pareto-specialist-row .runs-catalog-card {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-detail {
+  display: flex;
+  flex: 0 1 18rem;
+  flex-direction: column;
+  width: auto;
+  max-width: 22rem;
+  min-width: 15rem;
+  min-height: 0;
+  align-self: stretch;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  overflow: hidden;
+}
+
+.pareto-catalog-detail .archive-detail-image {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+}
+
+.pareto-catalog-detail .archive-detail-data {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.pareto-catalog-detail .archive-display {
+  margin-bottom: 0.35rem;
+}
+
+.pareto-catalog-detail .archive-criteria {
+  margin-top: 0.35rem;
+}
+
+.pareto-catalog-detail .archive-criteria table {
+  margin-top: 0.15rem;
+  font-size: 0.52em;
+}
+
+.pareto-catalog-detail .archive-criteria th,
+.pareto-catalog-detail .archive-criteria td {
+  padding: 0.05rem 0;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.pareto-catalog-detail .evo-objectives {
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.pareto-catalog-detail .evo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin-top: 0.35rem;
+}
+
+.pareto-catalog-detail .evo-meta > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.pareto-catalog-detail .evo-meta dd {
+  white-space: nowrap;
+}
+
+.pareto-catalog-detail .archive-handoff {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.5rem;
+}
+
+@media (max-width: 767px) {
+  .stage-shell:has(.pareto-catalog-page) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .stage-shell:has(.pareto-catalog-page) .stage-body {
+    overflow: hidden;
+  }
+}
+

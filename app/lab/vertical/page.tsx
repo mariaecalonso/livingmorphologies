@@ -28,9 +28,9 @@ export default async function VerticalPropagationPage({
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="vertical-lab runs-wall">
       <Skill2SelectionBoard />
-      <div className="min-h-0 flex-1">
+      <div className="vertical-lab-main">
         <VerticalProcess initial={null} candidate={null} />
       </div>
     </div>
