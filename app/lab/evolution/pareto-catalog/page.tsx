@@ -1,10 +1,17 @@
-import { ParetoCatalog } from "@/components/evolution/pareto-catalog";
-import { loadPublishedSemanticCatalog } from "@/lib/skill2/published-catalog-view";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Pareto Catalog -+ 2D Evolution -+ Living Morphologies",
-};
+export const dynamic = "force-dynamic";
 
-export default function ParetoCatalogPage() {
-  return <ParetoCatalog initial={loadPublishedSemanticCatalog()} />;
+export default async function ParetoCatalogPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") query.set(key, value);
+  }
+  const suffix = query.toString();
+  redirect(suffix ? `/evolution/pareto-catalog?${suffix}` : "/evolution/pareto-catalog");
 }

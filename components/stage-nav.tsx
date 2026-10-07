@@ -24,11 +24,11 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[
   {
     href: "/lab/evolution",
     label: "2D Evolution",
-    active: (pathname) => pathname.startsWith("/lab/evolution"),
+    active: (pathname) => pathname.startsWith("/lab/evolution") || pathname.startsWith("/evolution"),
     sub: [
       { href: "/lab/evolution", label: "Evolution" },
       { href: "/lab/evolution/pareto", label: "Pareto" },
-      { href: "/lab/evolution/pareto-catalog", label: "Pareto Catalog" },
+      { href: "/evolution/pareto-catalog", label: "Pareto Catalog" },
     ],
   },
   { href: "/lab/vertical", label: "Vertical Propagation", active: (pathname) => pathname === "/lab/vertical" || pathname.startsWith("/lab/vertical/") },
