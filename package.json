@@ -23,6 +23,7 @@
     "verify:skill2-morphogenesis": "npx --yes tsx lib/skill2/verify-section-morphogenesis.ts",
     "verify:skill4-handoff": "npx --yes tsx lib/skill4/verify-handoff.ts && npx --yes tsx lib/skill4/verify-connections.ts && npx --yes tsx lib/skill4/verify-candidates.ts && npx --yes tsx lib/skill4/verify-generator.ts && npx --yes tsx lib/skill4/verify-assembly.ts",
     "verify:skill4-face-profile": "npx --yes tsx lib/skill4/verify-face-profile.ts",
+    "verify:skill4-profile-correspondence": "npx --yes tsx lib/skill4/verify-profile-correspondence.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },
