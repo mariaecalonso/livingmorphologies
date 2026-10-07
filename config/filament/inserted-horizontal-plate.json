@@ -1,6 +1,6 @@
 {
   "white": 1,
-  "black": 1,
-  "organic": 0.12,
-  "thickness": 0.17
+  "black": 0.2,
+  "organic": 0,
+  "thickness": 0
 }

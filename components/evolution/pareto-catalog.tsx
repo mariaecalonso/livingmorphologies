@@ -15,6 +15,7 @@ import { PropagationPreview } from "@/components/evolution/propagation-preview";
 import { BRANCHES, TYPOLOGIES } from "@/lib/catalog";
 import type { TypologyId } from "@/lib/types";
 import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { readSkill2Selections, writeSkill2Selection, type Skill2Selection } from "@/lib/skill2/published-selection";
 
 function isTypologyId(value: string | undefined): value is TypologyId {
   return value === "lobby" || value === "workspace" || value === "gathering";
@@ -160,7 +161,12 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const { archetype, select } = useSelectedArchetype(catalog);
   const [wall, setWall] = useState(false);
   const stackRef = useRef<HTMLDivElement>(null);
-  const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
+  const archive =
+    archetype?.candidates.filter((candidate) => {
+      if (!candidate.image) return false;
+      if (candidate.catalogVisible) return true;
+      return candidate.archived;
+    }) ?? [];
   const specialists = (["formal", "spatial", "atmospheric"] as const).flatMap((emphasis) =>
     archetype?.candidates.filter((candidate) => candidate.specialist === emphasis && candidate.image) ?? [],
   );
@@ -205,9 +211,39 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [display, setDisplay] = useState<"morphology" | "propagation">("morphology");
+  const [selections, setSelections] = useState<Record<string, Skill2Selection>>({});
+  const [saving, setSaving] = useState(false);
+  const [prepareError, setPrepareError] = useState<string | null>(null);
   useEffect(() => {
     setDisplay("morphology");
   }, [selectedKey]);
+  useEffect(() => {
+    setSelections(readSkill2Selections());
+  }, []);
+  const chosen = archetype ? selections[archetype.archetypeId] : null;
+  const commitSelection = () => {
+    if (!selected) return;
+    const archetypeId = selected.archetypeId;
+    const candidateId = selected.id;
+    setSaving(true);
+    setPrepareError(null);
+    void fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`)
+      .then(async (response) => {
+        const body = (await response.json()) as { selection?: Skill2Selection; handoff?: string };
+        if (!response.ok || !body.selection) {
+          setPrepareError("This drawing could not be selected.");
+          return;
+        }
+        setSelections(writeSkill2Selection(body.selection));
+        if (body.handoff === "verified") return;
+        const prepared = await fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`, { method: "POST" });
+        const result = (await prepared.json()) as { selection?: Skill2Selection; handoff?: string; error?: string };
+        if (result.selection) setSelections(writeSkill2Selection(result.selection));
+        if (!prepared.ok || result.handoff !== "verified") setPrepareError(result.error ?? "The Z0 could not be verified.");
+      })
+      .catch(() => setPrepareError("The Z0 could not be verified."))
+      .finally(() => setSaving(false));
+  };
   const appliedFocus = useRef<string | null>(null);
   const selected = [...specialists, ...archive].find((candidate) => candidate.key === selectedKey) ?? null;
   const cardGap = wall ? 12 : 8;
@@ -418,9 +454,10 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     </dd>
                   </div>
                 </dl>
-                <button type="button" className="archive-handoff" disabled title="Available once vertical propagation is connected">
-                  Select for vertical propagation
+                <button type="button" className="archive-handoff" disabled={saving} onClick={commitSelection}>
+                  {chosen?.candidateId === selected.id ? "Selected" : "Select for vertical propagation"}
                 </button>
+                {prepareError ? <p className="evo-empty">{prepareError}</p> : null}
               </div>
             </>
           ) : (

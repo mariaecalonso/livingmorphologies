@@ -5,7 +5,7 @@ import { ARCHETYPES } from "../../skill1/archetypes";
 import { MAX_ITERATIONS } from "../../skill1/maps";
 import type { SlimeControls } from "../../skill1/slime-controls";
 import type { BiologicalTranslation, SimulationState } from "../../skill1/types";
-import type { SemanticCandidate } from "./types";
+import type { RealizationState, SemanticCandidate } from "./types";
 import { SEMANTIC_RUN_ROOT } from "./run-root";
 
 const MAGIC = Buffer.from("LMZ0");
@@ -44,6 +44,10 @@ export type Z0Meta = {
   validation: {
     algorithm: "z0-sha256-v1";
     checksum: string;
+  };
+  replay?: {
+    evaluationSeed: number;
+    state: RealizationState;
   };
   preview?: { file: string };
 };
@@ -97,6 +101,59 @@ export function writePendingZ0(directory: string, candidate: SemanticCandidate, 
     rules: capture.meta.rules,
     validation: capture.meta.validation,
     preview: { file: `previews/${candidate.id}.png` },
+  };
+  writeFileSync(join(dir, `${candidate.id}.bin`), capture.bin);
+  writeFileSync(join(dir, `${candidate.id}.json`), JSON.stringify(meta));
+}
+
+/** One verified snapshot where `loadVerifiedZ0` reads it. Does not write a pose run. */
+export function writeVerifiedZ0(
+  archetypeId: string,
+  candidate: {
+    id: number;
+    generation: number;
+    typologyId: string;
+    plan: SemanticCandidate["plan"];
+    state: RealizationState;
+    objectives: SemanticCandidate["objectives"];
+    parentId: number | null;
+    archived: boolean;
+    previewFile: string | null;
+    evaluationSeed: number;
+  },
+  capture: Z0Capture,
+) {
+  if (!/^[a-z0-9-]+$/.test(archetypeId) || archetypeId !== candidate.plan.archetypeId) {
+    throw new Error(`unsafe archetype id ${archetypeId}`);
+  }
+  const dir = join(SEMANTIC_RUN_ROOT, archetypeId, "z0");
+  mkdirSync(dir, { recursive: true });
+  const name = ARCHETYPES_BY_ID.get(archetypeId)?.name ?? archetypeId;
+  const meta: Z0Meta = {
+    contract: "skill2-z0-v1",
+    identity: {
+      typologyId: candidate.typologyId,
+      archetypeId,
+      archetypeName: name,
+      candidateId: candidate.id,
+      generation: candidate.generation,
+      runKey: `${archetypeId}@${candidate.evaluationSeed}`,
+      genome: candidate.plan,
+    },
+    provenance: {
+      archived: candidate.archived,
+      parentId: candidate.parentId,
+      selectionSource: "catalog",
+      objectives: candidate.objectives,
+    },
+    replay: {
+      evaluationSeed: candidate.evaluationSeed,
+      state: candidate.state,
+    },
+    z0: capture.meta.z0,
+    rules: capture.meta.rules,
+    validation: capture.meta.validation,
+    ...(candidate.previewFile ? { preview: { file: candidate.previewFile } } : {}),
   };
   writeFileSync(join(dir, `${candidate.id}.bin`), capture.bin);
   writeFileSync(join(dir, `${candidate.id}.json`), JSON.stringify(meta));

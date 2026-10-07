@@ -84,6 +84,7 @@ export function loadEvolutionCatalog(): EvolutionCatalog {
   const byId = new Map<string, EvolutionArchetypeView>();
   for (const archetype of pose) byId.set(archetype.archetypeId, archetype);
   for (const archetype of semantic) byId.set(archetype.archetypeId, archetype);
+  for (const archetype of loadPublishedCatalogs()) byId.set(archetype.archetypeId, archetype);
   const archetypes = [...byId.values()].sort(
     (a, b) =>
       TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
@@ -240,8 +241,96 @@ function loadSemanticArchetype(run: SemanticRun): EvolutionArchetypeView {
 
 export function archiveImagePath(archetypeId: string, id: string) {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !/^\d+$/.test(id)) return null;
+  const published = join(process.cwd(), "data", "semantic-catalogs", archetypeId, "previews", `${id}.png`);
+  if (existsSync(published)) return published;
   const semantic = join(semanticRunDir(), archetypeId, "previews", `${id}.png`);
   if (existsSync(semantic)) return semantic;
   const path = join(evolutionDir(), archetypeId, "archive", `${id}.png`);
   return existsSync(path) ? path : null;
+}
+
+function loadPublishedCatalogs(): EvolutionArchetypeView[] {
+  const indexPath = join(process.cwd(), "data", "semantic-catalogs", "index.json");
+  if (!existsSync(indexPath)) return [];
+  const index = JSON.parse(readFileSync(indexPath, "utf8")) as {
+    archetypes: Record<string, { status: string }>;
+  };
+  return Object.entries(index.archetypes)
+    .filter(([, entry]) => entry.status === "complete")
+    .map(([archetypeId]) => loadPublishedArchetype(archetypeId))
+    .filter((item): item is EvolutionArchetypeView => item !== null);
+}
+
+function loadPublishedArchetype(archetypeId: string): EvolutionArchetypeView | null {
+  const file = join(process.cwd(), "data", "semantic-catalogs", archetypeId, "catalog.json");
+  if (!existsSync(file)) return null;
+  const catalog = JSON.parse(readFileSync(file, "utf8")) as {
+    archetypeId: string;
+    completedGenerations: number;
+    evaluations: number;
+    provisional: boolean;
+    catalog: { entries: { representativeId: number }[] };
+    candidates: {
+      id: number;
+      generation: number;
+      objectives: { formal: number; spatial: number; atmospheric: number };
+      observed: Record<string, number>;
+      current: {
+        pareto: boolean;
+        specialist: "formal" | "spatial" | "atmospheric" | null;
+        diversity: "none" | "tag" | "rescue";
+      };
+      lineage: { parentId: number | null };
+      fidelity: { status: string };
+      preview: { file: string } | null;
+    }[];
+  };
+  if (catalog.archetypeId !== archetypeId) return null;
+  const source = Object.values(ARCHETYPES).find((item) => item.id === archetypeId);
+  const byId = new Map(catalog.candidates.map((candidate) => [candidate.id, candidate]));
+  const ordered = catalog.catalog.entries
+    .map((entry) => byId.get(entry.representativeId))
+    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate != null);
+  const candidates = ordered.map((candidate) => {
+    const preview = join(process.cwd(), "data", "semantic-catalogs", archetypeId, "previews", `${candidate.id}.png`);
+    return {
+      key: `${archetypeId}:${candidate.id}`,
+      archetypeId,
+      id: candidate.id,
+      generation: candidate.generation,
+      formal: candidate.objectives.formal,
+      spatial: candidate.objectives.spatial,
+      atmospheric: candidate.objectives.atmospheric,
+      pareto: candidate.current.pareto,
+      paretoRank: candidate.current.pareto ? 1 : 0,
+      archived: candidate.current.pareto,
+      specialist: candidate.current.specialist,
+      orientationElite: false,
+      image: existsSync(preview) ? `/api/evolution/${archetypeId}/${candidate.id}` : null,
+      observed: candidate.observed,
+      parentId: candidate.lineage.parentId,
+      genome: null,
+      schema: "semantic" as const,
+      diversity: candidate.current.diversity,
+      fidelity: candidate.fidelity.status,
+      provisional: catalog.provisional,
+      catalogVisible: true,
+    };
+  });
+  const specialists = { formal: [] as number[], spatial: [] as number[], atmospheric: [] as number[] };
+  for (const candidate of candidates) {
+    if (candidate.specialist) specialists[candidate.specialist].push(candidate.id);
+  }
+  return {
+    archetypeId,
+    name: source?.name ?? archetypeId,
+    typologyId: source?.typologyId ?? "lobby",
+    completedGenerations: catalog.completedGenerations,
+    generationCount: catalog.completedGenerations,
+    populationSize: catalog.evaluations,
+    generations: [],
+    candidates,
+    archiveCount: candidates.filter((candidate) => candidate.pareto).length,
+    specialists,
+  };
 }
