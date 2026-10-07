@@ -7,7 +7,9 @@ import {
   adjacencyMarker,
   connectionBlocked,
   connectionInputSignature,
+  generateConnectionHybridField,
   reconcileConnections,
+  syncConnectionInputs,
   type TileConnection,
 } from "@/lib/skill4/connections";
 import { generateCandidateField } from "@/lib/skill4/candidate-field";
@@ -26,6 +28,7 @@ type HybridStateValue = {
   chooseArchetype: (instanceId: string, archetypeId: string) => void;
   chooseFace: (connectionId: string, side: "faceA" | "faceB", face: FaceId) => void;
   generateInputs: (connectionId: string) => string | null;
+  generateHybridFieldForConnection: (connectionId: string) => string | null;
   focusConnection: (id: string) => void;
   count: AssemblyCount;
   arrangement: AssemblyArrangement;
@@ -69,13 +72,7 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
       connections: current.connections.map((connection) => {
         if (connection.id !== connectionId) return connection;
         const next = { ...connection, [side]: face, faceSelection: "user" as const };
-        const signature = connectionInputSignature(next, current.tiles, loaded);
-        return {
-          ...next,
-          signature,
-          candidateField: signature === connection.signature ? connection.candidateField : null,
-          inputsChanged: connection.inputsChanged || signature !== connection.signature,
-        };
+        return syncConnectionInputs(next, connectionInputSignature(next, current.tiles, loaded));
       }),
     }));
   };
@@ -99,6 +96,19 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
       connections: current.connections.map((item) =>
         item.id === connectionId ? { ...item, candidateField: result.field, inputsChanged: false } : item,
       ),
+    }));
+    return null;
+  };
+
+  const generateHybridFieldForConnection = (connectionId: string) => {
+    const connection = board.connections.find((item) => item.id === connectionId);
+    if (!connection) return "The connection is no longer adjacent.";
+    const result = generateConnectionHybridField(connection, board.tiles, loaded);
+    if (!result.ok) return result.reason;
+    if (result.reused) return null;
+    setBoard((current) => ({
+      ...current,
+      connections: current.connections.map((item) => (item.id === connectionId ? result.connection : item)),
     }));
     return null;
   };
@@ -163,6 +173,7 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
         chooseArchetype,
         chooseFace,
         generateInputs,
+        generateHybridFieldForConnection,
         focusConnection,
         count: board.count,
         arrangement: board.arrangement,

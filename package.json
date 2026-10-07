@@ -28,6 +28,7 @@
     "verify:skill4-generator": "npx --yes tsx lib/skill4/verify-generator.ts",
     "verify:skill4-hybrid-deformation": "npx --yes tsx lib/skill4/verify-hybrid-deformation.ts",
     "verify:skill4-generated-hybrid-field": "npx --yes tsx lib/skill4/verify-generated-hybrid-field.ts",
+    "verify:skill4-generated-field-state": "npx --yes tsx lib/skill4/verify-generated-field-state.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },

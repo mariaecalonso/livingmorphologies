@@ -3,6 +3,7 @@ import { resolveTileModule, type TileInstance } from "./tiles";
 import type { ModuleHandoff } from "./adapt";
 import { CANDIDATE_FIELD_SETTINGS, type CandidateField } from "./candidate-field";
 import { FACE_SAMPLE_SETTINGS } from "./face-sample";
+import { generateHybridField, type GeneratedHybridField } from "./generated-hybrid-field";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
 
 /**
@@ -23,8 +24,10 @@ export const CONNECTION_GENERATION_SETTINGS = {
 } as const;
 
 export type ConnectionOrigin = "detected" | "explicit";
-export type GenerationStatus = "not-generated";
+export type GenerationStatus = "not-generated" | "generating" | "ready" | "partial" | "blocked" | "empty" | "invalid";
 export type FaceSelection = "suggested" | "user";
+
+export const DEFAULT_SELECTED_HYBRID_ID = "H13";
 
 export type TileConnection = {
   id: string;
@@ -38,6 +41,7 @@ export type TileConnection = {
   inputsChanged: boolean;
   signature: string;
   candidateField: CandidateField | null;
+  generatedHybridField: GeneratedHybridField | null;
   selectedMockId: string;
 };
 
@@ -200,7 +204,8 @@ export function reconcileConnections(
         inputsChanged: false,
         signature: "",
         candidateField: null,
-        selectedMockId: "H13",
+        generatedHybridField: null,
+        selectedMockId: DEFAULT_SELECTED_HYBRID_ID,
       };
       created.signature = connectionInputSignature(created, tiles, loaded);
       return created;
@@ -212,16 +217,79 @@ export function reconcileConnections(
       origin: existing.origin,
       generationStatus: existing.generationStatus,
       faceSelection: existing.faceSelection,
-      selectedMockId: existing.selectedMockId || "H13",
+      selectedMockId: existing.selectedMockId || DEFAULT_SELECTED_HYBRID_ID,
     };
     const signature = connectionInputSignature(kept, tiles, loaded);
-    return {
-      ...kept,
-      signature,
-      candidateField: existing.candidateField?.signature === signature ? existing.candidateField : null,
-      inputsChanged: existing.inputsChanged || signature !== existing.signature,
-    };
+    return syncConnectionInputs(kept, signature);
   });
+}
+
+export function syncConnectionInputs(connection: TileConnection, signature: string): TileConnection {
+  const candidateField = connection.candidateField?.signature === signature ? connection.candidateField : null;
+  const generatedHybridField = candidateField && connection.generatedHybridField?.connectionSignature === signature
+    ? connection.generatedHybridField
+    : null;
+  return {
+    ...connection,
+    signature,
+    candidateField,
+    generatedHybridField,
+    generationStatus: generatedHybridField ? generatedHybridField.status : "not-generated",
+    inputsChanged: connection.inputsChanged || signature !== connection.signature,
+  };
+}
+
+export function retainedSelectedHybridId(selectedId: string, field: GeneratedHybridField) {
+  if (field.candidates.some((candidate) => candidate.candidateId === selectedId)) return selectedId;
+  if (field.candidates.some((candidate) => candidate.candidateId === DEFAULT_SELECTED_HYBRID_ID)) return DEFAULT_SELECTED_HYBRID_ID;
+  return field.candidates[12]?.candidateId ?? field.candidates[0]?.candidateId ?? DEFAULT_SELECTED_HYBRID_ID;
+}
+
+export function reusableGeneratedField(connection: TileConnection) {
+  const field = connection.generatedHybridField;
+  if (!field || field.connectionSignature !== connection.signature) return null;
+  if (connection.candidateField?.signature !== connection.signature) return null;
+  return field;
+}
+
+export function assignGeneratedHybridField(connection: TileConnection, field: GeneratedHybridField): TileConnection {
+  if (field.connectionSignature !== connection.signature) return connection;
+  if (connection.candidateField?.signature !== connection.signature) return connection;
+  return {
+    ...connection,
+    generatedHybridField: field,
+    generationStatus: field.status,
+    selectedMockId: retainedSelectedHybridId(connection.selectedMockId, field),
+  };
+}
+
+export function generateConnectionHybridField(
+  connection: TileConnection,
+  tiles: readonly TileInstance[],
+  loaded: ReadonlyMap<string, ModuleHandoff>,
+): { ok: true; connection: TileConnection; reused: boolean } | { ok: false; reason: string } {
+  const stored = reusableGeneratedField(connection);
+  if (stored) return { ok: true, connection, reused: true };
+  if (!connection.candidateField || connection.candidateField.signature !== connection.signature) {
+    return { ok: false, reason: "Candidate inputs are missing for this connection." };
+  }
+  const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
+  const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
+  if (!tileA || !tileB) return { ok: false, reason: "The connection tiles are missing." };
+  const moduleA = resolveTileModule(tileA.archetypeId, loaded);
+  const moduleB = resolveTileModule(tileB.archetypeId, loaded);
+  if (moduleA.status !== "ready" || moduleB.status !== "ready") {
+    return { ok: false, reason: "Geometry is unavailable for this connection. No hybrid field was generated." };
+  }
+  const field = generateHybridField({
+    moduleA,
+    moduleB,
+    faceA: connection.faceA,
+    faceB: connection.faceB,
+    candidateField: connection.candidateField,
+    settings: HYBRID_GENERATOR_SETTINGS,
+  });
+  return { ok: true, connection: assignGeneratedHybridField(connection, field), reused: false };
 }
 
 export function connectionBlocked(
