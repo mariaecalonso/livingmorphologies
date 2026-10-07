@@ -34,10 +34,12 @@
     "verify:skill4-aggregation": "npx --yes tsx lib/skill4/verify-aggregation.ts",
     "verify:skill4-interlock": "npx --yes tsx lib/skill4/verify-interlock.ts",
     "verify:skill4-boolean-plan": "npx --yes tsx lib/skill4/verify-boolean-plan.ts",
+    "verify:skill4-boolean-adapter": "npx --yes tsx lib/skill4/verify-boolean-adapter.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },
   "dependencies": {
+    "manifold-3d": "^3.5.4",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
