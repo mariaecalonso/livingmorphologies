@@ -774,7 +774,7 @@
 }
 
 [data-view-mode="desktop"] .vertical-process-body {
-  grid-template-columns: minmax(0, 0.138fr) minmax(0, 0.647fr) minmax(0, 0.215fr);
+  grid-template-columns: minmax(12.5rem, 0.22fr) minmax(0, 0.565fr) minmax(0, 0.215fr);
 }
 
 .vertical-process-inputs,
@@ -1120,7 +1120,31 @@
 
 .vertical-process-region[data-step="initial"] .vertical-process-split {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(9.5rem, 1fr) auto;
+  justify-items: center;
+}
+
+.vertical-process-region[data-step="initial"] .vertical-process-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 8.5rem;
+}
+
+.vertical-process-inputs .vertical-process-selection .vertical-process-stage {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 9.5rem;
+  aspect-ratio: 1;
+  max-height: 100%;
+  align-self: center;
+}
+
+.vertical-process-inputs .vertical-process-selection .vertical-process-stage img,
+.vertical-process-region[data-step="initial"] .vertical-process-stage canvas {
+  inset: 0.45rem;
+  width: calc(100% - 0.9rem);
+  height: calc(100% - 0.9rem);
+  object-fit: contain;
 }
 
 .vertical-process-region[data-step="initial"] .vertical-process-handoff {

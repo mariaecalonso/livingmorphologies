@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Skill2SelectionBoard } from "@/components/skill2-selected-candidate";
 import { VerticalProcess } from "@/components/vertical-process";
 import { VerticalSelectionNotice } from "@/components/vertical-selection";
@@ -22,7 +21,7 @@ export default async function VerticalPropagationPage({
 }) {
   const params = await searchParams;
   if (params.fixture === "1") {
-    return <VerticalProcess initial={buildDevelopmentFixture()} candidate={null} provenance={null} />;
+    return <VerticalProcess initial={buildDevelopmentFixture()} candidate={null} />;
   }
 
   const requested = selectionFromQuery(params);
@@ -31,11 +30,8 @@ export default async function VerticalPropagationPage({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Skill2SelectionBoard />
-      <p className="skill2-fixture-link">
-        <Link href="/lab/vertical?fixture=1">Development fixture</Link>
-      </p>
       <div className="min-h-0 flex-1">
-        <VerticalProcess initial={null} candidate={null} provenance={null} />
+        <VerticalProcess initial={null} candidate={null} />
       </div>
     </div>
   );

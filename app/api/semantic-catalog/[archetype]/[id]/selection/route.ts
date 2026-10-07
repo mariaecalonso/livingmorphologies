@@ -11,8 +11,17 @@ export async function GET(_request: Request, context: { params: Promise<{ archet
   const { archetype, id } = await context.params;
   const candidateId = Number(id);
   const selection = readPublishedSelection(archetype, candidateId);
-  if (!selection) return NextResponse.json({ selection: null, handoff: "pending" }, { status: 404 });
-  return NextResponse.json({ selection, handoff: publishedHandoff(archetype, candidateId) });
+  if (!selection) return NextResponse.json({ selection: null, handoff: "pending", z0Iteration: null }, { status: 404 });
+  const handoff = publishedHandoff(archetype, candidateId);
+  let z0Iteration: number | null = null;
+  if (handoff === "verified") {
+    try {
+      z0Iteration = loadVerifiedZ0(archetype, candidateId)?.meta.z0.iteration ?? null;
+    } catch {
+      z0Iteration = null;
+    }
+  }
+  return NextResponse.json({ selection, handoff, z0Iteration });
 }
 
 /** Stores nothing in the catalogue. Replays and verifies a Z0 only when one is not already on disk. */
