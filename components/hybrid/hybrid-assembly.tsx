@@ -2,6 +2,7 @@
 
 import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
+import { aggregationAssemblyLabel, aggregationStatusLabel, evaluateAggregation, type AggregationStatus } from "@/lib/skill4/aggregation";
 import { resolveAssemblyHybrid } from "@/lib/skill4/assembly-hybrid";
 import { gridShape, mockSummary } from "@/lib/skill4/assembly-layout";
 import { geometryStatus, HybridTiles } from "./hybrid-tiles";
@@ -39,6 +40,7 @@ export function HybridAssembly() {
   const shape = gridShape(count, arrangement);
   const span = Math.max(columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw), width * Math.max(shape.columns, shape.rows));
   const detected = detectAdjacencies(tiles);
+  const aggregation = evaluateAggregation(connections, tiles, loaded);
   const placed: PlacedMesh[] = [
     ...tiles.flatMap((tile) => {
       const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -152,8 +154,11 @@ export function HybridAssembly() {
       </Panel>
       <Panel className="hybrid-summary">
         <PanelHeader kicker="05" title="Connection Summary" />
+        <p className="hybrid-units" data-aggregation={aggregation.status}>
+          {aggregationAssemblyLabel(aggregation.status)} · {aggregation.readyCount} / {aggregation.connections.length} connections ready
+        </p>
         {connections.map((connection) => (
-          <AssemblySummary key={connection.id} connection={connection} />
+          <AssemblySummary key={connection.id} connection={connection} status={aggregation.connections.find((item) => item.connectionId === connection.id)?.status} />
         ))}
       </Panel>
       <Panel className="hybrid-operations">
@@ -171,8 +176,9 @@ function AssemblySelection({ connection }: { connection: TileConnection }) {
   return <p className="hybrid-units">{display.selected.id} · {note}</p>;
 }
 
-function AssemblySummary({ connection }: { connection: TileConnection }) {
+function AssemblySummary({ connection, status }: { connection: TileConnection; status?: AggregationStatus }) {
   const { tiles } = useHybrid();
   const blocked = useConnectionBlocked(connection);
-  return <p className="hybrid-summary-line" data-connection-summary={connection.id}>{mockSummary(connection, tiles, blocked)}</p>;
+  const fit = status ? ` · ${aggregationStatusLabel(status)}` : "";
+  return <p className="hybrid-summary-line" data-connection-summary={connection.id} data-aggregation-status={status}>{mockSummary(connection, tiles, blocked)}{fit}</p>;
 }

@@ -31,6 +31,7 @@
     "verify:skill4-generated-field-state": "npx --yes tsx lib/skill4/verify-generated-field-state.ts",
     "verify:skill4-hybrid-display": "npx --yes tsx lib/skill4/verify-hybrid-display.ts",
     "verify:skill4-assembly-hybrid": "npx --yes tsx lib/skill4/verify-assembly-hybrid.ts",
+    "verify:skill4-aggregation": "npx --yes tsx lib/skill4/verify-aggregation.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },
