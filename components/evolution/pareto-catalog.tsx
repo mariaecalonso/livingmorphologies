@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
@@ -14,6 +15,13 @@ import { PropagationPreview } from "@/components/evolution/propagation-preview";
 import { BRANCHES, TYPOLOGIES } from "@/lib/catalog";
 import type { TypologyId } from "@/lib/types";
 import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
+import {
+  readSkill2Selections,
+  SKILL2_ARCHETYPE_TOTAL,
+  writeSkill2Selection,
+  type Skill2Selection,
+  type Skill2Selections,
+} from "@/lib/skill2/published-selection";
 
 function isTypologyId(value: string | undefined): value is TypologyId {
   return value === "lobby" || value === "workspace" || value === "gathering";
@@ -59,6 +67,7 @@ function PagedStrip({
   note,
   items,
   selectedKey,
+  chosenKey,
   meta,
   columns,
   rows,
@@ -71,6 +80,7 @@ function PagedStrip({
   note: string;
   items: EvolutionCandidateView[];
   selectedKey: string | null;
+  chosenKey: string | null;
   meta: (candidate: EvolutionCandidateView) => string;
   columns: number;
   rows: number;
@@ -107,6 +117,7 @@ function PagedStrip({
             key={candidate.key}
             candidate={candidate}
             active={candidate.key === selectedKey}
+            chosen={candidate.key === chosenKey}
             meta={meta(candidate)}
             width={cardSize}
             maxHeight={rowHeight}
@@ -121,6 +132,7 @@ function PagedStrip({
 function CandidateCard({
   candidate,
   active,
+  chosen,
   meta,
   width,
   maxHeight,
@@ -128,6 +140,7 @@ function CandidateCard({
 }: {
   candidate: EvolutionCandidateView;
   active: boolean;
+  chosen: boolean;
   meta: string;
   width?: number;
   maxHeight?: number;
@@ -138,9 +151,12 @@ function CandidateCard({
       type="button"
       className="runs-catalog-card"
       data-active={active || undefined}
+      data-selected={chosen || undefined}
+      aria-pressed={chosen}
       onClick={onClick}
       style={width ? { width, flexBasis: width, maxHeight } : undefined}
     >
+      {chosen ? <span className="skill2-selected-badge">Selected</span> : null}
       <span className="runs-catalog-card-image">
         <EvolutionImage src={candidate.image} />
       </span>
@@ -203,6 +219,10 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   }, [wall, cardRows, weightedRows, specialists.length, archive.length, archiveRows]);
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selections, setSelections] = useState<Skill2Selections>({});
+  const [handoff, setHandoff] = useState<"verified" | "pending">("pending");
+  const [saving, setSaving] = useState(false);
+  const [selectionsReady, setSelectionsReady] = useState(false);
   const [display, setDisplay] = useState<"morphology" | "propagation">("morphology");
   useEffect(() => {
     setDisplay("morphology");
@@ -212,23 +232,72 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const cardGap = wall ? 12 : 8;
   const pageSize = Math.max(1, fit.columns * archiveRows);
 
+  const committed = archetype ? selections[archetype.archetypeId] ?? null : null;
+  const chosenKey = committed ? `${committed.archetypeId}:${committed.candidateId}` : null;
+  const chosenHere = committed != null && selected != null && selected.key === chosenKey;
+  const selectedCount = Object.keys(selections).length;
+
+  const restored = useRef(false);
   useEffect(() => {
-    const stored = window.sessionStorage.getItem("lm-pareto-candidate");
+    if (restored.current) return;
+    restored.current = true;
+    setSelections(readSkill2Selections());
+    setSelectionsReady(true);
+  }, []);
+
+  const openedArchetype = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectionsReady || !archetype) return;
+    if (openedArchetype.current === archetype.archetypeId) return;
+    openedArchetype.current = archetype.archetypeId;
+    const stored = selections[archetype.archetypeId];
+    setSelectedKey(stored ? `${stored.archetypeId}:${stored.candidateId}` : null);
+  }, [archetype, selections, selectionsReady]);
+
+  useEffect(() => {
+    if (!committed) return;
+    const controller = new AbortController();
+    void fetch(`/api/semantic-catalog/${committed.archetypeId}/${committed.candidateId}/selection`, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { handoff?: string } | null) => {
+        setHandoff(body?.handoff === "verified" ? "verified" : "pending");
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [committed]);
+
+  const commitSelection = () => {
+    if (!selected) return;
+    setSaving(true);
+    void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.id}/selection`)
+      .then(async (response) => {
+        const body = (await response.json()) as { selection?: Skill2Selection; handoff?: string };
+        if (!response.ok || !body.selection) return;
+        setSelections(writeSkill2Selection(body.selection));
+        setHandoff(body.handoff === "verified" ? "verified" : "pending");
+      })
+      .catch(() => undefined)
+      .finally(() => setSaving(false));
+  };
+
+  useEffect(() => {
+    const stored = chosenKey ?? window.sessionStorage.getItem("lm-pareto-candidate");
     const token = `${stored}:${pageSize}`;
     if (!stored || appliedFocus.current === token) return;
     const index = archive.findIndex((candidate) => candidate.key === stored);
     if (index < 0) return;
     appliedFocus.current = token;
-    setSelectedKey(stored);
+    if (!chosenKey) setSelectedKey(stored);
     setPage(Math.floor(index / Math.max(1, pageSize)));
-  }, [archive, pageSize]);
+  }, [archive, pageSize, chosenKey]);
   const pageCount = Math.max(1, Math.ceil(archive.length / pageSize));
   const current = Math.min(page, pageCount - 1);
   const visible = archive.slice(current * pageSize, current * pageSize + pageSize);
 
   const choose = (id: string) => {
+    const stored = selections[id];
     setPage(0);
-    setSelectedKey(null);
+    setSelectedKey(stored ? `${stored.archetypeId}:${stored.candidateId}` : null);
     select(id);
   };
 
@@ -237,11 +306,16 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
       <header className="runs-header border-b border-[var(--line)] px-3 py-2">
         <div className="flex items-center justify-between gap-3">
           <p className="display text-[0.72rem] text-white">Pareto Catalog</p>
-          <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{archive.length} Pareto</p>
+          <p className="skill2-selection-progress">
+            {String(selectedCount).padStart(2, "0")} / {String(SKILL2_ARCHETYPE_TOTAL).padStart(2, "0")} Selected
+          </p>
+          <Link href="/lab/vertical" className="skill2-vertical-link">
+            Vertical propagation
+          </Link>
         </div>
-        <p className="eyebrow mt-0.5 min-w-0 truncate">
+          <p className="eyebrow mt-0.5 min-w-0 truncate">
           {archetype
-            ? `${archetype.name} · ${specialists.length} specialists · no candidate is ranked as best`
+            ? `${archetype.name} · ${specialists.length} specialists · ${archive.length} Pareto`
             : "No completed searches yet"}
         </p>
       </header>
@@ -263,6 +337,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
                     const count = run?.candidates.filter((candidate) => candidate.archived && candidate.image).length ?? 0;
                     const active = item.id === archetype?.archetypeId;
+                    const chosenArchetype = selections[item.id];
                     const progress =
                       run && run.completedGenerations < run.generationCount
                         ? ` ${run.completedGenerations}/${run.generationCount}`
@@ -276,6 +351,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                         disabled={!run}
                         title={run ? undefined : "Search not run yet"}
                         onClick={() => run && choose(item.id)}
+                        data-chosen={chosenArchetype ? "true" : undefined}
                         className={`flex min-h-0 flex-1 items-center border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition disabled:opacity-30 ${
                           active
                             ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
@@ -308,6 +384,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
               note="One objective preferred"
               items={specialists}
               selectedKey={selectedKey}
+              chosenKey={chosenKey}
               meta={(candidate) => `${candidate.specialist} · ${formatCandidateId(candidate.id)}`}
               columns={fit.columns}
               rows={weightedRows}
@@ -343,6 +420,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     key={candidate.key}
                     candidate={candidate}
                     active={candidate.key === selectedKey}
+                    chosen={candidate.key === chosenKey}
                     meta={`${formatGeneration(candidate.generation)} · ${formatCandidateId(candidate.id)}`}
                     width={fit.size}
                     maxHeight={fit.row}
@@ -417,9 +495,14 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     </dd>
                   </div>
                 </dl>
-                <button type="button" className="archive-handoff" disabled title="Available once vertical propagation is connected">
-                  Select for vertical propagation
+                <button type="button" className="archive-handoff" disabled={saving} onClick={commitSelection}>
+                  {chosenHere ? "Selected" : "Select morphology"}
                 </button>
+                {chosenHere && committed ? (
+                  <p className="skill2-selection-note">
+                    {handoff === "verified" ? "Ready" : "Selected — Z0 handoff pending"}
+                  </p>
+                ) : null}
               </div>
             </>
           ) : (

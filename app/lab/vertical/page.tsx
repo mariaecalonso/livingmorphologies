@@ -1,19 +1,15 @@
+import Link from "next/link";
+import { Skill2SelectionBoard } from "@/components/skill2-selected-candidate";
 import { VerticalProcess } from "@/components/vertical-process";
-import { VerticalSelectionNotice, VerticalSelectionResume } from "@/components/vertical-selection";
-import { ARCHETYPES } from "@/lib/skill1/archetypes";
+import { VerticalSelectionNotice } from "@/components/vertical-selection";
 import { buildDevelopmentFixture } from "@/lib/skill3/fixture";
 import { selectionFromQuery } from "@/lib/skill3/selection";
-import { loadSemanticProvenance } from "@/lib/skill3/semantic-provenance";
 
 export const metadata = {
   title: "Vertical Propagation -+ Living Morphologies",
 };
 
 export const dynamic = "force-dynamic";
-
-function archetypeOf(archetypeId: string) {
-  return Object.values(ARCHETYPES).find((item) => item.id === archetypeId) ?? null;
-}
 
 export default async function VerticalPropagationPage({
   searchParams,
@@ -30,19 +26,17 @@ export default async function VerticalPropagationPage({
   }
 
   const requested = selectionFromQuery(params);
-  if ("missing" in requested) return <VerticalSelectionResume />;
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
-  const archetype = archetypeOf(requested.selection.archetypeId);
+
   return (
-    <VerticalProcess
-      initial={null}
-      candidate={{
-        archetypeId: requested.selection.archetypeId,
-        archetypeName: archetype?.name ?? requested.selection.archetypeId,
-        typologyId: archetype?.typologyId ?? "",
-        candidateId: requested.selection.candidateId,
-      }}
-      provenance={loadSemanticProvenance(requested.selection.archetypeId, requested.selection.candidateId)}
-    />
+    <div className="flex h-full min-h-0 flex-col">
+      <Skill2SelectionBoard />
+      <p className="skill2-fixture-link">
+        <Link href="/lab/vertical?fixture=1">Development fixture</Link>
+      </p>
+      <div className="min-h-0 flex-1">
+        <VerticalProcess initial={null} candidate={null} provenance={null} />
+      </div>
+    </div>
   );
 }
