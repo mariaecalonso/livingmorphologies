@@ -12,14 +12,13 @@
     },
     "linear-gallery": {
       "status": "complete",
-      "fidelity": "block",
+      "fidelity": "warn",
       "warnings": [
-        "receptivity is not a level-2 fidelity gate"
+        "receptivity is not a level-2 fidelity gate",
+        "technical validity is low"
       ],
-      "blocks": [
-        "technical validity collapsed"
-      ],
-      "catalogCandidates": 23
+      "blocks": [],
+      "catalogCandidates": 58
     },
     "compressed-sequential": {
       "status": "complete",
@@ -105,7 +104,7 @@
       "fidelity": "pass",
       "warnings": [],
       "blocks": [],
-      "catalogCandidates": 112
+      "catalogCandidates": 70
     },
     "inserted-horizontal-plate": {
       "status": "complete",
@@ -121,7 +120,7 @@
         "no primary family gene was declared"
       ],
       "blocks": [],
-      "catalogCandidates": 102
+      "catalogCandidates": 66
     },
     "void-edge": {
       "status": "complete",
