@@ -1,0 +1,18 @@
+{
+  "archetypeId": "flat-deep-plan",
+  "candidateId": 83,
+  "typologyId": "workspace",
+  "objectives": {
+    "formal": 0.8277146602662445,
+    "spatial": 0.7475963499822269,
+    "atmospheric": 0.7764278948267367
+  },
+  "source": "chosen",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "83.json",
+      "83.bin"
+    ]
+  }
+}

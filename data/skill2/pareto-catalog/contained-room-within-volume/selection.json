@@ -1,0 +1,18 @@
+{
+  "archetypeId": "contained-room-within-volume",
+  "candidateId": 42,
+  "typologyId": "gathering",
+  "objectives": {
+    "formal": 0.9270695440072907,
+    "spatial": 0.9181023242557467,
+    "atmospheric": 0.6489020808679213
+  },
+  "source": "chosen",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "42.json",
+      "42.bin"
+    ]
+  }
+}

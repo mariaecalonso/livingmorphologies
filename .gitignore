@@ -35,3 +35,11 @@ CLAUDE.md
 /public/contained-search/*.png
 # generated Skill 2 calibration numbers
 /calibration/
+# Working Skill 2 catalogs. The kept catalog is data/skill2/pareto-catalog.
+/data/semantic-runs/
+/data/semantic-catalogs/
+/data/filament-cache/
+/data/skill2-picks.json
+/data/skill2-selections.json
+/data/skill2-picks-raw.txt
+/data/skill2-picks-found.json

@@ -1,0 +1,18 @@
+{
+  "archetypeId": "topographic-ground-field",
+  "candidateId": 49,
+  "typologyId": "lobby",
+  "objectives": {
+    "formal": 0.755777720580307,
+    "spatial": 0.6492398268825923,
+    "atmospheric": 0.7295226074946018
+  },
+  "source": "session",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "49.json",
+      "49.bin"
+    ]
+  }
+}

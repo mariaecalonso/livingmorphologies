@@ -30,7 +30,7 @@ export function writeSavedPick(pick: SavedPick) {
 }
 
 function pickFile() {
-  return join(process.cwd(), "data", "skill2-picks.json");
+  return join(process.cwd(), "data", "skill2", "pareto-catalog", "selections.json");
 }
 
 function readPickFile(): Record<string, Omit<SavedPick, "archetypeId">> {

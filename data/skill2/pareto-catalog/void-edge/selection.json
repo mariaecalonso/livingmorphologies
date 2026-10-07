@@ -1,0 +1,18 @@
+{
+  "archetypeId": "void-edge",
+  "candidateId": 86,
+  "typologyId": "workspace",
+  "objectives": {
+    "formal": 0.7800736615113331,
+    "spatial": 0.7358462612979412,
+    "atmospheric": 0.5075037532389874
+  },
+  "source": "session",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "86.json",
+      "86.bin"
+    ]
+  }
+}

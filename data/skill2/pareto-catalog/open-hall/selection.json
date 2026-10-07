@@ -1,0 +1,18 @@
+{
+  "archetypeId": "open-hall",
+  "candidateId": 333,
+  "typologyId": "workspace",
+  "objectives": {
+    "formal": 0.6711253025534335,
+    "spatial": 0.9727919895254227,
+    "atmospheric": 0.6712788865506335
+  },
+  "source": "session",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "333.json",
+      "333.bin"
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "catalog": "pareto-catalog",
+  "page": "/lab/evolution/pareto-catalog",
+  "archetypes": [
+    {
+      "archetypeId": "topographic-ground-field",
+      "name": "Topographic Ground Field",
+      "source": "published",
+      "shown": 88,
+      "selection": {
+        "candidateId": 49,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "linear-gallery",
+      "name": "Linear Gallery",
+      "source": "run",
+      "shown": 58,
+      "selection": {
+        "candidateId": 263,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "compressed-sequential",
+      "name": "Compressed Sequential",
+      "source": "published",
+      "shown": 94,
+      "selection": {
+        "candidateId": 205,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "continuous-hall",
+      "name": "Continuous Hall",
+      "source": "run",
+      "shown": 40,
+      "selection": {
+        "candidateId": 237,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "vertical-void",
+      "name": "Vertical Void",
+      "source": "published",
+      "shown": 89,
+      "selection": {
+        "candidateId": 351,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "terraced",
+      "name": "Terraced",
+      "source": "published",
+      "shown": 87,
+      "selection": {
+        "candidateId": 46,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "undulated",
+      "name": "Undulated",
+      "source": "published",
+      "shown": 83,
+      "selection": {
+        "candidateId": 71,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "contained-room-within-volume",
+      "name": "Contained Room Within Volume",
+      "source": "published",
+      "shown": 39,
+      "selection": {
+        "candidateId": 42,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "void-field",
+      "name": "Void Field",
+      "source": "published",
+      "shown": 138,
+      "selection": {
+        "candidateId": 270,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "open-hall",
+      "name": "Open Hall",
+      "source": "published",
+      "shown": 73,
+      "selection": {
+        "candidateId": 333,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "name": "Linear Edge Gallery",
+      "source": "published",
+      "shown": 102,
+      "selection": {
+        "candidateId": 121,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "flat-deep-plan",
+      "name": "Flat Deep Plan",
+      "source": "run",
+      "shown": 70,
+      "selection": {
+        "candidateId": 83,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "name": "Inserted Horizontal Plate",
+      "source": "published",
+      "shown": 133,
+      "selection": {
+        "candidateId": 265,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "stepped-amphitheater",
+      "name": "Stepped Amphitheater",
+      "source": "run",
+      "shown": 66,
+      "selection": {
+        "candidateId": 374,
+        "propagationReady": true
+      }
+    },
+    {
+      "archetypeId": "void-edge",
+      "name": "Void Edge",
+      "source": "published",
+      "shown": 125,
+      "selection": {
+        "candidateId": 86,
+        "propagationReady": true
+      }
+    }
+  ]
+}

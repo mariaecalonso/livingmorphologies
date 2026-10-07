@@ -1,0 +1,18 @@
+{
+  "archetypeId": "linear-gallery",
+  "candidateId": 263,
+  "typologyId": "lobby",
+  "objectives": {
+    "formal": 0.8666883777390533,
+    "spatial": 0.7066686248104405,
+    "atmospheric": 0.7369400566912326
+  },
+  "source": "chosen",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "263.json",
+      "263.bin"
+    ]
+  }
+}
