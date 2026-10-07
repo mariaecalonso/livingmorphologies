@@ -6,6 +6,7 @@ import { gridShape, mockPlacementSupported, mockSummary } from "@/lib/skill4/ass
 import { geometryStatus, HybridTiles } from "./hybrid-tiles";
 import { detectAdjacencies } from "@/lib/skill4/connections";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
+import { hybridDisplay } from "@/lib/skill4/hybrid-display";
 import { selectedMock } from "./mock-matrix";
 import { envelopeWidth, resolveTileModule } from "@/lib/skill4/tiles";
 import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
@@ -141,11 +142,12 @@ export function HybridAssembly() {
                 <MockMatrix
                   signature={connection.signature}
                   selectedId={connection.selectedMockId}
+                  generatedField={connection.generatedHybridField}
                   onSelect={(id) => selectMock(connection.id, id)}
                   colorA={colorA}
                   colorB={colorB}
                 />
-                <p className="hybrid-units">{connection.selectedMockId} · mock · unverified</p>
+                <AssemblySelection connection={connection} />
               </article>
             );
           })}
@@ -164,6 +166,12 @@ export function HybridAssembly() {
       </Panel>
     </main>
   );
+}
+
+function AssemblySelection({ connection }: { connection: TileConnection }) {
+  const display = hybridDisplay(connection);
+  const note = display.source === "mock" ? "mock · unverified" : display.selected.label;
+  return <p className="hybrid-units">{display.selected.id} · {note}</p>;
 }
 
 function AssemblySummary({ connection }: { connection: TileConnection }) {

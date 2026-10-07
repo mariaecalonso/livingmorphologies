@@ -2,6 +2,7 @@
 
 import { FACE_IDS } from "@/lib/skill4/contract";
 import { connectionPairLabel, isFaceId, type TileConnection } from "@/lib/skill4/connections";
+import { generationStatusLabel } from "@/lib/skill4/hybrid-display";
 import { useConnectionBlocked, useHybrid } from "./hybrid-state";
 
 export function ConnectionHeader({
@@ -24,6 +25,7 @@ export function ConnectionHeader({
       data-faces={`${connection.faceA}-${connection.faceB}`}
       data-face-selection={connection.faceSelection}
       data-blocked={blocked || undefined}
+      data-generation-status={connection.generationStatus}
     >
       <button type="button" className="hybrid-connection-label" onClick={select}>
         {connectionPairLabel(connection)}
@@ -56,7 +58,8 @@ export function ConnectionHeader({
       <p className="hybrid-units">
         {connection.faceSelection === "suggested" ? "Suggested from placement · editable" : "Selected faces"}
         {connection.inputsChanged ? " · Generation inputs changed" : ""}
-        {blocked ? " · Blocked · geometry unavailable" : " · Not generated"}
+        {blocked ? " · Blocked · geometry unavailable" : ""}
+        {` · ${generationStatusLabel(connection.generationStatus)}`}
       </p>
     </article>
   );

@@ -3,7 +3,9 @@
 import { useLayoutEffect, useRef } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
-import { MOCK_HYBRID_LABEL, mockHybridField, type MockHybrid } from "@/lib/skill4/mock-hybrids";
+import type { GeneratedHybridField } from "@/lib/skill4/generated-hybrid-field";
+import { hybridDisplay, type HybridDisplaySlot } from "@/lib/skill4/hybrid-display";
+import { mockHybridField, type MockHybrid } from "@/lib/skill4/mock-hybrids";
 
 const images = new Map<string, string>();
 let host: HTMLDivElement | null = null;
@@ -23,6 +25,23 @@ function imageFor(mesh: IsoMesh, key: string, color: [number, number, number]) {
   const url = shared.toDataURL("image/png");
   images.set(key, url);
   return url;
+}
+
+function StatusCard({
+  slot,
+  active,
+  onSelect,
+}: {
+  slot: HybridDisplaySlot;
+  active: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button type="button" data-mock-id={slot.id} data-hybrid-status={slot.source} data-active={active || undefined} onClick={() => onSelect(slot.id)}>
+      <span>{slot.label}</span>
+      <span>{slot.id}</span>
+    </button>
+  );
 }
 
 function Thumb({
@@ -68,31 +87,37 @@ function mix(a: [number, number, number], b: [number, number, number], t: number
 export function MockMatrix({
   signature,
   selectedId,
+  generatedField = null,
   onSelect,
   colorA = [0.78, 0.494, 0.373],
   colorB = [0.49, 0.722, 0.722],
 }: {
   signature: string;
   selectedId: string;
+  generatedField?: GeneratedHybridField | null;
   onSelect: (id: string) => void;
   colorA?: [number, number, number];
   colorB?: [number, number, number];
 }) {
-  const field = mockHybridField(signature);
+  const display = hybridDisplay({ signature, selectedMockId: selectedId, generatedHybridField: generatedField ?? null });
   return (
-    <div className="hybrid-matrix" data-mock-matrix={signature}>
-      <p className="hybrid-mock-banner">{MOCK_HYBRID_LABEL}</p>
+    <div className="hybrid-matrix" data-mock-matrix={signature} data-hybrid-source={display.source}>
+      <p className="hybrid-mock-banner">{display.banner}</p>
       <div className="hybrid-matrix-grid">
-        {field.candidates.map((candidate) => (
-          <Thumb
-            key={candidate.id}
-            mesh={candidate.mesh}
-            cacheKey={`${field.version}:${signature}:${candidate.id}:${candidate.column}`}
-            id={candidate.id}
-            active={candidate.id === selectedId}
-            color={mix(colorA, colorB, candidate.column / 4)}
-            onSelect={onSelect}
-          />
+        {display.slots.map((slot, index) => (
+          slot.mesh ? (
+            <Thumb
+              key={slot.id}
+              mesh={slot.mesh}
+              cacheKey={`${display.source}:${signature}:${slot.id}:${index}`}
+              id={slot.id}
+              active={slot.id === selectedId}
+              color={mix(colorA, colorB, (index % 5) / 4)}
+              onSelect={onSelect}
+            />
+          ) : (
+            <StatusCard key={slot.id} slot={slot} active={slot.id === selectedId} onSelect={onSelect} />
+          )
         ))}
       </div>
     </div>
