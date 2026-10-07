@@ -160,7 +160,7 @@ export function writeVerifiedZ0(
   writeFileSync(join(dir, `${candidate.id}.json`), JSON.stringify(meta));
 }
 
-/** Move every snapshot into the catalog. Nothing already saved is removed. */
+/** Move every snapshot into the catalog directory. Nothing already saved is removed. */
 export function promoteArchiveZ0(directory: string, paretoIds: readonly number[]) {
   const archived = new Set(paretoIds);
   const pending = join(directory, "z0", "pending");
@@ -182,6 +182,27 @@ export function promoteArchiveZ0(directory: string, paretoIds: readonly number[]
     meta.provenance.selectionSource = "catalog";
     writeFileSync(path, JSON.stringify(meta));
   }
+}
+
+/**
+ * Remove snapshot pairs whose candidate is not a visible catalog representative.
+ * An empty id list removes nothing, so a checkpoint before the catalog exists cannot wipe the folder.
+ * `run.json` and `previews/` are not in these directories.
+ */
+export function discardUncataloguedZ0(directory: string, visibleIds: readonly number[]) {
+  if (visibleIds.length === 0) return 0;
+  const keep = new Set(visibleIds);
+  let removed = 0;
+  for (const folder of [join(directory, "z0"), join(directory, "z0", "pending")]) {
+    if (!existsSync(folder)) continue;
+    for (const file of readdirSync(folder)) {
+      const match = /^(\d+)\.(bin|json)$/.exec(file);
+      if (!match || keep.has(Number(match[1]))) continue;
+      unlinkSync(join(folder, file));
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 export type LoadedZ0 = {

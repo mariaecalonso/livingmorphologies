@@ -245,7 +245,6 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const appliedFocus = useRef<string | null>(null);
   const selected = [...specialists, ...archive].find((candidate) => candidate.key === selectedKey) ?? null;
   const cardGap = wall ? 12 : 8;
-  const sampleIds = archive.slice(0, 3).map((candidate) => String(candidate.id));
   const onSaved = useCallback(() => setInkRevision(Date.now()), []);
   const pageSize = Math.max(1, fit.columns * archiveRows);
 
@@ -431,12 +430,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
               <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
             </div>
             {archetype ? (
-              <FilamentRefine
-                archetypeId={archetype.archetypeId}
-                archetypeName={archetype.name}
-                sampleIds={sampleIds}
-                onSaved={onSaved}
-              />
+              <FilamentRefine archetypeId={archetype.archetypeId} archetypeName={archetype.name} onSaved={onSaved} />
             ) : null}
           </header>
           <div ref={stackRef} className="pareto-catalog-stack">

@@ -72,10 +72,7 @@ const STAGES: WorkflowStage[] = [
     steps: ["15 volumetric models", "Interlocking", "Aggregation"],
     chain: true,
     note: "In construction",
-    links: [
-      { href: "/lab/hybrid", label: "Hybrid" },
-      { href: "/filament", label: "Filament" },
-    ],
+    links: [{ href: "/lab/hybrid", label: "Hybrid" }],
   },
 ];
 

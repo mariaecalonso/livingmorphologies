@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { inflateSync } from "node:zlib";
 import { ARCHETYPE_VISUAL_REFERENCES } from "./archetype-visual-references";
 import { encodeGrayPng } from "./semantic/gray-png";
-import { SEMANTIC_RUN_ROOT } from "./semantic/run-root";
+import { semanticRunFile } from "./semantic/run-root";
 import { visibleIds } from "./semantic/catalog";
 import type { SemanticRun } from "./semantic/types";
 import {
@@ -80,15 +80,15 @@ export function filamentArchetypeStatus(): FilamentArchetypeStatus[] {
 /** A few real drawings from the finished run, spread across the catalog when one exists. */
 export function filamentSampleIds(archetypeId: string) {
   if (!isArchetypeId(archetypeId)) return [];
-  const runFile = join(SEMANTIC_RUN_ROOT, archetypeId, "run.json");
-  if (!existsSync(runFile)) return [];
+  const runFile = semanticRunFile(archetypeId, "run.json");
+  if (!runFile) return [];
   let run: SemanticRun;
   try {
     run = JSON.parse(readFileSync(runFile, "utf8")) as SemanticRun;
   } catch {
     return [];
   }
-  const previewDir = join(SEMANTIC_RUN_ROOT, archetypeId, "previews");
+  const previewDir = join(runFile, "..", "previews");
   const ready = run.candidates.filter((candidate) => candidate.preview && existsSync(join(previewDir, `${candidate.id}.png`)));
   const visible = new Set(visibleIds(run.catalog));
   const catalog = ready.filter((candidate) => visible.has(candidate.id));
@@ -103,8 +103,7 @@ export function filamentSampleIds(archetypeId: string) {
 
 export function semanticPreviewPath(archetypeId: string, id: string) {
   if (!isArchetypeId(archetypeId) || !/^\d+$/.test(id)) return null;
-  const path = join(SEMANTIC_RUN_ROOT, archetypeId, "previews", `${id}.png`);
-  return existsSync(path) ? path : null;
+  return semanticRunFile(archetypeId, "previews", `${id}.png`);
 }
 
 /** Catalog image. Uses the saved calibration and a disk cache so the page does not re-tone every request. */

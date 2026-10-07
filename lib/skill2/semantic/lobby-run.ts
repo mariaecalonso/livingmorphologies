@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SEMANTIC_RUN_ROOT } from "./run-root";
-import { promoteArchiveZ0, writePendingZ0 } from "./z0-snapshot";
+import { discardUncataloguedZ0, promoteArchiveZ0, writePendingZ0 } from "./z0-snapshot";
 import { isLobbyArchetype } from "../../skill1/lobby-realization";
 import { runSemanticEvolution } from "./controller";
 import { evaluateLobbyCandidate, evaluateSearchCandidate, type SemanticEvaluation } from "./evaluate";
@@ -101,8 +101,10 @@ export async function runLobbySemanticSearch(
             }
             saveLobbySemanticBatch({ run: current, previews }, root);
             if (phase === "generation") {
+              const directory = semanticRunDirectory(archetypeId, root);
               const archived = current.candidates.filter((item) => item.current.pareto).map((item) => item.id);
-              promoteArchiveZ0(semanticRunDirectory(archetypeId, root), archived);
+              promoteArchiveZ0(directory, archived);
+              discardUncataloguedZ0(directory, visibleIds(current.catalog));
             }
           }
         : undefined,

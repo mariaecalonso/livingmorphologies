@@ -18,7 +18,6 @@ export const LAB_ROUTES = [
   { href: "/lab/evolution", label: "2D Evolution" },
   { href: "/lab/vertical", label: "Vertical Propagation" },
   { href: "/lab/hybrid", label: "Hybrid Connection" },
-  { href: "/filament", label: "Filament" },
 ] as const;
 
 /** Keeps Desktop / Presentation framing when a lab link is followed inside the canvas. */
