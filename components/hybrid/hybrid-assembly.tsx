@@ -3,6 +3,7 @@
 import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
 import { aggregationAssemblyLabel, aggregationStatusLabel, evaluateAggregation, type AggregationStatus } from "@/lib/skill4/aggregation";
+import { buildInterlocks, interlockAssemblyLabel } from "@/lib/skill4/interlock";
 import { resolveAssemblyHybrid } from "@/lib/skill4/assembly-hybrid";
 import { gridShape, mockSummary } from "@/lib/skill4/assembly-layout";
 import { geometryStatus, HybridTiles } from "./hybrid-tiles";
@@ -41,6 +42,7 @@ export function HybridAssembly() {
   const span = Math.max(columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw), width * Math.max(shape.columns, shape.rows));
   const detected = detectAdjacencies(tiles);
   const aggregation = evaluateAggregation(connections, tiles, loaded);
+  const interlocks = buildInterlocks(aggregation, tiles);
   const placed: PlacedMesh[] = [
     ...tiles.flatMap((tile) => {
       const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -163,8 +165,10 @@ export function HybridAssembly() {
       </Panel>
       <Panel className="hybrid-operations">
         <PanelHeader kicker="06" title="Aggregation Operations" />
+        <p className="hybrid-units" data-interlock={interlocks.status}>
+          INTERLOCK GEOMETRY · {interlockAssemblyLabel(interlocks.status)} · {interlocks.readyCount} / {interlocks.connections.length}
+        </p>
         <p className="hybrid-pending">Repeat · Pending</p>
-        <p className="hybrid-pending">Interlock · Pending</p>
       </Panel>
     </main>
   );
