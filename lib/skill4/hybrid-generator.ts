@@ -9,8 +9,8 @@ import { loftProfiles } from "./profile-loft";
 
 /**
  * Skill 04 connector contract.
- * Continuous candidate DNA stays on the request. It is not passed to translateArchetype,
- * not rounded to catalog rankings, and not applied to the loft yet.
+ * Continuous candidate DNA stays on the request. It is not passed to translateArchetype
+ * and is not rounded to catalog rankings. It deforms only the intermediate loft rings.
  *
  * Geometry is a new open IsoMesh: extract a cross-section on each selected face,
  * correspond the largest closed loops, then loft between those reconstructed profiles.
@@ -134,6 +134,7 @@ export const pendingHybridGenerator: HybridGenerator = {
       depthA: sectionDepth,
       depthB: sectionDepth,
       steps: loftSteps,
+      deformation: request.candidate,
     });
     if (loft.status !== "ready" || !loft.geometry) {
       const status = loft.status === "ready" ? "blocked" : loft.status;

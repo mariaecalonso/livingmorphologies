@@ -1,6 +1,7 @@
 import type { IsoMesh } from "../scan/isomesh";
 import type { FaceFrame, Vec3 } from "./contract";
 import { profilePointToWorld } from "./face-profile";
+import { connectorFrame, deformRing, type DeformationDna } from "./hybrid-deformation";
 import type { CorrespondenceSample, ProfileCorrespondence } from "./profile-correspondence";
 
 /**
@@ -26,6 +27,7 @@ export type ProfileLoftRequest = {
   depthA: number;
   depthB: number;
   steps: number;
+  deformation?: DeformationDna | null;
 };
 
 export type ProfileLoft = {
@@ -85,11 +87,15 @@ export function loftProfiles(request: ProfileLoftRequest): ProfileLoft {
   const normals = new Float32Array(vertexCount * 3);
   const indices = new Uint32Array(triangleCount * 3);
   const direction = scale(sub(centerB, centerA), 1 / span);
+  const frame = connectorFrame(centerA, centerB);
+  const dna = request.deformation ?? null;
 
   for (let ring = 0; ring < steps; ring += 1) {
     const t = ring / (steps - 1);
+    const straight = ringA.map((point, index) => lerp(point, ringB[index], t));
+    const placed = dna && frame ? deformRing(straight, t, dna, frame) : straight;
     for (let sample = 0; sample < sampleCount; sample += 1) {
-      const point = lerp(ringA[sample], ringB[sample], t);
+      const point = placed[sample];
       const offset = (ring * sampleCount + sample) * 3;
       positions[offset] = point.x;
       positions[offset + 1] = point.y;

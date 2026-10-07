@@ -46,6 +46,18 @@ function withGeometry(module: ReadyModule, geometry: IsoMesh): ReadyModule {
   return { ...module, geometry };
 }
 
+function sameRing(a: IsoMesh, b: IsoMesh, ring: number, sampleCount: number) {
+  const start = ring * sampleCount * 3;
+  for (let index = 0; index < sampleCount * 3; index += 1) {
+    if (a.positions[start + index] !== b.positions[start + index]) return false;
+  }
+  return true;
+}
+
+function ringMoved(a: IsoMesh, b: IsoMesh, ring: number, sampleCount: number) {
+  return !sameRing(a, b, ring, sampleCount);
+}
+
 function sameMesh(a: IsoMesh, b: IsoMesh) {
   if (a.triangles !== b.triangles || a.positions.length !== b.positions.length || a.indices.length !== b.indices.length) return false;
   for (let index = 0; index < a.positions.length; index += 1) {
@@ -141,7 +153,11 @@ assert(JSON.stringify(candidate) === candidateBefore, "candidate DNA is not rewr
 const varied = pendingHybridGenerator.generate({ ...request, candidate: otherCandidate });
 assert(varied.status === "ready" && varied.geometry !== null && varied.candidateId === otherCandidate.id, "another candidate still identifies itself");
 if (!varied.geometry) throw new Error("unreachable");
-assert(sameMesh(first.geometry, varied.geometry), "candidate DNA does not deform the loft");
+const samples = HYBRID_GENERATOR_SETTINGS.profileSamples;
+const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
+assert(sameRing(first.geometry, varied.geometry, 0, samples), "the first ring stays on profile A");
+assert(sameRing(first.geometry, varied.geometry, steps - 1, samples), "the last ring stays on profile B");
+assert(ringMoved(first.geometry, varied.geometry, Math.floor(steps / 2), samples), "different candidate DNA moves the middle ring");
 assert(JSON.stringify(otherCandidate) === otherBefore, "the second candidate is not rewritten");
 
 const renamed = pendingHybridGenerator.generate({
