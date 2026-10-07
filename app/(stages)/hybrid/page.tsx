@@ -1,9 +1,5 @@
-import { HybridProcess } from "@/components/hybrid/hybrid-process";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Hybrid Connection Process · Living Morphologies",
-};
-
-export default function HybridProcessPage() {
-  return <HybridProcess />;
+export default function HybridRedirectPage() {
+  redirect("/lab/hybrid");
 }

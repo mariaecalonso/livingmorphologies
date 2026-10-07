@@ -1,0 +1,20 @@
+---
+description: Shared lab shell. Pause and ask before a skill departs from it.
+alwaysApply: true
+---
+
+# Lab shell
+
+Skill labs live under `/lab/<name>`. Hybrid Connection is `/lab/hybrid`. `/hybrid` only redirects there.
+
+The stage bar (`components/stage-nav.tsx`, `components/stage-shell.tsx`) is the one header and footer. A lab screen does not add a second header, footer, or site navigation. Desktop and Presentation stay on that shell.
+
+Filament is a catalog drawing tool, not a skill lab. It stays off the presentation front end.
+
+If a skill needs a different address, a second header or footer, or any other departure from this shell:
+
+1. Stop the edit.
+2. Tell the user the departure, and why this rule exists: one shell keeps the labs cohesive, so later skills match the same header, footer, and presentation frame.
+3. Wait for the user to approve the departure or keep the shell.
+
+When the shell itself is refined, update this rule so the next skill follows the current base.

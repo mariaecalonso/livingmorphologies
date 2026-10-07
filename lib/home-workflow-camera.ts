@@ -18,6 +18,8 @@ export type WorkflowStage = {
   previous: string | null;
   next: string | null;
   tone: WorkflowTone;
+  /** Existing lab routes. The homepage links to them; it does not redraw the screens. */
+  lab?: readonly { href: string; label: string }[];
 };
 
 export type Camera = { x: number; y: number; scale: number };
@@ -109,6 +111,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "generative-system",
     next: "skill-2",
     tone: "teal",
+    lab: [{ href: "/lab/physarum", label: "Physarum" }],
   },
   {
     id: "skill-2",
@@ -119,6 +122,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "skill-1",
     next: "skill-3",
     tone: "teal",
+    lab: [{ href: "/lab/evolution", label: "2D Evolution" }],
   },
   {
     id: "skill-3",
@@ -129,6 +133,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "skill-2",
     next: "recombination",
     tone: "copper",
+    lab: [{ href: "/lab/vertical", label: "Vertical" }],
   },
   {
     id: "recombination",
@@ -139,6 +144,10 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "skill-3",
     next: null,
     tone: "copper",
+    lab: [
+      { href: "/lab/hybrid", label: "Hybrid" },
+      { href: "/filament", label: "Filament" },
+    ],
   },
 ];
 

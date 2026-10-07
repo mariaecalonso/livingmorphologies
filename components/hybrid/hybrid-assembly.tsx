@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
 import { gridShape, mockPlacementSupported, mockSummary } from "@/lib/skill4/assembly-layout";
@@ -11,6 +12,8 @@ import { envelopeWidth, resolveTileModule } from "@/lib/skill4/tiles";
 import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
 import { Panel, PanelHeader } from "@/components/hud";
 import { AggregationView } from "./aggregation-view";
+import { ConnectionHeader } from "./connection-header";
+import { MeshPreview } from "./mesh-preview";
 import { MockMatrix } from "./mock-matrix";
 import { useConnectionBlocked, useHybrid } from "./hybrid-state";
 import type { TileConnection } from "@/lib/skill4/connections";
@@ -25,7 +28,7 @@ export function HybridAssembly() {
     selectedId,
     setSelectedId,
     selectedConnectionId,
-    focusConnection,
+    selectConnection,
     selectMock,
     count,
     arrangement,
@@ -106,7 +109,7 @@ export function HybridAssembly() {
             connectionLabel={connections[0] ? `${connections[0].tileAId}:${connections[0].faceA} ↔ ${connections[0].tileBId}:${connections[0].faceB}` : null}
             connectionPoint={detected[0]?.marker ?? null}
             connectionActive={connections[0]?.id === selectedConnectionId}
-            onSelectConnection={() => connections[0] && focusConnection(connections[0].id)}
+            onSelectConnection={() => connections[0] && selectConnection(connections[0].id)}
             span={span}
           />
           <div className="hybrid-stage-keys">
@@ -135,9 +138,8 @@ export function HybridAssembly() {
             const colorB = TYPOLOGY_COLOR[resolveTileModule(tileB?.archetypeId ?? "", loaded).identity?.typologyId ?? "lobby"];
             return (
               <article key={connection.id} className="hybrid-som-mini">
-                <button type="button" className="hybrid-connection-label" onClick={() => focusConnection(connection.id)}>
-                  {connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}
-                </button>
+                <ConnectionHeader connection={connection} />
+                <ConnectionActions connection={connection} />
                 <MockMatrix
                   signature={connection.signature}
                   selectedId={connection.selectedMockId}
@@ -146,6 +148,11 @@ export function HybridAssembly() {
                   colorB={colorB}
                 />
                 <p className="hybrid-units">{connection.selectedMockId} · mock · unverified</p>
+                <div className="hybrid-axon">
+                  <MeshPreview mesh={selectedMock(connection.signature, connection.selectedMockId).mesh} />
+                </div>
+                <p className="hybrid-similarity">Similarity · Pending</p>
+                <p className="hybrid-pending">Production connector · Pending</p>
               </article>
             );
           })}
@@ -163,6 +170,27 @@ export function HybridAssembly() {
         <p className="hybrid-pending">Interlock · Pending</p>
       </Panel>
     </main>
+  );
+}
+
+function ConnectionActions({ connection }: { connection: TileConnection }) {
+  const { generateInputs, tiles } = useHybrid();
+  const [notice, setNotice] = useState<string | null>(null);
+  const blocked = useConnectionBlocked(connection);
+  const supported = mockPlacementSupported(connection, tiles);
+  const field = connection.candidateField?.signature === connection.signature ? connection.candidateField : null;
+  return (
+    <>
+      <button type="button" className="hybrid-generate" disabled={blocked} onClick={() => setNotice(generateInputs(connection.id))}>
+        Generate candidate inputs
+      </button>
+      <p className="hybrid-units" data-input-readiness={field ? "ready" : blocked ? "blocked" : "not-generated"}>
+        {blocked ? "Input readiness · blocked" : field ? "Input readiness · 25 candidate inputs" : "Input readiness · not generated"}
+      </p>
+      {notice ? <p className="hybrid-pending">{notice}</p> : null}
+      <p className="hybrid-units">Validation · unverified · not physically connected</p>
+      {!supported ? <p className="hybrid-pending">Unsupported placement · the selected faces do not meet on this adjacency.</p> : null}
+    </>
   );
 }
 

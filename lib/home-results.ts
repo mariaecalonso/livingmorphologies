@@ -1,8 +1,7 @@
 /**
  * Homepage Results preview.
  * A later merge should only need to change a skill's route, status, or preview source.
- * Leave `href` null until that skill's Lab catalogue route is finalized.
- * Leave `previews` empty until real catalogue images exist — the section keeps the frames.
+ * `href` points at the existing catalogue route. Leave `previews` empty until real catalogue images exist — the section keeps the frames.
  */
 
 export type HomeResultStatus = "ready" | "pending";
@@ -29,8 +28,8 @@ export const HOME_RESULTS: readonly HomeResultSkill[] = [
     number: "01",
     name: "Translation",
     catalogueTitle: "Physarum Catalog",
-    status: "pending",
-    href: null,
+    status: "ready",
+    href: "/lab/physarum/catalog",
     previews: [],
   },
   {
@@ -38,8 +37,8 @@ export const HOME_RESULTS: readonly HomeResultSkill[] = [
     number: "02",
     name: "2D Evolution",
     catalogueTitle: "Pareto Catalog",
-    status: "pending",
-    href: null,
+    status: "ready",
+    href: "/lab/evolution/pareto-catalog",
     previews: [],
   },
   {

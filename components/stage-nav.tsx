@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
+import { HOME_SECTIONS, stageFrameSuffix } from "@/lib/site-map";
 
 type NavItem = { href: string; label: string };
 
@@ -13,19 +14,17 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[
   {
     href: "/lab/physarum",
     label: "Physarum Logic",
-    active: (pathname) => pathname.startsWith("/lab/physarum") || pathname === "/scan" || pathname === "/screen" || pathname === "/vertical",
+    active: (pathname) => pathname.startsWith("/lab/physarum"),
     sub: [
       { href: "/lab/physarum", label: "Translation" },
       { href: "/lab/physarum/runs", label: "Runs" },
       { href: "/lab/physarum/catalog", label: "Catalog" },
-      { href: "/scan", label: "Scan" },
-      { href: "/screen", label: "Screen" },
     ],
   },
   {
     href: "/lab/evolution",
     label: "2D Evolution",
-    active: (pathname) => pathname.startsWith("/lab/evolution") || pathname.startsWith("/evolution"),
+    active: (pathname) => pathname.startsWith("/lab/evolution"),
     sub: [
       { href: "/lab/evolution", label: "Evolution" },
       { href: "/lab/evolution/pareto", label: "Pareto" },
@@ -34,14 +33,9 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[
   },
   { href: "/lab/vertical", label: "Vertical Propagation", active: (pathname) => pathname === "/lab/vertical" || pathname.startsWith("/lab/vertical/") },
   {
-    href: "/hybrid",
+    href: "/lab/hybrid",
     label: "Hybrid Connection",
-    active: (pathname) => pathname === "/hybrid" || pathname.startsWith("/hybrid/"),
-    sub: [
-      { href: "/hybrid", label: "Process" },
-      { href: "/hybrid/assembly", label: "Assembly" },
-      { href: "/hybrid/connections", label: "Connections" },
-    ],
+    active: (pathname) => pathname === "/lab/hybrid" || pathname.startsWith("/lab/hybrid/"),
   },
   { href: "/filament", label: "Filament", active: (pathname) => pathname === "/filament" || pathname.startsWith("/filament/") },
 ];
@@ -55,7 +49,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
   const pathname = usePathname();
   const search = useSearchParams();
   const wall = search.get("wall") === "1";
-  const suffix = presentationFrame ? "?wall=1&frame=1" : wall ? "?wall=1" : "";
+  const suffix = stageFrameSuffix(wall, presentationFrame);
   const activeStage = STAGES.find((stage) => stage.active(pathname));
 
   const processQuery = () => {
@@ -92,9 +86,35 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
 
   return (
     <header className="stage-nav">
-      <Link href="/" className="stage-nav-identity" target={presentationFrame ? "_top" : undefined}>
-        <span className="display site-nav-title">Living Morphologies</span>
-      </Link>
+      <div className="stage-nav-top">
+        <Link href="/" className="stage-nav-identity" target={presentationFrame ? "_top" : undefined}>
+          <span className="display site-nav-title">Living Morphologies</span>
+        </Link>
+        <nav className="stage-nav-site" aria-label="Home">
+          {HOME_SECTIONS.map((section) => (
+            <Link key={section.href} href={section.href} target={presentationFrame ? "_top" : undefined}>
+              {section.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="stage-nav-tools">
+          {mode === "presentation" ? <PresentationEditControls /> : null}
+          <div className="stage-nav-mode" role="group" aria-label="View mode">
+            {VIEW_MODES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={item.id === mode}
+                data-active={item.id === mode || undefined}
+                onClick={() => changeMode(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="stage-nav-bottom">
       <nav className="stage-nav-stages" aria-label="Workflow stages">
         {STAGES.map((stage, index) => {
           const active = stage === activeStage;
@@ -117,7 +137,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
         {activeStage?.sub ? (
           <nav className="stage-nav-sub" aria-label={`${activeStage.label} views`}>
             {activeStage.sub.map((item) => {
-              const active = pathname === item.href || (item.href === "/scan" && (pathname === "/scan" || pathname === "/vertical"));
+              const active = pathname === item.href;
               return (
                 <Link
                   key={item.href}
@@ -149,20 +169,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
             </Link>
           </nav>
         ) : null}
-        {mode === "presentation" ? <PresentationEditControls /> : null}
-        <div className="stage-nav-mode" role="group" aria-label="View mode">
-          {VIEW_MODES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={item.id === mode}
-              data-active={item.id === mode || undefined}
-              onClick={() => changeMode(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+      </div>
       </div>
     </header>
   );

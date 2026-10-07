@@ -127,13 +127,19 @@ export function blockedCatalogRecord(run: SemanticRun): PublishedCatalog {
 export function writePublishedCatalog(catalog: PublishedCatalog, directory: string, previewSourceDir?: string) {
   mkdirSync(directory, { recursive: true });
   const previewDir = join(directory, "previews");
-  if (catalog.status === "complete" && previewSourceDir) mkdirSync(previewDir, { recursive: true });
+  const plateDir = join(directory, "plates");
+  if (catalog.status === "complete" && previewSourceDir) {
+    mkdirSync(previewDir, { recursive: true });
+    mkdirSync(plateDir, { recursive: true });
+  }
   const candidates = catalog.candidates.map((candidate) => {
     if (catalog.status !== "complete" || !candidate.preview || !previewSourceDir) return { ...candidate, preview: null };
     const source = join(previewSourceDir, `${candidate.id}.png`);
     if (!existsSync(source)) return { ...candidate, preview: null };
     const file = join("previews", `${candidate.id}.png`).replace(/\\/g, "/");
-    const refined = refinePreviewPng(readFileSync(source), loadFilamentCalibration(catalog.archetypeId));
+    const plate = readFileSync(source);
+    writeFileSync(join(plateDir, `${candidate.id}.png`), plate);
+    const refined = refinePreviewPng(plate, loadFilamentCalibration(catalog.archetypeId));
     writeFileSync(join(directory, file), refined);
     return { ...candidate, preview: { size: candidate.preview.size, file } };
   });

@@ -161,8 +161,8 @@ export function HomeWorkflowPrototype() {
       if (controls) {
         controls.style.opacity = cover.toFixed(3);
         controls.style.pointerEvents = "none";
-        controls.querySelectorAll<HTMLElement>("button").forEach((button) => {
-          button.style.pointerEvents = settled && !button.hasAttribute("disabled") ? "auto" : "none";
+        controls.querySelectorAll<HTMLElement>("button, a").forEach((control) => {
+          control.style.pointerEvents = settled && !control.hasAttribute("disabled") ? "auto" : "none";
         });
       }
       if (macroFace) {
@@ -579,13 +579,28 @@ export function HomeWorkflowPrototype() {
           >
             <span aria-hidden="true">←</span>
           </button>
-          {chrome.settled && active?.id === "recombination" ? (
-            <Link className="home-explore wf-board-lab" href="/lab" onClick={(event) => enterLab(router, event)}>
-              <span>Enter Lab</span>
-              <span className="home-explore-arrow" aria-hidden="true">
-                →
-              </span>
-            </Link>
+          {chrome.settled && active ? (
+            <div className="wf-board-exits">
+              {active.lab?.map((item) => (
+                <Link
+                  key={item.href}
+                  className="wf-board-exit"
+                  href={item.href}
+                  onClick={(event) => enterLab(router, event, item.href)}
+                >
+                  <span>{item.label}</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              ))}
+              {active.id === "recombination" ? (
+                <Link className="home-explore wf-board-lab" href="/lab" onClick={(event) => enterLab(router, event, "/lab")}>
+                  <span>Enter Lab</span>
+                  <span className="home-explore-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </Link>
+              ) : null}
+            </div>
           ) : null}
           {active?.next ? (
             <button
@@ -604,13 +619,14 @@ export function HomeWorkflowPrototype() {
   );
 }
 
-function enterLab(router: { push: (href: string) => void }, event: MouseEvent<HTMLAnchorElement>) {
+function enterLab(router: { push: (href: string) => void }, event: MouseEvent<HTMLAnchorElement>, href: string) {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
   event.stopPropagation();
+  const path = href.split("?")[0] ?? href;
   const stage = event.currentTarget.closest<HTMLElement>(".wf-proto-stage");
   if (!stage || reduced()) {
-    router.push("/lab");
+    router.push(href);
     return;
   }
   stage.dataset.handoff = "lab";
@@ -626,13 +642,14 @@ function enterLab(router: { push: (href: string) => void }, event: MouseEvent<HT
       window.setTimeout(() => veil.remove(), 620);
     };
     const watch = () => {
-      if (window.location.pathname.startsWith("/lab") || performance.now() - started > 2500) {
+      const current = window.location.pathname;
+      if (current === path || current.startsWith(`${path}/`) || performance.now() - started > 2500) {
         finish();
         return;
       }
       requestAnimationFrame(watch);
     };
-    router.push("/lab");
+    router.push(href);
     requestAnimationFrame(watch);
   }, 700);
 }

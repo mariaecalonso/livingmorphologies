@@ -62,13 +62,46 @@
 .stage-nav {
   display: flex;
   flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem 0.45rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-strong);
+}
+
+.stage-nav-top,
+.stage-nav-bottom {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  padding: 0.45rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel-strong);
+  gap: 0.4rem 0.9rem;
+}
+
+.stage-nav-site,
+.stage-nav-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+}
+
+.stage-nav-site a {
+  padding: 0.12rem 0.2rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.stage-nav-site a:hover {
+  color: #ffffff;
+}
+
+.stage-nav-bottom .stage-nav-end {
+  margin-left: auto;
 }
 
 .stage-nav-identity {
@@ -202,9 +235,19 @@
 }
 
 [data-view-mode="presentation"] .stage-nav {
-  min-height: 5.4rem;
-  padding: 0.7rem 1.4rem;
-  gap: 1rem 2rem;
+  min-height: 0;
+  padding: 0.7rem 1.4rem 0.85rem;
+  gap: 0.65rem;
+}
+
+[data-view-mode="presentation"] .stage-nav-top,
+[data-view-mode="presentation"] .stage-nav-bottom {
+  gap: 0.8rem 1.6rem;
+}
+
+[data-view-mode="presentation"] .stage-nav-site a {
+  font-size: 1.15rem;
+  letter-spacing: 0.12em;
 }
 
 [data-view-mode="presentation"] .stage-nav-identity .display {
@@ -420,6 +463,26 @@
   margin-bottom: 0.4em;
   color: var(--cyan-hot);
   letter-spacing: 0;
+}
+
+.workflow-stage-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em 0.7em;
+  margin-top: 0.45em;
+}
+
+.workflow-stage-links a {
+  font-size: 0.62em;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.workflow-stage-links a:hover {
+  color: var(--cyan-hot);
 }
 
 .workflow-stage-note {

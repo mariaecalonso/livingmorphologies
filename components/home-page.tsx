@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { HomePrecedent } from "@/components/home-precedent";
 import { HomeResults } from "@/components/home-results";
 import { HomeWorkflowPrototype } from "@/components/home-workflow-prototype";
+import { LAB_ENTRY } from "@/lib/site-map";
 
 const RAIL = [
   { href: "#home", id: "home", label: "Home" },
@@ -180,6 +181,14 @@ export function HomePage() {
             {item.label}
           </Link>
         ))}
+        <Link
+          href={LAB_ENTRY.href}
+          className="home-rail-link home-rail-lab"
+          style={{ "--rail-slot": RAIL.length } as CSSProperties}
+        >
+          <span className="home-rail-node" />
+          {LAB_ENTRY.label}
+        </Link>
       </nav>
 
       <section className="home-hero" id="home" data-rail-target="home">

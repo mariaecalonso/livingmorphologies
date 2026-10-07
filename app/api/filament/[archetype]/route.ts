@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clearPublishedInk } from "@/lib/skill2/filament-catalog";
 import { isArchetypeId, saveFilamentCalibration, type FilamentCalibration } from "@/lib/skill2/filament";
 
 export const runtime = "nodejs";
@@ -9,5 +10,6 @@ export async function POST(request: Request, context: { params: Promise<{ archet
   if (!isArchetypeId(archetype)) return NextResponse.json({ error: "unknown archetype" }, { status: 400 });
   const body = (await request.json()) as Partial<FilamentCalibration>;
   const calibration = saveFilamentCalibration(archetype, body);
+  clearPublishedInk(archetype);
   return NextResponse.json({ calibration });
 }

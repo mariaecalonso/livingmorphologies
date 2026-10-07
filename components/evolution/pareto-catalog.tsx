@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FilamentRefine } from "@/components/filament-refine";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
   EvolutionImage,
@@ -36,6 +37,11 @@ function observedCriteria(typologyId: string | undefined) {
       branch: branch.title,
     })),
   );
+}
+
+function inkedCatalogImage(candidate: EvolutionCandidateView, inkRevision: number) {
+  if (!candidate.image) return null;
+  return inkRevision ? `${candidate.image}?v=${inkRevision}` : candidate.image;
 }
 
 function StripPager({
@@ -74,6 +80,7 @@ function PagedStrip({
   cardSize,
   rowHeight,
   gap,
+  inkRevision,
   onSelect,
 }: {
   label: string;
@@ -87,6 +94,7 @@ function PagedStrip({
   cardSize: number;
   rowHeight: number;
   gap: number;
+  inkRevision: number;
   onSelect: (key: string) => void;
 }) {
   const [page, setPage] = useState(0);
@@ -121,6 +129,7 @@ function PagedStrip({
             meta={meta(candidate)}
             width={cardSize}
             maxHeight={rowHeight}
+            inkRevision={inkRevision}
             onClick={() => onSelect(candidate.key)}
           />
         ))}
@@ -136,6 +145,7 @@ function CandidateCard({
   meta,
   width,
   maxHeight,
+  inkRevision,
   onClick,
 }: {
   candidate: EvolutionCandidateView;
@@ -144,6 +154,7 @@ function CandidateCard({
   meta: string;
   width?: number;
   maxHeight?: number;
+  inkRevision: number;
   onClick: () => void;
 }) {
   return (
@@ -158,7 +169,7 @@ function CandidateCard({
     >
       {chosen ? <span className="skill2-selected-badge">Selected</span> : null}
       <span className="runs-catalog-card-image">
-        <EvolutionImage src={candidate.image} />
+        <EvolutionImage src={inkedCatalogImage(candidate, inkRevision)} />
       </span>
       <span className="pareto-catalog-copy">
         <span>
@@ -174,6 +185,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const catalog = initial;
   const { archetype, select } = useSelectedArchetype(catalog);
   const [wall, setWall] = useState(false);
+  const [inkRevision, setInkRevision] = useState(0);
   const stackRef = useRef<HTMLDivElement>(null);
   const archive = archetype?.candidates.filter((candidate) => candidate.archived && candidate.image) ?? [];
   const specialists = (["formal", "spatial", "atmospheric"] as const).flatMap((emphasis) =>
@@ -233,6 +245,8 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
   const appliedFocus = useRef<string | null>(null);
   const selected = [...specialists, ...archive].find((candidate) => candidate.key === selectedKey) ?? null;
   const cardGap = wall ? 12 : 8;
+  const sampleIds = archive.slice(0, 3).map((candidate) => String(candidate.id));
+  const onSaved = useCallback(() => setInkRevision(Date.now()), []);
   const pageSize = Math.max(1, fit.columns * archiveRows);
 
   const committed = archetype ? selections[archetype.archetypeId] ?? null : null;
@@ -416,6 +430,14 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
               <p className="hud-panel-kicker">Catalog</p>
               <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
             </div>
+            {archetype ? (
+              <FilamentRefine
+                archetypeId={archetype.archetypeId}
+                archetypeName={archetype.name}
+                sampleIds={sampleIds}
+                onSaved={onSaved}
+              />
+            ) : null}
           </header>
           <div ref={stackRef} className="pareto-catalog-stack">
           {specialists.length > 0 ? (
@@ -432,6 +454,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
               cardSize={fit.size}
               rowHeight={fit.row}
               gap={cardGap}
+              inkRevision={inkRevision}
               onSelect={(key) => setSelectedKey((currentKey) => (currentKey === key ? null : key))}
             />
           ) : null}
@@ -465,6 +488,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                     meta={`${formatGeneration(candidate.generation)} · ${formatCandidateId(candidate.id)}`}
                     width={fit.size}
                     maxHeight={fit.row}
+                    inkRevision={inkRevision}
                     onClick={() => setSelectedKey((key) => (key === candidate.key ? null : candidate.key))}
                   />
                 ))}
@@ -494,7 +518,7 @@ export function ParetoCatalog({ initial }: { initial: EvolutionCatalog }) {
                 {display === "propagation" ? (
                   <PropagationPreview archetypeId={selected.archetypeId} candidateId={selected.id} />
                 ) : (
-                  <EvolutionImage src={selected.image} />
+                  <EvolutionImage src={inkedCatalogImage(selected, inkRevision)} />
                 )}
               </div>
               <div className="archive-detail-data">

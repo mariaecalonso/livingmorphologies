@@ -17,6 +17,7 @@ import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTra
 import { mulberry32 } from "@/lib/physarum";
 import { drawPlanField } from "@/components/skill1-viz";
 import { paintMorphology as paintSnapshot } from "@/components/morphology-preview";
+import { FilamentRefine } from "@/components/filament-refine";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { listCatalogCounts, putCatalogEntries, readCatalog, writeCatalog } from "@/lib/skill1/run-catalog";
 import { readSharedCatalog, shareCatalogEntries } from "@/lib/skill1/shared-catalog";
@@ -1272,6 +1273,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
             </div>
             <div className="runs-catalog-pager">
+              {pickedId ? <FilamentRefine archetypeId={pickedId} archetypeName={pickedName} /> : null}
               <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
                 {catalog.length} saved{allDone ? " · all 15 complete" : ""}
               </p>

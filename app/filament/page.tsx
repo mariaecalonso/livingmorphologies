@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_FILAMENT } from "@/lib/skill2/filament-draw";
 
 type FilamentCalibration = { white: number; black: number; organic: number; thickness: number };
 
@@ -25,8 +26,16 @@ export default function FilamentCalibrationPage() {
   useEffect(() => {
     void fetch("/api/filament", { cache: "no-store" })
       .then((response) => response.json())
-      .then((body: StatusResponse) => {
+      .then((body: StatusResponse & { shared?: FilamentCalibration }) => {
         setArchetypes(body.archetypes);
+        const ink = {
+          white: body.shared?.white ?? DEFAULT_FILAMENT.white,
+          black: body.shared?.black ?? DEFAULT_FILAMENT.black,
+          organic: DEFAULT_FILAMENT.organic,
+          thickness: DEFAULT_FILAMENT.thickness,
+        };
+        setDraft(ink);
+        setShown(ink);
         const requested = new URLSearchParams(window.location.search).get("archetype");
         const first =
           body.archetypes.find((item) => item.archetypeId === requested) ??
@@ -34,8 +43,6 @@ export default function FilamentCalibrationPage() {
           body.archetypes[0];
         if (!first) return;
         setArchetypeId(first.archetypeId);
-        setDraft(first.calibration);
-        setShown(first.calibration);
       });
   }, []);
 
@@ -51,8 +58,6 @@ export default function FilamentCalibrationPage() {
     const next = archetypes.find((item) => item.archetypeId === id);
     if (!next) return;
     setArchetypeId(id);
-    setDraft(next.calibration);
-    setShown(next.calibration);
     setSavedNote("");
   };
 
@@ -71,7 +76,7 @@ export default function FilamentCalibrationPage() {
     setArchetypes((items) =>
       items.map((item) => (item.archetypeId === archetypeId ? { ...item, calibration: body.calibration, saved: true } : item)),
     );
-    setSavedNote("Saved. The catalog uses this ink.");
+    setSavedNote("Saved. Every catalogue uses this ink.");
   };
 
   const query = shown
@@ -84,8 +89,7 @@ export default function FilamentCalibrationPage() {
         <p className="filament-kicker">Filament calibration</p>
         <h1>Ink after the run</h1>
         <p>
-          Set the black ground, the white hair, how far a corner turns, and how thick the stroke is. The catalog uses the saved setting for every
-          iteration of that archetype. This page is not in the workflow navigation.
+          One ink for every catalogue. White lifts the hair. Black decides how much faint trail stays. Thickness and organic stay with the pen. This page is not in the workflow navigation.
         </p>
       </header>
       {current && draft ? (
@@ -102,12 +106,11 @@ export default function FilamentCalibrationPage() {
                 ))}
               </select>
             </label>
-            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white })} />
-            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black })} />
-            <Slider label="Organic" hint="How far the line bends into a turn" value={draft.organic} onChange={(organic) => setDraft({ ...draft, organic })} />
-            <Slider label="Thickness" hint="Width of the stroke, apart from the bend" value={draft.thickness} onChange={(thickness) => setDraft({ ...draft, thickness })} />
+            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
+            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
+            <p className="filament-note">Thickness {DEFAULT_FILAMENT.thickness} and organic {DEFAULT_FILAMENT.organic} stay with the pen.</p>
             <button type="button" onClick={() => void save()}>
-              Save for this archetype
+              Save for every catalogue
             </button>
             {savedNote ? <p className="filament-note">{savedNote}</p> : null}
             {current.saved ? <p className="filament-note">A calibration file is already saved.</p> : null}

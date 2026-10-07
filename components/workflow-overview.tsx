@@ -1,4 +1,12 @@
+"use client";
+
 import { Fragment } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useFramed } from "@/components/view-mode";
+import { stageFrameSuffix } from "@/lib/site-map";
+
+type StageLink = { href: string; label: string };
 
 type WorkflowStage = {
   title: string;
@@ -6,6 +14,7 @@ type WorkflowStage = {
   steps: string[];
   chain: boolean;
   note?: string;
+  links?: readonly StageLink[];
 };
 
 type WorkflowHandoff = {
@@ -32,6 +41,7 @@ const STAGES: WorkflowStage[] = [
     ],
     chain: true,
     note: "The translation stays fixed. Its generated morphologies are what 2D evolution searches.",
+    links: [{ href: "/lab/physarum", label: "Open" }],
   },
   {
     title: "2D Evolution",
@@ -46,6 +56,7 @@ const STAGES: WorkflowStage[] = [
     ],
     chain: true,
     note: "The search returns non-dominated alternatives. The designer chooses which morphology proceeds.",
+    links: [{ href: "/lab/evolution", label: "Open" }],
   },
   {
     title: "Vertical Propagation",
@@ -53,6 +64,7 @@ const STAGES: WorkflowStage[] = [
     steps: ["Selected 2D morphology", "Successive states", "Vertical propagation", "Volumetric morphology"],
     chain: true,
     note: "The chosen section grows through successive states into one volumetric morphology.",
+    links: [{ href: "/lab/vertical", label: "Open" }],
   },
   {
     title: "Tiling",
@@ -60,6 +72,10 @@ const STAGES: WorkflowStage[] = [
     steps: ["15 volumetric models", "Interlocking", "Aggregation"],
     chain: true,
     note: "In construction",
+    links: [
+      { href: "/lab/hybrid", label: "Hybrid" },
+      { href: "/filament", label: "Filament" },
+    ],
   },
 ];
 
@@ -71,6 +87,10 @@ const HANDOFFS: WorkflowHandoff[] = [
 ];
 
 export function WorkflowOverview() {
+  const search = useSearchParams();
+  const frame = useFramed();
+  const suffix = stageFrameSuffix(search.get("wall") === "1", frame?.presentationFrame ?? false);
+
   return (
     <main className="workflow-page">
       <ol className="workflow-flow">
@@ -86,6 +106,15 @@ export function WorkflowOverview() {
                 ))}
               </ul>
               {stage.note ? <p className="workflow-stage-note">{stage.note}</p> : null}
+              {stage.links ? (
+                <nav className="workflow-stage-links" aria-label={stage.title}>
+                  {stage.links.map((item) => (
+                    <Link key={item.href} href={`${item.href}${suffix}`}>
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              ) : null}
             </li>
             {index < HANDOFFS.length ? (
               <li

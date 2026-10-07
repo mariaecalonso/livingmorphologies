@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { FaceId, Skill4ModuleRecord } from "@/lib/skill4/contract";
 import {
@@ -39,7 +38,6 @@ type HybridStateValue = {
 const HybridContext = createContext<HybridStateValue | null>(null);
 
 export function HybridState({ records, children }: { records: Skill4ModuleRecord[]; children: ReactNode }) {
-  const router = useRouter();
   const loaded = useMemo(() => loadModuleMap(records), [records]);
   const [board, setBoard] = useState(() => {
     const tiles = layoutTiles(4, "grid").map((tile) => ({
@@ -145,9 +143,6 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
 
   const focusConnection = (id: string) => {
     setSelectedConnectionId(id);
-    const params = new URLSearchParams(window.location.search);
-    const query = params.toString();
-    router.push(query ? `/hybrid/connections?${query}` : "/hybrid/connections");
   };
 
   return (
