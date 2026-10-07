@@ -2,12 +2,12 @@
 
 import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
-import { gridShape, mockPlacementSupported, mockSummary } from "@/lib/skill4/assembly-layout";
+import { resolveAssemblyHybrid } from "@/lib/skill4/assembly-hybrid";
+import { gridShape, mockSummary } from "@/lib/skill4/assembly-layout";
 import { geometryStatus, HybridTiles } from "./hybrid-tiles";
 import { detectAdjacencies } from "@/lib/skill4/connections";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import { hybridDisplay } from "@/lib/skill4/hybrid-display";
-import { selectedMock } from "./mock-matrix";
 import { envelopeWidth, resolveTileModule } from "@/lib/skill4/tiles";
 import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
 import { Panel, PanelHeader } from "@/components/hud";
@@ -55,17 +55,14 @@ export function HybridAssembly() {
       }];
     }),
     ...connections.flatMap((connection) => {
-      if (!mockPlacementSupported(connection, tiles)) return [];
-      const pair = detected.find((item) => item.id === connection.id);
-      if (!pair) return [];
-      const hybrid = selectedMock(connection.signature, connection.selectedMockId);
-      const spin = pair.faceA === "N" || pair.faceA === "S" ? Math.PI / 2 : 0;
+      const hybrid = resolveAssemblyHybrid(connection, tiles, loaded);
+      if (!hybrid.geometry) return [];
       return [{
-        id: `mock:${connection.id}`,
-        mesh: hybrid.mesh,
-        translate: pair.marker,
+        id: `${hybrid.source}:${connection.id}`,
+        mesh: hybrid.geometry,
+        translate: hybrid.translate,
         selected: connection.id === selectedConnectionId,
-        spin,
+        spin: hybrid.spin,
         kind: 1 as const,
         color: [0.85, 0.62, 0.48] as [number, number, number],
       }];
@@ -124,7 +121,7 @@ export function HybridAssembly() {
             })}
           </div>
         </div>
-        <p className="hybrid-units">Each module mock is a 20×20×20 isomesh, drawn into one registration cell. Lobby is terracotta, workspace is white, gathering is cyan. Mock connectors stay separate. Preview depth is 0.35 registration units and is not production policy.</p>
+        <p className="hybrid-units">Each module mock is a 20×20×20 isomesh, drawn into one registration cell. Lobby is terracotta, workspace is white, gathering is cyan. A stored connector is mapped so its end rings meet the two placed faces. Before generation, the placeholder stays on the contact. Preview depth is 0.35 registration units and is not production policy.</p>
       </Panel>
       <Panel className="hybrid-som">
         <PanelHeader kicker="03" title="Hybrid SOM Matrices" />
