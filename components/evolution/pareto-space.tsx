@@ -11,8 +11,8 @@ import {
   useEvolutionCatalog,
   useSelectedArchetype,
 } from "@/components/evolution/evolution-data";
-import { EvolutionHeader } from "@/components/evolution/evolution-header";
 import { formatMatch } from "@/components/evolution/format-match";
+import { labWorkspace } from "@/lib/site-map";
 import { ParetoAnalyticsBand } from "@/components/evolution/pareto-analytics-band";
 import {
   archiveTurnover,
@@ -361,20 +361,17 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
 
   return (
     <main className="evo-page pareto-page">
-      <EvolutionHeader
-        title="Objective Space"
-        detail={archetype ? `${archetype.name} · X Formal · Y Spatial · Z Atmospheric` : "No completed searches yet"}
-        aside={
-          <ArchetypeSwitch
-            catalog={catalog}
-            archetypeId={archetype?.archetypeId ?? null}
-            onChange={(id) => {
-              setSelectedKey(null);
-              select(id);
-            }}
-          />
-        }
-      />
+      <div className="evo-header lab-tools">
+        <p className="eyebrow evo-header-detail">{archetype ? `${archetype.name} · X Formal · Y Spatial · Z Atmospheric` : "No completed searches yet"}</p>
+        <ArchetypeSwitch
+          catalog={catalog}
+          archetypeId={archetype?.archetypeId ?? null}
+          onChange={(id) => {
+            setSelectedKey(null);
+            select(id);
+          }}
+        />
+      </div>
 
       <div className="pareto-layout" ref={layoutRef}>
         <ParetoAnalyticsBand
@@ -563,7 +560,7 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
                   href={catalogHref}
                   onClick={() => window.sessionStorage.setItem(CATALOG_FOCUS_KEY, selected.key)}
                 >
-                  Inspect in Pareto Catalog
+                  Inspect in {labWorkspace("optimization").tabs.find((tab) => "results" in tab && tab.results)?.label}
                 </Link>
               ) : null}
             </>

@@ -16,6 +16,7 @@ import { SearchStats } from "@/components/evolution/search-stats";
 import { ParetoAnalyticsBand } from "@/components/evolution/pareto-analytics-band";
 import { archiveTurnover, generationAnalytics } from "@/lib/skill2/pareto-analytics";
 import type { EvolutionCandidateView, EvolutionCatalog, EvolutionGenerationView } from "@/lib/skill2/evolution-index";
+import { labWorkspace } from "@/lib/site-map";
 
 /** Same opening camera as the Pareto page, so this thumbnail matches that view. */
 const PREVIEW_YAW = -0.65;
@@ -185,11 +186,11 @@ function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) 
 
   return (
     <Link href={href} className="panel evo-destination" aria-label="Open Pareto Catalog">
+    <Link href={href} className="panel evo-destination" aria-label={`Open ${catalog?.label ?? "Catalog"}`}>
       <header className="evo-destination-head">
         <div>
           <p className="eyebrow">Next · Nondominated archive</p>
-          <h2 className="panel-title">Pareto Catalog</h2>
-        </div>
+          <h2 className="panel-title">{catalog?.label}</h2>
         <span className="evo-destination-open" aria-hidden="true">Open</span>
       </header>
       {thumbs.length === 0 ? (

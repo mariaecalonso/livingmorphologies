@@ -187,8 +187,24 @@ export function saveLobbySemanticBatch(batch: LobbySemanticBatch, root = SEMANTI
     }),
   };
   writeFileSync(`${join(directory, "run.json")}.tmp`, JSON.stringify(run));
-  renameSync(`${join(directory, "run.json")}.tmp`, join(directory, "run.json"));
+  replaceFile(`${join(directory, "run.json")}.tmp`, join(directory, "run.json"));
   return directory;
+}
+
+function replaceFile(from: string, to: string) {
+  let last: unknown;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (error) {
+      last = error;
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EPERM" && code !== "EACCES" && code !== "EBUSY") throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * (attempt + 1));
+    }
+  }
+  throw last;
 }
 
 function lobbyAdapter(archetypeId: string) {

@@ -4,6 +4,8 @@ import { semanticCatalogRoot, semanticPreviewPath as publishedPreviewPath } from
 import {
   decodeGrayPng,
   DEFAULT_FILAMENT,
+  exploratoryHairPlate,
+  hairPlateStamp,
   normalizeFilamentCalibration,
   refinePreviewPng,
   semanticPreviewPath as runPreviewPath,
@@ -50,12 +52,12 @@ export function readPublishedInk(archetypeId: string, id: string, calibration: F
   if (!source) return null;
   const setting = normalizeFilamentCalibration(calibration);
   if (source.kind === "baked" && sameFilament(setting, DEFAULT_FILAMENT)) return readFileSync(source.file);
-  const stamp = `${source.kind}:${statSync(source.file).mtimeMs}:${JSON.stringify(setting)}`;
+  const stamp = `${source.kind}:${statSync(source.file).mtimeMs}:${JSON.stringify(setting)}:${hairPlateStamp(archetypeId)}`;
   const dir = join(CACHE_DIR, archetypeId);
   const file = join(dir, `${id}.png`);
   const mark = join(dir, `${id}.stamp`);
   if (existsSync(file) && existsSync(mark) && readFileSync(mark, "utf8") === stamp) return readFileSync(file);
-  const refined = refinePreviewPng(readFileSync(source.file), setting);
+  const refined = refinePreviewPng(readFileSync(source.file), setting, archetypeId);
   mkdirSync(dir, { recursive: true });
   writeFileSync(file, refined);
   writeFileSync(mark, stamp);
@@ -72,7 +74,8 @@ export function readPreviewPlate(archetypeId: string, id: string) {
   if (hit && hit.mtime === mtime) return { png: hit.png, full: hit.full };
   const decoded = decodeGrayPng(readFileSync(source.file));
   if (!decoded) return null;
-  const pixels = decoded.size === PREVIEW_PLATE ? decoded.pixels : downsampleGray(decoded.pixels, decoded.size, PREVIEW_PLATE);
+  const sourcePixels = exploratoryHairPlate(decoded.pixels, archetypeId);
+  const pixels = decoded.size === PREVIEW_PLATE ? sourcePixels : downsampleGray(sourcePixels, decoded.size, PREVIEW_PLATE);
   const png = encodeGrayPng(PREVIEW_PLATE, pixels);
   plateCache.set(key, { mtime, png, full: decoded.size });
   return { png, full: decoded.size };

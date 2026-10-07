@@ -8,12 +8,14 @@ import { visibleIds } from "./semantic/catalog";
 import type { SemanticRun } from "./semantic/types";
 import {
   DEFAULT_FILAMENT,
+  exploratoryHairPlate,
+  hairPlateStamp,
   normalizeFilamentCalibration,
   refineFilament,
   type FilamentCalibration,
 } from "./filament-draw";
 
-export { downsampleGray, filamentField, toneFilament, refineFilament } from "./filament-draw";
+export { downsampleGray, exploratoryHairPlate, filamentField, galleryPropagationPlate, hairPlateStamp, toneFilament, refineFilament } from "./filament-draw";
 export { DEFAULT_FILAMENT, normalizeFilamentCalibration, type FilamentCalibration };
 
 /**
@@ -109,7 +111,7 @@ export function semanticPreviewPath(archetypeId: string, id: string) {
 /** Catalog image. Uses the saved calibration and a disk cache so the page does not re-tone every request. */
 export function readCatalogFilament(archetypeId: string, sourcePath: string, id: string) {
   const calibration = loadFilamentCalibration(archetypeId);
-  const stamp = JSON.stringify(calibration);
+  const stamp = `${JSON.stringify(calibration)}:${hairPlateStamp(archetypeId)}`;
   const dir = join(CACHE_DIR, archetypeId);
   const cache = join(dir, `${id}.png`);
   const mark = join(dir, `${id}.stamp`);
@@ -117,17 +119,18 @@ export function readCatalogFilament(archetypeId: string, sourcePath: string, id:
   if (existsSync(cache) && existsSync(mark) && readFileSync(mark, "utf8") === stamp && statSync(cache).mtimeMs >= sourceTime) {
     return readFileSync(cache);
   }
-  const refined = refinePreviewPng(readFileSync(sourcePath), calibration);
+  const refined = refinePreviewPng(readFileSync(sourcePath), calibration, archetypeId);
   mkdirSync(dir, { recursive: true });
   writeFileSync(cache, refined);
   writeFileSync(mark, stamp);
   return refined;
 }
 
-export function refinePreviewPng(png: Buffer, calibration: FilamentCalibration) {
+export function refinePreviewPng(png: Buffer, calibration: FilamentCalibration, archetypeId?: string) {
   const decoded = decodeGrayPng(png);
   if (!decoded) return png;
-  return encodeGrayPng(decoded.size, refineFilament(decoded.pixels, calibration));
+  const plate = exploratoryHairPlate(decoded.pixels, archetypeId ?? "");
+  return encodeGrayPng(decoded.size, refineFilament(plate, calibration));
 }
 
 /** Our inspection PNGs are 8-bit gray with filter 0. Anything else is left untouched. */

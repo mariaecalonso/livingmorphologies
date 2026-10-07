@@ -28,20 +28,18 @@ export default function FilamentCalibrationPage() {
       .then((response) => response.json())
       .then((body: StatusResponse & { shared?: FilamentCalibration }) => {
         setArchetypes(body.archetypes);
-        const ink = {
-          white: body.shared?.white ?? DEFAULT_FILAMENT.white,
-          black: body.shared?.black ?? DEFAULT_FILAMENT.black,
-          organic: DEFAULT_FILAMENT.organic,
-          thickness: DEFAULT_FILAMENT.thickness,
-        };
-        setDraft(ink);
-        setShown(ink);
         const requested = new URLSearchParams(window.location.search).get("archetype");
         const first =
           body.archetypes.find((item) => item.archetypeId === requested) ??
           body.archetypes.find((item) => item.hasRun) ??
           body.archetypes[0];
         if (!first) return;
+        const ink = {
+          ...DEFAULT_FILAMENT,
+          ...first.calibration,
+        };
+        setDraft(ink);
+        setShown(ink);
         setArchetypeId(first.archetypeId);
       });
   }, []);
@@ -58,6 +56,7 @@ export default function FilamentCalibrationPage() {
     const next = archetypes.find((item) => item.archetypeId === id);
     if (!next) return;
     setArchetypeId(id);
+    setDraft({ ...DEFAULT_FILAMENT, ...next.calibration });
     setSavedNote("");
   };
 
@@ -104,9 +103,9 @@ export default function FilamentCalibrationPage() {
                 ))}
               </select>
             </label>
-            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
-            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black, organic: DEFAULT_FILAMENT.organic, thickness: DEFAULT_FILAMENT.thickness })} />
-            <p className="filament-note">Thickness {DEFAULT_FILAMENT.thickness} and organic {DEFAULT_FILAMENT.organic} stay with the pen.</p>
+            <Slider label="White" hint="Brightness of the hair" value={draft.white} onChange={(white) => setDraft({ ...draft, white })} />
+            <Slider label="Black" hint="Faint deposits return to the ground" value={draft.black} onChange={(black) => setDraft({ ...draft, black })} />
+            <p className="filament-note">Thickness {draft.thickness.toFixed(2)} and organic {draft.organic.toFixed(2)} stay with this archetype.</p>
             <button type="button" onClick={() => void save()}>
               Save for every catalogue
             </button>

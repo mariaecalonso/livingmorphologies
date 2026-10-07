@@ -5,39 +5,28 @@ import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { MetricInfo, type ExplainSection } from "@/components/evolution/metric-info";
 import { ParetoCloud } from "@/components/evolution/pareto-space";
 import { EvolutionImage, useEvolutionCatalog } from "@/components/evolution/evolution-data";
-import { EvolutionHeader } from "@/components/evolution/evolution-header";
 import { BRANCHES, TYPOLOGIES } from "@/lib/catalog";
-import type { EvolutionCandidateView, EvolutionCatalog, EvolutionGenerationView } from "@/lib/skill2/evolution-index";
-import { newGenerationMix } from "@/lib/skill2/specialists";
+import { labWorkspace } from "@/lib/site-map";
+import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
+import type { SavedPick } from "@/lib/skill2/saved-picks";
+import { readSkill2Selections, selectionPreviewSrc, SKILL2_SELECTIONS_KEY, type Skill2Selections } from "@/lib/skill2/published-selection";
 
-const EXAMPLE_ID = "void-edge";
+const EXAMPLE_ID = "vertical-void";
+const ARCHETYPE_STORAGE_KEY = "lm-evolution-archetype";
 
 const RATING_LABEL = ["Low", "Medium", "High"] as const;
 
-const VOID_EDGE = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === EXAMPLE_ID);
+const EXAMPLE = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === EXAMPLE_ID);
 
 const SOURCE_GROUPS = BRANCHES.map((branch) => ({
   id: branch.id,
   title: branch.title,
-  criteria: [...branch.shared, branch.specific.workspace].map((criterion) => ({
+  criteria: [...branch.shared, branch.specific.lobby].map((criterion) => ({
     id: criterion.id,
     label: criterion.label,
-    value: VOID_EDGE?.ratings[criterion.id] ?? 0,
+    value: EXAMPLE?.ratings[criterion.id] ?? 0,
   })),
 }));
-
-const PHYSARUM_FIELD = "/shared-catalog/void-edge/void-edge-333962-1790466058791-0.png";
-
-const SHOWCASE_IDS = ["vertical-void", "compressed-sequential", "continuous-hall", "topographic-ground-field", "linear-gallery"] as const;
-
-const PHYSARUM_CATALOG = [
-  "/shared-catalog/void-edge/void-edge-343679-1790466058791-1.png",
-  "/shared-catalog/void-edge/void-edge-383555-1790466058791-5.png",
-  "/shared-catalog/void-edge/void-edge-389428-1790466058791-6.png",
-  "/shared-catalog/void-edge/void-edge-274210-1790466058791-8.png",
-  "/shared-catalog/void-edge/void-edge-320251-1790466058791-13.png",
-  "/shared-catalog/void-edge/void-edge-398254-1790466058791-20.png",
-];
 
 const PREVIEW_YAW = -0.65;
 const PREVIEW_PITCH = 0.38;
@@ -59,7 +48,7 @@ type MixRow = {
   generation: number;
   explorers: number;
   pareto: number;
-  specialist: number;
+  diversity: number;
   total: number;
 };
 
@@ -78,58 +67,52 @@ const EXPLAIN: Record<string, ExplainSection[]> = {
       text: "The Pareto archive is the globally non-dominated set. It holds every solution that nothing else dominates, including solutions that are extreme on a single objective.",
     },
     {
-      label: "Specialist preference archive",
-      text: "Specialists sit beside the Pareto archive. Each one favors Formal, Spatial, or Atmospheric, while the other two scores stay above a floor. At most four occupy each direction. This preference archive keeps those directions available as parents.",
+      label: "Preservation",
+      text: "Specialists are off. A morphology stays in the catalog for one of two roles: it is non-dominated, or its phenotype is different enough from the morphologies already kept.",
     },
   ],
   strategy: [
     {
       label: "Broad search",
-      text: "Generation 01 is a broad sample. All 80 new morphologies are explorers drawn from the Physarum catalog for this archetype.",
+      text: "Generation 01 is a broad sample. All 100 new morphologies are explorers drawn from the Physarum translation of Vertical Void.",
     },
     {
       label: "Increasing refinement",
-      text: "Each later generation gives more of the 80 new candidates to mutants of the Pareto archive and the specialist preference archive. The search spends more of the population on regions that have already produced non-dominated solutions.",
+      text: "Later generations give more of the 100 new candidates to children of non-dominated parents, and a smaller share to children of diversity parents. The search spends more of the population on regions that already produced kept morphologies.",
     },
     {
       label: "Exploration remains",
-      text: "The explorer share shrinks and stays present through generation 04. A late discovery can still enter the archives.",
+      text: "The explorer share shrinks and stays present through generation 04. A late discovery can still enter the catalog.",
     },
   ],
-  carried: [
+  preservation: [
     {
-      label: "Outside the 80",
-      text: "After each optimization, the Pareto archive and the specialist preference archive continue into the next generation. They are carried as elites. They are not evaluated again inside the 80 new candidates.",
+      label: "Non-dominated",
+      text: "A morphology is non-dominated when no other feasible morphology is at least as strong on Formal, Spatial, and Atmospheric and stronger on one. Those morphologies parent the Pareto share of the next generation.",
     },
     {
-      label: "What the bar shows",
-      text: "The composition bar is only the new population: explorers, Pareto-parent mutants, and specialist-parent mutants. Carried elites sit on their own line.",
+      label: "Morphological diversity",
+      text: "A second role keeps a morphology because its phenotype sits apart from the ones already preserved. That role stops the catalog from collapsing into copies of one shape. Diversity parents are a smaller share than non-dominated parents.",
     },
   ],
   pareto: [
     {
       label: "Objective space",
-      text: "Each point is an evaluated Void Edge morphology, placed by its Formal, Spatial, and Atmospheric scores. Terracotta marks the Pareto archive.",
+      text: "Each point is an evaluated Vertical Void morphology, placed by its Formal, Spatial, and Atmospheric scores. Terracotta marks the non-dominated set.",
     },
     {
-      label: "What the archive contains",
-      text: "The archive is the globally non-dominated set. Extreme solutions remain when nothing else dominates them.",
-    },
-  ],
-  specialist: [
-    {
-      label: "Three directions",
-      text: "The specialist preference archive keeps morphologies that favor Formal, Spatial, or Atmospheric. A morphology is assigned to one direction. This set is not a second Pareto front.",
+      label: "What the front contains",
+      text: "The front is the globally non-dominated set. Extreme solutions remain when nothing else dominates them.",
     },
   ],
   selection: [
     {
-      label: "One per archetype",
-      text: "A person chooses one morphology from the hybrid catalog for each archetype. Fifteen archetypes produce fifteen selected 2D morphologies.",
+      label: "One morphology",
+      text: "A person chooses one drawing from the Vertical Void catalog. That choice is the section vertical propagation continues.",
     },
     {
-      label: "Handoff",
-      text: "The chosen section is the base vertical propagation grows through successive states.",
+      label: "The catalog",
+      text: "The grid is the Skill 2 Vertical Void catalog. The terracotta frame is the human selection.",
     },
   ],
 };
@@ -154,40 +137,62 @@ function shareLabel(count: number, total: number) {
   return `${text}%`;
 }
 
-function scheduledMix(generation: number): MixRow {
-  const mix = newGenerationMix(generation);
-  const total = mix.mutants + mix.explorers;
-  const specialist = mix.mutants === 0 ? 0 : Math.floor(mix.mutants / 4);
-  return {
-    id: `G${String(generation).padStart(2, "0")}`,
-    generation,
-    explorers: mix.explorers,
-    pareto: mix.mutants - specialist,
-    specialist,
-    total,
-  };
-}
-
-const MIX: MixRow[] = [1, 2, 3, 4].map((generation) => scheduledMix(generation));
+/** Production mix. Generation 01 is entirely explorers. Later rows match the locked search composition. */
+const MIX: MixRow[] = [
+  { id: "G01", generation: 1, explorers: 100, pareto: 0, diversity: 0, total: 100 },
+  { id: "G02", generation: 2, explorers: 70, pareto: 22, diversity: 8, total: 100 },
+  { id: "G03", generation: 3, explorers: 50, pareto: 37, diversity: 13, total: 100 },
+  { id: "G04", generation: 4, explorers: 30, pareto: 52, diversity: 18, total: 100 },
+];
 
 const GENERATION_ROLE = [
   {
     title: "Open the space",
-    why: "Nothing has been scored, so every new candidate is an explorer from the Physarum catalog. No elites exist yet to inherit from.",
+    why: "Nothing has been scored, so every new candidate is an explorer from the Physarum translation.",
   },
   {
     title: "Begin refinement",
-    why: "Elites from the first generation parent a minority of mutants. Most candidates still explore, so the search does not collapse onto one region.",
+    why: "Most candidates still explore. A minority are children of non-dominated parents, and a smaller share come from diversity parents.",
   },
   {
-    title: "Hold both",
-    why: "The archive is established. New candidates are split evenly between explorers and mutants of those elites.",
+    title: "Shift the weight",
+    why: "Explorers and children of kept morphologies share the population. Non-dominated parents are the larger inherited share.",
   },
   {
     title: "Concentrate",
-    why: "Mutants of the elites become the majority. Explorers remain so a late discovery can still enter. The search then stops.",
+    why: "Children of non-dominated parents become the majority. Explorers and diversity parents remain. The search then stops.",
   },
 ];
+
+const EMPTY_SELECTIONS: Skill2Selections = {};
+let cachedSelectionRaw = "";
+let cachedSelections: Skill2Selections = EMPTY_SELECTIONS;
+
+function selectionSnapshot() {
+  if (typeof window === "undefined") return EMPTY_SELECTIONS;
+  const raw = window.sessionStorage.getItem(SKILL2_SELECTIONS_KEY) ?? "";
+  if (raw !== cachedSelectionRaw) {
+    cachedSelectionRaw = raw;
+    cachedSelections = raw ? readSkill2Selections() : EMPTY_SELECTIONS;
+  }
+  return cachedSelections;
+}
+
+function useSkill2Selections() {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const onChange = () => onStoreChange();
+      window.addEventListener("focus", onChange);
+      window.addEventListener("storage", onChange);
+      return () => {
+        window.removeEventListener("focus", onChange);
+        window.removeEventListener("storage", onChange);
+      };
+    },
+    selectionSnapshot,
+    () => EMPTY_SELECTIONS,
+  );
+}
 
 function projectPreview([x, y, z]: number[]) {
   const px = x - 0.5;
@@ -223,8 +228,8 @@ function CompositionBar({ row }: { row: MixRow }) {
   }
   const parts = [
     { tone: "explorer", count: row.explorers, label: "Explorers" },
-    { tone: "pareto", count: row.pareto, label: "Pareto-parent mutants" },
-    { tone: "specialist", count: row.specialist, label: "Specialist-parent mutants" },
+    { tone: "pareto", count: row.pareto, label: "Non-dominated parents" },
+    { tone: "diversity", count: row.diversity, label: "Diversity parents" },
   ];
   return (
     <ul className="mix-rows">
@@ -251,36 +256,6 @@ function ThumbRow({ items, label }: { items: EvolutionCandidateView[]; label: st
         </li>
       ))}
     </ul>
-  );
-}
-
-function CarriedElites({
-  generation,
-  previous,
-}: {
-  generation: number;
-  previous: EvolutionGenerationView | undefined;
-}) {
-  if (generation === 1) {
-    return (
-      <div className="carried">
-        <p className="comp-kicker">Carried elites</p>
-        <p className="carried-note">None. This is the first population from the Physarum catalog.</p>
-      </div>
-    );
-  }
-  const count = previous?.archived ?? 0;
-  return (
-    <div className="carried">
-      <div className="carried-head">
-        <p className="comp-kicker">Carried elites</p>
-        <MetricInfo label="Carried elites" sections={EXPLAIN.carried} />
-      </div>
-      <p className="carried-chips">
-        <span data-tone="pareto">{count > 0 ? `${count} Pareto` : "Pareto archive"}</span>
-        <span data-tone="specialist">Specialist preference</span>
-      </p>
-    </div>
   );
 }
 
@@ -334,8 +309,8 @@ function MooFrame({ rich = false }: { rich?: boolean }) {
         <li>Non-dominated comparison</li>
       </ol>
       <div className="moo-split">
-        <span>Pareto archive</span>
-        <span>Specialist preference</span>
+        <span>Non-dominated</span>
+        <span>Diversity</span>
       </div>
     </GhNode>
   );
@@ -360,7 +335,7 @@ function StrategyChart() {
     id: row.id,
     explorer: row.explorers / row.total,
     pareto: row.pareto / row.total,
-    specialist: row.specialist / row.total,
+    diversity: row.diversity / row.total,
   }));
   const explorer = fractions.map((row) => row.explorer);
   const pareto = fractions.map((row) => row.explorer + row.pareto);
@@ -369,8 +344,8 @@ function StrategyChart() {
   return (
     <GhNode title="Population composition across generations" kind="chart" info={{ label: "Why the mix changes", sections: EXPLAIN.strategy }}>
       <div className="strategy-layout">
-        <svg className="strategy-area" viewBox="0 0 100 92" role="img" aria-label="Explorer share falls from generation 01 to generation 04 while mutant shares rise">
-          <path d={chartBand(full, pareto)} data-tone="specialist" />
+        <svg className="strategy-area" viewBox="0 0 100 92" role="img" aria-label="Explorer share falls from generation 01 to generation 04 while inherited shares rise">
+          <path d={chartBand(full, pareto)} data-tone="diversity" />
           <path d={chartBand(pareto, explorer)} data-tone="pareto" />
           <path d={chartBand(explorer, base)} data-tone="explorer" />
           {fractions.map((row, index) => (
@@ -381,8 +356,8 @@ function StrategyChart() {
         </svg>
         <ul className="strategy-legend">
           <li data-tone="explorer">Explorers · 100 → 30</li>
-          <li data-tone="pareto">Pareto-parent mutants · 0 → 52.5</li>
-          <li data-tone="specialist">Specialist-parent mutants · 0 → 17.5</li>
+          <li data-tone="pareto">Non-dominated parents · 0 → 52</li>
+          <li data-tone="diversity">Diversity parents · 0 → 18</li>
         </ul>
       </div>
       <p className="strategy-read">Exploration decreases. Refinement increases. Explorers remain through generation 04.</p>
@@ -561,57 +536,67 @@ function GenRing({ title, slices }: { title: string; slices: { id: string; tone:
   );
 }
 
-export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
+export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; picks: SavedPick[] }) {
   const catalog = useEvolutionCatalog(initial);
   const archetype = catalog.archetypes.find((item) => item.archetypeId === EXAMPLE_ID) ?? null;
   const candidates = archetype?.candidates ?? [];
-  const generations = archetype?.generations ?? [];
-  const catalogHref = useWorkflowHref("/physarum/catalog");
-  const paretoHref = useWorkflowHref("/evolution/pareto");
-  const hybridHref = useWorkflowHref("/lab/evolution/pareto-catalog");
-  const specialists = archetype?.specialists ?? { formal: [], spatial: [], atmospheric: [] };
-  const specialistShot = (key: "formal" | "spatial" | "atmospheric") => {
-    const ids = new Set(specialists[key]);
-    const named = candidates.find((candidate) => ids.has(candidate.id) && candidate.image);
-    if (named) return named;
-    return candidates
-      .filter((candidate) => candidate.image)
-      .sort((a, b) => b[key] - a[key] || a.id - b.id)[0] ?? null;
-  };
-  const catalogUsed = new Set<string>();
-  const combinedCatalog = [
-    ...(["formal", "spatial", "atmospheric"] as const).flatMap((key) => {
-      const shot = specialistShot(key);
-      if (!shot?.image) return [];
-      catalogUsed.add(shot.key);
-      return [{ key: shot.key, kind: key, image: shot.image }];
+  const paretoHref = useWorkflowHref(labWorkspace("optimization").tabs[1].href);
+  const hybridHref = useWorkflowHref(labWorkspace("optimization").tabs[2].href);
+  const selections = useSkill2Selections();
+  const selection = selections[EXAMPLE_ID] ?? null;
+  const filedPick = (archetypeId: string) => picks.find((pick) => pick.archetypeId === archetypeId);
+  const withImage = candidates.filter((candidate) => candidate.image);
+  const nonDominated = withImage.find((candidate) => candidate.pareto || candidate.archived) ?? null;
+  const diversityKept =
+    withImage.find(
+      (candidate) =>
+        candidate.diversity === "tag" ||
+        candidate.diversity === "rescue" ||
+        candidate.preservationRoles?.includes("diversity"),
+    ) ?? null;
+  const voidShots = withImage.map((candidate) => candidate.image as string);
+  const physarumField = voidShots[0] ?? null;
+  const physarumCatalog = Array.from({ length: 6 }, (_, index) => voidShots[index + 1] ?? null);
+  const voidPickId = selection?.candidateId ?? filedPick(EXAMPLE_ID)?.candidateId;
+  const savedPicks = TYPOLOGIES.flatMap((typology) =>
+    typology.archetypes.map((item) => {
+      const saved = selections[item.id];
+      const filed = filedPick(item.id);
+      const candidateId = saved?.candidateId ?? filed?.candidateId;
+      const objectives = saved?.objectives ?? (filed ? { formal: filed.formal, spatial: filed.spatial, atmospheric: filed.atmospheric } : null);
+      const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
+      const plate = candidateId != null ? run?.candidates.find((candidate) => candidate.id === candidateId) : undefined;
+      const image = plate?.image ?? (saved ? selectionPreviewSrc(saved) : null) ?? (candidateId != null ? `/api/evolution/${item.id}/${candidateId}` : null);
+      return {
+        id: item.id,
+        name: item.name,
+        image,
+        picked: candidateId != null,
+        meta: objectives
+          ? `#${String(candidateId).padStart(3, "0")} · F ${objectives.formal.toFixed(2)} · S ${objectives.spatial.toFixed(2)} · A ${objectives.atmospheric.toFixed(2)}`
+          : "Not selected",
+      };
     }),
-    ...candidates
-      .filter((candidate) => candidate.archived && candidate.image && !candidate.specialist && !catalogUsed.has(candidate.key))
-      .slice(0, 5)
-      .map((candidate) => ({ key: candidate.key, kind: "unweighted" as const, image: candidate.image as string })),
-  ];
-  const picks = TYPOLOGIES.flatMap((typology) => typology.archetypes).map((item) => {
-    const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
-    const chosen = run?.candidates.find((candidate) => candidate.image && (candidate.archived || candidate.specialist)) ?? null;
-    return { id: item.id, name: item.name, chosen };
-  });
-  const pileSources = candidates.filter((candidate) => candidate.image && candidate.archetypeId === EXAMPLE_ID).map((candidate) => candidate.image as string);
-  const pile = Array.from({ length: 14 }, (_, index) => pileSources[index % Math.max(pileSources.length, 1)]).filter(Boolean);
+  );
+  const rememberVerticalVoid = () => {
+    window.sessionStorage.setItem(ARCHETYPE_STORAGE_KEY, EXAMPLE_ID);
+  };
 
   return (
     <main className="evo-page process-page">
-      <EvolutionHeader title="2D Evolution · Process" detail="Void Edge · the search starts from Physarum logic and hands one morphology onward" />
+      <div className="lab-tools">
+        <p className="eyebrow">Vertical Void · Physarum logic, four generations, then one morphology for vertical propagation</p>
+      </div>
       <div className="gh-canvas">
         <section className="gh-group gh-source" aria-label="Physarum logic">
           <p className="gh-group-label">Physarum logic</p>
           <article className="source-stage">
             <h2>Architectural input</h2>
             <p className="brief-path">
-              <span>Workspace</span>
-              <span>Void Edge</span>
+              <span>Lobby</span>
+              <span>Vertical Void</span>
             </p>
-            <SourceCopy>The ratings collapse into three locked conditions. These are what the translation receives.</SourceCopy>
+            <SourceCopy>Three categories of analysis. Formal, Spatial, and Atmospheric are what the translation receives.</SourceCopy>
             <ul className="brief-chart">
               {SOURCE_GROUPS.map((group) => {
                 const average = group.criteria.reduce((sum, criterion) => sum + criterion.value, 0) / group.criteria.length;
@@ -624,7 +609,7 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
                       ))}
                     </span>
                     <strong>{group.title}</strong>
-                    <em>{VOID_EDGE?.descriptors[group.id]}</em>
+                    <em>{EXAMPLE?.descriptors[group.id]}</em>
                     <span>{RATING_LABEL[level as 0 | 1 | 2]}</span>
                   </li>
                 );
@@ -634,25 +619,25 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
           <span className="source-arrow" aria-hidden="true" />
           <article className="source-stage">
             <h2>Biological translation</h2>
-            <SourceCopy>The ratings become Physarum behaviour.</SourceCopy>
-            <p className="eyebrow source-field-label">Physarum field</p>
-            <div className="source-field">
-              <img src={PHYSARUM_FIELD} alt="" />
+            <SourceCopy>The ratings become Physarum behaviour. This field is one drawing from the Vertical Void catalog.</SourceCopy>
+            <p className="eyebrow source-field-label">Vertical Void</p>
+            <div className="source-field glass-plate">
+              {physarumField ? <img src={physarumField} alt="" /> : null}
             </div>
           </article>
           <span className="source-arrow" aria-hidden="true" />
           <article className="source-stage">
-            <h2>Iteration generation</h2>
-            <SourceCopy>The Physarum catalog samples that translation. Generation 01 opens from these morphologies.</SourceCopy>
+            <h2>Catalog</h2>
+            <SourceCopy>Iterations from the Vertical Void catalog. Generation 01 opens from this kind of morphology.</SourceCopy>
             <ul className="source-catalog">
-              {PHYSARUM_CATALOG.map((src) => (
-                <li key={src}>
-                  <img src={src} alt="" />
+              {physarumCatalog.map((src, index) => (
+                <li key={src ?? `empty-${index}`} className="glass-plate" data-chosen={src != null && voidPickId != null && src.includes(`/${EXAMPLE_ID}/${voidPickId}`) || undefined}>
+                  {src ? <img src={src} alt="" /> : null}
                 </li>
               ))}
             </ul>
-            <Link href={catalogHref} className="process-open source-catalog-link">
-              Open Physarum catalog
+            <Link href={hybridHref} className="process-open source-catalog-link" onClick={rememberVerticalVoid}>
+              Open Vertical Void catalog
             </Link>
           </article>
         </section>
@@ -663,147 +648,96 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
               <p className="eyebrow">02</p>
               <h2 className="panel-title">Evolutionary process</h2>
             </div>
-            <span>Void Edge</span>
+            <span>Vertical Void</span>
           </header>
           <div className="evo-gen-board">
             {MIX.map((row, index) => {
-              const record = generations.find((item) => item.index === row.generation);
-              const cohort = candidates.filter((candidate) => candidate.generation === row.generation);
-              const paretoShot = cohort.find((candidate) => candidate.archived && candidate.image) ?? cohort.find((candidate) => candidate.pareto && candidate.image);
-              const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
-              let improved = 0;
-              let offspring = 0;
-              for (const candidate of cohort) {
-                if (candidate.parentId == null) continue;
-                offspring += 1;
-                const parent = byId.get(candidate.parentId);
-                if (!parent) continue;
-                const worse = candidate.formal < parent.formal || candidate.spatial < parent.spatial || candidate.atmospheric < parent.atmospheric;
-                const better = candidate.formal > parent.formal || candidate.spatial > parent.spatial || candidate.atmospheric > parent.atmospheric;
-                if (!worse && better) improved += 1;
-              }
-              const evaluated = record?.evaluated ?? cohort.length;
-              const front = record?.pareto ?? 0;
-              const infeasible = Math.max(0, (record?.evaluated ?? 0) - (record?.feasible ?? 0));
-              const offFront = Math.max(0, evaluated - front - infeasible);
-              const mutant = row.pareto + row.specialist;
+              const cohort = candidates.filter((candidate) => candidate.generation === row.generation && candidate.image);
+              const shot =
+                cohort.find((candidate) => candidate.pareto || candidate.archived) ??
+                cohort[0] ??
+                null;
               const shares = [
-                ["explorer", "Explorer", row.explorers],
-                ["mutant", "Mutant", mutant],
-                ["pareto", "Pareto", row.pareto],
-                ["specialist", "Specialist", row.specialist],
+                ["explorer", "Explorers", row.explorers],
+                ["pareto", "Non-dominated", row.pareto],
+                ["diversity", "Diversity", row.diversity],
               ] as const;
               return (
-                <article key={row.id} className="panel evo-gen-frame">
-                  <header className="panel-header">
-                    <div>
-                      <p className="eyebrow">{GENERATION_ROLE[index].title}</p>
-                      <h2 className="panel-title">Generation {String(row.generation).padStart(2, "0")}</h2>
-                    </div>
-                    <span className="eyebrow">{record?.archived ?? 0} archived</span>
+                <article key={row.id} className="evo-gen-frame">
+                  <header>
+                    <p className="eyebrow">{GENERATION_ROLE[index].title}</p>
+                    <h2>Generation {String(row.generation).padStart(2, "0")}</h2>
                   </header>
-                  <figure className="evo-gen-shot">
-                    <EvolutionImage src={paretoShot?.image ?? null} />
-                    <figcaption>Pareto</figcaption>
+                  <p className="evo-gen-why">{GENERATION_ROLE[index].why}</p>
+                  <figure className="evo-gen-shot glass-plate">
+                    <EvolutionImage src={shot?.image ?? null} />
                   </figure>
-                  <div className="evo-gen-readout">
-                  <div className="evo-gen-mix">
+                  <ul className="evo-gen-mix">
                     {shares.map(([tone, label, count]) => (
-                      <div key={tone} className="evo-mix-line" data-tone={tone}>
+                      <li key={tone} data-tone={tone}>
                         <span>{label}</span>
-                        <b>{shareLabel(count, row.total)}</b>
-                        <i><b style={{ width: shareLabel(count, row.total) }} /></i>
-                      </div>
+                        <b>{row.generation === 1 && tone !== "explorer" ? "—" : shareLabel(count, row.total)}</b>
+                        <i>
+                          <b style={{ width: shareLabel(count, row.total) }} />
+                        </i>
+                      </li>
                     ))}
-                  </div>
-                  <div className="evo-gen-charts">
-                    <div className="evo-gen-bars">
-                      <p className="evo-ring-title">Front and archive</p>
-                      <span className="evo-run-pair">
-                        <span className="evo-run-bar" data-tone="archive" style={{ height: `${((record?.archived ?? 0) / Math.max(record?.archived ?? 0, front, 1)) * 100}%` }} />
-                        <span className="evo-run-bar" data-tone="front" style={{ height: `${(front / Math.max(record?.archived ?? 0, front, 1)) * 100}%` }} />
-                      </span>
-                      <p className="evo-run-key"><span data-tone="archive">Archive {record?.archived ?? 0}</span><span data-tone="front">Front {front}</span></p>
-                    </div>
-                    <GenRing title="Population" slices={[
-                      { id: "front", tone: "orange", value: front },
-                      { id: "off", tone: "cyan", value: offFront },
-                      { id: "infeasible", tone: "muted", value: infeasible },
-                    ]} />
-                    <GenRing title="Origin" slices={[
-                      { id: "new", tone: "cyan", value: cohort.length - offspring },
-                      { id: "improved", tone: "orange", value: improved },
-                      { id: "other", tone: "muted", value: Math.max(0, offspring - improved) },
-                    ]} />
-                  </div>
-                  </div>
+                  </ul>
                 </article>
               );
             })}
           </div>
         </section>
 
-        <section className="gh-group gh-output" aria-label="Search output">
-            <div className="so">
+        <section className="gh-group gh-output" aria-label="Optimization output">
+          <div className="so">
             <header className="so-head">
-              <h2>Search output</h2>
-              <p>From the final generation to the design selection for vertical propagation.</p>
+              <h2>Optimization output</h2>
+              <p>The Pareto front, the roles that keep a morphology, and the human selection.</p>
             </header>
-            <div className="so-top so-intro">
+            <div className="so-top">
               <article className="so-panel">
                 <header>
                   <div>
                     <h3>Pareto</h3>
                     <p>The non-dominated set, continued on the Pareto tab.</p>
                   </div>
-                  <span className="so-mark" aria-hidden="true">i</span>
+                  <MetricInfo label="Pareto" sections={EXPLAIN.pareto} />
                 </header>
-                <Link href={paretoHref} className="so-plot" aria-label="Open the Pareto graph">
+                <Link href={paretoHref} className="so-plot" aria-label="Open the Pareto graph" onClick={rememberVerticalVoid}>
                   <ParetoCloud candidates={candidates} />
                 </Link>
                 <ul className="pareto-legend so-plot-key">
                   <li data-state="dominated">Dominated</li>
-                  <li data-state="pareto">Pareto</li>
-                  <li data-state="archive">Archive</li>
+                  <li data-state="pareto">Non-dominated</li>
+                  <li data-state="archive">Kept</li>
                 </ul>
               </article>
-              <div className="so-side">
-                <article className="so-panel so-specialist">
-                  <header>
-                    <div>
-                      <h3>Specialist</h3>
-                      <p>Formal, Spatial, and Atmospheric favoring.</p>
-                    </div>
-                    <span className="so-mark" aria-hidden="true">i</span>
-                  </header>
-                  <ul className="so-specs">
-                    {(["formal", "spatial", "atmospheric"] as const).map((key) => (
-                      <li key={key} data-kind={key}>
-                        <strong>{key}</strong>
-                        <span className="so-well">
-                          <EvolutionImage src={specialistShot(key)?.image ?? null} />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-                <article className="so-panel so-combined">
-                  <header>
-                    <div>
-                      <h3>Combined catalog</h3>
-                      <p>Pareto and specialists together.</p>
-                    </div>
-                    <span className="so-mark" aria-hidden="true">i</span>
-                  </header>
-                  <Link href={hybridHref} className="so-strip" aria-label="Open the combined catalog">
-                    {combinedCatalog.map((item) => (
-                      <span key={item.key} data-kind={item.kind}>
-                        <EvolutionImage src={item.image} />
-                      </span>
-                    ))}
-                  </Link>
-                </article>
-              </div>
+              <article className="so-panel so-roles">
+                <header>
+                  <div>
+                    <h3>Preservation roles</h3>
+                    <p>Specialists are off. A morphology is kept for one of these roles.</p>
+                  </div>
+                  <MetricInfo label="Preservation roles" sections={EXPLAIN.preservation} />
+                </header>
+                <ul className="so-role-list">
+                  <li data-tone="pareto">
+                    <strong>Non-dominated</strong>
+                    <p>Nothing else is at least as strong on all three objectives and stronger on one.</p>
+                    <span className="so-well glass-plate">
+                      <EvolutionImage src={nonDominated?.image ?? null} />
+                    </span>
+                  </li>
+                  <li data-tone="diversity">
+                    <strong>Morphological diversity</strong>
+                    <p>The phenotype sits apart from the morphologies already kept, so the catalog does not collapse to one shape.</p>
+                    <span className="so-well glass-plate">
+                      <EvolutionImage src={diversityKept?.image ?? null} />
+                    </span>
+                  </li>
+                </ul>
+              </article>
             </div>
             <span className="source-arrow" aria-hidden="true" />
             <div className="so-bottom">
@@ -811,33 +745,22 @@ export function ProcessIntro({ initial }: { initial: EvolutionCatalog }) {
                 <header>
                   <div>
                     <h3>Human selection</h3>
-                    <p>One morphology per archetype is selected from the combined catalog.</p>
+                    <p>Saved drawings, one for each archetype, with the scores from the search.</p>
                   </div>
-                  <span className="so-mark" aria-hidden="true">i</span>
+                  <MetricInfo label="Human selection" sections={EXPLAIN.selection} />
                 </header>
-                <ul className="so-picks">
-                  {picks.map((item) => (
+                <ul className="so-saved">
+                  {savedPicks.map((item) => (
                     <li key={item.id}>
-                      <span>
-                        <EvolutionImage src={item.chosen?.image ?? null} />
+                      <span className="glass-plate" data-chosen={item.picked || undefined}>
+                        <EvolutionImage src={item.image} />
                       </span>
                       <em>{item.name}</em>
-                      <small>
-                        {item.chosen
-                          ? `G${String(item.chosen.generation).padStart(2, "0")} · F ${item.chosen.formal.toFixed(2)} · S ${item.chosen.spatial.toFixed(2)} · A ${item.chosen.atmospheric.toFixed(2)}`
-                          : "No saved morphology"}
-                      </small>
+                      <small>{item.meta}</small>
                     </li>
                   ))}
                 </ul>
               </article>
-              <div className="so-panel so-fifteen">
-                <h3>Vertical propagation process</h3>
-                <div className="so-pile-frame">
-                  <VoidPile urls={pile} />
-                </div>
-                <span>To vertical propagation</span>
-              </div>
             </div>
           </div>
         </section>

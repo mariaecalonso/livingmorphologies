@@ -136,7 +136,7 @@ export function FilamentRefine({
                 <div className="filament-refine-body">
                   <div className="filament-refine-controls">
                     <p className="filament-refine-copy">
-                      The archetype places the body. The pen is a hair, fixed in the run and shared by every catalogue. These three drawings follow the sliders. Save applies that ink to the whole catalogue.
+                      The archetype places the body. The pen is a hair, fixed in the run and shared by every catalogue. These drawings follow the sliders. Save applies that ink to the whole catalogue.
                     </p>
                     <ul className="filament-refine-hair">
                       <li className="filament-refine-pen">Pen</li>
@@ -211,6 +211,7 @@ export function FilamentRefine({
           display: flex;
           flex-direction: column;
           padding: 18px 20px 16px;
+          overflow: hidden;
           background: rgba(0, 0, 0, 0.96);
           border: 1px solid rgba(242, 242, 238, 0.18);
           color: var(--text, #f2f2ee);
@@ -246,12 +247,14 @@ export function FilamentRefine({
           display: flex;
           flex-direction: column;
           gap: 14px;
+          overflow: hidden;
         }
         .filament-refine-controls {
           display: grid;
-          grid-template-columns: minmax(180px, 1.3fr) repeat(4, minmax(0, 1fr)) auto;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
           gap: 8px 16px;
           align-items: end;
+          flex: 0 0 auto;
         }
         .filament-refine-copy { margin: 0; color: var(--muted, #9b9b98); font-size: 0.68rem; line-height: 1.45; grid-column: 1 / -1; }
         .filament-refine-hair { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; grid-column: 1 / -1; }
@@ -277,14 +280,18 @@ export function FilamentRefine({
           min-height: 0;
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
-          align-content: center;
+          grid-template-rows: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          align-items: center;
           justify-items: center;
+          overflow: hidden;
         }
         .filament-refine-samples img,
         .filament-refine-samples canvas {
-          width: min(100%, 42vh);
-          aspect-ratio: 1;
+          width: auto;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
           object-fit: contain;
           background: #000;
         }
@@ -292,8 +299,7 @@ export function FilamentRefine({
           .filament-refine-window { height: min(94vh, 980px); }
           .filament-refine-controls { grid-template-columns: 1fr 1fr; }
           .filament-refine-save { grid-column: 1 / -1; }
-          .filament-refine-samples img,
-          .filament-refine-samples canvas { width: min(100%, 28vh); }
+          .filament-refine-samples { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, minmax(0, 1fr)); }
         }
       `}</style>
     </span>
