@@ -115,7 +115,7 @@ function rotate(x: number, y: number, plan: GalleryPlan) {
   };
 }
 
-/** Fit the whole figure into the field. Clamping each point was crushing different plans into the same edge bar. */
+/** Rotate and scale the figure. Shrink only when it leaves the field, so a small plan stays small. */
 function place(marks: FieldAttractor[], plan: GalleryPlan): FieldAttractor[] {
   const mapped = marks.map((mark) => {
     const a = rotate(mark.x, mark.y, plan);
@@ -136,7 +136,7 @@ function place(marks: FieldAttractor[], plan: GalleryPlan): FieldAttractor[] {
   const width = Math.max(0.5, box.maxX - box.minX);
   const height = Math.max(0.5, box.maxY - box.minY);
   const margin = 1.2;
-  const fit = Math.min((FIELD_SIZE - margin * 2) / width, (FIELD_SIZE - margin * 2) / height, 1.12);
+  const fit = Math.min((FIELD_SIZE - margin * 2) / width, (FIELD_SIZE - margin * 2) / height, 1);
   const shift = (x: number, y: number) => ({
     x: lim(CENTER + (x - box.cx) * fit),
     y: lim(CENTER + (y - box.cy) * fit),
@@ -165,6 +165,60 @@ function along(count: number, span: number, y: number, f: Frame, jitter = 0.2): 
     x: start + i * step + f.r(-jitter, jitter),
     y: y + f.r(-jitter * 0.6, jitter * 0.6),
   }));
+}
+
+/** Same bow as terraced: the ends stay, and the middle of each straight gallery member leaves the line. */
+function bowOf(growth: GrowthKind) {
+  if (growth === "sharp") return { amp: 0.95, turns: 1 };
+  if (growth === "filament") return { amp: 0.4, turns: 2.4 };
+  if (growth === "wander") return { amp: 0.72, turns: 2 };
+  if (growth === "sparse") return { amp: 0.55, turns: 1 };
+  if (growth === "heavy" || growth === "mass") return { amp: 0.7, turns: 1.2 };
+  return { amp: 0.5, turns: 1.3 };
+}
+
+function bowLines(marks: FieldAttractor[], plan: GalleryPlan) {
+  const { amp, turns } = bowOf(plan.growth);
+  const bowed: FieldAttractor[] = [];
+  let salt = plan.index * 13;
+  for (const mark of marks) {
+    if (mark.kind !== "line" || mark.x2 == null || mark.y2 == null) {
+      bowed.push(mark);
+      continue;
+    }
+    bowed.push(...bowSegment(mark, amp, turns, salt));
+    salt += 1;
+  }
+  return bowed;
+}
+
+function bowSegment(mark: FieldAttractor, amp: number, turns: number, salt: number): FieldAttractor[] {
+  const x0 = mark.x;
+  const y0 = mark.y;
+  const x1 = mark.x2 ?? mark.x;
+  const y1 = mark.y2 ?? mark.y;
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.85) return [mark];
+  const nx = -dy / len;
+  const ny = dx / len;
+  const steps = Math.max(12, Math.round(len * 2.8));
+  const phase = salt * 0.37 + y0 * 0.8 + x0 * 0.15;
+  const reach = amp * Math.min(1.5, len * 0.2);
+  const pieces: FieldAttractor[] = [];
+  let px = x0;
+  let py = y0;
+  for (let step = 1; step <= steps; step += 1) {
+    const t = step / steps;
+    const off = Math.sin(phase + t * Math.PI * 2 * turns) * Math.sin(Math.PI * t) * reach;
+    const x = x0 + dx * t + nx * off;
+    const y = y0 + dy * t + ny * off;
+    pieces.push({ ...mark, x: px, y: py, x2: x, y2: y });
+    px = x;
+    py = y;
+  }
+  return pieces;
 }
 
 function addSpine(marks: FieldAttractor[], path: Station[], width: number, style: "line" | "curve") {
@@ -584,7 +638,7 @@ export function planLinearGallery(seed: number, attempt = 0, index = 0): Gallery
 export function attractorsFromLinearGallery(plan: GalleryPlan, seed: number, attempt = 0): FieldAttractor[] {
   const rng = mulberry32(seed ^ 0x11f22ed ^ (attempt * 0x85ebca6b) ^ (plan.index * 0x165667b1));
   const f = frame(rng);
-  let marks = familyMarks(plan.kind, f);
+  let marks = bowLines(familyMarks(plan.kind, f), plan);
   if (plan.kind !== "wrap" && (plan.kind === "meander" || plan.kind === "arcade") && f.chance(0.45)) {
     marks = addWraps(marks, f);
   }
@@ -691,11 +745,7 @@ export function slimeFromLinearGallery(base: SlimeControls, plan: GalleryPlan, s
     resistance: f.r(0.02, 0.4),
     foodPoints: [],
     ...byGrowth[plan.growth],
-    trailInfluence: f.r(0.2, 0.38),
-    randomness: f.r(0.16, 0.3),
-    persistence: f.r(0.28, 0.46),
     decay: 0.998,
-    diffusion: 0,
     voidElongation: 1,
     voidRotation: 0,
     voidLobes: 0,

@@ -2,34 +2,39 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { HomePrecedent } from "@/components/home-precedent";
+import { HomeLabDemo } from "@/components/home-lab-demo";
 import { HomeResults } from "@/components/home-results";
-import { HomeWorkflowPrototype } from "@/components/home-workflow-prototype";
+import { HomeWorkflowPrototype, WORKFLOW_OVERVIEW_EVENT } from "@/components/home-workflow-prototype";
+import type { LabDemoMedia } from "@/lib/home-lab-demo-chapters";
+import type { HomeResultPreview, HomeResultSkill } from "@/lib/home-results";
 import { LAB_ENTRY } from "@/lib/site-map";
 
 const RAIL = [
   { href: "#home", id: "home", label: "Home" },
   { href: "#workflow", id: "workflow", label: "Workflow" },
-  { href: "#precedent-analysis", id: "precedent-analysis", label: "Precedent Analysis" },
   { href: "#results", id: "results", label: "Results" },
+  { href: "#lab-demo", id: "lab-demo", label: "Lab Demo" },
 ] as const;
 
 const STORY = [
-  { id: "precedent-analysis", number: "02", title: "Precedent Analysis" },
-  { id: "results", number: "03", title: "Results" },
+  { id: "results", title: "Results" },
 ] as const;
 
-function HomeSectionHeading({ number, title }: { number: string; title: string }) {
-  const tone = Number(number) % 2 === 0 ? "copper" : "azul";
+function HomeSectionHeading({ title }: { title: string }) {
   return (
     <header className="home-section-heading">
-      <p className={`home-index is-${tone}`}>{number}</p>
       <h2 className="home-overview-title">{title}</h2>
     </header>
   );
 }
 
-export function HomePage() {
+export function HomePage({
+  plates = {},
+  demo,
+}: {
+  plates?: Partial<Record<HomeResultSkill["id"], readonly HomeResultPreview[]>>;
+  demo: LabDemoMedia;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const railIndexRef = useRef(0);
   const [railIndex, setRailIndex] = useState(0);
@@ -126,6 +131,7 @@ export function HomePage() {
       if (index < 0) return;
       event.preventDefault();
       history.pushState(null, "", `#${id}`);
+      if (id === "workflow") window.dispatchEvent(new Event(WORKFLOW_OVERVIEW_EVENT));
       go(index);
     };
     root.addEventListener("click", onRail);
@@ -162,7 +168,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="home-page" ref={rootRef} style={{ "--rail-index": railIndex } as CSSProperties}>
+    <div className="home-page" ref={rootRef} style={{ "--rail-index": railIndex, "--rail-span": RAIL.length } as CSSProperties}>
       <nav className="home-rail" aria-label="Sections">
         <span className="home-rail-track" aria-hidden="true">
           <span className="home-rail-line" />
@@ -206,15 +212,23 @@ export function HomePage() {
         />
         <div className="home-hero-copy">
           <p className="home-team">
-            Maria Alonso <span className="home-team-x home-team-x-teal">×</span> Renata Maguiño{" "}
-            <span className="home-team-x home-team-x-copper">×</span> Julieta Segura
+            Maria Alonso <span className="home-team-x home-team-x-teal">+</span> Renata Maguiño{" "}
+            <span className="home-team-x home-team-x-copper">+</span> Julieta Segura
           </p>
           <h1 className="home-title">
             <span className="home-title-living">Living</span>
             <span className="home-title-morph">Morphologies</span>
           </h1>
-          <p className="home-subtitle">A temporary project introduction.</p>
-          <Link className="home-explore" href="/lab">
+          <p className="home-subtitle">
+            Living Morphologies uses a Physarum-based generative system
+            <br />
+            and optimization process to produce 2D plates for
+            <br />
+            vertical propagation, which then are used to generate
+            <br />
+            hybrid models that serve as connectors for assembly.
+          </p>
+          <Link className="home-explore" href={LAB_ENTRY.href}>
             <span>Explore Lab</span>
             <span className="home-explore-arrow" aria-hidden="true">
               →
@@ -226,15 +240,14 @@ export function HomePage() {
       <section className="home-overview home-workflow" id="workflow" data-rail-target="workflow">
         <header className="home-section-heading wf-section-heading" data-wf-heading>
           <div className="wf-heading-face is-macro">
-            <p className="home-index">01</p>
             <h2 className="home-overview-title">Overall Workflow</h2>
           </div>
           <div className="wf-heading-face is-detail" aria-hidden="true">
-            <p className="home-index" data-wf-index>
+            <span className="home-index" data-wf-index>
               01
-            </p>
+            </span>
             <h2 className="home-overview-title" data-wf-label>
-              Decomposition
+              Typology Analysis
             </h2>
           </div>
         </header>
@@ -244,11 +257,15 @@ export function HomePage() {
 
       {STORY.map((section) => (
         <section className="home-overview" id={section.id} data-rail-target={section.id} key={section.id}>
-          <HomeSectionHeading number={section.number} title={section.title} />
-          {section.id === "precedent-analysis" ? <HomePrecedent /> : null}
-          {section.id === "results" ? <HomeResults /> : null}
+          <HomeSectionHeading title={section.title} />
+          {section.id === "results" ? <HomeResults plates={plates} /> : null}
         </section>
       ))}
+
+      <section className="home-overview" id="lab-demo" data-rail-target="lab-demo">
+        <HomeSectionHeading title="Lab Demo" />
+        <HomeLabDemo src={demo.src} poster={demo.poster} />
+      </section>
 
       {railIndex < RAIL.length - 1 ? (
         <div className="home-scroll-cue" aria-hidden="true">

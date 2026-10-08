@@ -1,8 +1,11 @@
 /**
  * Homepage Results preview.
- * A later merge should only need to change a skill's route, status, or preview source.
- * `href` points at the existing catalogue route. Leave `previews` empty until real catalogue images exist — the section keeps the frames.
+ * Names and catalogue links come from the lab workspaces.
+ * Physarum and Optimization plates are filled from their catalogues.
+ * Vertical stays empty until that catalogue is ready.
  */
+
+import { LAB_WORKSPACES, workspaceResultsTab } from "@/lib/site-map";
 
 export type HomeResultStatus = "ready" | "pending";
 
@@ -22,32 +25,18 @@ export type HomeResultSkill = {
   previews: readonly HomeResultPreview[];
 };
 
-export const HOME_RESULTS: readonly HomeResultSkill[] = [
-  {
-    id: "skill-1",
-    number: "01",
-    name: "Translation",
-    catalogueTitle: "Physarum Catalog",
-    status: "ready",
-    href: "/lab/physarum/catalog",
+export const HOME_RESULTS: readonly HomeResultSkill[] = LAB_WORKSPACES.flatMap((workspace, index) => {
+  if (!workspace.resultId) return [];
+  const catalogue = workspaceResultsTab(workspace.id);
+  if (!catalogue) return [];
+  const order = LAB_WORKSPACES.slice(0, index + 1).filter((item) => item.resultId).length;
+  return [{
+    id: workspace.resultId,
+    number: String(order).padStart(2, "0"),
+    name: workspace.label,
+    catalogueTitle: catalogue.label,
+    status: "ready" as const,
+    href: catalogue.href,
     previews: [],
-  },
-  {
-    id: "skill-2",
-    number: "02",
-    name: "2D Evolution",
-    catalogueTitle: "Pareto Catalog",
-    status: "ready",
-    href: "/lab/evolution/pareto-catalog",
-    previews: [],
-  },
-  {
-    id: "skill-3",
-    number: "03",
-    name: "Vertical Propagation",
-    catalogueTitle: "Final Morphology Catalogue",
-    status: "ready",
-    href: "/lab/vertical/final",
-    previews: [],
-  },
-];
+  }];
+});

@@ -72,6 +72,7 @@ export function Skill2SelectionBoard() {
 
   return (
     <ArchetypeRail
+      framed
       activeId={activeId}
       onPick={activate}
       note={(id) => {

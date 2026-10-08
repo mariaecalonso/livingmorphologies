@@ -10,7 +10,7 @@ import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import { selectedMock } from "./mock-matrix";
 import { envelopeWidth, resolveTileModule } from "@/lib/skill4/tiles";
 import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
-import { Panel, PanelHeader } from "@/components/hud";
+import { Panel } from "@/components/hud";
 import { AggregationView } from "./aggregation-view";
 import { ConnectionHeader } from "./connection-header";
 import { MeshPreview } from "./mesh-preview";
@@ -20,7 +20,7 @@ import type { TileConnection } from "@/lib/skill4/connections";
 
 const MIRROR = { x: 1, y: 2, z: 3 } as const;
 
-export function HybridAssembly() {
+export function HybridAssembly({ view = "process" }: { view?: "process" | "catalog" }) {
   const {
     loaded,
     tiles,
@@ -75,9 +75,10 @@ export function HybridAssembly() {
   ];
 
   return (
-    <main className="hybrid-view hybrid-assembly">
+    <main className="hybrid-view hybrid-assembly" data-hybrid-view={view}>
+      <div className="hybrid-work">
       <Panel className="hybrid-tile">
-        <PanelHeader kicker="01" title="Tile Selection" />
+        <div className="frame-title"><p className="eyebrow">01</p><h2 className="panel-title">Tile Selection</h2></div>
         <div className="hybrid-layout-controls">
           {([2, 4, 6, 8] as const).map((value) => (
             <button key={value} type="button" data-active={count === value || undefined} onClick={() => setLayout(value, arrangement)}>
@@ -100,7 +101,7 @@ export function HybridAssembly() {
         </div>
       </Panel>
       <Panel className="hybrid-canvas">
-        <PanelHeader kicker="02" title="Aggregation Canvas" />
+        <div className="frame-title"><p className="eyebrow">02</p><h2 className="panel-title">Aggregation Canvas</h2></div>
         <div className="hybrid-stage">
           <AggregationView
             instances={placed}
@@ -126,10 +127,10 @@ export function HybridAssembly() {
             })}
           </div>
         </div>
-        <p className="hybrid-units">Each module mock is a 20×20×20 isomesh, drawn into one registration cell. Lobby is terracotta, workspace is white, gathering is cyan. Mock connectors stay separate. Preview depth is 0.35 registration units and is not production policy.</p>
+        <p className="hybrid-units">Each module mock is a 20×20×20 isomesh, drawn into one registration cell. Each tile keeps its own archetype. Mock connectors stay separate. Preview depth is 0.35 registration units and is not production policy.</p>
       </Panel>
       <Panel className="hybrid-som">
-        <PanelHeader kicker="03" title="Hybrid SOM Matrices" />
+        <div className="frame-title"><p className="eyebrow">03</p><h2 className="panel-title">Hybrid SOM Matrices</h2></div>
         <div className="hybrid-som-board">
           {connections.map((connection) => {
             const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
@@ -159,16 +160,17 @@ export function HybridAssembly() {
         </div>
       </Panel>
       <Panel className="hybrid-summary">
-        <PanelHeader kicker="05" title="Connection Summary" />
+        <div className="frame-title"><p className="eyebrow">05</p><h2 className="panel-title">Connection Summary</h2></div>
         {connections.map((connection) => (
           <AssemblySummary key={connection.id} connection={connection} />
         ))}
       </Panel>
       <Panel className="hybrid-operations">
-        <PanelHeader kicker="06" title="Aggregation Operations" />
+        <div className="frame-title"><p className="eyebrow">06</p><h2 className="panel-title">Aggregation Operations</h2></div>
         <p className="hybrid-pending">Repeat · Pending</p>
         <p className="hybrid-pending">Interlock · Pending</p>
       </Panel>
+      </div>
     </main>
   );
 }

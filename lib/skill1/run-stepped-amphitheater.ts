@@ -1,9 +1,10 @@
 /**
  * Stepped Amphitheater · Enclosed Threshold · Incidental Threshold · Contained Commons.
  *
- * Hairs travel along curved steps. The steps stay apart, share one wave,
- * and meet in a thicker gathering. A high branch gene splits the upper
- * steps into two fans.
+ * A step is a preference. Each step keeps its ends and bows on its own.
+ * Hairs stay loose on the step and are drawn back only past the curved bowl.
+ * The gathering is where trails meet. A high branch gene splits the upper steps,
+ * and the branch angle sets how far those fans open.
  */
 
 import { mulberry32 } from "../physarum";
@@ -17,7 +18,7 @@ const TWO_PI = Math.PI * 2;
 export const SA_RUN_ITERATIONS = 220;
 export const SA_TRAIL_SCALE = 16;
 export const SA_STEP_BUDGET_MS = 18000;
-export const SA_GENERATION = "growth-2";
+export const SA_GENERATION = "growth-4";
 
 export type SaField = SteppedGrowthField;
 
@@ -146,8 +147,8 @@ export function slimeFromSteppedAmphitheater(base: SlimeControls, plan: SaField,
     decay: span(0.99, 0.996),
     trailInfluence: span(1.35, 1.85),
     resistance: span(0.02, 0.07),
-    randomness: span(0.04, 0.14),
-    persistence: span(0.55, 0.78),
+    randomness: span(0.22, 0.62),
+    persistence: span(0.28, 0.62),
     trailCap: span(0.72, 0.95),
     crowdingLimit: 36,
     foodPoints: [],
@@ -189,7 +190,8 @@ function frameOf(x: number, y: number, field: SaField): Frame {
   const envelope = 0.58 + 0.42 * Math.sin(Math.min(1, Math.max(0, rise)) * Math.PI);
   const flare = 1 + field.flare * (Math.min(1, Math.max(0, rise)) - 0.35);
   const side = u >= 0 ? 1 + Math.max(0, field.asymmetry) : 1 - Math.max(0, field.asymmetry) * 0.62;
-  const limit = field.span * envelope * flare * side;
+  const enclosure = 1.2 - field.enclosure * 0.55;
+  const limit = field.span * envelope * flare * side * enclosure;
   let zone: Frame["zone"] = "outside";
   if (v < field.gatherV * 0.15) zone = "throat";
   else if (v < field.gatherV && Math.abs(u) < field.gatherU * side) zone = "commons";
@@ -201,27 +203,25 @@ function pitchOf(field: SaField) {
   return Math.max(1.15, field.pitch);
 }
 
-function waveFreq(field: SaField) {
-  return (Math.PI * 2 * (1.5 + Math.abs(field.curve) * 0.45)) / Math.max(4, field.span);
-}
-
-function waveAmp(field: SaField) {
-  const raw = 0.28 + Math.abs(field.curve) * 0.22 + Math.abs(field.flare) * 0.16;
-  return Math.min(raw, pitchOf(field) * 0.28);
-}
-
-function waveOf(u: number, field: SaField) {
-  return Math.sin(u * waveFreq(field) + field.phase) * waveAmp(field);
-}
-
 function stepIndex(vLin: number, field: SaField) {
   const index = Math.round((vLin - field.gatherV) / pitchOf(field));
   return Math.max(0, Math.min(Math.max(1, field.count) - 1, index));
 }
 
-/** Level the hairs sit on, in the straight frame. One wavy curve per step. */
+function stepBow(u: number, step: number, field: SaField) {
+  const span = Math.max(4, field.span);
+  const t = Math.min(1, Math.max(0, u / span * 0.5 + 0.5));
+  const envelope = Math.sin(Math.PI * t) ** 0.55;
+  const turns = 0.65 + ((step * 2 + Math.round(Math.abs(field.phase) * 3)) % 4) * 0.28;
+  const phase = field.phase + step * 1.7;
+  const amp = pitchOf(field) * (0.28 + (step % 3) * 0.14);
+  return Math.sin(phase + t * Math.PI * 2 * turns) * envelope * amp;
+}
+
+/** Level the hairs sit on. Each step keeps its ends and bows on its own. */
 function seatLin(u: number, vLin: number, field: SaField) {
-  return field.gatherV + stepIndex(vLin, field) * pitchOf(field) + waveOf(u, field);
+  const step = stepIndex(vLin, field);
+  return field.gatherV + step * pitchOf(field) + stepBow(u, step, field);
 }
 
 function bandOf(vLin: number, field: SaField) {
@@ -229,26 +229,34 @@ function bandOf(vLin: number, field: SaField) {
   return pitchOf(field) * (gathering ? 0.46 : 0.3);
 }
 
-function reachOf(u: number, vLin: number, field: SaField) {
+function bowlOf(u: number, vLin: number, field: SaField, limit: number) {
   const center = lobeU(u, vLin, field);
   const split = Math.abs(center) > 0.2;
-  const half = split ? Math.max(1.15, field.span * 0.36) : Math.max(2.2, field.span * 0.72);
-  return { center, half };
+  return { center, half: limit * (split ? 0.5 : 1) };
 }
 
-/** Upper steps split left and right when the branch gene is high. */
+/** Upper steps split left and right. The branch angle sets how far the fans open. */
 function lobeU(u: number, vLin: number, field: SaField) {
   const rise = (vLin - field.gatherV) / Math.max(0.4, pitchOf(field) * Math.max(1, field.count));
   if (field.branch < 0.45 || rise < 0.3) return 0;
   const sign = u === 0 ? (field.phase > Math.PI ? 1 : -1) : Math.sign(u);
-  return sign * field.span * (0.16 + Math.min(1, rise) * 0.4) * field.branch;
+  const open = field.branchAngle / 1.1;
+  return sign * field.span * (0.12 + Math.min(1, rise) * 0.28) * field.branch * open;
 }
 
-function contourHeading(u: number, field: SaField) {
-  const slope = waveAmp(field) * waveFreq(field) * Math.cos(u * waveFreq(field) + field.phase);
+function contourHeading(u: number, step: number, field: SaField) {
+  const du = Math.max(0.2, field.span * 0.03);
+  const slope = (stepBow(u + du, step, field) - stepBow(u - du, step, field)) / (2 * du);
   const c = Math.cos(field.axis);
   const s = Math.sin(field.axis);
   return Math.atan2(c + slope * s, -s + slope * c);
+}
+
+function inwardHeading(u: number, field: SaField) {
+  const inward = u === 0 ? 1 : -Math.sign(u);
+  const c = Math.cos(field.axis);
+  const s = Math.sin(field.axis);
+  return Math.atan2(inward * c, -inward * s);
 }
 
 function nudge(agent: { x: number; y: number }, u: number, v: number, field: SaField) {
@@ -264,13 +272,15 @@ export function steerSteppedAmphitheater(
   rng: () => number,
 ) {
   const frame = frameOf(agent.x, agent.y, field);
-  const along = contourHeading(frame.u, field);
-  const reach = reachOf(frame.u, frame.vLin, field);
-  const past = frame.u - reach.center;
-  const turning = Math.abs(past) > reach.half * 0.78;
-  const forward = past > reach.half * 0.78 ? along + Math.PI : past < -reach.half * 0.78 ? along : closer(along, agent.heading);
-  const wobble = Math.sin(frame.u * 0.31 + field.phase) * 0.08;
-  agent.heading = mix(agent.heading, forward + wobble + (rng() - 0.5) * 0.06, turning ? 0.94 : 0.8);
+  const step = stepIndex(frame.vLin, field);
+  const along = contourHeading(frame.u, step, field);
+  const bowl = bowlOf(frame.u, frame.vLin, field, frame.limit);
+  const outside = Math.abs(frame.u - bowl.center) > bowl.half;
+  const onSeat = Math.abs(frame.vLin - seatLin(frame.u, frame.vLin, field)) <= bandOf(frame.vLin, field);
+  const forward = outside ? mix(inwardHeading(frame.u - bowl.center, field), closer(along, agent.heading), 0.35) : closer(along, agent.heading);
+  const wobble = Math.sin(frame.u * 0.31 + field.phase + step) * (onSeat ? 0.35 : 0.55);
+  const fork = (rng() - 0.5) * (onSeat ? 0.55 : 0.9);
+  agent.heading = mix(agent.heading, forward + wobble + fork, outside ? 0.5 : onSeat ? 0.1 : 0.16);
 }
 
 function closer(along: number, heading: number) {
@@ -279,29 +289,35 @@ function closer(along: number, heading: number) {
 
 export function containSteppedAmphitheater(agent: { x: number; y: number }, field: SaField) {
   const frame = frameOf(agent.x, agent.y, field);
-  const targetV = seatLin(frame.u, frame.vLin, field);
-  const errV = frame.vLin - targetV;
-  const slack = bandOf(frame.vLin, field);
-  if (Math.abs(errV) > slack) {
-    nudge(agent, 0, -Math.sign(errV) * Math.min(Math.abs(errV) - slack * 0.25, 0.55) * 0.66, field);
+  const bowl = bowlOf(frame.u, frame.vLin, field, frame.limit);
+  const err = Math.abs(frame.u - bowl.center) - bowl.half;
+  if (err > 0) {
+    nudge(agent, -Math.sign(frame.u - bowl.center || 1) * Math.min(err, 0.45) * 0.22, 0, field);
   }
-  const reach = reachOf(frame.u, frame.vLin, field);
-  const errU = frame.u - reach.center;
-  if (Math.abs(errU) > reach.half) {
-    nudge(agent, -Math.sign(errU) * Math.min(Math.abs(errU) - reach.half, 0.4) * 0.35, 0, field);
-  }
+  const pitch = pitchOf(field);
+  const top = field.gatherV + pitch * Math.max(1, field.count);
+  const floor = Math.min(field.gatherV * 0.15, 0) - pitch * 0.8;
+  if (frame.vLin > top) nudge(agent, 0, -Math.min(frame.vLin - top, 0.5) * 0.22, field);
+  else if (frame.vLin < floor) nudge(agent, 0, Math.min(floor - frame.vLin, 0.5) * 0.18, field);
 }
 
 export function inkSteppedAmphitheater(agent: { x: number; y: number; heading: number }, field: SaField) {
   const frame = frameOf(agent.x, agent.y, field);
-  const err = Math.abs(frame.vLin - seatLin(frame.u, frame.vLin, field));
-  if (err > bandOf(frame.vLin, field)) return { amount: 0, width: 1 };
-  const center = lobeU(frame.u, frame.vLin, field);
-  const gap = Math.abs(center) * 0.38;
-  if (gap > 0.4 && Math.abs(frame.u) < gap) return { amount: 0, width: 1 };
-  const reach = reachOf(frame.u, frame.vLin, field);
-  if (Math.abs(frame.u - reach.center) > reach.half * 0.7) return { amount: 0, width: 1 };
+  const pitch = pitchOf(field);
+  const bowl = bowlOf(frame.u, frame.vLin, field, frame.limit);
+  const fringe = bowl.half + pitch * 0.35;
+  const top = field.gatherV + pitch * (field.count + 0.45);
+  const floor = Math.min(field.gatherV * 0.15, 0) - pitch;
+  if (Math.abs(frame.u - bowl.center) > fringe || frame.vLin > top || frame.vLin < floor) return { amount: 0, width: 1 };
+  if (upperGap(frame.u, frame.vLin, field)) return { amount: 0, width: 1 };
   return { amount: 0.04, width: 1 };
+}
+
+function upperGap(u: number, vLin: number, field: SaField) {
+  const rise = (vLin - field.gatherV) / Math.max(0.4, pitchOf(field) * Math.max(1, field.count));
+  if (rise < 0.4) return false;
+  const n = Math.abs(Math.sin(u * 12.9898 + vLin * 78.233 + field.phase * 3));
+  return n < field.porosity * 0.45 * Math.min(1, rise);
 }
 
 export function spawnOnSteppedAmphitheater(field: SaField, rng: () => number) {
@@ -317,12 +333,18 @@ export function spawnOnSteppedAmphitheater(field: SaField, rng: () => number) {
     };
   };
   const count = Math.max(1, field.count);
-  const index = Math.min(count - 1, Math.floor(roll * count));
   const pitch = pitchOf(field);
-  let u = (rng() - 0.5) * field.span * (0.5 + rng() * 0.45);
-  if (field.branch > 0.45 && index > count * 0.28) u = (rng() > 0.5 ? 1 : -1) * (0.22 + rng() * 0.38) * field.span;
-  const v = field.gatherV + index * pitch + waveOf(u, field) + (rng() - 0.5) * 0.16;
+  const alongOf = (u: number, step: number) => contourHeading(u, step, field);
+  if (roll < 0.28) {
+    const u = (rng() - 0.5) * field.gatherU * 1.4;
+    const v = field.gatherV * (0.15 + rng() * 0.8);
+    const p = at(u, v);
+    return { x: p.x, y: p.y, heading: alongOf(u, 0) + (rng() - 0.5) * 2.2 };
+  }
+  const index = Math.min(count - 1, Math.floor(rng() * count));
+  let u = (rng() - 0.5) * field.span * (0.55 + rng() * 0.4);
+  if (field.branch > 0.45 && index > count * 0.28) u = (rng() > 0.5 ? 1 : -1) * (0.22 + rng() * 0.38) * field.span * (field.branchAngle / 1.1);
+  const v = field.gatherV + index * pitch + stepBow(u, index, field) + (rng() - 0.5) * pitch * 0.35;
   const p = at(u, v);
-  const along = contourHeading(u, field);
-  return { x: p.x, y: p.y, heading: along + (rng() > 0.5 ? 0 : Math.PI) + (rng() - 0.5) * 0.25 };
+  return { x: p.x, y: p.y, heading: alongOf(u, index) + (rng() > 0.5 ? 0 : Math.PI) + (rng() - 0.5) * 1.7 };
 }

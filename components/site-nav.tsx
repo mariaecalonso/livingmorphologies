@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HOME_SECTIONS, LAB_ENTRY, LAB_ROUTES } from "@/lib/site-map";
+import { HOME_SECTIONS, LAB_ROUTES } from "@/lib/site-map";
 
-const LAB_LINKS = [LAB_ENTRY, ...LAB_ROUTES.filter((route) => route.href !== "/lab")] as const;
+const LAB_LINKS = LAB_ROUTES;
 
 function linkActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";

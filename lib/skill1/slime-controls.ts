@@ -242,18 +242,6 @@ export function varySlimeControls(base: SlimeControls, seed: number, archetypeId
     next.sensorAngle = clamp(next.sensorAngle, 0.06, 0.4);
     next.trailInfluence = clamp(next.trailInfluence, 0.6, 1.9);
   }
-  if (archetypeId === "linear-gallery") {
-    next.resistance = clamp(next.resistance, 0.02, 0.35);
-    next.persistence = clamp(next.persistence, 0.34, 0.9);
-    next.depositWidth = clamp(next.depositWidth, 0.22, 0.62);
-    next.deposit = clamp(next.deposit, 0.012, 0.08);
-    next.trailCap = clamp(next.trailCap, 0.28, 1.15);
-    next.stepSize = clamp(next.stepSize, 0.1, 0.28);
-    next.randomness = clamp(next.randomness, 0.04, 0.55);
-    next.diffusion = clamp(next.diffusion, 0, 0.035);
-    next.sensorAngle = clamp(next.sensorAngle, 0.12, 0.62);
-    next.trailInfluence = clamp(next.trailInfluence, 0.45, 1.7);
-  }
   if (archetypeId === "stepped-amphitheater") {
     next.trailInfluence = clamp(next.trailInfluence, 0.7, 1.9);
     next.resistance = clamp(next.resistance, 0.04, 0.2);

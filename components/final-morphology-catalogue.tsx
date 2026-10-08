@@ -185,7 +185,6 @@ function Summary({
   return (
     <aside className="final-summary">
       <p className="eyebrow">{preview ? "Provisional preview" : "Curated morphology archive"}</p>
-      <h1 className="display">Final Morphology Catalogue</h1>
       <p className="final-summary-lead">One selected morphology per archetype</p>
       <p className="final-summary-count">
         <strong>{String(selectedCount).padStart(2, "0")}</strong>

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { beginWorkflowLights, WorkflowLightFilter, WorkflowPathLight } from "@/components/workflow-light";
+import { WORKFLOW_TRACK_DUR, WORKFLOW_TRACK_TAIL } from "@/lib/home-workflow-camera";
 
-const CYCLE = "28s";
+const CYCLE = WORKFLOW_TRACK_DUR;
 const WHITE = "#f4f1ec";
 const TEAL = "#0f7377";
 
@@ -60,7 +62,7 @@ export function GenerativeSystemTracks() {
           return;
         }
         if (!started) {
-          rides.forEach((ride) => ride.beginElement());
+          beginWorkflowLights(motion);
           started = true;
           return;
         }
@@ -75,13 +77,24 @@ export function GenerativeSystemTracks() {
   return (
     <svg ref={rootRef} className="wf-system-tracks" viewBox="0 0 7407 2160" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <defs>
-        <radialGradient id="wf-system-halo">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
-          <stop offset="0.22" stopColor={TEAL} stopOpacity="0.9" />
-          <stop offset="0.55" stopColor={TEAL} stopOpacity="0.45" />
-          <stop offset="1" stopColor={TEAL} stopOpacity="0" />
-        </radialGradient>
+        <WorkflowLightFilter id="wf-system-light-glow" artboard />
+        <filter id="wf-behavior-bw" colorInterpolationFilters="sRGB">
+          <feColorMatrix type="matrix" values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 1 0" />
+        </filter>
+        <clipPath id="wf-behavior-clip">
+          <rect x="4585.08" y="365.57" width="1605.59" height="1611.76" rx="73.7" ry="73.7" />
+        </clipPath>
       </defs>
+      <image
+        href="/assets/skill0/physarum-behavior.jpg"
+        x="4675"
+        y="1140"
+        width="1426"
+        height="760"
+        preserveAspectRatio="xMidYMid meet"
+        clipPath="url(#wf-behavior-clip)"
+        filter="url(#wf-behavior-bw)"
+      />
       {SPINE.map((seg, index) => (
         <Stroke key={index} seg={seg} />
       ))}
@@ -94,12 +107,16 @@ export function GenerativeSystemTracks() {
           </rect>
         </g>
       ))}
-      <g className="wf-system-node" opacity="0">
-        <animate attributeName="opacity" begin="indefinite" dur={CYCLE} repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.03;0.08;0.96;0.99;1" />
-        <circle r="42" fill="url(#wf-system-halo)" />
-        <circle r="8" fill="#ffffff" />
-        <animateMotion begin="indefinite" dur={CYCLE} repeatCount="indefinite" calcMode="linear" path={MOTION} />
-      </g>
+      <WorkflowPathLight
+        id="wf-system-light"
+        motion={{
+          path: MOTION,
+          dur: CYCLE,
+          opacityValues: "0;0;1;1;0;0",
+          opacityTimes: "0;0.03;0.08;0.96;0.99;1",
+          trailScale: WORKFLOW_TRACK_TAIL,
+        }}
+      />
     </svg>
   );
 }

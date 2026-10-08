@@ -563,15 +563,6 @@ export function VerticalProcess({
 
   return (
     <main className="evo-page vertical-process" data-origin={activeSet?.origin ?? "pending"} data-handoff={handoffFailed ? "failed" : undefined}>
-      <header className="evo-header">
-        <div>
-          <p className="display evo-header-title">Vertical Propagation</p>
-          <p className="eyebrow evo-header-detail">{context}</p>
-        </div>
-        {activeSet?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
-        {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-      </header>
-
       <div className="vertical-process-body">
         <div className="vertical-process-inputs">
           <section className="vertical-process-frame">
@@ -579,6 +570,9 @@ export function VerticalProcess({
               <p className="eyebrow">01</p>
               <h2 className="panel-title">Evolutionary search</h2>
             </header>
+            <p className="eyebrow">{context}</p>
+            {activeSet?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+            {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
             <ol className="vertical-process-search" aria-label="Evolutionary search">
               <li>
                 <span>Generation</span>

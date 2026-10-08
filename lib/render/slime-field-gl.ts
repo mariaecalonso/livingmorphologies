@@ -5,13 +5,15 @@
  * thickness, and thin peripheral filaments. Edges are geometric
  * (isosurface + 1px AA), not glow.
  *
- * Palette is role-based:
- * white = exploratory protoplasm, terracotta = reinforced veins,
- * teal = slime organized around attractors or densest committed nodes.
+ * Palette is one warm body on the hair:
+ * search = thin threads, vein = a deeper value of that body,
+ * core = the densest nodes, brighter in the same body.
+ * The filled membrane stays quiet so the catalogue reads as the shared hair.
  */
 
 import type { FieldAttractor } from "@/lib/skill1/types";
 import { FIELD_SIZE } from "@/lib/skill1/maps";
+import { activePhysarumInk, type PhysarumInk } from "@/lib/skill1/physarum-ink";
 
 const VERT = `#version 300 es
 layout(location = 0) in vec2 aPos;
@@ -29,6 +31,9 @@ uniform float uCutoff;
 uniform int uCount;
 uniform vec4 uAttr[16];
 uniform float uKind[16];
+uniform float uSearch;
+uniform float uVein;
+uniform float uCore;
 in vec2 vUv;
 out vec4 oColor;
 
@@ -117,30 +122,28 @@ void main() {
   float membrane = smoothstep(0.14, 0.28, tissue);
   float tube = smoothstep(0.045, 0.12, tissue) * smoothstep(0.004, 0.016, ridge);
   float hair = smoothstep(0.018, 0.04, tissue) * smoothstep(0.008, 0.02, ridge);
-  float mask = max(membrane, max(tube, hair));
+  float mask = max(max(hair, tube * 0.72), membrane * 0.18);
   if (mask < 0.02) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
   }
 
   float aa = max(fwidth(mask), 0.008);
-  float cover = smoothstep(0.22 - aa, 0.22 + aa, mask);
+  float cover = smoothstep(0.08 - aa, 0.14 + aa, mask);
   if (cover < 0.03) {
     oColor = vec4(0.0, 0.0, 0.0, 1.0);
     return;
   }
 
   float body = clamp(tissue, 0.0, 1.0);
-  float depth = pow(body, 0.68);
-  float membraneTone = 0.88 + 0.12 * smoothstep(0.0, 0.08, ridge);
   float anchor = attractorNear(vUv);
-  vec3 search = vec3(1.0, 1.0, 1.0);
-  vec3 vein = vec3(0.780, 0.494, 0.373);
-  vec3 organized = vec3(0.059, 0.451, 0.467);
-  vec3 ink = mix(search, vein, smoothstep(0.08, 0.34, body));
-  float core = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
-  ink = mix(ink, organized, core * mix(0.35, 0.72, body));
-  ink *= depth * membraneTone;
+  vec3 search = mix(vec3(0.451, 0.400, 0.345), vec3(1.0, 0.961, 0.902), clamp(uSearch, 0.0, 1.0));
+  vec3 vein = mix(search, vec3(0.306, 0.243, 0.196), clamp(uVein, 0.0, 1.0));
+  vec3 coreColor = mix(vein, vec3(1.0, 0.980, 0.949), clamp(uCore, 0.0, 1.0));
+  float reinforced = clamp(tube * 1.15, 0.0, 1.0);
+  float dense = max(anchor * smoothstep(0.08, 0.32, body), smoothstep(0.48, 0.82, body));
+  vec3 ink = mix(search, vein, reinforced);
+  ink = mix(ink, coreColor, clamp(dense, 0.0, 1.0));
   oColor = vec4(ink * cover, 1.0);
 }`;
 
@@ -155,12 +158,15 @@ type GlState = {
   uCount: WebGLUniformLocation;
   uAttr: WebGLUniformLocation;
   uKind: WebGLUniformLocation;
+  uSearch: WebGLUniformLocation;
+  uVein: WebGLUniformLocation;
+  uCore: WebGLUniformLocation;
   pixels: Float32Array;
 };
 
 let state: GlState | null = null;
 let failed = false;
-const SHADER_GEN = 28;
+const SHADER_GEN = 29;
 let builtGen = -1;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -202,7 +208,10 @@ function createState(): GlState | null {
   const uCount = gl.getUniformLocation(program, "uCount");
   const uAttr = gl.getUniformLocation(program, "uAttr");
   const uKind = gl.getUniformLocation(program, "uKind");
-  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind) return null;
+  const uSearch = gl.getUniformLocation(program, "uSearch");
+  const uVein = gl.getUniformLocation(program, "uVein");
+  const uCore = gl.getUniformLocation(program, "uCore");
+  if (!buffer || !texture || !uTexels || !uCutoff || !uCount || !uAttr || !uKind || !uSearch || !uVein || !uCore) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -222,6 +231,9 @@ function createState(): GlState | null {
     uCount,
     uAttr,
     uKind,
+    uSearch,
+    uVein,
+    uCore,
     pixels: new Float32Array(0),
   };
 }
@@ -246,6 +258,7 @@ export function drawSlimeFieldGl(
   fieldH: number,
   cutoff: number,
   attractors?: FieldAttractor[],
+  ink: PhysarumInk = activePhysarumInk(),
 ): boolean {
   const gpu = ensure();
   if (!gpu) return false;
@@ -293,6 +306,9 @@ export function drawSlimeFieldGl(
   gl.uniform1i(gpu.uCount, attractorCount);
   gl.uniform4fv(gpu.uAttr, packed);
   gl.uniform1fv(gpu.uKind, kinds);
+  gl.uniform1f(gpu.uSearch, ink.search);
+  gl.uniform1f(gpu.uVein, ink.vein);
+  gl.uniform1f(gpu.uCore, ink.core);
   gl.disable(gl.BLEND);
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);

@@ -8,7 +8,7 @@ export const MOCK_HYBRID_LABEL = "MOCK HYBRIDS · INTERFACE TEST";
 export const TILE_IDS = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
 export type AssemblyCount = 2 | 4 | 6 | 8;
-export type AssemblyArrangement = "grid" | "linear";
+export type AssemblyArrangement = "grid" | "linear" | "t" | "cross";
 export type MirrorAxis = "x" | "y" | "z";
 
 export const MOCK_PREVIEW_SETTINGS = {
@@ -21,6 +21,8 @@ export const MOCK_PREVIEW_SETTINGS = {
 const FIXTURES = ["topographic-ground-field", "linear-gallery"] as const;
 
 export function gridShape(count: AssemblyCount, arrangement: AssemblyArrangement) {
+  if (arrangement === "t") return { columns: 3, rows: 2 };
+  if (arrangement === "cross") return { columns: 3, rows: 3 };
   if (arrangement === "linear") return { columns: count, rows: 1 };
   if (count === 2) return { columns: 2, rows: 1 };
   if (count === 4) return { columns: 2, rows: 2 };
@@ -34,6 +36,7 @@ export function layoutTiles(
   previous: readonly TileInstance[] = [],
   width = envelopeWidth(),
 ): TileInstance[] {
+  if (arrangement === "t" || arrangement === "cross") return placePattern(arrangement, previous, width);
   const { columns, rows } = gridShape(count, arrangement);
   const prior = new Map(previous.map((tile) => [tile.instanceId, tile]));
   const tiles: TileInstance[] = [];
@@ -53,6 +56,37 @@ export function layoutTiles(
     }
   }
   return tiles;
+}
+
+const T_SPOTS = [
+  { instanceId: "A", column: 0, row: 0 },
+  { instanceId: "B", column: 1, row: 0 },
+  { instanceId: "C", column: 2, row: 0 },
+  { instanceId: "D", column: 1, row: 1 },
+] as const;
+
+const CROSS_SPOTS = [
+  { instanceId: "A", column: -1, row: 0 },
+  { instanceId: "B", column: 0, row: 0 },
+  { instanceId: "C", column: 0, row: 1 },
+  { instanceId: "D", column: 1, row: 0 },
+  { instanceId: "E", column: 0, row: -1 },
+] as const;
+
+function placePattern(arrangement: "t" | "cross", previous: readonly TileInstance[], width: number) {
+  const spots = arrangement === "t" ? T_SPOTS : CROSS_SPOTS;
+  const prior = new Map(previous.map((tile) => [tile.instanceId, tile]));
+  return spots.map((spot, index) => {
+    const existing = prior.get(spot.instanceId);
+    return {
+      instanceId: spot.instanceId,
+      archetypeId: existing?.archetypeId ?? FIXTURES[index % 2],
+      moduleId: existing?.moduleId ?? "",
+      transform: { x: spot.column * width, y: 0, z: spot.row * width },
+      rotationQuarter: existing?.rotationQuarter ?? 0,
+      mirror: existing?.mirror ?? null,
+    };
+  });
 }
 
 const PLAN = ["E", "N", "W", "S"] as const;
@@ -80,5 +114,7 @@ export function mockPlacementSupported(connection: Pick<TileConnection, "id" | "
 export function mockSummary(connection: TileConnection, tiles: readonly TileInstance[], blocked: boolean) {
   if (blocked) return connectionSummaryLabel(connection, true);
   const placement = mockPlacementSupported(connection, tiles) ? "" : " · unsupported placement";
-  return `${connection.tileAId}:${connection.faceA} → ${connection.selectedMockId} ${MOCK_HYBRID_LABEL} → ${connection.tileBId}:${connection.faceB}${placement}`;
+  const generated = connection.generatedHybridField?.connectionSignature === connection.signature;
+  const label = generated ? "GENERATED HYBRID" : MOCK_HYBRID_LABEL;
+  return `${connection.tileAId}:${connection.faceA} → ${connection.selectedMockId} ${label} → ${connection.tileBId}:${connection.faceB}${placement}`;
 }

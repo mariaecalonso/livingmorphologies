@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ArchetypeRail } from "@/components/archetype-rail";
 import { AxonModel, SectionDrawing } from "@/components/drawings";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { useViewMode } from "@/components/view-mode";
@@ -12,7 +13,6 @@ import {
   IconSection,
   IconSpatial,
   Panel,
-  PanelHeader,
 } from "@/components/hud";
 import {
   PhysarumParameterPanel,
@@ -171,7 +171,7 @@ export function LivingInstrument() {
   });
   const [targetIterations, setTargetIterations] = useState(DISPLAY_ITERATIONS);
   const displayMode: DisplayMode = useViewMode() ?? "desktop";
-  const [workspace, setWorkspace] = useState<"skill1" | "skill2-audit">("skill1");
+  const [workspace] = useState<"skill1" | "skill2-audit">("skill1");
   const [carveThreshold, setCarveThreshold] = useState(DIRECT_CARVE_THRESHOLD);
   const [slime, setSlime] = useState<SlimeControls | null>(null);
   const [attractorMarks, setAttractorMarks] = useState<FieldAttractor[] | null>(null);
@@ -502,20 +502,10 @@ export function LivingInstrument() {
     window.setTimeout(() => setNotice(null), 1600);
   };
 
-  const selectTypology = (id: TypologyId) => {
-    const next = findTypology(id);
-    const first = next.archetypes[0];
-    setTypologyId(id);
-    setArchetypeId(first.id);
-    setRatings(defaultRatings(first));
-    setIteration(1);
-    setRun(0);
-    clearField();
-    setFocus("Typology");
-  };
-
   const selectArchetype = (id: string) => {
-    const next = findArchetype(typology, id);
+    const owner = TYPOLOGIES.find((item) => item.archetypes.some((entry) => entry.id === id)) ?? typology;
+    const next = findArchetype(owner, id);
+    setTypologyId(owner.id);
     setArchetypeId(next.id);
     setRatings(defaultRatings(next));
     setIteration(1);
@@ -624,48 +614,7 @@ export function LivingInstrument() {
   };
 
   return (
-    <div className="living-instrument-shell flex min-h-full flex-col px-2 py-2 text-[13px] md:h-full md:overflow-hidden md:px-3 md:py-2.5" data-display-mode={displayMode}>
-      <header className="living-instrument-header mb-2 flex flex-wrap items-center justify-between gap-3 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2">
-        <div className="living-instrument-header-identity">
-          <p className="eyebrow text-[0.58rem]">Emergent Network</p>
-        </div>
-        <nav className="flex items-center gap-1" aria-label="Typology">
-          {TYPOLOGIES.map((item) => {
-            const active = item.id === typologyId;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                title={item.definition}
-                aria-label={`${item.label}. ${item.definition}`}
-                onClick={() => selectTypology(item.id)}
-                className={`group relative min-w-[7.5rem] border px-4 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase transition ${
-                  active
-                    ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.16),rgba(199,126,95,0.16))] text-white"
-                    : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
-                }`}
-              >
-                {item.label}
-                <span className="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-30 hidden w-[18rem] -translate-x-1/2 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2 text-left text-[0.68rem] normal-case tracking-normal text-[#d5eef6] shadow-[0_12px_30px_rgba(0,0,0,0.45)] group-hover:block group-focus-visible:block">
-                  {item.definition}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-        <div className="living-instrument-display-mode flex items-center gap-2" aria-label="Display mode">
-          <button
-            type="button"
-            onClick={() => setWorkspace((current) => (current === "skill1" ? "skill2-audit" : "skill1"))}
-            className="hidden"
-            tabIndex={-1}
-            aria-hidden="true"
-          >
-            {workspace === "skill2-audit" ? "Skill 2 Audit" : "Skill 1"}
-          </button>
-        </div>
-      </header>
-
+    <div className="living-instrument-shell flex min-h-full flex-col text-base md:h-full md:overflow-hidden" data-display-mode={displayMode}>
       <ol
         className="living-instrument-workflow mb-2 hidden flex gap-1 overflow-x-auto instrument-scroll pb-1"
         aria-hidden="true"
@@ -711,32 +660,8 @@ export function LivingInstrument() {
             })}
       </ol>
 
-      <div className="living-instrument-content grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[8rem_12.75rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
-        <section className="archetype-region">
-        <Panel className="flex flex-col">
-          <PanelHeader kicker="Input" title="Archetype" />
-          <div className="flex flex-1 flex-col gap-1.5">
-            {typology.archetypes.map((item) => {
-              const active = item.id === archetype.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => selectArchetype(item.id)}
-                  className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
-                    active
-                      ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
-                      : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
-                  }`}
-                >
-                  {item.name}
-                </button>
-              );
-            })}
-          </div>
-        </Panel>
-        </section>
-
+      <div className="flex min-h-0 flex-1">
+        <ArchetypeRail framed activeId={archetype.id} onPick={selectArchetype} />
         {workspace === "skill2-audit" ? (
           <Skill2AuditWorkspace
             key={`${typologyId}-${archetype.id}`}
@@ -744,18 +669,15 @@ export function LivingInstrument() {
             archetypeId={archetype.id}
           />
         ) : (
-          <>
+          <div className="living-instrument-content grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[17.75rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)]">
         <section className="criteria-region">
         <Panel className="flex min-h-0 flex-col">
-          <PanelHeader
-            kicker="Analysis"
-            title="Criteria Configuration"
-            aside={
-              <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--muted)]">
-                Locked
-              </span>
-            }
-          />
+          <div className="frame-title">
+            <h2 className="panel-title">Criteria Configuration</h2>
+            <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--muted)]">
+              Locked
+            </span>
+          </div>
           <div className="criteria-groups min-h-0 flex-1 space-y-1.5 overflow-hidden">
             {groups.map((group) => {
               const Icon = GROUP_ICON[group.id];
@@ -818,7 +740,7 @@ export function LivingInstrument() {
                     <span>Medium</span>
                     <span>High</span>
                   </div>
-                  <p className="mt-1 border-t border-[rgba(242,242,238,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[#d5eef6]">
+                  <p className="mt-1 border-t border-[rgba(242,242,238,0.12)] pt-1 text-[0.7rem] tracking-[0.12em] uppercase text-[var(--text)]">
                     <span className="mr-1 text-[0.48rem] tracking-[0.14em] text-[var(--muted)]">
                       {group.title} descriptor
                     </span>
@@ -839,7 +761,7 @@ export function LivingInstrument() {
               {groups.map((group) => (
                 <li
                   key={group.id}
-                  className="flex items-baseline justify-between gap-2 text-[0.7rem] uppercase tracking-[0.08em] text-[#d5eef6]"
+                  className="flex items-baseline justify-between gap-2 text-[0.7rem] uppercase tracking-[0.08em] text-[var(--text)]"
                 >
                   <span className="text-[0.48rem] tracking-[0.16em] text-[var(--muted)]">
                     {group.title}
@@ -854,24 +776,7 @@ export function LivingInstrument() {
 
         <section className="agent-system-region min-w-0">
           <Panel padded={false} className="flex min-h-[22rem] min-w-0 flex-col">
-            <div className="flex items-start justify-between gap-3 px-3 pt-3">
-              <div>
-                <p className="eyebrow">Physarum Workflow</p>
-                <h2 className="panel-title mt-1">Emergent Spatial Logic</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`border px-2 py-0.5 text-[0.58rem] tracking-[0.16em] uppercase ${
-                    simulating
-                      ? "border-[var(--orange)] text-[var(--orange-hot)]"
-                      : "border-[var(--cyan-dim)] text-[var(--cyan)]"
-                  }`}
-                >
-                  {simulating ? "Generating" : state?.converged ? "Converged" : "Ready"}
-                </span>
-              </div>
-            </div>
-            <div className="agent-system-body min-h-0 flex-1 px-3 pb-3 pt-2">
+            <div className="agent-system-body min-h-0 flex-1 px-3 pb-3 pt-3">
               <aside className="agent-information" aria-label="Agent simulation">
                 <div className="agent-information-header">
                   <p className="eyebrow">{archetype.name}</p>
@@ -1012,10 +917,9 @@ export function LivingInstrument() {
 
         <section className="architectural-output instrument-scroll min-h-0" hidden>
           <Panel className="architectural-output-panel architectural-output-section flex min-h-0 flex-col">
-            <PanelHeader
-              kicker="Architectural Output"
-              title="Generated From Emergent Logic"
-            />
+            <div className="frame-title">
+              <h2 className="panel-title">Generated From Emergent Logic</h2>
+            </div>
             <div className="mb-1 flex items-center justify-between text-[0.62rem] tracking-[0.16em] uppercase text-[var(--text)]">
               <span className="inline-flex items-center gap-1.5">
                 <IconSection /> 2D Wall Section
@@ -1047,7 +951,7 @@ export function LivingInstrument() {
             </p>
           </Panel>
         </section>
-          </>
+          </div>
         )}
       </div>
 
@@ -1062,11 +966,8 @@ export function LivingInstrument() {
             onClick={(event) => event.stopPropagation()}
             aria-label="Saved iterations catalog"
           >
-            <header className="panel-header">
-              <div className="panel-header-content">
-                <p className="hud-panel-kicker">Catalog</p>
-                <h2 className="panel-title">{archetype.name}</h2>
-              </div>
+            <div className="frame-title">
+              <h2 className="panel-title">{archetype.name}</h2>
               <div className="flex items-center gap-2">
                 <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
                   {catalog.length} saved
@@ -1079,7 +980,7 @@ export function LivingInstrument() {
                   Close
                 </button>
               </div>
-            </header>
+            </div>
             {catalog.length ? (
               <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 overflow-auto p-3">
                 {catalog.map((entry) => (

@@ -540,8 +540,9 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
   const catalog = useEvolutionCatalog(initial);
   const archetype = catalog.archetypes.find((item) => item.archetypeId === EXAMPLE_ID) ?? null;
   const candidates = archetype?.candidates ?? [];
-  const paretoHref = useWorkflowHref(labWorkspace("optimization").tabs[1].href);
-  const hybridHref = useWorkflowHref(labWorkspace("optimization").tabs[2].href);
+  const catalogTab = labWorkspace("optimization").tabs.find((tab) => "results" in tab && tab.results) ?? labWorkspace("optimization").tabs[1];
+  const paretoHref = useWorkflowHref(catalogTab.href);
+  const hybridHref = paretoHref;
   const selections = useSkill2Selections();
   const selection = selections[EXAMPLE_ID] ?? null;
   const filedPick = (archetypeId: string) => picks.find((pick) => pick.archetypeId === archetypeId);
@@ -584,14 +585,12 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
 
   return (
     <main className="evo-page process-page">
-      <div className="lab-tools">
-        <p className="eyebrow">Vertical Void · Physarum logic, four generations, then one morphology for vertical propagation</p>
-      </div>
       <div className="gh-canvas">
         <section className="gh-group gh-source" aria-label="Physarum logic">
           <p className="gh-group-label">Physarum logic</p>
           <article className="source-stage">
             <h2>Architectural input</h2>
+            <p className="eyebrow">Vertical Void · four generations, then one morphology for vertical propagation</p>
             <p className="brief-path">
               <span>Lobby</span>
               <span>Vertical Void</span>

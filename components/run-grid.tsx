@@ -1127,24 +1127,99 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
   return (
     <main className={`flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
-      <div className="lab-tools">
-          <p className={view === "catalog" ? "eyebrow min-w-0 truncate" : "eyebrow shrink-0"}>
-            {view === "catalog"
-              ? "Initial morphology population"
-              : pickedName
-                ? `${pickedName} · ${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations`
-                : "Select an archetype"}
-          </p>
-          {view === "catalog" ? (
-            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{catalog.length} saved</p>
-          ) : (
-            <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{completed} / {RUN_COUNT}</p>
-          )}
-          {view === "catalog" ? (
+      <div className="flex min-h-0 flex-1">
+      <ArchetypeRail
+        framed
+        activeId={pickedId}
+        onPick={pickArchetype}
+        note={
+          view === "catalog"
+            ? undefined
+            : (id) => {
+                const saved = catalogCounts[id] ?? 0;
+                return saved ? ` · ${saved}` : "";
+              }
+        }
+      />
+      {catalogOpen ? (
+        <section className="runs-catalog physarum-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Saved runs catalog">
+          <div className="frame-title">
+            <div>
+              <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
+              <p className="eyebrow">Initial morphology population</p>
+            </div>
             <p className="runs-g01-slot" title={`This catalog becomes the G01 population of ${labWorkspace("optimization").label}. Saved entries are legacy studies until validated against the locked generation rules.`}>
               Legacy entries · G01 validity not confirmed
             </p>
+            <div className="runs-catalog-pager">
+              {pickedId ? <FilamentRefine archetypeId={pickedId} archetypeName={pickedName} /> : null}
+              <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+                {catalog.length} saved{allDone ? " · all 15 complete" : ""}
+              </p>
+              <button type="button" onClick={() => setCatalogPage(page - 1)} disabled={page === 0} aria-label="Previous page">
+                ‹
+              </button>
+              <span>
+                {page + 1} / {pageCount}
+              </span>
+              <button type="button" onClick={() => setCatalogPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
+                ›
+              </button>
+            </div>
+          </div>
+          <div className="runs-catalog-body">
+          {catalog.length ? (
+            <div
+              className="runs-catalog-grid"
+              data-fill
+              style={{
+                gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
+                gap: wall ? 12 : 8,
+                ["--catalog-rows" as string]: catalogRows,
+                ["--catalog-gap" as string]: wall ? "12px" : "8px",
+              }}
+            >
+              {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
+                <figure key={entry.id} className="runs-catalog-card">
+                  <button
+                    type="button"
+                    onClick={() => setCatalogInspected(pageStart + offset)}
+                    className="runs-catalog-card-image"
+                    aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
+                  >
+                    <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} />
+                  </button>
+                  <figcaption className="runs-catalog-spec">
+                    <span>Run {String(entry.run).padStart(2, "0")}</span>
+                    <button type="button" onClick={() => removeSaved(entry.id)} aria-label={`Remove run ${String(entry.run).padStart(2, "0")}`}>
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M4 4l8 8M12 4l-8 8" />
+                      </svg>
+                    </button>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           ) : (
+            <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
+              {catalogCounts[catalogId ?? ""] || snapshotsRef.current.some(Boolean)
+                ? "Building catalog from saved runs"
+                : "No saved runs for this archetype yet"}
+            </p>
+          )}
+          </div>
+        </section>
+      ) : null}
+      <section className={`panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col${catalogOpen ? " hidden" : ""}`}>
+        <div className="frame-title">
+          <div>
+            <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
+            <p className="eyebrow">
+              {pickedName ? `${RUN_COUNT} growth variants · ${DISPLAY_ITERATIONS} iterations` : "Select an archetype"}
+            </p>
+          </div>
+          <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">{completed} / {RUN_COUNT}</p>
           <div className="runs-controls">
             <button
               type="button"
@@ -1190,90 +1265,9 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               {saveFlash ? "Saved" : "Save to catalog"}
             </button>
           </div>
-          )}
-      </div>
-      <div className="flex min-h-0 flex-1">
-      <ArchetypeRail
-        activeId={pickedId}
-        onPick={pickArchetype}
-        note={
-          view === "catalog"
-            ? undefined
-            : (id) => {
-                const saved = catalogCounts[id] ?? 0;
-                return saved ? ` · ${saved}` : "";
-              }
-        }
-      />
-      {catalogOpen ? (
-        <section className="runs-catalog physarum-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Saved runs catalog">
-          <header className="panel-header">
-            <div className="panel-header-content">
-              <p className="hud-panel-kicker">Catalog</p>
-              <h2 className="panel-title">{pickedName ?? "Archetype"}</h2>
-            </div>
-            <div className="runs-catalog-pager">
-              {pickedId ? <FilamentRefine archetypeId={pickedId} archetypeName={pickedName} /> : null}
-              <p className="text-[0.58rem] tracking-[0.14em] uppercase text-[var(--muted)]">
-                {catalog.length} saved{allDone ? " · all 15 complete" : ""}
-              </p>
-              <button type="button" onClick={() => setCatalogPage(page - 1)} disabled={page === 0} aria-label="Previous page">
-                ‹
-              </button>
-              <span>
-                {page + 1} / {pageCount}
-              </span>
-              <button type="button" onClick={() => setCatalogPage(page + 1)} disabled={page >= pageCount - 1} aria-label="Next page">
-                ›
-              </button>
-            </div>
-          </header>
-          <div className="runs-catalog-body">
-          {catalog.length ? (
-            <div
-              className="runs-catalog-grid"
-              data-fill
-              style={{
-                gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
-                gap: wall ? 12 : 8,
-                ["--catalog-rows" as string]: catalogRows,
-                ["--catalog-gap" as string]: wall ? "12px" : "8px",
-              }}
-            >
-              {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (
-                <figure key={entry.id} className="runs-catalog-card">
-                  <button
-                    type="button"
-                    onClick={() => setCatalogInspected(pageStart + offset)}
-                    className="runs-catalog-card-image"
-                    aria-label={`Open saved run ${String(entry.run).padStart(2, "0")} at full size`}
-                  >
-                    <img src={entry.image} alt={`Saved run ${String(entry.run).padStart(2, "0")}`} />
-                  </button>
-                  <figcaption className="runs-catalog-spec">
-                    <span>Run {String(entry.run).padStart(2, "0")}</span>
-                    <button type="button" onClick={() => removeSaved(entry.id)} aria-label={`Remove run ${String(entry.run).padStart(2, "0")}`}>
-                      <svg viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M4 4l8 8M12 4l-8 8" />
-                      </svg>
-                    </button>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          ) : (
-            <p className="flex flex-1 items-center justify-center text-[0.62rem] uppercase tracking-[0.16em] text-[var(--muted)]">
-              {catalogCounts[catalogId ?? ""] || snapshotsRef.current.some(Boolean)
-                ? "Building catalog from saved runs"
-                : "No saved runs for this archetype yet"}
-            </p>
-          )}
-          </div>
-        </section>
-      ) : null}
+        </div>
       <div
-        className={`grid min-h-0 flex-1 gap-px bg-[rgba(242,242,238,0.12)]${catalogOpen ? " hidden" : ""}`}
+        className="grid min-h-0 flex-1 gap-px bg-[rgba(242,242,238,0.12)]"
         style={{
           gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${ROWS}, minmax(0, 1fr))`,
@@ -1304,6 +1298,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
           </button>
         ))}
       </div>
+      </section>
       </div>
       {catalogInspected != null && catalog[catalogInspected] ? (
         <CatalogDetail

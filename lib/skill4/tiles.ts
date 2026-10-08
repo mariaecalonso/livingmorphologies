@@ -1,5 +1,6 @@
 import { registrationEnvelope, VIEW_SCAN, type Skill4ModuleRecord, type Vec3 } from "./contract";
 import { adaptModule, catalogIdentity, type ModuleHandoff } from "./adapt";
+import { scheduleSkill03Preflight } from "./geometry-preflight";
 
 export type TileId = "A" | "B";
 
@@ -33,6 +34,7 @@ export function placedTransforms(width = envelopeWidth()): Record<TileId, Vec3> 
 export function loadModuleMap(records: readonly Skill4ModuleRecord[]) {
   const loaded = new Map<string, ModuleHandoff>();
   for (const record of records) loaded.set(record.archetypeId, adaptModule(record));
+  scheduleSkill03Preflight(loaded);
   return loaded;
 }
 

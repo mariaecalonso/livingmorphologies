@@ -210,23 +210,23 @@ export function VerticalCatalogue({
 
   return (
     <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-inspect={inspecting && selected ? "" : undefined}>
-      <header className="evo-header">
-        <div>
-          <p className="display evo-header-title">3D Catalogue</p>
-          <p className="eyebrow evo-header-detail">
-            {TYPOLOGY[typologyId] ?? typologyId} · {archetypeName}
-            {matches && set ? ` · Candidate ${set.candidateId}` : ""}
-          </p>
-        </div>
-        <div className="vertical-catalogue-nav">
-          {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
-          {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-          <Link href={processHref} className="vertical-catalogue-back">Process</Link>
-        </div>
-      </header>
       <div className="vertical-catalogue-body">
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame">
+            <div className="frame-title">
+              <div>
+                <h2 className="panel-title">{archetypeName}</h2>
+                <p className="eyebrow">
+                  {TYPOLOGY[typologyId] ?? typologyId}
+                  {matches && set ? ` · Candidate ${set.candidateId}` : ""}
+                </p>
+              </div>
+              <div className="vertical-catalogue-nav">
+                {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+                {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
+                <Link href={processHref} className="vertical-catalogue-back">Process</Link>
+              </div>
+            </div>
             <p className="vertical-catalogue-figure">{generated}</p>
             <p className="vertical-process-note">Generated</p>
             <p className="vertical-catalogue-figure">{slots.length}</p>

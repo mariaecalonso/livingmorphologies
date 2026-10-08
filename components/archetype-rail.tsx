@@ -15,6 +15,7 @@ export function ArchetypeRail({
   chosen,
   disabled,
   title,
+  framed = false,
 }: {
   activeId: string | null;
   onPick: (id: string) => void;
@@ -22,20 +23,27 @@ export function ArchetypeRail({
   chosen?: (id: string) => boolean;
   disabled?: (id: string) => boolean;
   title?: string;
+  framed?: boolean;
 }) {
   return (
-    <aside className="lab-rail runs-aside panel m-2 flex w-[15.5rem] shrink-0 flex-col" aria-label={title ?? "Archetype"}>
-      <header className="panel-header">
-        <div className="panel-header-content">
-          <p className="hud-panel-kicker">Input</p>
-          <h2 className="panel-title">Archetype</h2>
+    <aside className="lab-rail runs-aside panel m-2 flex w-[17.25rem] shrink-0 flex-col" aria-label={title ?? "Archetype"}>
+      {framed ? (
+        <div className="frame-title">
+          <h2 className="panel-title">{title ?? "Archetype"}</h2>
         </div>
-      </header>
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
+      ) : (
+        <header className="panel-header">
+          <div className="panel-header-content">
+            <p className="hud-panel-kicker">Input</p>
+            <h2 className="panel-title">{title ?? "Archetype"}</h2>
+          </div>
+        </header>
+      )}
+      <div className="lab-rail-groups">
         {TYPOLOGIES.map((typology) => (
-          <section key={typology.id} className="flex min-h-0 flex-1 flex-col gap-1.5">
-            <p className="eyebrow shrink-0">{typology.label}</p>
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+          <section key={typology.id} className="lab-rail-group" aria-label={typology.label}>
+            <p className="eyebrow">{typology.label}</p>
+            <div className="lab-rail-items">
               {typology.archetypes.map((item) => {
                 const off = disabled?.(item.id) ?? false;
                 const active = item.id === activeId;
@@ -49,9 +57,7 @@ export function ArchetypeRail({
                     onClick={() => {
                       if (!off) onPick(item.id);
                     }}
-                    className={`flex min-h-0 flex-1 items-center border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition disabled:opacity-30 ${
-                      active ? ACTIVE : IDLE
-                    }`}
+                    className={`lab-rail-item ${active ? ACTIVE : IDLE}`}
                   >
                     {item.name}
                     {note?.(item.id) ?? ""}

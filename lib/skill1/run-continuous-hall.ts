@@ -272,10 +272,15 @@ function span(f: Frame, pair: Pair) {
 /** Length and width intervals the planner samples for this family and growth. */
 export function continuousHallBands(family: HallFamily, growth: HallGrowth, figure: HallFigure) {
   const spec = SPECS[growth];
-  const short = growth === "short" || family === "short-beads";
-  const length: [number, number] = short ? [5, 7.6] : growth === "long" ? [11.2, 15.2] : spec.length;
+  const length = lengthBand(family, growth);
   const width: [number, number] = figure === "beads" ? [spec.width[0] * 1.15, spec.width[1] * 1.35] : spec.width;
   return { length, width };
+}
+
+function lengthBand(family: HallFamily, growth: HallGrowth): [number, number] {
+  if (growth === "short" || family === "short-beads") return [10, 13.5];
+  if (growth === "long") return [15, 18.2];
+  return [13.2, 17.2];
 }
 
 export function figureOf(family: HallFamily): HallFigure {
@@ -338,22 +343,9 @@ function axisOf(family: HallFamily): { dx: number; dy: number; cx: number; cy: n
   }
 }
 
-function along(cx: number, cy: number, dx: number, dy: number, length: number, t: number) {
-  const n = Math.hypot(dx, dy) || 1;
-  return {
-    x: lim(cx + (dx / n) * (t - 0.5) * length),
-    y: lim(cy + (dy / n) * (t - 0.5) * length),
-  };
-}
-
 function perp(dx: number, dy: number) {
   const n = Math.hypot(dx, dy) || 1;
   return { x: -dy / n, y: dx / n };
-}
-
-function flare(t: number, pinch: number) {
-  const mid = 1 - Math.abs(t - 0.5) * 2;
-  return 1 - (1 - pinch) * mid;
 }
 
 type HallGesture = {
@@ -366,7 +358,7 @@ type HallGesture = {
   diverge: number;
 };
 
-/** Each family is a different bend of the same two halls. */
+/** Each family bends the same hall. The bank count changes how many black gaps open. */
 function gestureOf(plan: ContinuousHallPlan): HallGesture {
   const soft = { amp: 0.55, freq: 1.35, bow: 0, gap: 1, shift: 0, reach: 1, diverge: 0 };
   switch (plan.family) {
@@ -413,48 +405,6 @@ function gestureOf(plan: ContinuousHallPlan): HallGesture {
   }
 }
 
-function flaredCorridor(
-  cx: number,
-  cy: number,
-  dx: number,
-  dy: number,
-  length: number,
-  radius: number,
-  pinch: number,
-  strength: number,
-  gesture: HallGesture,
-  drift: number,
-  phase: number,
-): FieldAttractor[] {
-  const marks: FieldAttractor[] = [];
-  const steps = 6;
-  const side = perp(dx, dy);
-  const bend = (t: number) =>
-    Math.sin(t * Math.PI * gesture.freq + phase) * gesture.amp + Math.sin(t * Math.PI) * gesture.bow;
-  const open = (t: number) => (t - 0.5) * drift;
-  for (let i = 0; i < steps; i += 1) {
-    const t0 = i / steps;
-    const t1 = (i + 1) / steps;
-    const a0 = along(cx, cy, dx, dy, length, t0);
-    const b0 = along(cx, cy, dx, dy, length, t1);
-    const wa = bend(t0) + open(t0);
-    const wb = bend(t1) + open(t1);
-    const a = { x: lim(a0.x + side.x * wa), y: lim(a0.y + side.y * wa) };
-    const b = { x: lim(b0.x + side.x * wb), y: lim(b0.y + side.y * wb) };
-    marks.push({
-      kind: "line",
-      x: a.x,
-      y: a.y,
-      x2: b.x,
-      y2: b.y,
-      radius: radius * flare((t0 + t1) / 2, pinch),
-      strength,
-      cover: i === 0 || i === steps - 1 ? 1 : 0,
-    });
-  }
-  return marks;
-}
-
 export function planContinuousHall(seed: number, attempt = 0, index = 0): ContinuousHallPlan {
   const rng = mulberry32(seed ^ 0xc0111a ^ (attempt * 0x27d4eb2d) ^ (index * 0x9e3779b9));
   const f = frame(rng);
@@ -462,7 +412,6 @@ export function planContinuousHall(seed: number, attempt = 0, index = 0): Contin
   const growth = f.pick(HALL_GROWTHS);
   const spec = SPECS[growth];
   const figure = figureOf(family);
-  const short = growth === "short" || family === "short-beads";
   return {
     family,
     growth,
@@ -470,7 +419,7 @@ export function planContinuousHall(seed: number, attempt = 0, index = 0): Contin
     index,
     cx: lim(f.r(3.6, 16.4)),
     cy: lim(f.r(3.6, 16.4)),
-    length: span(f, short ? [5, 7.6] : growth === "long" ? [11.2, 15.2] : spec.length),
+    length: span(f, lengthBand(family, growth)),
     width: span(f, figure === "beads" ? [spec.width[0] * 1.15, spec.width[1] * 1.35] : spec.width),
     pinch: f.r(0.22, 0.48),
     flip: f.chance(0.5),
@@ -478,33 +427,116 @@ export function planContinuousHall(seed: number, attempt = 0, index = 0): Contin
   };
 }
 
-/** Two trail banks. The open measure between them is the hall. */
+/** Two, three, or four trail banks. The open measure between them is the hall. */
+function bankCount(plan: ContinuousHallPlan) {
+  const slot = Math.abs(plan.twist) + (plan.flip ? 0.42 : 0);
+  if (slot < 0.38) return 2;
+  if (slot < 0.85) return 3;
+  return 4;
+}
+
 function hallBanks(plan: ContinuousHallPlan, dx: number, dy: number): FieldAttractor[] {
   const gesture = gestureOf(plan);
-  const side = perp(dx, dy);
-  const half = Math.min(1.62, Math.max(1.12, 1.05 + (gesture.gap - 0.55) * 0.55));
-  const radius = 0.3;
-  const n = Math.hypot(dx, dy) || 1;
-  const sx = (dx / n) * plan.length * gesture.shift;
-  const sy = (dy / n) * plan.length * gesture.shift;
-  const phase = plan.twist + plan.cx * 0.17;
-  const drift = gesture.diverge;
-  return [
-    ...flaredCorridor(plan.cx + side.x * half, plan.cy + side.y * half, dx, dy, plan.length, radius, plan.pinch, 1, gesture, drift, phase),
-    ...flaredCorridor(
-      plan.cx - side.x * half + sx,
-      plan.cy - side.y * half + sy,
-      dx,
-      dy,
-      plan.length * gesture.reach,
-      radius,
-      plan.pinch,
-      1,
-      gesture,
-      -drift,
-      phase + 0.6,
-    ),
-  ];
+  const count = bankCount(plan);
+  const spacing = 2.15 + gesture.gap * 0.55;
+  const lines = Array.from({ length: count }, (_, index) => {
+    const offset = (index - (count - 1) / 2) * spacing;
+    const phase = index * 0.42;
+    const reach = 1 - (index - (count - 1) / 2) * 0.03;
+    return shiftLine(bowedLine(plan, dx, dy, gesture, phase, reach), offset);
+  });
+  const placed = placeInField(lines);
+  return placed.flatMap((line) => lineMarks(line));
+}
+
+function bowedLine(
+  plan: ContinuousHallPlan,
+  dx: number,
+  dy: number,
+  gesture: HallGesture,
+  phaseShift: number,
+  reach: number,
+): Array<{ x: number; y: number }> {
+  const heading0 = Math.atan2(dy, dx);
+  const steps = 28;
+  const fold = 1.45 + Math.abs(plan.twist) * 0.85;
+  const phase = plan.twist * 2 + (plan.flip ? 0.8 : 0.2) + phaseShift;
+  const raw: Array<{ x: number; y: number }> = [{ x: 0, y: 0 }];
+  let x = 0;
+  let y = 0;
+  const span = (plan.length * reach) / steps;
+  for (let step = 1; step <= steps; step += 1) {
+    const t = (step - 0.5) / steps;
+    const heading = heading0 + fold * (t - 0.5) + Math.sin(t * Math.PI * gesture.freq + phase) * 0.22;
+    x += Math.cos(heading) * span;
+    y += Math.sin(heading) * span;
+    raw.push({ x, y });
+  }
+  return raw.map((point, index) => {
+    const t = index / steps;
+    const prev = raw[Math.max(0, index - 1)];
+    const next = raw[Math.min(steps, index + 1)];
+    const side = perp(next.x - prev.x, next.y - prev.y);
+    const bow = Math.sin(t * Math.PI + phase) * (1.1 + gesture.bow * 0.4);
+    return { x: point.x + side.x * bow, y: point.y + side.y * bow };
+  });
+}
+
+function shiftLine(line: Array<{ x: number; y: number }>, amount: number) {
+  return line.map((point, index) => {
+    const prev = line[Math.max(0, index - 1)];
+    const next = line[Math.min(line.length - 1, index + 1)];
+    const side = perp(next.x - prev.x, next.y - prev.y);
+    return { x: point.x + side.x * amount, y: point.y + side.y * amount };
+  });
+}
+
+function placeInField(lines: Array<Array<{ x: number; y: number }>>) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const line of lines) {
+    for (const point of line) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+  const margin = 1.7;
+  const room = FIELD_SIZE - margin * 2;
+  const width = Math.max(0.01, maxX - minX);
+  const height = Math.max(0.01, maxY - minY);
+  const longer = Math.max(width, height);
+  const grow = Math.min(room / width, room / height, longer < 16.2 ? 16.2 / longer : 1);
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return lines.map((line) =>
+    line.map((point) => ({
+      x: margin + room / 2 + (point.x - cx) * grow,
+      y: margin + room / 2 + (point.y - cy) * grow,
+    })),
+  );
+}
+
+function lineMarks(line: Array<{ x: number; y: number }>): FieldAttractor[] {
+  const marks: FieldAttractor[] = [];
+  for (let index = 0; index < line.length - 1; index += 1) {
+    const a = line[index];
+    const b = line[index + 1];
+    marks.push({
+      kind: "line",
+      x: a.x,
+      y: a.y,
+      x2: b.x,
+      y2: b.y,
+      radius: 0.28,
+      strength: 1,
+      cover: index === 0 || index === line.length - 2 ? 1 : 0,
+    });
+  }
+  return marks;
 }
 
 export function attractorsFromContinuousHall(plan: ContinuousHallPlan, _seed = 0, _attempt = 0): FieldAttractor[] {
@@ -521,21 +553,23 @@ export function attractorsFromContinuousHall(plan: ContinuousHallPlan, _seed = 0
 export function slimeFromContinuousHall(base: SlimeControls, plan: ContinuousHallPlan, seed: number): SlimeControls {
   const rng = mulberry32(seed ^ 0x11c0de ^ plan.index);
   const f = frame(rng);
+  const slime = SPECS[plan.growth].slime;
+  const pick = (pair: Pair) => f.r(pair[0], pair[1]);
   return {
     ...base,
-    sensorAngle: f.r(0.42, 0.66),
-    sensorDistance: f.r(0.4, 0.72),
-    turnAngle: f.r(0.18, 0.36),
-    stepSize: f.r(0.12, 0.16),
-    deposit: 0.016,
-    depositWidth: 0.14,
-    diffusion: 0,
-    decay: 0.998,
-    trailInfluence: f.r(0.12, 0.22),
-    resistance: 0,
-    randomness: f.r(0.2, 0.32),
-    persistence: f.r(0.3, 0.42),
-    trailCap: 0.36,
+    sensorAngle: pick(slime.sensorAngle),
+    sensorDistance: pick(slime.sensorDistance),
+    turnAngle: pick(slime.turnAngle),
+    stepSize: pick(slime.stepSize),
+    deposit: pick(slime.deposit),
+    depositWidth: pick(slime.depositWidth),
+    diffusion: pick(slime.diffusion),
+    decay: pick(slime.decay),
+    trailInfluence: pick(slime.trailInfluence),
+    resistance: pick(slime.resistance),
+    randomness: pick(slime.randomness),
+    persistence: pick(slime.persistence),
+    trailCap: pick(slime.trailCap),
     crowdingLimit: 80,
     voidElongation: 1,
     voidRotation: 0,
@@ -551,9 +585,6 @@ export function paramsFromContinuousHall(base: BiologicalParams, plan: Continuou
   return {
     ...base,
     ...extra,
-    directionalBias: 0.02,
-    attractionStrength: 0.05,
-    networkDensity: Math.min(base.networkDensity, 0.12),
     randomnessMode: tone === "white" ? "high" : tone === "vein" ? "medium" : "low",
     decayMode: tone === "white" ? "aggressive" : "controlled",
   };

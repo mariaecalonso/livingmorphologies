@@ -4,6 +4,8 @@
  * Future team SVGs use WORKFLOW_BOARD and replace `detailAsset`.
  */
 
+import { LAB_ENTRY, labWorkspace } from "@/lib/site-map";
+
 export type WorkflowTone = "neutral" | "teal" | "copper";
 
 export type WorkflowPoint = { x: number; y: number };
@@ -28,7 +30,7 @@ export type WorldRect = { x: number; y: number; w: number; h: number };
 
 export const WORKFLOW_WORLD = { width: 8200, height: 1200 };
 
-export const WORKFLOW_CARD = { w: 0.132, h: 0.28, radius: 18 };
+export const WORKFLOW_CARD = { w: 0.132, h: 0.28, radius: 110 };
 
 export type NodeSide = "left" | "right" | "top" | "bottom";
 
@@ -45,10 +47,16 @@ export type MacroNode = {
   exit: WorkflowPoint | null;
 };
 
-/** How long the glow rests at a node center, in both directions. */
-export const NODE_DWELL = 320;
-
-const MACRO_CYCLE = 16000;
+/** A little slower than the first pass. Trail time uses the same pace so the streak stays the same length. */
+const LIGHT_PACE = 1.2;
+const MACRO_CYCLE = 16000 * LIGHT_PACE;
+/** Overview camera fit. The main light uses this so its screen speed matches steps 03–06. */
+export const OVERVIEW_FILL = 0.92;
+export const WORKFLOW_CYCLE_MS = MACRO_CYCLE;
+/** Steps 01 and 02 only. Tail time uses the same pace so their streak stays the same length. */
+const TRACK_PACE = 1.18;
+export const WORKFLOW_TRACK_DUR = `${28 * LIGHT_PACE * TRACK_PACE}s`;
+export const WORKFLOW_TRACK_TAIL = TRACK_PACE;
 
 /**
  * Shared board for every detailed workflow SVG.
@@ -84,7 +92,7 @@ export const WORKFLOW_BOARD_STOPS: readonly WorkflowPoint[] = [
 export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   {
     id: "decomposition",
-    label: "Decomposition",
+    label: "Typology Analysis",
     order: 1,
     anchor: { x: 0.08, y: 0.58 },
     detailAsset: null, // /assets/skill0/decomposition.svg
@@ -104,47 +112,44 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   },
   {
     id: "skill-1",
-    label: "Translation",
+    label: labWorkspace("physarum").label,
     order: 3,
     anchor: { x: 0.408, y: 0.62 },
     detailAsset: null, // /assets/skill1/workflow.svg
     previous: "generative-system",
     next: "skill-2",
     tone: "teal",
-    lab: [{ href: "/lab/physarum", label: "Physarum" }],
   },
   {
     id: "skill-2",
-    label: "2D Evolution",
+    label: labWorkspace("optimization").label,
     order: 4,
     anchor: { x: 0.572, y: 0.4 },
     detailAsset: null, // /assets/skill2/workflow.svg
     previous: "skill-1",
     next: "skill-3",
     tone: "teal",
-    lab: [{ href: "/lab/evolution", label: "2D Evolution" }],
   },
   {
     id: "skill-3",
-    label: "Vertical Propagation",
+    label: labWorkspace("vertical").label,
     order: 5,
     anchor: { x: 0.736, y: 0.6 },
     detailAsset: null, // /assets/skill3/workflow.svg
     previous: "skill-2",
     next: "recombination",
     tone: "copper",
-    lab: [{ href: "/lab/vertical", label: "Vertical" }],
   },
   {
     id: "recombination",
-    label: "Recombination",
+    label: labWorkspace("hybrid").label,
     order: 6,
     anchor: { x: 0.9, y: 0.44 },
     detailAsset: null, // /assets/skill0/recombination.svg
     previous: "skill-3",
     next: null,
     tone: "copper",
-    lab: [{ href: "/lab/hybrid", label: "Hybrid" }],
+    lab: [{ href: LAB_ENTRY.href, label: LAB_ENTRY.label }],
   },
 ];
 
@@ -152,9 +157,16 @@ export function workflowStage(id: string) {
   return WORKFLOW_STAGES.find((stage) => stage.id === id) ?? null;
 }
 
+function cardHeight(stage: WorkflowStage) {
+  const base = WORKFLOW_CARD.h * WORKFLOW_WORLD.height;
+  if (stage.label.length > 22) return base * 1.85;
+  if (stage.label.length > 13) return base * 1.58;
+  return base;
+}
+
 export function cardRect(stage: WorkflowStage): WorldRect {
   const w = WORKFLOW_CARD.w * WORKFLOW_WORLD.width;
-  const h = WORKFLOW_CARD.h * WORKFLOW_WORLD.height;
+  const h = cardHeight(stage);
   return {
     x: stage.anchor.x * WORKFLOW_WORLD.width - w / 2,
     y: stage.anchor.y * WORKFLOW_WORLD.height - h / 2,
@@ -215,24 +227,23 @@ function boundarySide(point: WorkflowPoint, center: WorkflowPoint, width: number
 }
 
 export function macroNodes(): MacroNode[] {
-  const width = WORKFLOW_CARD.w * WORKFLOW_WORLD.width;
-  const height = WORKFLOW_CARD.h * WORKFLOW_WORLD.height;
   const radius = WORKFLOW_CARD.radius;
   const centers = WORKFLOW_STAGES.map(cardCenter);
   return WORKFLOW_STAGES.map((stage, index) => {
+    const rect = cardRect(stage);
     const center = centers[index];
     const previous = centers[index - 1];
     const next = centers[index + 1];
-    const entry = previous ? boundaryPoint(previous, center, width, height, radius) : null;
-    const exit = next ? boundaryPoint(next, center, width, height, radius) : null;
+    const entry = previous ? boundaryPoint(previous, center, rect.w, rect.h, radius) : null;
+    const exit = next ? boundaryPoint(next, center, rect.w, rect.h, radius) : null;
     return {
       id: stage.id,
       center,
-      width,
-      height,
+      width: rect.w,
+      height: rect.h,
       radius,
-      entrySide: entry ? boundarySide(entry, center, width, height) : null,
-      exitSide: exit ? boundarySide(exit, center, width, height) : null,
+      entrySide: entry ? boundarySide(entry, center, rect.w, rect.h) : null,
+      exitSide: exit ? boundarySide(exit, center, rect.w, rect.h) : null,
       entry,
       focus: center,
       exit,
@@ -245,7 +256,7 @@ type RouteMove = {
   ms: number;
   from: WorkflowPoint;
   to: WorkflowPoint;
-  phase: "connector" | "inside";
+  phase: "connector" | "frame";
   nodeId: string | null;
 };
 
@@ -260,43 +271,319 @@ type RouteEvent = RouteMove | RouteHold;
 
 export type MacroPose = {
   point: WorkflowPoint;
-  phase: "connector" | "inside" | "center";
+  phase: "connector" | "frame" | "center";
   nodeId: string | null;
 };
 
-function buildMacroRoute() {
-  const nodes = macroNodes();
-  const legs: Array<Omit<RouteMove, "kind" | "ms">> = [];
-  for (let index = 0; index < nodes.length - 1; index += 1) {
-    const current = nodes[index];
-    const next = nodes[index + 1];
-    legs.push({ from: current.focus, to: current.exit as WorkflowPoint, phase: "inside", nodeId: current.id });
-    legs.push({ from: current.exit as WorkflowPoint, to: next.entry as WorkflowPoint, phase: "connector", nodeId: null });
-    legs.push({ from: next.entry as WorkflowPoint, to: next.focus, phase: "inside", nodeId: next.id });
+function clampedRadius(width: number, height: number, radius: number) {
+  return Math.min(radius, width / 2, height / 2);
+}
+
+function perimeterMetrics(width: number, height: number, radius: number) {
+  const rx = clampedRadius(width, height, radius);
+  const straightW = Math.max(0, width - 2 * rx);
+  const straightH = Math.max(0, height - 2 * rx);
+  const arc = (Math.PI / 2) * rx;
+  return { rx, straightW, straightH, arc, length: 2 * straightW + 2 * straightH + 4 * arc };
+}
+
+/** Clockwise from the start of the top edge. Distance wraps. */
+function pointOnPerimeter(distance: number, center: WorkflowPoint, width: number, height: number, radius: number): WorkflowPoint {
+  const { rx, straightW, straightH, arc, length } = perimeterMetrics(width, height, radius);
+  let d = length > 0 ? ((distance % length) + length) % length : 0;
+  const left = center.x - width / 2;
+  const top = center.y - height / 2;
+  const right = left + width;
+  const bottom = top + height;
+  const at = (angle: number, cx: number, cy: number) => ({ x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * rx });
+  if (d <= straightW) return { x: left + rx + d, y: top };
+  d -= straightW;
+  if (d <= arc) return at(-Math.PI / 2 + (arc > 0 ? (d / arc) * (Math.PI / 2) : 0), right - rx, top + rx);
+  d -= arc;
+  if (d <= straightH) return { x: right, y: top + rx + d };
+  d -= straightH;
+  if (d <= arc) return at((arc > 0 ? (d / arc) * (Math.PI / 2) : 0), right - rx, bottom - rx);
+  d -= arc;
+  if (d <= straightW) return { x: right - rx - d, y: bottom };
+  d -= straightW;
+  if (d <= arc) return at(Math.PI / 2 + (arc > 0 ? (d / arc) * (Math.PI / 2) : 0), left + rx, bottom - rx);
+  d -= arc;
+  if (d <= straightH) return { x: left, y: bottom - rx - d };
+  d -= straightH;
+  return at(Math.PI + (arc > 0 ? (d / arc) * (Math.PI / 2) : 0), left + rx, top + rx);
+}
+
+function wrapAngle(angle: number) {
+  const turn = Math.PI * 2;
+  return ((angle % turn) + turn) % turn;
+}
+
+function closestOnArc(point: WorkflowPoint, cx: number, cy: number, radius: number, start: number, sweep: number) {
+  const raw = Math.atan2(point.y - cy, point.x - cx);
+  let delta = wrapAngle(raw - start);
+  if (delta > sweep) {
+    const pastEnd = delta - sweep;
+    const beforeStart = Math.PI * 2 - delta;
+    delta = pastEnd < beforeStart ? sweep : 0;
   }
-  const travel = legs.reduce((sum, leg) => sum + pointDistance(leg.from, leg.to), 0);
-  const holds = nodes.length * NODE_DWELL;
-  const speed = travel / Math.max(1, MACRO_CYCLE - holds);
-  const events: RouteEvent[] = [{ kind: "hold", ms: NODE_DWELL, at: nodes[0].focus, nodeId: nodes[0].id }];
-  legs.forEach((leg, index) => {
-    events.push({ kind: "move", ms: pointDistance(leg.from, leg.to) / speed, ...leg });
-    if (index % 3 === 2) {
-      const node = nodes[Math.floor(index / 3) + 1];
-      events.push({ kind: "hold", ms: NODE_DWELL, at: node.focus, nodeId: node.id });
+  const angle = start + delta;
+  return { point: { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius }, delta };
+}
+
+/** Arc length of the closest point on the rounded outline. */
+function perimeterOffset(point: WorkflowPoint, center: WorkflowPoint, width: number, height: number, radius: number) {
+  const { rx, straightW, straightH, arc } = perimeterMetrics(width, height, radius);
+  const left = center.x - width / 2;
+  const top = center.y - height / 2;
+  const right = left + width;
+  const bottom = top + height;
+  const candidates: { point: WorkflowPoint; offset: number }[] = [];
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const topX = clamp(point.x, left + rx, right - rx);
+  candidates.push({ point: { x: topX, y: top }, offset: topX - (left + rx) });
+  const rightY = clamp(point.y, top + rx, bottom - rx);
+  candidates.push({ point: { x: right, y: rightY }, offset: straightW + arc + (rightY - (top + rx)) });
+  const bottomX = clamp(point.x, left + rx, right - rx);
+  candidates.push({ point: { x: bottomX, y: bottom }, offset: straightW + arc + straightH + arc + (right - rx - bottomX) });
+  const leftY = clamp(point.y, top + rx, bottom - rx);
+  candidates.push({ point: { x: left, y: leftY }, offset: straightW + arc + straightH + arc + straightW + arc + (bottom - rx - leftY) });
+  if (rx > 0) {
+    const corners = [
+      { cx: right - rx, cy: top + rx, start: -Math.PI / 2, base: straightW },
+      { cx: right - rx, cy: bottom - rx, start: 0, base: straightW + arc + straightH },
+      { cx: left + rx, cy: bottom - rx, start: Math.PI / 2, base: straightW + arc + straightH + arc + straightW },
+      { cx: left + rx, cy: top + rx, start: Math.PI, base: straightW + arc + straightH + arc + straightW + arc + straightH },
+    ];
+    corners.forEach((corner) => {
+      const hit = closestOnArc(point, corner.cx, corner.cy, rx, corner.start, Math.PI / 2);
+      candidates.push({ point: hit.point, offset: corner.base + (hit.delta / (Math.PI / 2)) * arc });
+    });
+  }
+  let best = candidates[0];
+  let bestDistance = pointDistance(point, best.point);
+  candidates.slice(1).forEach((candidate) => {
+    const distance = pointDistance(point, candidate.point);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
     }
   });
-  const duration = events.reduce((sum, event) => sum + event.ms, 0);
+  return best.offset;
+}
+
+function snapToPerimeter(point: WorkflowPoint, center: WorkflowPoint, width: number, height: number, radius: number) {
+  return pointOnPerimeter(perimeterOffset(point, center, width, height, radius), center, width, height, radius);
+}
+
+/** Shorter outline from `from` to `to`. A tie follows the incoming direction. */
+function frameOutline(from: WorkflowPoint, to: WorkflowPoint, center: WorkflowPoint, width: number, height: number, radius: number, incoming: WorkflowPoint | null) {
+  const { length } = perimeterMetrics(width, height, radius);
+  const start = perimeterOffset(from, center, width, height, radius);
+  const end = perimeterOffset(to, center, width, height, radius);
+  const clockwise = (end - start + length) % length;
+  const counter = (start - end + length) % length;
+  let forward = clockwise <= counter + 0.01;
+  if (incoming && Math.abs(clockwise - counter) < 1) {
+    const step = 6;
+    const ahead = pointOnPerimeter(start + step, center, width, height, radius);
+    const behind = pointOnPerimeter(start - step, center, width, height, radius);
+    const vx = from.x - incoming.x;
+    const vy = from.y - incoming.y;
+    const withClockwise = (ahead.x - from.x) * vx + (ahead.y - from.y) * vy;
+    const withCounter = (behind.x - from.x) * vx + (behind.y - from.y) * vy;
+    forward = withClockwise >= withCounter;
+  }
+  const span = forward ? clockwise : counter;
+  // Overview frames keep a 24px step. Smaller frames need a shorter step or the light cuts each corner.
+  const chord = Math.min(24, Math.max(1.5, radius * 0.22));
+  const steps = Math.max(1, Math.ceil(span / chord));
+  const points: WorkflowPoint[] = [];
+  for (let index = 0; index <= steps; index += 1) {
+    const distance = forward ? start + (span * index) / steps : start - (span * index) / steps;
+    points.push(pointOnPerimeter(distance, center, width, height, radius));
+  }
+  points[0] = pointOnPerimeter(start, center, width, height, radius);
+  points[points.length - 1] = pointOnPerimeter(end, center, width, height, radius);
+  return points;
+}
+
+function outlineLegs(points: WorkflowPoint[], nodeId: string): Array<Omit<RouteMove, "kind" | "ms">> {
+  const legs: Array<Omit<RouteMove, "kind" | "ms">> = [];
+  for (let index = 0; index < points.length - 1; index += 1) {
+    if (pointDistance(points[index], points[index + 1]) < 0.01) continue;
+    legs.push({ from: points[index], to: points[index + 1], phase: "frame", nodeId });
+  }
+  return legs;
+}
+
+export type FrameNode = {
+  id: string;
+  center: WorkflowPoint;
+  width: number;
+  height: number;
+  radius: number;
+};
+
+/** Teal-to-copper link and the traveling light. Overview and steps 03–06 share these. */
+export const WORKFLOW_LINK = { from: "#0f7377", to: "#c77e5f" };
+
+const LIGHT_STEPS = 24;
+const LIGHT_TAIL_MS = 620 * LIGHT_PACE;
+
+function lightSamples(steps: number) {
+  const trailMs: number[] = [];
+  const radii: number[] = [];
+  const opacity: number[] = [];
+  for (let index = 0; index < steps; index += 1) {
+    const t = index / (steps - 1);
+    trailMs.push(Math.round((1 - t) * LIGHT_TAIL_MS));
+    radii.push(Number((1.25 + (3.15 - 1.25) * Math.pow(t, 0.8)).toFixed(2)));
+    opacity.push(Number((0.58 * Math.pow(t, 1.65)).toFixed(3)));
+  }
+  trailMs[steps - 1] = 0;
+  radii[steps - 1] = 3.15;
+  opacity[steps - 1] = 0.58;
+  return { trailMs, radii, opacity };
+}
+
+const LIGHT_SAMPLES = lightSamples(LIGHT_STEPS);
+
+/** One shared streak. More samples keep the tail a fade instead of separate dots. */
+export const WORKFLOW_LIGHT = {
+  blur: 2.4,
+  trailMs: LIGHT_SAMPLES.trailMs,
+  radii: LIGHT_SAMPLES.radii,
+  opacity: LIGHT_SAMPLES.opacity,
+};
+
+/** Corner size that matches the overview frames for a box of this size. */
+export function frameRadius(width: number, height: number) {
+  const base = Math.min(WORKFLOW_CARD.w * WORKFLOW_WORLD.width, WORKFLOW_CARD.h * WORKFLOW_WORLD.height);
+  return Math.min(width, height) * (WORKFLOW_CARD.radius / base);
+}
+
+export type FrameRoute = {
+  events: RouteEvent[];
+  duration: number;
+  stops: Record<string, number>;
+  connectors: { from: WorkflowPoint; to: WorkflowPoint }[];
+  path: string;
+  pose: (t: number) => MacroPose;
+};
+
+/** Same connector-then-outline route the overview light walks. */
+export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): FrameRoute {
+  const nodes = frames.map((frame, index) => {
+    const previous = frames[index - 1]?.center;
+    const next = frames[index + 1]?.center;
+    const entry = previous ? snapToPerimeter(boundaryPoint(previous, frame.center, frame.width, frame.height, frame.radius), frame.center, frame.width, frame.height, frame.radius) : null;
+    const exit = next ? snapToPerimeter(boundaryPoint(next, frame.center, frame.width, frame.height, frame.radius), frame.center, frame.width, frame.height, frame.radius) : null;
+    return { ...frame, entry, exit };
+  });
+  const legs: Array<Omit<RouteMove, "kind" | "ms">> = [];
+  const frameSpans: { id: string; from: number; to: number }[] = [];
+  const opposite = (point: WorkflowPoint, node: (typeof nodes)[number]) => {
+    const { length } = perimeterMetrics(node.width, node.height, node.radius);
+    return pointOnPerimeter(perimeterOffset(point, node.center, node.width, node.height, node.radius) + length / 2, node.center, node.width, node.height, node.radius);
+  };
+  nodes.forEach((node, index) => {
+    const previous = nodes[index - 1];
+    const arrival = node.entry ?? opposite(node.exit as WorkflowPoint, node);
+    const departure = node.exit ?? opposite(node.entry as WorkflowPoint, node);
+    const incoming = previous?.exit ?? null;
+    const from = legs.length;
+    legs.push(...outlineLegs(frameOutline(arrival, departure, node.center, node.width, node.height, node.radius, incoming), node.id));
+    frameSpans.push({ id: node.id, from, to: legs.length });
+    const next = nodes[index + 1];
+    if (next?.entry) legs.push({ from: departure, to: next.entry, phase: "connector", nodeId: null });
+  });
+  const travel = legs.reduce((sum, leg) => sum + pointDistance(leg.from, leg.to), 0);
+  const speed = travel / cycle;
+  const events: RouteEvent[] = legs.map((leg) => ({ kind: "move", ms: pointDistance(leg.from, leg.to) / Math.max(speed, 0.0001), ...leg }));
+  const duration = events.reduce((sum, event) => sum + event.ms, 0) || 1;
   const stops: Record<string, number> = {};
-  let walked = 0;
-  events.forEach((event) => {
-    if (event.kind === "hold") stops[event.nodeId] = (walked + event.ms / 2) / duration;
-    walked += event.ms;
+  frameSpans.forEach((span) => {
+    let walked = 0;
+    for (let index = 0; index < span.from; index += 1) walked += events[index].ms;
+    let across = 0;
+    for (let index = span.from; index < span.to; index += 1) across += events[index].ms;
+    stops[span.id] = (walked + across / 2) / duration;
   });
   const connectors = nodes.slice(0, -1).map((node, index) => ({
     from: node.exit as WorkflowPoint,
     to: nodes[index + 1].entry as WorkflowPoint,
   }));
-  return { nodes, events, duration, stops, connectors };
+  const path = connectors
+    .map((segment) => `M ${segment.from.x.toFixed(2)} ${segment.from.y.toFixed(2)} L ${segment.to.x.toFixed(2)} ${segment.to.y.toFixed(2)}`)
+    .join(" ");
+  const pose = (t: number): MacroPose => {
+    const time = Math.min(1, Math.max(0, t)) * duration;
+    let walked = 0;
+    for (let index = 0; index < events.length; index += 1) {
+      const event = events[index];
+      const last = index === events.length - 1;
+      if (!last && walked + event.ms < time) {
+        walked += event.ms;
+        continue;
+      }
+      if (event.kind === "hold") return { point: event.at, phase: "center", nodeId: event.nodeId };
+      const span = event.ms || 1;
+      const amount = Math.min(1, Math.max(0, (time - walked) / span));
+      return { point: lerpPoint(event.from, event.to, amount), phase: event.phase, nodeId: event.nodeId };
+    }
+    const end = nodes[nodes.length - 1];
+    return { point: end?.center ?? { x: 0, y: 0 }, phase: "center", nodeId: end?.id ?? null };
+  };
+  return { events, duration, stops, connectors, path, pose };
+}
+
+function routeLength(route: FrameRoute) {
+  return route.events.reduce((sum, event) => {
+    if (event.kind !== "move") return sum;
+    return sum + Math.hypot(event.to.x - event.from.x, event.to.y - event.from.y);
+  }, 0);
+}
+
+/** Step boards inside the stage. Matches `.wf-board` and its frames. */
+function stepBoardSize(viewW: number, viewH: number) {
+  const aspect = WORKFLOW_BOARD.width / WORKFLOW_BOARD.height;
+  if (viewW / viewH > aspect) return { w: viewH * aspect, h: viewH };
+  return { w: viewW, h: viewW / aspect };
+}
+
+function stepFrames(width: number, height: number): FrameNode[] {
+  const frameWidth = width * 0.074;
+  const frameHeight = frameWidth / 1.7;
+  return WORKFLOW_BOARD_STOPS.map((stop, index) => ({
+    id: String(index),
+    center: { x: stop.x * width, y: stop.y * height },
+    width: frameWidth,
+    height: frameHeight,
+    radius: frameRadius(frameWidth, frameHeight),
+  }));
+}
+
+/** Cycle that gives the overview light the same screen speed as steps 03–06. */
+function overviewCycle(frames: FrameNode[]) {
+  const view = { w: 1000, h: 1000 };
+  const scale = frameCamera(view.w, view.h, macroBounds(), OVERVIEW_FILL).scale;
+  const board = stepBoardSize(view.w, view.h);
+  const overviewScreen = routeLength(frameRoute(frames)) * scale;
+  const boardScreen = routeLength(frameRoute(stepFrames(board.w, board.h)));
+  return MACRO_CYCLE * (overviewScreen / Math.max(boardScreen, 1));
+}
+
+function buildMacroRoute() {
+  const nodes = macroNodes();
+  const frames = nodes.map((node) => ({
+    id: node.id,
+    center: node.center,
+    width: node.width,
+    height: node.height,
+    radius: node.radius,
+  }));
+  const route = frameRoute(frames, overviewCycle(frames));
+  return { nodes, ...route };
 }
 
 const MACRO_ROUTE = buildMacroRoute();
@@ -315,33 +602,12 @@ export function macroRouteDuration() {
 
 /** One subpath per connector. Each end sits on a rounded node boundary. */
 export function connectorPath() {
-  return MACRO_ROUTE.connectors
-    .map((segment) => `M ${segment.from.x.toFixed(2)} ${segment.from.y.toFixed(2)} L ${segment.to.x.toFixed(2)} ${segment.to.y.toFixed(2)}`)
-    .join(" ");
+  return MACRO_ROUTE.path;
 }
 
 /** Position along the shared forward route. Decreasing t walks the same anchors backward. */
 export function macroPose(t: number): MacroPose {
-  const time = Math.min(1, Math.max(0, t)) * MACRO_ROUTE.duration;
-  let walked = 0;
-  for (let index = 0; index < MACRO_ROUTE.events.length; index += 1) {
-    const event = MACRO_ROUTE.events[index];
-    const last = index === MACRO_ROUTE.events.length - 1;
-    if (!last && walked + event.ms < time) {
-      walked += event.ms;
-      continue;
-    }
-    if (event.kind === "hold") return { point: event.at, phase: "center", nodeId: event.nodeId };
-    const span = event.ms || 1;
-    const amount = glide(Math.min(1, Math.max(0, (time - walked) / span)));
-    return {
-      point: lerpPoint(event.from, event.to, amount),
-      phase: event.phase,
-      nodeId: event.nodeId,
-    };
-  }
-  const end = MACRO_ROUTE.nodes[MACRO_ROUTE.nodes.length - 1];
-  return { point: end.focus, phase: "center", nodeId: end.id };
+  return MACRO_ROUTE.pose(t);
 }
 
 export function cardCenter(stage: WorkflowStage): WorkflowPoint {

@@ -36,6 +36,15 @@ assert(worldFace("E", rotated[0]) === "N", "a quarter turn carries east to north
 assert(mockPlacementSupported(pair, rotated) === false, "a turned face is unsupported instead of retargeted");
 assert(mockPlacementSupported(pair, square) === true, "the original east-west pairing is supported");
 
+const tee = layoutTiles(4, "t");
+assert(tee.map((tile) => tile.instanceId).join("") === "ABCD", "a T uses four tiles");
+assert(tee.find((tile) => tile.instanceId === "D")?.transform.z === tee.find((tile) => tile.instanceId === "B")?.transform.x, "the T stem sits north of the center tile");
+assert(detectAdjacencies(tee).map((item) => `${item.tileAId}:${item.faceA}-${item.tileBId}:${item.faceB}`).sort().join() === ["A:E-B:W", "B:E-C:W", "B:N-D:S"].sort().join(), "a T meets on the bar and the stem");
+const cross = layoutTiles(4, "cross");
+assert(cross.map((tile) => tile.instanceId).join("") === "ABCDE", "a cross uses five tiles");
+assert(detectAdjacencies(cross).length === 4, "a cross has four arms and no diagonal pairs");
+assert(gridShape(4, "t").columns === 3 && gridShape(4, "cross").rows === 3, "T and cross report their spans");
+
 const missing = resolveTileModule("vertical-void", loaded);
 assert(missing.status === "unavailable" && missing.geometry === null, "an unavailable archetype is not given another mesh");
 

@@ -1,6 +1,7 @@
 import { ratingDescription } from "../catalog";
 import type { Rating } from "../types";
 import { adaptModule } from "./adapt";
+import { inspectBooleanReadiness } from "./boolean-conditioning";
 import { FACE_IDS, VIEW_SCAN, fieldToMesh, registrationEnvelope, type FaceFrame, type Vec3 } from "./contract";
 import { PROVISIONAL_MOCK_IDS, loadProvisionalMock, readProvisionalMock } from "./fixtures";
 import { initialTiles, loadModuleMap, resolveTileModule } from "./tiles";
@@ -136,6 +137,8 @@ const groundAgain = resolveTileModule("topographic-ground-field", loaded);
 assert(groundModule.status === "ready" && groundAgain.status === "ready", "mock resolves");
 if (groundModule.status === "ready" && groundAgain.status === "ready") {
   assert(groundModule.geometry === groundAgain.geometry, "fixture geometry is reused");
+  const physical = inspectBooleanReadiness(groundModule.geometry);
+  assert(physical.booleanReady === false && physical.status === "open" && physical.boundaryEdgeCount === 10 && physical.componentCount === 4, "an available module is not automatically boolean-ready");
 }
 const missing = resolveTileModule("vertical-void", loaded);
 assert(missing.status === "unavailable" && missing.geometry === null && missing.substituted === false, "another archetype does not borrow a mesh");

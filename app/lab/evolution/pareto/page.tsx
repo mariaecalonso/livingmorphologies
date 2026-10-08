@@ -1,13 +1,15 @@
-import { ParetoSpace } from "@/components/evolution/pareto-space";
-import { labWorkspace } from "@/lib/site-map";
-import { loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { redirect } from "next/navigation";
 
-const workspace = labWorkspace("optimization");
-
-export const metadata = {
-  title: `Pareto -+ ${workspace.label} -+ Living Morphologies`,
-};
-
-export default function ParetoPage() {
-  return <ParetoSpace initial={loadEvolutionCatalog()} />;
+export default async function ParetoPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") query.set(key, value);
+  }
+  const suffix = query.toString();
+  redirect(`/lab/evolution/pareto-catalog${suffix ? `?${suffix}` : ""}`);
 }

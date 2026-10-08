@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
-import { Panel, PanelHeader } from "@/components/hud";
+import { Panel } from "@/components/hud";
 import {
   ArchetypeSwitch,
   EvolutionImage,
@@ -20,7 +20,7 @@ import {
   type ObjectiveVector,
   type TurnoverKind,
 } from "@/lib/skill2/pareto-analytics";
-import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
+import type { EvolutionCandidateView, EvolutionCatalog, EvolutionGenerationView } from "@/lib/skill2/evolution-index";
 
 type Filter = "all" | "pareto" | "dominated";
 type GenerationPick = number | "all";
@@ -151,6 +151,263 @@ function statusLabel(candidate: EvolutionCandidateView) {
   if (candidate.archived) return "Unweighted archive";
   if (candidate.pareto) return "Generation Pareto";
   return "Dominated";
+}
+
+export function ParetoBoard({
+  candidates,
+  generations,
+  selectedKey,
+  onSelect,
+}: {
+  candidates: EvolutionCandidateView[];
+  generations: EvolutionGenerationView[];
+  selectedKey: string | null;
+  onSelect: (key: string | null) => void;
+}) {
+  const reducedMotion = useReducedMotion();
+  const [generation, setGeneration] = useState<GenerationPick>("all");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [emphasis, setEmphasis] = useState<number | null>(null);
+  const [membership, setMembership] = useState<{ generation: number; kind: TurnoverKind; ids: number[] } | null>(null);
+  const [playback, setPlayback] = useState<{ index: number; running: boolean } | null>(null);
+  const [view, setView] = useState({ yaw: -0.62, pitch: 0.42, zoom: 1.15 });
+  const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
+  const completed = generations.filter((item) => item.status === "done");
+  const generationCount = completed.length;
+
+  useEffect(() => {
+    setPlayback(null);
+    setGeneration("all");
+    setEmphasis(null);
+    setMembership(null);
+    setHoveredKey(null);
+  }, [candidates]);
+
+  useEffect(() => {
+    if (!playback?.running || reducedMotion) return;
+    const timer = window.setInterval(() => {
+      setPlayback((current) => {
+        if (!current?.running) return current;
+        if (current.index >= generationCount) return { index: generationCount, running: false };
+        return { index: current.index + 1, running: true };
+      });
+    }, 1100);
+    return () => window.clearInterval(timer);
+  }, [playback?.running, reducedMotion, generationCount]);
+
+  const byId = useMemo(() => {
+    const map = new Map<number, ObjectiveVector>();
+    for (const candidate of candidates) {
+      map.set(candidate.id, { id: candidate.id, formal: candidate.formal, spatial: candidate.spatial, atmospheric: candidate.atmospheric });
+    }
+    return map;
+  }, [candidates]);
+  const archives = useMemo(() => completed.map((item) => ({ index: item.index, archiveIds: item.archiveIds })), [completed]);
+  const series = useMemo(() => generationAnalytics(archives, byId), [archives, byId]);
+  const turnovers = useMemo(
+    () => archives.slice(1).map((item, index) => archiveTurnover(archives[index].archiveIds, item.archiveIds, archives[index].index, item.index)),
+    [archives],
+  );
+  const revealed = playback?.index ?? null;
+  const entrants = useMemo(() => {
+    if (revealed == null || revealed <= 1) return new Set<number>();
+    const current = archives.find((item) => item.index === revealed);
+    const previous = archives.find((item) => item.index === revealed - 1);
+    if (!current || !previous) return new Set<number>();
+    const before = new Set(previous.archiveIds);
+    return new Set(current.archiveIds.filter((id) => !before.has(id)));
+  }, [archives, revealed]);
+  const visible = useMemo(
+    () =>
+      candidates.filter((candidate) => {
+        if (revealed != null) {
+          if (candidate.generation > revealed) return false;
+        } else if (generation !== "all" && candidate.generation !== generation) return false;
+        if (filter === "pareto") return candidate.pareto;
+        if (filter === "dominated") return !candidate.pareto;
+        return true;
+      }),
+    [candidates, revealed, generation, filter],
+  );
+  const points = useMemo(
+    () =>
+      visible
+        .map((candidate) => ({ candidate, ...project([candidate.formal, candidate.spatial, candidate.atmospheric], view.yaw, view.pitch, view.zoom) }))
+        .sort((a, b) => {
+          if (a.candidate.key === selectedKey) return 1;
+          if (b.candidate.key === selectedKey) return -1;
+          return a.depth - b.depth;
+        }),
+    [visible, view, selectedKey],
+  );
+  const hovered = candidates.find((candidate) => candidate.key === hoveredKey) ?? null;
+  const focus = emphasis ?? revealed ?? (generation === "all" ? null : generation);
+  const membershipIds = useMemo(() => (membership ? new Set(membership.ids) : null), [membership]);
+  const opacityFor = (candidate: EvolutionCandidateView) => {
+    if (candidate.key === selectedKey) return 1;
+    if (membershipIds) return membershipIds.has(candidate.id) ? 1 : 0.08;
+    let opacity = 1;
+    if (revealed != null) opacity = candidate.generation < revealed ? 0.22 : 1;
+    else if (generation === "all") opacity = 0.4 + (candidate.generation / Math.max(generationCount, 1)) * 0.6;
+    if (focus != null && candidate.generation !== focus) opacity *= 0.16;
+    return opacity;
+  };
+  const chooseGeneration = (next: GenerationPick) => {
+    setPlayback(null);
+    setMembership(null);
+    setGeneration(next);
+  };
+  const chooseMembership = (generationIndex: number, kind: TurnoverKind, ids: number[]) => {
+    setPlayback(null);
+    setGeneration("all");
+    setFilter("all");
+    setEmphasis(generationIndex);
+    setMembership((current) => (current && current.generation === generationIndex && current.kind === kind ? null : { generation: generationIndex, kind, ids }));
+  };
+  const play = () => {
+    if (generationCount === 0) return;
+    setGeneration("all");
+    setMembership(null);
+    setPlayback((current) => {
+      if (reducedMotion) {
+        const next = !current || current.index >= generationCount ? 1 : current.index + 1;
+        return { index: next, running: false };
+      }
+      if (current?.running) return { index: current.index, running: false };
+      if (!current || current.index >= generationCount) return { index: 1, running: true };
+      return { index: current.index, running: true };
+    });
+  };
+  const playLabel = playback?.running ? "Pause" : playback && playback.index >= generationCount ? "Replay" : "Play";
+  const selectPoint = (key: string) => {
+    if (drag.current?.moved) return;
+    onSelect(selectedKey === key ? null : key);
+  };
+
+  return (
+    <section className="pareto-board panel" aria-label="Pareto graph">
+      <div className="pareto-stage-slot">
+        <Panel className="pareto-stage" padded={false}>
+          <div className="pareto-toolbar">
+            <div className="evo-segment" role="group" aria-label="Generation">
+              {completed.map((item) => (
+                <button key={item.id} type="button" data-active={(playback ? playback.index === item.index : generation === item.index) || undefined} onClick={() => chooseGeneration(item.index)}>
+                  {item.id}
+                </button>
+              ))}
+              <button type="button" data-active={(!playback && generation === "all") || undefined} onClick={() => chooseGeneration("all")}>
+                All
+              </button>
+            </div>
+            <button type="button" className="pareto-play" data-active={playback?.running || undefined} onClick={play} disabled={generationCount === 0}>
+              {playLabel}
+            </button>
+          </div>
+          <svg
+            className="pareto-svg"
+            viewBox="-6 -6 112 112"
+            preserveAspectRatio="xMidYMid meet"
+            onPointerDown={(event) => {
+              drag.current = { x: event.clientX, y: event.clientY, yaw: view.yaw, pitch: view.pitch, moved: false };
+            }}
+            onPointerMove={(event) => {
+              const start = drag.current;
+              if (!start) return;
+              const dx = event.clientX - start.x;
+              const dy = event.clientY - start.y;
+              if (!start.moved && Math.hypot(dx, dy) < 4) return;
+              if (!start.moved) event.currentTarget.setPointerCapture(event.pointerId);
+              start.moved = true;
+              setHoveredKey(null);
+              setView((current) => ({ ...current, yaw: start.yaw + dx * 0.008, pitch: Math.max(-1.15, Math.min(1.15, start.pitch + dy * 0.008)) }));
+            }}
+            onPointerUp={() => {
+              window.setTimeout(() => {
+                drag.current = null;
+              }, 0);
+            }}
+            onPointerLeave={() => {
+              drag.current = null;
+            }}
+            onWheel={(event) => {
+              event.preventDefault();
+              const factor = event.deltaY > 0 ? 0.92 : 1.08;
+              setView((current) => ({ ...current, zoom: Math.max(0.85, Math.min(2.2, current.zoom * factor)) }));
+            }}
+            onDoubleClick={() => setView({ yaw: -0.62, pitch: 0.42, zoom: 1.15 })}
+          >
+            {GRID.map(({ from, to, major }, index) => {
+              const a = project(from, view.yaw, view.pitch, view.zoom);
+              const b = project(to, view.yaw, view.pitch, view.zoom);
+              return <line key={`grid-${index}`} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="pareto-grid" data-major={major || undefined} />;
+            })}
+            {CUBE_EDGES.map(([from, to], index) => {
+              const a = project(from, view.yaw, view.pitch, view.zoom);
+              const b = project(to, view.yaw, view.pitch, view.zoom);
+              return <line key={`edge-${index}`} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="pareto-cube" />;
+            })}
+            {AXES.map((axis) => {
+              const origin = project([0, 0, 0], view.yaw, view.pitch, view.zoom);
+              const end = project(axis.to, view.yaw, view.pitch, view.zoom);
+              return (
+                <g key={axis.label}>
+                  <line x1={origin.sx} y1={origin.sy} x2={end.sx} y2={end.sy} className="pareto-axis" />
+                  <text className="pareto-axis-label" x={end.sx} y={end.sy}>
+                    {axis.label}
+                  </text>
+                </g>
+              );
+            })}
+            {points.map(({ candidate, sx, sy, depth }) => {
+              const state = pointState(candidate, selectedKey);
+              const entering = revealed != null && !reducedMotion && entrants.has(candidate.id) && candidate.generation === revealed;
+              const radius = { dominated: 1.075, pareto: 1.35, archive: 1.45, selected: 1.8 }[state] * (0.82 + depth * 0.28);
+              return (
+                <circle
+                  key={candidate.key}
+                  cx={sx}
+                  cy={sy}
+                  r={radius}
+                  className="pareto-point"
+                  data-state={state}
+                  data-member={membershipIds?.has(candidate.id) || undefined}
+                  data-enter={entering || undefined}
+                  style={entering ? undefined : { opacity: opacityFor(candidate) }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onPointerEnter={() => setHoveredKey(candidate.key)}
+                  onPointerLeave={() => setHoveredKey((current) => (current === candidate.key ? null : current))}
+                  onClick={() => selectPoint(candidate.key)}
+                />
+              );
+            })}
+          </svg>
+          <div className="pareto-footer">
+            <ul className="pareto-legend">
+              <li data-state="dominated">Dominated</li>
+              <li data-state="pareto">Pareto</li>
+              <li data-state="archive">Archive</li>
+              <li data-state="selected">Selected</li>
+            </ul>
+            <span className="eyebrow pareto-hover-readout">
+              {hovered
+                ? `${formatCandidateId(hovered.id)} · F ${formatMatch(hovered.formal)} · S ${formatMatch(hovered.spatial)} · A ${formatMatch(hovered.atmospheric)}`
+                : "Drag to orbit · scroll to zoom"}
+            </span>
+          </div>
+        </Panel>
+      </div>
+      <ParetoAnalyticsBand
+        series={series}
+        turnovers={turnovers}
+        focus={focus}
+        membership={membership ? { generation: membership.generation, kind: membership.kind } : null}
+        onFocus={setEmphasis}
+        onPick={(index) => chooseGeneration(index)}
+        onMembership={chooseMembership}
+      />
+    </section>
+  );
 }
 
 export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
@@ -361,18 +618,6 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
 
   return (
     <main className="evo-page pareto-page">
-      <div className="evo-header lab-tools">
-        <p className="eyebrow evo-header-detail">{archetype ? `${archetype.name} · X Formal · Y Spatial · Z Atmospheric` : "No completed searches yet"}</p>
-        <ArchetypeSwitch
-          catalog={catalog}
-          archetypeId={archetype?.archetypeId ?? null}
-          onChange={(id) => {
-            setSelectedKey(null);
-            select(id);
-          }}
-        />
-      </div>
-
       <div className="pareto-layout" ref={layoutRef}>
         <ParetoAnalyticsBand
           series={series}
@@ -385,6 +630,20 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
         />
         <div className="pareto-stage-slot" ref={frameRef}>
         <Panel className="pareto-stage">
+          <div className="frame-title">
+            <div>
+              <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
+              <p className="eyebrow">{archetype ? "X Formal · Y Spatial · Z Atmospheric" : "No completed searches yet"}</p>
+            </div>
+            <ArchetypeSwitch
+              catalog={catalog}
+              archetypeId={archetype?.archetypeId ?? null}
+              onChange={(id) => {
+                setSelectedKey(null);
+                select(id);
+              }}
+            />
+          </div>
           <div className="pareto-toolbar">
             <div className="evo-segment" role="group" aria-label="Generation">
               {completed.map((item) => (
@@ -516,11 +775,13 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
         <Panel className="pareto-detail">
           {selected ? (
             <>
-              <PanelHeader
-                kicker={formatGeneration(selected.generation)}
-                title={formatCandidateId(selected.id)}
-                aside={<span className="eyebrow">{statusLabel(selected)}</span>}
-              />
+              <div className="frame-title">
+                <div>
+                  <p className="eyebrow">{formatGeneration(selected.generation)}</p>
+                  <h2 className="panel-title">{formatCandidateId(selected.id)}</h2>
+                </div>
+                <span className="eyebrow">{statusLabel(selected)}</span>
+              </div>
               {selected.image ? (
                 <div className="evo-preview-frame">
                   <EvolutionImage src={selected.image} />
@@ -566,7 +827,9 @@ export function ParetoSpace({ initial }: { initial: EvolutionCatalog }) {
             </>
           ) : (
             <>
-              <PanelHeader kicker="Candidate" title="None selected" />
+              <div className="frame-title">
+                <h2 className="panel-title">None selected</h2>
+              </div>
               <p className="evo-empty">
                 Orbit the space and select a point. The panel reads that candidate’s objectives, parent, and genome from the saved run.
               </p>

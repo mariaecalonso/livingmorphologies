@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArchetypeRail } from "@/components/archetype-rail";
 import { FilamentRefine } from "@/components/filament-refine";
-import { Panel, PanelHeader } from "@/components/hud";
+import { Panel } from "@/components/hud";
 import {
   EvolutionImage,
   formatCandidateId,
@@ -12,16 +11,14 @@ import {
   useSelectedArchetype,
 } from "@/components/evolution/evolution-data";
 import { formatMatch } from "@/components/evolution/format-match";
-import { ObjectiveBars } from "@/components/evolution/pareto-space";
+import { ObjectiveBars, ParetoBoard } from "@/components/evolution/pareto-space";
 import { PropagationPreview } from "@/components/evolution/propagation-preview";
 import { BRANCHES } from "@/lib/catalog";
-import { labWorkspace } from "@/lib/site-map";
 import type { TypologyId } from "@/lib/types";
 import type { EvolutionCandidateView, EvolutionCatalog } from "@/lib/skill2/evolution-index";
 import type { SavedPick } from "@/lib/skill2/saved-picks";
 import {
   readSkill2Selections,
-  SKILL2_ARCHETYPE_TOTAL,
   writeSkill2Selection,
   type Skill2Selection,
   type Skill2Selections,
@@ -267,8 +264,6 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
     : null;
   const chosenKey = committed ? `${committed.archetypeId}:${committed.candidateId}` : null;
   const chosenHere = committed != null && selected != null && selected.key === chosenKey;
-  const selectedCount = Object.keys(selections).length;
-
   const restored = useRef(false);
   useEffect(() => {
     if (restored.current) return;
@@ -385,25 +380,9 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
 
   return (
     <main className={`pareto-catalog-page flex h-full flex-col bg-black text-[var(--text)]${wall ? " runs-wall" : ""}`}>
-      <header className="runs-header border-b border-[var(--line)] px-3 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <p className="display text-[0.72rem] text-white">{labWorkspace("optimization").tabs.find((tab) => "results" in tab && tab.results)?.label}</p>
-          <p className="skill2-selection-progress">
-            {String(selectedCount).padStart(2, "0")} / {String(SKILL2_ARCHETYPE_TOTAL).padStart(2, "0")} Selected
-          </p>
-          <Link href="/lab/vertical" className="skill2-vertical-link">
-            Vertical propagation
-          </Link>
-        </div>
-          <p className="eyebrow mt-0.5 min-w-0 truncate">
-          {archetype
-            ? `${archetype.name} · ${specialists.length} specialists · ${archive.length} ${showingCatalog ? "drawings" : "Pareto"}`
-            : "No completed searches yet"}
-        </p>
-      </header>
-
-      <div className="flex min-h-0 flex-1">
+      <div className="pareto-merge">
         <ArchetypeRail
+          framed
           activeId={archetype?.archetypeId ?? null}
           onPick={choose}
           chosen={(id) => Boolean(selections[id])}
@@ -417,16 +396,20 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           }}
         />
 
+        <ParetoBoard
+          candidates={archetype?.candidates ?? []}
+          generations={archetype?.generations ?? []}
+          selectedKey={selectedKey}
+          onSelect={setSelectedKey}
+        />
+
         <section className="runs-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Pareto catalog">
-          <header className="panel-header">
-            <div className="panel-header-content">
-              <p className="hud-panel-kicker">Catalog</p>
-              <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
-            </div>
+          <div className="frame-title">
+            <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
             {archetype ? (
               <FilamentRefine archetypeId={archetype.archetypeId} archetypeName={archetype.name} onSaved={onSaved} />
             ) : null}
-          </header>
+          </div>
           <div ref={stackRef} className="pareto-catalog-stack">
           {specialists.length > 0 ? (
             <PagedStrip
@@ -486,14 +469,13 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           </div>
         </section>
 
-        <Panel className="archive-detail pareto-catalog-detail">
+        <Panel className="archive-detail pareto-catalog-detail m-2 ml-0">
           {selected ? (
             <>
-              <PanelHeader
-                kicker={archetype?.name ?? "Candidate"}
-                title={formatCandidateId(selected.id)}
-                aside={<span className="eyebrow">{formatGeneration(selected.generation)}</span>}
-              />
+              <div className="frame-title">
+                <h2 className="panel-title">{formatCandidateId(selected.id)}</h2>
+                <p className="eyebrow">{archetype?.name ?? "Candidate"} · {formatGeneration(selected.generation)}</p>
+              </div>
               <div className="evo-segment archive-display" role="group" aria-label="Display">
                 <button type="button" data-active={display === "morphology" || undefined} onClick={() => setDisplay("morphology")}>
                   Morphology
@@ -560,7 +542,9 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
             </>
           ) : (
             <>
-              <PanelHeader kicker="Candidate" title="None selected" />
+              <div className="frame-title">
+                <h2 className="panel-title">None selected</h2>
+              </div>
               <p className="evo-empty">
                 Choose an alternative to inspect it. The catalog holds non-dominated trade-offs; the designer selects
                 which morphology proceeds.

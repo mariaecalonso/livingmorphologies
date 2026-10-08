@@ -5,43 +5,17 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
-import { HOME_SECTIONS, stageFrameSuffix } from "@/lib/site-map";
+import { LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
 
 type NavItem = { href: string; label: string };
 
-const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: NavItem[] })[] = [
-  { href: "/lab", label: "Workflow", active: (pathname) => pathname === "/lab" },
-  {
-    href: "/lab/physarum",
-    label: "Physarum Logic",
-    active: (pathname) => pathname.startsWith("/lab/physarum"),
-    sub: [
-      { href: "/lab/physarum", label: "Translation" },
-      { href: "/lab/physarum/runs", label: "Runs" },
-      { href: "/lab/physarum/catalog", label: "Catalog" },
-    ],
-  },
-  {
-    href: "/lab/evolution",
-    label: "2D Evolution",
-    active: (pathname) => pathname.startsWith("/lab/evolution"),
-    sub: [
-      { href: "/lab/evolution", label: "Evolution" },
-      { href: "/lab/evolution/pareto", label: "Pareto" },
-      { href: "/lab/evolution/pareto-catalog", label: "Pareto Catalog" },
-    ],
-  },
-  { href: "/lab/vertical", label: "Vertical Propagation", active: (pathname) => pathname === "/lab/vertical" || pathname.startsWith("/lab/vertical/") },
-  {
-    href: "/lab/hybrid",
-    label: "Hybrid Connection",
-    active: (pathname) => pathname === "/lab/hybrid" || pathname.startsWith("/lab/hybrid/"),
-  },
-];
-
-const VIEW_MODES: { id: DisplayMode; label: string }[] = [
-  { id: "desktop", label: "Desktop" },
-  { id: "presentation", label: "Presentation" },
+const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: readonly NavItem[] })[] = [
+  ...LAB_WORKSPACES.map((workspace) => ({
+    href: workspace.href,
+    label: workspace.label,
+    active: (pathname: string) => pathname === workspace.href || pathname.startsWith(`${workspace.href}/`),
+    sub: workspace.tabs,
+  })),
 ];
 
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
@@ -51,23 +25,15 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
   const suffix = stageFrameSuffix(wall, presentationFrame);
   const activeStage = STAGES.find((stage) => stage.active(pathname));
 
-  const processQuery = () => {
+  const tabHref = (href: string) => {
+    if (!href.startsWith("/lab/vertical")) return `${href}${suffix}`;
     const params = new URLSearchParams(search.toString());
     const query = params.toString();
-    return query ? `/lab/vertical?${query}` : "/lab/vertical";
+    return query ? `${href}?${query}` : href;
   };
-  const catalogueQuery = () => {
-    const params = new URLSearchParams(search.toString());
-    const query = params.toString();
-    return query ? `/lab/vertical/catalogue?${query}` : "/lab/vertical/catalogue";
-  };
-  const onProcess = pathname === "/lab/vertical";
-  const onCatalogue = pathname.startsWith("/lab/vertical/catalogue");
-  const onFinal = pathname.startsWith("/lab/vertical/final");
-  const finalQuery = () => {
-    const params = new URLSearchParams(search.toString());
-    const query = params.toString();
-    return query ? `/lab/vertical/final?${query}` : "/lab/vertical/final";
+  const tabCurrent = (href: string) => {
+    if (LAB_WORKSPACES.some((workspace) => workspace.href === href)) return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   const changeMode = (next: DisplayMode) => {
@@ -89,27 +55,17 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
         <Link href="/" className="stage-nav-identity" target={presentationFrame ? "_top" : undefined}>
           <span className="display site-nav-title">Living Morphologies</span>
         </Link>
-        <nav className="stage-nav-site" aria-label="Home">
-          {HOME_SECTIONS.map((section) => (
-            <Link key={section.href} href={section.href} target={presentationFrame ? "_top" : undefined}>
-              {section.label}
-            </Link>
-          ))}
-        </nav>
         <div className="stage-nav-tools">
           {mode === "presentation" ? <PresentationEditControls /> : null}
-          <div className="stage-nav-mode" role="group" aria-label="View mode">
-            {VIEW_MODES.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={item.id === mode}
-                data-active={item.id === mode || undefined}
-                onClick={() => changeMode(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="stage-nav-mode">
+            <button
+              type="button"
+              aria-pressed={mode === "presentation"}
+              aria-label={mode === "presentation" ? "Presentation. Switch to desktop" : "Desktop. Switch to presentation"}
+              onClick={() => changeMode(mode === "presentation" ? "desktop" : "presentation")}
+            >
+              {mode === "presentation" ? <PresentationIcon /> : <DesktopIcon />}
+            </button>
           </div>
         </div>
       </div>
@@ -133,14 +89,14 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
         })}
       </nav>
       <div className="stage-nav-end">
-        {activeStage?.sub ? (
+        {activeStage?.sub && activeStage.sub.length > 0 ? (
           <nav className="stage-nav-sub" aria-label={`${activeStage.label} views`}>
             {activeStage.sub.map((item) => {
-              const active = pathname === item.href;
+              const active = tabCurrent(item.href);
               return (
                 <Link
                   key={item.href}
-                  href={`${item.href}${suffix}`}
+                  href={tabHref(item.href)}
                   aria-current={active ? "page" : undefined}
                   className="stage-nav-subitem"
                   data-active={active || undefined}
@@ -150,26 +106,27 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
               );
             })}
           </nav>
-        ) : activeStage?.href === "/lab/vertical" ? (
-          <nav className="stage-nav-sub" aria-label="Vertical Propagation views">
-            <Link
-              href={processQuery()}
-              className="stage-nav-subitem"
-              aria-current={onProcess ? "page" : undefined}
-              data-active={onProcess || undefined}
-            >
-              Process
-            </Link>
-            <Link href={catalogueQuery()} className="stage-nav-subitem" aria-current={onCatalogue ? "page" : undefined} data-active={onCatalogue || undefined}>
-              Catalogue
-            </Link>
-            <Link href={finalQuery()} className="stage-nav-subitem" aria-current={onFinal ? "page" : undefined} data-active={onFinal || undefined}>
-              Final
-            </Link>
-          </nav>
         ) : null}
       </div>
       </div>
     </header>
+  );
+}
+
+function DesktopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="5" width="14" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3 18.5h18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PresentationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="6" width="20" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M9 20h6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
   );
 }

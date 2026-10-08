@@ -1,25 +1,47 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { beginWorkflowLights, WorkflowLightFilter, WorkflowPathLight } from "@/components/workflow-light";
+import { WORKFLOW_TRACK_DUR, WORKFLOW_TRACK_TAIL } from "@/lib/home-workflow-camera";
 
-const CYCLE = "28s";
-const TIMES = "0;0.16;0.28;0.56;0.66;0.84;1";
-const EASE = "0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1; 0.42 0 0.58 1";
+const CYCLE = WORKFLOW_TRACK_DUR;
 
 const COPPER = "#c77e5f";
 const WHITE = "#f4f1ec";
 const TEAL = "#0f7377";
 
 type Seg = { x1: number; y1: number; x2: number; y2: number; w: number; color: string };
+type Box = { x: number; y: number; w: number; h: number };
 type Frame = {
   id: string;
-  points?: string;
-  rect?: { x: number; y: number; w: number; h: number; rx: number };
-  sw: number;
+  rect: Box;
+  radius: number;
   color: string;
   bright: string;
   values: string;
 };
+
+const DECOMP_R = 18;
+const CRITERIA_R = 36.92;
+const IDENTITY_R = 73.7;
+
+function n(value: number) {
+  return Number(value.toFixed(2));
+}
+
+/** Down the left side, across the bottom, and up onto the top edge. */
+function aroundBottom(box: Box, r: number) {
+  const right = n(box.x + box.w);
+  const bottom = n(box.y + box.h);
+  const top = n(box.y);
+  return `L${n(box.x)} ${n(bottom - r)} A${r} ${r} 0 0 0 ${n(box.x + r)} ${bottom} L${n(right - r)} ${bottom} A${r} ${r} 0 0 0 ${right} ${n(bottom - r)} L${right} ${n(top + r)} A${r} ${r} 0 0 0 ${n(right - r)} ${top}`;
+}
+
+function alongBottom(box: Box, r: number) {
+  const right = n(box.x + box.w);
+  const bottom = n(box.y + box.h);
+  return `L${n(box.x)} ${n(bottom - r)} A${r} ${r} 0 0 0 ${n(box.x + r)} ${bottom} L${n(right - r)} ${bottom} A${r} ${r} 0 0 0 ${right} ${n(bottom - r)}`;
+}
 
 function dashes(pairs: [number, number][], y: number, w: number, color: string): Seg[] {
   return pairs.map(([x1, x2]) => ({ x1, y1: y, x2, y2: y, w, color }));
@@ -72,139 +94,74 @@ const SEGMENTS: Seg[] = [
   { x1: 6181.61, y1: 1147.62, x2: 6312.35, y2: 1147.62, w: 2.04, color: WHITE },
 ];
 
+const LOBBY_DECOMP = { x: 2097.64, y: 408.25, w: 493.47, h: 176.51 };
+const WORK_DECOMP = { x: 2103.84, y: 933.12, w: 485.63, h: 175.38 };
+const GATH_DECOMP = { x: 2101.99, y: 1512.87, w: 485.63, h: 175.38 };
+const LOBBY_CRITERIA = { x: 5295.68, y: 586.02, w: 825.23, h: 355.38 };
+const WORK_CRITERIA = { x: 5295.68, y: 972.73, w: 825.23, h: 355.38 };
+const GATH_CRITERIA = { x: 5295.68, y: 1359.45, w: 825.23, h: 355.38 };
+const IDENTITY = { x: 6311.45, y: 709.28, w: 947.19, h: 777.85 };
+
 const FRAMES: Frame[] = [
-  {
-    id: "lobby-decomp",
-    points: "2097.64 501.54 2097.64 584.76 2591.11 584.76 2591.11 408.25 2097.64 408.25 2097.64 500.82",
-    sw: 1.01,
-    color: COPPER,
-    bright: "0;0.14;0.18;0.30;0.36;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "work-decomp",
-    points: "2103.84 1025.82 2103.84 1108.5 2589.47 1108.5 2589.47 933.12 2103.84 933.12 2103.84 1025.09",
-    sw: 1,
-    color: WHITE,
-    bright: "0;0.14;0.18;0.30;0.36;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "gath-decomp",
-    points: "2101.99 1605.57 2101.99 1688.25 2587.62 1688.25 2587.62 1512.87 2101.99 1512.87 2101.99 1604.85",
-    sw: 1,
-    color: TEAL,
-    bright: "0;0.14;0.18;0.30;0.36;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "lobby-criteria",
-    rect: { x: 5295.68, y: 586.02, w: 825.23, h: 355.38, rx: 36.92 },
-    sw: 2,
-    color: COPPER,
-    bright: "0;0.62;0.68;0.84;0.90;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "work-criteria",
-    rect: { x: 5295.68, y: 972.73, w: 825.23, h: 355.38, rx: 36.92 },
-    sw: 2,
-    color: WHITE,
-    bright: "0;0.62;0.68;0.84;0.90;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "gath-criteria",
-    rect: { x: 5295.68, y: 1359.45, w: 825.23, h: 355.38, rx: 36.92 },
-    sw: 2,
-    color: TEAL,
-    bright: "0;0.62;0.68;0.84;0.90;1",
-    values: "0.55;0.55;1;1;0.55;0.55",
-  },
-  {
-    id: "identity",
-    rect: { x: 6311.45, y: 709.28, w: 947.19, h: 777.85, rx: 73.7 },
-    sw: 1.66,
-    color: WHITE,
-    bright: "0;0.88;0.94;0.99;1",
-    values: "0.55;0.55;1;1;0.55",
-  },
+  { id: "lobby-decomp", rect: LOBBY_DECOMP, radius: DECOMP_R, color: COPPER, bright: "0;0.14;0.18;0.30;0.36;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "work-decomp", rect: WORK_DECOMP, radius: DECOMP_R, color: WHITE, bright: "0;0.14;0.18;0.30;0.36;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "gath-decomp", rect: GATH_DECOMP, radius: DECOMP_R, color: TEAL, bright: "0;0.14;0.18;0.30;0.36;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "lobby-criteria", rect: LOBBY_CRITERIA, radius: CRITERIA_R, color: COPPER, bright: "0;0.62;0.68;0.84;0.90;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "work-criteria", rect: WORK_CRITERIA, radius: CRITERIA_R, color: WHITE, bright: "0;0.62;0.68;0.84;0.90;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "gath-criteria", rect: GATH_CRITERIA, radius: CRITERIA_R, color: TEAL, bright: "0;0.62;0.68;0.84;0.90;1", values: "0.55;0.55;1;1;0.55;0.55" },
+  { id: "identity", rect: IDENTITY, radius: IDENTITY_R, color: WHITE, bright: "0;0.88;0.94;0.99;1", values: "0.55;0.55;1;1;0.55" },
 ];
+
+/** Shared clock. The last hold is the identity frame, where the three lights meet. */
+const LIGHT_TIMES = "0;0.1193;0.1951;0.4315;0.5936;0.6742;0.73;1";
 
 const TRACKS = [
   {
     id: "lobby",
     color: COPPER,
-    points: "0;0.1811;0.2740;0.6594;0.7336;0.9068;1",
-    path: "M954.45 500.95 L2096.84 500.95 L2097.64 408.25 L2591.11 408.25 L2784.23 408.25 L2841.8 408.25 L3032.88 408.25 L3090.45 408.25 L3281.53 408.25 L3339.1 408.25 L3530.18 408.25 L3587.75 408.25 L3778.82 408.25 L3836.4 408.25 L4027.47 408.25 L4085.05 408.25 L4276.12 408.25 L4333.7 408.25 L4524.77 408.25 L4582.35 408.25 L4773.42 408.25 L4831 408.25 L5022.07 408.25 L5175.52 720.59 L5270.25 720.59 L5295.68 720.59 L5295.68 622.94 A36.92 36.92 0 0 1 5332.6 586.02 L6083.99 586.02 A36.92 36.92 0 0 1 6120.91 622.94 L6120.91 750.19 L6145.62 750.19 L6181.61 750.19 L6181.61 1147.62 L6311.45 1147.62",
+    keyPoints: "0;0.1825;0.2863;0.6438;0.8888;1;1;1",
+    opacityTimes: "0;0.04;0.1;0.6742;0.72;1",
+    path: `M954.45 500.95 L2096.84 500.95 L2097.64 501.54 ${aroundBottom(LOBBY_DECOMP, DECOMP_R)} L2784.23 408.25 L2841.8 408.25 L3032.88 408.25 L3090.45 408.25 L3281.53 408.25 L3339.1 408.25 L3530.18 408.25 L3587.75 408.25 L3778.82 408.25 L3836.4 408.25 L4027.47 408.25 L4085.05 408.25 L4276.12 408.25 L4333.7 408.25 L4524.77 408.25 L4582.35 408.25 L4773.42 408.25 L4831 408.25 L5022.07 408.25 L5037.11 429.72 L5037.11 620.8 L5037.11 651.99 L5037.11 720.59 L5175.52 720.59 L5270.25 720.59 L5295.68 720.59 ${alongBottom(LOBBY_CRITERIA, CRITERIA_R)} L6120.91 750.19 L6145.62 750.19 L6181.61 750.19 L6181.61 1147.62 L6311.45 1147.62`,
   },
   {
     id: "workspace",
     color: WHITE,
-    points: "0;0.1542;0.2538;0.6780;0.7635;0.9669;1",
-    path: "M1216.96 1020.25 L2103.84 1020.25 L2103.84 933.12 L2589.47 933.12 L2600.84 932.49 L2791.91 932.49 L2849.49 932.49 L3040.56 932.49 L3098.14 932.49 L3289.21 932.49 L3346.79 932.49 L3537.86 932.49 L3595.44 932.49 L3786.51 932.49 L3844.08 932.49 L4035.16 932.49 L4092.73 932.49 L4283.81 932.49 L4341.38 932.49 L4532.46 932.49 L4590.03 932.49 L4781.11 932.49 L4838.68 932.49 L5029.76 932.49 L5044.8 953.96 L5044.8 1145.04 L5051.48 1174.25 L5270.25 1174.25 L5295.68 1174.25 L5295.68 1009.65 A36.92 36.92 0 0 1 5332.6 972.73 L6083.99 972.73 A36.92 36.92 0 0 1 6120.91 1009.65 L6120.91 1147.62 L6137.53 1147.62 L6311.45 1147.62",
+    keyPoints: "0;0.0963;0.18;0.4412;0.6038;0.64;0.64;1",
+    opacityTimes: "0;0.04;0.1;0.9;0.97;1",
+    path: `M1216.96 1020.25 L2103.84 1020.25 L2103.84 1025.82 ${aroundBottom(WORK_DECOMP, DECOMP_R)} L2600.84 932.49 L2791.91 932.49 L2849.49 932.49 L3040.56 932.49 L3098.14 932.49 L3289.21 932.49 L3346.79 932.49 L3537.86 932.49 L3595.44 932.49 L3786.51 932.49 L3844.08 932.49 L4035.16 932.49 L4092.73 932.49 L4283.81 932.49 L4341.38 932.49 L4532.46 932.49 L4590.03 932.49 L4781.11 932.49 L4838.68 932.49 L5029.76 932.49 L5044.8 953.96 L5044.8 1145.04 L5051.48 1174.25 L5270.25 1174.25 L5295.68 1174.25 ${alongBottom(WORK_CRITERIA, CRITERIA_R)} L6120.91 1147.62 L6137.53 1147.62 L6311.45 1147.62 L6311.45 1413.43 A73.7 73.7 0 0 0 6385.15 1487.13 L7184.94 1487.13 A73.7 73.7 0 0 0 7258.64 1413.43 L7258.64 782.98 A73.7 73.7 0 0 0 7184.94 709.28 L6385.15 709.28 A73.7 73.7 0 0 0 6311.45 782.98 L6311.45 1147.62`,
   },
   {
     id: "gathering",
     color: TEAL,
-    points: "0;0.1013;0.2048;0.6425;0.6902;0.8873;1",
-    path: "M1536.48 1604.85 L2101.99 1604.85 L2101.99 1512.87 L2587.62 1512.87 L2601.78 1515.31 L2792.85 1515.31 L2850.43 1515.31 L3041.5 1515.31 L3099.07 1515.31 L3290.15 1515.31 L3347.72 1515.31 L3538.8 1515.31 L3596.37 1515.31 L3787.45 1515.31 L3845.02 1515.31 L4036.1 1515.31 L4093.67 1515.31 L4284.75 1515.31 L4342.32 1515.31 L4533.39 1515.31 L4590.97 1515.31 L4782.04 1515.31 L4839.62 1515.31 L5030.69 1515.31 L5175.52 1536.78 L5270.25 1536.78 L5295.68 1536.78 L5295.68 1677.91 A36.92 36.92 0 0 0 5332.6 1714.83 L6083.99 1714.83 A36.92 36.92 0 0 0 6120.91 1677.91 L6120.91 1586.46 L6154.61 1586.46 L6181.61 1586.46 L6181.61 1147.62 L6311.45 1147.62",
+    keyPoints: "0;0.0978;0.2322;0.6478;0.8744;1;1;1",
+    opacityTimes: "0;0.04;0.1;0.6742;0.72;1",
+    path: `M1536.48 1604.85 L2101.99 1604.85 L2101.99 1605.57 ${aroundBottom(GATH_DECOMP, DECOMP_R)} L2601.78 1515.31 L2792.85 1515.31 L2850.43 1515.31 L3041.5 1515.31 L3099.07 1515.31 L3290.15 1515.31 L3347.72 1515.31 L3538.8 1515.31 L3596.37 1515.31 L3787.45 1515.31 L3845.02 1515.31 L4036.1 1515.31 L4093.67 1515.31 L4284.75 1515.31 L4342.32 1515.31 L4533.39 1515.31 L4590.97 1515.31 L4782.04 1515.31 L4839.62 1515.31 L5030.69 1515.31 L5045.73 1536.79 L5045.73 1536.78 L5175.52 1536.78 L5270.25 1536.78 L5295.68 1536.78 ${alongBottom(GATH_CRITERIA, CRITERIA_R)} L6120.91 1586.46 L6154.61 1586.46 L6181.61 1586.46 L6181.61 1147.62 L6311.45 1147.62`,
   },
 ] as const;
 
 function Stroke({ seg }: { seg: Seg }) {
-  const common = {
-    x1: seg.x1,
-    y1: seg.y1,
-    x2: seg.x2,
-    y2: seg.y2,
-    fill: "none" as const,
-    strokeMiterlimit: 10,
-  };
-  return (
-    <>
-      <line {...common} stroke={seg.color} strokeWidth={seg.w + 10} strokeOpacity="0.45" strokeLinecap="round" />
-      <line {...common} stroke="#000" strokeWidth={seg.w + 1.2} />
-      <line {...common} stroke={seg.color} strokeWidth={seg.w} />
-    </>
-  );
+  return <line className="precedent-stroke" x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2} stroke={seg.color} />;
 }
 
 function FrameShape({ frame }: { frame: Frame }) {
-  const animate = (
-    <animate
-      attributeName="stroke-opacity"
-      begin="indefinite"
-      dur={CYCLE}
-      repeatCount="indefinite"
-      calcMode="linear"
-      values={frame.values}
-      keyTimes={frame.bright}
-    />
-  );
-  if (frame.rect) {
-    const { x, y, w, h, rx } = frame.rect;
-    const shape = { x, y, width: w, height: h, rx, ry: rx, fill: "none" as const };
-    return (
-      <>
-        <rect {...shape} stroke={frame.color} strokeWidth={frame.sw + 10} strokeOpacity="0.4" />
-        <rect {...shape} stroke="#000" strokeWidth={frame.sw + 1.2} />
-        <rect {...shape} stroke={frame.color} strokeWidth={frame.sw}>{animate}</rect>
-      </>
-    );
-  }
+  const { x, y, w, h } = frame.rect;
   return (
-    <>
-      <polyline points={frame.points} fill="none" stroke={frame.color} strokeWidth={frame.sw + 10} strokeOpacity="0.4" strokeMiterlimit="10" />
-      <polyline points={frame.points} fill="none" stroke="#000" strokeWidth={frame.sw + 1.2} strokeMiterlimit="10" />
-      <polyline points={frame.points} fill="none" stroke={frame.color} strokeWidth={frame.sw} strokeMiterlimit="10">{animate}</polyline>
-    </>
+    <rect className="precedent-frame" x={x} y={y} width={w} height={h} rx={frame.radius} ry={frame.radius} stroke={frame.color}>
+      <animate
+        attributeName="stroke-opacity"
+        begin="indefinite"
+        dur={CYCLE}
+        repeatCount="indefinite"
+        calcMode="linear"
+        values={frame.values}
+        keyTimes={frame.bright}
+      />
+    </rect>
   );
 }
 
 export function PrecedentDiagram() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const haloId = useId().replace(/:/g, "");
 
   useEffect(() => {
     const root = rootRef.current;
@@ -253,12 +210,7 @@ export function PrecedentDiagram() {
       <svg className="home-precedent-tracks" viewBox="0 0 7407 2160" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <defs>
           {TRACKS.map((track) => (
-            <radialGradient key={track.id} id={`${haloId}-${track.id}`}>
-              <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
-              <stop offset="0.22" stopColor={track.color} stopOpacity="0.9" />
-              <stop offset="0.55" stopColor={track.color} stopOpacity="0.45" />
-              <stop offset="1" stopColor={track.color} stopOpacity="0" />
-            </radialGradient>
+            <WorkflowLightFilter key={track.id} id={`precedent-${track.id}-glow`} artboard />
           ))}
         </defs>
         {SEGMENTS.map((seg, index) => (
@@ -268,12 +220,21 @@ export function PrecedentDiagram() {
           <FrameShape key={frame.id} frame={frame} />
         ))}
         {TRACKS.map((track) => (
-          <g key={`${track.id}-node`} className="home-precedent-node" opacity="0">
-            <animate attributeName="opacity" begin="indefinite" dur={CYCLE} repeatCount="indefinite" calcMode="linear" values="0;0;1;1;0;0" keyTimes="0;0.04;0.1;0.9;0.97;1" />
-            <circle r="42" fill={`url(#${haloId}-${track.id})`} />
-            <circle r="8" fill="#ffffff" />
-            <animateMotion begin="indefinite" dur={CYCLE} repeatCount="indefinite" calcMode="spline" keyPoints={track.points} keyTimes={TIMES} keySplines={EASE} path={track.path} />
-          </g>
+          <WorkflowPathLight
+            key={track.id}
+            id={`precedent-${track.id}`}
+            color={track.color}
+            motion={{
+              path: track.path,
+              dur: CYCLE,
+              calcMode: "linear",
+              keyPoints: track.keyPoints,
+              keyTimes: LIGHT_TIMES,
+              opacityValues: "0;0;1;1;0;0",
+              opacityTimes: track.opacityTimes,
+              trailScale: WORKFLOW_TRACK_TAIL,
+            }}
+          />
         ))}
       </svg>
     </div>

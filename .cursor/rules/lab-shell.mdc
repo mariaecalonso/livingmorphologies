@@ -7,7 +7,7 @@ alwaysApply: true
 
 Skill labs live under `/lab/<name>`. Hybrid Connection is `/lab/hybrid`. `/hybrid` only redirects there.
 
-The stage bar (`components/stage-nav.tsx`, `components/stage-shell.tsx`) is the one header and footer. A lab screen does not add a second header, footer, or site navigation. Desktop and Presentation stay on that shell.
+The stage bar (`components/stage-nav.tsx`, `components/stage-shell.tsx`) is two rows and there is no footer. The first row is Living Morphologies and the desktop/presentation icon. The second row is the workspaces on the left and that workspace’s tabs on the right. The workspaces keep the bordered treatment. The tabs are smaller, with no box, so they do not compete with the workspaces. A lab screen does not add another page title, a header bar, a footer, or site navigation. A title sits inside its frame. Tools that belong to the work sit in the work. The Living Morphologies title returns to the website. The stage bar does not repeat Home, Overall Workflow, or Results. Desktop and Presentation stay on that shell as one icon: the laptop mark is desktop, the wide mark is presentation, and the click switches.
 
 Filament is the ink control inside each archetype. It is not a stage on the stage bar, and it stays off the presentation front end.
 

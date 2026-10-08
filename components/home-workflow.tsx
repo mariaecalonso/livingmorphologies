@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { WORKFLOW_CYCLE_MS, WORKFLOW_LIGHT } from "@/lib/home-workflow-camera";
+import { WorkflowLightCircles, WorkflowLightFilter } from "@/components/workflow-light";
 
 type Point = { x: number; y: number };
 type Phase = "analysis" | "shift" | "translation" | "output";
@@ -282,20 +284,19 @@ export function HomeWorkflow() {
         if (phase) group.dataset.phase = phase;
       }
       const head = pointOnRoute(route, amount);
-      const points = head
-        ? [head, earlierOnRoute(route, amount, 0.08), earlierOnRoute(route, amount, 0.16)]
-        : [null, null, null];
+      const last = WORKFLOW_LIGHT.radii.length - 1;
       const circles = group.querySelectorAll("circle");
       circles.forEach((circle, index) => {
-        const point = points[index];
+        const back = (WORKFLOW_LIGHT.trailMs[index] / WORKFLOW_CYCLE_MS) * count;
+        const point = head ? earlierOnRoute(route, amount, back) : null;
         if (!point) {
           circle.setAttribute("opacity", "0");
           return;
         }
         circle.setAttribute("cx", point.x.toFixed(1));
         circle.setAttribute("cy", point.y.toFixed(1));
-        circle.setAttribute("r", (scale * [0.42, 0.68, 1][index]).toFixed(2));
-        circle.setAttribute("opacity", ["0.18", "0.45", "1"][index]);
+        circle.setAttribute("r", (scale * (WORKFLOW_LIGHT.radii[index] / WORKFLOW_LIGHT.radii[last])).toFixed(2));
+        circle.setAttribute("opacity", String(WORKFLOW_LIGHT.opacity[index]));
       });
     };
 
@@ -437,13 +438,7 @@ export function HomeWorkflow() {
       <div className="home-workflow-net" ref={netRef}>
         <svg ref={svgRef} className="home-workflow-lines" width={size.w} height={size.h} aria-hidden="true">
           <defs>
-            <filter id="home-workflow-glow" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="2.2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
+            <WorkflowLightFilter id="home-workflow-glow" />
             <linearGradient id="home-workflow-shift" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
               <stop offset="100%" stopColor="#0f7377" />
@@ -461,10 +456,8 @@ export function HomeWorkflow() {
             />
           ))}
           {[0, 1, 2].map((index) => (
-            <g key={index} data-pulse={index} data-phase="analysis" className="home-workflow-pulse" filter="url(#home-workflow-glow)">
-              <circle className="trail-b" />
-              <circle className="trail-a" />
-              <circle className="head" />
+            <g key={index} data-pulse={index} data-phase="analysis" className="wf-proto-pulse" filter="url(#home-workflow-glow)">
+              <WorkflowLightCircles />
             </g>
           ))}
         </svg>

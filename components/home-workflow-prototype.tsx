@@ -3,24 +3,28 @@
 import Link from "next/link";
 import { GenerativeSystemTracks } from "@/components/home-generative-system";
 import { PrecedentDiagram } from "@/components/home-precedent";
+import { WorkflowLightCircles, WorkflowLightFilter } from "@/components/workflow-light";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import {
   WORKFLOW_BOARD_STOPS,
+  WORKFLOW_CARD,
+  WORKFLOW_LIGHT,
+  WORKFLOW_LINK,
   WORKFLOW_STAGES,
   WORKFLOW_WORLD,
   cardRect,
   frameCamera,
+  frameRadius,
+  frameRoute,
   glide,
   macroBounds,
   connectorPath,
+  OVERVIEW_FILL,
   macroCenterT,
-  macroNodeGeometry,
   macroPose,
   macroRouteDuration,
   mixCamera,
-  pointAlong,
-  spinePath,
   toScreen,
   workflowStage,
   type Camera,
@@ -28,8 +32,6 @@ import {
   type WorkflowTone,
 } from "@/lib/home-workflow-camera";
 
-const NODES = macroNodeGeometry();
-const MACRO_FILL = 0.92;
 const DETAIL_FILL = 0.98;
 const MOTION = { zoomIn: 1560, zoomOut: 1480, bridge: 3200 };
 
@@ -38,6 +40,8 @@ type Chrome = { id: string | null; settled: boolean };
 function reduced() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+export const WORKFLOW_OVERVIEW_EVENT = "lm-workflow-overview";
 
 export function HomeWorkflowPrototype() {
   const router = useRouter();
@@ -61,7 +65,6 @@ export function HomeWorkflowPrototype() {
     if (!stage || !world || !dot || !root) return;
 
     const circles = [...dot.querySelectorAll("circle")];
-    const clip = stage.querySelector<SVGRectElement>("[data-node-clip]");
     const cards = new Map<string, HTMLElement>();
     const spine = stage.querySelector<SVGElement>(".wf-proto-spine");
     const layer = stage.querySelector<HTMLElement>(".wf-board-layer");
@@ -69,8 +72,8 @@ export function HomeWorkflowPrototype() {
     const section = stage.closest<HTMLElement>("#workflow");
     const macroFace = section?.querySelector<HTMLElement>(".wf-heading-face.is-macro");
     const detailFace = section?.querySelector<HTMLElement>(".wf-heading-face.is-detail");
-    const indexEl = section?.querySelector<HTMLElement>("[data-wf-index]");
     const labelEl = section?.querySelector<HTMLElement>("[data-wf-label]");
+    const indexEl = section?.querySelector<HTMLElement>("[data-wf-index]");
     stage.querySelectorAll<HTMLElement>("[data-stage]").forEach((node) => {
       const id = node.dataset.stage;
       if (id) cards.set(id, node);
@@ -92,7 +95,7 @@ export function HomeWorkflowPrototype() {
     let alive = true;
 
     const viewSize = () => ({ w: stage.clientWidth, h: stage.clientHeight });
-    const macroCamera = () => frameCamera(viewSize().w, viewSize().h, macroBounds(), MACRO_FILL);
+    const macroCamera = () => frameCamera(viewSize().w, viewSize().h, macroBounds(), OVERVIEW_FILL);
     const detailCamera = (item: WorkflowStage) => frameCamera(viewSize().w, viewSize().h, cardRect(item), DETAIL_FILL);
     const stopAt = (id: string) => macroCenterT(id);
 
@@ -115,25 +118,32 @@ export function HomeWorkflowPrototype() {
       if (spine) spine.style.opacity = (busy ? frameOpacity : 1 - depth).toFixed(3);
       const pose = macroPose(macroT);
       cards.forEach((node, id) => {
-        const inside = pose.nodeId === id && pose.phase !== "connector";
-        node.classList.toggle("is-lit", !busy && inside && depth < 0.35);
-        node.classList.toggle("is-focus", !busy && inside && pose.phase === "center" && depth < 0.35);
+        const onFrame = pose.nodeId === id && pose.phase === "frame";
+        node.classList.toggle("is-lit", !busy && onFrame && depth < 0.35);
+        node.classList.toggle("is-focus", false);
         const shown = id === focusId ? 1 - depth * 0.35 : 1 - depth;
         node.style.opacity = (busy ? frameOpacity : shown).toFixed(3);
       });
-      const nameSize = Math.max(8, Math.min(15, cardRect(WORKFLOW_STAGES[0]).w * macroCamera().scale / 12));
       const stageBox = stage.getBoundingClientRect();
       const headBox = section?.querySelector("[data-wf-heading]")?.getBoundingClientRect();
-      const titleSize = labelEl ? parseFloat(getComputedStyle(labelEl).fontSize) : nameSize;
+      const titleSize = labelEl ? parseFloat(getComputedStyle(labelEl).fontSize) : 24;
+      const shell = root.closest<HTMLElement>(".site-shell");
+      const classroom = shell?.getAttribute("data-site-display") === "classroom";
+      const fitted = cardRect(WORKFLOW_STAGES[0]).w * macroCamera().scale / 12;
+      let nameSize = Math.max(8, Math.min(15, fitted, titleSize * 0.58));
+      if (classroom && shell) {
+        const frame = shell.clientHeight || stage.clientHeight;
+        nameSize = Math.min(frame * 0.014, titleSize * 0.476);
+      }
       const lift = focusId ? glide(depth) : 0;
-      stage.querySelectorAll<HTMLElement>("[data-floating-label]").forEach((label) => {
+      root.querySelectorAll<HTMLElement>("[data-floating-label]").forEach((label) => {
         const id = label.dataset.floatingLabel;
         const item = id ? workflowStage(id) : null;
         if (!item) return;
         const rect = cardRect(item);
         const local = toScreen({ x: rect.x, y: rect.y }, camera);
-        const cardX = stageBox.left + local.x;
-        const cardY = stageBox.top + local.y;
+        const cardX = local.x;
+        const cardY = local.y;
         const cardW = rect.w * camera.scale;
         const cardH = rect.h * camera.scale;
         const rise = id === focusId ? depth : 0;
@@ -141,15 +151,19 @@ export function HomeWorkflowPrototype() {
         const across = glide(Math.min(1, Math.max(0, (rise - 0.4) / 0.6)));
         const fromX = cardX;
         const fromY = cardY + Math.max(0, cardH - nameSize * 2.4);
-        const x = headBox ? fromX + (headBox.left - fromX) * across : fromX;
-        const y = headBox ? fromY + (headBox.top - fromY) * up : fromY;
+        const headX = headBox ? headBox.left - stageBox.left : fromX;
+        const headY = headBox ? headBox.top - stageBox.top : fromY;
+        const x = fromX + (headX - fromX) * across;
+        const y = fromY + (headY - fromY) * up;
         const rising = up > 0.12;
+        const onFrame = pose.nodeId === id && pose.phase === "frame";
         label.classList.toggle("is-rising", rising);
+        label.classList.toggle("is-lit", !busy && onFrame && depth < 0.35);
         label.style.width = rising ? "auto" : `${Math.max(0, cardW).toFixed(1)}px`;
         label.style.height = rising ? "auto" : `${Math.max(0, cardH).toFixed(1)}px`;
         label.style.transform = rising
           ? `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
-          : `translate(${cardX.toFixed(1)}px, ${(cardY + cardH).toFixed(1)}px) translateY(-100%)`;
+          : `translate(${cardX.toFixed(1)}px, ${cardY.toFixed(1)}px)`;
         label.style.fontSize = `${(nameSize + (titleSize - nameSize) * Math.min(1, rise)).toFixed(2)}px`;
         label.style.opacity = id === focusId ? "1" : (1 - lift).toFixed(3);
         label.querySelector(".wf-proto-index")?.classList.toggle("is-copper", item.order % 2 === 0);
@@ -161,9 +175,6 @@ export function HomeWorkflowPrototype() {
       if (controls) {
         controls.style.opacity = cover.toFixed(3);
         controls.style.pointerEvents = "none";
-        controls.querySelectorAll<HTMLElement>("button, a").forEach((control) => {
-          control.style.pointerEvents = settled && !control.hasAttribute("disabled") ? "auto" : "none";
-        });
       }
       if (macroFace) {
         const leave = settled ? 1 : glide(Math.min(1, Math.max(0, (depth - 0.08) / 0.34)));
@@ -175,39 +186,25 @@ export function HomeWorkflowPrototype() {
         detailFace.style.opacity = settled ? "1" : "0";
         detailFace.setAttribute("aria-hidden", settled ? "false" : "true");
       }
-      if (focus && indexEl && labelEl) {
+      if (focus && labelEl) labelEl.textContent = focus.label;
+      if (focus && indexEl) {
         indexEl.textContent = String(focus.order).padStart(2, "0");
-        labelEl.textContent = focus.label;
         indexEl.classList.toggle("is-copper", focus.order % 2 === 0);
       }
 
       const trailSpan = 1 / Math.max(1, macroRouteDuration());
-      const samples = [180, 90, 0].map((ms) => macroPose(Math.max(0, macroT - ms * trailSpan)));
-      const boost = pose.phase === "center" ? 1.28 : pose.phase === "inside" ? 1.12 : 1;
+      const samples = WORKFLOW_LIGHT.trailMs.map((ms) => macroPose(Math.min(1, Math.max(0, macroT - ms * trailSpan * idleDir))));
+      const boost = pose.phase === "frame" ? 1.12 : 1;
       dot.style.opacity = busy ? "0" : (1 - depth).toFixed(3);
       dot.dataset.tone = focus && depth > 0.45 ? focus.tone : toneAt(macroT);
       dot.dataset.phase = pose.phase;
-      if (clip) {
-        const frame = pose.nodeId ? NODES.find((node) => node.id === pose.nodeId) : null;
-        if (frame && pose.phase !== "connector") {
-          const pad = 3.5;
-          const origin = toScreen({ x: frame.center.x - frame.width / 2, y: frame.center.y - frame.height / 2 }, camera);
-          clip.setAttribute("x", (origin.x - pad).toFixed(2));
-          clip.setAttribute("y", (origin.y - pad).toFixed(2));
-          clip.setAttribute("width", (frame.width * camera.scale + pad * 2).toFixed(2));
-          clip.setAttribute("height", (frame.height * camera.scale + pad * 2).toFixed(2));
-          clip.setAttribute("rx", (frame.radius * camera.scale + pad).toFixed(2));
-          dot.setAttribute("clip-path", "url(#wf-node-clip)");
-        } else {
-          dot.removeAttribute("clip-path");
-        }
-      }
+      dot.removeAttribute("clip-path");
       circles.forEach((circle, index) => {
         const at = toScreen(samples[index].point, camera);
         circle.setAttribute("cx", at.x.toFixed(1));
         circle.setAttribute("cy", at.y.toFixed(1));
-        circle.setAttribute("r", ([2.1, 3.3, 4.6][index] * boost).toFixed(2));
-        circle.setAttribute("opacity", ["0.2", "0.48", "1"][index]);
+        circle.setAttribute("r", (WORKFLOW_LIGHT.radii[index] * boost).toFixed(2));
+        circle.setAttribute("opacity", String(WORKFLOW_LIGHT.opacity[index]));
       });
     };
 
@@ -304,7 +301,8 @@ export function HomeWorkflowPrototype() {
     };
 
     const overview = async () => {
-      if (busy || !focusId) return;
+      if (!focusId) return;
+      motion += 1;
       const ticket = motion;
       const id = focusId;
       busy = true;
@@ -374,14 +372,15 @@ export function HomeWorkflowPrototype() {
       open,
       overview,
       next: () => {
+        if (busy) return;
         const item = focusId ? workflowStage(focusId) : null;
-        if (item?.next && settled) void travel(item.next);
+        if (item?.next) void travel(item.next);
       },
       previous: () => {
         if (busy) return;
         const item = focusId ? workflowStage(focusId) : null;
-        if (item?.previous && settled) void travel(item.previous);
-        else if (settled && focusId) void overview();
+        if (item?.previous) void travel(item.previous);
+        else if (focusId) void overview();
       },
       advance: () => {
         if (busy) return;
@@ -396,14 +395,6 @@ export function HomeWorkflowPrototype() {
         }
       },
     };
-
-    const onSectionClick = (event: globalThis.MouseEvent) => {
-      if (!visible) return;
-      const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest("a, button, input, textarea, select")) return;
-      api.current?.advance();
-    };
-    section?.addEventListener("click", onSectionClick);
 
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat || !visible || !presentation()) return;
@@ -425,6 +416,10 @@ export function HomeWorkflowPrototype() {
       }
     };
     window.addEventListener("keydown", onKey);
+    const onOverviewRequest = () => {
+      void overview();
+    };
+    window.addEventListener(WORKFLOW_OVERVIEW_EVENT, onOverviewRequest);
 
     const loop = (now: number) => {
       if (!alive) return;
@@ -485,8 +480,8 @@ export function HomeWorkflowPrototype() {
 
     return () => {
       alive = false;
-      section?.removeEventListener("click", onSectionClick);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener(WORKFLOW_OVERVIEW_EVENT, onOverviewRequest);
       cancelAnimationFrame(frame);
       observer.disconnect();
       intersection?.disconnect();
@@ -510,19 +505,24 @@ export function HomeWorkflowPrototype() {
             style={{ width: WORKFLOW_WORLD.width, height: WORKFLOW_WORLD.height }}
           >
             <svg className="wf-proto-spine" viewBox={`0 0 ${WORKFLOW_WORLD.width} ${WORKFLOW_WORLD.height}`} aria-hidden="true">
+              <defs>
+                <linearGradient id="wf-spine-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={WORKFLOW_WORLD.width} y2="0">
+                  <stop offset="0%" stopColor={WORKFLOW_LINK.from} />
+                  <stop offset="100%" stopColor={WORKFLOW_LINK.to} />
+                </linearGradient>
+              </defs>
               <path d={connectorPath()} />
             </svg>
             {WORKFLOW_STAGES.map((stage) => {
               const rect = cardRect(stage);
-              const node = NODES.find((item) => item.id === stage.id);
               return (
                 <button
                   key={stage.id}
                   type="button"
-                  className="wf-proto-card"
+                  className="wf-proto-card wf-frame"
                   data-stage={stage.id}
                   data-tone={stage.tone}
-                  style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: node?.radius }}
+                  style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: WORKFLOW_CARD.radius }}
                   onClick={() => api.current?.open(stage.id)}
                 >
                   <span className={stage.order % 2 === 0 ? "wf-proto-index is-copper" : "wf-proto-index"}>{String(stage.order).padStart(2, "0")}</span>
@@ -531,31 +531,12 @@ export function HomeWorkflowPrototype() {
               );
             })}
           </div>
-          <div className="wf-proto-labels" aria-hidden="true">
-            {WORKFLOW_STAGES.map((stage) => (
-              <span key={stage.id} className="wf-floating-label" data-floating-label={stage.id} data-tone={stage.tone}>
-                <span className={stage.order % 2 === 0 ? "wf-proto-index is-copper" : "wf-proto-index"}>{String(stage.order).padStart(2, "0")}</span>
-                <span className="wf-proto-label">{stage.label}</span>
-              </span>
-            ))}
-          </div>
           <svg className="wf-proto-dot" aria-hidden="true">
             <defs>
-              <clipPath id="wf-node-clip">
-                <rect data-node-clip="true" />
-              </clipPath>
-              <filter id="wf-proto-glow" x="-120%" y="-120%" width="340%" height="340%">
-                <feGaussianBlur stdDeviation="1.6" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
+              <WorkflowLightFilter id="wf-proto-glow" />
             </defs>
             <g ref={dotRef} className="wf-proto-pulse" data-tone="neutral" filter="url(#wf-proto-glow)">
-              <circle className="trail-b" />
-              <circle className="trail-a" />
-              <circle className="head" />
+              <WorkflowLightCircles />
             </g>
           </svg>
         </div>
@@ -573,9 +554,9 @@ export function HomeWorkflowPrototype() {
           <button
             type="button"
             className="wf-proto-arrow is-prev"
-            aria-label="Previous workflow"
+            aria-label={active?.previous ? "Previous workflow" : "Zoom out to overview"}
             onClick={() => api.current?.previous()}
-            disabled={!chrome.settled || !active?.previous}
+            disabled={!chrome.settled || !active}
           >
             <span aria-hidden="true">←</span>
           </button>
@@ -592,14 +573,6 @@ export function HomeWorkflowPrototype() {
                   <span aria-hidden="true">→</span>
                 </Link>
               ))}
-              {active.id === "recombination" ? (
-                <Link className="home-explore wf-board-lab" href="/lab" onClick={(event) => enterLab(router, event, "/lab")}>
-                  <span>Enter Lab</span>
-                  <span className="home-explore-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </Link>
-              ) : null}
             </div>
           ) : null}
           {active?.next ? (
@@ -614,6 +587,14 @@ export function HomeWorkflowPrototype() {
             </button>
           ) : null}
         </div>
+      </div>
+      <div className="wf-proto-labels" aria-hidden="true">
+        {WORKFLOW_STAGES.map((stage) => (
+          <span key={stage.id} className="wf-floating-label" data-floating-label={stage.id} data-tone={stage.tone}>
+            <span className={stage.order % 2 === 0 ? "wf-proto-index is-copper" : "wf-proto-index"}>{String(stage.order).padStart(2, "0")}</span>
+            <span className="wf-proto-label">{stage.label}</span>
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -657,35 +638,78 @@ function enterLab(router: { push: (href: string) => void }, event: MouseEvent<HT
 function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   const dotRef = useRef<SVGGElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const linked = stage.id !== "decomposition" && !stage.detailAsset;
 
   useEffect(() => {
     const dot = dotRef.current;
     const board = boardRef.current;
-    if (!dot || !board || !run) return;
-    const circles = [...dot.querySelectorAll("circle")];
+    const path = pathRef.current;
+    if (!linked || !board || !path) return;
+    const circles = [...(dot?.querySelectorAll("circle") ?? [])];
+    const svg = path.ownerSVGElement;
+    const dotSvg = dot?.ownerSVGElement ?? null;
+    const gradient = svg?.querySelector("linearGradient");
+    let route: ReturnType<typeof frameRoute> | null = null;
+    let litId: string | null = null;
     let t = 0;
     let dir = 1;
+    let duration = 16000;
     let frame = 0;
     let last = performance.now();
     let alive = true;
-    const paint = () => {
+    const measure = () => {
       const width = board.clientWidth;
       const height = board.clientHeight;
-      const backs = [0.08, 0.04, 0].map((offset) => pointAlong(WORKFLOW_BOARD_STOPS, Math.max(0, t - offset)));
-      circles.forEach((circle, index) => {
-        const point = backs[index];
-        circle.setAttribute("cx", (point.x * width).toFixed(1));
-        circle.setAttribute("cy", (point.y * height).toFixed(1));
-        circle.setAttribute("r", ["2.2", "3.4", "4.8"][index]);
-        circle.setAttribute("opacity", ["0.22", "0.5", "1"][index]);
+      if (width < 2 || height < 2) return;
+      const box = board.getBoundingClientRect();
+      const frames = [...board.querySelectorAll<HTMLElement>(".wf-frame")].map((node) => {
+        const rect = node.getBoundingClientRect();
+        const radius = frameRadius(rect.width, rect.height);
+        node.style.borderRadius = `${radius}px`;
+        return {
+          id: node.dataset.frame ?? "",
+          center: { x: rect.left - box.left + rect.width / 2, y: rect.top - box.top + rect.height / 2 },
+          width: rect.width,
+          height: rect.height,
+          radius,
+        };
+      });
+      if (frames.length < 2) {
+        route = null;
+        return;
+      }
+      route = frameRoute(frames);
+      duration = route.duration;
+      const view = `0 0 ${width} ${height}`;
+      svg?.setAttribute("viewBox", view);
+      dotSvg?.setAttribute("viewBox", view);
+      gradient?.setAttribute("x2", String(width));
+      path.setAttribute("d", route.path);
+    };
+    const place = () => {
+      if (!route) return;
+      const pose = route.pose(t);
+      const nextLit = pose.phase === "frame" ? pose.nodeId : null;
+      if (nextLit !== litId) {
+        board.querySelectorAll<HTMLElement>(".wf-frame.is-lit").forEach((node) => node.classList.remove("is-lit"));
+        if (nextLit) board.querySelector(`[data-frame="${nextLit}"]`)?.classList.add("is-lit");
+        litId = nextLit;
+      }
+      WORKFLOW_LIGHT.trailMs.forEach((ms, index) => {
+        const circle = circles[index];
+        if (!circle) return;
+        const point = route!.pose(Math.min(1, Math.max(0, t - (ms / duration) * dir))).point;
+        circle.setAttribute("cx", point.x.toFixed(2));
+        circle.setAttribute("cy", point.y.toFixed(2));
       });
     };
     const loop = (now: number) => {
       if (!alive) return;
       const dt = Math.min(48, now - last);
       last = now;
-      if (!reduced()) {
-        t += (dt / 9000) * dir;
+      if (!reduced() && run && route) {
+        t += (dt / duration) * dir;
         if (t >= 1) {
           t = 1;
           dir = -1;
@@ -694,19 +718,23 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           dir = 1;
         }
       }
-      paint();
+      place();
       frame = requestAnimationFrame(loop);
     };
-    paint();
+    measure();
+    place();
     frame = requestAnimationFrame(loop);
-    const observer = new ResizeObserver(paint);
+    const observer = new ResizeObserver(() => {
+      measure();
+      place();
+    });
     observer.observe(board);
     return () => {
       alive = false;
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [run, stage.id]);
+  }, [linked, run, stage.id]);
 
   return (
     <article className="wf-board" data-tone={stage.tone} ref={boardRef} aria-label={stage.label}>
@@ -719,30 +747,34 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
         </>
       ) : (
         <>
-          <svg className="wf-board-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <path d={spinePath(WORKFLOW_BOARD_STOPS.map((stop) => ({ x: stop.x * 100, y: stop.y * 100 })))} />
+          <svg className="wf-board-path" aria-hidden="true">
+            <defs>
+              <linearGradient id="wf-board-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={WORKFLOW_LINK.from} />
+                <stop offset="100%" stopColor={WORKFLOW_LINK.to} />
+              </linearGradient>
+            </defs>
+            <path ref={pathRef} />
           </svg>
           {WORKFLOW_BOARD_STOPS.map((stop, stopIndex) => (
-            <span key={`${stage.id}-${stopIndex}`} style={{ left: `${stop.x * 100}%`, top: `${stop.y * 100}%` }} />
+            <span
+              key={`${stage.id}-${stopIndex}`}
+              className="wf-frame"
+              data-frame={String(stopIndex)}
+              data-tone={stage.tone}
+              style={{ left: `${stop.x * 100}%`, top: `${stop.y * 100}%` }}
+            />
           ))}
         </>
       )}
-      {stage.detailAsset || stage.id === "decomposition" ? null : <svg className="wf-board-dot" aria-hidden="true" style={{ opacity: run ? 1 : 0 }}>
+      {linked ? <svg className="wf-board-dot" aria-hidden="true" style={{ opacity: run ? 1 : 0 }}>
         <defs>
-          <filter id="wf-board-glow" x="-120%" y="-120%" width="340%" height="340%">
-            <feGaussianBlur stdDeviation="1.6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          <WorkflowLightFilter id="wf-board-glow" />
         </defs>
         <g ref={dotRef} className="wf-proto-pulse" data-tone={stage.tone} filter="url(#wf-board-glow)">
-          <circle className="trail-b" />
-          <circle className="trail-a" />
-          <circle className="head" />
+          <WorkflowLightCircles />
         </g>
-      </svg>}
+      </svg> : null}
     </article>
   );
 }

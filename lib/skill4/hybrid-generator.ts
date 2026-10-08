@@ -1,59 +1,35 @@
+import type { IsoMesh } from "../scan/isomesh";
 import type { ReadyModule } from "./adapt";
 import type { HybridCandidate } from "./candidate-field";
 import type { FaceFrame, FaceId } from "./contract";
 import type { FaceObservation } from "./face-sample";
+import { extractFaceProfile } from "./face-profile";
+import { correspondProfiles } from "./profile-correspondence";
+import { loftProfiles } from "./profile-loft";
 
 /**
  * Skill 04 connector contract.
- * Continuous candidate DNA stays here. It is not passed to translateArchetype,
- * not rounded to catalog rankings, and not run through the Skills 01–03 simulation.
+ * Continuous candidate DNA stays on the request. It is not passed to translateArchetype
+ * and is not rounded to catalog rankings. It deforms only the intermediate loft rings.
  *
- * The hybrid is a volumetric transition tile with its own depth. It is not a sheet
- * on the shared registration plane, and it is not limited to cells occupied on both sides.
+ * Geometry is a new open IsoMesh: extract a cross-section on each selected face,
+ * correspond the largest closed loops, then loft between those reconstructed profiles.
+ * Both faces use the same provisional section depth. Source meshes are not rewritten.
+ * Centroid face samples remain request context. They do not decide the cross-section.
  *
- * Interface extraction, not yet executed:
- * IsoMesh is a triangle surface. The 8×8 centroid grid only observes whether samples
- * fell in the face slab. It does not trace an attachment boundary. The fit for these
- * meshes is a cross-section: intersect each triangle with a plane parallel to the
- * selected face and chain the cut segments into polylines in that face's u/v frame.
- * Triangle clipping against a thick slab would leave surface fragments, not a closed
- * profile. The section depth is unresolved and is not given a default here.
- *
- * Correspondence and volume, not yet executed:
- * Each profile stays in its own face frame, then both are placed in one connector frame.
- * Different profiles are kept. Correspondence is by normalized u/v, including regions
- * present on only one side. A new IsoMesh would loft those profiles across the connector
- * depth. The source position buffers are not rewritten.
- * If both sections are empty, attachment is unsupported and no volume is emitted.
- * If only one section exists, that side is reported disconnected. Continuity is not claimed.
- *
- * Candidate DNA controls, once a depth is chosen:
- * The candidate column sets t from A to B. Along connector depth s, the loft weight is
- * t at the middle and the end sections stay on their source profiles.
- * The candidate row offset scales the intermediate section away from straight u/v
- * correspondence, by at most one quarter of the face extent. Shared catalog ratings
- * do not move the loft. One-sided ratings do not invent a profile for the other module.
- *
- * Placement, unresolved:
- * The envelopes touch, so a connector with depth does not fit in the gap.
- * Tiles are not moved. The open policy is an overlap: the connector occupies a finite
- * depth inside each module's own envelope, measured from the selected face, without
- * editing that module. The depth must be an explicit registration-lattice distance.
- * It is null until chosen. In a 2×2 assembly the same policy applies independently to
- * A-B, A-C, B-D, and C-D. A gap policy would separate every pair and is not assumed.
- *
- * The provisional mocks do not support this. Their selected east and west slabs contain
- * no centroids, so no cross-section is available. Suitable tests need separate Skill 04
- * fixtures whose triangles cross a known section plane. Those fixtures must not replace
- * the provisional mocks.
+ * Placement is still unresolved. connectorDepth stays null, and tiles are not moved.
+ * The loft span is the distance between the two section centers.
  */
 export const HYBRID_GENERATOR_SETTINGS = {
   version: "skill4-hybrid-generator-v1",
   seed: 1,
-  geometry: "pending",
+  geometry: "profile-loft",
   extraction: "cross-section",
   placement: "overlap-pending-depth",
   connectorDepth: null,
+  sectionDepth: 0.15,
+  profileSamples: 16,
+  loftSteps: 5,
 } as const;
 
 export type CatalogDna = {
@@ -76,10 +52,14 @@ export type HybridGeneratorRequest = {
   settings: typeof HYBRID_GENERATOR_SETTINGS;
 };
 
+export type HybridGeneratorStatus = "ready" | "blocked" | "invalid" | "empty";
+
 export type HybridGeneratorResult = {
-  status: "pending" | "blocked";
-  geometry: null;
+  status: HybridGeneratorStatus;
+  geometry: IsoMesh | null;
   candidateId: string | null;
+  vertexCount: number;
+  triangleCount: number;
   reason: string;
 };
 
@@ -96,34 +76,78 @@ export function catalogDna(module: ReadyModule): CatalogDna {
   return { archetypeId: module.identity.archetypeId, ratings };
 }
 
-function blocked(reason: string): HybridGeneratorResult {
-  return { status: "blocked", geometry: null, candidateId: null, reason };
+function failed(request: HybridGeneratorRequest, status: Exclude<HybridGeneratorStatus, "ready">, reason: string): HybridGeneratorResult {
+  return {
+    status,
+    geometry: null,
+    candidateId: request.candidate?.id ?? null,
+    vertexCount: 0,
+    triangleCount: 0,
+    reason,
+  };
+}
+
+function settingsMatch(settings: HybridGeneratorRequest["settings"]) {
+  return settings.version === HYBRID_GENERATOR_SETTINGS.version
+    && settings.geometry === HYBRID_GENERATOR_SETTINGS.geometry
+    && settings.sectionDepth === HYBRID_GENERATOR_SETTINGS.sectionDepth
+    && settings.profileSamples === HYBRID_GENERATOR_SETTINGS.profileSamples
+    && settings.loftSteps === HYBRID_GENERATOR_SETTINGS.loftSteps
+    && settings.connectorDepth === HYBRID_GENERATOR_SETTINGS.connectorDepth;
 }
 
 export const pendingHybridGenerator: HybridGenerator = {
   settings: HYBRID_GENERATOR_SETTINGS,
   generate(request) {
-    if (request.settings.version !== HYBRID_GENERATOR_SETTINGS.version || request.settings.geometry !== "pending") {
-      return blocked("The generator settings do not match skill4-hybrid-generator-v1.");
+    if (!settingsMatch(request.settings)) {
+      return failed(request, "invalid", "The generator settings do not match skill4-hybrid-generator-v1.");
+    }
+    const { sectionDepth, profileSamples, loftSteps } = request.settings;
+    if (!Number.isFinite(sectionDepth) || sectionDepth < 0 || !Number.isInteger(profileSamples) || profileSamples < 3 || !Number.isInteger(loftSteps) || loftSteps < 2) {
+      return failed(request, "invalid", "The section depth, sample count, or loft steps are not usable.");
     }
     if (request.moduleA.geometry.triangles < 1 || request.moduleB.geometry.triangles < 1) {
-      return blocked("One or both adapted modules have no mesh. Connector geometry was not created.");
+      return failed(request, "blocked", "One or both adapted modules have no mesh. Connector geometry was not created.");
     }
-    const empty = [request.observationA, request.observationB].filter((observation) => observation.status !== "occupied");
-    if (empty.length) {
-      const names = empty.map((observation) => `${observation.face} ${observation.status}`).join(", ");
-      return {
-        status: "pending",
-        geometry: null,
-        candidateId: request.candidate.id,
-        reason: `Connector geometry remains pending. No attachment cross-section is available (${names}). The centroid grid is not an attachment boundary, and no transition volume is emitted.`,
-      };
+
+    const profileA = extractFaceProfile(request.moduleA.geometry, request.frameA, sectionDepth);
+    const profileB = extractFaceProfile(request.moduleB.geometry, request.frameB, sectionDepth);
+    const profiles = [profileA, profileB];
+    if (profiles.some((profile) => profile.status === "invalid")) {
+      const faces = profiles.filter((profile) => profile.status === "invalid").map((profile) => profile.face ?? "unknown");
+      return failed(request, "invalid", `Face profile ${faces.join(" and ")} is invalid. No connector was created.`);
     }
+    if (profiles.some((profile) => profile.status !== "ready")) {
+      const faces = profiles.filter((profile) => profile.status !== "ready").map((profile) => profile.face ?? "unknown");
+      return failed(request, "empty", `Face profile ${faces.join(" and ")} has no cross-section. No connector was created.`);
+    }
+
+    const correspondence = correspondProfiles(profileA, profileB, profileSamples);
+    if (correspondence.status !== "ready") {
+      return failed(request, correspondence.status, correspondence.reason || "Profile correspondence did not produce a connector.");
+    }
+
+    const loft = loftProfiles({
+      correspondence,
+      frameA: request.frameA,
+      frameB: request.frameB,
+      depthA: sectionDepth,
+      depthB: sectionDepth,
+      steps: loftSteps,
+      deformation: request.candidate,
+    });
+    if (loft.status !== "ready" || !loft.geometry) {
+      const status = loft.status === "ready" ? "blocked" : loft.status;
+      return failed(request, status, loft.reason || "The loft did not produce a connector.");
+    }
+
     return {
-      status: "pending",
-      geometry: null,
+      status: "ready",
+      geometry: loft.geometry,
       candidateId: request.candidate.id,
-      reason: "Face samples exist, but attachment still requires cross-section profiles. Connector depth is unresolved, so no transition volume is emitted.",
+      vertexCount: loft.vertexCount,
+      triangleCount: loft.triangleCount,
+      reason: "",
     };
   },
 };

@@ -8,8 +8,8 @@ import type { BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnap
  * One continuous deep plate (low plate articulation). The straight half is a
  * different figure in every cell: two rooms, a deep slot, a corridor, a side
  * bar, a core, rings, a cross, a court, a notch, a T, a jog, a comb, an end
- * slab, a perimeter, unequal rooms. The other half stays curved. Walls are a
- * hair body, the same ink as terraced and undulated.
+ * slab, a perimeter, unequal rooms. The other half stays curved. Every wall
+ * keeps its ends and bows, the same way terraced members leave the straight line.
  */
 export const FLAT_DEEP_TRAIL_SCALE = 24;
 export const FLAT_DEEP_RUN_ITERATIONS = 160;
@@ -955,10 +955,38 @@ export function attractorsFromFlatDeep(plan: FlatDeepPlan): FieldAttractor[] {
         });
         continue;
       }
-      marks.push({ kind: "line", x, y, x2, y2, radius: 0.4, strength: 1 });
+      marks.push(...bowWall(x, y, x2, y2, plan.index * 13 + n));
     }
   });
   return marks;
+}
+
+/** Same bow as terraced: the ends stay, the wall leaves the straight line. */
+function bowWall(x0: number, y0: number, x1: number, y1: number, salt: number): FieldAttractor[] {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.85) return [{ kind: "line", x: x0, y: y0, x2: x1, y2: y1, radius: 0.4, strength: 1 }];
+  const nx = -dy / len;
+  const ny = dx / len;
+  const steps = Math.max(12, Math.round(len * 2.8));
+  const turns = 1.15 + (salt % 3) * 0.35;
+  const phase = salt * 0.37;
+  const reach = 0.62 * Math.min(1.45, len * 0.2);
+  const pieces: FieldAttractor[] = [];
+  let px = x0;
+  let py = y0;
+  for (let step = 1; step <= steps; step += 1) {
+    const t = step / steps;
+    const envelope = Math.sin(Math.PI * t) ** 0.55;
+    const off = Math.sin(phase + t * Math.PI * 2 * turns) * envelope * reach;
+    const x = x0 + dx * t + nx * off;
+    const y = y0 + dy * t + ny * off;
+    pieces.push({ kind: "line", x: px, y: py, x2: x, y2: y, radius: 0.4, strength: 1 });
+    px = x;
+    py = y;
+  }
+  return pieces;
 }
 
 function foodFrom(marks: FieldAttractor[]) {

@@ -4,8 +4,13 @@ import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 
+import { labWorkspace } from "@/lib/site-map";
+
+const workspace = labWorkspace("vertical");
+const tab = workspace.tabs[1];
+
 export const metadata = {
-  title: "3D Catalogue -+ Living Morphologies",
+  title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,
 };
 
 export const dynamic = "force-dynamic";
