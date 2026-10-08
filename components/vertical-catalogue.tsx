@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import savedPicks from "@/data/skill2/pareto-catalog/selections.json";
 import { CatalogueField, type CatalogueModule } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
@@ -50,6 +51,12 @@ function joinSet(body: ApiSet): NaturalContinuationSet {
 
 function archetypesFor(typologyId: string) {
   return Object.values(ARCHETYPES).filter((item) => item.typologyId === typologyId);
+}
+
+function canonicalCandidateId(archetypeId: string) {
+  const pick = (savedPicks as Record<string, { candidateId?: number }>)[archetypeId];
+  const candidateId = pick?.candidateId;
+  return Number.isInteger(candidateId) && candidateId != null && candidateId >= 1 ? candidateId : null;
 }
 
 function selectionFor(archetypeId: string) {
@@ -188,41 +195,67 @@ function PlaceholderDetail({
 export function VerticalCatalogue({
   initial,
   candidate,
+  requestedArchetypeId = null,
 }: {
   initial: NaturalContinuationSet | null;
   candidate: CandidateRequest | null;
+  requestedArchetypeId?: string | null;
 }) {
   const search = useSearchParams();
+  const searchString = search.toString();
+  const router = useRouter();
   const preview = search.get("preview") === "1";
+  const requestedArchetype = requestedArchetypeId
+    ? Object.values(ARCHETYPES).find((item) => item.id === requestedArchetypeId) ?? null
+    : null;
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(initial == null && candidate != null);
+  const [pending, setPending] = useState(initial == null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState(false);
   const [storedChoice, setStoredChoice] = useState<SelectedSkill3Morphology | null>(null);
   const [triangles, setTriangles] = useState<Record<string, number>>({});
   const [viewReset, setViewReset] = useState(0);
-  const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
-  const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || "continuous-hall");
+  const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || requestedArchetype?.typologyId || "lobby");
+  const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || requestedArchetype?.id || "continuous-hall");
   const alignedSelection = useRef(false);
+  const loadedKey = useRef<string | null>(initial ? `${initial.archetypeId}:${initial.candidateId}` : null);
 
   useEffect(() => {
-    if (initial || candidate || alignedSelection.current) return;
+    if (initial || candidate || requestedArchetypeId || alignedSelection.current) return;
     alignedSelection.current = true;
     const activeId = readActiveArchetype();
     const selected = activeId ? selectionFor(activeId) : undefined;
     if (!selected) return;
     setTypologyId(selected.typologyId);
     setArchetypeId(selected.archetypeId);
-  }, [candidate, initial]);
+  }, [candidate, initial, requestedArchetypeId]);
 
   useEffect(() => {
     if (initial) return;
-    const fromProp = candidate?.archetypeId === archetypeId ? candidate.candidateId : null;
-    const storedId = selectionFor(archetypeId)?.candidateId ?? null;
-    const candidateId = fromProp ?? storedId;
-    if (!candidateId) return;
+    const fromQuery = candidate?.archetypeId === archetypeId ? candidate.candidateId : null;
+    const fromSession = fromQuery == null ? selectionFor(archetypeId)?.candidateId ?? null : null;
+    const candidateId = fromQuery ?? fromSession ?? canonicalCandidateId(archetypeId);
+    const key = `${preview ? "preview" : "verified"}:${archetypeId}:${candidateId ?? ""}`;
+    if (loadedKey.current === key || loadedKey.current === `miss:${key}`) return;
     const controller = new AbortController();
+    const replaceQuery = (nextCandidateId: number | null) => {
+      const params = new URLSearchParams(searchString);
+      params.set("archetype", archetypeId);
+      if (nextCandidateId == null) params.delete("candidate");
+      else params.set("candidate", String(nextCandidateId));
+      const next = params.toString();
+      if (next === searchString) return;
+      router.replace(next ? `/lab/vertical/catalogue?${next}` : "/lab/vertical/catalogue", { scroll: false });
+    };
+    if (candidateId == null) {
+      loadedKey.current = `miss:${key}`;
+      setSet(null);
+      setPending(false);
+      setError(null);
+      replaceQuery(null);
+      return;
+    }
     const params = new URLSearchParams({
       archetype: archetypeId,
       candidate: String(candidateId),
@@ -233,10 +266,18 @@ export function VerticalCatalogue({
     setError(null);
     void fetch(`/api/vertical?${params}`, { signal: controller.signal })
       .then(async (response) => {
-        if (response.status === 404) return;
+        if (controller.signal.aborted) return;
+        if (response.status === 404) {
+          loadedKey.current = `miss:${key}`;
+          setSet(null);
+          replaceQuery(fromQuery == null && fromSession == null ? null : candidateId);
+          return;
+        }
         const body = (await response.json()) as ApiSet & { error?: string };
         if (!response.ok) throw new Error(body.error ?? "The continuation bundle is not loaded.");
-        if (!controller.signal.aborted) setSet(joinSet(body));
+        loadedKey.current = `${preview ? "preview" : "verified"}:${archetypeId}:${body.candidateId}`;
+        setSet(joinSet(body));
+        replaceQuery(body.candidateId);
       })
       .catch((caught) => {
         if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
@@ -246,7 +287,7 @@ export function VerticalCatalogue({
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [archetypeId, candidate, initial, preview]);
+  }, [archetypeId, candidate, initial, preview, router, searchString]);
 
   useEffect(() => {
     if (!set) return;
