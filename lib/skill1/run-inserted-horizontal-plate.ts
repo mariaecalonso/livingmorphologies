@@ -7,31 +7,29 @@ import type { FieldAttractor } from "./types";
  * Inserted Horizontal Plate — Modular Nodes, Visually Disturbed Nodes,
  * Distributed Retreat.
  *
- * An open field holds two to six horizontal plate-zones. Each plate is several
- * faint trails that bend, split, and return, so the zone stays horizontal
- * without becoming a ruled bar. Narrow paths connect the plates or reach into
- * the empty field. Organizations change the relationship: dominant, scattered,
- * staggered, cascading, one-sided, clustered, broken, or overlapping.
- * Diffusion stays off.
+ * An open field holds two to six horizontal plate-zones. Each plate is a
+ * Physarum network — a wavy spine, a vein that splits and returns, and short
+ * forks — so it reads as a horizontal element without becoming a painted bar.
+ * Narrow paths connect the plates or reach into the empty field. Organizations
+ * change the relationship: dominant, scattered, staggered, cascading,
+ * one-sided, clustered, broken, or overlapping. Each plate is a woven band of
+ * fine trails, and short paths tie the plates into one spatial body. The stroke
+ * stays the Contained Room width; density comes from more trails, not a thicker pen.
  */
 
-export const IHP_TRAIL_SCALE = 24;
-export const IHP_RUN_ITERATIONS = 96;
+export const IHP_TRAIL_SCALE = 16;
+export const IHP_RUN_ITERATIONS = 320;
 export const IHP_STEP_BUDGET_MS = 18000;
 
 const EDGE = 1.4;
 const lim = (value: number) => Math.min(FIELD_SIZE - EDGE, Math.max(EDGE, value));
 
-export const PLATE_ORGS = ["dominant", "distributed", "stagger", "cascade", "retreat", "cluster", "fragment", "overlap"] as const;
-type Org = (typeof PLATE_ORGS)[number];
-/** Arrangements of one organization. Index 0–99 uses 0 through 12. */
-export const PLATE_VARIANTS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] as const;
+const ORGS = ["dominant", "distributed", "stagger", "cascade", "retreat", "cluster", "fragment", "overlap"] as const;
+type Org = (typeof ORGS)[number];
 
 export type InsertedPlatePlan = {
   index: number;
   seed: number;
-  org: Org;
-  variant: string;
 };
 
 type Line = { x: number; y: number; x2: number; y2: number };
@@ -97,7 +95,7 @@ function resample(points: Pt[], spacing: number): Pt[] {
 }
 
 function soften(points: Pt[]): Pt[] {
-  return resample(chaikin(chaikin(points)), 0.8);
+  return resample(chaikin(points), 1.15);
 }
 
 function bandAt(x0: number, length: number, y: number, thick: number, tilt: number, wave: number): Band {
@@ -112,32 +110,66 @@ function place(band: Band, lx: number, ly: number): Pt {
   return { x: cx + lx * c - ly * s, y: band.y + lx * s + ly * c };
 }
 
+function along(lines: Line[], band: Band, yAt: (t: number) => number, t0: number, t1: number, amp: number, phase: number) {
+  const len = Math.max(2.6, band.x1 - band.x0);
+  const half = len / 2;
+  const points: Pt[] = [];
+  const steps = 6;
+  for (let i = 0; i <= steps; i += 1) {
+    const u = i / steps;
+    const t = t0 + (t1 - t0) * u;
+    const lx = -half + len * t;
+    const ly = yAt(t) + Math.sin(phase + t * Math.PI * 1.7) * amp;
+    points.push(place(band, lx, ly));
+  }
+  stroke(lines, soften(points));
+}
+
+/** A horizontal plate: a band of fine veins, cross-linked so it reads as one body. */
 function drawBand(lines: Line[], band: Band, rng: () => number) {
   const len = Math.max(2.6, band.x1 - band.x0);
-  const trails = 8;
-  const amp = Math.max(0.32, band.thick * 0.32);
-  for (let row = 0; row < trails; row += 1) {
-    const phase = band.wave * 0.8 + row * 1.17;
-    const turns = 1.3 + (row % 3) * 0.55;
-    const reach = amp * (0.55 + (row % 4) * 0.14);
-    const trim = len * (0.02 + rng() * 0.04);
-    const steps = Math.max(28, Math.round(len * 3.6));
-    const points: Pt[] = [];
-    for (let i = 0; i <= steps; i += 1) {
-      const t = i / steps;
-      const lx = -len / 2 + trim + (len - trim * 2) * t;
-      const wave = Math.sin(phase + t * Math.PI * 2 * turns) * reach;
-      const drift = Math.sin(phase * 0.6 + t * Math.PI * (turns + 1)) * reach * 0.38;
-      points.push(place(band, lx, wave + drift));
-    }
-    stroke(lines, soften(points));
-    const at = points[Math.min(points.length - 1, 5 + (row % 4) * 2)];
-    const back = points[Math.min(points.length - 1, 12 + (row % 3) * 2)];
-    if (!at || !back) continue;
-    const lift = (row % 2 === 0 ? 1 : -1) * (1.25 + rng() * 0.7);
-    const away = { x: (at.x + back.x) / 2 + lift * 0.35, y: (at.y + back.y) / 2 + lift };
-    vein(lines, at, away, lift);
-    vein(lines, away, back, -lift * 0.7);
+  const half = len / 2;
+  const veins = 5;
+  const gap = 0.28 + rng() * 0.08;
+  const bow = (rng() - 0.5) * 0.28;
+  const lane = (row: number, t: number) => (row - (veins - 1) / 2) * gap + Math.sin(t * Math.PI) * bow;
+  for (let row = 0; row < veins; row += 1) {
+    const edge = row === 0 || row === veins - 1;
+    const base = (row - (veins - 1) / 2) * gap;
+    const t0 = edge ? rng() * 0.04 : 0.02 + rng() * 0.08;
+    const t1 = edge ? 0.96 + rng() * 0.04 : 0.86 + rng() * 0.12;
+    const amp = edge ? 0.1 + rng() * 0.06 : 0.035 + rng() * 0.03;
+    along(
+      lines,
+      band,
+      (t) => base + Math.sin(t * Math.PI) * bow + Math.sin(band.wave + row + t * Math.PI * (edge ? 2.2 : 1.2)) * amp,
+      t0,
+      Math.min(0.99, t1),
+      0.02,
+      band.wave + row,
+    );
+  }
+  const bridges = 5 + Math.floor(rng() * 3);
+  for (let i = 0; i < bridges; i += 1) {
+    const t = 0.1 + ((i + 0.35) / bridges) * 0.8;
+    const row = i % (veins - 1);
+    const lx = -half + len * t;
+    vein(
+      lines,
+      place(band, lx, lane(row, t)),
+      place(band, lx + (rng() - 0.5) * 0.4, lane(row + 1, t)),
+      (rng() - 0.5) * 0.16,
+    );
+  }
+  const forks = 3 + Math.floor(rng() * 2);
+  for (let i = 0; i < forks; i += 1) {
+    const t = 0.18 + rng() * 0.64;
+    const row = Math.floor(rng() * veins);
+    const ly = (row - (veins - 1) / 2) * gap + Math.sin(t * Math.PI) * bow;
+    const lx = -half + len * t;
+    const dir = row < veins / 2 ? -1 : 1;
+    const reach = 0.28 + rng() * 0.45;
+    vein(lines, place(band, lx, ly), place(band, lx + (rng() - 0.5) * 0.5, ly + dir * reach), (rng() - 0.5) * 0.3);
   }
 }
 
@@ -165,7 +197,7 @@ function lengthsFor(count: number, turn: number) {
 function spreadY(bands: Band[]) {
   const ordered = [...bands].sort((a, b) => a.y - b.y);
   for (let i = 1; i < ordered.length; i += 1) {
-    const need = Math.max(ordered[i - 1].thick, ordered[i].thick) + 2.4;
+    const need = (ordered[i - 1].thick + ordered[i].thick) / 2 + 1.25;
     if (Math.abs(ordered[i].y - ordered[i - 1].y) < need && Math.abs(ordered[i].y - ordered[i - 1].y) > 0.35) {
       ordered[i] = { ...ordered[i], y: ordered[i - 1].y + need };
     }
@@ -177,10 +209,12 @@ function spreadY(bands: Band[]) {
   return ordered;
 }
 
-function compose(org: Org, variant: number): { org: Org; bands: Band[]; open: "left" | "right" | "below" | "above" } {
+function compose(index: number): { org: Org; bands: Band[]; open: "left" | "right" | "below" | "above" } {
+  const org = ORGS[index % ORGS.length];
+  const variant = Math.floor(index / ORGS.length);
   const flip = variant % 2 === 1;
   const count = org === "fragment" ? 2 + (variant % 2) : 2 + ((variant * 3 + 1) % 5);
-  const lens = lengthsFor(Math.max(count, 4), variant + PLATE_ORGS.indexOf(org) + variant * PLATE_ORGS.length);
+  const lens = lengthsFor(Math.max(count, 4), variant + index);
   const thick = 1.35 + (variant % 3) * 0.12;
   const tiltFor = (i: number) => (variant % 3 === 1 && i === count - 1 ? 0.1 * (flip ? -1 : 1) : i === 1 && variant % 4 === 0 ? 0.07 : 0);
   const bands: Band[] = [];
@@ -291,29 +325,34 @@ function compose(org: Org, variant: number): { org: Org; bands: Band[]; open: "l
 }
 
 function connect(lines: Line[], bands: Band[], index: number, open: "left" | "right" | "below" | "above") {
-  const mode = index % 4;
   const ordered = [...bands].sort((a, b) => a.y - b.y);
-  if (mode !== 0) {
-    for (let i = 0; i < ordered.length - 1; i += 1) {
-      if (mode === 1 && i % 2 === 1) continue;
-      const top = ordered[i];
-      const bot = ordered[i + 1];
-      const from = { x: top.x0 + (top.x1 - top.x0) * (0.3 + (i % 3) * 0.2), y: top.y + top.thick / 2 };
-      const to = { x: bot.x0 + (bot.x1 - bot.x0) * (0.7 - (i % 2) * 0.25), y: bot.y - bot.thick / 2 };
-      if (Math.hypot(to.x - from.x, to.y - from.y) < 1.2) continue;
-      vein(lines, from, to, (index % 2 === 0 ? 1 : -1) * (0.6 + (i % 2) * 0.4));
+  const bend = index % 2 === 0 ? 1 : -1;
+  for (let i = 0; i < ordered.length - 1; i += 1) {
+    const top = ordered[i];
+    const bot = ordered[i + 1];
+    for (let k = 0; k < 2; k += 1) {
+      const u = 0.22 + k * 0.48 + (i % 2) * 0.05;
+      const v = 0.74 - k * 0.4 - (i % 2) * 0.04;
+      const from = { x: top.x0 + (top.x1 - top.x0) * u, y: top.y };
+      const to = { x: bot.x0 + (bot.x1 - bot.x0) * v, y: bot.y };
+      const span = Math.hypot(to.x - from.x, to.y - from.y);
+      if (span < 0.9 || span > 6.4) continue;
+      vein(lines, from, to, bend * (0.32 + k * 0.22));
     }
   }
   const host = ordered[index % ordered.length];
   if (!host) return;
   const fromEnd = open === "left" || (open === "above" && index % 2 === 0);
-  const origin = { x: fromEnd ? host.x0 + 0.3 : host.x1 - 0.3, y: host.y };
-  const reach = open === "left" ? { x: origin.x - 2.8, y: origin.y + 1.6 } : open === "right" ? { x: origin.x + 2.8, y: origin.y - 1.4 } : open === "above" ? { x: origin.x + 1.2, y: origin.y - 2.6 } : { x: origin.x - 1.1, y: origin.y + 2.6 };
-  vein(lines, origin, reach, 0.8);
-  if (ordered.length > 2 && index % 3 === 0) {
-    const other = ordered[(index + 2) % ordered.length];
-    vein(lines, { x: host.x1, y: host.y }, { x: other.x0, y: other.y }, -1.1);
-  }
+  const origin = { x: fromEnd ? host.x0 + 0.4 : host.x1 - 0.4, y: host.y };
+  const reach =
+    open === "left"
+      ? { x: origin.x - 1.6, y: origin.y + 0.7 }
+      : open === "right"
+        ? { x: origin.x + 1.6, y: origin.y - 0.6 }
+        : open === "above"
+          ? { x: origin.x + 0.5, y: origin.y - 1.5 }
+          : { x: origin.x - 0.4, y: origin.y + 1.5 };
+  vein(lines, origin, reach, 0.35);
 }
 
 function fit(bands: Band[]) {
@@ -326,35 +365,19 @@ function fit(bands: Band[]) {
   return bands.map((band) => ({ ...band, y: lim(lo + (band.y - min) * scale) }));
 }
 
-function plateFigure(plan: InsertedPlatePlan) {
-  const org = (PLATE_ORGS as readonly string[]).includes(plan.org) ? plan.org : PLATE_ORGS[plan.index % PLATE_ORGS.length];
-  const variant = (PLATE_VARIANTS as readonly string[]).includes(String(plan.variant))
-    ? Number(plan.variant)
-    : Math.floor(plan.index / PLATE_ORGS.length);
-  const slot = PLATE_ORGS.indexOf(org) + variant * PLATE_ORGS.length;
-  return { org, variant, slot };
-}
-
 function sectionLines(plan: InsertedPlatePlan): Line[] {
-  const figure = plateFigure(plan);
-  const composed = compose(figure.org, figure.variant);
+  const composed = compose(plan.index);
   composed.bands = fit(composed.bands);
   const rng = mulberry32((plan.seed ^ Math.imul(plan.index + 1, 0x9e3779b9)) >>> 0);
   const lines: Line[] = [];
   for (const band of composed.bands) drawBand(lines, band, rng);
-  connect(lines, composed.bands, figure.slot, composed.open);
-  return lines.slice(0, 640);
+  connect(lines, composed.bands, plan.index, composed.open);
+  return lines.slice(0, 420);
 }
 
 export function planInsertedHorizontalPlate(seed: number, attempt = 0, index = 0): InsertedPlatePlan {
   const slot = ((index % 100) + 100) % 100;
-  const variant = Math.floor(slot / PLATE_ORGS.length);
-  return {
-    index: slot,
-    seed: (seed ^ Math.imul(attempt + 1, 0x85ebca6b) ^ slot) >>> 0,
-    org: PLATE_ORGS[slot % PLATE_ORGS.length],
-    variant: String(variant),
-  };
+  return { index: slot, seed: (seed ^ Math.imul(attempt + 1, 0x85ebca6b) ^ slot) >>> 0 };
 }
 
 export function linesFromInsertedPlate(plan: InsertedPlatePlan): Line[] {
@@ -378,20 +401,20 @@ export function tuneInsertedPlateSlime(slime: SlimeControls, plan: InsertedPlate
   const span = (min: number, max: number) => min + rng() * (max - min);
   return {
     ...slime,
-    sensorAngle: span(0.42, 0.66),
-    sensorDistance: span(0.4, 0.72),
-    turnAngle: span(0.18, 0.36),
-    stepSize: span(0.12, 0.16),
-    deposit: 0.016,
-    depositWidth: 0.14,
+    sensorAngle: span(0.06, 0.16),
+    sensorDistance: span(0.32, 0.52),
+    turnAngle: span(0.08, 0.18),
+    stepSize: span(0.14, 0.22),
+    deposit: span(0.058, 0.07),
+    depositWidth: 0.2,
     diffusion: 0,
-    decay: 0.998,
-    trailInfluence: span(0.22, 0.36),
-    resistance: 0,
-    randomness: span(0.12, 0.22),
-    persistence: span(0.3, 0.42),
-    trailCap: 0.36,
-    crowdingLimit: 5,
+    decay: 0.996,
+    trailInfluence: span(1.25, 1.7),
+    resistance: span(0.01, 0.05),
+    randomness: span(0.04, 0.1),
+    persistence: span(0.82, 0.93),
+    trailCap: 1,
+    crowdingLimit: 24,
     foodPoints: [],
     voidElongation: 1,
     voidRotation: 0,
@@ -400,12 +423,13 @@ export function tuneInsertedPlateSlime(slime: SlimeControls, plan: InsertedPlate
   };
 }
 
-export function insertedPlateAgentCount(_plan: InsertedPlatePlan) {
-  return 110;
+export function insertedPlateAgentCount(plan: InsertedPlatePlan) {
+  const lines = linesFromInsertedPlate(plan).length;
+  return Math.max(156, Math.min(200, 120 + Math.round(Math.min(lines, 320) * 0.22)));
 }
 
 export function insertedPlateSignature(plan: InsertedPlatePlan): number[] {
   const lines = linesFromInsertedPlate(plan);
   const heights = lines.filter((line) => Math.abs(line.y2 - line.y) < 0.45).map((line) => Math.round(((line.y + line.y2) / 2) * 2));
-  return [PLATE_ORGS.indexOf(plan.org), Number(plan.variant), lines.length, ...heights.slice(0, 12)];
+  return [plan.index % ORGS.length, lines.length, ...heights.slice(0, 12)];
 }

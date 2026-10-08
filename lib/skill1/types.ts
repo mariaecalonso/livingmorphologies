@@ -150,6 +150,8 @@ export type SpatialRecipe = {
    * Terraces are the level sets agents prefer while depositing.
    */
   saField?: SteppedGrowthField;
+  /** Linear Edge Gallery only. How far the white particle halo may sit from the figure. */
+  edgeReach?: number;
 };
 
 export type SteppedGrowthField = {
@@ -257,11 +259,6 @@ export type SimulationState = {
   permeabilityField: number[];
   occupancy: number[];
   trails: number[];
-  /**
-   * Peak deposit before decay. The preview reads this only when the live trail
-   * has faded below a readable coverage. Scores keep using `trails`.
-   */
-  displayTrails?: Float32Array;
   flow: number[];
   agents: SimAgent[];
 };

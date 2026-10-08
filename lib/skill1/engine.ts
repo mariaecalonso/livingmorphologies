@@ -20,7 +20,6 @@ import {
   steerSteppedAmphitheater,
 } from "./run-stepped-amphitheater";
 import { voidRadius, type SlimeControls } from "./slime-controls";
-import { HAIR_CAP, HAIR_DECAY, HAIR_DEPOSIT, HAIR_WIDTH } from "./hair-ink";
 import type {
   BiologicalTranslation,
   FieldAttractor,
@@ -34,9 +33,6 @@ const TWO_PI = Math.PI * 2;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-
-/** A deposit stays a trail. A wider disc reads as a blur instead of a Physarum path. */
-const TRAIL_RADIUS = 3;
 
 function fineTrail(archetypeId: string) {
   return (
@@ -387,9 +383,9 @@ function isGroundCorridor(item: FieldAttractor) {
 function nearestContainedField(point: Point, translation: BiologicalTranslation) {
   const list = translation.recipe.attractors;
   if (!list?.length) return null;
-  let best: { d: number; px: number; py: number } | null = null;
+  let best: { d: number; px: number; py: number; strength: number } | null = null;
   for (const item of list) {
-    if (item.hole || item.kind === "ring") continue;
+    if (item.hole || item.kind === "ring" || (item.strength ?? 1) <= 0.05) continue;
     let px = item.x;
     let py = item.y;
     if (item.kind === "curve") {
@@ -402,65 +398,24 @@ function nearestContainedField(point: Point, translation: BiologicalTranslation)
       py = on.y;
     }
     const d = Math.hypot(point.x - px, point.y - py);
-    if (!best || d < best.d) best = { d, px, py };
-  }
-  return best;
-}
-
-const FLAT_DEEP_BODY = 1.15;
-
-function nearestFlatDeep(point: Point, translation: BiologicalTranslation) {
-  const list = translation.recipe.attractors;
-  if (!list?.length) return null;
-  let best: { d: number; px: number; py: number; ax: number; ay: number; bx: number; by: number } | null = null;
-  for (const item of list) {
-    let px = item.x;
-    let py = item.y;
-    let ax = item.x;
-    let ay = item.y;
-    let bx = item.x2 ?? item.x;
-    let by = item.y2 ?? item.y;
-    if (item.kind === "curve") {
-      const on = nearestOnCurve(point, item);
-      px = on.x;
-      py = on.y;
-      const ahead = pointOnCurve(item, 1);
-      bx = ahead.x;
-      by = ahead.y;
-    } else if (item.x2 != null) {
-      const on = nearestOnLine(point, item);
-      px = on.x;
-      py = on.y;
-    }
-    const d = Math.hypot(point.x - px, point.y - py);
-    if (!best || d < best.d) best = { d, px, py, ax, ay, bx, by };
+    if (!best || d < best.d) best = { d, px, py, strength: item.strength ?? 0.4 };
   }
   return best;
 }
 
 function onFlatDeepWall(point: Point, translation: BiologicalTranslation) {
-  const near = nearestFlatDeep(point, translation);
-  return !!near && near.d <= FLAT_DEEP_BODY;
-}
-
-/** Keep the plate as a hair body. Do not lock a heading onto the wall line. */
-function guideFlatDeep(
-  agent: { x: number; y: number; heading: number },
-  translation: BiologicalTranslation,
-) {
-  const near = nearestFlatDeep(agent, translation);
-  if (!near || near.d < 0.55) return;
-  const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
-  const forward =
-    angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
-  const onto = Math.atan2(near.py - agent.y, near.px - agent.x);
-  const pull = near.d > FLAT_DEEP_BODY ? 0.5 : 0.1;
-  agent.heading = wrapAngle(agent.heading * (1 - pull) + (forward * 0.7 + onto * 0.3) * pull);
-  if (near.d > FLAT_DEEP_BODY) {
-    const keep = FLAT_DEEP_BODY / near.d;
-    agent.x = near.px + (agent.x - near.px) * keep;
-    agent.y = near.py + (agent.y - near.py) * keep;
+  const list = translation.recipe.attractors;
+  if (!list?.length) return false;
+  for (const item of list) {
+    const d =
+      item.kind === "curve"
+        ? dist(point, nearestOnCurve(point, item))
+        : item.x2 == null
+          ? Math.hypot(point.x - item.x, point.y - item.y)
+          : distanceToSegment(point.x, point.y, item.x, item.y, item.x2, item.y2 ?? item.y);
+    if (d <= 0.34) return true;
   }
+  return false;
 }
 
 function tgfKeepsPads(translation: BiologicalTranslation) {
@@ -468,18 +423,6 @@ function tgfKeepsPads(translation: BiologicalTranslation) {
   const list = translation.recipe.attractors;
   if (!list?.length) return false;
   return !list.some((item) => item.hole === true || item.kind === "ring");
-}
-
-function nearestGroundPad(point: Point, translation: BiologicalTranslation) {
-  const list = translation.recipe.attractors;
-  if (!list?.length) return null;
-  let best: { d: number; x: number; y: number; radius: number } | null = null;
-  for (const item of list) {
-    if (!isGroundDisk(item)) continue;
-    const d = Math.hypot(point.x - item.x, point.y - item.y);
-    if (!best || d < best.d) best = { d, x: item.x, y: item.y, radius: Math.max(1.4, item.radius ?? 1.8) };
-  }
-  return best;
 }
 
 function insideGroundMass(point: Point, translation: BiologicalTranslation) {
@@ -508,65 +451,22 @@ function polarVoidRadius(item: FieldAttractor, point: Point, slime?: SlimeContro
   return voidRadius(Math.atan2(point.y - item.y, point.x - item.x), base, slime);
 }
 
-function fringedVoid(archetypeId: string) {
-  return archetypeId === "void-edge" || archetypeId === "linear-edge-gallery";
-}
-
-function verticalVoidReach(angle: number, base: number) {
-  const lump = 0.72 + 0.06 * Math.sin(angle * 1.45 + 0.4) + 0.04 * Math.sin(angle * 2.25 + 1.3);
-  return base * lump;
-}
-
-function fringeReach(angle: number, base: number) {
-  const lump = 0.46 + 0.07 * Math.sin(angle * 1.35 + 0.4) + 0.05 * Math.sin(angle * 2.15 + 1.6);
-  return base * lump;
-}
-
-function emptyReach(archetypeId: string, angle: number, base: number) {
-  if (archetypeId === "void-edge") {
-    const lump = 0.96 + 0.02 * Math.sin(angle * 1.7 + 0.3);
-    return base * lump;
-  }
-  if (archetypeId === "linear-edge-gallery") {
-    const lump = 0.9 + 0.04 * Math.sin(angle * 1.55 + 0.2) + 0.03 * Math.sin(angle * 2.35 + 1.1);
-    return base * lump;
-  }
-  return fringeReach(angle, base);
-}
-
 function insideAttractorHole(point: Point, translation: BiologicalTranslation, slime?: SlimeControls) {
   const list = translation.recipe.attractors;
   if (!list) return false;
-  if (translation.archetypeId === "vertical-void") return false;
-  const fringed = fringedVoid(translation.archetypeId);
-  const core = fringed ? 1 : 0.58;
   for (const item of list) {
     if (isVoidCorridor(item)) {
       const radial =
         item.kind === "curve"
           ? dist(point, nearestOnCurve(point, item))
           : distanceToSegment(point.x, point.y, item.x, item.y, item.x2 ?? item.x, item.y2 ?? item.y);
-      const along =
-        item.kind === "curve"
-          ? Math.atan2(point.y - (item.cy ?? item.y), point.x - (item.cx ?? item.x))
-          : Math.atan2((item.y2 ?? item.y) - item.y, (item.x2 ?? item.x) - item.x);
-      const limit = fringed
-        ? emptyReach(translation.archetypeId, along + radial * 4, Math.max(0.55, item.radius ?? 1.2))
-        : Math.max(0.55, item.radius ?? 1.2) * core;
-      if (radial < limit) return true;
+      if (radial < Math.max(0.55, item.radius ?? 1.2)) return true;
       continue;
     }
     if (!isVoidDisk(item)) continue;
     const radius = polarVoidRadius(item, point, slime);
     if (radius <= 0) continue;
-    const angle = Math.atan2(point.y - item.y, point.x - item.x);
-    const limit =
-      translation.archetypeId === "vertical-void"
-        ? verticalVoidReach(angle, radius)
-        : fringed
-          ? emptyReach(translation.archetypeId, angle, radius)
-          : radius * core;
-    if (Math.hypot(point.x - item.x, point.y - item.y) < limit) return true;
+    if (Math.hypot(point.x - item.x, point.y - item.y) < radius) return true;
   }
   return false;
 }
@@ -673,6 +573,7 @@ function eraseTrailsInsideCircles(
   slime?: SlimeControls,
 ) {
   if (tgfKeepsPads(translation)) {
+    eraseTrailsOutsideGround(trails, trailSize, fieldSize, translation);
     return;
   }
   const list = translation.recipe.attractors;
@@ -721,27 +622,7 @@ function keepOutsideCircles(
       const angle = Math.atan2(agent.y - item.y, agent.x - item.x);
       const radius = polarVoidRadius(item, agent, slime);
       const endDist = Math.hypot(agent.x - item.x, agent.y - item.y);
-      if (endDist >= radius + 0.02 && translation.archetypeId !== "vertical-void") continue;
-      if (translation.archetypeId === "vertical-void") {
-        const limit = verticalVoidReach(angle, radius);
-        if (endDist >= limit) continue;
-        const wobble = 0.5 + 0.5 * Math.sin(angle * 2.7 + item.x);
-        const out = limit + 0.2 + wobble * 0.95;
-        agent.x = clamp(item.x + Math.cos(angle) * out, 0.18, size - 0.18);
-        agent.y = clamp(item.y + Math.sin(angle) * out, 0.18, size - 0.18);
-        continue;
-      }
-      if (fringedVoid(translation.archetypeId)) {
-        const limit = emptyReach(translation.archetypeId, angle, radius);
-        if (endDist >= limit) continue;
-        const wobble = 0.5 + 0.5 * Math.sin(angle * 2.4 + item.y);
-        const edge = translation.archetypeId === "linear-edge-gallery";
-        const exit = edge ? angle + Math.sin(agent.x * 11.3 + agent.y * 6.7) * 0.55 : angle;
-        const out = edge ? limit + 0.55 + wobble * 1.15 : limit + 0.08 + wobble * 0.22;
-        agent.x = clamp(item.x + Math.cos(exit) * out, 0.18, size - 0.18);
-        agent.y = clamp(item.y + Math.sin(exit) * out, 0.18, size - 0.18);
-        continue;
-      }
+      if (endDist >= radius + 0.02) continue;
       const fromAngle = Math.atan2(fromY - item.y, fromX - item.x);
       const out = radius + 0.04;
       agent.x = clamp(item.x + Math.cos(endDist > 0.001 ? angle : fromAngle) * out, 0.18, size - 0.18);
@@ -826,7 +707,7 @@ function sense(
   const resistance = sampleResistance(look, state.size, slime?.resistance ?? 0);
   return (
     trail * trailFollow * influence +
-    (translation.archetypeId === "continuous-hall" ? 0 : attraction * pull) +
+    attraction * pull +
     extraFood +
     params.permeability * 0.03 +
     alignment * params.directionalBias -
@@ -855,7 +736,6 @@ function nearestUndulated(agent: Point, translation: BiologicalTranslation) {
   let by = 0;
   let px = 0;
   let py = 0;
-  let tip = false;
   for (const mark of marks) {
     if (mark.x2 == null) continue;
     const x2 = mark.x2;
@@ -875,11 +755,10 @@ function nearestUndulated(agent: Point, translation: BiologicalTranslation) {
       by = y2;
       px = qx;
       py = qy;
-      tip = mark.cover === 1;
     }
   }
   if (!Number.isFinite(bestD)) return null;
-  return { d: bestD, ax, ay, bx, by, px, py, tip };
+  return { d: bestD, ax, ay, bx, by, px, py };
 }
 
 function nearestVoidCirculation(agent: Point, translation: BiologicalTranslation) {
@@ -917,7 +796,137 @@ function nearestVoidCirculation(agent: Point, translation: BiologicalTranslation
   return { d: bestD, ax, ay, bx, by, px, py };
 }
 
-/** Walk a drafted line. Inserted horizontal plate still uses this. */
+function nearestGalleryCurve(
+  agent: { x: number; y: number; heading: number },
+  translation: BiologicalTranslation,
+) {
+  const marks = translation.recipe.attractors;
+  if (!marks?.length) return null;
+  let best: {
+    x: number;
+    y: number;
+    d: number;
+    heading: number;
+    radius: number;
+  } | null = null;
+  let bestScore = Infinity;
+  for (const mark of marks) {
+    if ((mark.kind !== "curve" && mark.kind !== "line") || mark.hole) continue;
+    let onX = mark.x;
+    let onY = mark.y;
+    let ax = mark.x;
+    let ay = mark.y;
+    let bx = mark.x2 ?? mark.x;
+    let by = mark.y2 ?? mark.y;
+    let atT = 0.5;
+    if (mark.kind === "line") {
+      const abx = bx - ax;
+      const aby = by - ay;
+      const len2 = abx * abx + aby * aby || 1;
+      atT = Math.max(0, Math.min(1, ((agent.x - ax) * abx + (agent.y - ay) * aby) / len2));
+      onX = ax + abx * atT;
+      onY = ay + aby * atT;
+    }
+    if (mark.kind === "curve") {
+      let bestT = 0;
+      let bestD = Infinity;
+      for (let step = 0; step <= 16; step += 1) {
+        const point = pointOnCurve(mark, step / 16);
+        const d = Math.hypot(agent.x - point.x, agent.y - point.y);
+        if (d < bestD) {
+          bestD = d;
+          bestT = step / 16;
+          onX = point.x;
+          onY = point.y;
+        }
+      }
+      const ahead = pointOnCurve(mark, Math.min(1, bestT + 0.1));
+      const behind = pointOnCurve(mark, Math.max(0, bestT - 0.1));
+      ax = behind.x;
+      ay = behind.y;
+      bx = ahead.x;
+      by = ahead.y;
+      atT = bestT;
+    }
+    const d = Math.hypot(agent.x - onX, agent.y - onY);
+    const score = d - (mark.strength ?? 1) * 0.08;
+    if (score >= bestScore) continue;
+    const forward = Math.atan2(by - ay, bx - ax);
+    const back = forward + Math.PI;
+    let heading = angleDelta(forward, agent.heading) <= angleDelta(back, agent.heading) ? forward : back;
+    if (translation.archetypeId === "linear-edge-gallery") {
+      const along = Math.atan2((mark.y2 ?? mark.y) - mark.y, (mark.x2 ?? mark.x) - mark.x);
+      const goingForward = angleDelta(heading, along) < Math.PI / 2;
+      if ((atT < 0.08 && !goingForward) || (atT > 0.92 && goingForward)) heading += Math.PI;
+    } else {
+      const leavingLeft = onX < 2.5 && Math.cos(heading) < 0;
+      const leavingRight = onX > FIELD_SIZE - 2.5 && Math.cos(heading) > 0;
+      if (leavingLeft || leavingRight) heading += Math.PI;
+    }
+    bestScore = score;
+    best = {
+      x: onX,
+      y: onY,
+      d,
+      heading,
+      radius: mark.radius ?? 0.35,
+    };
+  }
+  return best;
+}
+
+/** Keep Linear Gallery agents walking the spine and its attached branches. */
+function holdLinearGallery(
+  agent: { x: number; y: number; heading: number },
+  translation: BiologicalTranslation,
+) {
+  const near = nearestGalleryCurve(agent, translation);
+  if (!near) return null;
+  const band = translation.archetypeId === "linear-edge-gallery"
+    ? Math.max(0.16, near.radius * 0.75)
+    : Math.max(0.16, near.radius * 0.92);
+  if (near.d > band) {
+    const keep = band / near.d;
+    agent.x = near.x + (agent.x - near.x) * keep;
+    agent.y = near.y + (agent.y - near.y) * keep;
+  }
+  agent.heading = near.heading;
+  return { d: Math.hypot(agent.x - near.x, agent.y - near.y), band };
+}
+
+/** Thin white particles orbit the edge figure without painting over its solid core. */
+function driftEdgeHalo(
+  agent: { x: number; y: number; heading: number },
+  translation: BiologicalTranslation,
+) {
+  const near = nearestGalleryCurve(agent, translation);
+  if (!near) return null;
+  const outer = Math.max(1.6, translation.recipe.edgeReach ?? 2.15);
+  if (near.d > outer) {
+    const keep = outer / near.d;
+    agent.x = near.x + (agent.x - near.x) * keep;
+    agent.y = near.y + (agent.y - near.y) * keep;
+  }
+  const nx = near.d > 0.02 ? (agent.x - near.x) / near.d : 0;
+  const ny = near.d > 0.02 ? (agent.y - near.y) / near.d : 1;
+  let lateral = Math.sin(agent.x * 1.7 + agent.y * 0.85) * 0.5;
+  if (near.d < 0.36) lateral += 0.9;
+  else if (near.d > outer * 0.82) lateral -= 0.32;
+  agent.heading = Math.atan2(Math.sin(near.heading) + ny * lateral, Math.cos(near.heading) + nx * lateral);
+  return { d: Math.hypot(agent.x - near.x, agent.y - near.y), band: outer };
+}
+
+function steerGallery(
+  agent: { x: number; y: number; heading: number; trailStrength: number },
+  translation: BiologicalTranslation,
+) {
+  if (translation.archetypeId === "linear-edge-gallery" && agent.trailStrength < 0.5) {
+    return driftEdgeHalo(agent, translation);
+  }
+  return holdLinearGallery(agent, translation);
+}
+
+/** Walk the wall so the ink stays a drafted line. */
 function followUndulated(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
   const near = nearestUndulated(agent, translation);
   if (!near) return;
@@ -929,53 +938,14 @@ function followUndulated(agent: { x: number; y: number; heading: number }, trans
   agent.heading = wrapAngle(forward * (1 - lateral) + onto * lateral);
 }
 
-const PLATE_BODY = 0.95;
-const UNDULATED_PATH = 2.35;
-
-function guidePlate(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
+/** Fold sensed heading toward the plate so the colony travels along it and still branches. */
+function lingerOnInsertedPlate(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
   const near = nearestUndulated(agent, translation);
   if (!near) return;
   const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
-  const len2 = (near.bx - near.ax) ** 2 + (near.by - near.ay) ** 2 || 1;
-  const along = ((agent.x - near.ax) * (near.bx - near.ax) + (agent.y - near.ay) * (near.by - near.ay)) / len2;
-  const forward =
-    along > 0.9 ? tangent + Math.PI : along < 0.1 ? tangent : angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
-  const weight = near.d > PLATE_BODY ? 0.64 : 0.86;
-  agent.heading = wrapAngle(agent.heading * (1 - weight) + forward * weight);
-}
-function guideUndulated(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
-  const near = nearestUndulated(agent, translation);
-  if (!near || near.d < 0.9) return;
-  const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
   const forward =
     angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
-  const onto = Math.atan2(near.py - agent.y, near.px - agent.x);
-  const pull = near.d > UNDULATED_PATH ? 0.48 : 0.16;
-  agent.heading = wrapAngle(agent.heading * (1 - pull) + (forward * 0.7 + onto * 0.3) * pull);
-}
-
-const HALL_OUTER = 1.65;
-
-function hallContact(agent: Point, translation: BiologicalTranslation) {
-  const near = nearestUndulated(agent, translation);
-  if (!near) return null;
-  const abx = near.bx - near.ax;
-  const aby = near.by - near.ay;
-  const len2 = abx * abx + aby * aby || 1;
-  const along = ((agent.x - near.ax) * abx + (agent.y - near.ay) * aby) / len2;
-  return { ...near, along };
-}
-
-/** Keep hairs from leaving the field of the two halls. Do not seat them on an edge. */
-function guideHall(agent: { x: number; y: number; heading: number }, translation: BiologicalTranslation) {
-  const near = hallContact(agent, translation);
-  if (!near || near.d <= 2.8) return;
-  let dx = agent.x - near.px;
-  let dy = agent.y - near.py;
-  const distFrom = Math.hypot(dx, dy) || 1;
-  const pull = Math.min(0.12, near.d - 2.8);
-  agent.x -= (dx / distFrom) * pull;
-  agent.y -= (dy / distFrom) * pull;
+  agent.heading = wrapAngle(agent.heading * 0.16 + forward * 0.84);
 }
 
 const TERRACE_PLATE = 0.34;
@@ -1049,32 +1019,42 @@ function nearestTerraced(agent: Point, translation: BiologicalTranslation) {
   return found;
 }
 
-const TERRACE_BODY = 1.7;
-
 function holdTerraced(
   agent: { x: number; y: number; heading: number },
   translation: BiologicalTranslation,
-  _slime?: SlimeControls,
+  slime?: SlimeControls,
 ) {
   const near = nearestTerraced(agent, translation);
-  if (!near || near.d < 0.55) return;
+  if (!near) return;
+  const band = near.plate ? 0.18 : 0.1;
+  if (near.d > band) {
+    const scale = band / near.d;
+    agent.x = near.px + (agent.x - near.px) * scale;
+    agent.y = near.py + (agent.y - near.py) * scale;
+  }
   const tangent = Math.atan2(near.by - near.ay, near.bx - near.ax);
   const forward =
     angleDelta(tangent, agent.heading) <= angleDelta(tangent + Math.PI, agent.heading) ? tangent : tangent + Math.PI;
-  const onto = Math.atan2(near.py - agent.y, near.px - agent.x);
-  const pull = near.d > TERRACE_BODY ? 0.5 : 0.1;
-  agent.heading = wrapAngle(agent.heading * (1 - pull) + (forward * 0.7 + onto * 0.3) * pull);
-  if (near.d > TERRACE_BODY) {
-    const keep = TERRACE_BODY / near.d;
-    agent.x = near.px + (agent.x - near.px) * keep;
-    agent.y = near.py + (agent.y - near.py) * keep;
+  const wander = near.plate ? Math.min(0.28, slime?.randomness ?? 0) : 0;
+  let drift = agent.heading - forward;
+  while (drift > Math.PI) drift -= TWO_PI;
+  while (drift < -Math.PI) drift += TWO_PI;
+  agent.heading = wrapAngle(forward + drift * wander);
+  if (near.plate && near.cover < 0.97) {
+    const start = near.coverAt;
+    const end = Math.min(1, start + near.cover);
+    if (near.along < start || near.along > end) {
+      const t = Math.max(start, Math.min(end, near.along));
+      agent.x = near.ax + (near.bx - near.ax) * t;
+      agent.y = near.ay + (near.by - near.ay) * t;
+    }
   }
 }
 
 function onTerracedPlate(agent: Point, translation: BiologicalTranslation) {
   const near = nearestTerraced(agent, translation);
-  if (!near) return false;
-  return near.d < TERRACE_BODY;
+  if (!near) return true;
+  return near.d < (near.plate ? Math.max(0.26, near.radius * 0.98) : 0.22);
 }
 
 function spawnAgent(
@@ -1087,6 +1067,7 @@ function spawnAgent(
   let x: number;
   let y: number;
   let heading: number;
+  let edgeParticle = false;
   if (translation.archetypeId === "void-field" && recipe.attractors?.length) {
     const marks = recipe.attractors;
     const field = marks.filter((item) => item.kind !== "ring" && !item.hole);
@@ -1150,40 +1131,63 @@ function spawnAgent(
       y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
       heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
     }
-  } else if (translation.archetypeId === "topographic-ground-field" && recipe.attractors?.length) {
-    const pads = recipe.attractors.filter((item) => item.hole !== true && item.kind !== "line" && item.kind !== "curve" && item.kind !== "ring");
-    const pad = pads[Math.floor(rng() * pads.length)] ?? recipe.attractors[0];
-    const angle = rng() * TWO_PI;
-    const reach = Math.max(0.4, (pad.radius ?? 1.8) * 0.45) * Math.sqrt(rng());
-    x = clamp(pad.x + Math.cos(angle) * reach, 0.35, FIELD_SIZE - 0.35);
-    y = clamp(pad.y + Math.sin(angle) * reach, 0.35, FIELD_SIZE - 0.35);
-    heading = rng() * TWO_PI;
   } else if (translation.archetypeId === "flat-deep-plan" && recipe.attractors?.length) {
     const marks = recipe.attractors;
     const mark = marks[Math.floor(rng() * marks.length)] ?? marks[0];
     const t = rng();
-    let atX: number;
-    let atY: number;
-    let dir: number;
     if (mark.kind === "curve") {
       const at = pointOnCurve(mark, t);
       const ahead = pointOnCurve(mark, Math.min(1, t + 0.08));
-      atX = at.x;
-      atY = at.y;
-      dir = Math.atan2(ahead.y - at.y, ahead.x - at.x);
+      x = clamp(at.x, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(at.y, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(ahead.y - at.y, ahead.x - at.x) + (rng() < 0.5 ? 0 : Math.PI));
     } else {
       const x2 = mark.x2 ?? mark.x;
       const y2 = mark.y2 ?? mark.y;
-      atX = mark.x + (x2 - mark.x) * t;
-      atY = mark.y + (y2 - mark.y) * t;
-      dir = Math.atan2(y2 - mark.y, x2 - mark.x);
+      x = clamp(mark.x + (x2 - mark.x) * t, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
     }
-    if (rng() < 0.5) dir += Math.PI;
-    const side = rng() < 0.5 ? 1 : -1;
-    const offset = 0.28 + rng() * 0.72;
-    x = clamp(atX + Math.cos(dir + Math.PI / 2) * side * offset, 0.2, FIELD_SIZE - 0.2);
-    y = clamp(atY + Math.sin(dir + Math.PI / 2) * side * offset, 0.2, FIELD_SIZE - 0.2);
-    heading = wrapAngle(dir + (rng() - 0.5) * 1.1);
+  } else if ((translation.archetypeId === "linear-gallery" || translation.archetypeId === "linear-edge-gallery") && recipe.attractors?.length) {
+    const curves = recipe.attractors.filter((item) => (item.kind === "curve" || item.kind === "line") && !item.hole);
+    const strong = curves.filter((item) => (item.strength ?? 1) >= 1);
+    const weak = curves.filter((item) => (item.strength ?? 1) < 1);
+    const branchShare = translation.archetypeId === "linear-edge-gallery" ? 0.28 : 0.42;
+    const pool = rng() < branchShare && weak.length ? weak : strong.length ? strong : curves;
+    let weight = 0;
+    for (const item of pool) weight += Math.max(0.05, item.strength ?? 1);
+    let roll = rng() * weight;
+    let mark = pool[pool.length - 1];
+    for (const item of pool) {
+      roll -= Math.max(0.05, item.strength ?? 1);
+      if (roll <= 0) {
+        mark = item;
+        break;
+      }
+    }
+    const t = 0.04 + rng() * 0.92;
+    const at = mark.kind === "curve" ? pointOnCurve(mark, t) : {
+      x: mark.x + ((mark.x2 ?? mark.x) - mark.x) * t,
+      y: mark.y + ((mark.y2 ?? mark.y) - mark.y) * t,
+    };
+    const ahead = mark.kind === "curve" ? pointOnCurve(mark, Math.min(1, t + 0.12)) : {
+      x: mark.x2 ?? mark.x,
+      y: mark.y2 ?? mark.y,
+    };
+    const back = mark.kind === "curve" ? pointOnCurve(mark, Math.max(0, t - 0.12)) : { x: mark.x, y: mark.y };
+    const dir = rng() < 0.5 ? ahead : back;
+    const nx = -(dir.y - at.y);
+    const ny = dir.x - at.x;
+    const span = Math.hypot(nx, ny) || 1;
+    const edge = translation.archetypeId === "linear-edge-gallery";
+    const reach = Math.max(1.6, recipe.edgeReach ?? 2.15);
+    edgeParticle = edge && rng() < 0.72;
+    const offset = edgeParticle
+      ? (rng() < 0.5 ? -1 : 1) * (0.55 + rng() * Math.max(0.9, reach - 0.5))
+      : (mark.radius ?? 0.3) * (rng() - 0.5) * (edge ? 1.15 : 0.85);
+    x = clamp(at.x + (nx / span) * offset, 0.35, FIELD_SIZE - 0.35);
+    y = clamp(at.y + (ny / span) * offset, 0.35, FIELD_SIZE - 0.35);
+    heading = wrapAngle(Math.atan2(dir.y - at.y, dir.x - at.x));
   } else if (fineTrail(translation.archetypeId)) {
     const marks = recipe.attractors ?? [];
     let minX = FIELD_SIZE;
@@ -1270,11 +1274,13 @@ function spawnAgent(
       const nx = -(y2 - mark.y);
       const ny = x2 - mark.x;
       const span = Math.hypot(nx, ny) || 1;
-      const side = rng() < 0.5 ? 1 : -1;
-      const offset = rng() * HALL_OUTER * 0.8;
+      const side = inverted ? (rng() < 0.5 ? 1 : -1) : rng() - 0.5;
+      const offset = inverted
+        ? (mark.radius ?? 1.2) * (1.2 + rng() * 1.8)
+        : (mark.radius ?? 0.8) * (0.35 + rng() * 0.45);
       x = clamp(alongX + (nx / span) * side * offset, 0.2, FIELD_SIZE - 0.2);
       y = clamp(alongY + (ny / span) * side * offset, 0.2, FIELD_SIZE - 0.2);
-      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() - 0.5) * 1.1);
+      heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() - 0.5) * (inverted ? 0.8 : 0.35));
     }
   } else if (aroundAbsence(translation) && rng() > 0.05) {
     x = 1.1 + rng() * (FIELD_SIZE - 2.2);
@@ -1288,10 +1294,15 @@ function spawnAgent(
     }
     heading = rng() * TWO_PI;
   } else if (translation.archetypeId === "contained-room-within-volume" && recipe.attractors?.length) {
-    const field = recipe.attractors.filter((item) => item.kind === "point");
+    const field = recipe.attractors.filter((item) => item.kind === "point" && (item.strength ?? 1) > 0.05);
     const pool = field.length ? field : recipe.attractors.filter((item) => !item.hole);
-    const collar = pool.filter((item) => Math.hypot(item.x - attractor.x, item.y - attractor.y) < recipe.isolationRadius + 2.4);
-    const chosen = rng() < 0.38 && collar.length ? collar : pool;
+    const walls = pool.filter((item) => (item.strength ?? 0) >= 0.75);
+    const insideRoom = pool.filter((item) => {
+      const strength = item.strength ?? 0;
+      return strength >= 0.35 && strength < 0.48;
+    });
+    const roll = rng();
+    const chosen = roll < 0.46 && walls.length ? walls : roll < 0.62 && insideRoom.length ? insideRoom : pool;
     const mark = chosen[Math.floor(rng() * chosen.length)] ?? pool[0];
     const angle = rng() * TWO_PI;
     const jitter = 0.2 + rng() * 1.15;
@@ -1350,7 +1361,8 @@ function spawnAgent(
     y,
     heading,
     speed: 0.12 + params.permeability * 0.16,
-    trailStrength: 0.38 + params.flowCoupling * 0.42,
+    trailStrength:
+      translation.archetypeId === "linear-edge-gallery" ? (edgeParticle ? 0.12 : 1) : 0.38 + params.flowCoupling * 0.42,
     pathX: [x],
     pathY: [y],
     hold: 0,
@@ -1397,6 +1409,7 @@ function deposit(
   amount: number,
   width = 1,
   cap = 1.8,
+  faintCeiling = 0,
 ) {
   const scale = trailSize / FIELD_SIZE;
   const pixelWidth = width * (scale / TRAIL_SCALE);
@@ -1404,7 +1417,13 @@ function deposit(
   const paint = (x: number, y: number, weight: number) => {
     if (x < 0 || y < 0 || x >= trailSize || y >= trailSize || weight <= 0) return;
     const index = y * trailSize + x;
-    trails[index] = Math.min(cap, trails[index] + amount * weight);
+    const next = trails[index] + amount * weight;
+    trails[index] =
+      faintCeiling > 0
+        ? trails[index] >= faintCeiling
+          ? trails[index]
+          : Math.min(faintCeiling, next)
+        : Math.min(cap, next);
     markTrail(trails, index);
   };
   if (pixelWidth <= 1.05) {
@@ -1444,6 +1463,7 @@ function depositSegment(
   amount: number,
   width = 1,
   cap = 1.8,
+  faintCeiling = 0,
 ) {
   const scale = trailSize / FIELD_SIZE;
   const a = toTrail(from, scale);
@@ -1463,6 +1483,7 @@ function depositSegment(
       share,
       width,
       cap,
+      faintCeiling,
     );
   }
 }
@@ -1523,7 +1544,6 @@ export function createSimulation(
     permeabilityField: buildPermeabilityField(size, source, attractor, translation),
     occupancy: new Array<number>(size * size).fill(0),
     trails: new Array<number>(trailSize * trailSize).fill(0),
-    displayTrails: new Float32Array(trailSize * trailSize),
     flow: new Array<number>(size * size).fill(0),
     agents,
   };
@@ -1555,8 +1575,9 @@ export function stepSimulation(
       ? 0.74
       : 0.38 + params.nodeInteraction * 0.24 + translation.recipe.clustering * 0.16;
   const cohesion = clamp(1 - params.nodeSpacing, 0, 1) * cohesionMul;
-  // Catalog ink. Archetype slime does not choose the pen.
-  const decayMul = HAIR_DECAY;
+  const decayMul = slime
+    ? clamp(slime.decay, 0.9, 0.998)
+    : clamp(trailDecay, 0.96, 0.998);
   const foods = slime?.foodPoints;
 
   const density = densityFor(state.size);
@@ -1622,7 +1643,7 @@ export function stepSimulation(
       }
     }
 
-    const dirPull = translation.archetypeId === "linear-edge-gallery" ? 0.03 : params.directionalBias * 0.28;
+    const dirPull = params.directionalBias * 0.28;
     if (dirPull > 0.01) {
       const target = nearestAttractorPoint(agent, state.attractor, translation, agent.heading);
       const toward = Math.atan2(target.y - agent.y, target.x - agent.x);
@@ -1639,9 +1660,10 @@ export function stepSimulation(
       steerSteppedAmphitheater(agent, translation.recipe.saField, rng);
     }
 
-    if (translation.archetypeId === "inserted-horizontal-plate") guidePlate(agent, translation);
-    if (translation.archetypeId === "undulated") guideUndulated(agent, translation);
-    if (translation.archetypeId === "continuous-hall") guideHall(agent, translation);
+    if (translation.archetypeId === "undulated") followUndulated(agent, translation);
+    if (translation.archetypeId === "inserted-horizontal-plate") lingerOnInsertedPlate(agent, translation);
+    if (translation.archetypeId === "linear-gallery" || translation.archetypeId === "linear-edge-gallery") steerGallery(agent, translation);
+
     const stepBase = slime?.stepSize ?? agent.speed * (0.7 + params.permeability * 0.35);
     const resistance = sampleResistance(agent, state.size, slime?.resistance ?? 0);
     const step = stepBase * (1 - resistance * 0.82);
@@ -1649,28 +1671,18 @@ export function stepSimulation(
     const fromY = agent.y;
     agent.x += Math.cos(agent.heading) * step;
     agent.y += Math.sin(agent.heading) * step;
-    if (translation.archetypeId === "inserted-horizontal-plate") {
-      const near = nearestUndulated(agent, translation);
-      if (near && near.d > PLATE_BODY) {
-        const keep = PLATE_BODY / near.d;
-        agent.x = near.px + (agent.x - near.px) * keep;
-        agent.y = near.py + (agent.y - near.py) * keep;
-      }
-    }
     if (translation.archetypeId === "undulated") {
       const near = nearestUndulated(agent, translation);
-      if (near && near.d > UNDULATED_PATH) {
-        const keep = UNDULATED_PATH / near.d;
-        agent.x = near.px + (agent.x - near.px) * keep;
-        agent.y = near.py + (agent.y - near.py) * keep;
+      if (near && near.d > 0.04) {
+        agent.x = near.px + (agent.x - near.px) * 0.08;
+        agent.y = near.py + (agent.y - near.py) * 0.08;
       }
     }
-    if (translation.archetypeId === "continuous-hall") {
+    if (translation.archetypeId === "inserted-horizontal-plate") {
       const near = nearestUndulated(agent, translation);
-      if (near && near.d > HALL_OUTER) {
-        const pull = Math.min(0.32, (near.d - HALL_OUTER) * 0.2);
-        agent.x += ((near.px - agent.x) / near.d) * pull;
-        agent.y += ((near.py - agent.y) / near.d) * pull;
+      if (near && near.d > 0.08) {
+        agent.x += (near.px - agent.x) * 0.35;
+        agent.y += (near.py - agent.y) * 0.35;
       }
     }
     if (translation.archetypeId === "void-field") {
@@ -1690,17 +1702,9 @@ export function stepSimulation(
       }
     }
     if (translation.archetypeId === "terraced") holdTerraced(agent, translation, slime);
-    if (translation.archetypeId === "flat-deep-plan") guideFlatDeep(agent, translation);
+    const galleryHeld = translation.archetypeId === "linear-gallery" || translation.archetypeId === "linear-edge-gallery" ? steerGallery(agent, translation) : null;
     if (translation.archetypeId === "stepped-amphitheater" && translation.recipe.saField) {
       containSteppedAmphitheater(agent, translation.recipe.saField);
-    }
-    if (translation.archetypeId === "topographic-ground-field") {
-      const pad = nearestGroundPad(agent, translation);
-      if (pad && pad.d > pad.radius * 0.98) {
-        const pull = Math.min(0.4, (pad.d - pad.radius * 0.98) * 0.45);
-        agent.x += ((pad.x - agent.x) / pad.d) * pull;
-        agent.y += ((pad.y - agent.y) / pad.d) * pull;
-      }
     }
 
     if (aroundAbsence(translation) && translation.archetypeId !== "void-field") {
@@ -1761,6 +1765,19 @@ export function stepSimulation(
       steppedInk = inkSteppedAmphitheater(agent, translation.recipe.saField);
       depositAmount = steppedInk.amount;
     }
+    if (translation.archetypeId === "linear-gallery" && (!galleryHeld || galleryHeld.d > galleryHeld.band * 1.2)) {
+      depositAmount = 0;
+    }
+    if (translation.archetypeId === "linear-edge-gallery") {
+      const structure = agent.trailStrength >= 0.5;
+      depositAmount = structure
+        ? galleryHeld && galleryHeld.d <= galleryHeld.band * 1.15
+          ? 0.1
+          : 0
+        : galleryHeld && galleryHeld.d <= galleryHeld.band
+          ? 0.028
+          : 0;
+    }
     const edge = Math.min(agent.x, agent.y, state.size - agent.x, state.size - agent.y);
     if (
       edge < 2.6 &&
@@ -1772,59 +1789,18 @@ export function stepSimulation(
       depositAmount *= 0.012;
     }
     if (insideAttractorHole(agent, translation, slime)) depositAmount = 0;
-    if (
-      translation.archetypeId === "linear-edge-gallery" &&
-      insideAttractorHole({ x: fromX, y: fromY }, translation, slime)
-    ) {
-      depositAmount = 0;
-    }
-    if (translation.archetypeId === "vertical-void") {
-      const voids = translation.recipe.attractors;
-      if (voids) {
-        for (const item of voids) {
-          if (item.kind === "line" || item.kind === "curve") continue;
-          if (item.hole !== true && item.kind !== "ring") continue;
-          const radius = polarVoidRadius(item, agent, slime);
-          if (radius <= 0) continue;
-          const angle = Math.atan2(agent.y - item.y, agent.x - item.x);
-          if (Math.hypot(agent.x - item.x, agent.y - item.y) < verticalVoidReach(angle, radius)) {
-            depositAmount = 0;
-            break;
-          }
-        }
-      }
-    }
     if (translation.archetypeId === "void-field") {
       const near = nearestVoidCirculation(agent, translation);
       if (!near || near.d > 1.55) depositAmount = 0;
     }
-    if (translation.archetypeId === "topographic-ground-field") {
-      const pad = nearestGroundPad(agent, translation);
-      if (!pad || pad.d > pad.radius) depositAmount = 0;
-    }
+    if (tgfKeepsPads(translation) && !insideGroundMass(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "flat-deep-plan" && !onFlatDeepWall(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "contained-room-within-volume") {
       const near = nearestContainedField(agent, translation);
-      if (!near || near.d > 3.15) depositAmount = 0;
-      else {
-        const coreD = Math.hypot(agent.x - state.attractor.x, agent.y - state.attractor.y);
-        const rim = Math.max(1.4, translation.recipe.isolationRadius);
-        const outside = coreD - rim;
-        if (outside > 0 && outside < 1.6) depositAmount *= 1.65;
-      }
+      if (!near || near.d > 2.05) depositAmount = 0;
+      else if (near.strength >= 0.75 && near.d < 0.85) depositAmount *= 1.7;
     }
-    if (translation.archetypeId === "inserted-horizontal-plate") {
-      const near = nearestUndulated(agent, translation);
-      if (!near || near.d > PLATE_BODY) depositAmount = 0;
-    }
-    if (translation.archetypeId === "undulated") {
-      const near = nearestUndulated(agent, translation);
-      if (!near || near.d > UNDULATED_PATH) depositAmount = 0;
-    }
-    if (translation.archetypeId === "continuous-hall") {
-      const near = hallContact(agent, translation);
-      if (!near || near.d > HALL_OUTER + 0.35) depositAmount = 0;
-    }
+    if ((translation.archetypeId === "undulated" || translation.archetypeId === "inserted-horizontal-plate") && !onFlatDeepWall(agent, translation)) depositAmount = 0;
     if (translation.archetypeId === "terraced" && !onTerracedPlate(agent, translation)) {
       depositAmount = 0;
     }
@@ -1835,10 +1811,20 @@ export function stepSimulation(
         : translation.recipe.isolationRadius * 0.55;
       if (dist(agent, state.attractor) < limit) depositAmount *= 0.05;
     }
-    const depositWidth = HAIR_WIDTH;
-    const depositCap = HAIR_CAP;
-    const paint = depositAmount > 0 ? (translation.archetypeId === "void-edge" ? HAIR_DEPOSIT * 0.55 : HAIR_DEPOSIT) : 0;
+    const depositWidth =
+      steppedInk
+        ? steppedInk.width
+        : translation.archetypeId === "linear-edge-gallery" && agent.trailStrength >= 0.5
+          ? 16
+        : fineTrail(translation.archetypeId)
+          ? (() => {
+              const width = slime?.depositWidth ?? 1.2;
+              return width * 0.22 + width ** 2.4 * 4.2;
+            })()
+          : (slime?.depositWidth ?? 1);
+    const depositCap = slime?.trailCap ?? 1.8;
     const traveled = dist({ x: fromX, y: fromY }, agent);
+    const faintCeiling = translation.archetypeId === "linear-edge-gallery" && agent.trailStrength < 0.5 ? 0.12 : 0;
     const joinTrail =
       translation.archetypeId !== "compressed-sequential" || depositWidth < 28;
     if (joinTrail && !hitWall && traveled <= step * 1.75 + 0.02) {
@@ -1847,12 +1833,13 @@ export function stepSimulation(
         state.trailSize,
         { x: fromX, y: fromY },
         agent,
-        paint,
+        depositAmount,
         depositWidth,
         depositCap,
+        faintCeiling,
       );
     } else {
-      deposit(state.trails, state.trailSize, agent, paint, depositWidth, depositCap);
+      deposit(state.trails, state.trailSize, agent, depositAmount, depositWidth, depositCap, faintCeiling);
     }
 
     if (
@@ -1881,7 +1868,6 @@ export function stepSimulation(
   let write = 0;
   for (let n = 0; n < book.active.length; n += 1) {
     const i = book.active[n];
-    if (state.displayTrails) state.displayTrails[i] = Math.max(state.displayTrails[i], state.trails[i]);
     const faded = state.trails[i] * decayMul;
     trailDelta += Math.abs(state.trails[i] - faded);
     if (faded > 0.003) {

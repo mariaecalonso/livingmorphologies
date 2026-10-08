@@ -8,8 +8,8 @@ import type { BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnap
  * One continuous deep plate (low plate articulation). The straight half is a
  * different figure in every cell: two rooms, a deep slot, a corridor, a side
  * bar, a core, rings, a cross, a court, a notch, a T, a jog, a comb, an end
- * slab, a perimeter, unequal rooms. The other half stays curved. Every wall
- * keeps its ends and bows, the same way terraced members leave the straight line.
+ * slab, a perimeter, unequal rooms. The other half stays curved. Walls stay
+ * hair-thin.
  */
 export const FLAT_DEEP_TRAIL_SCALE = 24;
 export const FLAT_DEEP_RUN_ITERATIONS = 160;
@@ -44,9 +44,6 @@ export const ORGANIC_KINDS = ["fingers", "kidney", "alcoves", "chain", "lobes"] 
 export type OrganicKind = (typeof ORGANIC_KINDS)[number];
 export type FlatDeepKind = PlateKind | OrganicKind;
 
-/** Arrangements of one kind. The section reads this, not a fresh index. */
-export const FLAT_DEEP_CYCLES = ["0", "1", "2", "3", "4", "5", "6"] as const;
-
 export type FlatDeepPlan = {
   kind: FlatDeepKind;
   organic: boolean;
@@ -59,7 +56,6 @@ export type FlatDeepPlan = {
   y0: number;
   x1: number;
   y1: number;
-  cycle: string;
 };
 
 type Seg = { u: number; v: number; u2: number; v2: number; cu?: number; cv?: number; curve?: boolean; gap: boolean };
@@ -804,18 +800,10 @@ function addLobes(segs: Seg[], wide: boolean, lobes: number, phase: number) {
   }
 }
 
-function cycleOf(plan: FlatDeepPlan) {
-  const stored = Number(plan.cycle);
-  if (plan.cycle != null && Number.isFinite(stored)) return ((stored % 7) + 7) % 7;
-  return Math.floor(plan.index / PLATE_KINDS.length) % 7;
-}
-
 function fluidSegments(plan: FlatDeepPlan): Seg[] {
-  const slot = cycleOf(plan);
+  const slot = plan.index;
   const wide = plan.x1 - plan.x0 >= plan.y1 - plan.y0;
-  const kind = (ORGANIC_KINDS as readonly string[]).includes(plan.kind)
-    ? (plan.kind as OrganicKind)
-    : ORGANIC_KINDS[plan.index % ORGANIC_KINDS.length];
+  const kind = ORGANIC_KINDS[slot % ORGANIC_KINDS.length];
   const lobes = 3 + (slot % 4);
   const amp = 0.18 + (slot % 5) * 0.02;
   const phase = ((slot * 17) % 360) * (Math.PI / 180);
@@ -831,7 +819,7 @@ function fluidSegments(plan: FlatDeepPlan): Seg[] {
 }
 
 function segmentsFor(plan: FlatDeepPlan): Seg[] {
-  const cycle = cycleOf(plan);
+  const cycle = Math.floor(plan.index / PLATE_KINDS.length) % 7;
   if (plan.organic) return fluidSegments(plan);
   if (plan.kind === "equal-bays") return equalBays(cycle);
   if (plan.kind === "deep-slots") return deepSlots(cycle);
@@ -901,7 +889,7 @@ export function planFlatDeepPlan(_seed: number, attempt = 0, index = 0): FlatDee
   if (flatDeepKept(slot)) {
     const g = grain(rigidKind, slot);
     const cut = Math.min(0.78, g.cut + attempt * 0.05);
-    return { kind: rigidKind, organic: false, index: slot, attempt, cycle: String(Math.floor(slot / PLATE_KINDS.length) % 7), ...g, cut, ...box };
+    return { kind: rigidKind, organic: false, index: slot, attempt, ...g, cut, ...box };
   }
   const kind = ORGANIC_KINDS[slot % ORGANIC_KINDS.length];
   const g = grain("deep-slots", slot);
@@ -910,7 +898,6 @@ export function planFlatDeepPlan(_seed: number, attempt = 0, index = 0): FlatDee
     organic: true,
     index: slot,
     attempt,
-    cycle: String(Math.floor(slot / PLATE_KINDS.length) % 7),
     cols: 3 + (slot % 5),
     rows: 2 + (Math.floor(slot / 7) % 3),
     cut: g.cut,
@@ -955,38 +942,10 @@ export function attractorsFromFlatDeep(plan: FlatDeepPlan): FieldAttractor[] {
         });
         continue;
       }
-      marks.push(...bowWall(x, y, x2, y2, plan.index * 13 + n));
+      marks.push({ kind: "line", x, y, x2, y2, radius: 0.4, strength: 1 });
     }
   });
   return marks;
-}
-
-/** Same bow as terraced: the ends stay, the wall leaves the straight line. */
-function bowWall(x0: number, y0: number, x1: number, y1: number, salt: number): FieldAttractor[] {
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  const len = Math.hypot(dx, dy);
-  if (len < 0.85) return [{ kind: "line", x: x0, y: y0, x2: x1, y2: y1, radius: 0.4, strength: 1 }];
-  const nx = -dy / len;
-  const ny = dx / len;
-  const steps = Math.max(12, Math.round(len * 2.8));
-  const turns = 1.15 + (salt % 3) * 0.35;
-  const phase = salt * 0.37;
-  const reach = 0.62 * Math.min(1.45, len * 0.2);
-  const pieces: FieldAttractor[] = [];
-  let px = x0;
-  let py = y0;
-  for (let step = 1; step <= steps; step += 1) {
-    const t = step / steps;
-    const envelope = Math.sin(Math.PI * t) ** 0.55;
-    const off = Math.sin(phase + t * Math.PI * 2 * turns) * envelope * reach;
-    const x = x0 + dx * t + nx * off;
-    const y = y0 + dy * t + ny * off;
-    pieces.push({ kind: "line", x: px, y: py, x2: x, y2: y, radius: 0.4, strength: 1 });
-    px = x;
-    py = y;
-  }
-  return pieces;
 }
 
 function foodFrom(marks: FieldAttractor[]) {
@@ -1001,26 +960,25 @@ function foodFrom(marks: FieldAttractor[]) {
   return points.length ? points : [{ x: FIELD_SIZE / 2, y: FIELD_SIZE / 2 }];
 }
 
-/** Hair body along the walls. Same ink as terraced and undulated. */
 export function slimeFromFlatDeep(base: SlimeControls, plan: FlatDeepPlan, seed: number): SlimeControls {
   const rng = mulberry32(seed ^ 0x51c0de ^ plan.index);
   const span = (min: number, max: number) => min + rng() * (max - min);
   return {
     ...base,
-    sensorAngle: span(0.42, 0.66),
-    sensorDistance: span(0.4, 0.72),
-    turnAngle: span(0.18, 0.36),
-    stepSize: span(0.12, 0.16),
-    deposit: 0.016,
-    depositWidth: 0.14,
+    sensorAngle: span(0.06, 0.16),
+    sensorDistance: span(0.32, 0.52),
+    turnAngle: span(0.08, 0.18),
+    stepSize: span(0.14, 0.22),
+    deposit: span(0.08, 0.12),
+    depositWidth: span(0.24, 0.38),
     diffusion: 0,
-    decay: 0.998,
-    trailInfluence: span(0.22, 0.36),
-    resistance: 0,
-    randomness: span(0.2, 0.32),
-    persistence: span(0.3, 0.42),
-    trailCap: 0.36,
-    crowdingLimit: 5,
+    decay: span(0.995, 0.998),
+    trailInfluence: span(1.25, 1.7),
+    resistance: span(0.01, 0.05),
+    randomness: plan.organic ? span(0.04, 0.1) : span(0.02, 0.06),
+    persistence: plan.organic ? span(0.82, 0.93) : span(0.86, 0.95),
+    trailCap: span(0.7, 1.05),
+    crowdingLimit: 12,
     foodPoints: [],
     voidElongation: 1,
     voidRotation: 0,
@@ -1032,7 +990,7 @@ export function slimeFromFlatDeep(base: SlimeControls, plan: FlatDeepPlan, seed:
 export function agentsFromFlatDeep(plan: FlatDeepPlan) {
   const walls = plan.cols + plan.rows;
   const baseCount = FLAT_DEEP_AGENTS + walls;
-  return Math.max(150, Math.min(210, baseCount + 70));
+  return Math.max(72, Math.min(plan.organic ? 128 : 110, baseCount + (plan.organic ? 18 : 0)));
 }
 
 export function translationFromFlatDeep(
@@ -1044,9 +1002,11 @@ export function translationFromFlatDeep(
   const cy = (plan.y0 + plan.y1) / 2;
   const params: BiologicalParams = {
     ...base.params,
-    attractionStrength: Math.min(base.params.attractionStrength, 0.35),
-    directionalBias: Math.min(base.params.directionalBias, 0.08),
-    randomness: Math.max(base.params.randomness, 0.16),
+    geometryVariation: plan.organic ? Math.max(base.params.geometryVariation, 0.34) : Math.min(base.params.geometryVariation, 0.22),
+    attractionStrength: Math.max(base.params.attractionStrength, 1.15),
+    directionalBias: Math.max(base.params.directionalBias, 0.62),
+    randomness: Math.min(base.params.randomness, 0.08),
+    permeability: Math.min(base.params.permeability, 0.38),
   };
   const recipe: SpatialRecipe = {
     ...base.recipe,

@@ -245,7 +245,7 @@ export async function putCatalogEntries<T extends CatalogEntry>(archetypeId: str
     const byId = new Map(existing.map((item) => [item.id, item]));
     for (const item of textual) {
       const { imageBlob: _blob, ...meta } = item;
-      byId.set(item.id, meta as T);
+      byId.set(item.id, meta);
     }
     window.localStorage.setItem(CATALOG_KEY(archetypeId), JSON.stringify([...byId.values()]));
     return true;

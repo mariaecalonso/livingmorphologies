@@ -121,11 +121,10 @@ export const VERTICAL_VOID_RELATIONS: RelationKind[] = ["tight", "loose", "one-s
 
 /** Legal aspect interval for a core. Skill 2 may move inside the interval. */
 export function verticalVoidAspectBand(core: CoreKind): [number, number] {
-  if (core === "elongated") return [0.35, 2.5];
-  if (core === "compressed") return [0.4, 0.85];
-  if (core === "compact") return [0.8, 1.2];
-  if (core === "expanded") return [0.7, 1.6];
-  return [0.4, 2.2];
+  if (core === "elongated") return [0.42, 2.3];
+  if (core === "compressed") return [0.55, 0.62];
+  if (core === "compact") return [0.85, 1.15];
+  return [0.6, 1.7];
 }
 
 function coreRadius(core: CoreKind, f: Frame) {
@@ -200,22 +199,26 @@ function buildApproaches(f: Frame, plan: MorphPlan, holes: FieldAttractor[]): Fi
   return marks;
 }
 
-export function planVerticalVoid(seed: number, attempt = 0, index = 0): MorphPlan {
-  const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x9e3779b9) ^ (index * 0x85ebca6b));
+export function planVerticalVoid(seed: number, attempt = 0): MorphPlan {
+  const rng = mulberry32(seed ^ 0xa77ac7 ^ (attempt * 0x9e3779b9));
   const f = frame(rng);
-  const core = VERTICAL_VOID_CORES[index % VERTICAL_VOID_CORES.length];
-  const col = index % 5;
-  const row = Math.floor(index / 5) % 4;
-  const [low, high] = verticalVoidAspectBand(core);
+  const core = f.pick(VERTICAL_VOID_CORES);
+  const offset = core === "offset" ? f.r(1.8, 2.8) : f.r(0.15, 1.6);
+  const bearing = f.r(-Math.PI, Math.PI);
+  const aspect =
+    core === "elongated" ? f.pick([0.42, 0.5, 2.0, 2.3]) :
+    core === "compressed" ? f.pick([0.55, 0.62]) :
+    core === "compact" ? f.r(0.85, 1.15) :
+    f.r(0.6, 1.7);
   return {
     core,
-    approach: VERTICAL_VOID_APPROACHES[(index + attempt) % VERTICAL_VOID_APPROACHES.length],
-    relation: VERTICAL_VOID_RELATIONS[Math.floor(index / 3) % VERTICAL_VOID_RELATIONS.length],
-    cx: lim(2.6 + col * 3.6 + f.r(-0.7, 0.7)),
-    cy: lim(2.8 + row * 4.3 + f.r(-0.8, 0.8)),
+    approach: f.pick(VERTICAL_VOID_APPROACHES),
+    relation: f.pick(VERTICAL_VOID_RELATIONS),
+    cx: lim(CENTER + Math.cos(bearing) * offset),
+    cy: lim(CENTER + Math.sin(bearing) * offset),
     axis: f.r(-Math.PI, Math.PI),
     span: f.r(3.2, 6.4),
-    aspect: low + f.r(0, 1) * (high - low),
+    aspect,
   };
 }
 
@@ -232,20 +235,18 @@ export function slimeFromVerticalVoidPlan(base: SlimeControls, plan: MorphPlan, 
   const next = { ...base };
   next.voidElongation = clamp(plan.aspect, 0.4, 2.4);
   next.voidRotation = plan.axis;
-  next.voidLobes = 0;
-  next.voidNotch = 0;
-  next.trailInfluence = 0.22 + rng() * 0.16;
-  next.resistance = 0.04 + rng() * 0.1;
-  next.persistence = 0.28 + rng() * 0.2;
-  next.sensorAngle = 0.35 + rng() * 0.25;
-  next.sensorDistance = 0.4 + rng() * 0.3;
-  next.turnAngle = 0.25 + rng() * 0.2;
-  next.depositWidth = 0.14;
-  next.deposit = 0.016;
-  next.diffusion = 0;
-  next.decay = 0.998;
-  next.randomness = 0.2 + rng() * 0.14;
-  next.foodPoints = [];
+  next.voidLobes = plan.core === "lobed" || plan.core === "irregular" ? 0.34 + rng() * 0.28 : plan.core === "openings" ? 0.18 : rng() * 0.08;
+  next.voidNotch = plan.core === "pinched" || plan.core === "openings" ? (rng() < 0.5 ? -0.62 : 0.62) : (rng() - 0.5) * 0.22;
+  next.trailInfluence = 1.15 + rng() * 0.55;
+  next.resistance = 0.04 + rng() * 0.14;
+  next.persistence = plan.approach === "single" || plan.approach === "vertical" ? 0.52 + rng() * 0.28 : 0.28 + rng() * 0.36;
+  next.sensorAngle = 0.28 + rng() * 0.36;
+  next.sensorDistance = 0.7 + rng() * 0.55;
+  next.turnAngle = 0.28 + rng() * 0.32;
+  next.depositWidth = 1.15 + rng() * 0.7;
+  next.deposit = 0.07 + rng() * 0.06;
+  next.diffusion = 0.02 + rng() * 0.02;
+  next.foodPoints = [{ x: plan.cx, y: plan.cy }];
   return next;
 }
 
