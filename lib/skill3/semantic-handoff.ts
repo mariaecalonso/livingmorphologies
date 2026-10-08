@@ -146,11 +146,21 @@ export function loadVerifiedContinuations(request: Skill3SourceRequest): Natural
   if (!opened) return loadNaturalContinuations(request);
   const key = `${opened.record.identity.archetypeId}#${opened.record.identity.candidateId}#${opened.semanticChecksum}`;
   const cached = semanticCache.get(key);
-  if (cached) return { ...cached, semanticChecksum: opened.semanticChecksum };
+  if (cached?.continuations.every((item) => item.recipe?.focus)) return { ...cached, semanticChecksum: opened.semanticChecksum };
   const set = continuationsFromOpenedZ0(opened.record, opened.handoff, "handoff");
   if (set.z0Iteration !== opened.record.z0.iteration || set.parentChecksum !== opened.record.z0.checksum) {
     throw new Error("semantic continuation did not keep the verified Z0");
   }
   semanticCache.set(key, set);
   return { ...set, semanticChecksum: opened.semanticChecksum };
+}
+
+/** Bundle already produced by `loadVerifiedContinuations`. Does not start a replay. */
+export function peekVerifiedContinuations(request: Skill3SourceRequest): NaturalContinuationSet | null {
+  const archetypeId = requestArchetype(request);
+  if (!archetypeId) return null;
+  for (const set of semanticCache.values()) {
+    if (set.archetypeId === archetypeId && set.candidateId === request.candidateId && set.origin === "handoff") return set;
+  }
+  return null;
 }

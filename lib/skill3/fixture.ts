@@ -1,5 +1,6 @@
 import type { SlimeControls } from "../skill1/slime-controls";
 import { DEVELOPMENT_BEHAVIOR } from "./behavior-profile";
+import { continuationRecipesFor } from "./continuation-recipes";
 import {
   NATURAL_CONTINUATION_COUNT,
   naturalContinuationId,
@@ -137,8 +138,10 @@ function buildDevelopmentSet(richThrough: number): NaturalContinuationSet {
     candidateId: 300,
     runKey: "continuous-hall@development-fixture",
   };
+  const recipes = continuationRecipesFor(identity.archetypeId, identity.candidateId).recipes;
   const continuations: NaturalContinuation[] = [];
   for (let branch = 1; branch <= NATURAL_CONTINUATION_COUNT; branch += 1) {
+    const recipe = recipes[branch - 1];
     const id = naturalContinuationId(branch);
     const shown = branch <= richThrough;
     const branchIterations = shown ? iterationsFor(branch) : [Z0_ITERATION];
@@ -161,6 +164,13 @@ function buildDevelopmentSet(richThrough: number): NaturalContinuationSet {
       id,
       index: branch,
       continuationSeed: naturalContinuationSeed(identity, branch),
+      recipe: {
+        focus: recipe.focus,
+        families: recipe.families,
+        variant: recipe.variant,
+        schedule: recipe.schedule,
+        strengths: recipe.strengths,
+      },
       ...identity,
       z0Iteration: Z0_ITERATION,
       parentChecksum: DEVELOPMENT_FIXTURE_CHECKSUM,

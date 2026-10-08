@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CatalogueField, type CatalogueModule } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
-import { catalogueSlots } from "@/lib/skill3/catalogue";
+import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
+import { CATALOGUE_SLOT_COUNT, catalogueSlots } from "@/lib/skill3/catalogue";
 import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import {
-  clearSelectedSkill3Morphology,
   readSelectedSkill3Morphology,
   sameSelectedMorphology,
   selectedMorphologyFrom,
@@ -52,11 +52,32 @@ function archetypesFor(typologyId: string) {
   return Object.values(ARCHETYPES).filter((item) => item.typologyId === typologyId);
 }
 
+function selectionFor(archetypeId: string) {
+  const stored = readSkill2Selections()[archetypeId];
+  if (stored) return stored;
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(SKILL2_SELECTIONS_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = parseSkill2Selection(JSON.parse(raw)[archetypeId]);
+    return parsed?.archetypeId === archetypeId ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const REASON_LABEL: Record<string, string> = {
   z0: "Z0",
   threshold: "Threshold",
   "max-gap": "Max gap",
 };
+
+const PLACEHOLDER_MODULES: CatalogueModule[] = Array.from({ length: CATALOGUE_SLOT_COUNT }, (_, index) => ({
+  id: `slot-${String(index + 1).padStart(2, "0")}`,
+  label: String(index + 1).padStart(2, "0"),
+  cacheIdentity: `placeholder:${index + 1}`,
+  placeholder: true,
+}));
 
 function ResultDetail({
   resultId,
@@ -64,6 +85,7 @@ function ResultDetail({
   typology,
   archetype,
   moduleSize,
+  horizon,
   morphology,
   triangles,
   chosen,
@@ -75,6 +97,7 @@ function ResultDetail({
   typology: string;
   archetype: string;
   moduleSize: string;
+  horizon: string;
   morphology: string;
   triangles: number | null;
   chosen: boolean;
@@ -88,9 +111,12 @@ function ResultDetail({
   }));
   const hidden = Math.max(0, continuation.events.length - marks.length);
   return (
-    <div className="vertical-catalogue-detail">
+    <div className="vertical-catalogue-detail vertical-catalogue-card">
       <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
       <h2 className="panel-title">Result {resultId}</h2>
+      <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
+        {chosen ? "Saved to final catalogue" : "Save to final catalogue"}
+      </button>
       <dl className="vertical-catalogue-facts">
         <div><dt>Result</dt><dd>{resultId}</dd></div>
         <div><dt>Continuation</dt><dd>{continuation.id}</dd></div>
@@ -102,6 +128,8 @@ function ResultDetail({
         <div><dt>Samples</dt><dd>{String(continuation.sampleCount)}</dd></div>
         <div><dt>Events</dt><dd>{String(continuation.eventCount)}</dd></div>
         <div><dt>Module</dt><dd>{moduleSize}</dd></div>
+        <div><dt>Horizon</dt><dd>{horizon}</dd></div>
+        <div><dt>Rank</dt><dd>{resultId}</dd></div>
         <div><dt>Mode</dt><dd>{morphology}</dd></div>
         <div><dt>Triangles</dt><dd>{triangles != null ? String(triangles) : "—"}</dd></div>
       </dl>
@@ -118,9 +146,41 @@ function ResultDetail({
         ))}
         {hidden > 0 ? <span>+{hidden}</span> : null}
       </div>
-      <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
-        {chosen ? "Selected" : "Select this morphology"}
+    </div>
+  );
+}
+
+function PlaceholderDetail({
+  rank,
+  archetype,
+  typology,
+  onBack,
+}: {
+  rank: string;
+  archetype: string;
+  typology: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="vertical-catalogue-detail vertical-catalogue-card">
+      <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
+      <h2 className="panel-title">Result {rank}</h2>
+      <button type="button" className="vertical-catalogue-reset" disabled>
+        Save to final catalogue
       </button>
+      <p className="vertical-process-note">A continuation is required for this archetype</p>
+      <dl className="vertical-catalogue-facts">
+        <div><dt>Branch</dt><dd>—</dd></div>
+        <div><dt>Archetype</dt><dd>{archetype}</dd></div>
+        <div><dt>Typology</dt><dd>{typology}</dd></div>
+        <div><dt>Candidate</dt><dd>—</dd></div>
+        <div><dt>Samples</dt><dd>—</dd></div>
+        <div><dt>Horizon</dt><dd>—</dd></div>
+        <div><dt>Rank</dt><dd>{rank}</dd></div>
+        <div><dt>Focus</dt><dd>—</dd></div>
+        <div><dt>Geometry</dt><dd>Placeholder</dd></div>
+        <div><dt>Triangles</dt><dd>—</dd></div>
+      </dl>
     </div>
   );
 }
@@ -144,32 +204,49 @@ export function VerticalCatalogue({
   const [viewReset, setViewReset] = useState(0);
   const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || "continuous-hall");
+  const alignedSelection = useRef(false);
 
   useEffect(() => {
-    if (initial || !candidate) return;
+    if (initial || candidate || alignedSelection.current) return;
+    alignedSelection.current = true;
+    const activeId = readActiveArchetype();
+    const selected = activeId ? selectionFor(activeId) : undefined;
+    if (!selected) return;
+    setTypologyId(selected.typologyId);
+    setArchetypeId(selected.archetypeId);
+  }, [candidate, initial]);
+
+  useEffect(() => {
+    if (initial) return;
+    const fromProp = candidate?.archetypeId === archetypeId ? candidate.candidateId : null;
+    const storedId = selectionFor(archetypeId)?.candidateId ?? null;
+    const candidateId = fromProp ?? storedId;
+    if (!candidateId) return;
     const controller = new AbortController();
     const params = new URLSearchParams({
-      archetype: candidate.archetypeId,
-      candidate: String(candidate.candidateId),
+      archetype: archetypeId,
+      candidate: String(candidateId),
+      cache: "1",
     });
     if (preview) params.set("preview", "1");
     setPending(true);
     setError(null);
     void fetch(`/api/vertical?${params}`, { signal: controller.signal })
       .then(async (response) => {
+        if (response.status === 404) return;
         const body = (await response.json()) as ApiSet & { error?: string };
-        if (!response.ok) throw new Error(body.error ?? "The selected candidate could not be reconstructed.");
+        if (!response.ok) throw new Error(body.error ?? "The continuation bundle is not loaded.");
         if (!controller.signal.aborted) setSet(joinSet(body));
       })
       .catch((caught) => {
         if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
-        setError(caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.");
+        setError(caught instanceof Error ? caught.message : "The continuation bundle is not loaded.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [candidate, initial, preview]);
+  }, [archetypeId, candidate, initial, preview]);
 
   useEffect(() => {
     if (!set) return;
@@ -185,31 +262,28 @@ export function VerticalCatalogue({
     ?? "Archetype";
   const processParams = new URLSearchParams(search.toString());
   const processHref = processParams.toString() ? `/lab/vertical?${processParams.toString()}` : "/lab/vertical";
-  const modules = useMemo<CatalogueModule[]>(() => slots.map((item, index) => ({
-    id: item.id,
-    label: String(index + 1).padStart(2, "0"),
-    cacheIdentity: `${set?.origin ?? "pending"}:${item.archetypeId}:${item.candidateId}:${item.id}`,
-    field: item.field,
-  })), [set?.origin, slots]);
+  const modules = useMemo<CatalogueModule[]>(() => {
+    if (!matches || !set || slots.length === 0) return PLACEHOLDER_MODULES;
+    return slots.map((item, index) => ({
+      id: item.id,
+      label: String(index + 1).padStart(2, "0"),
+      cacheIdentity: `${set.origin}:${item.archetypeId}:${item.candidateId}:${item.id}`,
+      field: item.field,
+    }));
+  }, [matches, set, slots]);
   const chosenContinuation = storedChoice && matches && set && storedChoice.origin === set.origin
     ? set.continuations.find((item) => sameSelectedMorphology(storedChoice, item)) ?? null
     : null;
 
   const chooseInspected = () => {
     if (!set || !selected) return;
-    const current = readSelectedSkill3Morphology(set.origin, set.archetypeId);
-    if (current && current.origin === set.origin && sameSelectedMorphology(current, selected)) {
-      clearSelectedSkill3Morphology(set.origin, set.archetypeId);
-      setStoredChoice(null);
-      return;
-    }
     const next = selectedMorphologyFrom(set, selected);
     writeSelectedSkill3Morphology(next);
     setStoredChoice(next);
   };
 
   return (
-    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-inspect={inspecting && selected ? "" : undefined}>
+    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-tone={typologyId} data-inspect={inspecting && selectedId ? "" : undefined}>
       <header className="evo-header">
         <div>
           <p className="display evo-header-title">3D Catalogue</p>
@@ -279,13 +353,13 @@ export function VerticalCatalogue({
           <CatalogueField
             modules={modules}
             origin={set?.origin ?? "pending"}
-            selectedId={selected?.id ?? null}
+            selectedId={selectedId}
             onSelect={(id) => {
               setSelectedId(id);
-              if (id) setInspecting(true);
+              setInspecting(id != null);
             }}
             resetToken={viewReset}
-            inspecting={inspecting && selected != null}
+            inspecting={inspecting && selectedId != null}
             onTriangles={(id, count) => {
               setTriangles((current) => current[id] === count ? current : { ...current, [id]: count });
             }}
@@ -300,11 +374,25 @@ export function VerticalCatalogue({
                 typology={TYPOLOGY[typologyId] ?? typologyId}
                 archetype={archetypeName}
                 moduleSize={`${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}`}
+                horizon={String(set.rules.horizon)}
                 morphology={set.rules.morphology}
                 triangles={triangles[selected.id] ?? null}
                 chosen={chosenContinuation?.id === selected.id}
-                onBack={() => setInspecting(false)}
+                onBack={() => {
+                  setInspecting(false);
+                  setSelectedId(null);
+                }}
                 onChoose={chooseInspected}
+              />
+            ) : inspecting && selectedId && !selected ? (
+              <PlaceholderDetail
+                rank={modules.find((item) => item.id === selectedId)?.label ?? "—"}
+                archetype={archetypeName}
+                typology={TYPOLOGY[typologyId] ?? typologyId}
+                onBack={() => {
+                  setInspecting(false);
+                  setSelectedId(null);
+                }}
               />
             ) : (
               <>
@@ -333,7 +421,7 @@ export function VerticalCatalogue({
               </>
             )}
           </section>
-          <section className="vertical-catalogue-frame">
+          <section className="vertical-catalogue-frame vertical-catalogue-controls">
             <h2 className="panel-title">Controls</h2>
             <dl className="vertical-catalogue-facts">
               <div><dt>Orbit</dt><dd>Drag</dd></div>
