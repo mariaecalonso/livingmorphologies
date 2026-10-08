@@ -10,14 +10,13 @@ export async function GET(request: Request, context: { params: Promise<{ archety
   if (!isArchetypeId(archetype) || !/^\d+$/.test(id)) return new NextResponse(null, { status: 404 });
   const saved = loadFilamentCalibration(archetype);
   const url = new URL(request.url);
-  const numberOr = (name: "white" | "black" | "organic" | "thickness" | "fray") =>
+  const numberOr = (name: "white" | "black" | "organic" | "thickness") =>
     url.searchParams.has(name) ? Number(url.searchParams.get(name)) : saved[name];
   const calibration = normalizeFilamentCalibration({
     white: numberOr("white"),
     black: numberOr("black"),
     organic: numberOr("organic"),
     thickness: numberOr("thickness"),
-    fray: numberOr("fray"),
   });
   const png = readPublishedInk(archetype, id, calibration);
   if (!png) return new NextResponse(null, { status: 404 });

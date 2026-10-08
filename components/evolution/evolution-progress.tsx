@@ -183,14 +183,15 @@ function ParetoDestination({
 function CatalogDestination({ archive }: { archive: EvolutionCandidateView[] }) {
   const href = useWorkflowHref("/lab/evolution/pareto-catalog");
   const thumbs = archive.filter((candidate) => candidate.image).slice(0, 72);
+  const catalog = labWorkspace("optimization").tabs.find((tab) => tab.href === "/lab/evolution/pareto-catalog");
 
   return (
-    <Link href={href} className="panel evo-destination" aria-label="Open Pareto Catalog">
     <Link href={href} className="panel evo-destination" aria-label={`Open ${catalog?.label ?? "Catalog"}`}>
       <header className="evo-destination-head">
         <div>
           <p className="eyebrow">Next · Nondominated archive</p>
-          <h2 className="panel-title">{catalog?.label}</h2>
+          <h2 className="panel-title">{catalog?.label ?? "Catalog"}</h2>
+        </div>
         <span className="evo-destination-open" aria-hidden="true">Open</span>
       </header>
       {thumbs.length === 0 ? (

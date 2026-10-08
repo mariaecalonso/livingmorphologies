@@ -168,6 +168,7 @@ function cascade(plan: TerracePlan): Plate[] {
   plates.push(V((-3.4) * wide, ys[0], ys[Math.min(2, n - 1)], ink.wall));
   const spur = ys[Math.min(branch, n - 1)];
   plates.push(H(4.2 * wide, 8.1 * wide, spur + 1.3 * (plan.pitch / 3.7), ink.branch, 0.9));
+  if (!prev) return plates;
   plates.push(D(prev.x1, prev.y, 8.1 * wide, spur + 1.3 * (plan.pitch / 3.7), ink.branch, 1));
   return plates;
 }

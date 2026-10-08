@@ -18,17 +18,20 @@ export function Panel({
 
 export function PanelHeader({
   kicker,
+  mark,
   title,
   aside,
 }: {
   kicker?: string;
+  mark?: string;
   title: string;
   aside?: ReactNode;
 }) {
+  const eyebrow = kicker ?? mark;
   return (
     <header className="panel-header hud-panel-header mb-2 flex items-start justify-between gap-3">
       <div className="panel-header-content hud-panel-header-content">
-        {kicker ? <p className="eyebrow hud-panel-kicker mb-1">{kicker}</p> : null}
+        {eyebrow ? <p className="eyebrow hud-panel-kicker mb-1">{eyebrow}</p> : null}
         <h2 className="panel-title hud-panel-title cyan-glow">{title}</h2>
       </div>
       {aside ? <div className="panel-header-aside hud-panel-aside shrink-0">{aside}</div> : null}

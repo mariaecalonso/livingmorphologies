@@ -5,6 +5,7 @@ import type { TypologyId } from "../types";
 import type { EvolutionRun } from "./evolution";
 import type { Genome } from "./genome";
 import type { CatalogIndex, PublishedCatalog } from "./semantic/publish-catalog";
+import type { SemanticRun } from "./semantic/types";
 
 export type EvolutionCandidateView = {
   key: string;

@@ -259,6 +259,8 @@ export type SimulationState = {
   permeabilityField: number[];
   occupancy: number[];
   trails: number[];
+  /** Peak trail held for the Computer 2 preview ink. Agent motion still reads `trails`. */
+  displayTrails?: Float32Array;
   flow: number[];
   agents: SimAgent[];
 };

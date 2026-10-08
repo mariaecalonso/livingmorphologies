@@ -1544,6 +1544,7 @@ export function createSimulation(
     permeabilityField: buildPermeabilityField(size, source, attractor, translation),
     occupancy: new Array<number>(size * size).fill(0),
     trails: new Array<number>(trailSize * trailSize).fill(0),
+    displayTrails: new Float32Array(trailSize * trailSize),
     flow: new Array<number>(size * size).fill(0),
     agents,
   };
@@ -1868,6 +1869,7 @@ export function stepSimulation(
   let write = 0;
   for (let n = 0; n < book.active.length; n += 1) {
     const i = book.active[n];
+    if (state.displayTrails) state.displayTrails[i] = Math.max(state.displayTrails[i], state.trails[i]);
     const faded = state.trails[i] * decayMul;
     trailDelta += Math.abs(state.trails[i] - faded);
     if (faded > 0.003) {
