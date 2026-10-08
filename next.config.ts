@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       "public/assets/**",
       "public/references/**",
       "tmp/**",
+      "data/**",
+      "config/**",
     ],
   },
 };

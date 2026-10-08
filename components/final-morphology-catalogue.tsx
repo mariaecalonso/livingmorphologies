@@ -2,15 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { PRESENTATION_ARCHETYPE, PRESENTATION_CANDIDATE, presentationBundleUrl } from "@/lib/presentation/demo";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { FinalOrthographicViews } from "@/components/final-orthographic-drawing";
 import { PlaceholderMorphology } from "@/components/final-placeholder-morphology";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
-import type { NaturalContinuation } from "@/lib/skill3/continuations";
+import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { representativeContinuations } from "@/lib/skill3/representatives";
 import { readSkill2Selections, type Skill2Selection, type Skill2Selections } from "@/lib/skill2/published-selection";
 import {
   readSelectedSkill3Collection,
   sameSelectedMorphology,
+  selectedMorphologyFrom,
   type SelectedSkill3Collection,
   type SelectedSkill3Morphology,
 } from "@/lib/skill3/morphology-selection";
@@ -104,12 +107,50 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
 
   useEffect(() => {
     const origin = preview ? "provisional" : fixture ? "development-fixture" : "handoff";
-    setCollection(readSelectedSkill3Collection(origin));
+    const stored = readSelectedSkill3Collection(origin);
     setSkill2Selections(readSkill2Selections());
     if (preview) {
       setIndexes((current) => ({ ...current, workspace: 0 }));
       setFocus({ row: "workspace", index: 0 });
     }
+    if (stored[PRESENTATION_ARCHETYPE] || preview || fixture) {
+      setCollection(stored);
+      return;
+    }
+    const bundleUrl = presentationBundleUrl(PRESENTATION_ARCHETYPE, PRESENTATION_CANDIDATE);
+    if (!bundleUrl) {
+      setCollection(stored);
+      return;
+    }
+    let cancel = false;
+    void fetch(bundleUrl)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { continuations?: Array<Omit<NaturalContinuation, "field">>; fields?: VerticalViewerField[] } | null) => {
+        if (cancel || !body?.continuations || !body.fields) {
+          if (!cancel) setCollection(stored);
+          return;
+        }
+        const set = {
+          ...body,
+          continuations: body.continuations.map((continuation, index) => ({
+            ...continuation,
+            field: body.fields?.[index],
+          })),
+        } as NaturalContinuationSet;
+        const chosen = representativeContinuations(set.continuations, 1)[0] ?? set.continuations[0];
+        if (!chosen) {
+          setCollection(stored);
+          return;
+        }
+        const morphology = selectedMorphologyFrom(set, chosen);
+        setCollection({ ...stored, [morphology.archetypeId]: morphology });
+      })
+      .catch(() => {
+        if (!cancel) setCollection(stored);
+      });
+    return () => {
+      cancel = true;
+    };
   }, [fixture, preview]);
 
   useEffect(() => {
@@ -408,12 +449,20 @@ async function loadCachedField(
     if (source === "provisional") params.set("preview", "1");
   }
   try {
-    const response = await fetch(`/api/vertical?${params}`, { signal });
+    const bundleUrl = presentationBundleUrl(selection.archetypeId, selection.candidateId);
+    if (!bundleUrl || source === "fixture") return null;
+    const response = await fetch(bundleUrl, { signal });
     if (!response.ok) return null;
-    const body = await response.json() as { continuation?: NaturalContinuation };
-    const continuation = body.continuation;
-    if (!continuation?.field || !sameSelectedMorphology(selection, continuation)) return null;
-    if (source === "fixture" && continuation.archetypeId !== selection.archetypeId) return null;
+    const body = await response.json() as {
+      continuations?: Array<Omit<NaturalContinuation, "field">>;
+      fields?: VerticalViewerField[];
+    };
+    const index = body.continuations?.findIndex((item) => item.id === selection.continuationId) ?? -1;
+    const meta = index >= 0 ? body.continuations?.[index] : null;
+    const field = index >= 0 ? body.fields?.[index] : null;
+    if (!meta || !field) return null;
+    const continuation = { ...meta, field };
+    if (!sameSelectedMorphology(selection, continuation)) return null;
     return continuation.field;
   } catch {
     return null;

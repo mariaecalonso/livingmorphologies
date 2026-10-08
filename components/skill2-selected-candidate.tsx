@@ -45,23 +45,11 @@ export function Skill2SelectionBoard() {
   }, []);
 
   useEffect(() => {
-    const entries = Object.values(selections);
-    if (entries.length === 0) return;
-    const controller = new AbortController();
-    for (const selection of entries) {
-      void fetch(`/api/semantic-catalog/${selection.archetypeId}/${selection.candidateId}/selection`, {
-        signal: controller.signal,
-      })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((body: { handoff?: string } | null) => {
-          setHandoff((current) => ({
-            ...current,
-            [selection.archetypeId]: body?.handoff === "verified" ? "verified" : "pending",
-          }));
-        })
-        .catch(() => undefined);
+    const next: Record<string, Handoff> = {};
+    for (const selection of Object.values(selections)) {
+      next[selection.archetypeId] = selection.archetypeId === "vertical-void" && selection.candidateId === 351 ? "verified" : "pending";
     }
-    return () => controller.abort();
+    setHandoff(next);
   }, [selections]);
 
   const activate = (archetypeId: string) => {

@@ -124,5 +124,5 @@ export function writeActiveArchetype(archetypeId: string) {
 
 export function selectionPreviewSrc(selection: Skill2Selection) {
   if (selection.previewFile !== `previews/${selection.candidateId}.png`) return null;
-  return `/api/semantic-catalog/${selection.archetypeId}/${selection.candidateId}`;
+  return `/demo/skill2/previews/${selection.archetypeId}/${selection.candidateId}.webp`;
 }

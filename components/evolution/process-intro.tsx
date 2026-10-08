@@ -567,7 +567,7 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
       const objectives = saved?.objectives ?? (filed ? { formal: filed.formal, spatial: filed.spatial, atmospheric: filed.atmospheric } : null);
       const run = catalog.archetypes.find((entry) => entry.archetypeId === item.id);
       const plate = candidateId != null ? run?.candidates.find((candidate) => candidate.id === candidateId) : undefined;
-      const image = plate?.image ?? (saved ? selectionPreviewSrc(saved) : null) ?? (candidateId != null ? `/api/evolution/${item.id}/${candidateId}` : null);
+      const image = plate?.image ?? (saved ? selectionPreviewSrc(saved) : null) ?? (candidateId != null ? `/demo/skill2/previews/${item.id}/${candidateId}.webp` : null);
       return {
         id: item.id,
         name: item.name,

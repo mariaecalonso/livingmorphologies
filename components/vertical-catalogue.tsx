@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import savedPicks from "@/data/skill2/pareto-catalog/selections.json";
+import { presentationBundleUrl } from "@/lib/presentation/demo";
+import savedPicks from "@/public/demo/skill2/picks.json";
 import { CatalogueField, type CatalogueModule, type CatalogueSurface } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
@@ -54,7 +55,7 @@ function archetypesFor(typologyId: string) {
 }
 
 function canonicalCandidateId(archetypeId: string) {
-  const pick = (savedPicks as Record<string, { candidateId?: number }>)[archetypeId];
+  const pick = savedPicks.find((item) => item.archetypeId === archetypeId);
   const candidateId = pick?.candidateId;
   return Number.isInteger(candidateId) && candidateId != null && candidateId >= 1 ? candidateId : null;
 }
@@ -283,15 +284,17 @@ export function VerticalCatalogue({
       replaceQuery(null);
       return;
     }
-    const params = new URLSearchParams({
-      archetype: archetypeId,
-      candidate: String(candidateId),
-      cache: "1",
-    });
-    if (preview) params.set("preview", "1");
     setPending(true);
     setError(null);
-    void fetch(`/api/vertical?${params}`, { signal: controller.signal })
+    const bundleUrl = presentationBundleUrl(archetypeId, candidateId);
+    if (!bundleUrl) {
+      loadedKey.current = `miss:${key}`;
+      setSet(null);
+      setPending(false);
+      setError("This presentation shows Vertical Void 351.");
+      return;
+    }
+    void fetch(bundleUrl, { signal: controller.signal })
       .then(async (response) => {
         if (controller.signal.aborted) return;
         if (response.status === 404) {

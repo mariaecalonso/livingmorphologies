@@ -1192,7 +1192,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
                   </button>
                   <figcaption className="runs-catalog-spec">
                     <span>Run {String(entry.run).padStart(2, "0")}</span>
-                    <button type="button" onClick={() => removeSaved(entry.id)} aria-label={`Remove run ${String(entry.run).padStart(2, "0")}`}>
+                    <button type="button" hidden onClick={() => removeSaved(entry.id)} aria-label={`Remove run ${String(entry.run).padStart(2, "0")}`}>
                       <svg viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M4 4l8 8M12 4l-8 8" />
                       </svg>

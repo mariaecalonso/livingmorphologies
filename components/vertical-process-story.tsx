@@ -9,6 +9,7 @@ import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { readSelectedSkill3Morphology } from "@/lib/skill3/morphology-selection";
+import { presentationBundleUrl } from "@/lib/presentation/demo";
 import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
@@ -137,17 +138,16 @@ export function ProcessStory({
   useEffect(() => {
     if (!focusArchetype || focusCandidate == null) return;
     const controller = new AbortController();
-    const params = new URLSearchParams({
-      archetype: focusArchetype,
-      candidate: String(focusCandidate),
-      cache: "1",
-    });
-    const load = (cacheOnly: boolean): Promise<void> => fetch(
-      cacheOnly ? `/api/vertical?${params}` : `/api/vertical?${new URLSearchParams({ archetype: focusArchetype, candidate: String(focusCandidate) })}`,
-      { signal: controller.signal },
-    ).then(async (response): Promise<void> => {
+    const bundleUrl = presentationBundleUrl(focusArchetype, focusCandidate);
+    if (!bundleUrl) {
+      setSet(null);
+      setError("This presentation shows Vertical Void 351.");
+      setPending(false);
+      return;
+    }
+    const load = (): Promise<void> => fetch(bundleUrl, { signal: controller.signal }).then(async (response): Promise<void> => {
       if (controller.signal.aborted) return;
-      if (response.status === 404 && cacheOnly) return load(false);
+      if (response.status === 404) throw new Error("This presentation shows Vertical Void 351.");
       const body = (await response.json()) as ApiSet & { error?: string };
       if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
       if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
@@ -156,7 +156,7 @@ export function ProcessStory({
       if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
       setSet(joinSet(body));
     });
-    load(true)
+    load()
       .catch((caught) => {
         if (controller.signal.aborted) return;
         setSet(null);
@@ -187,7 +187,7 @@ export function ProcessStory({
             <div className="process-sample-column">
               <figure>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="vertical-process-plate" src={`/api/semantic-catalog/${focusArchetype}/${focusCandidate}`} alt={`${shownExample?.archetypeName ?? archetype?.name ?? focusArchetype} ${focusCandidate}`} />
+                <img className="vertical-process-plate" src={`/demo/skill2/previews/${focusArchetype}/${focusCandidate}.webp`} alt={`${shownExample?.archetypeName ?? archetype?.name ?? focusArchetype} ${focusCandidate}`} />
                 <figcaption>Selected</figcaption>
               </figure>
             </div>

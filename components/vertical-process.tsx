@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { readActiveArchetype, readSkill2Selections, writeActiveArchetype, type Skill2Selection } from "@/lib/skill2/published-selection";
+import { presentationBundleUrl } from "@/lib/presentation/demo";
 import { DEFAULT_PROCESS_ARCHETYPE_ID, DEFAULT_PROCESS_CANDIDATE_ID, type ResolvedProcessSource } from "@/lib/skill3/selection";
 import {
   readSelectedSkill3Morphology,
@@ -379,31 +380,25 @@ export function VerticalProcess({
       });
       return;
     }
-    setHandoff(null);
+    const bundleUrl = presentationBundleUrl(selected.archetypeId, selected.candidateId);
+    if (!bundleUrl) {
+      setReadyCandidate(null);
+      setHandoff("pending");
+      setStoredZ0(null);
+      setVerifiedChecksum(null);
+      return;
+    }
+    setHandoff("verified");
     setStoredZ0(null);
     setVerifiedChecksum(null);
-    void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { handoff?: string; z0Iteration?: number | null } | null) => {
-        if (signal?.aborted) return;
-        if (body?.handoff !== "verified") {
-          setReadyCandidate(null);
-          setHandoff(body?.handoff === "pending" ? "pending" : null);
-          setStoredZ0(null);
-          return;
-        }
-        setHandoff("verified");
-        setStoredZ0(typeof body.z0Iteration === "number" ? body.z0Iteration : null);
-        setVerifiedChecksum(null);
-        const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
-        setReadyCandidate({
-          archetypeId: selected.archetypeId,
-          archetypeName: name ?? selected.archetypeId,
-          typologyId: selected.typologyId,
-          candidateId: selected.candidateId,
-        });
-      })
-      .catch(() => undefined);
+    const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
+    setReadyCandidate({
+      archetypeId: selected.archetypeId,
+      archetypeName: name ?? selected.archetypeId,
+      typologyId: selected.typologyId,
+      candidateId: selected.candidateId,
+    });
+    void signal;
   }, [resolved]);
 
   useEffect(() => {
@@ -457,7 +452,7 @@ export function VerticalProcess({
       return;
     }
     setError(null);
-    void fetch(`/api/semantic-catalog/${DEFAULT_PROCESS_ARCHETYPE_ID}/${DEFAULT_PROCESS_CANDIDATE_ID}/selection`)
+    void fetch(`/demo/skill3/${DEFAULT_PROCESS_ARCHETYPE_ID}/${DEFAULT_PROCESS_CANDIDATE_ID}.json`)
       .then(async (response) => {
         const body = (await response.json()) as { selection?: Skill2Selection; error?: string };
         if (!response.ok || !body.selection) throw new Error(body.error ?? "No published Skill 2 selection was found.");
@@ -491,7 +486,13 @@ export function VerticalProcess({
     setPending(true);
     setPlaying(false);
     setStep(0);
-    void fetch(`/api/vertical?${params}`)
+    const bundleUrl = presentationBundleUrl(source.archetypeId, source.candidateId);
+    if (!bundleUrl) {
+      setError("This presentation shows Vertical Void 351.");
+      setPending(false);
+      return;
+    }
+    void fetch(bundleUrl)
       .then(async (response) => {
         const body = (await response.json()) as ApiSet & { error?: string };
         if (!response.ok) throw new Error(body.error ?? "The selected candidate could not be reconstructed.");
@@ -508,6 +509,16 @@ export function VerticalProcess({
         if (token === continuationRequest.current) setPending(false);
       });
   };
+
+  const openedBundle = useRef<string | null>(null);
+  useEffect(() => {
+    if (initial || !source) return;
+    const key = `${source.archetypeId}:${source.candidateId}`;
+    if (openedBundle.current === key) return;
+    if (!presentationBundleUrl(source.archetypeId, source.candidateId)) return;
+    openedBundle.current = key;
+    beginContinuation();
+  }, [initial, source]);
 
   const matchesSelection = set != null && (
     source == null
@@ -644,12 +655,7 @@ export function VerticalProcess({
         {fixtureActive ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
         {verifiedZ0 ? <p className="eyebrow vertical-process-flag">Skill 2 → Skill 3 · Verified Z0</p> : null}
         {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-        <div data-temporary="skill3-run">
-          <button type="button" onClick={loadOneSelection} disabled={Boolean(initial || candidate)}>Load Skill 2 selection</button>
-          <button type="button" onClick={beginContinuation} disabled={!source || pending || Boolean(initial)}>Run vertical propagation</button>
-          <button type="button" onClick={saveOneResult} disabled={!shown || activeSet?.origin !== "handoff"}>Save result</button>
-          {saveNote ? <span>{saveNote}</span> : null}
-        </div>
+        {saveNote ? <span className="eyebrow">{saveNote}</span> : null}
       </header>
 
       <div className="vertical-process-body">
@@ -676,7 +682,7 @@ export function VerticalProcess({
                 <img
                   key={`${semantic.archetypeId}:${semantic.candidateId}`}
                   className="evolution-image"
-                  src={`/api/semantic-catalog/${semantic.archetypeId}/${semantic.candidateId}`}
+                  src={`/demo/skill2/previews/${semantic.archetypeId}/${semantic.candidateId}.webp`}
                   alt={`${archetypeName} selected Skill 2 morphology ${semantic.candidateId}`}
                 />
               ) : null}

@@ -8,24 +8,7 @@ import type { TypologyId } from "@/lib/types";
 const STORAGE_KEY = "lm-evolution-archetype";
 
 export function useEvolutionCatalog(initial: EvolutionCatalog) {
-  const [catalog, setCatalog] = useState(initial);
-  useEffect(() => {
-    let stop = false;
-    const tick = () => {
-      void fetch("/api/evolution", { cache: "no-store" })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((next: EvolutionCatalog | null) => {
-          if (!stop && next) setCatalog(next);
-        })
-        .catch(() => undefined);
-    };
-    const timer = window.setInterval(tick, 15000);
-    return () => {
-      stop = true;
-      window.clearInterval(timer);
-    };
-  }, []);
-  return catalog;
+  return initial;
 }
 
 export function useSelectedArchetype(catalog: EvolutionCatalog) {

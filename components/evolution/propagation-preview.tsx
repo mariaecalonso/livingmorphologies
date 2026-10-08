@@ -10,7 +10,7 @@ export function PropagationPreview({ archetypeId, candidateId }: { archetypeId: 
     let cancel = false;
     setSlices(null);
     setNote(null);
-    fetch(`/api/evolution/${archetypeId}/${candidateId}/propagation`)
+    fetch(`/demo/skill2/propagation/${archetypeId}/${candidateId}.json`)
       .then((response) => response.json())
       .then((body: { ready?: boolean; reason?: string; slices?: string[] }) => {
         if (cancel) return;
