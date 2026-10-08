@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { ProcessStack } from "@/components/vertical-process-stage";
+import { ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { ArchitecturalIntentProfile } from "@/lib/architectural-intent";
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
@@ -117,6 +117,12 @@ export function ProcessStory({
     }
   }, [focusArchetype]);
   const shown = set?.continuations.find((continuation) => continuation.id === "N01") ?? null;
+  const z0Slice = shown?.events[0]?.reason === "z0" ? shown.field.slices[0] ?? null : null;
+  const curated = set
+    ? (finalId ? set.continuations.find((continuation) => continuation.id === finalId) : null)
+      ?? representativeContinuations(set.continuations, 1)[0]
+      ?? null
+    : null;
   const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === focusArchetype);
   const generated = set?.continuations.length ?? BEHAVIOR_COUNT;
   const representative = set ? representativeContinuations(set.continuations, DISPLAY_COUNT).length : DISPLAY_COUNT;
@@ -136,17 +142,21 @@ export function ProcessStory({
       candidate: String(focusCandidate),
       cache: "1",
     });
-    fetch(`/api/vertical?${params}`, { signal: controller.signal })
-      .then(async (response) => {
-        if (controller.signal.aborted || response.status === 404) return;
-        const body = (await response.json()) as ApiSet & { error?: string };
-        if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
-        if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
-          throw new Error("Continuation identity did not match the selected candidate.");
-        }
-        if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
-        setSet(joinSet(body));
-      })
+    const load = (cacheOnly: boolean): Promise<void> => fetch(
+      cacheOnly ? `/api/vertical?${params}` : `/api/vertical?${new URLSearchParams({ archetype: focusArchetype, candidate: String(focusCandidate) })}`,
+      { signal: controller.signal },
+    ).then(async (response): Promise<void> => {
+      if (controller.signal.aborted) return;
+      if (response.status === 404 && cacheOnly) return load(false);
+      const body = (await response.json()) as ApiSet & { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
+      if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
+        throw new Error("Continuation identity did not match the selected candidate.");
+      }
+      if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
+      setSet(joinSet(body));
+    });
+    load(true)
       .catch((caught) => {
         if (controller.signal.aborted) return;
         setSet(null);
@@ -173,6 +183,15 @@ export function ProcessStory({
             <div><dt>Iteration</dt><dd>{shownExample ? String(shownExample.z0Iteration) : "Pending"}</dd></div>
             <div><dt>Checksum</dt><dd>{shownExample?.checksum ?? "Pending"}</dd></div>
           </dl>
+          {focusArchetype && focusCandidate != null ? (
+            <div className="process-sample-column">
+              <figure>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="vertical-process-plate" src={`/api/semantic-catalog/${focusArchetype}/${focusCandidate}`} alt={`${shownExample?.archetypeName ?? archetype?.name ?? focusArchetype} ${focusCandidate}`} />
+                <figcaption>Selected</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-descriptors" aria-label="Inherit">
@@ -202,6 +221,14 @@ export function ProcessStory({
               );
             })}
           </div>
+          {z0Slice ? (
+            <div className="process-sample-column">
+              <figure>
+                <ProcessPlate slice={z0Slice} />
+                <figcaption>Z0 {z0Slice.iteration}</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-recipes" aria-label="Evolve">
@@ -218,6 +245,20 @@ export function ProcessStory({
               </li>
             ))}
           </ol>
+          {set ? (
+            <div className="process-sample-column">
+              {set.continuations.map((continuation) => {
+                const slice = continuation.field.slices[continuation.field.slices.length - 1];
+                if (!slice) return null;
+                return (
+                  <figure key={continuation.id}>
+                    <ProcessPlate slice={slice} />
+                    <figcaption>{continuation.id}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-curate" aria-label="Curate">
@@ -237,6 +278,17 @@ export function ProcessStory({
             <span>Catalogue</span>
             <span aria-hidden="true">→</span>
           </Link>
+          {curated && curated.field.slices.length >= 2 ? (
+            <div className="process-sample-column">
+              <figure>
+                <ProcessMorphology
+                  field={curated.field}
+                  cacheIdentity={`${curated.archetypeId}:${curated.candidateId}:${curated.id}`}
+                />
+                <figcaption>{curated.id}</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -257,6 +309,16 @@ export function ProcessStory({
         {error ? <p className="process-pending">{error}</p> : null}
         {pending && !shown ? <p className="process-pending">Reading N01</p> : null}
         {!pending && !error && !shown ? <p className="process-pending">N01 pending</p> : null}
+        {shown && aligned ? (
+          <div className="process-sample-column">
+            {shown.field.slices.map((slice, index) => (
+              <figure key={slice.iteration}>
+                <ProcessPlate slice={slice} />
+                <figcaption>{shown.events[index] ? reasonLabel(shown.events[index].reason) : String(slice.iteration)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : null}
         {shown && rows.length > 0 ? (
           <ol className="process-timeline">
             {rows.map((row) => row.kind === "event" ? (
