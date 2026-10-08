@@ -38,7 +38,7 @@ export const HOME_RESULTS: readonly HomeResultSkill[] = [
     name: "2D Evolution",
     catalogueTitle: "Pareto Catalog",
     status: "ready",
-    href: "/lab/evolution/pareto-catalog",
+    href: "/evolution/pareto-catalog",
     previews: [],
   },
   {

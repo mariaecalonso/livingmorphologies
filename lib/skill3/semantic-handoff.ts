@@ -154,3 +154,13 @@ export function loadVerifiedContinuations(request: Skill3SourceRequest): Natural
   semanticCache.set(key, set);
   return { ...set, semanticChecksum: opened.semanticChecksum };
 }
+
+/** Bundle already produced by `loadVerifiedContinuations`. Does not start a replay. */
+export function peekVerifiedContinuations(request: Skill3SourceRequest): NaturalContinuationSet | null {
+  const archetypeId = requestArchetype(request);
+  if (!archetypeId) return null;
+  for (const set of semanticCache.values()) {
+    if (set.archetypeId === archetypeId && set.candidateId === request.candidateId && set.origin === "handoff") return set;
+  }
+  return null;
+}

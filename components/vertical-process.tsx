@@ -1,15 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TYPOLOGIES } from "@/lib/catalog";
-import { readActiveArchetype, readSkill2Selections, type Skill2Selection } from "@/lib/skill2/published-selection";
+import { readActiveArchetype, readSkill2Selections, writeActiveArchetype, type Skill2Selection } from "@/lib/skill2/published-selection";
+import {
+  readSelectedSkill3Morphology,
+  sameSelectedMorphology,
+  selectedMorphologyFrom,
+  writeSelectedSkill3Morphology,
+} from "@/lib/skill3/morphology-selection";
+import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
-import { ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
+import { ProcessPlate } from "@/components/vertical-process-stage";
+import { ProcessStory } from "@/components/vertical-process-story";
+
+/** One published candidate used only when the browser has no Skill 2 selection. */
+const TRIAL_ARCHETYPE = "vertical-void";
+const TRIAL_CANDIDATE = 174;
 
 const TYPOLOGY: Record<string, string> = {
   lobby: "Lobby",
@@ -388,52 +400,95 @@ export function VerticalProcess({
   const [semantic, setSemantic] = useState<Skill2Selection | null>(null);
   const [handoff, setHandoff] = useState<"verified" | "pending" | null>(null);
   const [storedZ0, setStoredZ0] = useState<number | null>(null);
+  const [activeArchetypeId, setActiveArchetypeId] = useState<string | null>(null);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  const pinnedSelection = useRef<Skill2Selection | null>(null);
   const onTriangles = useCallback((count: number | null) => setTriangles(count), []);
   const source = candidate ?? readyCandidate;
+
+  const acceptSelection = useCallback((selected: Skill2Selection, signal?: AbortSignal) => {
+    setSemantic(selected);
+    setSaveNote(null);
+    void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { handoff?: string; z0Iteration?: number | null } | null) => {
+        if (signal?.aborted) return;
+        if (body?.handoff !== "verified") {
+          setReadyCandidate(null);
+          setHandoff(body?.handoff === "pending" ? "pending" : null);
+          setStoredZ0(null);
+          return;
+        }
+        setHandoff("verified");
+        setStoredZ0(typeof body.z0Iteration === "number" ? body.z0Iteration : null);
+        const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
+        setReadyCandidate({
+          archetypeId: selected.archetypeId,
+          archetypeName: name ?? selected.archetypeId,
+          typologyId: selected.typologyId,
+          candidateId: selected.candidateId,
+        });
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (initial || candidate) return;
     const controller = new AbortController();
-    const load = () => {
+    const loadStored = () => {
       const activeId = readActiveArchetype();
+      setActiveArchetypeId(activeId);
       const selected = activeId ? readSkill2Selections()[activeId] : undefined;
       if (!selected) {
+        if (pinnedSelection.current) {
+          acceptSelection(pinnedSelection.current, controller.signal);
+          return;
+        }
         setReadyCandidate(null);
         setSemantic(null);
         setHandoff(null);
         setStoredZ0(null);
         return;
       }
-      setSemantic(selected);
-      void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((body: { handoff?: string; z0Iteration?: number | null } | null) => {
-          if (controller.signal.aborted) return;
-          if (body?.handoff !== "verified") {
-            setReadyCandidate(null);
-            setHandoff(body?.handoff === "pending" ? "pending" : null);
-            setStoredZ0(null);
-            return;
-          }
-          setHandoff("verified");
-          setStoredZ0(typeof body.z0Iteration === "number" ? body.z0Iteration : null);
-          const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
-          setReadyCandidate({
-            archetypeId: selected.archetypeId,
-            archetypeName: name ?? selected.archetypeId,
-            typologyId: selected.typologyId,
-            candidateId: selected.candidateId,
-          });
-        })
-        .catch(() => undefined);
+      pinnedSelection.current = null;
+      acceptSelection(selected, controller.signal);
     };
-    load();
-    window.addEventListener("lm-skill3-source", load);
+    loadStored();
+    const onSource = () => {
+      pinnedSelection.current = null;
+      loadStored();
+    };
+    window.addEventListener("lm-skill3-source", onSource);
     return () => {
       controller.abort();
-      window.removeEventListener("lm-skill3-source", load);
+      window.removeEventListener("lm-skill3-source", onSource);
     };
-  }, [candidate, initial]);
+  }, [acceptSelection, candidate, initial]);
+
+  const loadOneSelection = () => {
+    if (initial || candidate) return;
+    const stored = readSkill2Selections();
+    const activeId = readActiveArchetype();
+    const selected = (activeId ? stored[activeId] : undefined) ?? Object.values(stored)[0];
+    if (selected) {
+      pinnedSelection.current = null;
+      writeActiveArchetype(selected.archetypeId);
+      window.dispatchEvent(new Event("lm-skill3-source"));
+      return;
+    }
+    setError(null);
+    void fetch(`/api/semantic-catalog/${TRIAL_ARCHETYPE}/${TRIAL_CANDIDATE}/selection`)
+      .then(async (response) => {
+        const body = (await response.json()) as { selection?: Skill2Selection; error?: string };
+        if (!response.ok || !body.selection) throw new Error(body.error ?? "No published Skill 2 selection was found.");
+        pinnedSelection.current = body.selection;
+        setActiveArchetypeId(body.selection.archetypeId);
+        acceptSelection(body.selection);
+      })
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : "No published Skill 2 selection was found.");
+      });
+  };
 
   const continuationRequest = useRef(0);
 
@@ -528,11 +583,26 @@ export function VerticalProcess({
     setStep(0);
   };
   const z0 = shown?.field.slices[0] ?? null;
+  const watchedId = semantic?.archetypeId ?? activeArchetypeId;
+  const watched = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyId: typology.id, typologyLabel: TYPOLOGY[typology.id] ?? typology.label }))).find((item) => item.id === watchedId);
   const identity = activeSet ?? source;
-  const typology = identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype";
-  const archetypeName = identity?.archetypeName ?? "Selected candidate";
-  const candidateId = identity?.candidateId;
+  const typology = watched?.typologyLabel ?? (identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype");
+  const archetypeName = watched?.name ?? identity?.archetypeName ?? "Selected candidate";
+  const candidateId = semantic?.candidateId ?? identity?.candidateId;
   const z0Iteration = activeSet?.z0Iteration ?? (pending || error ? null : storedZ0);
+  const checksum = shown?.parentChecksum ?? activeSet?.parentChecksum ?? null;
+  const intent = useMemo(() => {
+    if (!watchedId) return null;
+    try {
+      return architecturalIntentFor(watchedId);
+    } catch {
+      return null;
+    }
+  }, [watchedId]);
+  const selectedCount = useMemo(() => {
+    if (!activeSet || activeSet.continuations.length === 0) return 0;
+    return representativeContinuations(activeSet.continuations, DISPLAY_COUNT).length;
+  }, [activeSet]);
   const fixtureActive = search.get("fixture") === "1" || activeSet?.origin === "development-fixture";
   const verifiedZ0 = !fixtureActive && activeSet?.origin !== "provisional" && !preview && (handoff === "verified" || activeSet?.origin === "handoff");
   const objectives = semantic?.objectives ?? null;
@@ -571,6 +641,14 @@ export function VerticalProcess({
   }, [shown, revealedCount]);
   const status = handoffStatus(activeSet?.origin, pending, error, verifiedZ0);
 
+  const saveOneResult = () => {
+    if (!activeSet || activeSet.origin !== "handoff" || !shown) return;
+    const next = selectedMorphologyFrom(activeSet, shown);
+    writeSelectedSkill3Morphology(next);
+    const stored = readSelectedSkill3Morphology("handoff", next.archetypeId);
+    setSaveNote(stored && sameSelectedMorphology(stored, shown) ? `Saved ${stored.continuationId} for ${stored.archetypeId}` : "Save did not write lm-skill3-morphology");
+  };
+
   const handoffFailed = error != null && !pending;
 
   return (
@@ -583,6 +661,12 @@ export function VerticalProcess({
         {fixtureActive ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
         {verifiedZ0 ? <p className="eyebrow vertical-process-flag">Skill 2 → Skill 3 · Verified Z0</p> : null}
         {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
+        <div data-temporary="skill3-run">
+          <button type="button" onClick={loadOneSelection} disabled={Boolean(initial || candidate)}>Load Skill 2 selection</button>
+          <button type="button" onClick={beginContinuation} disabled={!source || pending || Boolean(initial)}>Run vertical propagation</button>
+          <button type="button" onClick={saveOneResult} disabled={!shown || activeSet?.origin !== "handoff"}>Save result</button>
+          {saveNote ? <span>{saveNote}</span> : null}
+        </div>
       </header>
 
       <div className="vertical-process-body">
@@ -605,45 +689,33 @@ export function VerticalProcess({
                 <span>Candidate</span>
                 <span>{candidateId != null ? String(candidateId) : "Waiting"}</span>
               </li>
-              {semantic ? (
-                <li>
-                  <span>Pareto role</span>
-                  <span>{paretoRole(semantic.pareto)}</span>
-                </li>
-              ) : null}
-              {semantic ? (
-                <li>
-                  <span>Diversity role</span>
-                  <span>{diversityRole(semantic.diversity)}</span>
-                </li>
-              ) : null}
-              {specialist ? (
-                <li>
-                  <span>Specialist role</span>
-                  <span>{specialist}</span>
-                </li>
-              ) : null}
-              {z0Iteration != null ? (
-                <li>
-                  <span>Z0 iteration</span>
-                  <span>{String(z0Iteration)}</span>
-                </li>
-              ) : null}
               <li>
-                <span>Handoff</span>
-                <span>{status}</span>
+                <span>Source</span>
+                <span>Skill 2</span>
+              </li>
+              <li>
+                <span>Z0</span>
+                <span>{verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}</span>
+              </li>
+              <li>
+                <span>Z0 iteration</span>
+                <span>{z0Iteration != null ? String(z0Iteration) : "Waiting"}</span>
+              </li>
+              <li>
+                <span>Checksum</span>
+                <span>{checksum ? checksum.slice(0, 8) : "Waiting"}</span>
               </li>
             </ol>
           </section>
           <section className="vertical-process-frame">
             <header className="vertical-process-label">
               <p className="eyebrow">02</p>
-              <h2 className="panel-title">Objectives</h2>
+              <h2 className="panel-title">Architectural intent</h2>
             </header>
             <ParetoSketch objectives={objectives} />
-            <p className="vertical-process-note">{`Formal ${roundedScore(objectives?.formal)}`}</p>
-            <p className="vertical-process-note">{`Spatial ${roundedScore(objectives?.spatial)}`}</p>
-            <p className="vertical-process-note">{`Atmospheric ${roundedScore(objectives?.atmospheric)}`}</p>
+            <p className="vertical-process-note">{intent ? `Formal · ${intent.formal.descriptor}` : `Formal ${roundedScore(objectives?.formal)}`}</p>
+            <p className="vertical-process-note">{intent ? `Spatial · ${intent.spatial.descriptor}` : `Spatial ${roundedScore(objectives?.spatial)}`}</p>
+            <p className="vertical-process-note">{intent ? `Atmospheric · ${intent.atmospheric.descriptor}` : `Atmospheric ${roundedScore(objectives?.atmospheric)}`}</p>
           </section>
           <section className="vertical-process-frame vertical-process-selection">
             <header className="vertical-process-label">
@@ -662,35 +734,12 @@ export function VerticalProcess({
                 <ProcessPlate slice={z0} />
               ) : null}
             </div>
-            <p className="vertical-process-note">Selected 2D state</p>
-            <p className="vertical-process-note">{`Handoff → Skill 3 · ${status}`}</p>
+            <p className="vertical-process-note">{candidateId != null ? `#${candidateId}` : "No candidate"}</p>
+            <p className="vertical-process-note">Selected in Skill 2</p>
           </section>
         </div>
 
-        <section className="vertical-process-board" data-playing={playing || undefined}>
-          <header className="vertical-process-label">
-            <p className="eyebrow">Skill 3</p>
-            <h2 className="panel-title">Process</h2>
-            <div className="vertical-process-replay">
-              <span>Playback {shown ? `${playStep} / ${horizon}` : "0 / 64"}</span>
-              <button type="button" onClick={togglePlay} disabled={(!shown && !source) || handoffFailed || pending} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>{playing ? "Pause" : "Play"}</button>
-              <button type="button" onClick={resetReplay} disabled={!shown || handoffFailed} title={handoffFailed ? "Unavailable until the handoff validates" : undefined}>Reset</button>
-              <input
-                type="range"
-                min={0}
-                max={Math.max(1, horizon)}
-                value={playStep}
-                aria-label="Continuation timeline"
-                disabled={!shown || horizon <= 0 || handoffFailed}
-                title={handoffFailed ? "Unavailable until the handoff validates" : undefined}
-                onChange={(event) => seek(playOrigin + Number(event.target.value))}
-              />
-            </div>
-          </header>
-          <div className="vertical-process-replay-bar" aria-hidden="true">
-            <span className="vertical-process-replay-fill" style={{ width: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
-            <span className="vertical-process-replay-head" style={{ left: `${horizon ? (playStep / horizon) * 100 : 0}%` }} />
-          </div>
+        <div className="process-story-wrap">
           {handoffFailed && error ? (
             <div className="vertical-process-handoff-error" role="alert">
               <p className="vertical-process-handoff-error-title">Handoff validation failed</p>
@@ -698,193 +747,21 @@ export function VerticalProcess({
               <p className="vertical-process-handoff-error-detail">{error}</p>
             </div>
           ) : null}
-          <div className="vertical-process-center">
-            <section className="vertical-process-region" data-step="initial" data-balance="visual">
-              <header className="vertical-process-label">
-                <p className="eyebrow">01</p>
-                <h2 className="panel-title">Initial state</h2>
-              </header>
-              <div className="vertical-process-split">
-                <div className="vertical-process-stage">{z0 ? <ProcessPlate slice={z0} /> : null}</div>
-                <div className="vertical-process-meta">
-                  <Strip
-                    items={[
-                      ["Candidate", candidateId != null ? String(candidateId) : "Waiting"],
-                      ["Z0", z0Iteration != null ? String(z0Iteration) : "Waiting"],
-                      ["Handoff", status],
-                    ]}
-                  />
-                  <HandoffMark status={status} />
-                </div>
-              </div>
-            </section>
-            <section className="vertical-process-region" data-step="continuation" data-balance="graph">
-              <header className="vertical-process-label">
-                <p className="eyebrow">02</p>
-                <h2 className="panel-title">Natural continuation</h2>
-                <p className="vertical-process-aside">{shown ? `Horizon ${playStep} / ${horizon}` : "Continuation horizon"}</p>
-              </header>
-              <div className="vertical-process-split">
-                <div className="vertical-process-stage">
-                  {activeSlice ? <ProcessPlate slice={activeSlice} /> : null}
-                  {shown ? (
-                    <span className="vertical-process-now">
-                      {playStep}
-                      <small>{`Playback · horizon ${horizon}`}</small>
-                    </span>
-                  ) : null}
-                </div>
-                <div className="vertical-process-meta" data-layout="plot">
-                  <Strip
-                    items={[
-                      ["Branch", shown?.id ?? "Waiting"],
-                      ["Seed", shown ? String(shown.continuationSeed) : "Waiting"],
-                      ["Horizon", set ? String(set.rules.horizon) : "Waiting"],
-                    ]}
-                  />
-                  {shown && set ? (
-                    <DeltaGraph
-                      events={shown.events}
-                      origin={shown.z0Iteration}
-                      horizon={set.rules.horizon}
-                      threshold={set.rules.deltaThreshold}
-                      marks={states}
-                      step={playStep}
-                      onSeek={seek}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            </section>
-            <section className="vertical-process-region" data-step="xyt" data-balance="graph">
-              <header className="vertical-process-label">
-                <p className="eyebrow">03</p>
-                <h2 className="panel-title">Event sampling / XYT</h2>
-                <p className="vertical-process-aside">T → Z</p>
-              </header>
-              <div className="vertical-process-split">
-                <div className="vertical-process-stage">
-                  {revealedField ? (
-                    <ProcessStack
-                      field={revealedField}
-                      labels={tags}
-                      reasons={shown?.events.map((event) => event.reason)}
-                      plates={revealedField.slices.length}
-                      onPick={(index) => {
-                        const event = shown?.events[index];
-                        if (event) seek(event.iteration);
-                      }}
-                    />
-                  ) : null}
-                </div>
-                <div className="vertical-process-meta" data-layout="plot">
-                  <Strip
-                    items={[
-                      ["Samples", shown ? String(shown.sampleCount) : "Waiting"],
-                      ["Δ", set ? String(set.rules.deltaThreshold) : "Waiting"],
-                      ["Gap", set ? `${set.rules.minGap}–${set.rules.maxGap}` : "Waiting"],
-                    ]}
-                  />
-                  {shown && set ? (
-                    <EventTimeline
-                      events={shown.events}
-                      origin={shown.z0Iteration}
-                      horizon={set.rules.horizon}
-                      minGap={set.rules.minGap}
-                      maxGap={set.rules.maxGap}
-                      tags={tags}
-                      step={playStep}
-                      onSeek={seek}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            </section>
-            <section className="vertical-process-region" data-step="morphology" data-balance="visual">
-              <header className="vertical-process-label">
-                <p className="eyebrow">04</p>
-                <h2 className="panel-title">3D morphology preview</h2>
-                {shown ? <p className="vertical-process-aside">{shown.id} · {revealedCount < 2 ? "Z0 sample" : `${revealedCount} / ${shown.sampleCount} samples`}</p> : <p className="vertical-process-aside">Temporal sampling</p>}
-              </header>
-              <div className="vertical-process-split">
-                <div className="vertical-process-stage">
-                  {shown && revealedField ? (
-                    <ProcessMorphology
-                      key={`${activeSet?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.parentChecksum}`}
-                      field={revealedField}
-                      cacheIdentity={`${activeSet?.origin ?? "pending"}:${shown.archetypeId}:${shown.candidateId}:${shown.id}`}
-                      onTriangles={onTriangles}
-                    />
-                  ) : null}
-                  {shown ? (
-                    <span className="vertical-process-now">
-                      {revealedCount < 2 ? "XYT at Z0" : `${revealedCount} / ${shown.sampleCount} samples`}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="vertical-process-meta">
-                  <Strip
-                    items={[
-                      ["Module", set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "Waiting"],
-                      ["Samples", shown ? String(shown.sampleCount) : "Waiting"],
-                      ["Mode", set?.rules.morphology ?? "Waiting"],
-                      ["Triangles", triangles != null ? String(triangles) : "Waiting"],
-                    ]}
-                  />
-                  <p className="vertical-process-reserved">Volume · Connectivity · Extent</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <aside className="vertical-process-logic">
-          <section className="vertical-process-frame vertical-process-grow">
-            <header className="vertical-process-label">
-              <p className="eyebrow">T → Z</p>
-              <h2 className="panel-title">Vertical propagation</h2>
-            </header>
-            <PropagationMarks iterations={samples} />
-            <p className="vertical-process-note">Time becomes height. Sample gaps set Z.</p>
-          </section>
-          <section className="vertical-process-frame vertical-process-grow">
-            <header className="vertical-process-label">
-              <p className="eyebrow">Behavior</p>
-              <h2 className="panel-title">Profile</h2>
-            </header>
-            <ul className="vertical-process-bars">
-              {bars.map(([label, value]) => (
-                <li key={label}>
-                  <span>{label}</span>
-                  <span className="vertical-process-bar" aria-hidden="true">
-                    <span style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="vertical-process-note">
-              {behavior?.source === "development-placeholder"
-                ? "Placeholder. Describes behavior, not rank."
-                : behavior
-                  ? "Event measures. Extent is not measured yet."
-                  : "After a verified continuation."}
-            </p>
-          </section>
-          <details className="vertical-process-rules">
-            <summary>Rules</summary>
-            <p>
-              {activeSet
-                ? `Horizon ${activeSet.rules.horizon}. Samples no closer than ${activeSet.rules.minGap} steps, and at least every ${activeSet.rules.maxGap}. Envelope ${activeSet.rules.envelope.sizeX}×${activeSet.rules.envelope.sizeY}×${activeSet.rules.envelope.sizeZ}. Morphology ${activeSet.rules.morphology}.`
-                : "The continuation uses the inherited slime and the current sampling horizon."}
-            </p>
-            <p>Further morphology rules can be added here if the 3D outcomes need them.</p>
-          </details>
-          <Link href={catalogueHref(search.toString())} className="vertical-process-catalogue">
-            <span>Explore 3D catalogue</span>
-            <span aria-hidden="true">→</span>
-          </Link>
-          <p className="vertical-process-note">Compare alternative natural continuation outcomes.</p>
-        </aside>
+          <ProcessStory
+            intent={intent}
+            archetypeId={watchedId}
+            archetypeName={archetypeName}
+            candidateId={candidateId ?? null}
+            z0Status={verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}
+            z0Iteration={z0Iteration ?? null}
+            shown={shown}
+            generatedCount={activeSet?.continuations.length ?? 0}
+            selectedCount={selectedCount}
+            catalogueHref={catalogueHref(search.toString())}
+            onTriangles={onTriangles}
+            onRead={source && !handoffFailed && !pending && !shown ? beginContinuation : undefined}
+          />
+        </div>
       </div>
     </main>
   );
