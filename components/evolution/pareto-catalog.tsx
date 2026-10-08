@@ -201,10 +201,11 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
   const specialists = (["formal", "spatial", "atmospheric"] as const).flatMap((emphasis) =>
     archetype?.candidates.filter((candidate) => candidate.specialist === emphasis && candidate.image) ?? [],
   );
-  const cardRows = wall ? 5 : 3;
-  const weightedRows = specialists.length > 0 ? (wall ? 2 : 1) : 0;
-  const archiveRows = Math.max(1, cardRows - weightedRows);
-  const [fit, setFit] = useState({ columns: 6, size: 120, row: 156 });
+  const cardColumns = 4;
+  const cardRows = 4;
+  const weightedRows = specialists.length > 0 ? 1 : 0;
+  const archiveRows = cardRows;
+  const [fit, setFit] = useState({ columns: cardColumns, size: 120, row: 156 });
   useEffect(() => {
     setWall(new URLSearchParams(window.location.search).get("wall") === "1");
   }, []);
@@ -222,13 +223,22 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
         return sum + label.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
       }, 0);
       const rows = cardRows;
+      const columns = cardColumns;
       const usable = Math.max(rows * 48, height - labelH);
       const row = Math.max(48, Math.floor((usable - gap * (rows - 1)) / rows));
-      const sizeFromHeight = Math.max(48, row - caption);
-      const widthColumns = Math.max(1, Math.floor((width + gap) / (sizeFromHeight + gap)));
-      const columns = wall ? Math.max(1, Math.floor((width + gap) / (row + gap))) : widthColumns;
-      const fitted = Math.floor((width - gap * (columns - 1)) / columns);
-      setFit({ columns, size: Math.max(48, fitted), row });
+      let size = Math.max(48, row - caption);
+      const merge = node.closest(".pareto-merge");
+      if (merge) {
+        const mergeW = merge.getBoundingClientRect().width;
+        const railW = merge.querySelector(":scope > .lab-rail")?.getBoundingClientRect().width ?? 0;
+        const detailW = merge.querySelector(":scope > .pareto-catalog-detail")?.getBoundingClientRect().width ?? 0;
+        const flexible = Math.max(0, mergeW - railW - detailW - (wall ? 64 : 32));
+        const paretoFloor = Math.max(wall ? 900 : 340, flexible * 0.58);
+        const catalogMax = Math.max(columns * 48, flexible - paretoFloor);
+        const sizeFromWidth = Math.floor((catalogMax - (wall ? 56 : 28) - gap * (columns - 1)) / columns);
+        size = Math.max(48, Math.min(size, sizeFromWidth));
+      }
+      setFit({ columns, size, row });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -238,7 +248,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [wall, cardRows, weightedRows, specialists.length, archive.length, archiveRows]);
+  }, [wall, cardRows, cardColumns, archive.length]);
   const [page, setPage] = useState(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selections, setSelections] = useState<Skill2Selections>({});
@@ -403,7 +413,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           onSelect={setSelectedKey}
         />
 
-        <section className="runs-catalog panel m-2 ml-0 flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Pareto catalog">
+        <section className="runs-catalog panel m-2 ml-0 flex min-h-0 flex-col" aria-label="Pareto catalog">
           <div className="frame-title">
             <h2 className="panel-title">{archetype?.name ?? "Archetype"}</h2>
             {archetype ? (
@@ -473,8 +483,8 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           {selected ? (
             <>
               <div className="frame-title">
-                <h2 className="panel-title">{formatCandidateId(selected.id)}</h2>
-                <p className="eyebrow">{archetype?.name ?? "Candidate"} · {formatGeneration(selected.generation)}</p>
+                <h2 className="panel-title">Selected for propagation</h2>
+                <p className="eyebrow">{archetype?.name ?? "Candidate"} · {formatCandidateId(selected.id)} · {formatGeneration(selected.generation)}</p>
               </div>
               <div className="evo-segment archive-display" role="group" aria-label="Display">
                 <button type="button" data-active={display === "morphology" || undefined} onClick={() => setDisplay("morphology")}>
@@ -543,7 +553,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           ) : (
             <>
               <div className="frame-title">
-                <h2 className="panel-title">None selected</h2>
+                <h2 className="panel-title">Selected for propagation</h2>
               </div>
               <p className="evo-empty">
                 Choose an alternative to inspect it. The catalog holds non-dominated trade-offs; the designer selects

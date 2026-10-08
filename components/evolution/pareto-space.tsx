@@ -153,6 +153,29 @@ function statusLabel(candidate: EvolutionCandidateView) {
   return "Dominated";
 }
 
+const PARETO_HOME = { yaw: -0.62, pitch: 0.42, zoom: 1.55 };
+
+function generationsFromCandidates(candidates: EvolutionCandidateView[]): EvolutionGenerationView[] {
+  const indexes = [...new Set(candidates.map((candidate) => candidate.generation))]
+    .filter((index) => index > 0)
+    .sort((a, b) => a - b);
+  return indexes.map((index) => {
+    const born = candidates.filter((candidate) => candidate.generation === index);
+    const kept = candidates.filter((candidate) => candidate.generation <= index && candidate.pareto).map((candidate) => candidate.id);
+    const archiveIds = kept.length > 0 ? kept : born.map((candidate) => candidate.id);
+    return {
+      id: `G${String(index).padStart(2, "0")}`,
+      index,
+      status: "done" as const,
+      evaluated: born.length,
+      feasible: born.length,
+      pareto: born.filter((candidate) => candidate.pareto).length,
+      archived: archiveIds.length,
+      archiveIds,
+    };
+  });
+}
+
 export function ParetoBoard({
   candidates,
   generations,
@@ -171,9 +194,10 @@ export function ParetoBoard({
   const [emphasis, setEmphasis] = useState<number | null>(null);
   const [membership, setMembership] = useState<{ generation: number; kind: TurnoverKind; ids: number[] } | null>(null);
   const [playback, setPlayback] = useState<{ index: number; running: boolean } | null>(null);
-  const [view, setView] = useState({ yaw: -0.62, pitch: 0.42, zoom: 1.15 });
+  const [view, setView] = useState(PARETO_HOME);
   const drag = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
-  const completed = generations.filter((item) => item.status === "done");
+  const recorded = generations.filter((item) => item.status === "done" && item.archiveIds.length > 0);
+  const completed = recorded.length > 0 ? recorded : generationsFromCandidates(candidates);
   const generationCount = completed.length;
 
   useEffect(() => {
@@ -286,7 +310,11 @@ export function ParetoBoard({
   };
 
   return (
-    <section className="pareto-board panel" aria-label="Pareto graph">
+    <section className="pareto-board panel" aria-label="Pareto">
+      <div className="frame-title">
+        <h2 className="panel-title">Pareto</h2>
+      </div>
+      <div className="pareto-board-body">
       <div className="pareto-stage-slot">
         <Panel className="pareto-stage" padded={false}>
           <div className="pareto-toolbar">
@@ -335,7 +363,7 @@ export function ParetoBoard({
               const factor = event.deltaY > 0 ? 0.92 : 1.08;
               setView((current) => ({ ...current, zoom: Math.max(0.85, Math.min(2.2, current.zoom * factor)) }));
             }}
-            onDoubleClick={() => setView({ yaw: -0.62, pitch: 0.42, zoom: 1.15 })}
+            onDoubleClick={() => setView(PARETO_HOME)}
           >
             {GRID.map(({ from, to, major }, index) => {
               const a = project(from, view.yaw, view.pitch, view.zoom);
@@ -406,6 +434,7 @@ export function ParetoBoard({
         onPick={(index) => chooseGeneration(index)}
         onMembership={chooseMembership}
       />
+      </div>
     </section>
   );
 }

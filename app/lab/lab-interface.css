@@ -1193,8 +1193,11 @@
   grid-row: 1;
 }
 
-[data-view-mode="presentation"] .runs-wall .pareto-catalog-page .frame-title .panel-title {
+[data-view-mode="presentation"] .runs-wall .pareto-catalog-page .frame-title .panel-title,
+[data-view-mode="presentation"] .runs-wall .pareto-catalog-detail .panel-title {
   font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-page .frame-title .eyebrow {
@@ -1223,24 +1226,35 @@
 .pareto-merge {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: 18.25rem minmax(18rem, 1.15fr) minmax(0, 1.15fr) minmax(14rem, 0.7fr);
+  grid-template-columns: 18.25rem minmax(18rem, 1fr) max-content minmax(16rem, 22rem);
   min-width: 0;
   min-height: 0;
 }
 
 .pareto-board {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 0.45rem;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   margin: 0.5rem 0.5rem 0.5rem 0;
   overflow: hidden;
 }
 
+.pareto-board-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+}
+
 .pareto-board .pareto-stage-slot {
-  flex: 0 1 42%;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  justify-content: stretch;
   width: auto;
   height: 100%;
   max-height: 100%;
@@ -1251,8 +1265,10 @@
 }
 
 .pareto-board .pareto-stage {
+  width: 100%;
   min-height: 0;
   height: 100%;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1263,12 +1279,24 @@
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
   min-height: 0;
+}
+
+.pareto-catalog-page .frame-title .panel-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .pareto-board .pareto-analytics {
   order: -1;
-  flex: 1 1 58%;
+  flex: 0 1 38%;
   width: auto;
   height: 100%;
   max-height: 100%;
@@ -1286,10 +1314,25 @@
   min-height: 0;
 }
 
+.pareto-catalog-page .runs-catalog {
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  justify-self: start;
+}
+
+.pareto-catalog-page .runs-catalog > .frame-title,
+.pareto-catalog-page .pareto-band-head {
+  width: 0;
+  min-width: 100%;
+}
+
 .pareto-catalog-stack {
   display: flex;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   flex-direction: column;
+  width: max-content;
+  max-width: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -1303,13 +1346,29 @@
 }
 
 .pareto-catalog-detail {
-  flex: 0 1 18rem;
+  display: flex;
+  flex-direction: column;
   width: auto;
-  max-width: 22rem;
-  min-width: 15rem;
+  max-width: none;
+  min-width: 0;
   min-height: 0;
   align-self: stretch;
   overflow: hidden;
+}
+
+.pareto-catalog-page .archive-detail-image {
+  flex: 0 1 auto;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 48%;
+}
+
+.pareto-catalog-page .archive-detail-data {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
 }
 
 .runs-g01-slot {
@@ -3365,6 +3424,176 @@
   }
 }
 
+/* Translation: criteria and parameters fill their panels. Type scales with the existing hierarchy. */
+.stage-shell .criteria-groups {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-content: stretch;
+  gap: 0.4rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.28rem;
+  min-height: 0;
+  padding: 0.45rem 0.5rem 0.4rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group > div:first-child {
+  gap: 0.4rem;
+  margin-bottom: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group > div:first-child svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group > div:first-child p:first-child {
+  font-size: 0.7rem;
+  line-height: 1.15;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group > div:first-child p:last-child {
+  font-size: 0.5rem;
+  line-height: 1.15;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group .space-y-1 {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 0.28rem;
+  min-height: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group .space-y-1 span {
+  font-size: 0.66rem;
+  line-height: 1.15;
+  letter-spacing: 0.06em;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group input {
+  height: 12px;
+  margin-top: 0.16rem;
+  margin-bottom: 0.2rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group .criteria-scale {
+  margin-top: 0;
+  font-size: 0.5rem;
+  line-height: 1.15;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group p[class*="border-t"] {
+  margin-top: 0;
+  padding-top: 0.28rem;
+  font-size: 0.64rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group p[class*="border-t"] span {
+  font-size: 0.48rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .agent-system-body {
+  grid-template-columns: minmax(36rem, 1.7fr) minmax(14rem, 0.7fr);
+}
+
+.stage-shell[data-view-mode="desktop"] .agent-information {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stage-shell[data-view-mode="desktop"] .agent-logic {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-groups {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 0.85rem;
+  min-height: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-primary {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.45rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.12rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section button {
+  padding: 0.06rem 0.4rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-control,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .mt-2 {
+  margin-top: 0;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .eyebrow {
+  font-size: 1.05rem;
+  line-height: 1.15;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-control-label {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-info-list,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .attractor-list {
+  gap: 0.2rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-info-label,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-info-value,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .attractor-list,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .attractor-nav,
+.stage-shell[data-view-mode="desktop"] .physarum-param-section button {
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-groups > .physarum-param-section {
+  min-width: 0;
+  gap: 0.16rem;
+}
+
+.stage-shell[data-view-mode="desktop"] .physarum-param-section .archetype-control-input {
+  height: 14px;
+}
+
+.stage-shell[data-view-mode="desktop"] .criteria-group input {
+  height: 12px;
+}
+
 .stage-shell[data-view-mode="presentation"] .lab-rail,
 .stage-shell[data-view-mode="presentation"] .pareto-catalog-page .lab-rail {
   width: 520px;
@@ -3374,7 +3603,7 @@
 }
 
 .stage-shell[data-view-mode="presentation"] .pareto-catalog-page .pareto-merge {
-  grid-template-columns: 552px minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(900px, 0.8fr);
+  grid-template-columns: 552px minmax(0, 1fr) max-content minmax(720px, 900px);
 }
 
 .stage-shell[data-view-mode="presentation"] .living-instrument-content {
@@ -3929,7 +4158,7 @@
 .process-story {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: minmax(13.5rem, 17.5rem) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.4rem;
   height: 100%;
   min-height: 0;
@@ -3964,11 +4193,12 @@
   flex: 0 0 auto;
 }
 
+.process-story > .process-step,
 .process-sample,
 .process-xyt {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .process-curate {

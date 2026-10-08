@@ -587,7 +587,12 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
     <main className="evo-page process-page">
       <div className="gh-canvas">
         <section className="gh-group gh-source" aria-label="Physarum logic">
-          <p className="gh-group-label">Physarum logic</p>
+          <header className="evo-logic-head">
+            <div>
+              <p className="eyebrow">01</p>
+              <h2 className="panel-title">Physarum logic</h2>
+            </div>
+          </header>
           <article className="source-stage">
             <h2>Architectural input</h2>
             <p className="eyebrow">Vertical Void · four generations, then one morphology for vertical propagation</p>
@@ -690,9 +695,12 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
 
         <section className="gh-group gh-output" aria-label="Optimization output">
           <div className="so">
-            <header className="so-head">
-              <h2>Optimization output</h2>
-              <p>The Pareto front, the roles that keep a morphology, and the human selection.</p>
+            <header className="evo-logic-head">
+              <div>
+                <p className="eyebrow">03</p>
+                <h2 className="panel-title">Optimization output</h2>
+                <p>The Pareto front, the roles that keep a morphology, and the human selection.</p>
+              </div>
             </header>
             <div className="so-top">
               <article className="so-panel">
@@ -750,12 +758,10 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
                 </header>
                 <ul className="so-saved">
                   {savedPicks.map((item) => (
-                    <li key={item.id}>
+                    <li key={item.id} aria-label={item.picked ? `${item.name}. ${item.meta}` : item.name}>
                       <span className="glass-plate" data-chosen={item.picked || undefined}>
                         <EvolutionImage src={item.image} />
                       </span>
-                      <em>{item.name}</em>
-                      <small>{item.meta}</small>
                     </li>
                   ))}
                 </ul>

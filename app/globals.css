@@ -2703,7 +2703,9 @@ body:has(.site-display-control) .site-nav {
 .wf-proto-index,
 .wf-proto-label,
 .wf-board-title,
-.wf-proto-controls button {
+.wf-proto-controls button,
+.wf-frame-body,
+.wf-frame-cycle {
   font-family: "acumin-variable", var(--font-site-text), sans-serif;
   font-weight: 200;
   font-synthesis: none;
@@ -3007,6 +3009,48 @@ body:has(.site-display-control) .site-nav {
   width: 7.4%;
   aspect-ratio: 1.7;
   transform: translate(-50%, -50%);
+}
+
+.wf-board > span.wf-frame.is-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 17.4%;
+  height: auto;
+  aspect-ratio: auto;
+  box-sizing: border-box;
+  padding: calc(0.85rem * var(--wf-inv, 1)) calc(0.95rem * var(--wf-inv, 1));
+  overflow: hidden;
+  text-align: center;
+}
+
+.wf-board[data-steps="6"] > span.wf-frame.is-detail {
+  width: 14%;
+}
+
+.wf-frame.is-detail .wf-proto-label {
+  margin: 0;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.08;
+  text-align: center;
+}
+
+.wf-frame-body,
+.wf-frame-cycle {
+  margin: 0.45em 0 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 200;
+  font-variation-settings: "slnt" 0, "wdth" 100, "wght" 200;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.wf-frame-cycle {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .wf-system-tracks {
@@ -6399,18 +6443,18 @@ button.evo-generation:disabled {
 
 [data-view-mode="presentation"] .pareto-catalog-page .pareto-merge {
   display: grid;
-  grid-template-columns: 400px minmax(1100px, 1.35fr) minmax(0, 1fr) minmax(900px, 0.85fr);
+  grid-template-columns: 552px minmax(0, 1fr) max-content minmax(720px, 900px);
 }
 
 [data-view-mode="presentation"] .pareto-board .pareto-analytics {
-  flex: 1 1 58%;
+  flex: 0 1 38%;
   width: auto;
   height: 100%;
   max-height: 100%;
 }
 
 [data-view-mode="presentation"] .pareto-board .pareto-stage-slot {
-  flex: 0 1 42%;
+  flex: 1 1 62%;
   height: 100%;
   max-height: 100%;
 }
@@ -6429,11 +6473,8 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  grid-template-rows: auto auto minmax(0, 1fr);
-  column-gap: 36px;
-  align-content: stretch;
+  display: flex;
+  flex-direction: column;
   width: auto;
   max-width: none;
   min-width: 0;
@@ -6455,30 +6496,27 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail > .archive-detail-image {
-  grid-column: 1;
-  grid-row: 3;
-  align-self: start;
-  justify-self: center;
+  align-self: stretch;
   width: 100%;
   height: auto;
   aspect-ratio: 1;
-  flex: none;
+  max-height: 46%;
+  flex: 0 1 auto;
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail > .archive-detail-data {
-  grid-column: 2;
-  grid-row: 3;
-  align-self: stretch;
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 8px;
+  gap: 12px;
   min-height: 0;
   overflow: auto;
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail .panel-title {
-  font-size: 34px;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail .hud-panel-kicker,
@@ -7754,7 +7792,7 @@ button.evo-generation:disabled {
   min-width: 0;
   min-height: 0;
   gap: 14px;
-  grid-template-columns: minmax(12rem, 0.15fr) minmax(0, 1.2fr) minmax(20rem, 0.34fr);
+  grid-template-columns: minmax(11rem, 0.12fr) minmax(0, 1.55fr) minmax(18rem, 0.3fr);
 }
 
 [data-view-mode="presentation"] .gh-output {
@@ -7819,7 +7857,7 @@ button.evo-generation:disabled {
 }
 
 .so-top {
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1.75fr) minmax(9rem, 0.46fr);
   flex: 1.15 1 0;
 }
 
@@ -7845,7 +7883,8 @@ button.evo-generation:disabled {
 .so-plot {
   display: flex;
   flex: 1 1 auto;
-  min-height: 12em;
+  width: 100%;
+  min-height: 0;
   color: inherit;
 }
 
@@ -7854,7 +7893,7 @@ button.evo-generation:disabled {
   flex: 1 1 auto;
   width: 100%;
   height: 100%;
-  min-height: 12em;
+  min-height: 0;
 }
 
 .so-plot-key {
@@ -8603,7 +8642,9 @@ button.evo-generation:disabled {
   height: 0.625em;
 }
 
-[data-view-mode="presentation"] .gh-evolution {
+[data-view-mode="presentation"] .gh-evolution,
+[data-view-mode="presentation"] .process-page .gh-source,
+[data-view-mode="presentation"] .process-page .gh-output {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -8699,20 +8740,19 @@ button.evo-generation:disabled {
 
 /* Desktop fills the lab stage. Presentation keeps the 76rem / fractional wall tracks. */
 [data-view-mode="desktop"] .evo-page.process-page {
-  height: auto;
-  min-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 [data-view-mode="desktop"] .process-page .gh-canvas {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  grid-template-rows: auto;
-  grid-template-columns: minmax(12.5rem, 0.16fr) minmax(0, 1.15fr) minmax(20rem, 0.38fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) minmax(28rem, 34rem);
   align-items: stretch;
 }
 
@@ -8722,13 +8762,61 @@ button.evo-generation:disabled {
   overflow: hidden;
 }
 
+.process-page .gh-source,
+.process-page .gh-output {
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(28, 28, 28, 0.76), rgba(5, 5, 5, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 28px rgba(0, 0, 0, 0.3);
+  padding-top: 0.65em;
+}
+
+.process-page .gh-evolution {
+  padding-top: 0.65em;
+}
+
+.process-page .evo-logic-head .panel-title {
+  font-size: 0.72em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.process-page .gh-output .evo-logic-head p:not(.eyebrow) {
+  margin: 0.25em 0 0;
+  font-size: 0.64em;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.process-page .gh-source > .source-stage:first-of-type {
+  flex: 0 0 auto;
+  min-height: max-content;
+  overflow: visible;
+}
+
+.process-page .gh-source > .source-stage:first-of-type .brief-chart {
+  flex: 0 0 auto;
+  min-height: max-content;
+  overflow: visible;
+}
+
+.process-page .gh-source > .source-stage:first-of-type + .source-arrow {
+  margin-top: 0.55rem;
+}
+
 [data-view-mode="desktop"] .process-page .source-field,
 [data-view-mode="desktop"] .process-page .source-catalog {
   min-height: 7rem;
 }
 
 [data-view-mode="desktop"] .process-page .gh-output {
-  overflow: visible;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 [data-view-mode="desktop"] .process-page .so-bottom .so-panel {
@@ -8736,24 +8824,33 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="desktop"] .stage-body:has(.process-page) {
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 [data-view-mode="desktop"] .process-page .so,
 [data-view-mode="desktop"] .process-page .so-top,
 [data-view-mode="desktop"] .process-page .so-bottom,
 [data-view-mode="desktop"] .process-page .so-catalog {
-  flex: 0 0 auto;
   min-height: 0;
 }
 
+[data-view-mode="desktop"] .process-page .so {
+  height: 100%;
+  overflow: hidden;
+}
+
 [data-view-mode="desktop"] .process-page .so-top {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.75fr) minmax(8.75rem, 0.42fr);
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1 1 54%;
+  overflow: hidden;
 }
 
 [data-view-mode="desktop"] .process-page .so-bottom {
   grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 46%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 [data-view-mode="desktop"] .process-page .so-picks {
@@ -8775,9 +8872,10 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="desktop"] .process-page .so-plot {
-  flex: 0 0 auto;
-  height: 12rem;
-  min-height: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 8rem;
 }
 
 .process-page .brief-chart {
@@ -8807,8 +8905,10 @@ button.evo-generation:disabled {
 .process-page .evo-gen-board {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: minmax(11rem, 1fr) minmax(11rem, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
   gap: 0.45rem;
   min-height: 0;
 }
@@ -8917,10 +9017,11 @@ button.evo-generation:disabled {
 
 .process-page .so-role-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.45em;
   flex: 1 1 auto;
-  align-items: start;
+  align-items: stretch;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -8966,11 +9067,11 @@ button.evo-generation:disabled {
 }
 
 .process-page .so-role-list .so-well {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   width: 100%;
   height: auto;
-  aspect-ratio: 1;
-  min-height: 0;
+  min-height: 6.5rem;
+  aspect-ratio: auto;
 }
 
 .process-page .so-void-grid {
@@ -9017,7 +9118,9 @@ button.evo-generation:disabled {
 .process-page .so-saved {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.4em 0.45em;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  flex: 1 1 auto;
+  gap: 0.28em 0.35em;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -9025,26 +9128,23 @@ button.evo-generation:disabled {
 }
 
 .process-page .so-saved li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.18em;
+  display: grid;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.process-page .so-bottom .so-panel {
+  height: 100%;
+  min-height: 0;
 }
 
 .process-page .so-saved .glass-plate {
-  aspect-ratio: 1;
-}
-
-.process-page .so-saved em,
-.process-page .so-saved small {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
   margin: 0;
-  font-style: normal;
-  font-size: 0.42em;
-  letter-spacing: 0.04em;
-  line-height: 1.25;
-  text-align: center;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .process-page .source-catalog li[data-chosen],
@@ -9061,31 +9161,34 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="desktop"] .process-page .gh-evolution {
-  min-height: 34rem;
+  min-height: 0;
+  height: 100%;
 }
 
 [data-view-mode="presentation"] .process-page .evo-gen-board {
-  grid-template-columns: max-content max-content;
-  grid-template-rows: max-content max-content;
-  justify-content: center;
-  align-content: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  justify-content: stretch;
+  align-content: stretch;
+  width: 100%;
 }
 
 [data-view-mode="presentation"] .process-page .evo-gen-frame {
-  grid-template-columns: auto minmax(14em, 18em);
-  justify-content: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  justify-content: stretch;
   align-items: stretch;
-  width: max-content;
-  max-width: 100%;
-  height: min(44cqh, 880px);
+  width: 100%;
+  max-width: none;
+  height: 100%;
 }
 
 [data-view-mode="presentation"] .process-page .evo-gen-shot {
-  width: auto;
-  height: 100%;
+  width: 100%;
+  height: auto;
   max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 1;
-  justify-self: center;
+  justify-self: stretch;
 }
 
 [data-view-mode="presentation"] .process-page .evo-gen-shot .evolution-image {
@@ -9130,17 +9233,18 @@ button.evo-generation:disabled {
 }
 
 [data-view-mode="presentation"] .process-page .so-plot {
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100%;
   min-height: 0;
 }
 
 [data-view-mode="presentation"] .process-page .so-plot .pareto-svg {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   width: 100%;
-  height: auto;
-  max-height: 100%;
-  aspect-ratio: 1;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
   min-height: 0;
 }
 
@@ -9151,7 +9255,26 @@ button.evo-generation:disabled {
 
 [data-view-mode="presentation"] .process-page .so-role-list .so-well {
   width: 100%;
-  aspect-ratio: 1;
+  min-height: 8rem;
+  aspect-ratio: auto;
+}
+
+[data-view-mode="presentation"] .process-page .so {
+  height: 100%;
+  overflow: hidden;
+}
+
+[data-view-mode="presentation"] .process-page .so-bottom {
+  grid-template-columns: minmax(0, 1fr);
+  flex: 0 0 24%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+[data-view-mode="presentation"] .process-page .so-saved .glass-plate {
+  width: 100%;
+  height: 100%;
+  max-height: none;
 }
 
 [data-view-mode="presentation"] .process-page .so-void-grid {
