@@ -1,4 +1,5 @@
 import type { ArchitecturalIntentProfile } from "../architectural-intent";
+import { BRANCHES } from "../catalog";
 import { HAIR_CAP } from "../skill1/hair-ink";
 import type { SimulationState } from "../skill1/types";
 import { emphasisSchedule, modulateEmphasis, type EmphasisSchedule } from "./continuation-recipes";
@@ -15,6 +16,14 @@ function unit(profile: ArchitecturalIntentProfile, branch: "formal" | "spatial" 
   const found = profile[branch].criteria.find((item) => item.id === id);
   if (!found) throw new Error(`architectural intent is missing ${branch}.${id}`);
   return found.rating / 2;
+}
+
+/** Third criterion of a family. Lobby, Workspace, and Gathering each author a different id. */
+function typologyCriterionId(profile: ArchitecturalIntentProfile, branchId: "formal" | "spatial" | "atmospheric") {
+  const branch = BRANCHES.find((item) => item.id === branchId);
+  const criterion = branch?.specific[profile.typologyId];
+  if (!criterion) throw new Error(`architectural intent is missing ${branchId} typology criterion for ${profile.typologyId}`);
+  return criterion.id;
 }
 
 function lerpAngle(a: number, b: number, t: number) {
@@ -54,18 +63,18 @@ export function createIntegratedEmphasis(
 } {
   const complexity = unit(profile, "formal", "complexity");
   const proportionality = unit(profile, "formal", "proportionality");
-  const centrality = unit(profile, "formal", "centrality");
+  const formalSpecific = unit(profile, "formal", typologyCriterionId(profile, "formal"));
   const openness = unit(profile, "spatial", "openness");
   const connectivity = unit(profile, "spatial", "connectivity");
-  const directionality = unit(profile, "spatial", "directionality");
+  const spatialSpecific = unit(profile, "spatial", typologyCriterionId(profile, "spatial"));
   const immersive = unit(profile, "atmospheric", "immersive");
-  const receptivity = unit(profile, "atmospheric", "receptivity");
+  const atmosphericSpecific = unit(profile, "atmospheric", typologyCriterionId(profile, "atmospheric"));
   const formalBlend = complexity * (0.26 + 0.4 * proportionality);
-  const formalCore = 0.32 + 0.24 * centrality;
-  const spatialBlend = 0.22 + 0.46 * connectivity * (0.65 + 0.35 * directionality);
+  const formalCore = 0.32 + 0.24 * formalSpecific;
+  const spatialBlend = 0.22 + 0.46 * connectivity * (0.65 + 0.35 * spatialSpecific);
   const spatialGain = 1 + 0.55 * openness;
   const protectBlend = 0.3 + 0.4 * immersive;
-  const redirectShare = 0.55 + 0.45 * receptivity;
+  const redirectShare = 0.55 + 0.45 * atmosphericSpecific;
   const z0Iteration = parent.iteration;
   const z0Trails = parent.trails;
   const cell = parent.size / COARSE;

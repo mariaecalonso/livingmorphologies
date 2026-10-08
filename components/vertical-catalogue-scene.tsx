@@ -805,7 +805,7 @@ export function CatalogueField({
         const drawMesh = (item: CatalogueModule, itemIndex: number, at: FocusPose | null) => {
           const solid = item.placeholder ? PLACEHOLDER_SOLIDS[itemIndex % PLACEHOLDER_SOLIDS.length] : null;
           const mesh = solid ?? meshesRef.current.get(item.id);
-          if (!mesh || ("triangles" in mesh && mesh.triangles <= 0)) return;
+          if (!mesh || ("triangles" in mesh && typeof mesh.triangles === "number" && mesh.triangles <= 0)) return;
           const [ox, oy, oz] = catalogueOrigin(itemIndex);
           const scale = at ? at.scale : 1;
           const plantedY = (at ? at.y : oy) - MODULE_HALF * (1 - scale);
