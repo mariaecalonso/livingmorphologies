@@ -33,9 +33,10 @@ export function clearPublishedInk(archetypeId: string) {
 
 /**
  * A plate is the untoned picture. A baked file is a catalogue preview already inked at the default.
- * Stored plates and run previews come first. The published preview is the fallback.
+ * Stored plates and run previews come first. The published preview is next.
+ * A committed Pareto catalog drawing is used only when those local files are absent.
  */
-export function filamentSource(archetypeId: string, id: string): { file: string; kind: "plate" | "baked" } | null {
+export function filamentSource(archetypeId: string, id: string): { file: string; kind: "plate" | "baked" | "snapshot" } | null {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !/^\d+$/.test(id)) return null;
   const stored = join(semanticCatalogRoot(), archetypeId, "plates", `${id}.png`);
   if (existsSync(stored)) return { file: stored, kind: "plate" };
@@ -43,6 +44,8 @@ export function filamentSource(archetypeId: string, id: string): { file: string;
   if (run) return { file: run, kind: "plate" };
   const published = publishedPreviewPath(archetypeId, id);
   if (published) return { file: published, kind: "baked" };
+  const snapshot = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "drawings", `${id}.png`);
+  if (existsSync(snapshot)) return { file: snapshot, kind: "snapshot" };
   return null;
 }
 
@@ -51,6 +54,7 @@ export function readPublishedInk(archetypeId: string, id: string, calibration: F
   const source = filamentSource(archetypeId, id);
   if (!source) return null;
   const setting = normalizeFilamentCalibration(calibration);
+  if (source.kind === "snapshot") return readFileSync(source.file);
   if (source.kind === "baked" && sameFilament(setting, DEFAULT_FILAMENT)) return readFileSync(source.file);
   const stamp = `${source.kind}:${statSync(source.file).mtimeMs}:${JSON.stringify(setting)}:${hairPlateStamp(archetypeId)}`;
   const dir = join(CACHE_DIR, archetypeId);
