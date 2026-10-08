@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export type SavedPick = {
@@ -12,6 +12,7 @@ export type SavedPick = {
 
 export function loadSavedPicks(): SavedPick[] {
   const file = join(process.cwd(), "data", "skill2-picks.json");
+  if (!existsSync(file)) return [];
   const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, Omit<SavedPick, "archetypeId">>;
   return Object.entries(raw).map(([archetypeId, value]) => ({ archetypeId, ...value }));
 }

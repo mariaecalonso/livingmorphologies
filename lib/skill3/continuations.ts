@@ -1,5 +1,15 @@
 import { stateChecksum, type Skill2HandoffRecord } from "../skill2/handoff";
 import type { Skill2Handoff } from "../skill2/types";
+import { architecturalIntentFor } from "./architectural-intent";
+import {
+  continuationRecipesFor,
+  type ContinuationFocus,
+  type ContinuationRecipe,
+  type EmphasisFamily,
+  type EmphasisSchedule,
+  type OperatorStrengths,
+} from "./continuation-recipes";
+import { createIntegratedEmphasis } from "./diagnostic-emphasis";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "./envelope";
 import {
   DEFAULT_EVENT_CONFIG,
@@ -10,8 +20,17 @@ import {
 import { loadValidatedSkill2Handoff, type Skill3SourceRequest } from "./source";
 import { toVerticalViewerField, type VerticalViewerField } from "./viewer-field";
 
-/** Natural continuations cloned from one validated Z0. Variation is the continuation seed only. */
+/** Natural continuations cloned from one validated Z0. Each branch follows one recipe from `PLAN`. */
 export const NATURAL_CONTINUATION_COUNT = 24;
+
+/** Temporal family and phase curve used while a branch steps forward from Z0. */
+export type ContinuationBehavior = {
+  focus: ContinuationFocus;
+  families: readonly EmphasisFamily[];
+  variant: number;
+  schedule: EmphasisSchedule;
+  strengths: OperatorStrengths;
+};
 
 export type ContinuationEvent = {
   index: number;
@@ -35,6 +54,8 @@ export type NaturalContinuation = {
   /** 1-based. N01 is branch 1. */
   index: number;
   continuationSeed: number;
+  /** Family, phase curve, and authored operator strengths for this branch. */
+  recipe: ContinuationBehavior;
   typologyId: string;
   archetypeId: string;
   archetypeName: string;
@@ -106,6 +127,16 @@ export function naturalContinuationSeed(identity: { archetypeId: string; candida
   return hashText(`${identity.archetypeId}#${identity.candidateId}#${branchIndex}`);
 }
 
+function behaviorFrom(recipe: ContinuationRecipe): ContinuationBehavior {
+  return {
+    focus: recipe.focus,
+    families: recipe.families,
+    variant: recipe.variant,
+    schedule: recipe.schedule,
+    strengths: recipe.strengths,
+  };
+}
+
 function rulesFrom(config: EventSampleConfig): NaturalContinuationRules {
   return {
     horizon: config.horizon,
@@ -122,7 +153,9 @@ function rulesFrom(config: EventSampleConfig): NaturalContinuationRules {
 }
 
 /**
- * Samples clones of an already opened Z0. Sampling itself is unchanged.
+ * Samples clones of an already opened Z0. Each branch steps forward with its recipe
+ * from `continuationRecipesFor`: the phase curve and authored operator strengths.
+ * The branch seed only feeds the post-Z0 random stream.
  * Production calls this only after `openValidatedHandoff`. The provisional preview calls it
  * with a current-engine replay that did not pass the archived-score check.
  * No boundary, twist, or scale transform is applied. Full-resolution plates are
@@ -150,10 +183,18 @@ export function continuationsFromOpenedZ0(
     candidateId: record.identity.candidateId,
     runKey: record.identity.runKey,
   };
+  const recipes = continuationRecipesFor(identity.archetypeId, identity.candidateId).recipes;
+  const profile = architecturalIntentFor(identity.archetypeId);
+  if (recipes.length < count) throw new Error(`recipe plan has ${recipes.length} branches, requested ${count}`);
   const continuations: NaturalContinuation[] = [];
   for (let index = 1; index <= count; index += 1) {
+    const recipe = recipes[index - 1];
     const continuationSeed = naturalContinuationSeed(identity, index);
-    const sampling = sampleFromParent(z0, handoff, record, continuationSeed, config);
+    if (recipe.id !== naturalContinuationId(index) || recipe.seed !== continuationSeed) {
+      throw new Error(`${naturalContinuationId(index)} does not match the recipe plan`);
+    }
+    const { transform } = createIntegratedEmphasis(z0, profile, recipe.schedule, recipe.strengths);
+    const sampling = sampleFromParent(z0, handoff, record, continuationSeed, config, transform);
     if (sampling.startChecksum !== parentChecksum || sampling.z0 !== z0) {
       throw new Error(`${naturalContinuationId(index)} did not start from the validated Z0`);
     }
@@ -173,6 +214,7 @@ export function continuationsFromOpenedZ0(
       id,
       index,
       continuationSeed,
+      recipe: behaviorFrom(recipe),
       ...identity,
       z0Iteration: z0.iteration,
       parentChecksum,

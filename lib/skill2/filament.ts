@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { inflateSync } from "node:zlib";
 import { ARCHETYPE_VISUAL_REFERENCES } from "./archetype-visual-references";
 import { encodeGrayPng } from "./semantic/gray-png";
+import { semanticCatalogRoot, semanticPreviewPath as catalogPreviewPath } from "./published-catalog-view";
 import { semanticRunFile } from "./semantic/run-root";
 import { visibleIds } from "./semantic/catalog";
 import type { SemanticRun } from "./semantic/types";
@@ -82,6 +83,8 @@ export function filamentArchetypeStatus(): FilamentArchetypeStatus[] {
 /** A few real drawings from the finished run, spread across the catalog when one exists. */
 export function filamentSampleIds(archetypeId: string) {
   if (!isArchetypeId(archetypeId)) return [];
+  const published = publishedSampleIds(archetypeId);
+  if (published.length > 0) return published;
   const runFile = semanticRunFile(archetypeId, "run.json");
   if (!runFile) return [];
   let run: SemanticRun;
@@ -103,9 +106,24 @@ export function filamentSampleIds(archetypeId: string) {
   return [...new Set(ids)];
 }
 
+function publishedSampleIds(archetypeId: string) {
+  const file = join(semanticCatalogRoot(), archetypeId, "catalog.json");
+  if (!existsSync(file)) return [];
+  try {
+    const catalog = JSON.parse(readFileSync(file, "utf8")) as { candidates?: { id: number }[] };
+    const ids = (catalog.candidates ?? []).map((candidate) => candidate.id).filter((id) => catalogPreviewPath(archetypeId, String(id)));
+    if (ids.length <= 6) return ids;
+    const sample: number[] = [];
+    for (let index = 0; index < 6; index += 1) sample.push(ids[Math.round((index * (ids.length - 1)) / 5)]);
+    return [...new Set(sample)];
+  } catch {
+    return [];
+  }
+}
+
 export function semanticPreviewPath(archetypeId: string, id: string) {
   if (!isArchetypeId(archetypeId) || !/^\d+$/.test(id)) return null;
-  return semanticRunFile(archetypeId, "previews", `${id}.png`);
+  return catalogPreviewPath(archetypeId, id) ?? semanticRunFile(archetypeId, "previews", `${id}.png`);
 }
 
 /** Catalog image. Uses the saved calibration and a disk cache so the page does not re-tone every request. */

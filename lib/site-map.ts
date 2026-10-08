@@ -26,3 +26,28 @@ export function stageFrameSuffix(wall: boolean, presentationFrame: boolean) {
   if (wall) return "?wall=1";
   return "";
 }
+
+type LabTab = { label: string; href: string; results?: boolean };
+
+const LAB_WORKSPACES = {
+  physarum: {
+    label: "Physarum Logic",
+    tabs: [
+      { label: "Translation", href: "/lab/physarum" },
+      { label: "Runs", href: "/lab/physarum/runs" },
+      { label: "Catalog", href: "/lab/physarum/catalog" },
+    ] satisfies LabTab[],
+  },
+  optimization: {
+    label: "2D Evolution",
+    tabs: [
+      { label: "Evolution", href: "/lab/evolution" },
+      { label: "Pareto", href: "/lab/evolution/pareto" },
+      { label: "Pareto Catalog", href: "/lab/evolution/pareto-catalog", results: true },
+    ] satisfies LabTab[],
+  },
+} as const;
+
+export function labWorkspace(id: keyof typeof LAB_WORKSPACES) {
+  return LAB_WORKSPACES[id];
+}

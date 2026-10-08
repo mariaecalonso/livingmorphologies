@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { peekNaturalContinuations, type NaturalContinuationSet } from "@/lib/skill3/continuations";
-import { loadVerifiedContinuations } from "@/lib/skill3/semantic-handoff";
+import { loadVerifiedContinuations, peekVerifiedContinuations } from "@/lib/skill3/semantic-handoff";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
@@ -31,10 +31,26 @@ export function GET(request: Request) {
 
   const preview = url.searchParams.get("preview") === "1";
   if (url.searchParams.get("cache") === "1") {
-    const set = preview ? peekProvisionalContinuations(requested.selection) : peekNaturalContinuations(requested.selection);
+    const set = preview
+      ? peekProvisionalContinuations(requested.selection)
+      : peekVerifiedContinuations(requested.selection) ?? peekNaturalContinuations(requested.selection);
+    if (!set || (preview && set.origin !== "provisional")) {
+      return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
+    }
     const continuationId = url.searchParams.get("continuation");
-    const continuation = set?.continuations.find((item) => item.id === continuationId) ?? null;
-    if (!set || !continuation || (preview && set.origin !== "provisional")) {
+    if (!continuationId) {
+      const { continuations, ...source } = set;
+      return NextResponse.json({
+        ...source,
+        continuations: continuations.map((continuation) => {
+          const { field: _field, ...meta } = continuation;
+          return meta;
+        }),
+        fields: continuations.map((continuation) => continuation.field),
+      });
+    }
+    const continuation = set.continuations.find((item) => item.id === continuationId) ?? null;
+    if (!continuation) {
       return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
     }
     return NextResponse.json({ continuation });

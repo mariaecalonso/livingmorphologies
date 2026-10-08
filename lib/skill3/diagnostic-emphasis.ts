@@ -1,7 +1,7 @@
 import type { ArchitecturalIntentProfile } from "../architectural-intent";
 import { HAIR_CAP } from "../skill1/hair-ink";
 import type { SimulationState } from "../skill1/types";
-import { emphasisSchedule, modulateEmphasis, type EmphasisSchedule } from "./continuation-recipes";
+import { emphasisSchedule, modulateEmphasis, type EmphasisSchedule, type OperatorStrengths } from "./continuation-recipes";
 import type { ContinuationTransform } from "./events";
 
 /**
@@ -15,6 +15,26 @@ function unit(profile: ArchitecturalIntentProfile, branch: "formal" | "spatial" 
   const found = profile[branch].criteria.find((item) => item.id === id);
   if (!found) throw new Error(`architectural intent is missing ${branch}.${id}`);
   return found.rating / 2;
+}
+
+/** Named-criterion baseline used when a caller does not pass recipe strengths. */
+function operatorStrengthsFromNamedCriteria(profile: ArchitecturalIntentProfile): OperatorStrengths {
+  const complexity = unit(profile, "formal", "complexity");
+  const proportionality = unit(profile, "formal", "proportionality");
+  const centrality = unit(profile, "formal", "centrality");
+  const openness = unit(profile, "spatial", "openness");
+  const connectivity = unit(profile, "spatial", "connectivity");
+  const directionality = unit(profile, "spatial", "directionality");
+  const immersive = unit(profile, "atmospheric", "immersive");
+  const receptivity = unit(profile, "atmospheric", "receptivity");
+  return {
+    formalBlend: complexity * (0.26 + 0.4 * proportionality),
+    formalCore: 0.32 + 0.24 * centrality,
+    spatialBlend: 0.22 + 0.46 * connectivity * (0.65 + 0.35 * directionality),
+    spatialGain: 1 + 0.55 * openness,
+    protectBlend: 0.3 + 0.4 * immersive,
+    redirectShare: 0.55 + 0.45 * receptivity,
+  };
 }
 
 function lerpAngle(a: number, b: number, t: number) {
@@ -48,24 +68,14 @@ export function createIntegratedEmphasis(
   parent: SimulationState,
   profile: ArchitecturalIntentProfile,
   schedule: EmphasisSchedule = emphasisSchedule("formal+spatial+atmospheric", 0),
+  strengths?: OperatorStrengths,
 ): {
   transform: ContinuationTransform;
   development: Z0Development;
 } {
-  const complexity = unit(profile, "formal", "complexity");
-  const proportionality = unit(profile, "formal", "proportionality");
-  const centrality = unit(profile, "formal", "centrality");
-  const openness = unit(profile, "spatial", "openness");
   const connectivity = unit(profile, "spatial", "connectivity");
-  const directionality = unit(profile, "spatial", "directionality");
-  const immersive = unit(profile, "atmospheric", "immersive");
-  const receptivity = unit(profile, "atmospheric", "receptivity");
-  const formalBlend = complexity * (0.26 + 0.4 * proportionality);
-  const formalCore = 0.32 + 0.24 * centrality;
-  const spatialBlend = 0.22 + 0.46 * connectivity * (0.65 + 0.35 * directionality);
-  const spatialGain = 1 + 0.55 * openness;
-  const protectBlend = 0.3 + 0.4 * immersive;
-  const redirectShare = 0.55 + 0.45 * receptivity;
+  const authored = strengths ?? operatorStrengthsFromNamedCriteria(profile);
+  const { formalBlend, formalCore, spatialBlend, spatialGain, protectBlend, redirectShare } = authored;
   const z0Iteration = parent.iteration;
   const z0Trails = parent.trails;
   const cell = parent.size / COARSE;
