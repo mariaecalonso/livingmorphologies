@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { GenerativeSystemTracks } from "@/components/home-generative-system";
 import { PrecedentDiagram } from "@/components/home-precedent";
+import { SKILL_WORKFLOW_STEPS } from "@/lib/home-workflow-steps";
 import { WorkflowLightCircles, WorkflowLightFilter } from "@/components/workflow-light";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import {
   WORKFLOW_BOARD_STOPS,
+  workflowBoardStops,
   WORKFLOW_CARD,
   WORKFLOW_LIGHT,
   WORKFLOW_LINK,
@@ -665,7 +667,8 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       const box = board.getBoundingClientRect();
       const frames = [...board.querySelectorAll<HTMLElement>(".wf-frame")].map((node) => {
         const rect = node.getBoundingClientRect();
-        const radius = frameRadius(rect.width, rect.height);
+        const full = frameRadius(rect.width, rect.height);
+        const radius = node.classList.contains("is-detail") ? full * 0.5 : full;
         node.style.borderRadius = `${radius}px`;
         return {
           id: node.dataset.frame ?? "",
@@ -737,7 +740,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   }, [linked, run, stage.id]);
 
   return (
-    <article className="wf-board" data-tone={stage.tone} ref={boardRef} aria-label={stage.label}>
+    <article className="wf-board" data-tone={stage.tone} data-steps={SKILL_WORKFLOW_STEPS[stage.id]?.length} ref={boardRef} aria-label={stage.label}>
       {stage.id === "decomposition" ? (
         <PrecedentDiagram />
       ) : stage.detailAsset ? (
@@ -756,15 +759,26 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
             </defs>
             <path ref={pathRef} />
           </svg>
-          {WORKFLOW_BOARD_STOPS.map((stop, stopIndex) => (
-            <span
-              key={`${stage.id}-${stopIndex}`}
-              className="wf-frame"
-              data-frame={String(stopIndex)}
-              data-tone={stage.tone}
-              style={{ left: `${stop.x * 100}%`, top: `${stop.y * 100}%` }}
-            />
-          ))}
+          {(SKILL_WORKFLOW_STEPS[stage.id] ? workflowBoardStops(SKILL_WORKFLOW_STEPS[stage.id].length) : WORKFLOW_BOARD_STOPS).map((stop, stopIndex) => {
+            const step = SKILL_WORKFLOW_STEPS[stage.id]?.[stopIndex];
+            return (
+              <span
+                key={`${stage.id}-${stopIndex}`}
+                className={step ? "wf-frame is-detail" : "wf-frame"}
+                data-frame={String(stopIndex)}
+                data-tone={stage.tone}
+                style={{ left: `${stop.x * 100}%`, top: `${stop.y * 100}%` }}
+              >
+                {step ? (
+                  <>
+                    <p className="wf-proto-label">{step.title}</p>
+                    <p className="wf-frame-body">{step.body}</p>
+                    {step.cycle ? <p className="wf-frame-cycle">{step.cycle}</p> : null}
+                  </>
+                ) : null}
+              </span>
+            );
+          })}
         </>
       )}
       {linked ? <svg className="wf-board-dot" aria-hidden="true" style={{ opacity: run ? 1 : 0 }}>

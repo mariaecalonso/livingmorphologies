@@ -159,7 +159,6 @@ export function ProcessStory({
 
   return (
     <div className="process-story" data-archetype={EXAMPLE_ARCHETYPE} data-candidate={EXAMPLE_CANDIDATE}>
-      <div className="process-rail">
         <section className="process-step process-start" aria-label="Start">
           <header className="vertical-process-label">
             <p className="eyebrow">01</p>
@@ -279,7 +278,6 @@ export function ProcessStory({
             </div>
           ) : null}
         </section>
-      </div>
 
       <section className="process-step process-sample" aria-label="Sample">
         <header className="vertical-process-label">

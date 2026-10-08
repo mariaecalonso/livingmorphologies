@@ -384,6 +384,7 @@ export function PhysarumParameterPanel({
   };
   return (
     <div className="physarum-param-groups">
+      <div className="physarum-param-primary">
       <section className="physarum-param-section">
         <p className="eyebrow archetype-info-kicker">Agent</p>
         <ParameterSlider label="Agent density" value={agentDensity} min={MIN_DENSITY} max={MAX_DENSITY} step={1} display={String(agentDensity)} onChange={onAgentDensity} />
@@ -402,6 +403,7 @@ export function PhysarumParameterPanel({
         <p className="eyebrow archetype-info-kicker">Environment</p>
         <ParameterSlider label="Environmental resistance" value={resistance} min={0} max={1} step={0.01} display={resistance.toFixed(2)} onChange={onResistance} />
       </section>
+      </div>
       <section className="physarum-param-section">
         <p className="eyebrow archetype-info-kicker">Simulation settings</p>
         <dl className="archetype-info-list space-y-1 text-[0.68rem] uppercase tracking-[0.08em]">

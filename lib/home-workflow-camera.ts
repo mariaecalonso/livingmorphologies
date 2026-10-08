@@ -80,7 +80,7 @@ export const WORKFLOW_BOARD = {
   line: "rgba(255, 255, 255, 0.34)",
 } as const;
 
-/** Local dot route inside a board, 0–1 of the artboard. Left to right. */
+/** Local dot route inside a board, 0–1 of the artboard. Left to right, alternating high and low. */
 export const WORKFLOW_BOARD_STOPS: readonly WorkflowPoint[] = [
   { x: 0.12, y: 0.62 },
   { x: 0.3, y: 0.46 },
@@ -88,6 +88,21 @@ export const WORKFLOW_BOARD_STOPS: readonly WorkflowPoint[] = [
   { x: 0.66, y: 0.48 },
   { x: 0.86, y: 0.6 },
 ];
+
+const BOARD_STOP_Y = [0.62, 0.46, 0.64, 0.48, 0.6] as const;
+
+/** Same alternating path, spaced for the number of phase cards. */
+export function workflowBoardStops(count: number): readonly WorkflowPoint[] {
+  if (count === WORKFLOW_BOARD_STOPS.length) return WORKFLOW_BOARD_STOPS;
+  const span = 0.74;
+  const start = 0.13;
+  const stops = Array.from({ length: count }, (_, index) => ({
+    x: count === 1 ? 0.5 : start + (span * index) / (count - 1),
+    y: BOARD_STOP_Y[index % BOARD_STOP_Y.length],
+  }));
+  if (count === 6) stops[5].y = stops[3].y;
+  return stops;
+}
 
 export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   {
