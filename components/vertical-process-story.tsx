@@ -17,6 +17,7 @@ const EXAMPLE_CANDIDATE = 351;
 
 export type ProcessExample = {
   typologyId: string;
+  archetypeId: string;
   archetypeName: string;
   candidateId: number;
   z0Iteration: number;

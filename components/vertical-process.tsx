@@ -527,11 +527,12 @@ export function VerticalProcess({
   const watchedId = semantic?.archetypeId ?? activeArchetypeId;
   const watched = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyId: typology.id, typologyLabel: TYPOLOGY[typology.id] ?? typology.label }))).find((item) => item.id === watchedId);
   const identity = activeSet ?? source;
-  const typology = watched?.typologyLabel ?? (identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : "Archetype");
-  const archetypeName = watched?.name ?? identity?.archetypeName ?? "Selected candidate";
-  const candidateId = semantic?.candidateId ?? identity?.candidateId;
-  const z0Iteration = activeSet?.z0Iteration ?? (pending || error ? null : storedZ0);
-  const checksum = shown?.parentChecksum ?? activeSet?.parentChecksum ?? null;
+  const typology = watched?.typologyLabel ?? (identity ? TYPOLOGY[identity.typologyId] ?? identity.typologyId : example?.typologyId ?? "Archetype");
+  const archetypeName = watched?.name ?? identity?.archetypeName ?? example?.archetypeName ?? "Selected candidate";
+  const candidateId = semantic?.candidateId ?? identity?.candidateId ?? example?.candidateId;
+  const plateArchetypeId = semantic?.archetypeId ?? identity?.archetypeId ?? example?.archetypeId ?? null;
+  const z0Iteration = activeSet?.z0Iteration ?? (pending || error ? null : storedZ0) ?? example?.z0Iteration ?? null;
+  const checksum = shown?.parentChecksum ?? activeSet?.parentChecksum ?? example?.checksum ?? null;
   const intent = useMemo(() => {
     if (!watchedId) return null;
     try {
@@ -624,13 +625,13 @@ export function VerticalProcess({
           <section className="vertical-process-frame vertical-process-selection">
             <p className="vertical-process-input-kicker">Selected 2D morphology</p>
             <div className="vertical-process-stage">
-              {semantic ? (
+              {plateArchetypeId != null && candidateId != null ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  key={`${semantic.archetypeId}:${semantic.candidateId}`}
+                  key={`${plateArchetypeId}:${candidateId}`}
                   className="evolution-image"
-                  src={`/api/semantic-catalog/${semantic.archetypeId}/${semantic.candidateId}`}
-                  alt={`${archetypeName} selected Skill 2 morphology ${semantic.candidateId}`}
+                  src={`/api/semantic-catalog/${plateArchetypeId}/${candidateId}`}
+                  alt={`${archetypeName} selected Skill 2 morphology ${candidateId}`}
                 />
               ) : null}
             </div>
@@ -638,7 +639,7 @@ export function VerticalProcess({
             <p className="vertical-process-note">
               {z0Iteration != null ? `Iteration ${z0Iteration}` : "Iteration waiting"}
               {" · "}
-              {verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}
+              {verifiedZ0 || (example != null && semantic == null) ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}
               {" · "}
               {checksum ?? "Checksum waiting"}
             </p>

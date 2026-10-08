@@ -17,6 +17,7 @@ function verticalVoidExample(): ProcessExample | null {
   if (meta.validation?.algorithm !== "z0-sha256-v1" || typeof meta.validation.checksum !== "string") return null;
   return {
     typologyId: "lobby",
+    archetypeId: "vertical-void",
     archetypeName: meta.identity.archetypeName,
     candidateId: 351,
     z0Iteration: meta.z0.iteration,
