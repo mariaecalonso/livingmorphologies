@@ -375,7 +375,7 @@ function buildMesh(id: string): Mesh {
   return mesh;
 }
 
-function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh) {
+function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh, yaw = 0.62) {
   const parent = canvas.parentElement;
   if (!parent) return;
   const dpr = window.devicePixelRatio || 1;
@@ -405,7 +405,6 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh) {
   const worldW = Math.max(0.001, maxX - minX);
   const worldH = Math.max(0.001, maxY - minY);
   const scale = Math.min((width * 0.78) / worldW, (height * 0.9) / worldH);
-  const yaw = 0.62;
   const pitch = 0.42;
   const cosY = Math.cos(yaw);
   const sinY = Math.sin(yaw);
@@ -467,19 +466,40 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh) {
   }
 }
 
-export function PlaceholderMorphology({ id }: { id: string }) {
+export function placeholderPositions(id: string) {
+  return buildMesh(id).positions;
+}
+
+export function PlaceholderMorphology({ id, spin = false }: { id: string; spin?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const mesh = buildMesh(id);
-    const paint = () => drawPlaceholder(canvas, mesh);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const spinning = spin && !reduced;
+    const started = performance.now();
+    let frame = 0;
+    const paint = (now = started) => {
+      const yaw = spinning ? 0.62 + ((now - started) / 48000) * Math.PI * 2 : 0.62;
+      drawPlaceholder(canvas, mesh, yaw);
+    };
     paint();
     const parent = canvas.parentElement;
-    const observer = parent ? new ResizeObserver(paint) : null;
+    const observer = parent ? new ResizeObserver(() => paint(performance.now())) : null;
     if (parent && observer) observer.observe(parent);
-    return () => observer?.disconnect();
-  }, [id]);
+    if (spinning) {
+      const loop = (now: number) => {
+        paint(now);
+        frame = window.requestAnimationFrame(loop);
+      };
+      frame = window.requestAnimationFrame(loop);
+    }
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [id, spin]);
   return (
     <span className="final-placeholder">
       <canvas ref={ref} aria-label="Temporary morphology placeholder" />

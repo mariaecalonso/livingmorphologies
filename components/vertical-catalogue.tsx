@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import savedPicks from "@/data/skill2/pareto-catalog/selections.json";
-import { CatalogueField, type CatalogueModule } from "@/components/vertical-catalogue-scene";
+import { CatalogueField, type CatalogueModule, type CatalogueSurface } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
 import { CATALOGUE_SLOT_COUNT, catalogueSlots } from "@/lib/skill3/catalogue";
@@ -96,6 +96,10 @@ function ResultDetail({
   morphology,
   triangles,
   chosen,
+  savedContinuationId,
+  finalHref,
+  surface,
+  onSurface,
   onBack,
   onChoose,
 }: {
@@ -108,6 +112,10 @@ function ResultDetail({
   morphology: string;
   triangles: number | null;
   chosen: boolean;
+  savedContinuationId: string | null;
+  finalHref: string;
+  surface: CatalogueSurface;
+  onSurface: (surface: CatalogueSurface) => void;
   onBack: () => void;
   onChoose: () => void;
 }) {
@@ -122,8 +130,11 @@ function ResultDetail({
       <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
       <h2 className="panel-title">Result {resultId}</h2>
       <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
-        {chosen ? "Saved to final catalogue" : "Save to final catalogue"}
+        {chosen ? "Selected ✓" : "Select morphology"}
       </button>
+      {chosen ? <Link href={finalHref} className="vertical-catalogue-reset">View in final</Link> : null}
+      {!chosen && savedContinuationId ? <p className="vertical-process-note">Final selection {savedContinuationId}</p> : null}
+      <PreviewToggle surface={surface} onSurface={onSurface} />
       <dl className="vertical-catalogue-facts">
         <div><dt>Result</dt><dd>{resultId}</dd></div>
         <div><dt>Continuation</dt><dd>{continuation.id}</dd></div>
@@ -157,6 +168,21 @@ function ResultDetail({
   );
 }
 
+function PreviewToggle({
+  surface,
+  onSurface,
+}: {
+  surface: CatalogueSurface;
+  onSurface: (surface: CatalogueSurface) => void;
+}) {
+  return (
+    <div className="vertical-catalogue-choices" role="group" aria-label="Morphology preview">
+      <button type="button" data-active={surface === "refined" || undefined} onClick={() => onSurface("refined")}>Refined</button>
+      <button type="button" data-active={surface === "raw" || undefined} onClick={() => onSurface("raw")}>Raw</button>
+    </div>
+  );
+}
+
 function PlaceholderDetail({
   rank,
   archetype,
@@ -173,7 +199,7 @@ function PlaceholderDetail({
       <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
       <h2 className="panel-title">Result {rank}</h2>
       <button type="button" className="vertical-catalogue-reset" disabled>
-        Save to final catalogue
+        Select morphology
       </button>
       <p className="vertical-process-note">A continuation is required for this archetype</p>
       <dl className="vertical-catalogue-facts">
@@ -216,6 +242,7 @@ export function VerticalCatalogue({
   const [storedChoice, setStoredChoice] = useState<SelectedSkill3Morphology | null>(null);
   const [triangles, setTriangles] = useState<Record<string, number>>({});
   const [viewReset, setViewReset] = useState(0);
+  const [surface, setSurface] = useState<CatalogueSurface>("refined");
   const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || requestedArchetype?.typologyId || "lobby");
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || requestedArchetype?.id || "continuous-hall");
   const alignedSelection = useRef(false);
@@ -401,6 +428,7 @@ export function VerticalCatalogue({
             }}
             resetToken={viewReset}
             inspecting={inspecting && selectedId != null}
+            surface={surface}
             onTriangles={(id, count) => {
               setTriangles((current) => current[id] === count ? current : { ...current, [id]: count });
             }}
@@ -419,6 +447,10 @@ export function VerticalCatalogue({
                 morphology={set.rules.morphology}
                 triangles={triangles[selected.id] ?? null}
                 chosen={chosenContinuation?.id === selected.id}
+                savedContinuationId={storedChoice?.archetypeId === set.archetypeId ? storedChoice.continuationId : null}
+                finalHref={preview ? "/lab/vertical/final?preview=1" : "/lab/vertical/final"}
+                surface={surface}
+                onSurface={setSurface}
                 onBack={() => {
                   setInspecting(false);
                   setSelectedId(null);
@@ -464,6 +496,7 @@ export function VerticalCatalogue({
           </section>
           <section className="vertical-catalogue-frame vertical-catalogue-controls">
             <h2 className="panel-title">Controls</h2>
+            <PreviewToggle surface={surface} onSurface={setSurface} />
             <dl className="vertical-catalogue-facts">
               <div><dt>Orbit</dt><dd>Drag</dd></div>
               <div><dt>Pan</dt><dd>Shift drag</dd></div>

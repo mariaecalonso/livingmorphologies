@@ -179,12 +179,16 @@ export function ProcessMorphology({
   onTriangles,
   orbit = false,
   float = false,
+  turnSeconds = 22,
+  refine = false,
 }: {
   field: VerticalViewerField;
   cacheIdentity: string;
   onTriangles?: (count: number | null) => void;
   orbit?: boolean;
   float?: boolean;
+  turnSeconds?: number;
+  refine?: boolean;
 }) {
   const [mesh, setMesh] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
   useEffect(() => {
@@ -200,11 +204,12 @@ export function ProcessMorphology({
         mode: "isomesh",
         iso: 0.48,
         sizeZ: MODULE_SIZE_Z,
+        refine,
       }));
     } catch {
       setMesh(null);
     }
-  }, [cacheIdentity, field]);
+  }, [cacheIdentity, field, refine]);
   useEffect(() => {
     onTriangles?.(mesh?.triangles ?? null);
   }, [mesh, onTriangles]);
@@ -219,7 +224,7 @@ export function ProcessMorphology({
     const started = performance.now();
     let frame = 0;
     const paint = (now = started) => {
-      const yaw = spinning ? ((now - started) / 22000) * Math.PI * 2 : float ? 0 : 0.62;
+      const yaw = spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
       const pitch = float || spinning ? 0.36 : 0.42;
       drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, "shell", { transparent: float });
     };
@@ -238,6 +243,6 @@ export function ProcessMorphology({
       if (frame) window.cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [column, float, mesh, orbit]);
+  }, [column, float, mesh, orbit, turnSeconds]);
   return <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
 }

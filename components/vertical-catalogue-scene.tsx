@@ -454,6 +454,8 @@ function placeholderSolid(index: number): SolidMesh {
 
 const PLACEHOLDER_SOLIDS = PLACEHOLDER_HEIGHTS.map((_, index) => placeholderSolid(index));
 
+export type CatalogueSurface = "raw" | "refined";
+
 export function CatalogueField({
   modules,
   origin,
@@ -461,6 +463,7 @@ export function CatalogueField({
   onSelect,
   resetToken,
   inspecting = false,
+  surface = "refined",
   onTriangles,
 }: {
   modules: readonly CatalogueModule[];
@@ -469,6 +472,7 @@ export function CatalogueField({
   onSelect: (id: string | null) => void;
   resetToken: number;
   inspecting?: boolean;
+  surface?: CatalogueSurface;
   onTriangles?: (id: string, count: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -488,7 +492,10 @@ export function CatalogueField({
   const selectedRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
   const onTrianglesRef = useRef(onTriangles);
+  const surfaceRef = useRef<CatalogueSurface>(surface);
+  const stageRef = useRef<HTMLDivElement>(null);
   inspectingRef.current = inspecting;
+  surfaceRef.current = surface;
   modulesRef.current = modules;
   selectedRef.current = selectedId;
   onSelectRef.current = onSelect;
@@ -498,32 +505,56 @@ export function CatalogueField({
     let cancel = false;
     const meshes = meshesRef.current;
     const live = new Set(modules.map((item) => item.id));
-    for (const id of meshes.keys()) if (!live.has(id)) meshes.delete(id);
-    for (const item of modules) {
-      const ready = meshes.get(item.id);
-      if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
+    for (const key of meshes.keys()) {
+      const id = key.slice(0, key.lastIndexOf(":"));
+      if (!live.has(id)) meshes.delete(key);
     }
-    const pending = modules.filter((item) => (item.field?.slices.length ?? 0) >= 2 && !meshes.has(item.id));
+    const report = () => {
+      let refined = 0;
+      let raw = 0;
+      for (const key of meshes.keys()) {
+        if (key.endsWith(":refined")) refined += 1;
+        if (key.endsWith(":raw")) raw += 1;
+      }
+      if (stageRef.current) {
+        stageRef.current.dataset.refined = String(refined);
+        stageRef.current.dataset.raw = String(raw);
+      }
+      for (const item of modules) {
+        const ready = meshes.get(`${item.id}:${surfaceRef.current}`);
+        if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
+      }
+    };
+    report();
+    const pending: Array<{ item: CatalogueModule; surface: CatalogueSurface }> = [];
+    for (const kind of ["refined", "raw"] as const) {
+      for (const item of modules) {
+        if ((item.field?.slices.length ?? 0) < 2 || meshes.has(`${item.id}:${kind}`)) continue;
+        pending.push({ item, surface: kind });
+      }
+    }
     let index = 0;
     const step = () => {
       if (cancel) return;
-      const item = pending[index];
-      if (!item?.field) return;
+      const next = pending[index];
+      if (!next?.item.field) return;
       index += 1;
+      const key = `${next.item.id}:${next.surface}`;
       try {
-        const mesh = cachedOpeningMesh(item.field.slices, {
-          identity: item.cacheIdentity,
-          sequence: item.field.slices.map((slice) => slice.iteration).join(","),
+        const mesh = cachedOpeningMesh(next.item.field.slices, {
+          identity: next.item.cacheIdentity,
+          sequence: next.item.field.slices.map((slice) => slice.iteration).join(","),
           field: "network",
           mode: "isomesh",
           iso: 0.48,
           sizeZ: MODULE_SIZE_Z,
+          refine: next.surface === "refined",
         });
-        meshes.set(item.id, mesh);
-        onTrianglesRef.current?.(item.id, mesh.triangles);
+        meshes.set(key, mesh);
       } catch {
-        meshes.delete(item.id);
+        meshes.delete(key);
       }
+      report();
       paintRef.current();
       if (index < pending.length) window.setTimeout(step, 16);
     };
@@ -533,6 +564,15 @@ export function CatalogueField({
       window.clearTimeout(timer);
     };
   }, [origin, modules]);
+
+  useEffect(() => {
+    surfaceRef.current = surface;
+    for (const item of modulesRef.current) {
+      const ready = meshesRef.current.get(`${item.id}:${surface}`);
+      if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
+    }
+    paintRef.current();
+  }, [surface]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -655,7 +695,7 @@ export function CatalogueField({
         steerRef.current = true;
       } else if (focusing && steerRef.current) {
         const item = shown[selectedIndex];
-        const solid = item.placeholder ? PLACEHOLDER_SOLIDS[selectedIndex % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(item.id);
+        const solid = item.placeholder ? PLACEHOLDER_SOLIDS[selectedIndex % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
         const bounds = boundsOf(solid?.positions) ?? {
           minX: -5, maxX: 5, minY: -MODULE_HALF, maxY: -MODULE_HALF + 14, minZ: -5, maxZ: 5,
         };
@@ -804,7 +844,7 @@ export function CatalogueField({
         }
         const drawMesh = (item: CatalogueModule, itemIndex: number, at: FocusPose | null) => {
           const solid = item.placeholder ? PLACEHOLDER_SOLIDS[itemIndex % PLACEHOLDER_SOLIDS.length] : null;
-          const mesh = solid ?? meshesRef.current.get(item.id);
+          const mesh = solid ?? meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
           if (!mesh || ("triangles" in mesh && typeof mesh.triangles === "number" && mesh.triangles <= 0)) return;
           const [ox, oy, oz] = catalogueOrigin(itemIndex);
           const scale = at ? at.scale : 1;
@@ -836,7 +876,7 @@ export function CatalogueField({
         if (mode === "field") gl.disable(gl.BLEND);
       };
 
-      const drawGrid = () => {
+      const drawGrid = (dim = 1) => {
         const lineData = gridLines(ground);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -847,7 +887,7 @@ export function CatalogueField({
         gl.uniform1f(lineAspect, aspect);
         gl.uniform1f(lineZoom, zoom);
         gl.uniform2f(linePan, camera.panX, camera.panY);
-        gl.uniform1f(lineDim, 1);
+        gl.uniform1f(lineDim, dim);
         gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineData), gl.DYNAMIC_DRAW);
         gl.uniform2f(lineFieldMin, -2, -2);
@@ -1024,16 +1064,16 @@ export function CatalogueField({
         camera.pitch = Math.min(1.22, Math.max(0.18, camera.pitch + dy * 0.004));
         if (inspectingRef.current) {
           const selected = selectedRef.current;
-          const index = modulesRef.current.findIndex((item) => item.id === selected);
+          const index = modulesRef.current.findIndex((entry) => entry.id === selected);
           if (index >= 0) {
             const item = modulesRef.current[index];
-            const solid = item.placeholder ? PLACEHOLDER_SOLIDS[index % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(item.id);
-            const bounds = boundsOf(solid?.positions) ?? {
-              minX: -5, maxX: 5, minY: -MODULE_HALF, maxY: -MODULE_HALF + 14, minZ: -5, maxZ: 5,
-            };
+            const solid = item.placeholder ? PLACEHOLDER_SOLIDS[index % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
             const [ox, oy, oz] = catalogueOrigin(index);
             const width = parent.clientWidth;
             const height = parent.clientHeight;
+            const bounds = boundsOf(solid?.positions) ?? {
+              minX: -5, maxX: 5, minY: -MODULE_HALF, maxY: -MODULE_HALF + 14, minZ: -5, maxZ: 5,
+            };
             const framed = frameSelection(camera, ox, oy, oz, 2.85, bounds, width / Math.max(1, height));
             camera.panX = framed.panX;
             camera.panY = framed.panY;
@@ -1102,7 +1142,7 @@ export function CatalogueField({
   }, []);
 
   return (
-    <div className="vertical-catalogue-stage">
+    <div ref={stageRef} className="vertical-catalogue-stage" data-surface={surface}>
       <canvas ref={canvasRef} aria-label="Isometric catalogue field" />
       <div ref={labelRef} className="vertical-catalogue-labels">
         {modules.map((item, index) => (
