@@ -3,13 +3,9 @@ import { VerticalProcess } from "@/components/vertical-process";
 import { VerticalSelectionNotice } from "@/components/vertical-selection";
 import { buildDevelopmentFixture } from "@/lib/skill3/fixture";
 import { selectionFromQuery } from "@/lib/skill3/selection";
-import { labWorkspace } from "@/lib/site-map";
-
-const workspace = labWorkspace("vertical");
-const tab = workspace.tabs[0];
 
 export const metadata = {
-  title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,
+  title: "Vertical Propagation -+ Living Morphologies",
 };
 
 export const dynamic = "force-dynamic";
@@ -25,17 +21,17 @@ export default async function VerticalPropagationPage({
 }) {
   const params = await searchParams;
   if (params.fixture === "1") {
-    return <VerticalProcess initial={buildDevelopmentFixture()} candidate={null} provenance={null} />;
+    return <VerticalProcess initial={buildDevelopmentFixture()} candidate={null} />;
   }
 
   const requested = selectionFromQuery(params);
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="vertical-lab runs-wall">
       <Skill2SelectionBoard />
-      <div className="min-h-0 min-w-0 flex-1">
-        <VerticalProcess initial={null} candidate={null} provenance={null} />
+      <div className="vertical-lab-main">
+        <VerticalProcess initial={null} candidate={null} />
       </div>
     </div>
   );

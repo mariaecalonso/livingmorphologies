@@ -1,11 +1,7 @@
 import { FinalMorphologyCatalogue } from "@/components/final-morphology-catalogue";
-import { labWorkspace } from "@/lib/site-map";
-
-const workspace = labWorkspace("vertical");
-const tab = workspace.tabs[2];
 
 export const metadata = {
-  title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,
+  title: "Final Morphology Catalogue -+ Living Morphologies",
 };
 
 export default async function FinalMorphologyPage({

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
+import { PlaceholderMorphology } from "@/components/final-placeholder-morphology";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
 import type { NaturalContinuation } from "@/lib/skill3/continuations";
+import { readSkill2Selections, type Skill2Selection, type Skill2Selections } from "@/lib/skill2/published-selection";
 import {
   readSelectedSkill3Collection,
   sameSelectedMorphology,
@@ -62,25 +64,7 @@ function slotsFor(row: (typeof ROWS)[number]): Slot[] {
 }
 
 function ModuleMark({ id }: { id: string }) {
-  const n = [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const half = 16 + (n % 5) * 5;
-  const depth = 10 + (n % 4) * 4;
-  const height = 22 + (n % 6) * 6;
-  const cut = 8 + (n % 3) * 6;
-  const left = 60 - half;
-  const right = 60 + half;
-  const front = 78;
-  const back = front - depth;
-  const top = back - height;
-  return (
-    <svg className="final-mark" viewBox="0 0 120 104" aria-hidden="true">
-      <path d={`M60 ${front + 8} L${left} ${back} L60 ${back - depth} L${right} ${back} Z`} />
-      <path d={`M${left} ${back} L${left} ${top} L60 ${top - depth} L60 ${back - depth}`} />
-      <path d={`M${right} ${back} L${right} ${top} L60 ${top - depth}`} />
-      <path d={`M${left + cut} ${top + height * 0.45} L${right - cut} ${top + height * 0.45}`} />
-      <path d={`M60 ${top - depth} L60 ${top - depth - (n % 5) * 2}`} />
-    </svg>
-  );
+  return <PlaceholderMorphology id={id} />;
 }
 
 export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
@@ -90,6 +74,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
   const [indexes, setIndexes] = useState<Record<RowId, number>>({ lobby: 2, workspace: 2, gathering: 2 });
   const [focus, setFocus] = useState<Focus>({ row: "lobby", index: 2 });
   const [collection, setCollection] = useState<SelectedSkill3Collection>({});
+  const [skill2Selections, setSkill2Selections] = useState<Skill2Selections>({});
   const [fields, setFields] = useState<Record<string, VerticalViewerField | null>>({});
   const [triangles, setTriangles] = useState<Record<string, number | null>>({});
   const reportTriangles = useCallback((archetypeId: string, count: number | null) => {
@@ -99,6 +84,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
   useEffect(() => {
     const origin = preview ? "provisional" : fixture ? "development-fixture" : "handoff";
     setCollection(readSelectedSkill3Collection(origin));
+    setSkill2Selections(readSkill2Selections());
     if (preview) {
       setIndexes((current) => ({ ...current, workspace: 0 }));
       setFocus({ row: "workspace", index: 0 });
@@ -131,6 +117,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
   const focusRow = rows.find((row) => row.id === focus.row) ?? rows[0];
   const focusSlot = focusRow.slots[focus.index] ?? focusRow.slots[0];
   const match = focusSlot ? collection[focusSlot.id] ?? null : null;
+  const focusInput = match ? null : focusSlot ? skill2Selections[focusSlot.id] ?? null : null;
   const selectedCount = rows.reduce((sum, row) => sum + row.slots.filter((slot) => collection[slot.id]).length, 0);
   const focusField = focusSlot ? fields[focusSlot.id] ?? null : null;
   const focusCode = focusSlot ? archetypeCode(focus.row, focus.index) : "";
@@ -153,6 +140,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
             index={indexes[row.id]}
             focused={focus.row === row.id}
             collection={collection}
+            skill2Selections={skill2Selections}
             fields={fields}
             onTriangles={reportTriangles}
             onChoose={(index) => choose(row.id, index)}
@@ -163,6 +151,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
         slot={focusSlot}
         code={focusCode}
         selection={match}
+        skill2Input={focusInput}
         field={focusField}
         triangles={match && focusField ? triangles[match.archetypeId] ?? null : null}
         onTriangles={reportTriangles}
@@ -185,6 +174,7 @@ function Summary({
   return (
     <aside className="final-summary">
       <p className="eyebrow">{preview ? "Provisional preview" : "Curated morphology archive"}</p>
+      <h1 className="display">Final Morphology Catalogue</h1>
       <p className="final-summary-lead">One selected morphology per archetype</p>
       <p className="final-summary-count">
         <strong>{String(selectedCount).padStart(2, "0")}</strong>
@@ -217,9 +207,10 @@ function TypologyBand({
   rowId,
   label,
   slots,
-  index,
-  focused,
+  index: _index,
+  focused: _focused,
   collection,
+  skill2Selections,
   fields,
   onTriangles,
   onChoose,
@@ -230,65 +221,48 @@ function TypologyBand({
   index: number;
   focused: boolean;
   collection: SelectedSkill3Collection;
+  skill2Selections: Skill2Selections;
   fields: Record<string, VerticalViewerField | null>;
   onTriangles: (archetypeId: string, count: number | null) => void;
   onChoose: (index: number) => void;
 }) {
-  const shift = (direction: -1 | 1) => {
-    const next = index + direction;
-    if (next < 0 || next >= slots.length) return;
-    onChoose(next);
-  };
-
   return (
-    <section className="final-row" data-tone={rowId} data-focused={focused || undefined} aria-label={label}>
-      <div className="final-band">
-        <button type="button" className="final-nudge" onClick={() => shift(-1)} disabled={index === 0} aria-label={`Previous ${label} morphology`}>
-          ‹
-        </button>
-        <div className="final-stage">
-          <p className="final-row-name">{label}</p>
-          <span className="final-rail" aria-hidden="true" />
-          {slots.map((slot, slotIndex) => {
-            const offset = slotIndex - index;
-            const abs = Math.abs(offset);
-            const selection = collection[slot.id] ?? null;
-            const field = fields[slot.id] ?? null;
-            return (
-              <button
-                key={slot.id}
-                type="button"
-                className="final-item"
-                data-center={offset === 0 || undefined}
-                data-selected={selection ? "true" : undefined}
-                data-geometry={field ? "real" : "placeholder"}
-                style={{
-                  ["--offset" as string]: String(offset),
-                  ["--abs" as string]: String(abs),
-                  ["--scale" as string]: abs === 0 ? "1" : abs === 1 ? "0.86" : "0.72",
-                  zIndex: 8 - abs,
-                }}
-                onClick={() => onChoose(slotIndex)}
-                aria-current={offset === 0 ? "true" : undefined}
-                aria-label={slot.name}
-              >
-                <span className="final-item-label">
-                  <small>{archetypeCode(rowId, slotIndex)}</small>
-                  {slot.name}
-                </span>
-                {field && selection ? (
-                  <SlotMesh selection={selection} field={field} orbit={offset === 0} onTriangles={onTriangles} />
-                ) : (
-                  <ModuleMark id={slot.id} />
-                )}
-                <span className="final-plinth" aria-hidden="true" />
-              </button>
-            );
-          })}
-        </div>
-        <button type="button" className="final-nudge" onClick={() => shift(1)} disabled={index === slots.length - 1} aria-label={`Next ${label} morphology`}>
-          ›
-        </button>
+    <section className="final-row" data-tone={rowId} aria-label={label}>
+      <div className="final-stage">
+        <p className="final-row-name">{label}</p>
+        <span className="final-platform" aria-hidden="true" />
+        {slots.map((slot, slotIndex) => {
+          const selection = collection[slot.id] ?? null;
+          const skill2Input = selection ? null : skill2Selections[slot.id] ?? null;
+          const field = selection ? fields[slot.id] ?? null : null;
+          const lift = [9, 3.5, 0, 3.5, 9][slotIndex] ?? 0;
+          return (
+            <button
+              key={slot.id}
+              type="button"
+              className="final-item"
+              data-selected={selection ? "true" : undefined}
+              data-skill2={skill2Input ? "awaiting" : undefined}
+              data-geometry={field ? "real" : "placeholder"}
+              style={{
+                ["--slot" as string]: String(slotIndex),
+                ["--lift" as string]: `${lift}%`,
+              }}
+              onClick={() => onChoose(slotIndex)}
+              aria-label={skill2Input ? `${slot.name}. Skill 2 input awaiting vertical propagation` : slot.name}
+            >
+              <span className="final-item-label">
+                <small>{archetypeCode(rowId, slotIndex)}</small>
+              </span>
+              {field && selection ? (
+                <SlotMesh selection={selection} field={field} onTriangles={onTriangles} />
+              ) : (
+                <ModuleMark id={slot.id} />
+              )}
+              <span className="final-plinth" aria-hidden="true" />
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -298,6 +272,7 @@ function Detail({
   slot,
   code,
   selection,
+  skill2Input,
   field,
   triangles,
   onTriangles,
@@ -305,6 +280,7 @@ function Detail({
   slot: Slot | undefined;
   code: string;
   selection: SelectedSkill3Morphology | null;
+  skill2Input: Skill2Selection | null;
   field: VerticalViewerField | null;
   triangles: number | null;
   onTriangles: (archetypeId: string, count: number | null) => void;
@@ -324,12 +300,14 @@ function Detail({
           <ModuleMark id={slot.id} />
         )}
       </div>
-      <p className="final-detail-status" data-selected={selection ? "true" : undefined}>{selection ? "Selected final morphology" : "Awaiting selection"}</p>
+      <p className="final-detail-status" data-selected={selection ? "true" : undefined}>
+        {selection ? "Selected final morphology" : skill2Input ? "Selected Skill 2 input awaiting vertical propagation" : "Awaiting selection"}
+      </p>
       <dl>
         {[
           ["Archetype", slot.id],
           ["Continuation", selection?.continuationId ?? "—"],
-          ["Candidate", selection ? String(selection.candidateId) : "—"],
+          ["Candidate", selection ? String(selection.candidateId) : skill2Input ? String(skill2Input.candidateId) : "—"],
           ["Branch", selection ? String(selection.branchIndex) : "—"],
           ["Samples", samples == null ? "—" : String(samples)],
           ["Events", events == null ? "—" : String(events)],

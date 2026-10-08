@@ -1,16 +1,11 @@
 import { VerticalCatalogue } from "@/components/vertical-catalogue";
-import { VerticalSelectionNotice, VerticalSelectionResume } from "@/components/vertical-selection";
+import { VerticalSelectionNotice } from "@/components/vertical-selection";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 
-import { labWorkspace } from "@/lib/site-map";
-
-const workspace = labWorkspace("vertical");
-const tab = workspace.tabs[1];
-
 export const metadata = {
-  title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,
+  title: "3D Catalogue -+ Living Morphologies",
 };
 
 export const dynamic = "force-dynamic";
@@ -33,7 +28,7 @@ export default async function VerticalCataloguePage({
     return <VerticalCatalogue initial={buildDevelopmentCatalogueSet()} candidate={null} />;
   }
   const requested = selectionFromQuery(params);
-  if ("missing" in requested) return <VerticalSelectionResume />;
+  if ("missing" in requested) return <VerticalCatalogue initial={null} candidate={null} />;
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
   const archetype = archetypeOf(requested.selection.archetypeId);
   return (
