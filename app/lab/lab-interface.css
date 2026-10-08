@@ -1357,8 +1357,14 @@
 }
 
 .vertical-process-inputs {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100%;
+  max-height: 100%;
   gap: 0.55em;
   justify-content: flex-start;
+  overflow: hidden;
 }
 
 .vertical-process-board,
@@ -1475,8 +1481,9 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
 }
 
-.vertical-process-inputs .vertical-process-frame:nth-child(2) {
-  flex: 30 1 0;
+.vertical-process-inputs .vertical-process-input-identity,
+.vertical-process-inputs .vertical-process-input-descriptors {
+  flex: 0 0 auto;
 }
 
 .vertical-process-inputs .vertical-process-frame:not(:last-child)::after {
@@ -1490,7 +1497,37 @@
 }
 
 .vertical-process-inputs .vertical-process-selection {
-  flex: 44 1 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.vertical-process-input-kicker {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.42em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.vertical-process-input-descriptors dl {
+  display: grid;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.vertical-process-input-descriptors dt {
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.4em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vertical-process-input-descriptors dd {
+  margin: 0;
+  color: #ffffff;
+  font-size: 0.5em;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
 }
 
 .vertical-process-inputs .vertical-process-label {
@@ -3534,15 +3571,25 @@
 }
 
 .vertical-process-inputs .vertical-process-selection .vertical-process-stage {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   width: 100%;
-  min-height: 9.5rem;
+  height: auto;
+  min-height: 0;
   aspect-ratio: 1;
   max-height: 100%;
   align-self: center;
+  background: #000000;
 }
 
-.vertical-process-inputs .vertical-process-selection .vertical-process-stage img,
+.vertical-process-inputs .vertical-process-selection .vertical-process-stage img {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #000000;
+}
+
 .vertical-process-region[data-step="initial"] .vertical-process-stage canvas {
   inset: 0.45rem;
   width: calc(100% - 0.9rem);
@@ -3857,8 +3904,11 @@
 }
 
 .vertical-lab > .runs-aside {
+  position: sticky;
+  top: 0;
   align-self: stretch;
-  height: auto;
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
 }
 
@@ -3873,15 +3923,26 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .process-story {
-  display: flex;
+  display: grid;
   flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-height: 0;
+  grid-template-columns: minmax(13.5rem, 17.5rem) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.4rem;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.process-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .process-logic {
@@ -3899,26 +3960,32 @@
   padding: 0.28rem 0.4rem 0.32rem;
 }
 
-.process-band {
+.process-rail .process-step {
   flex: 0 0 auto;
 }
 
-.process-band .vertical-process-label {
-  align-items: baseline;
+.process-sample,
+.process-xyt {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.process-footer {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
+.process-curate {
   border-color: rgba(199, 126, 95, 0.75);
 }
 
-.process-footer .vertical-process-label {
-  flex: 0 0 auto;
-  margin: 0;
+.process-curate .vertical-process-catalogue {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.55rem;
+}
+
+.process-kicker {
+  margin: 0.15rem 0 0;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .process-flow {
@@ -3931,21 +3998,193 @@
 
 .process-flow span { color: rgba(15, 115, 119, 0.95); }
 
-.process-xyt,
-.process-preview {
+.process-sample,
+.process-xyt {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.28rem;
 }
 
+.process-start dl,
 .process-descriptor-row h3,
 .process-descriptor-name,
-.process-behavior,
+.process-descriptor-row ul,
+.process-descriptor-row li,
 .process-recipes ol,
 .process-recipes li,
-.process-phase-legend,
 .process-counts {
   margin: 0;
+}
+
+.process-start dl {
+  display: grid;
+  gap: 0.12rem;
+  margin-top: 0.28rem;
+}
+
+.process-start dl div {
+  display: grid;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  gap: 0.35rem;
+}
+
+.process-start dt,
+.process-descriptor-row h3 {
+  color: rgba(242, 242, 238, 0.5);
+  font-size: 0.52rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.process-start dd {
+  overflow-wrap: anywhere;
+  color: #f2f2ee;
+  font-size: 0.62rem;
+}
+
+.process-descriptor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin-top: 0.28rem;
+}
+
+.process-descriptor-name {
+  color: #f2f2ee;
+  font-size: 0.68rem;
+}
+
+.process-descriptor-row ul {
+  padding: 0;
+  list-style: none;
+}
+
+.process-descriptor-row li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: rgba(242, 242, 238, 0.78);
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+}
+
+.process-rating {
+  display: inline-flex;
+  gap: 0.12rem;
+}
+
+.process-rating i {
+  width: 0.28rem;
+  height: 0.28rem;
+  background: rgba(242, 242, 238, 0.2);
+}
+
+.process-rating[data-level="low"] i:nth-child(1),
+.process-rating[data-level="medium"] i:nth-child(-n + 2),
+.process-rating[data-level="high"] i {
+  background: #0f7377;
+}
+
+.process-recipes ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin-top: 0.28rem;
+  padding: 0;
+  list-style: none;
+}
+
+.process-recipes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: rgba(242, 242, 238, 0.78);
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.process-legend,
+.process-sample-rule,
+.process-pending {
+  margin: 0;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.process-legend {
+  display: flex;
+  gap: 0.7rem;
+}
+
+.process-legend [data-reason="threshold"] { color: #c77e5f; }
+.process-legend [data-reason="max-gap"] { color: #7db8b8; }
+.process-legend [data-kind="skipped"] { color: rgba(242, 242, 238, 0.45); }
+
+.process-timeline {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: 0.2rem 0.2rem 0.2rem 1rem;
+  list-style: none;
+  overflow: auto;
+}
+
+.process-timeline::before {
+  content: "";
+  position: absolute;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  left: 0.38rem;
+  width: 1px;
+  background: rgba(15, 115, 119, 0.85);
+}
+
+.process-timeline-event,
+.process-timeline-skip {
+  position: relative;
+}
+
+.process-timeline-event {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: baseline;
+  color: #f2f2ee;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.process-timeline-event::before {
+  content: "";
+  position: absolute;
+  top: 0.28rem;
+  left: -0.78rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: #f2f2ee;
+}
+
+.process-timeline-event[data-reason="threshold"]::before { background: #c77e5f; }
+.process-timeline-event[data-reason="max-gap"]::before { background: #0f7377; }
+
+.process-timeline-skip {
+  display: flex;
+  flex: var(--span, 1) 1 0.85rem;
+  align-items: center;
+  color: rgba(242, 242, 238, 0.4);
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .process-phases {

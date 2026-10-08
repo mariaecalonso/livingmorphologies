@@ -13,11 +13,9 @@ import {
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
-import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
-import { ProcessPlate } from "@/components/vertical-process-stage";
-import { ProcessStory } from "@/components/vertical-process-story";
+import { ProcessStory, type ProcessExample } from "@/components/vertical-process-story";
 
 /** One published candidate used only when the browser has no Skill 2 selection. */
 const TRIAL_ARCHETYPE = "vertical-void";
@@ -36,33 +34,6 @@ type CandidateRequest = {
   candidateId: number;
 };
 
-type ObjectiveScores = { formal: number; spatial: number; atmospheric: number };
-
-const CUBE_EDGES: [number[], number[]][] = [
-  [[0, 0, 0], [1, 0, 0]], [[0, 1, 0], [1, 1, 0]], [[0, 0, 1], [1, 0, 1]], [[0, 1, 1], [1, 1, 1]],
-  [[0, 0, 0], [0, 1, 0]], [[1, 0, 0], [1, 1, 0]], [[0, 0, 1], [0, 1, 1]], [[1, 0, 1], [1, 1, 1]],
-  [[0, 0, 0], [0, 0, 1]], [[1, 0, 0], [1, 0, 1]], [[0, 1, 0], [0, 1, 1]], [[1, 1, 0], [1, 1, 1]],
-];
-
-const OBJECTIVE_AXES: { label: string; to: number[] }[] = [
-  { label: "F", to: [1.12, 0, 0] },
-  { label: "S", to: [0, 1.12, 0] },
-  { label: "A", to: [0, 0, 1.12] },
-];
-
-function projectObjective([x, y, z]: number[]) {
-  const yaw = -0.65;
-  const pitch = 0.38;
-  const px = x - 0.5;
-  const py = y - 0.5;
-  const pz = z - 0.5;
-  const rx = px * Math.cos(yaw) + pz * Math.sin(yaw);
-  const rz = -px * Math.sin(yaw) + pz * Math.cos(yaw);
-  const ry = py * Math.cos(pitch) - rz * Math.sin(pitch);
-  const depth = py * Math.sin(pitch) + rz * Math.cos(pitch);
-  const perspective = 1 / (1.9 - depth * 0.35);
-  return { sx: 50 + rx * 62 * perspective, sy: 46 - ry * 62 * perspective };
-}
 
 type ApiContinuation = Omit<NaturalContinuation, "field">;
 
@@ -70,10 +41,6 @@ type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
   continuations: ApiContinuation[];
   fields: VerticalViewerField[];
 };
-
-function roundedScore(value: number | null | undefined) {
-  return value == null ? "Waiting" : value.toFixed(2);
-}
 
 function paretoRole(pareto: boolean | undefined) {
   if (pareto == null) return "Waiting";
@@ -113,30 +80,6 @@ function Strip({ items }: { items: readonly (readonly [string, string])[] }) {
         </div>
       ))}
     </dl>
-  );
-}
-
-function ParetoSketch({ objectives }: { objectives: ObjectiveScores | null }) {
-  const selected = objectives ? projectObjective([objectives.formal, objectives.spatial, objectives.atmospheric]) : null;
-  return (
-    <svg className="vertical-process-pareto" viewBox="0 0 100 78" aria-label="Formal, spatial, and atmospheric objective space">
-      {CUBE_EDGES.map(([from, to], index) => {
-        const a = projectObjective(from);
-        const b = projectObjective(to);
-        return <line key={index} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} className="pareto-cube" />;
-      })}
-      {OBJECTIVE_AXES.map((axis) => {
-        const origin = projectObjective([0, 0, 0]);
-        const end = projectObjective(axis.to);
-        return (
-          <g key={axis.label}>
-            <line x1={origin.sx} y1={origin.sy} x2={end.sx} y2={end.sy} className="pareto-axis" />
-            <text x={end.sx} y={end.sy} className="pareto-axis-label" textAnchor="middle" dy={-0.8}>{axis.label}</text>
-          </g>
-        );
-      })}
-      {selected ? <circle cx={selected.sx} cy={selected.sy} r={1.8} className="pareto-point" data-state="selected" /> : null}
-    </svg>
   );
 }
 
@@ -384,16 +327,17 @@ function behaviorOf(set: NaturalContinuationSet | null): BehaviorProfile | null 
 export function VerticalProcess({
   initial,
   candidate,
+  example = null,
 }: {
   initial: NaturalContinuationSet | null;
   candidate: CandidateRequest | null;
+  example?: ProcessExample | null;
 }) {
   const search = useSearchParams();
   const preview = search.get("preview") === "1";
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(initial == null && candidate != null);
-  const [triangles, setTriangles] = useState<number | null>(null);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [readyCandidate, setReadyCandidate] = useState<CandidateRequest | null>(null);
@@ -403,7 +347,6 @@ export function VerticalProcess({
   const [activeArchetypeId, setActiveArchetypeId] = useState<string | null>(null);
   const [saveNote, setSaveNote] = useState<string | null>(null);
   const pinnedSelection = useRef<Skill2Selection | null>(null);
-  const onTriangles = useCallback((count: number | null) => setTriangles(count), []);
   const source = candidate ?? readyCandidate;
 
   const acceptSelection = useCallback((selected: Skill2Selection, signal?: AbortSignal) => {
@@ -543,7 +486,6 @@ export function VerticalProcess({
   useEffect(() => {
     setPlaying(false);
     setStep(0);
-    setTriangles(null);
   }, [source?.archetypeId, source?.candidateId, shown?.parentChecksum, shown?.continuationSeed]);
 
   useEffect(() => {
@@ -582,7 +524,6 @@ export function VerticalProcess({
     setPlaying(false);
     setStep(0);
   };
-  const z0 = shown?.field.slices[0] ?? null;
   const watchedId = semantic?.archetypeId ?? activeArchetypeId;
   const watched = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyId: typology.id, typologyLabel: TYPOLOGY[typology.id] ?? typology.label }))).find((item) => item.id === watchedId);
   const identity = activeSet ?? source;
@@ -599,13 +540,8 @@ export function VerticalProcess({
       return null;
     }
   }, [watchedId]);
-  const selectedCount = useMemo(() => {
-    if (!activeSet || activeSet.continuations.length === 0) return 0;
-    return representativeContinuations(activeSet.continuations, DISPLAY_COUNT).length;
-  }, [activeSet]);
   const fixtureActive = search.get("fixture") === "1" || activeSet?.origin === "development-fixture";
   const verifiedZ0 = !fixtureActive && activeSet?.origin !== "provisional" && !preview && (handoff === "verified" || activeSet?.origin === "handoff");
-  const objectives = semantic?.objectives ?? null;
   const specialist = specialistRole(semantic?.specialist ?? undefined);
   const context = [
     typology,
@@ -670,72 +606,42 @@ export function VerticalProcess({
       </header>
 
       <div className="vertical-process-body">
-        <div className="vertical-process-inputs">
-          <section className="vertical-process-frame">
-            <header className="vertical-process-label">
-              <p className="eyebrow">01</p>
-              <h2 className="panel-title">Provenance</h2>
-            </header>
-            <ol className="vertical-process-search" aria-label="Semantic provenance">
-              <li>
-                <span>Archetype</span>
-                <span>{archetypeName}</span>
-              </li>
-              <li>
-                <span>Typology</span>
-                <span>{typology}</span>
-              </li>
-              <li>
-                <span>Candidate</span>
-                <span>{candidateId != null ? String(candidateId) : "Waiting"}</span>
-              </li>
-              <li>
-                <span>Source</span>
-                <span>Skill 2</span>
-              </li>
-              <li>
-                <span>Z0</span>
-                <span>{verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}</span>
-              </li>
-              <li>
-                <span>Z0 iteration</span>
-                <span>{z0Iteration != null ? String(z0Iteration) : "Waiting"}</span>
-              </li>
-              <li>
-                <span>Checksum</span>
-                <span>{checksum ? checksum.slice(0, 8) : "Waiting"}</span>
-              </li>
-            </ol>
+        <div className="vertical-process-inputs" aria-label="Skill 2 Input">
+          <section className="vertical-process-frame vertical-process-input-identity">
+            <h2 className="panel-title">{archetypeName}</h2>
+            <p className="vertical-process-note">{candidateId != null ? `Candidate ${candidateId}` : "Candidate waiting"}</p>
           </section>
-          <section className="vertical-process-frame">
-            <header className="vertical-process-label">
-              <p className="eyebrow">02</p>
-              <h2 className="panel-title">Architectural intent</h2>
-            </header>
-            <ParetoSketch objectives={objectives} />
-            <p className="vertical-process-note">{intent ? `Formal · ${intent.formal.descriptor}` : `Formal ${roundedScore(objectives?.formal)}`}</p>
-            <p className="vertical-process-note">{intent ? `Spatial · ${intent.spatial.descriptor}` : `Spatial ${roundedScore(objectives?.spatial)}`}</p>
-            <p className="vertical-process-note">{intent ? `Atmospheric · ${intent.atmospheric.descriptor}` : `Atmospheric ${roundedScore(objectives?.atmospheric)}`}</p>
+          <section className="vertical-process-frame vertical-process-input-descriptors" aria-label="Inherited descriptors">
+            <dl>
+              {(["formal", "spatial", "atmospheric"] as const).map((family) => (
+                <div key={family}>
+                  <dt>{family}</dt>
+                  <dd>{intent?.[family].descriptor ?? "Pending"}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
           <section className="vertical-process-frame vertical-process-selection">
-            <header className="vertical-process-label">
-              <p className="eyebrow">03</p>
-              <h2 className="panel-title">Human selection</h2>
-            </header>
+            <p className="vertical-process-input-kicker">Selected 2D morphology</p>
             <div className="vertical-process-stage">
-              {semantic?.previewFile ? (
+              {semantic ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={`${semantic.archetypeId}:${semantic.candidateId}`}
+                  className="evolution-image"
                   src={`/api/semantic-catalog/${semantic.archetypeId}/${semantic.candidateId}`}
-                  alt={`${archetypeName} candidate ${semantic.candidateId}`}
+                  alt={`${archetypeName} selected Skill 2 morphology ${semantic.candidateId}`}
                 />
-              ) : z0 ? (
-                <ProcessPlate slice={z0} />
               ) : null}
             </div>
-            <p className="vertical-process-note">{candidateId != null ? `#${candidateId}` : "No candidate"}</p>
-            <p className="vertical-process-note">Selected in Skill 2</p>
+            <p className="vertical-process-input-kicker">Verified Z0</p>
+            <p className="vertical-process-note">
+              {z0Iteration != null ? `Iteration ${z0Iteration}` : "Iteration waiting"}
+              {" · "}
+              {verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}
+              {" · "}
+              {checksum ?? "Checksum waiting"}
+            </p>
           </section>
         </div>
 
@@ -748,18 +654,9 @@ export function VerticalProcess({
             </div>
           ) : null}
           <ProcessStory
-            intent={intent}
-            archetypeId={watchedId}
-            archetypeName={archetypeName}
-            candidateId={candidateId ?? null}
-            z0Status={verifiedZ0 ? "Verified" : handoff === "pending" ? "Pending" : semantic ? "Not verified" : "Waiting"}
-            z0Iteration={z0Iteration ?? null}
-            shown={shown}
-            generatedCount={activeSet?.continuations.length ?? 0}
-            selectedCount={selectedCount}
+            example={example}
             catalogueHref={catalogueHref(search.toString())}
-            onTriangles={onTriangles}
-            onRead={source && !handoffFailed && !pending && !shown ? beginContinuation : undefined}
+            saveNote={saveNote}
           />
         </div>
       </div>
