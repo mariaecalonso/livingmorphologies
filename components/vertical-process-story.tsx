@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ProcessStack } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { ArchitecturalIntentProfile } from "@/lib/architectural-intent";
@@ -12,10 +12,8 @@ import { readSelectedSkill3Morphology } from "@/lib/skill3/morphology-selection"
 import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
-const EXAMPLE_ARCHETYPE = "vertical-void";
-const EXAMPLE_CANDIDATE = 351;
-
 export type ProcessExample = {
+  archetypeId: string;
   typologyId: string;
   archetypeName: string;
   candidateId: number;
@@ -29,6 +27,17 @@ type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
   continuations: ApiContinuation[];
   fields: VerticalViewerField[];
 };
+
+function subscribeMorphology(onChange: () => void) {
+  window.addEventListener("lm-skill3-morphology", onChange);
+  return () => window.removeEventListener("lm-skill3-morphology", onChange);
+}
+
+function readSavedContinuation(archetypeId: string | null, candidateId: number | null) {
+  if (!archetypeId || candidateId == null) return null;
+  const saved = readSelectedSkill3Morphology("handoff", archetypeId);
+  return saved && saved.candidateId === candidateId ? saved.continuationId : null;
+}
 
 function joinSet(body: ApiSet): NaturalContinuationSet {
   const { fields, continuations, ...source } = body;
@@ -80,78 +89,77 @@ function timelineRows(events: readonly ContinuationEvent[], origin: number, hori
 
 export function ProcessStory({
   example,
+  archetypeId = null,
+  candidateId = null,
   catalogueHref,
-  saveNote,
 }: {
   example: ProcessExample | null;
+  archetypeId?: string | null;
+  candidateId?: number | null;
   catalogueHref: string;
-  saveNote: string | null;
 }) {
+  const focusArchetype = archetypeId ?? example?.archetypeId ?? null;
+  const focusCandidate = candidateId ?? example?.candidateId ?? null;
   const [set, setSet] = useState<NaturalContinuationSet | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(true);
-  const [finalId, setFinalId] = useState<string | null>(null);
+  const [pending, setPending] = useState(focusArchetype != null && focusCandidate != null);
+  const finalId = useSyncExternalStore(
+    subscribeMorphology,
+    () => readSavedContinuation(focusArchetype, focusCandidate),
+    () => null,
+  );
   const intent = useMemo<ArchitecturalIntentProfile | null>(() => {
+    if (!focusArchetype) return null;
     try {
-      return architecturalIntentFor(EXAMPLE_ARCHETYPE);
+      return architecturalIntentFor(focusArchetype);
     } catch {
       return null;
     }
-  }, []);
+  }, [focusArchetype]);
   const shown = set?.continuations.find((continuation) => continuation.id === "N01") ?? null;
-  const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === EXAMPLE_ARCHETYPE);
+  const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === focusArchetype);
   const generated = set?.continuations.length ?? BEHAVIOR_COUNT;
   const representative = set ? representativeContinuations(set.continuations, DISPLAY_COUNT).length : DISPLAY_COUNT;
   const envelope = set?.rules.envelope;
   const moduleLabel = envelope
     ? `${envelope.sizeX}×${envelope.sizeY}×${envelope.sizeZ}`
     : `${MODULE_SIZE_X}×${MODULE_SIZE_Y}×${MODULE_SIZE_Z}`;
+  const shownExample = example && focusArchetype === example.archetypeId && focusCandidate === example.candidateId ? example : null;
   const aligned = Boolean(shown && shown.field.slices.length === shown.events.length && shown.field.slices.length > 0);
   const rows = shown && set ? timelineRows(shown.events, shown.z0Iteration, set.rules.horizon) : [];
 
   useEffect(() => {
-    const saved = readSelectedSkill3Morphology("handoff", EXAMPLE_ARCHETYPE);
-    setFinalId(saved && saved.candidateId === EXAMPLE_CANDIDATE ? saved.continuationId : null);
-  }, [saveNote, set]);
-
-  useEffect(() => {
+    if (!focusArchetype || focusCandidate == null) return;
     const controller = new AbortController();
     const params = new URLSearchParams({
-      archetype: EXAMPLE_ARCHETYPE,
-      candidate: String(EXAMPLE_CANDIDATE),
+      archetype: focusArchetype,
+      candidate: String(focusCandidate),
       cache: "1",
     });
-    setPending(true);
-    setError(null);
-    const load = (cacheOnly: boolean) => fetch(`/api/vertical?${params}`, { signal: controller.signal })
+    fetch(`/api/vertical?${params}`, { signal: controller.signal })
       .then(async (response) => {
-        if (cacheOnly && response.status === 404) {
-          params.delete("cache");
-          return load(false);
-        }
+        if (controller.signal.aborted || response.status === 404) return;
         const body = (await response.json()) as ApiSet & { error?: string };
-        if (!response.ok) throw new Error(body.error ?? "Vertical Void 351 continuation was not readable.");
-        if (body.archetypeId !== EXAMPLE_ARCHETYPE || body.candidateId !== EXAMPLE_CANDIDATE) {
-          throw new Error("Continuation identity did not match Vertical Void 351.");
+        if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
+        if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
+          throw new Error("Continuation identity did not match the selected candidate.");
         }
         if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
-        if (controller.signal.aborted) return;
         setSet(joinSet(body));
-      });
-    load(true)
+      })
       .catch((caught) => {
         if (controller.signal.aborted) return;
         setSet(null);
-        setError(caught instanceof Error ? caught.message : "Vertical Void 351 continuation was not readable.");
+        setError(caught instanceof Error ? caught.message : "The stored continuation was not readable.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, []);
+  }, [focusArchetype, focusCandidate]);
 
   return (
-    <div className="process-story" data-archetype={EXAMPLE_ARCHETYPE} data-candidate={EXAMPLE_CANDIDATE}>
+    <div className="process-story" data-archetype={focusArchetype ?? ""} data-candidate={focusCandidate ?? ""}>
       <div className="process-rail">
         <section className="process-step process-start" aria-label="Start">
           <header className="vertical-process-label">
@@ -159,11 +167,11 @@ export function ProcessStory({
             <h2 className="panel-title">Start</h2>
           </header>
           <p className="process-kicker">Verified Z0</p>
-          <p className="process-flow">{example ? archetype?.typologyLabel ?? example.typologyId : "Pending"} <span aria-hidden="true">→</span> {example?.archetypeName ?? "Pending"} <span aria-hidden="true">→</span> {example ? example.candidateId : "Pending"}</p>
+          <p className="process-flow">{shownExample ? archetype?.typologyLabel ?? shownExample.typologyId : "Pending"} <span aria-hidden="true">→</span> {shownExample?.archetypeName ?? archetype?.name ?? "Pending"} <span aria-hidden="true">→</span> {shownExample ? shownExample.candidateId : focusCandidate ?? "Pending"}</p>
           <dl>
-            <div><dt>Z0</dt><dd>{example ? "Verified" : "Pending"}</dd></div>
-            <div><dt>Iteration</dt><dd>{example ? String(example.z0Iteration) : "Pending"}</dd></div>
-            <div><dt>Checksum</dt><dd>{example?.checksum ?? "Pending"}</dd></div>
+            <div><dt>Z0</dt><dd>{shownExample ? "Verified" : "Pending"}</dd></div>
+            <div><dt>Iteration</dt><dd>{shownExample ? String(shownExample.z0Iteration) : "Pending"}</dd></div>
+            <div><dt>Checksum</dt><dd>{shownExample?.checksum ?? "Pending"}</dd></div>
           </dl>
         </section>
 

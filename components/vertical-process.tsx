@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { readActiveArchetype, readSkill2Selections, writeActiveArchetype, type Skill2Selection } from "@/lib/skill2/published-selection";
+import { DEFAULT_PROCESS_ARCHETYPE_ID, DEFAULT_PROCESS_CANDIDATE_ID, type ResolvedProcessSource } from "@/lib/skill3/selection";
 import {
   readSelectedSkill3Morphology,
   sameSelectedMorphology,
@@ -16,10 +17,6 @@ import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } f
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 import { ProcessStory, type ProcessExample } from "@/components/vertical-process-story";
-
-/** One published candidate used only when the browser has no Skill 2 selection. */
-const TRIAL_ARCHETYPE = "vertical-void";
-const TRIAL_CANDIDATE = 174;
 
 const TYPOLOGY: Record<string, string> = {
   lobby: "Lobby",
@@ -306,6 +303,16 @@ function joinSet(body: ApiSet): NaturalContinuationSet {
   };
 }
 
+function readyFrom(source: ResolvedProcessSource | null): CandidateRequest | null {
+  if (!source || source.handoff !== "verified") return null;
+  return {
+    archetypeId: source.selection.archetypeId,
+    archetypeName: source.archetypeName,
+    typologyId: source.selection.typologyId,
+    candidateId: source.selection.candidateId,
+  };
+}
+
 function behaviorOf(set: NaturalContinuationSet | null): BehaviorProfile | null {
   if (!set) return null;
   if (set.origin === "development-fixture") return DEVELOPMENT_BEHAVIOR;
@@ -327,24 +334,27 @@ function behaviorOf(set: NaturalContinuationSet | null): BehaviorProfile | null 
 export function VerticalProcess({
   initial,
   candidate,
+  resolved = null,
   example = null,
 }: {
   initial: NaturalContinuationSet | null;
   candidate: CandidateRequest | null;
+  resolved?: ResolvedProcessSource | null;
   example?: ProcessExample | null;
 }) {
   const search = useSearchParams();
   const preview = search.get("preview") === "1";
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(initial == null && candidate != null);
+  const [pending, setPending] = useState(initial == null && candidate != null && resolved == null);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [readyCandidate, setReadyCandidate] = useState<CandidateRequest | null>(null);
-  const [semantic, setSemantic] = useState<Skill2Selection | null>(null);
-  const [handoff, setHandoff] = useState<"verified" | "pending" | null>(null);
-  const [storedZ0, setStoredZ0] = useState<number | null>(null);
-  const [activeArchetypeId, setActiveArchetypeId] = useState<string | null>(null);
+  const [readyCandidate, setReadyCandidate] = useState<CandidateRequest | null>(readyFrom(resolved));
+  const [semantic, setSemantic] = useState<Skill2Selection | null>(resolved?.selection ?? null);
+  const [handoff, setHandoff] = useState<"verified" | "pending" | null>(resolved?.handoff ?? null);
+  const [storedZ0, setStoredZ0] = useState<number | null>(resolved?.z0Iteration ?? null);
+  const [verifiedChecksum, setVerifiedChecksum] = useState<string | null>(resolved?.checksum ?? null);
+  const [activeArchetypeId, setActiveArchetypeId] = useState<string | null>(resolved?.selection.archetypeId ?? null);
   const [saveNote, setSaveNote] = useState<string | null>(null);
   const pinnedSelection = useRef<Skill2Selection | null>(null);
   const source = candidate ?? readyCandidate;
@@ -352,6 +362,26 @@ export function VerticalProcess({
   const acceptSelection = useCallback((selected: Skill2Selection, signal?: AbortSignal) => {
     setSemantic(selected);
     setSaveNote(null);
+    if (
+      resolved
+      && resolved.handoff === "verified"
+      && resolved.selection.archetypeId === selected.archetypeId
+      && resolved.selection.candidateId === selected.candidateId
+    ) {
+      setHandoff("verified");
+      setStoredZ0(resolved.z0Iteration);
+      setVerifiedChecksum(resolved.checksum);
+      setReadyCandidate({
+        archetypeId: selected.archetypeId,
+        archetypeName: resolved.archetypeName,
+        typologyId: selected.typologyId,
+        candidateId: selected.candidateId,
+      });
+      return;
+    }
+    setHandoff(null);
+    setStoredZ0(null);
+    setVerifiedChecksum(null);
     void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((body: { handoff?: string; z0Iteration?: number | null } | null) => {
@@ -364,6 +394,7 @@ export function VerticalProcess({
         }
         setHandoff("verified");
         setStoredZ0(typeof body.z0Iteration === "number" ? body.z0Iteration : null);
+        setVerifiedChecksum(null);
         const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
         setReadyCandidate({
           archetypeId: selected.archetypeId,
@@ -373,30 +404,36 @@ export function VerticalProcess({
         });
       })
       .catch(() => undefined);
-  }, []);
+  }, [resolved]);
 
   useEffect(() => {
     if (initial || candidate) return;
     const controller = new AbortController();
+    let boot = true;
     const loadStored = () => {
       const activeId = readActiveArchetype();
       setActiveArchetypeId(activeId);
-      const selected = activeId ? readSkill2Selections()[activeId] : undefined;
-      if (!selected) {
+      const stored = readSkill2Selections();
+      const explicit = activeId ? stored[activeId] : undefined;
+      const saved = explicit ?? (boot ? Object.values(stored)[0] : undefined);
+      if (!saved) {
         if (pinnedSelection.current) {
           acceptSelection(pinnedSelection.current, controller.signal);
           return;
         }
+        if (boot) return;
         setReadyCandidate(null);
         setSemantic(null);
         setHandoff(null);
         setStoredZ0(null);
+        setVerifiedChecksum(null);
         return;
       }
       pinnedSelection.current = null;
-      acceptSelection(selected, controller.signal);
+      acceptSelection(saved, controller.signal);
     };
     loadStored();
+    boot = false;
     const onSource = () => {
       pinnedSelection.current = null;
       loadStored();
@@ -420,7 +457,7 @@ export function VerticalProcess({
       return;
     }
     setError(null);
-    void fetch(`/api/semantic-catalog/${TRIAL_ARCHETYPE}/${TRIAL_CANDIDATE}/selection`)
+    void fetch(`/api/semantic-catalog/${DEFAULT_PROCESS_ARCHETYPE_ID}/${DEFAULT_PROCESS_CANDIDATE_ID}/selection`)
       .then(async (response) => {
         const body = (await response.json()) as { selection?: Skill2Selection; error?: string };
         if (!response.ok || !body.selection) throw new Error(body.error ?? "No published Skill 2 selection was found.");
@@ -531,7 +568,7 @@ export function VerticalProcess({
   const archetypeName = watched?.name ?? identity?.archetypeName ?? "Selected candidate";
   const candidateId = semantic?.candidateId ?? identity?.candidateId;
   const z0Iteration = activeSet?.z0Iteration ?? (pending || error ? null : storedZ0);
-  const checksum = shown?.parentChecksum ?? activeSet?.parentChecksum ?? null;
+  const checksum = shown?.parentChecksum ?? activeSet?.parentChecksum ?? verifiedChecksum;
   const intent = useMemo(() => {
     if (!watchedId) return null;
     try {
@@ -576,6 +613,16 @@ export function VerticalProcess({
     return { ...shown.field, slices: shown.field.slices.slice(0, revealedCount) };
   }, [shown, revealedCount]);
   const status = handoffStatus(activeSet?.origin, pending, error, verifiedZ0);
+  const liveExample: ProcessExample | null = semantic && z0Iteration != null && checksum && verifiedZ0
+    ? {
+        archetypeId: semantic.archetypeId,
+        typologyId: semantic.typologyId,
+        archetypeName,
+        candidateId: semantic.candidateId,
+        z0Iteration,
+        checksum,
+      }
+    : null;
 
   const saveOneResult = () => {
     if (!activeSet || activeSet.origin !== "handoff" || !shown) return;
@@ -654,9 +701,11 @@ export function VerticalProcess({
             </div>
           ) : null}
           <ProcessStory
-            example={example}
+            key={`${semantic?.archetypeId ?? activeArchetypeId ?? example?.archetypeId ?? ""}:${semantic?.candidateId ?? ""}`}
+            example={liveExample ?? (semantic == null && activeArchetypeId == null ? example : null)}
+            archetypeId={semantic?.archetypeId ?? activeArchetypeId ?? example?.archetypeId ?? null}
+            candidateId={semantic?.candidateId ?? (semantic == null && activeArchetypeId == null ? example?.candidateId ?? null : null)}
             catalogueHref={catalogueHref(search.toString())}
-            saveNote={saveNote}
           />
         </div>
       </div>
