@@ -1,9 +1,23 @@
+import type { Skill2Selection } from "@/lib/skill2/published-selection";
+
 /**
  * Minimum identity for the Skill 2 → Skill 3 handoff.
  * The catalogue writes it. `/lab/vertical` reads it and passes it to the existing loader.
  */
 
 export const VERTICAL_SELECTION_KEY = "lm-vertical-selection";
+
+/** Demo identity used only when the Process page has no explicit or saved Skill 2 selection. */
+export const DEFAULT_PROCESS_ARCHETYPE_ID = "vertical-void";
+export const DEFAULT_PROCESS_CANDIDATE_ID = 351;
+
+export type ResolvedProcessSource = {
+  selection: Skill2Selection;
+  archetypeName: string;
+  handoff: "verified" | "pending";
+  z0Iteration: number | null;
+  checksum: string | null;
+};
 
 export type VerticalSelection = {
   archetypeId: string;
