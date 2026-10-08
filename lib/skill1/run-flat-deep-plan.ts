@@ -11,6 +11,7 @@ import type { BiologicalParams, BiologicalTranslation, FieldAttractor, FieldSnap
  * slab, a perimeter, unequal rooms. The other half stays curved. Walls stay
  * hair-thin.
  */
+export const FLAT_DEEP_CYCLES = ["0", "1", "2", "3", "4", "5", "6"] as const;
 export const FLAT_DEEP_TRAIL_SCALE = 24;
 export const FLAT_DEEP_RUN_ITERATIONS = 160;
 export const FLAT_DEEP_AGENTS = 84;

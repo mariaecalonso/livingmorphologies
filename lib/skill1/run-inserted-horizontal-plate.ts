@@ -24,8 +24,9 @@ export const IHP_STEP_BUDGET_MS = 18000;
 const EDGE = 1.4;
 const lim = (value: number) => Math.min(FIELD_SIZE - EDGE, Math.max(EDGE, value));
 
-const ORGS = ["dominant", "distributed", "stagger", "cascade", "retreat", "cluster", "fragment", "overlap"] as const;
-type Org = (typeof ORGS)[number];
+export const PLATE_ORGS = ["dominant", "distributed", "stagger", "cascade", "retreat", "cluster", "fragment", "overlap"] as const;
+export const PLATE_VARIANTS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] as const;
+type Org = (typeof PLATE_ORGS)[number];
 
 export type InsertedPlatePlan = {
   index: number;
@@ -210,8 +211,8 @@ function spreadY(bands: Band[]) {
 }
 
 function compose(index: number): { org: Org; bands: Band[]; open: "left" | "right" | "below" | "above" } {
-  const org = ORGS[index % ORGS.length];
-  const variant = Math.floor(index / ORGS.length);
+  const org = PLATE_ORGS[index % PLATE_ORGS.length];
+  const variant = Math.floor(index / PLATE_ORGS.length);
   const flip = variant % 2 === 1;
   const count = org === "fragment" ? 2 + (variant % 2) : 2 + ((variant * 3 + 1) % 5);
   const lens = lengthsFor(Math.max(count, 4), variant + index);
@@ -431,5 +432,5 @@ export function insertedPlateAgentCount(plan: InsertedPlatePlan) {
 export function insertedPlateSignature(plan: InsertedPlatePlan): number[] {
   const lines = linesFromInsertedPlate(plan);
   const heights = lines.filter((line) => Math.abs(line.y2 - line.y) < 0.45).map((line) => Math.round(((line.y + line.y2) / 2) * 2));
-  return [plan.index % ORGS.length, lines.length, ...heights.slice(0, 12)];
+  return [plan.index % PLATE_ORGS.length, lines.length, ...heights.slice(0, 12)];
 }

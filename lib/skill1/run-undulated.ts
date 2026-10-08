@@ -14,13 +14,13 @@ const EDGE = 1.45;
 export const UNDULATED_GROWTH = ["filament", "sharp", "sparse", "committed", "wander"] as const;
 export type UndulatedGrowth = (typeof UNDULATED_GROWTH)[number];
 
-const WAVE_KINDS = ["bays", "slots", "corridor", "court", "collective", "jog", "spine", "steps", "nested", "cross", "lot", "chain"] as const;
-export type UndulatedKind = (typeof WAVE_KINDS)[number];
+export const UNDULATED_KINDS = ["bays", "slots", "corridor", "court", "collective", "jog", "spine", "steps", "nested", "cross", "lot", "chain"] as const;
+export type UndulatedKind = (typeof UNDULATED_KINDS)[number];
 
-const WEIGHTS = ["hair", "fine", "mid", "bold"] as const;
-const INKS = ["ghost", "veil", "ink", "solid"] as const;
-export type UndulatedWeight = (typeof WEIGHTS)[number];
-export type UndulatedInk = (typeof INKS)[number];
+export const UNDULATED_WEIGHTS = ["hair", "fine", "mid", "bold"] as const;
+export const UNDULATED_INKS = ["ghost", "veil", "ink", "solid"] as const;
+export type UndulatedWeight = (typeof UNDULATED_WEIGHTS)[number];
+export type UndulatedInk = (typeof UNDULATED_INKS)[number];
 
 export type UndulatedPlan = {
   growth: UndulatedGrowth;
@@ -293,7 +293,7 @@ const DRAW = [bays, slots, corridor, court, collective, jog, spine, steps, neste
 
 function plateWalls(plan: UndulatedPlan): Wall[] {
   const box = plateBox(plan.index);
-  return DRAW[WAVE_KINDS.indexOf(plan.kind)](box, plan.struct);
+  return DRAW[UNDULATED_KINDS.indexOf(plan.kind)](box, plan.struct);
 }
 
 export function planUndulated(seed: number, attempt = 0, index = 0): UndulatedPlan {
@@ -304,10 +304,10 @@ export function planUndulated(seed: number, attempt = 0, index = 0): UndulatedPl
   return {
     growth,
     index,
-    kind: WAVE_KINDS[id % WAVE_KINDS.length],
+    kind: UNDULATED_KINDS[id % UNDULATED_KINDS.length],
     struct: Math.floor(id / 12),
-    weight: WEIGHTS[index % WEIGHTS.length],
-    ink: INKS[Math.floor(index / 4) % INKS.length],
+    weight: UNDULATED_WEIGHTS[index % UNDULATED_WEIGHTS.length],
+    ink: UNDULATED_INKS[Math.floor(index / 4) % UNDULATED_INKS.length],
     angle: 0,
     anchorX: (box.x0 + box.x1) / 2,
     anchorY: (box.y0 + box.y1) / 2,
