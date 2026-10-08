@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ProcessStack } from "@/components/vertical-process-stage";
+import { ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { ArchitecturalIntentProfile } from "@/lib/architectural-intent";
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
@@ -100,6 +100,12 @@ export function ProcessStory({
     }
   }, []);
   const shown = set?.continuations.find((continuation) => continuation.id === "N01") ?? null;
+  const z0Slice = shown?.events[0]?.reason === "z0" ? shown.field.slices[0] ?? null : null;
+  const curated = set
+    ? (finalId ? set.continuations.find((continuation) => continuation.id === finalId) : null)
+      ?? representativeContinuations(set.continuations, 1)[0]
+      ?? null
+    : null;
   const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === EXAMPLE_ARCHETYPE);
   const generated = set?.continuations.length ?? BEHAVIOR_COUNT;
   const representative = set ? representativeContinuations(set.continuations, DISPLAY_COUNT).length : DISPLAY_COUNT;
@@ -166,6 +172,15 @@ export function ProcessStory({
             <div><dt>Iteration</dt><dd>{example ? String(example.z0Iteration) : "Pending"}</dd></div>
             <div><dt>Checksum</dt><dd>{example?.checksum ?? "Pending"}</dd></div>
           </dl>
+          {example ? (
+            <div className="process-sample-column">
+              <figure>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="vertical-process-plate" src={`/api/semantic-catalog/${EXAMPLE_ARCHETYPE}/${EXAMPLE_CANDIDATE}`} alt={`${example.archetypeName} ${example.candidateId}`} />
+                <figcaption>Selected</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-descriptors" aria-label="Inherit">
@@ -195,6 +210,14 @@ export function ProcessStory({
               );
             })}
           </div>
+          {z0Slice ? (
+            <div className="process-sample-column">
+              <figure>
+                <ProcessPlate slice={z0Slice} />
+                <figcaption>Z0 {z0Slice.iteration}</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-recipes" aria-label="Evolve">
@@ -211,6 +234,20 @@ export function ProcessStory({
               </li>
             ))}
           </ol>
+          {set ? (
+            <div className="process-sample-column">
+              {set.continuations.map((continuation) => {
+                const slice = continuation.field.slices[continuation.field.slices.length - 1];
+                if (!slice) return null;
+                return (
+                  <figure key={continuation.id}>
+                    <ProcessPlate slice={slice} />
+                    <figcaption>{continuation.id}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
 
         <section className="process-step process-curate" aria-label="Curate">
@@ -230,6 +267,17 @@ export function ProcessStory({
             <span>Catalogue</span>
             <span aria-hidden="true">→</span>
           </Link>
+          {curated && curated.field.slices.length >= 2 ? (
+            <div className="process-sample-column">
+              <figure>
+                <ProcessMorphology
+                  field={curated.field}
+                  cacheIdentity={`${curated.archetypeId}:${curated.candidateId}:${curated.id}`}
+                />
+                <figcaption>{curated.id}</figcaption>
+              </figure>
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -250,6 +298,16 @@ export function ProcessStory({
         {error ? <p className="process-pending">{error}</p> : null}
         {pending && !shown ? <p className="process-pending">Reading N01</p> : null}
         {!pending && !error && !shown ? <p className="process-pending">N01 pending</p> : null}
+        {shown && aligned ? (
+          <div className="process-sample-column">
+            {shown.field.slices.map((slice, index) => (
+              <figure key={slice.iteration}>
+                <ProcessPlate slice={slice} />
+                <figcaption>{shown.events[index] ? reasonLabel(shown.events[index].reason) : String(slice.iteration)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : null}
         {shown && rows.length > 0 ? (
           <ol className="process-timeline">
             {rows.map((row) => row.kind === "event" ? (
