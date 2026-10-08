@@ -123,8 +123,8 @@ export function ProcessStory({
     });
     setPending(true);
     setError(null);
-    const load = (cacheOnly: boolean) => fetch(`/api/vertical?${params}`, { signal: controller.signal })
-      .then(async (response) => {
+    const load = (cacheOnly: boolean): Promise<void> => fetch(`/api/vertical?${params}`, { signal: controller.signal })
+      .then(async (response): Promise<void> => {
         if (cacheOnly && response.status === 404) {
           params.delete("cache");
           return load(false);
@@ -139,7 +139,7 @@ export function ProcessStory({
         setSet(joinSet(body));
       });
     load(true)
-      .catch((caught) => {
+      .catch((caught: unknown) => {
         if (controller.signal.aborted) return;
         setSet(null);
         setError(caught instanceof Error ? caught.message : "Vertical Void 351 continuation was not readable.");

@@ -313,13 +313,13 @@ function mergeWhereFieldSupports(
   return next;
 }
 
-function dropFragments(mask: Uint8Array, nx: number, ny: number, nz: number) {
+function dropFragments(mask: Uint8Array, nx: number, ny: number, nz: number): Uint8Array<ArrayBuffer> {
   const found = solidComponents(mask, nx, ny, nz);
-  if (found.length <= 1) return mask;
+  if (found.length <= 1) return mask as Uint8Array<ArrayBuffer>;
   let largest = 0;
   for (const cells of found) if (cells.length > largest) largest = cells.length;
   const minimum = Math.max(24, largest * 0.025);
-  const next = mask.slice();
+  const next = mask.slice() as Uint8Array<ArrayBuffer>;
   for (const cells of found) {
     if (cells.length >= minimum) continue;
     for (const cell of cells) next[cell] = 0;
@@ -396,11 +396,11 @@ function shedWeakSkin(
   nx: number,
   ny: number,
   nz: number,
-) {
-  let current = mask;
+): Uint8Array<ArrayBuffer> {
+  let current = mask as Uint8Array<ArrayBuffer>;
   for (let pass = 0; pass < 2; pass += 1) {
     const edt = distanceToVoid(current, nx, ny, nz);
-    const next = current.slice();
+    const next = current.slice() as Uint8Array<ArrayBuffer>;
     for (let z = 0; z < nz; z += 1) {
       for (let y = 0; y < ny; y += 1) {
         for (let x = 0; x < nx; x += 1) {
