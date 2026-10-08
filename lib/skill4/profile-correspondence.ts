@@ -54,13 +54,13 @@ export function correspondProfiles(
   sampleCount: number,
 ): ProfileCorrespondence {
   if (!profileA || !profileB || !validSampleCount(sampleCount)) {
-    return result("invalid", profileA, profileB, 0, null, null, [], [], null, [], [], "A profile or the sample count is missing.");
+    return result("invalid", profileA, profileB, 0, null, null, null, null, null, [], [], "A profile or the sample count is missing.");
   }
   if (profileA.status === "invalid" || profileB.status === "invalid") {
-    return result("invalid", profileA, profileB, sampleCount, null, null, [], [], null, [], [], "One or both face profiles are invalid.");
+    return result("invalid", profileA, profileB, sampleCount, null, null, null, null, null, [], [], "One or both face profiles are invalid.");
   }
   if (profileA.status === "empty" || profileB.status === "empty") {
-    return result("empty", profileA, profileB, sampleCount, null, null, [], [], null, [], [], "One or both face profiles are empty.");
+    return result("empty", profileA, profileB, sampleCount, null, null, null, null, null, [], [], "One or both face profiles are empty.");
   }
 
   const loopsA = inspect(profileA.loops);
@@ -75,8 +75,8 @@ export function correspondProfiles(
       sampleCount,
       null,
       null,
-      [],
-      [],
+      null,
+      null,
       null,
       loopsA,
       loopsB,

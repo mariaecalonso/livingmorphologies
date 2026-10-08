@@ -20,11 +20,24 @@ export function PanelHeader({
   kicker,
   title,
   aside,
+  mark,
 }: {
   kicker?: string;
   title: string;
   aside?: ReactNode;
+  mark?: string;
 }) {
+  if (mark) {
+    return (
+      <header className="panel-header hud-panel-header hybrid-index-header mb-2 flex items-center justify-between gap-3">
+        <div className="hybrid-index-heading">
+          <p className="hybrid-index-num">{mark}</p>
+          <h2 className="panel-title hud-panel-title cyan-glow">{title}</h2>
+        </div>
+        {aside ? <div className="panel-header-aside hud-panel-aside shrink-0">{aside}</div> : null}
+      </header>
+    );
+  }
   return (
     <header className="panel-header hud-panel-header mb-2 flex items-start justify-between gap-3">
       <div className="panel-header-content hud-panel-header-content">

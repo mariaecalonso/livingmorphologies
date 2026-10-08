@@ -131,7 +131,7 @@ assert(countsMatch(first), "status counts equal the candidate count");
 
 const samples = HYBRID_GENERATOR_SETTINGS.profileSamples;
 const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
-const buffers = new Set<Float32Array>();
+const buffers = new Set<Float32Array | Uint32Array>();
 for (const item of first.candidates) {
   assert(item.geometry !== null, `${item.candidateId} has a mesh`);
   if (!item.geometry) throw new Error("unreachable");

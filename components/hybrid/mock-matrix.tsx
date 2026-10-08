@@ -11,17 +11,45 @@ const images = new Map<string, string>();
 let host: HTMLDivElement | null = null;
 let shared: HTMLCanvasElement | null = null;
 
+function centeredMesh(mesh: IsoMesh): IsoMesh {
+  const source = mesh.positions;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (let index = 0; index < source.length; index += 3) {
+    minX = Math.min(minX, source[index]);
+    minY = Math.min(minY, source[index + 1]);
+    minZ = Math.min(minZ, source[index + 2]);
+    maxX = Math.max(maxX, source[index]);
+    maxY = Math.max(maxY, source[index + 1]);
+    maxZ = Math.max(maxZ, source[index + 2]);
+  }
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const cz = (minZ + maxZ) / 2;
+  const positions = new Float32Array(source.length);
+  for (let index = 0; index < source.length; index += 3) {
+    positions[index] = source[index] - cx;
+    positions[index + 1] = source[index + 1] - cy;
+    positions[index + 2] = source[index + 2] - cz;
+  }
+  return { ...mesh, positions };
+}
+
 function imageFor(mesh: IsoMesh, key: string, color: [number, number, number]) {
   const cached = images.get(key);
   if (cached) return cached;
   if (!host || !shared) {
     host = document.createElement("div");
-    host.style.cssText = "position:fixed;left:-9999px;width:120px;height:120px;pointer-events:none";
+    host.style.cssText = "position:fixed;left:-9999px;width:176px;height:176px;pointer-events:none";
     shared = document.createElement("canvas");
     host.appendChild(shared);
     document.body.appendChild(host);
   }
-  drawPlacedMeshes(shared, [{ id: key, mesh, translate: { x: 0, y: 0, z: 0 }, selected: false, color, kind: 1 }], 0.8, 0.35, 1);
+  drawPlacedMeshes(shared, [{ id: key, mesh: centeredMesh(mesh), translate: { x: 0, y: 0, z: 0 }, selected: false, color, kind: 1 }], 0.8, 0.35, 1, true, undefined, false, 1.6);
   const url = shared.toDataURL("image/png");
   images.set(key, url);
   return url;
@@ -74,7 +102,7 @@ function Thumb({
   }, [cacheKey, color, mesh]);
   return (
     <button type="button" data-mock-id={id} data-active={active || undefined} onClick={() => onSelect(id)}>
-      <canvas ref={ref} width={96} height={96} />
+      <canvas ref={ref} width={176} height={176} />
       <span>{id}</span>
     </button>
   );

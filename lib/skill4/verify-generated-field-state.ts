@@ -70,8 +70,8 @@ assert(connections.length === 4, "the 2x2 board has four connections");
 const missing = generateConnectionHybridField(pair(connections, "A", "B"), tiles, loaded);
 assert(!missing.ok, "generation waits for candidate inputs");
 
-let north = withCandidates({ ...pair(connections, "A", "C"), selectedMockId: "H21" }, tiles, loaded);
-let east = withCandidates({ ...pair(connections, "A", "B"), selectedMockId: "H02" }, tiles, loaded);
+let north: TileConnection = withCandidates({ ...pair(connections, "A", "C"), selectedMockId: "H21" }, tiles, loaded);
+let east: TileConnection = withCandidates({ ...pair(connections, "A", "B"), selectedMockId: "H02" }, tiles, loaded);
 const eastCandidates = JSON.stringify(east.candidateField);
 const northCandidates = JSON.stringify(north.candidateField);
 

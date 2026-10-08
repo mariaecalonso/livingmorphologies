@@ -128,7 +128,7 @@ export function extractFaceProfile(mesh: IsoMesh | null, frame: FaceFrame | null
 function triangleCut(verts: XYZ[], frame: FaceFrame, planeOrigin: Vec3): { a: ProfilePoint; b: ProfilePoint } | null {
   const distances = verts.map((vert) => signed(vert, planeOrigin, frame.normal));
   const sides = distances.map(sideOf);
-  const zeros = sides.reduce((count, side) => count + (side === 0 ? 1 : 0), 0);
+  const zeros = sides.reduce<number>((count, side) => count + (side === 0 ? 1 : 0), 0);
   if (zeros === 3) return null;
 
   if (zeros === 2) {

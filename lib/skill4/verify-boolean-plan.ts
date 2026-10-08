@@ -128,13 +128,15 @@ assert(east.connectorGeometry === eastInterlock.connectorGeometry && east.connec
 assert(east.validation.accepted && east.validation.failures.length === 0, "a valid interlock passes the boolean checks");
 
 const tileA = plan.tiles.find((tile) => tile.tileId === "A");
-assert(tileA !== undefined && tileA.operations.length === 2, "tile A keeps a cut for each ready neighbor");
+if (!tileA) throw new Error("tile A is missing");
+assert(tileA.operations.length === 2, "tile A keeps a cut for each ready neighbor");
 assert(tileA.operations.map((cut) => cut.connectionId).join() === [...tileA.operations.map((cut) => cut.connectionId)].sort().join(), "tile A cuts are sorted by connection id");
 assert(tileA.operations.every((cut, index) => cut.sequence === index), "cut sequence follows that order");
 assert(tileA.order.join() === BOOLEAN_PLAN_SETTINGS.tileOrder.join(), "tile order is difference, preserve, then connector union");
 for (const tileId of ["A", "B", "C", "D"]) {
   const tile = plan.tiles.find((item) => item.tileId === tileId);
-  assert(tile !== undefined && tile.operations.length === 2, `${tileId} has two pending cuts`);
+  if (!tile) throw new Error(`${tileId} is missing`);
+  assert(tile.operations.length === 2, `${tileId} has two pending cuts`);
   assert(tile.operations.every((cut) => cut.potentialCutConflict === false), `${tileId} cuts do not overlap on the default board`);
 }
 

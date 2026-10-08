@@ -1,5 +1,5 @@
 import type { IsoMesh } from "../scan/isomesh";
-import type { Vec3 } from "./contract";
+import { registrationEnvelope, VIEW_SCAN, type Vec3 } from "./contract";
 
 export type PlacedMesh = {
   id: string;
@@ -19,6 +19,7 @@ uniform float uYaw;
 uniform float uPitch;
 uniform float uAspect;
 uniform float uFit;
+uniform float uDistance;
 uniform vec3 uTranslate;
 uniform vec3 uCenter;
 uniform float uSpin;
@@ -55,7 +56,7 @@ void main() {
   float ny2 = n.y * cp - nz1 * sp;
   float nz2 = n.y * sp + nz1 * cp;
   vNormal = vec3(nx1, ny2, nz2);
-  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
+  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - uDistance);
   vDepth = -view.z;
   float near = 0.35;
   float far = 14.0;
@@ -89,6 +90,8 @@ void main() {
   vec3 col = uColor * (0.28 + lambert * 0.72 + bounce);
   col = mix(col, uColor * 0.35, cavity * 0.35);
   col = mix(col, vec3(1.0), uSelected * 0.22);
+  float rim = pow(1.0 - abs(dot(n, viewDir)), 1.8);
+  col += vec3(0.93, 0.62, 0.38) * rim * uSelected * 0.9;
   col = mix(col, vec3(0.96, 0.78, 0.62), uKind * 0.35);
   float fog = smoothstep(3.0, 8.5, vDepth);
   col = mix(col, vec3(0.0), fog * 0.45);
@@ -148,6 +151,7 @@ type Gpu = {
   uPitch: WebGLUniformLocation;
   uAspect: WebGLUniformLocation;
   uFit: WebGLUniformLocation;
+  uDistance: WebGLUniformLocation;
   uTranslate: WebGLUniformLocation;
   uCenter: WebGLUniformLocation;
   uSpin: WebGLUniformLocation;
@@ -220,6 +224,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const uPitch = gl.getUniformLocation(meshProgram, "uPitch");
   const uAspect = gl.getUniformLocation(meshProgram, "uAspect");
   const uFit = gl.getUniformLocation(meshProgram, "uFit");
+  const uDistance = gl.getUniformLocation(meshProgram, "uDistance");
   const uTranslate = gl.getUniformLocation(meshProgram, "uTranslate");
   const uCenter = gl.getUniformLocation(meshProgram, "uCenter");
   const uSpin = gl.getUniformLocation(meshProgram, "uSpin");
@@ -229,7 +234,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const uColor = gl.getUniformLocation(meshProgram, "uColor");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
   if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
-  if (!uYaw || !uPitch || !uAspect || !uFit || !uTranslate || !uCenter || !uSpin || !uMirror || !uSelected || !uKind || !uColor || !uTexel) return null;
+  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uSpin || !uMirror || !uSelected || !uKind || !uColor || !uTexel) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -254,6 +259,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
     uPitch,
     uAspect,
     uFit,
+    uDistance,
     uTranslate,
     uCenter,
     uSpin,
@@ -282,8 +288,35 @@ function resize(gpu: Gpu, width: number, height: number) {
   gpu.height = height;
 }
 
+/** Camera pull-back used by the placed-mesh view. Previews stay at this distance. */
+export const CANVAS_EYE = 3.4;
+export const CANVAS_EYE_MIN = 2.05;
+export const CANVAS_EYE_MAX = 8.4;
+
+const GRID_CELL = 0.25;
+const GRID_COLOR: [number, number, number] = [0.3, 0.3, 0.28];
+const AXIS_COLOR: [number, number, number] = [0.46, 0.45, 0.42];
+
 export function placementFit(span: number, aspect: number) {
   return Math.min(1.05, 1.35 / Math.max(1, span * 0.42 * Math.max(1, aspect * 0.35)));
+}
+
+/** Fit one preview mesh inside the frame. The scene fit used by the aggregation canvas is unchanged. */
+function containedFit(instances: readonly PlacedMesh[], aspect: number) {
+  let radius = 0;
+  for (const instance of instances) {
+    const positions = instance.mesh.positions;
+    for (let index = 0; index < positions.length; index += 3) {
+      const extent = Math.hypot(positions[index], positions[index + 1], positions[index + 2]);
+      if (extent > radius) radius = extent;
+    }
+  }
+  if (radius < 1e-4) radius = 0.5;
+  const focal = 1.55;
+  const depth = 3.4;
+  const limit = 0.82;
+  const fitX = (limit * depth) / (radius * (focal + limit));
+  return Math.min(fitX, fitX / Math.max(0.2, aspect));
 }
 
 export function placementCenter(instances: readonly PlacedMesh[]): Vec3 {
@@ -308,6 +341,7 @@ export function projectPlacement(
   fit: number,
   width: number,
   height: number,
+  eye = CANVAS_EYE,
 ) {
   const cy = Math.cos(yaw);
   const sy = Math.sin(yaw);
@@ -319,7 +353,7 @@ export function projectPlacement(
   const y2 = p.y * cp - z1 * sp;
   const z2 = p.y * sp + z1 * cp;
   const aspect = width / Math.max(1, height);
-  const viewZ = -z2 * fit - 3.4;
+  const viewZ = -z2 * fit - eye;
   const f = 1.55;
   const clipX = x1 * fit * f;
   const clipY = y2 * fit * aspect * f;
@@ -336,6 +370,10 @@ export function drawPlacedMeshes(
   yaw: number,
   pitch: number,
   span: number,
+  contain = false,
+  eye = CANVAS_EYE,
+  ground = false,
+  fitScale = 1,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
@@ -363,13 +401,14 @@ export function drawPlacedMeshes(
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
   const aspect = width / Math.max(1, height);
-  const fit = placementFit(span, aspect);
+  const fit = (contain ? containedFit(instances, aspect) : placementFit(span, aspect)) * fitScale;
   const center = placementCenter(instances);
   gl.useProgram(gpu.program);
   gl.uniform1f(gpu.uYaw, yaw);
   gl.uniform1f(gpu.uPitch, pitch);
   gl.uniform1f(gpu.uAspect, aspect);
   gl.uniform1f(gpu.uFit, fit);
+  gl.uniform1f(gpu.uDistance, eye);
   gl.uniform3f(gpu.uCenter, center.x, center.y, center.z);
   for (const instance of instances) {
     if (instance.mesh.triangles < 1) continue;
@@ -392,6 +431,7 @@ export function drawPlacedMeshes(
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
     gl.drawElements(gl.TRIANGLES, instance.mesh.indices.length, gl.UNSIGNED_INT, 0);
   }
+  if (ground) drawGroundGrid(gpu, instances);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(gpu.aoProgram);
@@ -407,4 +447,76 @@ export function drawPlacedMeshes(
   gl.uniform2f(gpu.uTexel, 1 / pixelsW, 1 / pixelsH);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   return { fit, center, width, height };
+}
+
+/** Display-only XZ lines on the registration ground. Not a placed instance, so it cannot be picked. */
+function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
+  const bodies = instances.filter((instance) => !instance.id.startsWith("guide:"));
+  if (!bodies.length) return;
+  const half = 0.5;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const instance of bodies) {
+    minX = Math.min(minX, instance.translate.x - half);
+    maxX = Math.max(maxX, instance.translate.x + half);
+    minZ = Math.min(minZ, instance.translate.z - half);
+    maxZ = Math.max(maxZ, instance.translate.z + half);
+  }
+  const pad = GRID_CELL * 4;
+  minX = Math.floor((minX - pad) / GRID_CELL) * GRID_CELL;
+  maxX = Math.ceil((maxX + pad) / GRID_CELL) * GRID_CELL;
+  minZ = Math.floor((minZ - pad) / GRID_CELL) * GRID_CELL;
+  maxZ = Math.ceil((maxZ + pad) / GRID_CELL) * GRID_CELL;
+  const y = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).min.y - 0.004;
+  const grid: number[] = [];
+  const axis: number[] = [];
+  const push = (bucket: number[], x0: number, z0: number, x1: number, z1: number) => {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const length = Math.hypot(dx, dz) || 1;
+    const ox = (-dz / length) * 0.004;
+    const oz = (dx / length) * 0.004;
+    const ax = x0 + ox;
+    const az = z0 + oz;
+    const bx = x1 + ox;
+    const bz = z1 + oz;
+    const cx = x1 - ox;
+    const cz = z1 - oz;
+    const dx2 = x0 - ox;
+    const dz2 = z0 - oz;
+    bucket.push(ax, y, az, bx, y, bz, cx, y, cz, ax, y, az, cx, y, cz, dx2, y, dz2);
+  };
+  for (let x = minX; x <= maxX + GRID_CELL * 0.25; x += GRID_CELL) {
+    push(Math.abs(x) < GRID_CELL * 0.2 ? axis : grid, x, minZ, x, maxZ);
+  }
+  for (let z = minZ; z <= maxZ + GRID_CELL * 0.25; z += GRID_CELL) {
+    push(Math.abs(z) < GRID_CELL * 0.2 ? axis : grid, minX, z, maxX, z);
+  }
+  paintLines(gpu, grid, GRID_COLOR);
+  paintLines(gpu, axis, AXIS_COLOR);
+}
+
+function paintLines(gpu: Gpu, positions: number[], color: [number, number, number]) {
+  if (positions.length < 6) return;
+  const { gl } = gpu;
+  const normals = new Float32Array(positions.length);
+  for (let index = 1; index < normals.length; index += 3) normals[index] = 1;
+  gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gpu.normal);
+  gl.bufferData(gl.ARRAY_BUFFER, normals, gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+  gl.uniform3f(gpu.uTranslate, 0, 0, 0);
+  gl.uniform1f(gpu.uSpin, 0);
+  gl.uniform1f(gpu.uMirror, 0);
+  gl.uniform1f(gpu.uSelected, 0);
+  gl.uniform1f(gpu.uKind, 0);
+  gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
+  gl.disable(gl.CULL_FACE);
+  gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
 }

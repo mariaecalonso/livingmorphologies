@@ -152,7 +152,8 @@ assert(generatedNorth.connection.generatedHybridField !== generatedEast.connecti
 
 assert(JSON.stringify(readyField.candidates.map((item) => item.candidateId)) === beforeField, "display does not rewrite candidate ids");
 const afterMesh = readyField.candidates[0].geometry?.positions;
-assert(afterMesh !== undefined && afterMesh.length === beforeMesh.length, "display does not replace the mesh buffer");
+if (afterMesh === undefined) throw new Error("display mesh is missing");
+assert(afterMesh.length === beforeMesh.length, "display does not replace the mesh buffer");
 for (let index = 0; index < beforeMesh.length; index += 1) {
   assert(afterMesh[index] === beforeMesh[index], "display does not write source geometry");
 }

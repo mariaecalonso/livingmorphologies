@@ -35,6 +35,12 @@
     "verify:skill4-interlock": "npx --yes tsx lib/skill4/verify-interlock.ts",
     "verify:skill4-boolean-plan": "npx --yes tsx lib/skill4/verify-boolean-plan.ts",
     "verify:skill4-boolean-adapter": "npx --yes tsx lib/skill4/verify-boolean-adapter.ts",
+    "verify:skill4-boolean-execution": "npx --yes tsx lib/skill4/verify-boolean-execution.ts",
+    "verify:skill4-boolean-conditioning": "npx --yes tsx lib/skill4/verify-boolean-conditioning.ts",
+    "verify:skill4-geometry-preflight": "npx --yes tsx lib/skill4/verify-geometry-preflight.ts",
+    "verify:skill4-final": "npx --yes tsx lib/skill4/verify-skill4-final.ts",
+    "verify:skill4-catalog": "npx --yes tsx lib/skill4/verify-catalog.ts",
+    "verify:skill4-synthetic": "npx --yes tsx lib/skill4/verify-synthetic-system.ts",
     "calibrate:skill2": "npx --yes tsx lib/skill2/calibrate.ts",
     "export:presentation": "node scripts/export-presentation-pdfs.mjs"
   },

@@ -190,7 +190,11 @@ for (const status of ["empty", "blocked", "invalid"] as const) {
 }
 
 function placedEnds(faceA: FaceId, faceB: FaceId, nextA: TileInstance, nextB: TileInstance) {
-  const moduleFor = (tile: TileInstance) => tile.archetypeId === tileA.archetypeId ? moduleA : moduleB;
+  if (!tileA || moduleA.status !== "ready" || moduleB.status !== "ready") throw new Error("tiles are missing");
+  const anchor = tileA;
+  const readyA = moduleA;
+  const readyB = moduleB;
+  const moduleFor = (tile: TileInstance) => tile.archetypeId === anchor.archetypeId ? readyA : readyB;
   return {
     a: sectionCenter(placedFaceFrame(moduleFor(nextA).faces[faceA], nextA), DEPTH),
     b: sectionCenter(placedFaceFrame(moduleFor(nextB).faces[faceB], nextB), DEPTH),
@@ -198,6 +202,7 @@ function placedEnds(faceA: FaceId, faceB: FaceId, nextA: TileInstance, nextB: Ti
 }
 
 function attach(label: string, faceA: FaceId, faceB: FaceId, mesh: IsoMesh, nextTiles: TileInstance[]) {
+  if (!east) throw new Error("the east connection is missing");
   const link = withField({ ...east, faceA, faceB }, field(east.signature, new Map([["H05", { status: "ready", geometry: mesh }]])), "H05");
   const resolved = resolveAssemblyHybrid(link, nextTiles, loaded);
   assert(resolved.source === "real" && resolved.geometry !== null, `${label} resolves a real mesh`);

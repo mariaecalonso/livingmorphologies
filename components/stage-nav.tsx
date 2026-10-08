@@ -32,13 +32,12 @@ const STAGES: (NavItem & { match: string; sub?: NavItem[] })[] = [
   },
   { href: "/vertical", label: "Vertical Propagation", match: "/vertical" },
   {
-    href: "/hybrid",
+    href: "/hybrid/assembly",
     label: "Hybrid Connection",
     match: "/hybrid",
     sub: [
-      { href: "/hybrid", label: "Process" },
       { href: "/hybrid/assembly", label: "Assembly" },
-      { href: "/hybrid/connections", label: "Connections" },
+      { href: "/hybrid/catalog", label: "Catalog" },
     ],
   },
 ];
