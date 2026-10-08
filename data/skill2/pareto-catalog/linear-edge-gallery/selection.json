@@ -1,0 +1,18 @@
+{
+  "archetypeId": "linear-edge-gallery",
+  "candidateId": 121,
+  "typologyId": "gathering",
+  "objectives": {
+    "formal": 0.595146547006918,
+    "spatial": 0.8077393045799768,
+    "atmospheric": 0.6453538572931303
+  },
+  "source": "only-stored-snapshot",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "121.json",
+      "121.bin"
+    ]
+  }
+}

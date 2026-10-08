@@ -1,0 +1,18 @@
+{
+  "archetypeId": "stepped-amphitheater",
+  "candidateId": 374,
+  "typologyId": "gathering",
+  "objectives": {
+    "formal": 0.8256538270640867,
+    "spatial": 0.5737994118977376,
+    "atmospheric": 0.7479945204952057
+  },
+  "source": "chosen",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "374.json",
+      "374.bin"
+    ]
+  }
+}

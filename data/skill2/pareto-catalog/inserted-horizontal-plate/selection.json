@@ -1,0 +1,18 @@
+{
+  "archetypeId": "inserted-horizontal-plate",
+  "candidateId": 265,
+  "typologyId": "gathering",
+  "objectives": {
+    "formal": 0.7815034424857957,
+    "spatial": 0.8960241768624099,
+    "atmospheric": 0.848183827349172
+  },
+  "source": "chosen",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "265.json",
+      "265.bin"
+    ]
+  }
+}

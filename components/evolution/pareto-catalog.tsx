@@ -314,6 +314,11 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
         if (token !== commitToken.current && existing && existing.candidateId !== selection.candidateId) return current;
         return writeSkill2Selection(selection);
       });
+      void fetch("/api/skill2-picks", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ archetypeId: selection.archetypeId, candidateId: selection.candidateId }),
+      }).catch(() => undefined);
     };
     void fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`)
       .then(async (response) => {

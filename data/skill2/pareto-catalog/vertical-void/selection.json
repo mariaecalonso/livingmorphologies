@@ -1,0 +1,18 @@
+{
+  "archetypeId": "vertical-void",
+  "candidateId": 351,
+  "typologyId": "lobby",
+  "objectives": {
+    "formal": 0.8457632560105238,
+    "spatial": 0.7754639273355709,
+    "atmospheric": 0.6921068068952314
+  },
+  "source": "session",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "351.json",
+      "351.bin"
+    ]
+  }
+}

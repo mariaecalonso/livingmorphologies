@@ -1,0 +1,18 @@
+{
+  "archetypeId": "compressed-sequential",
+  "candidateId": 205,
+  "typologyId": "lobby",
+  "objectives": {
+    "formal": 0.6032281183979672,
+    "spatial": 0.6085408344002116,
+    "atmospheric": 0.6901577517450859
+  },
+  "source": "session",
+  "propagation": {
+    "ready": true,
+    "files": [
+      "205.json",
+      "205.bin"
+    ]
+  }
+}

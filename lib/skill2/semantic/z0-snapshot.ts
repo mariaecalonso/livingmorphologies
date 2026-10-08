@@ -214,8 +214,13 @@ export type LoadedZ0 = {
 export function loadVerifiedZ0(archetypeId: string, candidateId: number): LoadedZ0 | null {
   if (!/^[a-z0-9-]+$/.test(archetypeId)) throw new Error(`unsafe archetype id ${archetypeId}`);
   const dir = join(SEMANTIC_RUN_ROOT, archetypeId, "z0");
-  const jsonPath = join(dir, `${candidateId}.json`);
-  const binPath = join(dir, `${candidateId}.bin`);
+  let jsonPath = join(dir, `${candidateId}.json`);
+  let binPath = join(dir, `${candidateId}.bin`);
+  if (!existsSync(jsonPath) || !existsSync(binPath)) {
+    const kept = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "propagation");
+    jsonPath = join(kept, `${candidateId}.json`);
+    binPath = join(kept, `${candidateId}.bin`);
+  }
   if (!existsSync(jsonPath) || !existsSync(binPath)) return null;
   const meta = JSON.parse(readFileSync(jsonPath, "utf8")) as Z0Meta;
   const bin = readFileSync(binPath);

@@ -83,7 +83,7 @@ export function loadEvolutionCatalog(): EvolutionCatalog {
   const byId = new Map<string, EvolutionArchetypeView>();
   for (const archetype of pose) byId.set(archetype.archetypeId, archetype);
   for (const archetype of semantic) byId.set(archetype.archetypeId, archetype);
-  for (const archetype of publishedCatalogViews()) {
+  for (const archetype of keptCatalogViews()) {
     const existing = byId.get(archetype.archetypeId);
     const hasDrawing = existing?.candidates.some((candidate) => candidate.image) ?? false;
     if (!existing || !hasDrawing) byId.set(archetype.archetypeId, archetype);
@@ -93,6 +93,95 @@ export function loadEvolutionCatalog(): EvolutionCatalog {
       TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
   );
   return { archetypes };
+}
+
+/** Published semantic catalogs when this machine has them, then the committed Pareto catalog. */
+function keptCatalogViews(): EvolutionArchetypeView[] {
+  const published = publishedCatalogViews();
+  const seen = new Set(published.map((item) => item.archetypeId));
+  return [...published, ...paretoCatalogViews().filter((item) => !seen.has(item.archetypeId))];
+}
+
+type ParetoCatalogIndex = {
+  archetypes: Array<{ archetypeId: string; name: string; shown: number }>;
+};
+
+type ParetoCatalogCandidate = {
+  id: number;
+  generation: number;
+  formal: number;
+  spatial: number;
+  atmospheric: number;
+  pareto: boolean;
+  specialist: "formal" | "spatial" | "atmospheric" | null;
+  diversity: "none" | "tag" | "rescue";
+  fidelity: string;
+  observed: Record<string, number>;
+};
+
+/** The catalog stored in git: `data/skill2/pareto-catalog`. */
+function paretoCatalogViews(): EvolutionArchetypeView[] {
+  const root = join(process.cwd(), "data", "skill2", "pareto-catalog");
+  const indexPath = join(root, "index.json");
+  if (!existsSync(indexPath)) return [];
+  const index = JSON.parse(readFileSync(indexPath, "utf8")) as ParetoCatalogIndex;
+  const views: EvolutionArchetypeView[] = [];
+  for (const entry of index.archetypes) {
+    const infoPath = join(root, entry.archetypeId, "info.json");
+    if (!existsSync(infoPath)) continue;
+    const info = JSON.parse(readFileSync(infoPath, "utf8")) as { candidates?: ParetoCatalogCandidate[] };
+    const source = Object.values(ARCHETYPES).find((item) => item.id === entry.archetypeId);
+    const candidates = (info.candidates ?? []).flatMap((candidate) => {
+      const drawing = join(root, entry.archetypeId, "drawings", `${candidate.id}.png`);
+      if (!existsSync(drawing)) return [];
+      const emphasis = candidate.specialist;
+      return [{
+        key: `${entry.archetypeId}:${candidate.id}`,
+        archetypeId: entry.archetypeId,
+        id: candidate.id,
+        generation: candidate.generation,
+        formal: candidate.formal,
+        spatial: candidate.spatial,
+        atmospheric: candidate.atmospheric,
+        pareto: candidate.pareto,
+        paretoRank: candidate.pareto ? 1 : 0,
+        archived: true,
+        specialist: emphasis,
+        orientationElite: false,
+        image: `/api/semantic-catalog/${entry.archetypeId}/${candidate.id}`,
+        observed: candidate.observed,
+        parentId: null,
+        genome: null,
+        schema: "semantic" as const,
+        preservationRoles: [
+          candidate.pareto ? "pareto" : null,
+          emphasis ? `specialist-${emphasis}` : null,
+          candidate.diversity !== "none" ? "diversity" : null,
+        ].filter((role): role is string => role != null),
+        diversity: candidate.diversity,
+        fidelity: candidate.fidelity,
+        catalogVisible: true,
+      }];
+    });
+    if (!candidates.length) continue;
+    const specialists = { formal: [] as number[], spatial: [] as number[], atmospheric: [] as number[] };
+    for (const candidate of candidates) {
+      if (candidate.specialist) specialists[candidate.specialist].push(candidate.id);
+    }
+    views.push({
+      archetypeId: entry.archetypeId,
+      name: source?.name ?? entry.name,
+      typologyId: (source?.typologyId ?? "lobby") as TypologyId,
+      completedGenerations: Math.max(...candidates.map((candidate) => candidate.generation)),
+      generationCount: Math.max(...candidates.map((candidate) => candidate.generation)),
+      populationSize: entry.shown,
+      generations: [],
+      candidates,
+      archiveCount: candidates.filter((candidate) => candidate.pareto).length,
+      specialists,
+    });
+  }
+  return views;
 }
 
 function publishedCatalogViews(): EvolutionArchetypeView[] {
