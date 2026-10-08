@@ -4,11 +4,11 @@ import type { TypologyId } from "../types";
 /** Authoring box for a Skill 04 module mock. Drawn at 1/20 so it fills one registration cell. */
 export const MODULE_BOX = 20;
 
-/** Module ink stays off the interface teal and copper. */
+/** Lobby terracotta, workspace white, gathering cyan. These are the existing interface tokens. */
 export const TYPOLOGY_COLOR: Record<TypologyId, [number, number, number]> = {
-  lobby: [0.62, 0.54, 0.44],
-  workspace: [0.7, 0.7, 0.66],
-  gathering: [0.5, 0.56, 0.5],
+  lobby: [0.78, 0.494, 0.373],
+  workspace: [0.949, 0.949, 0.933],
+  gathering: [0.49, 0.722, 0.722],
 };
 
 const cache = new Map<string, IsoMesh>();

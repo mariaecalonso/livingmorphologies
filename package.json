@@ -29,6 +29,7 @@
     "search:contained": "npx --yes tsx scripts/search-contained-room.ts"
   },
   "dependencies": {
+    "manifold-3d": "^3.5.4",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
