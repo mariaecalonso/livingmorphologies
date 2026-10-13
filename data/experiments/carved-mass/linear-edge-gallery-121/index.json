@@ -1,0 +1,631 @@
+{
+  "contract": "carved-mass-module-v1",
+  "folder": "linear-edge-gallery-121",
+  "modules": [
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N01",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N01",
+      "continuationSeed": 1554047128,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0590786822702332,
+      "components": 1,
+      "openingSize": 48139,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.019886363636363646,
+      "silhouetteVsReference": 0.08900523560209428,
+      "file": "linear-edge-gallery-121/N01.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N02",
+      "continuationSeed": 1604379985,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [],
+      "solidFraction": 0.11367776920438957,
+      "components": 1,
+      "openingSize": 47663,
+      "wall": [
+        0.5555555555555556,
+        2.7777777777777777,
+        9.444444444444445
+      ],
+      "nearestId": "N14",
+      "nearestDifference": 0.2872628726287263,
+      "silhouetteVsReference": 0.506056527590848,
+      "file": "linear-edge-gallery-121/N02.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N03",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N03",
+      "continuationSeed": 1587602366,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06391996742112482,
+      "components": 1,
+      "openingSize": 46985,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N11",
+      "nearestDifference": 0.027247956403269713,
+      "silhouetteVsReference": 0.054973821989528826,
+      "file": "linear-edge-gallery-121/N03.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N04",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N04",
+      "continuationSeed": 1637935223,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.07687114197530864,
+      "components": 3,
+      "openingSize": 46385,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        9.444444444444445
+      ],
+      "nearestId": "N14",
+      "nearestDifference": 0.13099630996309963,
+      "silhouetteVsReference": 0.20668058455114824,
+      "file": "linear-edge-gallery-121/N04.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N05",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N05",
+      "continuationSeed": 1621157604,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05995209619341564,
+      "components": 1,
+      "openingSize": 47513,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.0028571428571428914,
+      "silhouetteVsReference": 0.08638743455497377,
+      "file": "linear-edge-gallery-121/N05.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N06",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N06",
+      "continuationSeed": 1671490461,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.046347200788751715,
+      "components": 1,
+      "openingSize": 48735,
+      "wall": [
+        0.5555555555555556,
+        3.3333333333333335,
+        8.333333333333334
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.10365853658536583,
+      "silhouetteVsReference": 0.2860759493670886,
+      "file": "linear-edge-gallery-121/N06.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N07",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N07",
+      "continuationSeed": 1654712842,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0665000214334705,
+      "components": 1,
+      "openingSize": 46886,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N18",
+      "nearestDifference": 0.021220159151193685,
+      "silhouetteVsReference": 0.023560209424083767,
+      "file": "linear-edge-gallery-121/N07.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N08",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N08",
+      "continuationSeed": 1436603795,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06712695044581618,
+      "components": 1,
+      "openingSize": 46440,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N18",
+      "nearestDifference": 0.023684210526315752,
+      "silhouetteVsReference": 0.031088082901554404,
+      "file": "linear-edge-gallery-121/N08.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N09",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N09",
+      "continuationSeed": 1419826176,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.052581661522633744,
+      "components": 1,
+      "openingSize": 46417,
+      "wall": [
+        0.5555555555555556,
+        3.3333333333333335,
+        7.777777777777779
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.05105105105105101,
+      "silhouetteVsReference": 0.22636815920398012,
+      "file": "linear-edge-gallery-121/N09.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N10",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N10",
+      "continuationSeed": 2034346104,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0689005701303155,
+      "components": 1,
+      "openingSize": 46146,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N07",
+      "nearestDifference": 0.023560209424083767,
+      "silhouetteVsReference": 0,
+      "file": "linear-edge-gallery-121/N10.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N11",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N11",
+      "continuationSeed": 2051123723,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0637377829218107,
+      "components": 1,
+      "openingSize": 46744,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N03",
+      "nearestDifference": 0.027247956403269713,
+      "silhouetteVsReference": 0.05989583333333337,
+      "file": "linear-edge-gallery-121/N11.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N12",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N12",
+      "continuationSeed": 2067901342,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.051354595336076815,
+      "components": 1,
+      "openingSize": 47280,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.333333333333334
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.027692307692307683,
+      "silhouetteVsReference": 0.22418136020151136,
+      "file": "linear-edge-gallery-121/N12.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N13",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N13",
+      "continuationSeed": 2084678961,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06165069873113855,
+      "components": 1,
+      "openingSize": 47142,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.0028571428571428914,
+      "silhouetteVsReference": 0.08376963350785338,
+      "file": "linear-edge-gallery-121/N13.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N14",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N14",
+      "continuationSeed": 2101456580,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.08060324502743484,
+      "components": 3,
+      "openingSize": 47533,
+      "wall": [
+        0.5555555555555556,
+        2.7777777777777777,
+        9.444444444444445
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.09760589318600366,
+      "silhouetteVsReference": 0.30939226519337015,
+      "file": "linear-edge-gallery-121/N14.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N15",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N15",
+      "continuationSeed": 2118234199,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.067724408436214,
+      "components": 2,
+      "openingSize": 47127,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.10169491525423724,
+      "silhouetteVsReference": 0.11483253588516751,
+      "file": "linear-edge-gallery-121/N15.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N16",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N16",
+      "continuationSeed": 2135011818,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.049481845850480106,
+      "components": 1,
+      "openingSize": 47504,
+      "wall": [
+        0.5555555555555556,
+        3.3333333333333335,
+        7.777777777777779
+      ],
+      "nearestId": "N12",
+      "nearestDifference": 0.027692307692307683,
+      "silhouetteVsReference": 0.24561403508771928,
+      "file": "linear-edge-gallery-121/N16.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N17",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N17",
+      "continuationSeed": 2151789437,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05835530264060357,
+      "components": 1,
+      "openingSize": 48777,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.09641873278236912,
+      "silhouetteVsReference": 0.13178294573643412,
+      "file": "linear-edge-gallery-121/N17.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N18",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N18",
+      "continuationSeed": 1900125152,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06656968021262002,
+      "components": 1,
+      "openingSize": 46399,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N07",
+      "nearestDifference": 0.021220159151193685,
+      "silhouetteVsReference": 0.023560209424083767,
+      "file": "linear-edge-gallery-121/N18.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N19",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N19",
+      "continuationSeed": 1916902771,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07222275805898491,
+      "components": 1,
+      "openingSize": 45083,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N10",
+      "nearestDifference": 0.06633906633906639,
+      "silhouetteVsReference": 0.06633906633906639,
+      "file": "linear-edge-gallery-121/N19.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N20",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N20",
+      "continuationSeed": 3947435955,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0552286951303155,
+      "components": 1,
+      "openingSize": 46962,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.88888888888889
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.05294117647058827,
+      "silhouetteVsReference": 0.18020304568527923,
+      "file": "linear-edge-gallery-121/N20.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N21",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N21",
+      "continuationSeed": 3930658336,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05243966478052126,
+      "components": 1,
+      "openingSize": 49130,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        9.444444444444445
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.07051282051282048,
+      "silhouetteVsReference": 0.19109947643979053,
+      "file": "linear-edge-gallery-121/N21.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N22",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N22",
+      "continuationSeed": 3980991193,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.07701045953360768,
+      "components": 2,
+      "openingSize": 46415,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        9.444444444444445
+      ],
+      "nearestId": "N14",
+      "nearestDifference": 0.09760589318600366,
+      "silhouetteVsReference": 0.242,
+      "file": "linear-edge-gallery-121/N22.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N23",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N23",
+      "continuationSeed": 3964213574,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0488093707133059,
+      "components": 1,
+      "openingSize": 49604,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.88888888888889
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.07051282051282048,
+      "silhouetteVsReference": 0.24675324675324672,
+      "file": "linear-edge-gallery-121/N23.json"
+    },
+    {
+      "moduleId": "carved-mass:linear-edge-gallery:121:N24",
+      "category": "gathering",
+      "archetypeId": "linear-edge-gallery",
+      "archetypeName": "Linear Edge Gallery",
+      "candidateId": 121,
+      "continuationId": "N24",
+      "continuationSeed": 4014546431,
+      "z0Iteration": 600,
+      "parentChecksum": "5352cbe0",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.053843557098765434,
+      "components": 1,
+      "openingSize": 46904,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.88888888888889
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.05294117647058827,
+      "silhouetteVsReference": 0.2050632911392405,
+      "file": "linear-edge-gallery-121/N24.json"
+    }
+  ]
+}
