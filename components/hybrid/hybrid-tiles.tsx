@@ -33,6 +33,9 @@ export function geometryStatus(handoff: ModuleHandoff) {
   if (handoff.status === "ready" && handoff.moduleId.startsWith("synthetic-test:")) {
     return { label: "Test data", available: true };
   }
+  if (handoff.status === "ready" && handoff.source === "skill03" && handoff.selectedFinal) {
+    return { label: "Skill 03 handoff", available: true };
+  }
   if (handoff.status === "ready" && handoff.source === "mock" && handoff.provisional) {
     return { label: "Provisional mock", available: true };
   }
@@ -117,16 +120,16 @@ export function HybridTiles({ compact = false, only, faceNote }: { compact?: boo
             ) : null}
             {compact ? null : (
               <>
-                <div className="hybrid-preview" data-preview-source={syntheticMode ? "synthetic" : "mock"}>
+                <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)}>
                   {previewMesh(syntheticMode, tile.archetypeId, handoff) ? (
                     <MeshPreview mesh={previewMesh(syntheticMode, tile.archetypeId, handoff)} color={previewColor(identity?.typologyId)} kind={0} contain />
                   ) : null}
                   {handoff.status === "ready" ? null : <p className="hybrid-missing">{handoff.reason}</p>}
                 </div>
-                <p className="hybrid-units">{syntheticMode ? syntheticModuleLabel(handoff.status === "ready" ? handoff.moduleId : "") ?? "TEST DATA" : `Module mock · 20×20×20 · ${identity?.typologyLabel ?? ""}`}</p>
+                <p className="hybrid-units">{previewCaption(syntheticMode, handoff, identity?.typologyLabel ?? "")}</p>
               </>
             )}
-            {compact ? null : <p className="hybrid-source">Source · {handoff.source}{handoff.status === "ready" && handoff.provisional ? " · provisional" : ""}</p>}
+            {compact ? null : <p className="hybrid-source">{sourceLine(handoff)}</p>}
             {faceNote ? <p className="hybrid-units">Selected face · {faceNote}</p> : null}
             {compact || !identity ? null : <CriteriaList identity={identity} />}
           </article>
@@ -168,7 +171,7 @@ function TileSelectionCard({
     : null;
   const testLabel = syntheticMode ? syntheticModuleLabel(handoff.status === "ready" ? handoff.moduleId : tile.moduleId) : null;
   const mesh = previewMesh(syntheticMode, tile.archetypeId, handoff);
-  const guides = syntheticMode && handoff.status === "ready" && activeFace
+  const guides = handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") && activeFace
     ? [{ mesh: faceFrameOutline(handoff.faces[activeFace]), color: [0.95, 0.78, 0.42] as [number, number, number] }]
     : [];
   return (
@@ -203,10 +206,10 @@ function TileSelectionCard({
         {testLabel ? <p className="hybrid-identity" data-synthetic-label={tile.instanceId}>{testLabel}</p> : identity ? <p className="hybrid-identity">{identity.name}</p> : null}
         <p className="hybrid-units">{tile.moduleId}</p>
         <p className="hybrid-typology">{identity?.typologyLabel ?? "Typology unavailable"}</p>
-        <p className="hybrid-source">Source · {handoff.source}{handoff.status === "ready" && handoff.provisional ? " · provisional" : ""}</p>
+        <p className="hybrid-source">{sourceLine(handoff)}</p>
         <p className="hybrid-status" data-available={status.available || undefined}>{status.label}</p>
       </div>
-      <div className="hybrid-preview" data-preview-source={syntheticMode ? "synthetic" : "mock"} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-yaw={faceView(activeFace).yaw.toFixed(2)}>
+      <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-module={handoff.status === "ready" ? handoff.moduleId : ""} data-preview-triangles={mesh?.triangles ?? 0} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-yaw={faceView(activeFace).yaw.toFixed(2)}>
         {mesh ? (
           <MeshPreview
             mesh={mesh}
@@ -286,8 +289,30 @@ function CriteriaList({ identity }: { identity: ModuleIdentity }) {
   );
 }
 
+function previewSource(syntheticMode: boolean, handoff: ModuleHandoff) {
+  if (syntheticMode) return "synthetic";
+  if (handoff.status === "ready" && handoff.source === "skill03") return "skill03";
+  return "mock";
+}
+
+function previewCaption(syntheticMode: boolean, handoff: ModuleHandoff, typologyLabel: string) {
+  if (syntheticMode) return syntheticModuleLabel(handoff.status === "ready" ? handoff.moduleId : "") ?? "TEST DATA";
+  if (handoff.status === "ready" && handoff.source === "skill03") return handoff.moduleId;
+  return `Module mock · 20×20×20 · ${typologyLabel}`;
+}
+
+function sourceLine(handoff: ModuleHandoff) {
+  if (handoff.status === "ready" && handoff.source === "skill03" && handoff.selectedFinal) {
+    return `Source: Skill 03 handoff · ${handoff.moduleId}`;
+  }
+  if (handoff.status === "ready" && handoff.provisional) return "Source · provisional";
+  if (handoff.status !== "ready") return "Geometry unavailable";
+  return `Source · ${handoff.source}`;
+}
+
 function previewMesh(syntheticMode: boolean, archetypeId: string, handoff: ModuleHandoff) {
-  if (syntheticMode) return handoff.status === "ready" ? handoff.geometry : null;
+  if (handoff.status === "ready" && (syntheticMode || handoff.source === "skill03")) return handoff.geometry;
+  if (syntheticMode || handoff.source === "skill03") return null;
   return moduleMock(archetypeId);
 }
 

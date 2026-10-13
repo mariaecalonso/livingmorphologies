@@ -137,7 +137,8 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     ...tiles.flatMap((tile) => {
       const handoff = resolveTileModule(tile.archetypeId, loaded);
       if (!handoff.identity) return [];
-      const syntheticMesh = syntheticMode && handoff.status === "ready" ? handoff.geometry : null;
+      const handoffMesh = handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") ? handoff.geometry : null;
+      if (!handoffMesh && (syntheticMode || handoff.source === "skill03")) return [];
       const chosen = tile.instanceId === canvasSelection;
       const color = chosen ? TYPOLOGY_COLOR[handoff.identity.typologyId] : CANVAS_WHITE;
       const pose = {
@@ -147,13 +148,13 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       };
       const solids: PlacedMesh[] = [{
         id: tile.instanceId,
-        mesh: syntheticMesh ?? moduleMock(tile.archetypeId),
+        mesh: handoffMesh ?? moduleMock(tile.archetypeId),
         selected: chosen,
         kind: 0 as const,
         color,
         ...pose,
       }];
-      if (!syntheticMesh || handoff.status !== "ready") return solids;
+      if (!handoffMesh || handoff.status !== "ready") return solids;
       const involved = connections.filter((connection) => connection.tileAId === tile.instanceId || connection.tileBId === tile.instanceId);
       const current = involved.find((connection) => connection.id === selectedConnectionId) ?? involved[0];
       const face = current
@@ -186,6 +187,18 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       }];
     }),
   ];
+  const canvasModules = tiles.map((tile) => {
+    const handoff = resolveTileModule(tile.archetypeId, loaded);
+    return handoff.status === "ready" ? handoff.moduleId : "";
+  }).join(" ");
+  const canvasSource = syntheticMode
+    ? "synthetic"
+    : tiles.every((tile) => {
+      const handoff = resolveTileModule(tile.archetypeId, loaded);
+      return handoff.status === "ready" && handoff.source === "skill03" && handoff.selectedFinal;
+    })
+      ? "skill03"
+      : "mock";
 
   return (
     <main className="hybrid-view hybrid-assembly">
@@ -226,7 +239,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       </Panel>
       <Panel className="hybrid-canvas">
         <PanelHeader mark="02" title="Aggregation Canvas" />
-        <div className="hybrid-stage" data-canvas-source={syntheticMode ? "synthetic" : "mock"} data-canvas-selection={canvasSelection ?? ""}>
+        <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""}>
           <AggregationView
             instances={placed}
             selectedId={canvasSelection ?? ""}
