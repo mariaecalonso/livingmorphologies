@@ -5,6 +5,7 @@ import type { IsoMesh } from "@/lib/scan/isomesh";
 import { CATALOGUE_COLUMNS, CATALOGUE_PITCH, CATALOGUE_ROWS, catalogueOrigin, MODULE_HALF } from "@/lib/skill3/catalogue";
 import { MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
+import { decodeSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 export type CatalogueModule = {
@@ -12,6 +13,9 @@ export type CatalogueModule = {
   label: string;
   cacheIdentity: string;
   field?: VerticalViewerField;
+  /** Stored solidified mesh. When set, the field is not meshed again. */
+  meshUrl?: string;
+  status?: "validated" | "review";
   /** Catalogue stand-in. Drawn only when no continuation field is loaded. */
   placeholder?: boolean;
 };
@@ -222,40 +226,62 @@ function boundsOf(positions: ArrayLike<number> | undefined): Bounds | null {
   return { minX, minY, minZ, maxX, maxY, maxZ };
 }
 
+const FRAME_PAD = 0.93;
+
+function viewPoints(camera: Camera, ox: number, oy: number, oz: number, scale: number, bounds: Bounds) {
+  const oyOff = oy - MODULE_HALF * (1 - scale);
+  const points: Array<{ x: number; y: number }> = [];
+  const push = (x: number, y: number, z: number) => {
+    points.push(rotateView(ox + x * scale, oyOff + y * scale, oz + z * scale, camera.yaw, camera.pitch));
+  };
+  for (const x of [bounds.minX, bounds.maxX]) {
+    for (const y of [bounds.minY, bounds.maxY]) {
+      for (const z of [bounds.minZ, bounds.maxZ]) push(x, y, z);
+    }
+  }
+  for (const x of [-MODULE_HALF, MODULE_HALF]) {
+    for (const y of [-MODULE_HALF, MODULE_HALF]) {
+      for (const z of [-MODULE_HALF, MODULE_HALF]) push(x, y, z);
+    }
+  }
+  return points;
+}
+
 function frameSelection(camera: Camera, ox: number, oy: number, oz: number, scale: number, bounds: Bounds, aspect: number) {
   const oyOff = oy - MODULE_HALF * (1 - scale);
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
+  let morphMinX = Infinity;
+  let morphMaxX = -Infinity;
+  let morphMinY = Infinity;
+  let morphMaxY = -Infinity;
   for (const x of [bounds.minX, bounds.maxX]) {
     for (const y of [bounds.minY, bounds.maxY]) {
       for (const z of [bounds.minZ, bounds.maxZ]) {
         const point = rotateView(ox + x * scale, oyOff + y * scale, oz + z * scale, camera.yaw, camera.pitch);
-        minX = Math.min(minX, point.x);
-        maxX = Math.max(maxX, point.x);
-        minY = Math.min(minY, point.y);
-        maxY = Math.max(maxY, point.y);
+        morphMinX = Math.min(morphMinX, point.x);
+        morphMaxX = Math.max(morphMaxX, point.x);
+        morphMinY = Math.min(morphMinY, point.y);
+        morphMaxY = Math.max(morphMaxY, point.y);
       }
     }
   }
-  const spanX = Math.max(0.001, maxX - minX);
-  const spanY = Math.max(0.001, maxY - minY);
+  const centerX = (morphMinX + morphMaxX) / 2;
+  const centerY = (morphMinY + morphMaxY) / 2;
+  let reachX = 0.001;
+  let reachY = 0.001;
+  for (const point of viewPoints(camera, ox, oy, oz, scale, bounds)) {
+    reachX = Math.max(reachX, Math.abs(point.x - centerX));
+    reachY = Math.max(reachY, Math.abs(point.y - centerY));
+  }
   return {
-    panX: -((minX + maxX) / 2),
-    panY: -((minY + maxY) / 2),
-    zoom: Math.min(camera.zoom, (1.35 * aspect) / spanX, 1.22 / spanY),
+    panX: -centerX,
+    panY: -centerY,
+    zoom: Math.min((FRAME_PAD * aspect) / reachX, FRAME_PAD / reachY),
   };
-}
-
-function defaultPitch(aspect: number) {
-  const wide = Math.min(1, Math.max(0, (aspect - 1.55) / 1.7));
-  return ISO_PITCH - wide * 0.3;
 }
 
 function composedView(width: number, height: number): Camera {
   const aspect = width / Math.max(1, height);
-  const pitch = defaultPitch(aspect);
+  const pitch = ISO_PITCH;
   const halfX = ((CATALOGUE_COLUMNS - 1) * CATALOGUE_PITCH) / 2 + MODULE_HALF;
   const halfZ = ((CATALOGUE_ROWS - 1) * CATALOGUE_PITCH) / 2 + MODULE_HALF;
   let minX = Infinity;
@@ -275,7 +301,7 @@ function composedView(width: number, height: number): Camera {
   }
   const spanX = Math.max(0.001, maxX - minX);
   const spanY = Math.max(0.001, maxY - minY);
-  const zoom = Math.min((1.88 * aspect) / spanX, 1.82 / spanY);
+  const zoom = Math.min((FRAME_PAD * 2 * aspect) / spanX, (FRAME_PAD * 2) / spanY);
   return {
     yaw: ISO_YAW,
     pitch,
@@ -427,6 +453,10 @@ function pushCube(
   }
 }
 
+function meshKey(item: CatalogueModule, surface: "raw" | "refined") {
+  return `${item.cacheIdentity}:${surface}`;
+}
+
 function placeholderSolid(index: number): SolidMesh {
   const heights = PLACEHOLDER_HEIGHTS[index % PLACEHOLDER_HEIGHTS.length];
   const voxel = 3.5;
@@ -504,10 +534,9 @@ export function CatalogueField({
   useEffect(() => {
     let cancel = false;
     const meshes = meshesRef.current;
-    const live = new Set(modules.map((item) => item.id));
+    const live = new Set(modules.flatMap((item) => [meshKey(item, "refined"), meshKey(item, "raw")]));
     for (const key of meshes.keys()) {
-      const id = key.slice(0, key.lastIndexOf(":"));
-      if (!live.has(id)) meshes.delete(key);
+      if (!live.has(key)) meshes.delete(key);
     }
     const report = () => {
       let refined = 0;
@@ -521,15 +550,17 @@ export function CatalogueField({
         stageRef.current.dataset.raw = String(raw);
       }
       for (const item of modules) {
-        const ready = meshes.get(`${item.id}:${surfaceRef.current}`);
+        const ready = meshes.get(meshKey(item, surfaceRef.current));
         if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
       }
     };
     report();
     const pending: Array<{ item: CatalogueModule; surface: CatalogueSurface }> = [];
+    const stored = modules.filter((item) => item.meshUrl && !meshes.has(meshKey(item, "refined")));
     for (const kind of ["refined", "raw"] as const) {
       for (const item of modules) {
-        if ((item.field?.slices.length ?? 0) < 2 || meshes.has(`${item.id}:${kind}`)) continue;
+        if (item.meshUrl) continue;
+        if ((item.field?.slices.length ?? 0) < 2 || meshes.has(meshKey(item, kind))) continue;
         pending.push({ item, surface: kind });
       }
     }
@@ -539,7 +570,7 @@ export function CatalogueField({
       const next = pending[index];
       if (!next?.item.field) return;
       index += 1;
-      const key = `${next.item.id}:${next.surface}`;
+      const key = meshKey(next.item, next.surface);
       try {
         const mesh = cachedOpeningMesh(next.item.field.slices, {
           identity: next.item.cacheIdentity,
@@ -558,17 +589,44 @@ export function CatalogueField({
       paintRef.current();
       if (index < pending.length) window.setTimeout(step, 16);
     };
+    let storedIndex = 0;
+    const stepStored = () => {
+      if (cancel) return;
+      const item = stored[storedIndex];
+      if (!item?.meshUrl) return;
+      storedIndex += 1;
+      void fetch(item.meshUrl)
+        .then(async (response) => {
+          if (cancel || !response.ok) return null;
+          return response.json() as Promise<{ geometry?: { positions: string; normals: string; indices: string; triangles: number } }>;
+        })
+        .then((body) => {
+          if (!cancel && body?.geometry) {
+            const mesh = decodeSolidifiedMesh(body.geometry);
+            meshes.set(meshKey(item, "refined"), mesh);
+            meshes.set(meshKey(item, "raw"), mesh);
+            report();
+            paintRef.current();
+          }
+          if (!cancel && storedIndex < stored.length) window.setTimeout(stepStored, 16);
+        })
+        .catch(() => {
+          if (!cancel && storedIndex < stored.length) window.setTimeout(stepStored, 16);
+        });
+    };
     const timer = window.setTimeout(step, 16);
+    const storedTimer = window.setTimeout(stepStored, 16);
     return () => {
       cancel = true;
       window.clearTimeout(timer);
+      window.clearTimeout(storedTimer);
     };
   }, [origin, modules]);
 
   useEffect(() => {
     surfaceRef.current = surface;
     for (const item of modulesRef.current) {
-      const ready = meshesRef.current.get(`${item.id}:${surface}`);
+        const ready = meshesRef.current.get(meshKey(item, surface));
       if (ready) onTrianglesRef.current?.(item.id, ready.triangles);
     }
     paintRef.current();
@@ -667,11 +725,13 @@ export function CatalogueField({
     const draw = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
       const width = Math.max(1, Math.floor(parent.clientWidth));
       const height = Math.max(1, Math.floor(parent.clientHeight));
       const pixelsW = Math.floor(width * dpr);
       const pixelsH = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
         canvas.width = pixelsW;
         canvas.height = pixelsH;
@@ -695,7 +755,7 @@ export function CatalogueField({
         steerRef.current = true;
       } else if (focusing && steerRef.current) {
         const item = shown[selectedIndex];
-        const solid = item.placeholder ? PLACEHOLDER_SOLIDS[selectedIndex % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
+        const solid = item.placeholder ? PLACEHOLDER_SOLIDS[selectedIndex % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(meshKey(item, surfaceRef.current));
         const bounds = boundsOf(solid?.positions) ?? {
           minX: -5, maxX: 5, minY: -MODULE_HALF, maxY: -MODULE_HALF + 14, minZ: -5, maxZ: 5,
         };
@@ -844,7 +904,7 @@ export function CatalogueField({
         }
         const drawMesh = (item: CatalogueModule, itemIndex: number, at: FocusPose | null) => {
           const solid = item.placeholder ? PLACEHOLDER_SOLIDS[itemIndex % PLACEHOLDER_SOLIDS.length] : null;
-          const mesh = solid ?? meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
+          const mesh = solid ?? meshesRef.current.get(meshKey(item, surfaceRef.current));
           if (!mesh || ("triangles" in mesh && typeof mesh.triangles === "number" && mesh.triangles <= 0)) return;
           const [ox, oy, oz] = catalogueOrigin(itemIndex);
           const scale = at ? at.scale : 1;
@@ -1067,7 +1127,7 @@ export function CatalogueField({
           const index = modulesRef.current.findIndex((entry) => entry.id === selected);
           if (index >= 0) {
             const item = modulesRef.current[index];
-            const solid = item.placeholder ? PLACEHOLDER_SOLIDS[index % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(`${item.id}:${surfaceRef.current}`);
+            const solid = item.placeholder ? PLACEHOLDER_SOLIDS[index % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(meshKey(item, surfaceRef.current));
             const [ox, oy, oz] = catalogueOrigin(index);
             const width = parent.clientWidth;
             const height = parent.clientHeight;
@@ -1152,9 +1212,11 @@ export function CatalogueField({
             data-module={item.id}
             data-index={index}
             data-active={item.id === selectedId || undefined}
+            data-status={item.status}
             onClick={() => onSelect(item.id)}
           >
             {item.label}
+            {item.status ? <small>{item.status === "review" ? "Review" : "Validated"}</small> : null}
           </button>
         ))}
       </div>

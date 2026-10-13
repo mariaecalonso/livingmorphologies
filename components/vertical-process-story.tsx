@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { SamplePresentation } from "@/components/vertical-render";
 import { ProcessStack } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { ArchitecturalIntentProfile } from "@/lib/architectural-intent";
@@ -9,7 +10,6 @@ import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { readSelectedSkill3Morphology } from "@/lib/skill3/morphology-selection";
-import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 export type ProcessExample = {
@@ -103,6 +103,7 @@ export function ProcessStory({
   const [set, setSet] = useState<NaturalContinuationSet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(focusArchetype != null && focusCandidate != null);
+  const [presentation, setPresentation] = useState<SamplePresentation>("raw");
   const finalId = useSyncExternalStore(
     subscribeMorphology,
     () => readSavedContinuation(focusArchetype, focusCandidate),
@@ -119,7 +120,7 @@ export function ProcessStory({
   const shown = set?.continuations.find((continuation) => continuation.id === "N01") ?? null;
   const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === focusArchetype);
   const generated = set?.continuations.length ?? BEHAVIOR_COUNT;
-  const representative = set ? representativeContinuations(set.continuations, DISPLAY_COUNT).length : DISPLAY_COUNT;
+  const futures = generated;
   const envelope = set?.rules.envelope;
   const moduleLabel = envelope
     ? `${envelope.sizeX}×${envelope.sizeY}×${envelope.sizeZ}`
@@ -225,11 +226,11 @@ export function ProcessStory({
             <p className="eyebrow">06</p>
             <h2 className="panel-title">Curate</h2>
           </header>
-          <p className="process-kicker">Diversity selection</p>
+          <p className="process-kicker">Temporal futures</p>
           <p className="process-counts">
             <span>{generated > 0 ? generated : "Pending"} generated</span>
             <span aria-hidden="true">→</span>
-            <span>{representative > 0 ? representative : "Pending"} representative</span>
+            <span>{futures > 0 ? futures : "Pending"} temporal futures</span>
             <span aria-hidden="true">→</span>
             <span>{finalId ?? "Final pending"}</span>
           </p>
@@ -281,11 +282,16 @@ export function ProcessStory({
           <p className="vertical-process-aside">T → Z · {moduleLabel}</p>
         </header>
         <p className="process-kicker">XYT construction</p>
+        <div className="process-field-mode" role="group" aria-label="Sample presentation">
+          <button type="button" className="process-read" data-active={presentation === "raw" ? "true" : "false"} onClick={() => setPresentation("raw")}>Raw field</button>
+          <button type="button" className="process-read" data-active={presentation === "contour" ? "true" : "false"} onClick={() => setPresentation("contour")}>Clean contour</button>
+        </div>
         <div className="process-xyt-stage">
           {shown && aligned ? (
             <ProcessStack
               field={shown.field}
               plates={shown.field.slices.length}
+              presentation={presentation}
               labels={shown.events.map((event) => String(event.iteration))}
               reasons={shown.events.map((event) => event.reason)}
             />

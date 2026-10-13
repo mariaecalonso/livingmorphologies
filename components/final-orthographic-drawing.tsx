@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { placeholderPositions } from "@/components/final-placeholder-morphology";
+import type { IsoMesh } from "@/lib/scan/isomesh";
 import { MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
@@ -15,11 +16,14 @@ type View = "top" | "side";
 
 export function FinalOrthographicViews({
   field,
+  mesh,
   cacheIdentity,
   placeholderId,
   accent,
 }: {
   field: VerticalViewerField | null;
+  /** Stored module. When present, the continuation field is not meshed. */
+  mesh?: IsoMesh | null;
   cacheIdentity: string | null;
   placeholderId: string;
   accent: string;
@@ -29,6 +33,14 @@ export function FinalOrthographicViews({
   const sideRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (mesh && mesh.triangles > 0) {
+      setSurface({ positions: mesh.positions, indices: mesh.indices });
+      return;
+    }
+    if (mesh) {
+      setSurface({ positions: placeholderPositions(placeholderId), indices: null });
+      return;
+    }
     if (field && cacheIdentity && field.slices.length >= 2) {
       try {
         const mesh = cachedOpeningMesh(field.slices, {
@@ -48,7 +60,7 @@ export function FinalOrthographicViews({
       }
     }
     setSurface({ positions: placeholderPositions(placeholderId), indices: null });
-  }, [cacheIdentity, field, placeholderId]);
+  }, [cacheIdentity, field, mesh, placeholderId]);
 
   useEffect(() => {
     const paint = () => {
@@ -87,9 +99,12 @@ function drawOrthographic(
   if (!parent) return;
   const dpr = window.devicePixelRatio || 1;
   const width = Math.max(1, Math.floor(parent.clientWidth));
-  const height = Math.max(1, Math.floor(canvas.clientHeight || parent.clientHeight * 0.82));
+  const caption = canvas.previousElementSibling instanceof HTMLElement ? canvas.previousElementSibling.offsetHeight : 0;
+  const height = Math.max(1, Math.floor(parent.clientHeight - caption));
   const pixelsW = Math.floor(width * dpr);
   const pixelsH = Math.floor(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
   if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
     canvas.width = pixelsW;
     canvas.height = pixelsH;
@@ -187,7 +202,7 @@ function drawOrthographic(
   }
   const spanU = Math.max(0.001, maxU - minU);
   const spanV = Math.max(0.001, maxV - minV);
-  const pad = 0.86;
+  const pad = 0.9;
   const scale = Math.min((width * pad) / spanU, (height * pad) / spanV);
   const originU = width * 0.5 - ((minU + maxU) / 2) * scale;
   const originV = height * 0.5 + ((minV + maxV) / 2) * scale;

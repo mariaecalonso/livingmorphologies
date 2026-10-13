@@ -1,72 +1,87 @@
-import { drawPlanField } from "@/components/skill1-viz";
-import { FIELD_SIZE, trailMaskCutoff } from "@/lib/skill1/maps";
-import type { FieldSnapshot } from "@/lib/skill1/types";
-import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
+import { DEFAULT_DENSITY, trailMaskCutoff } from "@/lib/skill1/maps";
+
+/** How an accepted sample is drawn. The trail buffer is only read. */
+export type SamplePresentation = "raw" | "contour";
 
 /**
- * Gray trail plate. `size` is 512 in Single and 320 in Compare.
- * Source and attractor are only used by the canvas fallback.
+ * Peak-normalized cutoff for the presentation silhouette.
+ * Cells stay independent, so holes and separate regions remain.
+ */
+export const CLEAN_CONTOUR_CUTOFF = trailMaskCutoff(DEFAULT_DENSITY);
+
+/** Display tone for one peak-normalized cell. Contour is binary and does not fill holes. */
+export function presentationTone(normalized: number, presentation: SamplePresentation) {
+  const norm = Math.max(0, Math.min(1, normalized));
+  if (presentation === "contour") return norm >= CLEAN_CONTOUR_CUTOFF ? 255 : 0;
+  return Math.round(norm * 255);
+}
+
+/**
+ * Native-resolution plate of one accepted sample.
+ * Raw field is the continuous intensity. Clean contour is a binary reading of the same values.
  */
 export function rasterTrailPlate(
   trails: ArrayLike<number>,
   trailSize: number,
   peak: number,
-  iteration: number,
-  size: number,
-  source: { x: number; y: number },
-  attractor: { x: number; y: number },
+  presentation: SamplePresentation = "raw",
 ) {
+  const size = Math.max(1, Math.floor(trailSize));
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) return canvas;
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, size, size);
-  const painted = drawSlimeFieldGl(
-    ctx,
-    trails,
-    trailSize,
-    Math.max(peak, 0.0001),
-    size,
-    size,
-    trailMaskCutoff(5),
-  );
-  if (!painted) {
-    const snapshot: FieldSnapshot = {
-      iteration,
-      size: FIELD_SIZE,
-      trailSize,
-      trails: Array.from(trails),
-      occupancy: [],
-      agents: [],
-      source,
-      attractor,
-    };
-    drawPlanField(ctx, snapshot, size, size, {
-      showHud: false,
-      fine: true,
-      density: 5,
-      showAttractors: false,
-    });
-  }
-  const image = ctx.getImageData(0, 0, size, size);
+  const image = ctx.createImageData(size, size);
   const data = image.data;
-  let inkPeak = 0;
-  for (let i = 0; i < data.length; i += 4) inkPeak = Math.max(inkPeak, data[i], data[i + 1], data[i + 2]);
-  const gain = inkPeak > 8 ? 1 / inkPeak : 0;
-  for (let i = 0; i < data.length; i += 4) {
-    const ink = Math.max(data[i], data[i + 1], data[i + 2]);
-    if (ink < 8 || gain === 0) {
-      data[i + 3] = 0;
-      continue;
-    }
-    const value = Math.round(255 * Math.pow(ink * gain, 0.72));
-    data[i] = value;
-    data[i + 1] = value;
-    data[i + 2] = value;
-    data[i + 3] = value < 8 ? 0 : 255;
+  const gain = peak > 0 ? 1 / peak : 0;
+  const count = Math.min(trails.length, size * size);
+  for (let i = 0; i < count; i += 1) {
+    const x = i % size;
+    const y = Math.floor(i / size);
+    const tone = presentationTone((trails[i] ?? 0) * gain, presentation);
+    const pixel = ((size - 1 - y) * size + x) * 4;
+    data[pixel] = tone;
+    data[pixel + 1] = tone;
+    data[pixel + 2] = tone;
+    data[pixel + 3] = 255;
   }
   ctx.putImageData(image, 0, 0);
   return canvas;
+}
+
+/** Native raster of a peak-normalized sample. The source array is only read. */
+export function nativeSampleCanvas(values: ArrayLike<number>, presentation: SamplePresentation = "raw") {
+  const size = Math.max(1, Math.round(Math.sqrt(values.length)));
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) return canvas;
+  const image = ctx.createImageData(size, size);
+  const data = image.data;
+  const count = Math.min(values.length, size * size);
+  for (let i = 0; i < count; i += 1) {
+    const tone = presentationTone(values[i] ?? 0, presentation);
+    const pixel = i * 4;
+    data[pixel] = tone;
+    data[pixel + 1] = tone;
+    data[pixel + 2] = tone;
+    data[pixel + 3] = 255;
+  }
+  ctx.putImageData(image, 0, 0);
+  return canvas;
+}
+
+/** Nearest-neighbor scale. Destination edges are snapped so samples do not blend across pixels. */
+export function drawPixelPlate(
+  ctx: CanvasRenderingContext2D,
+  plate: CanvasImageSource,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(plate, Math.round(x), Math.round(y), Math.max(1, Math.round(width)), Math.max(1, Math.round(height)));
 }

@@ -391,20 +391,9 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh, yaw = 0.62) {
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
   const { positions } = mesh;
-  for (let i = 0; i < positions.length; i += 3) {
-    minX = Math.min(minX, positions[i]);
-    maxX = Math.max(maxX, positions[i]);
-    minY = Math.min(minY, positions[i + 1]);
-    maxY = Math.max(maxY, positions[i + 1]);
-  }
-  const worldW = Math.max(0.001, maxX - minX);
-  const worldH = Math.max(0.001, maxY - minY);
-  const scale = Math.min((width * 0.78) / worldW, (height * 0.9) / worldH);
   const pitch = 0.42;
   const cosY = Math.cos(yaw);
   const sinY = Math.sin(yaw);
@@ -417,8 +406,22 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh, yaw = 0.62) {
     const z2 = y * sinP + z1 * cosP;
     return { x: x1, y: y2, z: z2 };
   };
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < positions.length; i += 3) {
+    const point = project(positions[i], positions[i + 1], positions[i + 2]);
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+  }
+  const spanX = Math.max(0.001, maxX - minX);
+  const spanY = Math.max(0.001, maxY - minY);
+  const scale = Math.min((width * 0.86) / spanX, (height * 0.86) / spanY);
   const originX = width * 0.5 - ((minX + maxX) / 2) * scale;
-  const originY = height * 0.94 - minY * scale;
+  const originY = height * 0.93 + minY * scale;
   type Face = { depth: number; points: Array<[number, number]>; shade: number };
   const faces: Face[] = [];
   for (let i = 0; i < positions.length; i += 9) {
