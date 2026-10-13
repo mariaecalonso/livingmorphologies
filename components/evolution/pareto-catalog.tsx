@@ -254,6 +254,25 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
   }, [selectedKey]);
   const appliedFocus = useRef<string | null>(null);
   const selected = archetype?.candidates.find((candidate) => candidate.key === selectedKey) ?? null;
+  const [observed, setObserved] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!selected) {
+      setObserved({});
+      return;
+    }
+    if (Object.keys(selected.observed).length > 0) {
+      setObserved(selected.observed);
+      return;
+    }
+    const controller = new AbortController();
+    void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.id}/selection`, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { observed?: Record<string, number> } | null) => {
+        if (!controller.signal.aborted) setObserved(body?.observed ?? {});
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [selected]);
   const cardGap = wall ? 12 : 8;
   const onSaved = useCallback(() => setInkRevision(Date.now()), []);
   const pageSize = Math.max(1, fit.columns * archiveRows);
@@ -508,7 +527,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
                           <td>
                             <span className="archive-branch">{criterion.branch}</span> {criterion.label}
                           </td>
-                          <td>{formatMatch(selected.observed[criterion.id])}</td>
+                          <td>{formatMatch(observed[criterion.id])}</td>
                         </tr>
                       ))}
                     </tbody>

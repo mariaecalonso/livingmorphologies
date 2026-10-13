@@ -429,7 +429,7 @@ export function LivingInstrument() {
       setAttractorMarks(marks);
       dnaStampRef.current = liveStamp;
     }
-    const marks = attractorMarksRef.current ?? recipeAttractors(fresh.recipe);
+    const marks = (attractorMarksRef.current ?? recipeAttractors(fresh.recipe)).filter((item) => item && typeof item.kind === "string");
     const first = marks[0];
     return {
       ...fresh,
@@ -517,8 +517,13 @@ export function LivingInstrument() {
   const generate = () => {
     cancelPendingGeneration();
     setFocus("Physarum");
-    pulse(`Generating ${archetype.name}`);
-    runPresentationSimulation();
+    try {
+      pulse(`Generating ${archetype.name}`);
+      runPresentationSimulation();
+    } catch (caught) {
+      setSimulating(false);
+      pulse(caught instanceof Error ? caught.message : "The field could not be generated.");
+    }
   };
 
   const resetField = () => {

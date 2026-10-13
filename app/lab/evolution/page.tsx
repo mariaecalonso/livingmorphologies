@@ -1,6 +1,6 @@
 import { ProcessIntro } from "@/components/evolution/process-intro";
 import { labWorkspace } from "@/lib/site-map";
-import { loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { catalogScores, loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
 import { loadSavedPicks } from "@/lib/skill2/saved-picks";
 
 const workspace = labWorkspace("optimization");
@@ -11,5 +11,5 @@ export const metadata = {
 };
 
 export default function EvolutionPage() {
-  return <ProcessIntro initial={loadEvolutionCatalog()} picks={loadSavedPicks()} />;
+  return <ProcessIntro initial={catalogScores(loadEvolutionCatalog())} picks={loadSavedPicks()} />;
 }

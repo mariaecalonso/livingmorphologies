@@ -2,6 +2,7 @@ import { VerticalCatalogue } from "@/components/vertical-catalogue";
 import { VerticalSelectionNotice, VerticalSelectionResume } from "@/components/vertical-selection";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
+import { firstVerifiedSavedPick } from "@/lib/skill3/saved-source";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 
 import { labWorkspace } from "@/lib/site-map";
@@ -33,7 +34,11 @@ export default async function VerticalCataloguePage({
     return <VerticalCatalogue initial={buildDevelopmentCatalogueSet()} candidate={null} />;
   }
   const requested = selectionFromQuery(params);
-  if ("missing" in requested) return <VerticalSelectionResume />;
+  if ("missing" in requested) {
+    const saved = firstVerifiedSavedPick();
+    if (!saved) return <VerticalSelectionResume />;
+    return <VerticalCatalogue initial={null} candidate={saved} />;
+  }
   if ("error" in requested) return <VerticalSelectionNotice title="This candidate could not be opened." detail={requested.error} />;
   const archetype = archetypeOf(requested.selection.archetypeId);
   return (

@@ -5,6 +5,7 @@ import { ARCHETYPE_VISUAL_REFERENCES } from "./archetype-visual-references";
 import { encodeGrayPng } from "./semantic/gray-png";
 import { semanticRunFile } from "./semantic/run-root";
 import { visibleIds } from "./semantic/catalog";
+import type { PublishedCatalog } from "./semantic/publish-catalog";
 import type { SemanticRun } from "./semantic/types";
 import {
   DEFAULT_FILAMENT,
@@ -27,6 +28,7 @@ export { DEFAULT_FILAMENT, normalizeFilamentCalibration, type FilamentCalibratio
 
 const CONFIG_DIR = join("config", "filament");
 const CACHE_DIR = join("data", "filament-cache");
+const PUBLISHED_CATALOG_ROOT = join("data", "semantic-catalogs");
 
 export function isArchetypeId(value: string) {
   return /^[a-z0-9-]+$/.test(value);
@@ -79,9 +81,16 @@ export function filamentArchetypeStatus(): FilamentArchetypeStatus[] {
   });
 }
 
-/** A few real drawings from the finished run, spread across the catalog when one exists. */
-export function filamentSampleIds(archetypeId: string) {
-  if (!isArchetypeId(archetypeId)) return [];
+function spreadSampleIds(source: Array<{ id: number }>) {
+  if (source.length <= 6) return source.map((candidate) => candidate.id);
+  const ids: number[] = [];
+  for (let index = 0; index < 6; index += 1) {
+    ids.push(source[Math.round((index * (source.length - 1)) / 5)].id);
+  }
+  return [...new Set(ids)];
+}
+
+function sampleIdsFromRun(archetypeId: string) {
   const runFile = semanticRunFile(archetypeId, "run.json");
   if (!runFile) return [];
   let run: SemanticRun;
@@ -94,18 +103,40 @@ export function filamentSampleIds(archetypeId: string) {
   const ready = run.candidates.filter((candidate) => candidate.preview && existsSync(join(previewDir, `${candidate.id}.png`)));
   const visible = new Set(visibleIds(run.catalog));
   const catalog = ready.filter((candidate) => visible.has(candidate.id));
-  const source = catalog.length >= 3 ? catalog : ready;
-  if (source.length <= 6) return source.map((candidate) => candidate.id);
-  const ids: number[] = [];
-  for (let index = 0; index < 6; index += 1) {
-    ids.push(source[Math.round((index * (source.length - 1)) / 5)].id);
+  return spreadSampleIds(catalog.length >= 3 ? catalog : ready);
+}
+
+/** Published catalogues keep the drawings when this machine has no local run.json. */
+function sampleIdsFromPublished(archetypeId: string) {
+  const file = join(PUBLISHED_CATALOG_ROOT, archetypeId, "catalog.json");
+  if (!existsSync(file)) return [];
+  let catalog: PublishedCatalog;
+  try {
+    catalog = JSON.parse(readFileSync(file, "utf8")) as PublishedCatalog;
+  } catch {
+    return [];
   }
-  return [...new Set(ids)];
+  if (catalog.archetypeId !== archetypeId) return [];
+  const previewDir = join(PUBLISHED_CATALOG_ROOT, archetypeId, "previews");
+  const ready = catalog.candidates.filter((candidate) => existsSync(join(previewDir, `${candidate.id}.png`)));
+  const visible = new Set(visibleIds(catalog.catalog));
+  const shown = ready.filter((candidate) => visible.has(candidate.id));
+  return spreadSampleIds(shown.length >= 3 ? shown : ready);
+}
+
+/** A few real drawings from the finished run, spread across the catalog when one exists. */
+export function filamentSampleIds(archetypeId: string) {
+  if (!isArchetypeId(archetypeId)) return [];
+  const fromRun = sampleIdsFromRun(archetypeId);
+  return fromRun.length > 0 ? fromRun : sampleIdsFromPublished(archetypeId);
 }
 
 export function semanticPreviewPath(archetypeId: string, id: string) {
   if (!isArchetypeId(archetypeId) || !/^\d+$/.test(id)) return null;
-  return semanticRunFile(archetypeId, "previews", `${id}.png`);
+  const local = semanticRunFile(archetypeId, "previews", `${id}.png`);
+  if (local) return local;
+  const published = join(PUBLISHED_CATALOG_ROOT, archetypeId, "previews", `${id}.png`);
+  return existsSync(published) ? published : null;
 }
 
 /** Catalog image. Uses the saved calibration and a disk cache so the page does not re-tone every request. */

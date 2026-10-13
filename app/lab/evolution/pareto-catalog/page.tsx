@@ -1,5 +1,6 @@
 import { ParetoCatalog } from "@/components/evolution/pareto-catalog";
 import { labWorkspace } from "@/lib/site-map";
+import { catalogScores } from "@/lib/skill2/evolution-index";
 import { loadShownCatalog } from "@/lib/skill2/published-catalog-view";
 import { loadSavedPicks } from "@/lib/skill2/saved-picks";
 
@@ -11,5 +12,5 @@ export const metadata = {
 };
 
 export default function ParetoCatalogPage() {
-  return <ParetoCatalog initial={loadShownCatalog()} picks={loadSavedPicks()} />;
+  return <ParetoCatalog initial={catalogScores(loadShownCatalog())} picks={loadSavedPicks()} />;
 }

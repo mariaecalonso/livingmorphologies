@@ -144,8 +144,23 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
   };
 
   const generateHybridFieldForConnection = (connectionId: string) => {
-    const connection = board.connections.find((item) => item.id === connectionId);
-    if (!connection) return "The connection is no longer adjacent.";
+    const found = board.connections.find((item) => item.id === connectionId);
+    if (!found) return "The connection is no longer adjacent.";
+    let connection = found;
+    if (!connection.candidateField || connection.candidateField.signature !== connection.signature) {
+      const tileA = board.tiles.find((tile) => tile.instanceId === connection.tileAId);
+      const tileB = board.tiles.find((tile) => tile.instanceId === connection.tileBId);
+      if (!tileA || !tileB) return "The connection tiles are missing.";
+      const inputs = generateCandidateField({
+        signature: connection.signature,
+        faceA: connection.faceA,
+        faceB: connection.faceB,
+        moduleA: resolveTileModule(tileA.archetypeId, loaded),
+        moduleB: resolveTileModule(tileB.archetypeId, loaded),
+      });
+      if (!inputs.ok) return inputs.reason;
+      connection = { ...connection, candidateField: inputs.field, inputsChanged: false };
+    }
     const result = generateConnectionHybridField(connection, board.tiles, loaded);
     if (!result.ok) return result.reason;
     if (result.reused) return null;

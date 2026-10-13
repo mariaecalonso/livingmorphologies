@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TYPOLOGIES } from "@/lib/catalog";
-import { readActiveArchetype, readSkill2Selections } from "@/lib/skill2/published-selection";
+import { readActiveArchetype, readSkill2Selections, writeActiveArchetype, writeSkill2Selection, type Skill2Selection } from "@/lib/skill2/published-selection";
 import { DEVELOPMENT_BEHAVIOR, type BehaviorProfile } from "@/lib/skill3/behavior-profile";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { stackDisplayIndices } from "@/lib/skill3/stack-display";
@@ -393,28 +393,50 @@ export function VerticalProcess({
   useEffect(() => {
     if (initial || candidate) return;
     const controller = new AbortController();
+    const accept = (selection: Skill2Selection) => {
+      if (controller.signal.aborted) return;
+      const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selection.archetypeId)?.name;
+      setReadyCandidate({
+        archetypeId: selection.archetypeId,
+        archetypeName: name ?? selection.archetypeId,
+        typologyId: selection.typologyId,
+        candidateId: selection.candidateId,
+      });
+    };
+    const loadVerified = (archetypeId: string, candidateId: number) =>
+      fetch(`/api/semantic-catalog/${archetypeId}/${candidateId}/selection`, { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body: { handoff?: string; selection?: Skill2Selection } | null) => {
+          if (controller.signal.aborted) return false;
+          if (body?.handoff !== "verified" || !body.selection) return false;
+          writeSkill2Selection(body.selection);
+          if (!readActiveArchetype()) writeActiveArchetype(body.selection.archetypeId);
+          accept(body.selection);
+          return true;
+        })
+        .catch(() => false);
     const load = () => {
       const activeId = readActiveArchetype();
       const selected = activeId ? readSkill2Selections()[activeId] : undefined;
-      if (!selected) {
-        setReadyCandidate(null);
+      if (selected) {
+        void loadVerified(selected.archetypeId, selected.candidateId).then((ok) => {
+          if (!ok && !controller.signal.aborted) setReadyCandidate(null);
+        });
         return;
       }
-      void fetch(`/api/semantic-catalog/${selected.archetypeId}/${selected.candidateId}/selection`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((body: { handoff?: string } | null) => {
-          if (controller.signal.aborted) return;
-          if (body?.handoff !== "verified") {
+      void fetch("/api/skill2-picks", { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : { picks: [] }))
+        .then(async (body: { picks?: Array<{ archetypeId: string; candidateId: number }> }) => {
+          const picks = body.picks ?? [];
+          const pick = picks.find((item) => item.archetypeId === activeId)
+            ?? picks.find((item) => item.archetypeId === "vertical-void")
+            ?? picks[0];
+          if (!pick) {
             setReadyCandidate(null);
             return;
           }
-          const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === selected.archetypeId)?.name;
-          setReadyCandidate({
-            archetypeId: selected.archetypeId,
-            archetypeName: name ?? selected.archetypeId,
-            typologyId: selected.typologyId,
-            candidateId: selected.candidateId,
-          });
+          const ok = await loadVerified(pick.archetypeId, pick.candidateId);
+          if (!ok && !controller.signal.aborted) setReadyCandidate(null);
         })
         .catch(() => undefined);
     };
@@ -427,6 +449,7 @@ export function VerticalProcess({
   }, [candidate, initial]);
 
   const continuationRequest = useRef(0);
+  const startedContinuation = useRef<string | null>(null);
 
   useEffect(() => {
     if (initial) return;
@@ -464,6 +487,14 @@ export function VerticalProcess({
         if (token === continuationRequest.current) setPending(false);
       });
   };
+
+  useEffect(() => {
+    if (initial || !source) return;
+    const key = `${source.archetypeId}:${source.candidateId}`;
+    if (startedContinuation.current === key) return;
+    startedContinuation.current = key;
+    beginContinuation();
+  }, [initial, source?.archetypeId, source?.candidateId]);
 
   const matchesSelection = set != null && (
     source == null

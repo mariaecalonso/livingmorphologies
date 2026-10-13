@@ -36,6 +36,17 @@ export function catalogHandoff(archetypeId: string, candidateId: number): Publis
 }
 
 /** Reads one stored catalogue candidate. Does not write the catalogue or rerun search. */
+export function readCatalogObserved(archetypeId: string, candidateId: number): Record<string, number> {
+  if (!/^[a-z0-9-]+$/.test(archetypeId) || !Number.isInteger(candidateId)) return {};
+  const file = join(semanticCatalogRoot(), archetypeId, "catalog.json");
+  try {
+    const catalog = JSON.parse(readFileSync(file, "utf8")) as PublishedCatalog;
+    return catalog.candidates.find((item) => item.id === candidateId)?.observed ?? {};
+  } catch {
+    return {};
+  }
+}
+
 export function readPublishedSelection(archetypeId: string, candidateId: number): Skill2Selection | null {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !Number.isInteger(candidateId)) return null;
   const file = join(semanticCatalogRoot(), archetypeId, "catalog.json");

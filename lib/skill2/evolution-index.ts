@@ -78,6 +78,16 @@ export function semanticRunDir() {
   return join(process.cwd(), "data", "semantic-runs");
 }
 
+/** Drops per-candidate criterion maps so the page payload stays the scores and images. */
+export function catalogScores(catalog: EvolutionCatalog): EvolutionCatalog {
+  return {
+    archetypes: catalog.archetypes.map((archetype) => ({
+      ...archetype,
+      candidates: archetype.candidates.map((candidate) => ({ ...candidate, observed: {}, genome: null })),
+    })),
+  };
+}
+
 export function loadEvolutionCatalog(): EvolutionCatalog {
   const pose = loadRunDir(evolutionDir(), "pose");
   const semantic = loadRunDir(semanticRunDir(), "semantic");

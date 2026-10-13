@@ -7,6 +7,7 @@ import {
   readActiveArchetype,
   readSkill2Selections,
   writeActiveArchetype,
+  writeSkill2Selection,
   type Skill2Selection,
   type Skill2Selections,
 } from "@/lib/skill2/published-selection";
@@ -34,14 +35,42 @@ export function Skill2SelectionBoard() {
   const [handoff, setHandoff] = useState<Record<string, Handoff>>({});
 
   useEffect(() => {
+    let live = true;
+    const apply = (stored: Skill2Selections) => {
+      if (!live) return;
+      setSelections(stored);
+      const remembered = readActiveArchetype();
+      const fallback = Object.keys(stored)[0] ?? SLOTS[0]?.archetypeId ?? "";
+      const next = remembered && SLOTS.some((slot) => slot.archetypeId === remembered) ? remembered : fallback;
+      if (!next) return;
+      setActiveId(next);
+      writeActiveArchetype(next);
+    };
     const stored = readSkill2Selections();
-    setSelections(stored);
-    const remembered = readActiveArchetype();
-    const fallback = Object.keys(stored)[0] ?? SLOTS[0]?.archetypeId ?? "";
-    const next = remembered && SLOTS.some((slot) => slot.archetypeId === remembered) ? remembered : fallback;
-    if (!next) return;
-    setActiveId(next);
-    writeActiveArchetype(next);
+    if (Object.keys(stored).length > 0) {
+      apply(stored);
+      return () => {
+        live = false;
+      };
+    }
+    void fetch("/api/skill2-picks")
+      .then((response) => (response.ok ? response.json() : { picks: [] }))
+      .then(async (body: { picks?: Array<{ archetypeId: string; candidateId: number }> }) => {
+        const picks = body.picks ?? [];
+        await Promise.all(picks.map(async (pick) => {
+          const response = await fetch(`/api/semantic-catalog/${pick.archetypeId}/${pick.candidateId}/selection`);
+          if (!response.ok) return;
+          const payload = (await response.json()) as { handoff?: string; selection?: Skill2Selection };
+          if (payload.handoff === "verified" && payload.selection) writeSkill2Selection(payload.selection);
+        }));
+        if (!live) return;
+        apply(readSkill2Selections());
+        window.dispatchEvent(new Event("lm-skill3-source"));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
   }, []);
 
   useEffect(() => {

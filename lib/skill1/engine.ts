@@ -1115,6 +1115,11 @@ function spawnAgent(
         break;
       }
     }
+    if (!mark) {
+      x = clamp(attractor.x + (rng() - 0.5) * 3, 0.2, FIELD_SIZE - 0.2);
+      y = clamp(attractor.y + (rng() - 0.5) * 3, 0.2, FIELD_SIZE - 0.2);
+      heading = rng() * TWO_PI;
+    } else {
     const cover = Math.max(0.08, Math.min(1, mark.cover ?? 1));
     const at = Math.max(0, Math.min(1 - cover, mark.coverAt ?? 0));
     const t = at + rng() * cover;
@@ -1130,6 +1135,7 @@ function spawnAgent(
       x = clamp(mark.x + (x2 - mark.x) * t, 0.2, FIELD_SIZE - 0.2);
       y = clamp(mark.y + (y2 - mark.y) * t, 0.2, FIELD_SIZE - 0.2);
       heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
+    }
     }
   } else if (translation.archetypeId === "flat-deep-plan" && recipe.attractors?.length) {
     const marks = recipe.attractors;
@@ -1149,11 +1155,17 @@ function spawnAgent(
       heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() < 0.5 ? 0 : Math.PI));
     }
   } else if ((translation.archetypeId === "linear-gallery" || translation.archetypeId === "linear-edge-gallery") && recipe.attractors?.length) {
-    const curves = recipe.attractors.filter((item) => (item.kind === "curve" || item.kind === "line") && !item.hole);
+    const curves = recipe.attractors.filter((item) => item && (item.kind === "curve" || item.kind === "line") && !item.hole);
     const strong = curves.filter((item) => (item.strength ?? 1) >= 1);
     const weak = curves.filter((item) => (item.strength ?? 1) < 1);
     const branchShare = translation.archetypeId === "linear-edge-gallery" ? 0.28 : 0.42;
-    const pool = rng() < branchShare && weak.length ? weak : strong.length ? strong : curves;
+    const pool = curves.length === 0
+      ? []
+      : rng() < branchShare && weak.length
+        ? weak
+        : strong.length
+          ? strong
+          : curves;
     let weight = 0;
     for (const item of pool) weight += Math.max(0.05, item.strength ?? 1);
     let roll = rng() * weight;
@@ -1165,29 +1177,35 @@ function spawnAgent(
         break;
       }
     }
-    const t = 0.04 + rng() * 0.92;
-    const at = mark.kind === "curve" ? pointOnCurve(mark, t) : {
-      x: mark.x + ((mark.x2 ?? mark.x) - mark.x) * t,
-      y: mark.y + ((mark.y2 ?? mark.y) - mark.y) * t,
-    };
-    const ahead = mark.kind === "curve" ? pointOnCurve(mark, Math.min(1, t + 0.12)) : {
-      x: mark.x2 ?? mark.x,
-      y: mark.y2 ?? mark.y,
-    };
-    const back = mark.kind === "curve" ? pointOnCurve(mark, Math.max(0, t - 0.12)) : { x: mark.x, y: mark.y };
-    const dir = rng() < 0.5 ? ahead : back;
-    const nx = -(dir.y - at.y);
-    const ny = dir.x - at.x;
-    const span = Math.hypot(nx, ny) || 1;
-    const edge = translation.archetypeId === "linear-edge-gallery";
-    const reach = Math.max(1.6, recipe.edgeReach ?? 2.15);
-    edgeParticle = edge && rng() < 0.72;
-    const offset = edgeParticle
-      ? (rng() < 0.5 ? -1 : 1) * (0.55 + rng() * Math.max(0.9, reach - 0.5))
-      : (mark.radius ?? 0.3) * (rng() - 0.5) * (edge ? 1.15 : 0.85);
-    x = clamp(at.x + (nx / span) * offset, 0.35, FIELD_SIZE - 0.35);
-    y = clamp(at.y + (ny / span) * offset, 0.35, FIELD_SIZE - 0.35);
-    heading = wrapAngle(Math.atan2(dir.y - at.y, dir.x - at.x));
+    if (!mark) {
+      x = clamp(attractor.x + (rng() - 0.5) * 3, 0.35, FIELD_SIZE - 0.35);
+      y = clamp(attractor.y + (rng() - 0.5) * 3, 0.35, FIELD_SIZE - 0.35);
+      heading = rng() * TWO_PI;
+    } else {
+      const t = 0.04 + rng() * 0.92;
+      const at = mark.kind === "curve" ? pointOnCurve(mark, t) : {
+        x: mark.x + ((mark.x2 ?? mark.x) - mark.x) * t,
+        y: mark.y + ((mark.y2 ?? mark.y) - mark.y) * t,
+      };
+      const ahead = mark.kind === "curve" ? pointOnCurve(mark, Math.min(1, t + 0.12)) : {
+        x: mark.x2 ?? mark.x,
+        y: mark.y2 ?? mark.y,
+      };
+      const back = mark.kind === "curve" ? pointOnCurve(mark, Math.max(0, t - 0.12)) : { x: mark.x, y: mark.y };
+      const dir = rng() < 0.5 ? ahead : back;
+      const nx = -(dir.y - at.y);
+      const ny = dir.x - at.x;
+      const span = Math.hypot(nx, ny) || 1;
+      const edge = translation.archetypeId === "linear-edge-gallery";
+      const reach = Math.max(1.6, recipe.edgeReach ?? 2.15);
+      edgeParticle = edge && rng() < 0.72;
+      const offset = edgeParticle
+        ? (rng() < 0.5 ? -1 : 1) * (0.55 + rng() * Math.max(0.9, reach - 0.5))
+        : (mark.radius ?? 0.3) * (rng() - 0.5) * (edge ? 1.15 : 0.85);
+      x = clamp(at.x + (nx / span) * offset, 0.35, FIELD_SIZE - 0.35);
+      y = clamp(at.y + (ny / span) * offset, 0.35, FIELD_SIZE - 0.35);
+      heading = wrapAngle(Math.atan2(dir.y - at.y, dir.x - at.x));
+    }
   } else if (fineTrail(translation.archetypeId)) {
     const marks = recipe.attractors ?? [];
     let minX = FIELD_SIZE;

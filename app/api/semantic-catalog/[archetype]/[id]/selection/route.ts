@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { catalogHandoff, readCatalogSelection, snapshotMatchesSelection } from "@/lib/skill2/read-published-selection";
+import { catalogHandoff, readCatalogObserved, readCatalogSelection, snapshotMatchesSelection } from "@/lib/skill2/read-published-selection";
 import { persistCatalogZ0 } from "@/lib/skill2/semantic/persist-published-z0";
 import { loadVerifiedZ0 } from "@/lib/skill2/semantic/z0-snapshot";
 
@@ -11,8 +11,12 @@ export async function GET(_request: Request, context: { params: Promise<{ archet
   const { archetype, id } = await context.params;
   const candidateId = Number(id);
   const selection = readCatalogSelection(archetype, candidateId);
-  if (!selection) return NextResponse.json({ selection: null, handoff: "pending" }, { status: 404 });
-  return NextResponse.json({ selection, handoff: catalogHandoff(archetype, candidateId) });
+  if (!selection) return NextResponse.json({ selection: null, handoff: "pending", observed: {} }, { status: 404 });
+  return NextResponse.json({
+    selection,
+    handoff: catalogHandoff(archetype, candidateId),
+    observed: readCatalogObserved(archetype, candidateId),
+  });
 }
 
 /** Stores nothing in the catalogue. Replays the shown drawing when its snapshot is missing or belongs to another search. */

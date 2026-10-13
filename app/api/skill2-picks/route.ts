@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { writeSavedPick } from "@/lib/skill2/saved-picks";
+import { loadSavedPicks, writeSavedPick } from "@/lib/skill2/saved-picks";
 import { readCatalogSelection } from "@/lib/skill2/read-published-selection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+export function GET() {
+  return NextResponse.json({ picks: loadSavedPicks() });
+}
 
 /** Writes the chosen drawing into the Skill 2 Pareto catalog. A later choice for the same archetype replaces it. */
 export async function POST(request: Request) {

@@ -31,7 +31,7 @@ const ROWS = 4;
 const RUN_COUNT = COLUMNS * ROWS;
 const ALL_ARCHETYPE_IDS = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => item.id));
 /** Run grid uses a lighter trail so 80 cells can finish. The board still uses TRAIL_SCALE. */
-const RUN_TRAIL_SCALE = 8;
+const RUN_TRAIL_SCALE = 4;
 /** 8× the 160-cell trail. Sharp enough for catalog PNGs without the 2048 dumps that failed to save. */
 const CATALOG_IMAGE_SIZE = 1280;
 /** Continuous Hall runs that never landed in git. */
@@ -385,7 +385,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
             const marks = runTranslation.recipe.attractors ?? [];
             const agents = Math.round(
               Math.min(
-                500,
+                240,
                 Math.max(MIN_AGENT_COUNT, agentCountFromDensity(densityFromTranslation(translation)) + (rng() - 0.5) * 280),
               ),
             );
@@ -1037,28 +1037,28 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
 
     const frame = () => {
       if (cancelled || !runningRef.current || index >= RUN_COUNT) return;
-      const current = startRun(index);
-      const left = DISPLAY_ITERATIONS - current.sim.iteration;
-      stepMany(current.sim, current.translation, current.rng, Math.max(1, left), current.slime.decay, current.slime, false);
-      const snapshot = captureSnapshot(current.sim, true);
-      snapshotsRef.current[index] = snapshot;
-      const canvas = canvasRefs.current[index];
-      if (canvas) paintSnapshot(canvas, snapshot, false, current.translation.recipe.attractors);
-      const id = runningIdRef.current ?? pickedIdRef.current;
-      const cell = index;
-      index += 1;
-      setCompleted(index);
-      void (async () => {
-        await saveRunSnapshot(cell, snapshot);
-        if (id) await saveArchetypeField(id, cell, snapshot);
-        if (cancelled || !runningRef.current) return;
-        if (index >= RUN_COUNT) {
-          runningRef.current = false;
-          setRunning(false);
-          return;
-        }
-        frameRef.current = requestAnimationFrame(frame);
-      })();
+      const started = performance.now();
+      let painted = index;
+      while (index < RUN_COUNT && runningRef.current && performance.now() - started < 32) {
+        const current = startRun(index);
+        stepMany(current.sim, current.translation, current.rng, DISPLAY_ITERATIONS, current.slime.decay, current.slime, false);
+        const snapshot = captureSnapshot(current.sim, true);
+        snapshotsRef.current[index] = snapshot;
+        const canvas = canvasRefs.current[index];
+        if (canvas) paintSnapshot(canvas, snapshot, false, current.translation.recipe.attractors);
+        const id = runningIdRef.current ?? pickedIdRef.current;
+        void saveRunSnapshot(index, snapshot);
+        if (id) void saveArchetypeField(id, index, snapshot);
+        index += 1;
+        if (performance.now() - started >= 32) break;
+      }
+      if (index !== painted) setCompleted(index);
+      if (index >= RUN_COUNT) {
+        runningRef.current = false;
+        setRunning(false);
+        return;
+      }
+      frameRef.current = requestAnimationFrame(frame);
     };
 
     resumeFrameRef.current = frame;
