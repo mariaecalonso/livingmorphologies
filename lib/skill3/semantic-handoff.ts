@@ -154,3 +154,19 @@ export function loadVerifiedContinuations(request: Skill3SourceRequest): Natural
   semanticCache.set(key, set);
   return { ...set, semanticChecksum: opened.semanticChecksum };
 }
+
+/** Bundle already stored by `loadVerifiedContinuations`. Does not start a replay. */
+export function peekVerifiedContinuations(
+  request: Skill3SourceRequest,
+): (NaturalContinuationSet & { semanticChecksum?: string }) | null {
+  const archetypeId = requestArchetype(request);
+  if (!archetypeId) return null;
+  const prefix = `${archetypeId}#${request.candidateId}#`;
+  let found: { set: NaturalContinuationSet; semanticChecksum: string } | null = null;
+  for (const [key, set] of semanticCache) {
+    if (!key.startsWith(prefix)) continue;
+    found = { set, semanticChecksum: key.slice(prefix.length) };
+  }
+  if (!found) return null;
+  return { ...found.set, semanticChecksum: found.semanticChecksum };
+}

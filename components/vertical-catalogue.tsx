@@ -1,21 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { CatalogueField, type CatalogueModule } from "@/components/vertical-catalogue-scene";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import savedPicks from "@/data/skill2/pareto-catalog/selections.json";
+import { CatalogueField, type CatalogueModule, type CatalogueSurface } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
-import { catalogueSlots } from "@/lib/skill3/catalogue";
-import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
+import { CATALOGUE_COLUMNS, CATALOGUE_ROWS, catalogueSlots } from "@/lib/skill3/catalogue";
+import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import {
-  clearSelectedSkill3Morphology,
   readSelectedSkill3Morphology,
   sameSelectedMorphology,
   selectedMorphologyFrom,
   writeSelectedSkill3Morphology,
   type SelectedSkill3Morphology,
 } from "@/lib/skill3/morphology-selection";
-import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 const TYPOLOGY: Record<string, string> = {
   lobby: "Lobby",
@@ -30,20 +31,95 @@ type CandidateRequest = {
   candidateId: number;
 };
 
-type ApiContinuation = Omit<NaturalContinuation, "field">;
+type SolidifiedStatus = "validated" | "review";
 
-type ApiSet = Omit<NaturalContinuationSet, "continuations"> & {
-  continuations: ApiContinuation[];
-  fields: VerticalViewerField[];
+type SolidifiedEntry = {
+  moduleId: string;
+  typologyId: string;
+  archetypeId: string;
+  archetypeName: string;
+  candidateId: number;
+  continuationId: string;
+  branchIndex: number;
+  continuationSeed: number;
+  z0Iteration: number;
+  parentChecksum: string;
+  status: SolidifiedStatus;
 };
 
-function joinSet(body: ApiSet): NaturalContinuationSet {
-  const { fields, continuations, ...source } = body;
+type SolidifiedIndex = {
+  typologyId: string;
+  archetypeId: string;
+  archetypeName: string;
+  candidateId: number;
+  continuations: SolidifiedEntry[];
+};
+
+const SOLIDIFIED_RULES = {
+  horizon: 64,
+  minGap: 8,
+  maxGap: 24,
+  deltaThreshold: 0.08,
+  weights: { persistence: 0.35, migration: 0.25, reinforcement: 0.2, connectivity: 0.2 },
+  trailEpsilon: 0.003,
+  connectivityResolution: 32,
+  envelope: { sizeX: MODULE_SIZE_X, sizeY: MODULE_SIZE_Y, sizeZ: MODULE_SIZE_Z },
+  morphology: "network" as const,
+  transform: "none" as const,
+};
+
+function z0Event(iteration: number): ContinuationEvent {
   return {
-    ...source,
-    continuations: continuations.map((continuation, index) => ({
-      ...continuation,
-      field: fields[index],
+    index: 0,
+    iteration,
+    reason: "z0",
+    referenceIteration: null,
+    delta: 0,
+    persistence: 0,
+    migration: 0,
+    reinforcement: 0,
+    connectivityChange: 0,
+  };
+}
+
+function setFromSolidified(body: SolidifiedIndex): NaturalContinuationSet {
+  const first = body.continuations[0];
+  return {
+    origin: "handoff",
+    typologyId: body.typologyId,
+    archetypeId: body.archetypeId,
+    archetypeName: body.archetypeName,
+    candidateId: body.candidateId,
+    runKey: `${body.archetypeId}@solidified`,
+    z0Iteration: first?.z0Iteration ?? 0,
+    parentChecksum: first?.parentChecksum ?? "",
+    slime: {} as NaturalContinuationSet["slime"],
+    rules: SOLIDIFIED_RULES,
+    continuations: body.continuations.map((entry) => ({
+      id: entry.continuationId,
+      index: entry.branchIndex,
+      continuationSeed: entry.continuationSeed,
+      typologyId: entry.typologyId,
+      archetypeId: entry.archetypeId,
+      archetypeName: entry.archetypeName,
+      candidateId: entry.candidateId,
+      runKey: `${entry.archetypeId}@solidified`,
+      z0Iteration: entry.z0Iteration,
+      parentChecksum: entry.parentChecksum,
+      acceptedIterations: [entry.z0Iteration],
+      sampleCount: 1,
+      eventCount: 0,
+      events: [z0Event(entry.z0Iteration)],
+      field: {
+        lineage: {
+          archetypeId: entry.archetypeId,
+          archetypeName: entry.archetypeName,
+          candidateId: entry.candidateId,
+          z0Iteration: entry.z0Iteration,
+          futureId: entry.continuationId,
+        },
+        slices: [],
+      },
     })),
   };
 }
@@ -52,11 +128,38 @@ function archetypesFor(typologyId: string) {
   return Object.values(ARCHETYPES).filter((item) => item.typologyId === typologyId);
 }
 
+function canonicalCandidateId(archetypeId: string) {
+  const pick = (savedPicks as Record<string, { candidateId?: number }>)[archetypeId];
+  const candidateId = pick?.candidateId;
+  return Number.isInteger(candidateId) && candidateId != null && candidateId >= 1 ? candidateId : null;
+}
+
+function selectionFor(archetypeId: string) {
+  const stored = readSkill2Selections()[archetypeId];
+  if (stored) return stored;
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(SKILL2_SELECTIONS_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = parseSkill2Selection(JSON.parse(raw)[archetypeId]);
+    return parsed?.archetypeId === archetypeId ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const REASON_LABEL: Record<string, string> = {
   z0: "Z0",
   threshold: "Threshold",
   "max-gap": "Max gap",
 };
+
+const PLACEHOLDER_MODULES: CatalogueModule[] = Array.from({ length: CATALOGUE_COLUMNS * CATALOGUE_ROWS }, (_, index) => ({
+  id: `slot-${String(index + 1).padStart(2, "0")}`,
+  label: `N${String(index + 1).padStart(2, "0")}`,
+  cacheIdentity: `placeholder:${index + 1}`,
+  placeholder: true,
+}));
 
 function ResultDetail({
   resultId,
@@ -64,9 +167,15 @@ function ResultDetail({
   typology,
   archetype,
   moduleSize,
+  horizon,
   morphology,
   triangles,
+  status,
   chosen,
+  savedContinuationId,
+  finalHref,
+  surface,
+  onSurface,
   onBack,
   onChoose,
 }: {
@@ -75,9 +184,15 @@ function ResultDetail({
   typology: string;
   archetype: string;
   moduleSize: string;
+  horizon: string;
   morphology: string;
   triangles: number | null;
+  status: SolidifiedStatus | null;
   chosen: boolean;
+  savedContinuationId: string | null;
+  finalHref: string;
+  surface: CatalogueSurface;
+  onSurface: (surface: CatalogueSurface) => void;
   onBack: () => void;
   onChoose: () => void;
 }) {
@@ -88,9 +203,15 @@ function ResultDetail({
   }));
   const hidden = Math.max(0, continuation.events.length - marks.length);
   return (
-    <div className="vertical-catalogue-detail">
+    <div className="vertical-catalogue-detail vertical-catalogue-card">
       <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
       <h2 className="panel-title">Result {resultId}</h2>
+      <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
+        {chosen ? "Selected ✓" : "Select morphology"}
+      </button>
+      {chosen ? <Link href={finalHref} className="vertical-catalogue-reset">View in final</Link> : null}
+      {!chosen && savedContinuationId ? <p className="vertical-process-note">Final selection {savedContinuationId}</p> : null}
+      <PreviewToggle surface={surface} onSurface={onSurface} />
       <dl className="vertical-catalogue-facts">
         <div><dt>Result</dt><dd>{resultId}</dd></div>
         <div><dt>Continuation</dt><dd>{continuation.id}</dd></div>
@@ -102,8 +223,11 @@ function ResultDetail({
         <div><dt>Samples</dt><dd>{String(continuation.sampleCount)}</dd></div>
         <div><dt>Events</dt><dd>{String(continuation.eventCount)}</dd></div>
         <div><dt>Module</dt><dd>{moduleSize}</dd></div>
+        <div><dt>Horizon</dt><dd>{horizon}</dd></div>
+        <div><dt>Rank</dt><dd>{resultId}</dd></div>
         <div><dt>Mode</dt><dd>{morphology}</dd></div>
         <div><dt>Triangles</dt><dd>{triangles != null ? String(triangles) : "—"}</dd></div>
+        <div><dt>Status</dt><dd>{status === "review" ? "Review" : status === "validated" ? "Validated" : "—"}</dd></div>
       </dl>
       <h2 className="panel-title">Behavior profile</h2>
       <p className="vertical-process-note">Behavior descriptors pending</p>
@@ -118,9 +242,56 @@ function ResultDetail({
         ))}
         {hidden > 0 ? <span>+{hidden}</span> : null}
       </div>
-      <button type="button" className="vertical-catalogue-reset" data-chosen={chosen || undefined} onClick={onChoose}>
-        {chosen ? "Selected" : "Select this morphology"}
+    </div>
+  );
+}
+
+function PreviewToggle({
+  surface,
+  onSurface,
+}: {
+  surface: CatalogueSurface;
+  onSurface: (surface: CatalogueSurface) => void;
+}) {
+  return (
+    <div className="vertical-catalogue-choices" role="group" aria-label="Morphology preview">
+      <button type="button" data-active={surface === "refined" || undefined} onClick={() => onSurface("refined")}>Refined</button>
+      <button type="button" data-active={surface === "raw" || undefined} onClick={() => onSurface("raw")}>Raw</button>
+    </div>
+  );
+}
+
+function PlaceholderDetail({
+  rank,
+  archetype,
+  typology,
+  onBack,
+}: {
+  rank: string;
+  archetype: string;
+  typology: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="vertical-catalogue-detail vertical-catalogue-card">
+      <button type="button" className="vertical-catalogue-reset" onClick={onBack}>Back to catalogue</button>
+      <h2 className="panel-title">Result {rank}</h2>
+      <button type="button" className="vertical-catalogue-reset" disabled>
+        Select morphology
       </button>
+      <p className="vertical-process-note">A continuation is required for this archetype</p>
+      <dl className="vertical-catalogue-facts">
+        <div><dt>Branch</dt><dd>—</dd></div>
+        <div><dt>Archetype</dt><dd>{archetype}</dd></div>
+        <div><dt>Typology</dt><dd>{typology}</dd></div>
+        <div><dt>Candidate</dt><dd>—</dd></div>
+        <div><dt>Samples</dt><dd>—</dd></div>
+        <div><dt>Horizon</dt><dd>—</dd></div>
+        <div><dt>Rank</dt><dd>{rank}</dd></div>
+        <div><dt>Focus</dt><dd>—</dd></div>
+        <div><dt>Geometry</dt><dd>Placeholder</dd></div>
+        <div><dt>Triangles</dt><dd>—</dd></div>
+      </dl>
     </div>
   );
 }
@@ -128,48 +299,101 @@ function ResultDetail({
 export function VerticalCatalogue({
   initial,
   candidate,
+  requestedArchetypeId = null,
 }: {
   initial: NaturalContinuationSet | null;
   candidate: CandidateRequest | null;
+  requestedArchetypeId?: string | null;
 }) {
   const search = useSearchParams();
+  const searchString = search.toString();
+  const router = useRouter();
   const preview = search.get("preview") === "1";
+  const requestedArchetype = requestedArchetypeId
+    ? Object.values(ARCHETYPES).find((item) => item.id === requestedArchetypeId) ?? null
+    : null;
   const [set, setSet] = useState<NaturalContinuationSet | null>(initial);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(initial == null && candidate != null);
+  const [pending, setPending] = useState(initial == null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState(false);
   const [storedChoice, setStoredChoice] = useState<SelectedSkill3Morphology | null>(null);
   const [triangles, setTriangles] = useState<Record<string, number>>({});
+  const [statusById, setStatusById] = useState<Record<string, SolidifiedStatus>>({});
   const [viewReset, setViewReset] = useState(0);
-  const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || "lobby");
-  const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || "continuous-hall");
+  const [surface, setSurface] = useState<CatalogueSurface>("refined");
+  const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || requestedArchetype?.typologyId || "lobby");
+  const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || requestedArchetype?.id || "continuous-hall");
+  const alignedSelection = useRef(false);
+  const loadedKey = useRef<string | null>(initial ? `${initial.archetypeId}:${initial.candidateId}` : null);
 
   useEffect(() => {
-    if (initial || !candidate) return;
+    if (initial || candidate || requestedArchetypeId || alignedSelection.current) return;
+    alignedSelection.current = true;
+    const activeId = readActiveArchetype();
+    const selected = activeId ? selectionFor(activeId) : undefined;
+    if (!selected) return;
+    setTypologyId(selected.typologyId);
+    setArchetypeId(selected.archetypeId);
+  }, [candidate, initial, requestedArchetypeId]);
+
+  useEffect(() => {
+    if (initial) return;
+    const fromQuery = candidate?.archetypeId === archetypeId ? candidate.candidateId : null;
+    const fromSession = fromQuery == null ? selectionFor(archetypeId)?.candidateId ?? null : null;
+    const candidateId = fromQuery ?? fromSession ?? canonicalCandidateId(archetypeId);
+    const key = `solidified:${archetypeId}:${candidateId ?? ""}`;
+    if (loadedKey.current === key || loadedKey.current === `miss:${key}`) return;
     const controller = new AbortController();
+    const replaceQuery = (nextCandidateId: number | null) => {
+      const params = new URLSearchParams(searchString);
+      params.set("archetype", archetypeId);
+      if (nextCandidateId == null) params.delete("candidate");
+      else params.set("candidate", String(nextCandidateId));
+      const next = params.toString();
+      if (next === searchString) return;
+      router.replace(next ? `/lab/vertical/catalogue?${next}` : "/lab/vertical/catalogue", { scroll: false });
+    };
+    if (candidateId == null) {
+      loadedKey.current = `miss:${key}`;
+      setSet(null);
+      setPending(false);
+      setError(null);
+      replaceQuery(null);
+      return;
+    }
     const params = new URLSearchParams({
-      archetype: candidate.archetypeId,
-      candidate: String(candidate.candidateId),
+      archetype: archetypeId,
+      candidate: String(candidateId),
     });
-    if (preview) params.set("preview", "1");
     setPending(true);
     setError(null);
-    void fetch(`/api/vertical?${params}`, { signal: controller.signal })
+    void fetch(`/api/vertical/solidified?${params}`, { signal: controller.signal })
       .then(async (response) => {
-        const body = (await response.json()) as ApiSet & { error?: string };
-        if (!response.ok) throw new Error(body.error ?? "The selected candidate could not be reconstructed.");
-        if (!controller.signal.aborted) setSet(joinSet(body));
+        if (controller.signal.aborted) return;
+        if (response.status === 404) {
+          loadedKey.current = `miss:${key}`;
+          setSet(null);
+          setStatusById({});
+          replaceQuery(fromQuery == null && fromSession == null ? null : candidateId);
+          return;
+        }
+        const body = (await response.json()) as SolidifiedIndex & { error?: string };
+        if (!response.ok) throw new Error(body.error ?? "The solidified catalogue is not loaded.");
+        loadedKey.current = `solidified:${archetypeId}:${body.candidateId}`;
+        setSet(setFromSolidified(body));
+        setStatusById(Object.fromEntries(body.continuations.map((entry) => [entry.continuationId, entry.status])));
+        replaceQuery(body.candidateId);
       })
       .catch((caught) => {
         if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
-        setError(caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.");
+        setError(caught instanceof Error ? caught.message : "The continuation bundle is not loaded.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [candidate, initial, preview]);
+  }, [archetypeId, candidate, initial, router, searchString]);
 
   useEffect(() => {
     if (!set) return;
@@ -185,54 +409,52 @@ export function VerticalCatalogue({
     ?? "Archetype";
   const processParams = new URLSearchParams(search.toString());
   const processHref = processParams.toString() ? `/lab/vertical?${processParams.toString()}` : "/lab/vertical";
-  const modules = useMemo<CatalogueModule[]>(() => slots.map((item, index) => ({
-    id: item.id,
-    label: String(index + 1).padStart(2, "0"),
-    cacheIdentity: `${set?.origin ?? "pending"}:${item.archetypeId}:${item.candidateId}:${item.id}`,
-    field: item.field,
-  })), [set?.origin, slots]);
+  const modules = useMemo<CatalogueModule[]>(() => {
+    if (!matches || !set || slots.length === 0) return PLACEHOLDER_MODULES;
+    return slots.map((item) => ({
+      id: item.id,
+      label: item.id,
+      cacheIdentity: `solidified:${item.archetypeId}:${item.candidateId}:${item.id}:${item.parentChecksum}`,
+      status: statusById[item.id],
+      meshUrl: `/api/vertical/solidified?archetype=${encodeURIComponent(item.archetypeId)}&candidate=${item.candidateId}&continuation=${item.id}`,
+    }));
+  }, [matches, set, slots, statusById]);
   const chosenContinuation = storedChoice && matches && set && storedChoice.origin === set.origin
     ? set.continuations.find((item) => sameSelectedMorphology(storedChoice, item)) ?? null
     : null;
 
   const chooseInspected = () => {
     if (!set || !selected) return;
-    const current = readSelectedSkill3Morphology(set.origin, set.archetypeId);
-    if (current && current.origin === set.origin && sameSelectedMorphology(current, selected)) {
-      clearSelectedSkill3Morphology(set.origin, set.archetypeId);
-      setStoredChoice(null);
-      return;
-    }
     const next = selectedMorphologyFrom(set, selected);
     writeSelectedSkill3Morphology(next);
     setStoredChoice(next);
   };
 
   return (
-    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-inspect={inspecting && selected ? "" : undefined}>
+    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-tone={typologyId} data-inspect={inspecting && selectedId ? "" : undefined}>
+      <header className="evo-header">
+        <div>
+          <p className="display evo-header-title">3D Catalogue</p>
+          <p className="eyebrow evo-header-detail">
+            {TYPOLOGY[typologyId] ?? typologyId} · {archetypeName}
+            {matches && set ? ` · Candidate ${set.candidateId}` : ""}
+          </p>
+        </div>
+        <div className="vertical-catalogue-nav">
+          {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+          {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
+          <Link href={processHref} className="vertical-catalogue-back">Process</Link>
+        </div>
+      </header>
       <div className="vertical-catalogue-body">
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame">
-            <div className="frame-title">
-              <div>
-                <h2 className="panel-title">{archetypeName}</h2>
-                <p className="eyebrow">
-                  {TYPOLOGY[typologyId] ?? typologyId}
-                  {matches && set ? ` · Candidate ${set.candidateId}` : ""}
-                </p>
-              </div>
-              <div className="vertical-catalogue-nav">
-                {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
-                {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-                <Link href={processHref} className="vertical-catalogue-back">Process</Link>
-              </div>
-            </div>
             <p className="vertical-catalogue-figure">{generated}</p>
             <p className="vertical-process-note">Generated</p>
-            <p className="vertical-catalogue-figure">{slots.length}</p>
-            <p className="vertical-process-note">Representative</p>
+            <p className="vertical-catalogue-figure">{slots.length || generated}</p>
+            <p className="vertical-process-note">Temporal futures</p>
             <p className="vertical-catalogue-figure">{selected ? 1 : 0}</p>
-            <p className="vertical-process-note">{selected ? `Selected ${modules.find((item) => item.id === selected.id)?.label}` : "No morphology selected"}</p>
+            <p className="vertical-process-note">{selected ? `Selected ${selected.id}` : "No morphology selected"}</p>
           </section>
           <section className="vertical-catalogue-frame">
             <h2 className="panel-title">Select typology</h2>
@@ -279,13 +501,14 @@ export function VerticalCatalogue({
           <CatalogueField
             modules={modules}
             origin={set?.origin ?? "pending"}
-            selectedId={selected?.id ?? null}
+            selectedId={selectedId}
             onSelect={(id) => {
               setSelectedId(id);
-              if (id) setInspecting(true);
+              setInspecting(id != null);
             }}
             resetToken={viewReset}
-            inspecting={inspecting && selected != null}
+            inspecting={inspecting && selectedId != null}
+            surface={surface}
             onTriangles={(id, count) => {
               setTriangles((current) => current[id] === count ? current : { ...current, [id]: count });
             }}
@@ -300,11 +523,30 @@ export function VerticalCatalogue({
                 typology={TYPOLOGY[typologyId] ?? typologyId}
                 archetype={archetypeName}
                 moduleSize={`${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}`}
+                horizon={String(set.rules.horizon)}
                 morphology={set.rules.morphology}
                 triangles={triangles[selected.id] ?? null}
+                status={statusById[selected.id] ?? null}
                 chosen={chosenContinuation?.id === selected.id}
-                onBack={() => setInspecting(false)}
+                savedContinuationId={storedChoice?.archetypeId === set.archetypeId ? storedChoice.continuationId : null}
+                finalHref={preview ? "/lab/vertical/final?preview=1" : "/lab/vertical/final"}
+                surface={surface}
+                onSurface={setSurface}
+                onBack={() => {
+                  setInspecting(false);
+                  setSelectedId(null);
+                }}
                 onChoose={chooseInspected}
+              />
+            ) : inspecting && selectedId && !selected ? (
+              <PlaceholderDetail
+                rank={modules.find((item) => item.id === selectedId)?.label ?? "—"}
+                archetype={archetypeName}
+                typology={TYPOLOGY[typologyId] ?? typologyId}
+                onBack={() => {
+                  setInspecting(false);
+                  setSelectedId(null);
+                }}
               />
             ) : (
               <>
@@ -314,11 +556,11 @@ export function VerticalCatalogue({
                   <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
                   <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
                   <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
-                  <div><dt>Representative</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+                  <div><dt>Temporal futures</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
                   <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
                 </dl>
                 {error ? <p className="vertical-process-note">{error}</p> : null}
-                {pending ? <p className="vertical-process-note">{preview ? "Provisional replay" : "Checking handoff"}</p> : null}
+                {pending ? <p className="vertical-process-note">Reading modules</p> : null}
                 {!matches && !pending && !error ? <p className="vertical-process-note">No continuation set for this archetype</p> : null}
                 {selected ? (
                   <dl className="vertical-catalogue-facts">
@@ -333,8 +575,9 @@ export function VerticalCatalogue({
               </>
             )}
           </section>
-          <section className="vertical-catalogue-frame">
+          <section className="vertical-catalogue-frame vertical-catalogue-controls">
             <h2 className="panel-title">Controls</h2>
+            <PreviewToggle surface={surface} onSurface={setSurface} />
             <dl className="vertical-catalogue-facts">
               <div><dt>Orbit</dt><dd>Drag</dd></div>
               <div><dt>Pan</dt><dd>Shift drag</dd></div>

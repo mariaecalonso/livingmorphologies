@@ -1,5 +1,8 @@
 import { stateChecksum, type Skill2HandoffRecord } from "../skill2/handoff";
 import type { Skill2Handoff } from "../skill2/types";
+import { architecturalIntentFor } from "./architectural-intent";
+import { continuationRecipesFor, type ContinuationFocus, type EmphasisFamily } from "./continuation-recipes";
+import { createIntegratedEmphasis } from "./diagnostic-emphasis";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "./envelope";
 import {
   DEFAULT_EVENT_CONFIG,
@@ -39,6 +42,10 @@ export type NaturalContinuation = {
   archetypeId: string;
   archetypeName: string;
   candidateId: number;
+  /** Descriptor family for this branch. Copied from the existing recipe. */
+  focus?: ContinuationFocus;
+  /** Families the recipe schedule modulates. Baseline families stay flat. */
+  families?: readonly EmphasisFamily[];
   /** `${archetypeId}@${controllerSeed}` from the Skill 2 handoff. */
   runKey: string;
   z0Iteration: number;
@@ -122,9 +129,9 @@ function rulesFrom(config: EventSampleConfig): NaturalContinuationRules {
 }
 
 /**
- * Samples clones of an already opened Z0. Sampling itself is unchanged.
- * Production calls this only after `openValidatedHandoff`. The provisional preview calls it
- * with a current-engine replay that did not pass the archived-score check.
+ * Samples clones of an already opened Z0. Each branch keeps that Z0 and steps the same
+ * simulation. The branch seed is only the sampler RNG. The descriptor schedule comes
+ * from `continuationRecipesFor` and is applied by `createIntegratedEmphasis`.
  * No boundary, twist, or scale transform is applied. Full-resolution plates are
  * dropped after the viewer field is built.
  */
@@ -150,10 +157,17 @@ export function continuationsFromOpenedZ0(
     candidateId: record.identity.candidateId,
     runKey: record.identity.runKey,
   };
+  const profile = architecturalIntentFor(identity.archetypeId);
+  const recipes = continuationRecipesFor(identity.archetypeId, identity.candidateId);
   const continuations: NaturalContinuation[] = [];
   for (let index = 1; index <= count; index += 1) {
     const continuationSeed = naturalContinuationSeed(identity, index);
-    const sampling = sampleFromParent(z0, handoff, record, continuationSeed, config);
+    const recipe = recipes.recipes[index - 1];
+    if (!recipe || recipe.index !== index || recipe.id !== naturalContinuationId(index) || recipe.seed !== continuationSeed) {
+      throw new Error(`${naturalContinuationId(index)} recipe does not match this continuation`);
+    }
+    const { transform } = createIntegratedEmphasis(z0, profile, recipe.schedule);
+    const sampling = sampleFromParent(z0, handoff, record, continuationSeed, config, transform);
     if (sampling.startChecksum !== parentChecksum || sampling.z0 !== z0) {
       throw new Error(`${naturalContinuationId(index)} did not start from the validated Z0`);
     }
@@ -173,6 +187,8 @@ export function continuationsFromOpenedZ0(
       id,
       index,
       continuationSeed,
+      focus: recipe.focus,
+      families: recipe.families,
       ...identity,
       z0Iteration: z0.iteration,
       parentChecksum,

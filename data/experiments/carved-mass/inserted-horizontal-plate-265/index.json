@@ -1,0 +1,643 @@
+{
+  "contract": "carved-mass-module-v1",
+  "folder": "inserted-horizontal-plate-265",
+  "modules": [
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N01",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N01",
+      "continuationSeed": 1699961449,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.08437285665294925,
+      "components": 2,
+      "openingSize": 69138,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        7.222222222222222
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.04472271914132375,
+      "silhouetteVsReference": 0.697350069735007,
+      "file": "inserted-horizontal-plate-265/N01.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N02",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N02",
+      "continuationSeed": 1649628592,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.11040648576817558,
+      "components": 2,
+      "openingSize": 68475,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N14",
+      "nearestDifference": 0.0442953020134228,
+      "silhouetteVsReference": 0.6926658905704307,
+      "file": "inserted-horizontal-plate-265/N02.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N03",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N03",
+      "continuationSeed": 1666406211,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.11243194873113854,
+      "components": 2,
+      "openingSize": 68548,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.06266318537859006,
+      "silhouetteVsReference": 0.6948955916473318,
+      "file": "inserted-horizontal-plate-265/N03.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N04",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N04",
+      "continuationSeed": 1750294306,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.07536544067215363,
+      "components": 3,
+      "openingSize": 69497,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N19",
+      "nearestDifference": 0.11853448275862066,
+      "silhouetteVsReference": 0.18669527896995708,
+      "file": "inserted-horizontal-plate-265/N04.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N05",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N05",
+      "continuationSeed": 1767071925,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.073348015260631,
+      "components": 2,
+      "openingSize": 67824,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.058165548098433995,
+      "silhouetteVsReference": 0.14864864864864868,
+      "file": "inserted-horizontal-plate-265/N05.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N06",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N06",
+      "continuationSeed": 1716739068,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06807806069958848,
+      "components": 2,
+      "openingSize": 67869,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.022842639593908642,
+      "silhouetteVsReference": 0.04040404040404044,
+      "file": "inserted-horizontal-plate-265/N06.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N07",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N07",
+      "continuationSeed": 1733516687,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.0837914737654321,
+      "components": 3,
+      "openingSize": 68694,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        7.222222222222222
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.052252252252252274,
+      "silhouetteVsReference": 0.7032348804500703,
+      "file": "inserted-horizontal-plate-265/N07.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N08",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N08",
+      "continuationSeed": 1817404782,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.09261938443072702,
+      "components": 3,
+      "openingSize": 69011,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N09",
+      "nearestDifference": 0.07750759878419455,
+      "silhouetteVsReference": 0.6970091027308192,
+      "file": "inserted-horizontal-plate-265/N08.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N09",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N09",
+      "continuationSeed": 1834182401,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.09553969478737998,
+      "components": 3,
+      "openingSize": 69493,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.07750759878419455,
+      "silhouetteVsReference": 0.6782496782496783,
+      "file": "inserted-horizontal-plate-265/N09.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N10",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N10",
+      "continuationSeed": 3677829659,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06578200017146776,
+      "components": 2,
+      "openingSize": 68806,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N17",
+      "nearestDifference": 0.03589743589743588,
+      "silhouetteVsReference": 0,
+      "file": "inserted-horizontal-plate-265/N10.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N11",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N11",
+      "continuationSeed": 3661052040,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.08200981652949245,
+      "components": 4,
+      "openingSize": 71884,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        9.444444444444445
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.17147435897435892,
+      "silhouetteVsReference": 0.34798534798534797,
+      "file": "inserted-horizontal-plate-265/N11.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N12",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N12",
+      "continuationSeed": 3711384897,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.07768561385459534,
+      "components": 2,
+      "openingSize": 68170,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.07838983050847459,
+      "silhouetteVsReference": 0.2088607594936709,
+      "file": "inserted-horizontal-plate-265/N12.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N13",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N13",
+      "continuationSeed": 3694607278,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.08577674897119342,
+      "components": 2,
+      "openingSize": 69248,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        7.222222222222222
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.0535714285714286,
+      "silhouetteVsReference": 0.6813031161473088,
+      "file": "inserted-horizontal-plate-265/N13.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N14",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N14",
+      "continuationSeed": 3744940135,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.10562682184499314,
+      "components": 2,
+      "openingSize": 68923,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.0442953020134228,
+      "silhouetteVsReference": 0.6834532374100719,
+      "file": "inserted-horizontal-plate-265/N14.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N15",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N15",
+      "continuationSeed": 3728162516,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.08380754886831275,
+      "components": 2,
+      "openingSize": 68690,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.222222222222222
+      ],
+      "nearestId": "N01",
+      "nearestDifference": 0.04472271914132375,
+      "silhouetteVsReference": 0.6926345609065157,
+      "file": "inserted-horizontal-plate-265/N15.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N16",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N16",
+      "continuationSeed": 3778495373,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.0687317815500686,
+      "components": 2,
+      "openingSize": 69119,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N19",
+      "nearestDifference": 0.04807692307692313,
+      "silhouetteVsReference": 0.07843137254901966,
+      "file": "inserted-horizontal-plate-265/N16.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N17",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N17",
+      "continuationSeed": 3761717754,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06606063528806584,
+      "components": 2,
+      "openingSize": 69331,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.03324808184143224,
+      "silhouetteVsReference": 0.03589743589743588,
+      "file": "inserted-horizontal-plate-265/N17.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N18",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N18",
+      "continuationSeed": 3543608707,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06386638374485597,
+      "components": 2,
+      "openingSize": 70547,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.06426735218508994,
+      "silhouetteVsReference": 0.0670103092783505,
+      "file": "inserted-horizontal-plate-265/N18.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N19",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N19",
+      "continuationSeed": 3526831088,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06989722650891632,
+      "components": 2,
+      "openingSize": 69873,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.04807692307692313,
+      "silhouetteVsReference": 0.08232445520581111,
+      "file": "inserted-horizontal-plate-265/N19.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N20",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N20",
+      "continuationSeed": 1227856000,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies"
+      ],
+      "solidFraction": 0.09312575017146776,
+      "components": 5,
+      "openingSize": 72115,
+      "wall": [
+        0.5555555555555556,
+        3.3333333333333335,
+        9.444444444444445
+      ],
+      "nearestId": "N11",
+      "nearestDifference": 0.17147435897435892,
+      "silhouetteVsReference": 0.42543171114599687,
+      "file": "inserted-horizontal-plate-265/N20.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N21",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N21",
+      "continuationSeed": 1244633619,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06660718878600823,
+      "components": 2,
+      "openingSize": 68458,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N06",
+      "nearestDifference": 0.022842639593908642,
+      "silhouetteVsReference": 0.04336734693877553,
+      "file": "inserted-horizontal-plate-265/N21.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N22",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N22",
+      "continuationSeed": 1261411238,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06919795953360768,
+      "components": 2,
+      "openingSize": 68784,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.04640371229698381,
+      "silhouetteVsReference": 0.09112709832134291,
+      "file": "inserted-horizontal-plate-265/N22.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N23",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N23",
+      "continuationSeed": 1278188857,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.06545513974622771,
+      "components": 2,
+      "openingSize": 70701,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N17",
+      "nearestDifference": 0.03324808184143224,
+      "silhouetteVsReference": 0.04834605597964381,
+      "file": "inserted-horizontal-plate-265/N23.json"
+    },
+    {
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N24",
+      "category": "gathering",
+      "archetypeId": "inserted-horizontal-plate",
+      "archetypeName": "Inserted Horizontal Plate",
+      "candidateId": 265,
+      "continuationId": "N24",
+      "continuationSeed": 1294966476,
+      "z0Iteration": 600,
+      "parentChecksum": "8b82cc57",
+      "flags": [
+        "multiple-bodies",
+        "low-solid"
+      ],
+      "solidFraction": 0.0709340706447188,
+      "components": 2,
+      "openingSize": 69160,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.04640371229698381,
+      "silhouetteVsReference": 0.11188811188811187,
+      "file": "inserted-horizontal-plate-265/N24.json"
+    }
+  ]
+}

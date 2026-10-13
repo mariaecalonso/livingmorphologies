@@ -69,6 +69,94 @@ export function moduleViewFit(column: number, aspect: number) {
   return Math.min(1.45, 1.7 / Math.max(1, (column / 2) * aspect * 0.55));
 }
 
+export type MeshBounds = {
+  minX: number;
+  minY: number;
+  minZ: number;
+  maxX: number;
+  maxY: number;
+  maxZ: number;
+};
+
+/** Axis-aligned bounds of a stored mesh. The positions are only read. */
+export function meshBounds(positions: ArrayLike<number>): MeshBounds | null {
+  if (positions.length < 3) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index];
+    const y = positions[index + 1];
+    const z = positions[index + 2];
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    minZ = Math.min(minZ, z);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+    maxZ = Math.max(maxZ, z);
+  }
+  if (!Number.isFinite(minX)) return null;
+  return { minX, minY, minZ, maxX, maxY, maxZ };
+}
+
+/**
+ * Orthographic fit of the vertices actually on screen.
+ * Scale is uniform. Center and pan are presentation offsets. Vertex positions stay where they are.
+ */
+export function surfaceFrame(positions: ArrayLike<number>, yaw: number, pitch: number, aspect: number, margin = 0.93) {
+  const bounds = meshBounds(positions);
+  if (!bounds) return { center: [0, 0, 0] as [number, number, number], pan: [0, 0] as [number, number], fit: 1 };
+  const center: [number, number, number] = [
+    (bounds.minX + bounds.maxX) / 2,
+    (bounds.minY + bounds.maxY) / 2,
+    (bounds.minZ + bounds.maxZ) / 2,
+  ];
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  let minU = Infinity;
+  let maxU = -Infinity;
+  let minV = Infinity;
+  let maxV = -Infinity;
+  for (let index = 0; index < positions.length; index += 3) {
+    const x = positions[index] - center[0];
+    const y = positions[index + 1] - center[1];
+    const z = positions[index + 2] - center[2];
+    const x1 = x * cy + z * sy;
+    const z1 = -x * sy + z * cy;
+    const y2 = y * cp - z1 * sp;
+    minU = Math.min(minU, x1);
+    maxU = Math.max(maxU, x1);
+    minV = Math.min(minV, y2);
+    maxV = Math.max(maxV, y2);
+  }
+  const halfW = Math.max(0.001, (maxU - minU) / 2);
+  const halfH = Math.max(0.001, (maxV - minV) / 2);
+  return {
+    center,
+    pan: [-(minU + maxU) / 2, -(minV + maxV) / 2] as [number, number],
+    fit: Math.min((margin * aspect) / halfW, margin / halfH),
+  };
+}
+
+/**
+ * Orthographic zoom for the 20×20×20 module.
+ * Pitch stays with the caller. The worst yaw still fits, so orbiting does not rescale the module.
+ * Wide and tall viewports share this zoom; only the limiting frustum side changes.
+ */
+export function uniformModuleZoom(pitch: number, aspect: number) {
+  const cp = Math.abs(Math.cos(pitch));
+  const sp = Math.abs(Math.sin(pitch));
+  const maxX = MODULE_HALF * Math.SQRT2;
+  const maxY = MODULE_HALF * cp + maxX * sp;
+  const margin = 0.86;
+  return Math.min((margin * aspect) / maxX, margin / maxY);
+}
+
 /** Perspective projection of the 20×20×20 module. Camera yaw and pitch stay with the caller. */
 export function projectModule(x: number, y: number, z: number, yaw: number, pitch: number, width: number, height: number): ViewPoint {
   const aspect = width / Math.max(1, height);

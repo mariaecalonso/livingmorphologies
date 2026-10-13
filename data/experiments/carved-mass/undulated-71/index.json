@@ -1,0 +1,600 @@
+{
+  "contract": "carved-mass-module-v1",
+  "folder": "undulated-71",
+  "modules": [
+    {
+      "moduleId": "carved-mass:undulated:71:N01",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N01",
+      "continuationSeed": 631795160,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05922067901234568,
+      "components": 1,
+      "openingSize": 58555,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.024930747922437657,
+      "silhouetteVsReference": 0.6169354838709677,
+      "file": "undulated-71/N01.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N02",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N02",
+      "continuationSeed": 682128017,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05682280949931413,
+      "components": 1,
+      "openingSize": 59927,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N01",
+      "nearestDifference": 0.024930747922437657,
+      "silhouetteVsReference": 0.6290322580645161,
+      "file": "undulated-71/N02.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N03",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N03",
+      "continuationSeed": 665350398,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.058789330418381344,
+      "components": 1,
+      "openingSize": 59177,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.027624309392265234,
+      "silhouetteVsReference": 0.6229946524064172,
+      "file": "undulated-71/N03.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N04",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N04",
+      "continuationSeed": 715683255,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12934295696159123,
+      "components": 1,
+      "openingSize": 47418,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.017808219178082174,
+      "silhouetteVsReference": 0.09165526675786595,
+      "file": "undulated-71/N04.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N05",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N05",
+      "continuationSeed": 698905636,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11943801440329219,
+      "components": 1,
+      "openingSize": 48677,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.026124818577648812,
+      "silhouetteVsReference": 0.050724637681159424,
+      "file": "undulated-71/N05.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N06",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N06",
+      "continuationSeed": 749238493,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.1244212962962963,
+      "components": 1,
+      "openingSize": 47811,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.03314917127071826,
+      "silhouetteVsReference": 0.06488011283497885,
+      "file": "undulated-71/N06.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N07",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N07",
+      "continuationSeed": 732460874,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05738543810013717,
+      "components": 1,
+      "openingSize": 60889,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N03",
+      "nearestDifference": 0.048387096774193505,
+      "silhouetteVsReference": 0.6203208556149733,
+      "file": "undulated-71/N07.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N08",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N08",
+      "continuationSeed": 514351827,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05823206018518518,
+      "components": 1,
+      "openingSize": 58990,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.03888888888888886,
+      "silhouetteVsReference": 0.6318607764390897,
+      "file": "undulated-71/N08.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N09",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N09",
+      "continuationSeed": 497574208,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07865547839506173,
+      "components": 1,
+      "openingSize": 57051,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.22388059701492535,
+      "silhouetteVsReference": 0.48803191489361697,
+      "file": "undulated-71/N09.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N10",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N10",
+      "continuationSeed": 807732280,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11685796039094651,
+      "components": 1,
+      "openingSize": 48420,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.04992657856093985,
+      "silhouetteVsReference": 0,
+      "file": "undulated-71/N10.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N11",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N11",
+      "continuationSeed": 824509899,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.1457502786351166,
+      "components": 1,
+      "openingSize": 47246,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N04",
+      "nearestDifference": 0.16963226571767498,
+      "silhouetteVsReference": 0.21634615384615385,
+      "file": "undulated-71/N11.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N12",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N12",
+      "continuationSeed": 841287518,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12148491083676269,
+      "components": 1,
+      "openingSize": 49373,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.03857142857142859,
+      "silhouetteVsReference": 0.08720112517580869,
+      "file": "undulated-71/N12.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N13",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N13",
+      "continuationSeed": 858065137,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05805523405349794,
+      "components": 1,
+      "openingSize": 60452,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.021798365122615793,
+      "silhouetteVsReference": 0.6099865047233468,
+      "file": "undulated-71/N13.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N14",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N14",
+      "continuationSeed": 874842756,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05505186899862826,
+      "components": 1,
+      "openingSize": 60066,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.07002801120448177,
+      "silhouetteVsReference": 0.6270491803278688,
+      "file": "undulated-71/N14.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N15",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N15",
+      "continuationSeed": 891620375,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05884291409465021,
+      "components": 1,
+      "openingSize": 59476,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.021798365122615793,
+      "silhouetteVsReference": 0.6110363391655451,
+      "file": "undulated-71/N15.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N16",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N16",
+      "continuationSeed": 908397994,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12033554098079562,
+      "components": 1,
+      "openingSize": 48978,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.026124818577648812,
+      "silhouetteVsReference": 0.06999999999999995,
+      "file": "undulated-71/N16.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N17",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N17",
+      "continuationSeed": 925175613,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12448023834019205,
+      "components": 1,
+      "openingSize": 46077,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N06",
+      "nearestDifference": 0.05517241379310345,
+      "silhouetteVsReference": 0.05657708628005653,
+      "file": "undulated-71/N17.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N18",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N18",
+      "continuationSeed": 673511328,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11674275548696846,
+      "components": 1,
+      "openingSize": 50611,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.038461538461538436,
+      "silhouetteVsReference": 0.06386066763425258,
+      "file": "undulated-71/N18.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N19",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N19",
+      "continuationSeed": 690288947,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11442794067215363,
+      "components": 1,
+      "openingSize": 49928,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.0401785714285714,
+      "silhouetteVsReference": 0.05147058823529416,
+      "file": "undulated-71/N19.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N20",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N20",
+      "continuationSeed": 2720822131,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11970593278463648,
+      "components": 1,
+      "openingSize": 49294,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.013157894736842146,
+      "silhouetteVsReference": 0.06178160919540232,
+      "file": "undulated-71/N20.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N21",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N21",
+      "continuationSeed": 2704044512,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12773812585733882,
+      "components": 1,
+      "openingSize": 47270,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N04",
+      "nearestDifference": 0.017808219178082174,
+      "silhouetteVsReference": 0.08022130013831263,
+      "file": "undulated-71/N21.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N22",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N22",
+      "continuationSeed": 2754377369,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11512988683127572,
+      "components": 1,
+      "openingSize": 49865,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.026548672566371723,
+      "silhouetteVsReference": 0.04992657856093985,
+      "file": "undulated-71/N22.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N23",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N23",
+      "continuationSeed": 2737599750,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.11903345764746227,
+      "components": 1,
+      "openingSize": 49328,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.013157894736842146,
+      "silhouetteVsReference": 0.054913294797687806,
+      "file": "undulated-71/N23.json"
+    },
+    {
+      "moduleId": "carved-mass:undulated:71:N24",
+      "category": "workspace",
+      "archetypeId": "undulated",
+      "archetypeName": "Undulated",
+      "candidateId": 71,
+      "continuationId": "N24",
+      "continuationSeed": 2787932607,
+      "z0Iteration": 600,
+      "parentChecksum": "0028fb8c",
+      "flags": [],
+      "solidFraction": 0.12865976508916324,
+      "components": 1,
+      "openingSize": 47791,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        9.444444444444445
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.03017832647462282,
+      "silhouetteVsReference": 0.07777777777777772,
+      "file": "undulated-71/N24.json"
+    }
+  ]
+}

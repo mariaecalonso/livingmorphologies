@@ -1,4 +1,5 @@
 import type { IsoMesh } from "@/lib/scan/isomesh";
+import { implicitInfluenceField, refineRepresentativeField } from "@/lib/skill3/final-refinement";
 import {
   meshFromOpeningVolume,
   openingFieldVolume,
@@ -43,6 +44,8 @@ export function cachedOpeningMesh(
     mode: "isomesh" | "voxel";
     iso: number;
     sizeZ: number;
+    /** Derived preview. The raw surface for this identity stays cached beside it. */
+    refine?: boolean;
   },
 ): IsoMesh {
   const volumeKey = openingVolumeKey(options.identity, options.field, options.sequence);
@@ -53,13 +56,15 @@ export function cachedOpeningMesh(
     volumes.set(volumeKey, volume);
     stats.volumeBuilds += 1;
   }
-  const surfaceKey = openingSurfaceKey(volumeKey, options.mode, options.iso, options.sizeZ);
+  const implicit = Boolean(options.refine && options.identity.includes(":vertical-void:"));
+  const surfaceKey = `${openingSurfaceKey(volumeKey, options.mode, options.iso, options.sizeZ)}${options.refine ? (implicit ? ":refine-implicit-v3" : ":refine-v5") : ""}`;
   const cached = surfaces.get(surfaceKey);
   if (cached) {
     stats.surfaceHits += 1;
     return cached;
   }
-  const mesh = meshFromOpeningVolume(volume, { mode: options.mode, iso: options.iso, sizeZ: options.sizeZ });
+  const source = !options.refine ? volume : implicit ? implicitInfluenceField(volume) : refineRepresentativeField(volume);
+  const mesh = meshFromOpeningVolume(source, { mode: options.mode, iso: options.iso, sizeZ: options.sizeZ });
   surfaces.set(surfaceKey, mesh);
   stats.surfaceBuilds += 1;
   return mesh;
