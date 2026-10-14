@@ -315,11 +315,11 @@ function mergeWhereFieldSupports(
 
 function dropFragments(mask: Uint8Array, nx: number, ny: number, nz: number) {
   const found = solidComponents(mask, nx, ny, nz);
-  if (found.length <= 1) return mask;
+  const next = new Uint8Array(mask);
+  if (found.length <= 1) return next;
   let largest = 0;
   for (const cells of found) if (cells.length > largest) largest = cells.length;
   const minimum = Math.max(24, largest * 0.025);
-  const next = mask.slice();
   for (const cells of found) {
     if (cells.length >= minimum) continue;
     for (const cell of cells) next[cell] = 0;
@@ -397,10 +397,10 @@ function shedWeakSkin(
   ny: number,
   nz: number,
 ) {
-  let current = mask;
+  let current = new Uint8Array(mask);
   for (let pass = 0; pass < 2; pass += 1) {
     const edt = distanceToVoid(current, nx, ny, nz);
-    const next = current.slice();
+    const next = new Uint8Array(current);
     for (let z = 0; z < nz; z += 1) {
       for (let y = 0; y < ny; y += 1) {
         for (let x = 0; x < nx; x += 1) {

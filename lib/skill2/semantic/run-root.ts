@@ -15,7 +15,7 @@ export function semanticRunRoots() {
 
 export function semanticRunFile(...parts: string[]) {
   for (const root of semanticRunRoots()) {
-    const path = join(root, ...parts);
+    const path = join(/*turbopackIgnore: true*/ root, ...parts);
     if (existsSync(path)) return path;
   }
   return null;

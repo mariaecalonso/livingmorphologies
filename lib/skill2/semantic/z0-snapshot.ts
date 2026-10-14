@@ -194,8 +194,8 @@ export function discardUncataloguedZ0(directory: string, visibleIds: readonly nu
   const keep = new Set(visibleIds);
   let removed = 0;
   for (const folder of [join(directory, "z0"), join(directory, "z0", "pending")]) {
-    if (!existsSync(folder)) continue;
-    for (const file of readdirSync(folder)) {
+    if (!existsSync(/*turbopackIgnore: true*/ folder)) continue;
+    for (const file of readdirSync(/*turbopackIgnore: true*/ folder)) {
       const match = /^(\d+)\.(bin|json)$/.exec(file);
       if (!match || keep.has(Number(match[1]))) continue;
       unlinkSync(join(folder, file));

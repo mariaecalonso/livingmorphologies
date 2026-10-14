@@ -58,14 +58,14 @@ export function readPublishedInk(archetypeId: string, id: string, calibration: F
   const source = filamentSource(archetypeId, id);
   if (!source) return null;
   const setting = normalizeFilamentCalibration(calibration);
-  if (source.kind === "snapshot") return readFileSync(source.file);
-  if (source.kind === "baked" && sameFilament(setting, DEFAULT_FILAMENT)) return readFileSync(source.file);
-  const stamp = `${source.kind}:${statSync(source.file).mtimeMs}:${JSON.stringify(setting)}:${hairPlateStamp(archetypeId)}`;
+  if (source.kind === "snapshot") return readFileSync(/*turbopackIgnore: true*/ source.file);
+  if (source.kind === "baked" && sameFilament(setting, DEFAULT_FILAMENT)) return readFileSync(/*turbopackIgnore: true*/ source.file);
+  const stamp = `${source.kind}:${statSync(/*turbopackIgnore: true*/ source.file).mtimeMs}:${JSON.stringify(setting)}:${hairPlateStamp(archetypeId)}`;
   const dir = join(CACHE_DIR, archetypeId);
   const file = join(dir, `${id}.png`);
   const mark = join(dir, `${id}.stamp`);
   if (existsSync(file) && existsSync(mark) && readFileSync(mark, "utf8") === stamp) return readFileSync(file);
-  const refined = refinePreviewPng(readFileSync(source.file), setting, archetypeId);
+  const refined = refinePreviewPng(readFileSync(/*turbopackIgnore: true*/ source.file), setting, archetypeId);
   try {
     mkdirSync(dir, { recursive: true });
     writeFileSync(file, refined);
@@ -80,11 +80,11 @@ export function readPublishedInk(archetypeId: string, id: string, calibration: F
 export function readPreviewPlate(archetypeId: string, id: string) {
   const source = filamentSource(archetypeId, id);
   if (!source) return null;
-  const mtime = statSync(source.file).mtimeMs;
+  const mtime = statSync(/*turbopackIgnore: true*/ source.file).mtimeMs;
   const key = `${archetypeId}/${id}`;
   const hit = plateCache.get(key);
   if (hit && hit.mtime === mtime) return { png: hit.png, full: hit.full };
-  const decoded = decodeGrayPng(readFileSync(source.file));
+  const decoded = decodeGrayPng(readFileSync(/*turbopackIgnore: true*/ source.file));
   if (!decoded) return null;
   const sourcePixels = exploratoryHairPlate(decoded.pixels, archetypeId);
   const pixels = decoded.size === PREVIEW_PLATE ? sourcePixels : downsampleGray(sourcePixels, decoded.size, PREVIEW_PLATE);
