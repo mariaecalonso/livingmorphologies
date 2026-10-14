@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
+import { archiveImagePath, catalogScores, loadEvolutionCatalog } from "@/lib/skill2/evolution-index";
+import { readCatalogFilament, semanticPreviewPath } from "@/lib/skill2/filament";
 import { encodeGrayPng } from "@/lib/skill2/semantic/gray-png";
 import { loadVerifiedZ0 } from "@/lib/skill2/semantic/z0-snapshot";
 import { advanceScan, startScanFromZ0, takeSlice } from "@/lib/scan/volume";
@@ -10,8 +13,34 @@ const SLICES = 5;
 const STEPS = 4;
 const VIEW = 48;
 
-export async function GET(_request: Request, context: { params: Promise<{ archetype: string; id: string }> }) {
-  const { archetype, id } = await context.params;
+type Context = { params: Promise<{ path?: string[] }> };
+
+/** One function for the evolution catalog, drawings, and propagation previews. */
+export async function GET(_request: Request, context: Context) {
+  const { path = [] } = await context.params;
+  if (path.length === 0) return NextResponse.json(catalogScores(loadEvolutionCatalog()));
+  if (path.length === 3 && path[2] === "propagation") return propagation(path[0], path[1]);
+  if (path.length === 2) return drawing(path[0], path[1]);
+  return new NextResponse(null, { status: 404 });
+}
+
+async function drawing(archetype: string, id: string) {
+  const semantic = semanticPreviewPath(archetype, id);
+  const bytes = semantic ? readCatalogFilament(archetype, semantic, id) : null;
+  if (bytes) {
+    return new NextResponse(new Uint8Array(bytes), {
+      headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" },
+    });
+  }
+  const file = archiveImagePath(archetype, id);
+  if (!file) return new NextResponse(null, { status: 404 });
+  const stored = await readFile(file);
+  return new NextResponse(stored, {
+    headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" },
+  });
+}
+
+function propagation(archetype: string, id: string) {
   const candidateId = Number(id);
   if (!Number.isInteger(candidateId)) {
     return NextResponse.json({ ready: false, reason: "This drawing has no saved vertical state yet." });

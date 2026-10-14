@@ -36,8 +36,7 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/skill4/handoff": ["./data/skill3/final-selection.json", ...handoffMeshes],
-    "/api/vertical/solidified": ["./data/skill3/final-selection.json", ...handoffMeshes],
-    "/api/vertical/experiments/carved-mass/dataset": ["./data/experiments/carved-mass/manifest.json"],
+    "/api/vertical/[[...path]]": ["./data/skill3/final-selection.json", ...handoffMeshes, "./data/experiments/carved-mass/manifest.json"],
   },
 };
 

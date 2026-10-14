@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { loadFilamentCalibration } from "@/lib/skill2/filament";
+import { readPublishedInk } from "@/lib/skill2/filament-catalog";
 import { catalogHandoff, readCatalogObserved, readCatalogSelection, snapshotMatchesSelection } from "@/lib/skill2/read-published-selection";
 import { persistCatalogZ0 } from "@/lib/skill2/semantic/persist-published-z0";
 import { loadVerifiedZ0 } from "@/lib/skill2/semantic/z0-snapshot";
@@ -7,8 +9,31 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export async function GET(_request: Request, context: { params: Promise<{ archetype: string; id: string }> }) {
-  const { archetype, id } = await context.params;
+type Context = { params: Promise<{ path?: string[] }> };
+
+/** One function for a catalog drawing and its selection handoff. */
+export async function GET(_request: Request, context: Context) {
+  const { path = [] } = await context.params;
+  if (path.length === 3 && path[2] === "selection") return selectionGet(path[0], path[1]);
+  if (path.length === 2) return drawing(path[0], path[1]);
+  return new NextResponse(null, { status: 404 });
+}
+
+export async function POST(_request: Request, context: Context) {
+  const { path = [] } = await context.params;
+  if (path.length === 3 && path[2] === "selection") return selectionPost(path[0], path[1]);
+  return new NextResponse(null, { status: 404 });
+}
+
+function drawing(archetype: string, id: string) {
+  const bytes = readPublishedInk(archetype, id, loadFilamentCalibration(archetype));
+  if (!bytes) return new NextResponse(null, { status: 404 });
+  return new NextResponse(new Uint8Array(bytes), {
+    headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" },
+  });
+}
+
+function selectionGet(archetype: string, id: string) {
   const candidateId = Number(id);
   const selection = readCatalogSelection(archetype, candidateId);
   if (!selection) return NextResponse.json({ selection: null, handoff: "pending", observed: {} }, { status: 404 });
@@ -19,9 +44,7 @@ export async function GET(_request: Request, context: { params: Promise<{ archet
   });
 }
 
-/** Stores nothing in the catalogue. Replays the shown drawing when its snapshot is missing or belongs to another search. */
-export async function POST(_request: Request, context: { params: Promise<{ archetype: string; id: string }> }) {
-  const { archetype, id } = await context.params;
+function selectionPost(archetype: string, id: string) {
   const candidateId = Number(id);
   const selection = readCatalogSelection(archetype, candidateId);
   if (!selection) return NextResponse.json({ selection: null, handoff: "pending" }, { status: 404 });
