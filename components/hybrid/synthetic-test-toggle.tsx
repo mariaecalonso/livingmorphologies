@@ -8,11 +8,11 @@ export function SyntheticTestToggle() {
   return (
     <div className="hybrid-layout-controls">
       <button type="button" data-active={syntheticMode || undefined} onClick={toggleSyntheticTest} disabled={syntheticPending}>
-        {syntheticPending ? "Building test modules" : syntheticMode ? "Use provisional fixtures" : "Use synthetic test modules"}
+        {syntheticPending ? "Building test modules" : syntheticMode ? "Use Skill 03 handoff" : "Use synthetic test modules"}
       </button>
-      <p className="hybrid-units">{syntheticMode ? "TEST DATA ACTIVE" : "Provisional fixtures"}</p>
+      <p className="hybrid-units">{syntheticMode ? "TEST DATA ACTIVE" : "Skill 03 handoff"}</p>
       <p className="hybrid-units">
-        {syntheticMode ? `${SYNTHETIC_TEST_LABEL}. Tiles are closed test solids.` : `${SYNTHETIC_TEST_LABEL}. Provisional fixtures stay loaded.`}
+        {syntheticMode ? `${SYNTHETIC_TEST_LABEL}. Tiles are closed test solids.` : "Current working handoff. Not a final approved geometry set."}
       </p>
       {syntheticError ? <p className="hybrid-pending">{syntheticError}</p> : null}
     </div>

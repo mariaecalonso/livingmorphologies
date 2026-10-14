@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { rasterTrailPlate } from "@/components/vertical-render";
+import { drawPixelPlate, rasterTrailPlate, type SamplePresentation } from "@/components/vertical-render";
 import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
+import type { IsoMesh } from "@/lib/scan/isomesh";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
 import { STACK_DISPLAY_PLATES, stackDisplayIndices, stackDisplaySlices } from "@/lib/skill3/stack-display";
 import type { VerticalViewerField, ViewerSlice } from "@/lib/skill3/viewer-field";
-
-const PLATE = 320;
 
 function useFittedCanvas(draw: (canvas: HTMLCanvasElement, width: number, height: number) => void, watch: unknown) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -31,11 +30,11 @@ function useFittedCanvas(draw: (canvas: HTMLCanvasElement, width: number, height
   return ref;
 }
 
-export function ProcessPlate({ slice }: { slice: ViewerSlice }) {
+export function ProcessPlate({ slice, presentation = "raw" }: { slice: ViewerSlice; presentation?: SamplePresentation }) {
   const [plate, setPlate] = useState<HTMLCanvasElement | null>(null);
   useEffect(() => {
-    setPlate(rasterTrailPlate(slice.trails, slice.trailSize, slice.peak, slice.iteration, PLATE, slice.source, slice.attractor));
-  }, [slice]);
+    setPlate(rasterTrailPlate(slice.trails, slice.trailSize, slice.peak, presentation));
+  }, [presentation, slice]);
   const ref = useFittedCanvas((canvas, width, height) => {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(width * dpr);
@@ -43,13 +42,16 @@ export function ProcessPlate({ slice }: { slice: ViewerSlice }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     if (!plate) return;
-    const side = Math.min(width, height) * 0.98;
-    ctx.drawImage(plate, (width - side) / 2, (height - side) / 2, side, side);
+    const native = plate.width;
+    const maxSide = Math.min(width, height) * 0.98;
+    const side = maxSide >= native ? Math.max(native, Math.floor(maxSide / native) * native) : maxSide;
+    drawPixelPlate(ctx, plate, (width - side) / 2, (height - side) / 2, side, side);
   }, plate);
-  return <canvas ref={ref} aria-label={`Iteration ${slice.iteration}`} />;
+  return <canvas ref={ref} style={{ imageRendering: "pixelated" }} aria-label={`Iteration ${slice.iteration}`} />;
 }
 
 const PLANE_INK: Record<string, string> = {
@@ -63,6 +65,7 @@ export function ProcessStack({
   labels,
   reasons,
   plates: plateLimit = STACK_DISPLAY_PLATES,
+  presentation = "raw",
   onPick,
 }: {
   field: VerticalViewerField;
@@ -70,6 +73,8 @@ export function ProcessStack({
   reasons?: readonly string[];
   /** How many accepted samples may be drawn. Replay passes the full revealed count. */
   plates?: number;
+  /** Raw field is the intensity raster. Clean contour is a presentation reading of the same sample. */
+  presentation?: SamplePresentation;
   onPick?: (index: number) => void;
 }) {
   const [plates, setPlates] = useState<HTMLCanvasElement[]>([]);
@@ -78,8 +83,8 @@ export function ProcessStack({
   onPickRef.current = onPick;
   useEffect(() => {
     const slices = stackDisplaySlices(field.slices, plateLimit);
-    setPlates(slices.map((slice) => rasterTrailPlate(slice.trails, slice.trailSize, slice.peak, slice.iteration, PLATE, slice.source, slice.attractor)));
-  }, [field, plateLimit]);
+    setPlates(slices.map((slice) => rasterTrailPlate(slice.trails, slice.trailSize, slice.peak, presentation)));
+  }, [field, plateLimit, presentation]);
   const ref = useFittedCanvas((canvas, width, height) => {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(width * dpr);
@@ -87,6 +92,7 @@ export function ProcessStack({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     if (plates.length === 0) return;
@@ -136,7 +142,7 @@ export function ProcessStack({
       ctx.lineTo(marginL, y + planeH / 2);
       ctx.stroke();
       ctx.globalAlpha = active ? 1 : 0.5;
-      ctx.drawImage(plates[index], marginL, y, planeW, planeH);
+      drawPixelPlate(ctx, plates[index], marginL, y, planeW, planeH);
       ctx.globalAlpha = 1;
       ctx.strokeStyle = PLANE_INK[reason ?? ""] ?? "rgba(242,242,238,0.7)";
       ctx.lineWidth = active ? 2 : 1;
@@ -154,6 +160,7 @@ export function ProcessStack({
   return (
     <canvas
       ref={ref}
+      style={{ imageRendering: "pixelated" }}
       aria-label="Accepted samples stacked through time"
       onClick={(event) => {
         const pick = onPickRef.current;
@@ -174,30 +181,38 @@ export function ProcessStack({
 }
 
 export function ProcessMorphology({
-  field,
+  field = null,
+  mesh: storedMesh,
   cacheIdentity,
   onTriangles,
   orbit = false,
   float = false,
   turnSeconds = 22,
   refine = false,
+  uniformFrame = false,
 }: {
-  field: VerticalViewerField;
+  field?: VerticalViewerField | null;
+  /** Stored module. When present, the continuation field is not meshed. */
+  mesh?: IsoMesh | null;
   cacheIdentity: string;
   onTriangles?: (count: number | null) => void;
   orbit?: boolean;
   float?: boolean;
   turnSeconds?: number;
   refine?: boolean;
+  /** Fit the 20×20×20 module by orthographic zoom. Pitch and yaw stay fixed. */
+  uniformFrame?: boolean;
 }) {
-  const [mesh, setMesh] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
+  const external = storedMesh !== undefined;
+  const [built, setBuilt] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
   useEffect(() => {
-    if (field.slices.length < 2) {
-      setMesh(null);
+    if (external) return;
+    if (!field || field.slices.length < 2) {
+      setBuilt(null);
       return;
     }
     try {
-      setMesh(cachedOpeningMesh(field.slices, {
+      setBuilt(cachedOpeningMesh(field.slices, {
         identity: cacheIdentity,
         sequence: field.slices.map((slice) => slice.iteration).join(","),
         field: "network",
@@ -207,9 +222,10 @@ export function ProcessMorphology({
         refine,
       }));
     } catch {
-      setMesh(null);
+      setBuilt(null);
     }
-  }, [cacheIdentity, field, refine]);
+  }, [cacheIdentity, external, field, refine]);
+  const mesh = external ? storedMesh ?? null : built;
   useEffect(() => {
     onTriangles?.(mesh?.triangles ?? null);
   }, [mesh, onTriangles]);
@@ -218,15 +234,21 @@ export function ProcessMorphology({
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    canvas.dataset.present = float ? "float" : "";
+    canvas.dataset.present = float || external ? "float" : "";
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const spinning = orbit && !reduced;
+    const spinning = orbit && !reduced && !external;
     const started = performance.now();
     let frame = 0;
     const paint = (now = started) => {
-      const yaw = spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
-      const pitch = float || spinning ? 0.36 : 0.42;
-      drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, "shell", { transparent: float });
+      const yaw = external
+        ? Math.PI / 4
+        : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
+      const pitch = external ? 0.62 : float || spinning ? 0.36 : 0.42;
+      drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, external ? "clay" : "shell", {
+        transparent: float || external,
+        uniform: external ? false : uniformFrame,
+        fit: external ? "bounds" : "module",
+      });
     };
     paint();
     const parent = canvas.parentElement;
@@ -243,6 +265,6 @@ export function ProcessMorphology({
       if (frame) window.cancelAnimationFrame(frame);
       observer?.disconnect();
     };
-  }, [column, float, mesh, orbit, turnSeconds]);
+  }, [column, external, float, mesh, orbit, turnSeconds, uniformFrame]);
   return <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
 }

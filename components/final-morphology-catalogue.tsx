@@ -2,18 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { PRESENTATION_ARCHETYPE, PRESENTATION_CANDIDATE, presentationBundleUrl } from "@/lib/presentation/demo";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { FinalOrthographicViews } from "@/components/final-orthographic-drawing";
 import { PlaceholderMorphology } from "@/components/final-placeholder-morphology";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
-import type { NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
-import { representativeContinuations } from "@/lib/skill3/representatives";
+import type { IsoMesh } from "@/lib/scan/isomesh";
+import type { NaturalContinuation } from "@/lib/skill3/continuations";
 import { readSkill2Selections, type Skill2Selection, type Skill2Selections } from "@/lib/skill2/published-selection";
+import { decodeSolidifiedMesh, solidifiedModuleId, type EncodedSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
 import {
   readSelectedSkill3Collection,
   sameSelectedMorphology,
-  selectedMorphologyFrom,
   type SelectedSkill3Collection,
   type SelectedSkill3Morphology,
 } from "@/lib/skill3/morphology-selection";
@@ -47,6 +46,22 @@ type Slot = {
 };
 
 type Focus = { row: RowId; index: number };
+
+export type FinalArchiveHandoff = {
+  archetypeId: string;
+  candidateId: number;
+  continuationId: string;
+  moduleId: string;
+  status: "validated" | "review";
+};
+
+type SolidifiedStatus = "validated" | "review";
+
+type SolidifiedPick = {
+  moduleId: string;
+  status: SolidifiedStatus;
+  mesh: IsoMesh;
+};
 
 const CAROUSEL_PLACES = ["front-center", "front-right", "back-right", "back-left", "front-left"] as const;
 
@@ -91,7 +106,7 @@ const ROW_SUBTITLE: Record<RowId, string> = {
 
 const TURN_SECONDS = 48;
 
-export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
+export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: boolean; handoff?: FinalArchiveHandoff[] }) {
   const search = useSearchParams();
   const preview = search.get("preview") === "1";
   const rows = ROWS.map((row) => ({ ...row, slots: slotsFor(row) }));
@@ -100,6 +115,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
   const [collection, setCollection] = useState<SelectedSkill3Collection>({});
   const [skill2Selections, setSkill2Selections] = useState<Skill2Selections>({});
   const [fields, setFields] = useState<Record<string, VerticalViewerField | null>>({});
+  const [picks, setPicks] = useState<Record<string, SolidifiedPick | null>>({});
   const [triangles, setTriangles] = useState<Record<string, number | null>>({});
   const reportTriangles = useCallback((archetypeId: string, count: number | null) => {
     setTriangles((current) => current[archetypeId] === count ? current : { ...current, [archetypeId]: count });
@@ -107,81 +123,92 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
 
   useEffect(() => {
     const origin = preview ? "provisional" : fixture ? "development-fixture" : "handoff";
-    const stored = readSelectedSkill3Collection(origin);
-    setSkill2Selections(readSkill2Selections());
+    const read = () => {
+      setCollection(readSelectedSkill3Collection(origin));
+      setSkill2Selections(readSkill2Selections());
+    };
+    read();
     if (preview) {
       setIndexes((current) => ({ ...current, workspace: 0 }));
       setFocus({ row: "workspace", index: 0 });
     }
-    if (stored[PRESENTATION_ARCHETYPE] || preview || fixture) {
-      setCollection(stored);
-      return;
-    }
-    const bundleUrl = presentationBundleUrl(PRESENTATION_ARCHETYPE, PRESENTATION_CANDIDATE);
-    if (!bundleUrl) {
-      setCollection(stored);
-      return;
-    }
-    let cancel = false;
-    void fetch(bundleUrl)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { continuations?: Array<Omit<NaturalContinuation, "field">>; fields?: VerticalViewerField[] } | null) => {
-        if (cancel || !body?.continuations || !body.fields) {
-          if (!cancel) setCollection(stored);
-          return;
-        }
-        const set = {
-          ...body,
-          continuations: body.continuations.map((continuation, index) => ({
-            ...continuation,
-            field: body.fields?.[index],
-          })),
-        } as NaturalContinuationSet;
-        const chosen = representativeContinuations(set.continuations, 1)[0] ?? set.continuations[0];
-        if (!chosen) {
-          setCollection(stored);
-          return;
-        }
-        const morphology = selectedMorphologyFrom(set, chosen);
-        setCollection({ ...stored, [morphology.archetypeId]: morphology });
-      })
-      .catch(() => {
-        if (!cancel) setCollection(stored);
-      });
+    const onShow = () => {
+      if (document.visibilityState === "visible") read();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("focus", read);
+    window.addEventListener("storage", read);
     return () => {
-      cancel = true;
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("focus", read);
+      window.removeEventListener("storage", read);
     };
   }, [fixture, preview]);
 
+  const tracked = preview || fixture ? [] : handoff;
+  const sourceFor = useCallback((archetypeId: string) => {
+    return collection[archetypeId] ?? tracked.find((entry) => entry.archetypeId === archetypeId) ?? null;
+  }, [collection, tracked]);
+
   useEffect(() => {
     const selections = Object.values(collection);
+    const sources: { archetypeId: string; candidateId: number; continuationId: string }[] = [];
+    for (const row of ROWS) {
+      for (const archetypeId of row.ids) {
+        const saved = collection[archetypeId];
+        if (saved) sources.push(saved);
+        else if (!preview && !fixture) {
+          const entry = handoff.find((item) => item.archetypeId === archetypeId);
+          if (entry) sources.push(entry);
+        }
+      }
+    }
     let cancel = false;
     const controller = new AbortController();
     const apply = (next: Record<string, VerticalViewerField | null>) => {
       if (!cancel) setFields(next);
     };
-    if (selections.length === 0) {
+    if (sources.length === 0) {
       apply({});
+      if (!cancel) setPicks({});
       return () => {
         cancel = true;
       };
     }
+    const production = !preview && !fixture;
+    if (production) {
+      setFields({});
+      const next: Record<string, SolidifiedPick | null> = {};
+      void Promise.all(sources.map(async (selection) => {
+        next[selection.archetypeId] = await loadSolidifiedPick(selection, controller.signal);
+      })).then(() => {
+        if (!cancel) setPicks(next);
+      });
+      return () => {
+        cancel = true;
+        controller.abort();
+      };
+    }
+    setPicks({});
     const next: Record<string, VerticalViewerField | null> = {};
     void Promise.all(selections.map(async (selection) => {
-      next[selection.archetypeId] = await loadCachedField(selection, controller.signal, preview ? "provisional" : fixture ? "fixture" : "handoff");
+      next[selection.archetypeId] = await loadCachedField(selection, controller.signal, preview ? "provisional" : "fixture");
     })).then(() => apply(next));
     return () => {
       cancel = true;
       controller.abort();
     };
-  }, [collection, fixture, preview]);
+  }, [collection, fixture, preview, handoff]);
 
   const focusRow = rows.find((row) => row.id === focus.row) ?? rows[0];
   const focusSlot = focusRow.slots[focus.index] ?? focusRow.slots[0];
   const match = focusSlot ? collection[focusSlot.id] ?? null : null;
-  const focusInput = match ? null : focusSlot ? skill2Selections[focusSlot.id] ?? null : null;
-  const selectedCount = rows.reduce((sum, row) => sum + row.slots.filter((slot) => collection[slot.id]).length, 0);
-  const focusField = focusSlot ? fields[focusSlot.id] ?? null : null;
+  const focusHandoff = focusSlot && !match ? tracked.find((entry) => entry.archetypeId === focusSlot.id) ?? null : null;
+  const focusSource = match ?? focusHandoff;
+  const focusInput = focusSource ? null : focusSlot ? skill2Selections[focusSlot.id] ?? null : null;
+  const selectedCount = rows.reduce((sum, row) => sum + row.slots.filter((slot) => sourceFor(slot.id)).length, 0);
+  const focusPick = pickFor(focusSource, picks);
+  const focusField = focusSlot && !focusPick ? fields[focusSlot.id] ?? null : null;
   const focusCode = focusSlot ? archetypeCode(focus.row, focus.index) : "";
 
   const choose = (row: RowId, index: number) => {
@@ -191,7 +218,7 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
 
   return (
     <main className="final-catalogue">
-      <Summary rows={rows} collection={collection} indexes={indexes} selectedCount={selectedCount} preview={preview} />
+      <Summary rows={rows} occupied={(id) => Boolean(sourceFor(id))} indexes={indexes} selectedCount={selectedCount} preview={preview} />
       <div className="final-rows">
         {rows.map((row) => (
           <TypologyBand
@@ -202,8 +229,10 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
             index={indexes[row.id]}
             focused={focus.row === row.id}
             collection={collection}
+            handoff={tracked}
             skill2Selections={skill2Selections}
             fields={fields}
+            picks={picks}
             onTriangles={reportTriangles}
             onChoose={(index) => choose(row.id, index)}
           />
@@ -213,9 +242,11 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
         slot={focusSlot}
         code={focusCode}
         selection={match}
+        handoff={focusHandoff}
         skill2Input={focusInput}
         field={focusField}
-        triangles={match && focusField ? triangles[match.archetypeId] ?? null : null}
+        pick={focusPick}
+        triangles={focusSource && (focusPick || focusField) ? triangles[focusSource.archetypeId] ?? focusPick?.mesh.triangles ?? null : null}
       />
     </main>
   );
@@ -223,13 +254,13 @@ export function FinalMorphologyCatalogue({ fixture }: { fixture: boolean }) {
 
 function Summary({
   rows,
-  collection,
+  occupied,
   indexes,
   selectedCount,
   preview,
 }: {
   rows: { id: RowId; label: string; slots: Slot[] }[];
-  collection: SelectedSkill3Collection;
+  occupied: (archetypeId: string) => boolean;
   indexes: Record<RowId, number>;
   selectedCount: number;
   preview: boolean;
@@ -252,7 +283,7 @@ function Summary({
         <p className="eyebrow">Typologies</p>
         <ul>
           {rows.map((row) => {
-            const count = row.slots.filter((slot) => collection[slot.id]).length;
+            const count = row.slots.filter((slot) => occupied(slot.id)).length;
             return (
               <li key={row.id} data-tone={row.id}>
                 <span aria-hidden="true" />
@@ -270,7 +301,7 @@ function Summary({
               <span
                 key={slot.id}
                 data-place={carouselPlace(index, indexes[row.id])}
-                data-selected={collection[slot.id] ? "true" : undefined}
+                data-selected={occupied(slot.id) ? "true" : undefined}
                 title={`${archetypeCode(row.id, index)} ${slot.name}`}
               />
             ))}
@@ -288,8 +319,10 @@ function TypologyBand({
   index,
   focused,
   collection,
+  handoff,
   skill2Selections,
   fields,
+  picks,
   onTriangles,
   onChoose,
 }: {
@@ -299,8 +332,10 @@ function TypologyBand({
   index: number;
   focused: boolean;
   collection: SelectedSkill3Collection;
+  handoff: FinalArchiveHandoff[];
   skill2Selections: Skill2Selections;
   fields: Record<string, VerticalViewerField | null>;
+  picks: Record<string, SolidifiedPick | null>;
   onTriangles: (archetypeId: string, count: number | null) => void;
   onChoose: (index: number) => void;
 }) {
@@ -311,11 +346,13 @@ function TypologyBand({
           <strong>{label}</strong>
           <span>{ROW_SUBTITLE[rowId]}</span>
         </p>
-        <span className="final-platform" aria-hidden="true" />
         {slots.map((slot, slotIndex) => {
           const selection = collection[slot.id] ?? null;
-          const skill2Input = selection ? null : skill2Selections[slot.id] ?? null;
-          const field = selection ? fields[slot.id] ?? null : null;
+          const tracked = selection ? null : handoff.find((entry) => entry.archetypeId === slot.id) ?? null;
+          const source = selection ?? tracked;
+          const skill2Input = source ? null : skill2Selections[slot.id] ?? null;
+          const pick = pickFor(source, picks);
+          const field = selection && !pick ? fields[slot.id] ?? null : null;
           const place = carouselPlace(slotIndex, index);
           return (
             <button
@@ -323,9 +360,13 @@ function TypologyBand({
               type="button"
               className="final-item"
               data-place={place}
-              data-selected={selection ? "true" : undefined}
+              data-selected={source ? "true" : undefined}
               data-skill2={skill2Input ? "awaiting" : undefined}
-              data-geometry={field ? "real" : "placeholder"}
+              data-geometry={pick || field ? "real" : "placeholder"}
+              data-source={pick ? "carved-mass-solidified" : undefined}
+              data-module={pick?.moduleId}
+              data-continuation={source?.continuationId}
+              data-status={pick?.status}
               aria-current={place === "front-center" ? "true" : undefined}
               onClick={() => onChoose(slotIndex)}
               aria-label={skill2Input ? `${slot.name}. Skill 2 input awaiting vertical propagation` : slot.name}
@@ -333,10 +374,20 @@ function TypologyBand({
               <span className="final-item-label">
                 <small>{archetypeCode(rowId, slotIndex)}</small>
                 <b>{slot.name}</b>
+                {pick?.status === "review" ? <em>Review</em> : null}
               </span>
-              {field && selection ? (
+              {pick && source ? (
                 <SlotMesh
-                  selection={selection}
+                  archetypeId={source.archetypeId}
+                  cacheIdentity={meshIdentity(selection, tracked) ?? source.archetypeId}
+                  mesh={pick.mesh}
+                  orbit={place === "front-center"}
+                  onTriangles={onTriangles}
+                />
+              ) : field && selection ? (
+                <SlotMesh
+                  archetypeId={selection.archetypeId}
+                  cacheIdentity={meshIdentity(selection, null) ?? selection.archetypeId}
                   field={field}
                   orbit={place === "front-center"}
                   onTriangles={onTriangles}
@@ -344,7 +395,7 @@ function TypologyBand({
               ) : (
                 <ModuleMark id={slot.id} spin={place === "front-center"} />
               )}
-              <span className="final-plinth" aria-hidden="true" />
+              <span className="final-plinth" aria-hidden="true"><span className="final-plinth-top" /></span>
             </button>
           );
         })}
@@ -357,18 +408,23 @@ function Detail({
   slot,
   code,
   selection,
+  handoff,
   skill2Input,
   field,
+  pick,
   triangles,
 }: {
   slot: Slot | undefined;
   code: string;
   selection: SelectedSkill3Morphology | null;
+  handoff: FinalArchiveHandoff | null;
   skill2Input: Skill2Selection | null;
   field: VerticalViewerField | null;
+  pick: SolidifiedPick | null;
   triangles: number | null;
 }) {
   if (!slot) return null;
+  const source = selection ?? handoff;
   const samples = selection?.acceptedIterations.length ?? null;
   const envelope = selection?.rules.envelope;
   return (
@@ -376,19 +432,21 @@ function Detail({
       <p className="eyebrow">{code} · {slot.typology}</p>
       <h2 className="panel-title">{slot.name}</h2>
       <FinalOrthographicViews
-        field={field}
-        cacheIdentity={selection ? `${selection.origin}:${selection.archetypeId}:${selection.candidateId}:${selection.continuationId}:${selection.parentChecksum}` : null}
+        field={pick ? null : field}
+        mesh={pick?.mesh ?? null}
+        cacheIdentity={meshIdentity(selection, handoff)}
         placeholderId={slot.id}
         accent={DRAWING_TONE[slot.typologyId as RowId] ?? "#f2f2ee"}
       />
-      <p className="final-detail-status" data-selected={selection ? "true" : undefined}>
-        {selection ? "Selected final morphology" : skill2Input ? "Selected Skill 2 input awaiting vertical propagation" : "Awaiting selection"}
+      <p className="final-detail-status" data-selected={source ? "true" : undefined}>
+        {source ? "Selected final morphology" : skill2Input ? "Selected Skill 2 input awaiting vertical propagation" : "Awaiting selection"}
       </p>
       <dl>
         {[
           ["Archetype", slot.id],
-          ["Candidate", selection ? String(selection.candidateId) : skill2Input ? String(skill2Input.candidateId) : "—"],
-          ["Continuation", selection?.continuationId ?? "—"],
+          ["Candidate", source ? String(source.candidateId) : skill2Input ? String(skill2Input.candidateId) : "—"],
+          ["Continuation", source?.continuationId ?? "—"],
+          ["Status", pick ? (pick.status === "validated" ? "Validated" : "Review") : "—"],
           ["Branch", selection ? String(selection.branchIndex) : "—"],
           ["Samples", samples == null ? "—" : String(samples)],
           ["Module", envelope ? `${envelope.sizeX}×${envelope.sizeY}×${envelope.sizeZ}` : "—"],
@@ -404,33 +462,88 @@ function Detail({
   );
 }
 
+function meshIdentity(selection: SelectedSkill3Morphology | null, handoff: FinalArchiveHandoff | null) {
+  if (selection) return `${selection.origin}:${selection.archetypeId}:${selection.candidateId}:${selection.continuationId}:${selection.parentChecksum}`;
+  if (handoff) return `handoff:${handoff.archetypeId}:${handoff.candidateId}:${handoff.continuationId}:${handoff.moduleId}`;
+  return null;
+}
+
 function SlotMesh({
-  selection,
-  field,
+  archetypeId,
+  cacheIdentity,
+  field = null,
+  mesh,
   orbit = false,
   onTriangles,
 }: {
-  selection: SelectedSkill3Morphology;
-  field: VerticalViewerField;
+  archetypeId: string;
+  cacheIdentity: string;
+  field?: VerticalViewerField | null;
+  mesh?: IsoMesh | null;
   orbit?: boolean;
   onTriangles: (archetypeId: string, count: number | null) => void;
 }) {
   const report = useCallback((count: number | null) => {
-    onTriangles(selection.archetypeId, count);
-  }, [onTriangles, selection.archetypeId]);
+    onTriangles(archetypeId, count);
+  }, [onTriangles, archetypeId]);
   return (
     <span className="final-mesh" aria-hidden="true">
       <ProcessMorphology
         field={field}
+        mesh={mesh}
         float
         orbit={orbit}
         turnSeconds={TURN_SECONDS}
-        cacheIdentity={`${selection.origin}:${selection.archetypeId}:${selection.candidateId}:${selection.continuationId}:${selection.parentChecksum}:refined`}
+        cacheIdentity={`${cacheIdentity}:refined`}
         onTriangles={report}
         refine
+        uniformFrame
       />
     </span>
   );
+}
+
+function pickFor(
+  selection: { archetypeId: string; candidateId: number; continuationId: string } | null,
+  picks: Record<string, SolidifiedPick | null>,
+) {
+  if (!selection) return null;
+  const pick = picks[selection.archetypeId] ?? null;
+  if (!pick) return null;
+  const expected = solidifiedModuleId(selection.archetypeId, selection.candidateId, selection.continuationId);
+  return pick.moduleId === expected ? pick : null;
+}
+
+async function loadSolidifiedPick(
+  selection: { archetypeId: string; candidateId: number; continuationId: string },
+  signal: AbortSignal,
+): Promise<SolidifiedPick | null> {
+  const moduleId = solidifiedModuleId(selection.archetypeId, selection.candidateId, selection.continuationId);
+  const params = new URLSearchParams({
+    archetype: selection.archetypeId,
+    candidate: String(selection.candidateId),
+    continuation: selection.continuationId,
+  });
+  try {
+    const response = await fetch(`/api/vertical/solidified?${params}`, { signal });
+    if (!response.ok) return null;
+    const body = await response.json() as {
+      source?: string;
+      moduleId?: string;
+      archetypeId?: string;
+      candidateId?: number;
+      continuationId?: string;
+      status?: string;
+      geometry?: EncodedSolidifiedMesh;
+    };
+    if (body.source !== "carved-mass-solidified" || body.moduleId !== moduleId) return null;
+    if (body.archetypeId !== selection.archetypeId || body.candidateId !== selection.candidateId) return null;
+    if (body.continuationId !== selection.continuationId) return null;
+    if ((body.status !== "validated" && body.status !== "review") || !body.geometry || body.geometry.triangles < 1) return null;
+    return { moduleId, status: body.status, mesh: decodeSolidifiedMesh(body.geometry) };
+  } catch {
+    return null;
+  }
 }
 
 async function loadCachedField(
@@ -449,20 +562,12 @@ async function loadCachedField(
     if (source === "provisional") params.set("preview", "1");
   }
   try {
-    const bundleUrl = presentationBundleUrl(selection.archetypeId, selection.candidateId);
-    if (!bundleUrl || source === "fixture") return null;
-    const response = await fetch(bundleUrl, { signal });
+    const response = await fetch(`/api/vertical?${params}`, { signal });
     if (!response.ok) return null;
-    const body = await response.json() as {
-      continuations?: Array<Omit<NaturalContinuation, "field">>;
-      fields?: VerticalViewerField[];
-    };
-    const index = body.continuations?.findIndex((item) => item.id === selection.continuationId) ?? -1;
-    const meta = index >= 0 ? body.continuations?.[index] : null;
-    const field = index >= 0 ? body.fields?.[index] : null;
-    if (!meta || !field) return null;
-    const continuation = { ...meta, field };
-    if (!sameSelectedMorphology(selection, continuation)) return null;
+    const body = await response.json() as { continuation?: NaturalContinuation };
+    const continuation = body.continuation;
+    if (!continuation?.field || !sameSelectedMorphology(selection, continuation)) return null;
+    if (source === "fixture" && continuation.archetypeId !== selection.archetypeId) return null;
     return continuation.field;
   } catch {
     return null;

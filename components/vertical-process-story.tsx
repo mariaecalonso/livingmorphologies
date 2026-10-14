@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { ProcessMorphology, ProcessPlate, ProcessStack } from "@/components/vertical-process-stage";
+import type { SamplePresentation } from "@/components/vertical-render";
+import { ProcessStack } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { ArchitecturalIntentProfile } from "@/lib/architectural-intent";
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { readSelectedSkill3Morphology } from "@/lib/skill3/morphology-selection";
-import { presentationBundleUrl } from "@/lib/presentation/demo";
-import { DISPLAY_COUNT, representativeContinuations } from "@/lib/skill3/representatives";
 import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 export type ProcessExample = {
@@ -104,6 +103,7 @@ export function ProcessStory({
   const [set, setSet] = useState<NaturalContinuationSet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(focusArchetype != null && focusCandidate != null);
+  const [presentation, setPresentation] = useState<SamplePresentation>("raw");
   const finalId = useSyncExternalStore(
     subscribeMorphology,
     () => readSavedContinuation(focusArchetype, focusCandidate),
@@ -118,15 +118,9 @@ export function ProcessStory({
     }
   }, [focusArchetype]);
   const shown = set?.continuations.find((continuation) => continuation.id === "N01") ?? null;
-  const z0Slice = shown?.events[0]?.reason === "z0" ? shown.field.slices[0] ?? null : null;
-  const curated = set
-    ? (finalId ? set.continuations.find((continuation) => continuation.id === finalId) : null)
-      ?? representativeContinuations(set.continuations, 1)[0]
-      ?? null
-    : null;
   const archetype = TYPOLOGIES.flatMap((typology) => typology.archetypes.map((item) => ({ ...item, typologyLabel: typology.label }))).find((item) => item.id === focusArchetype);
   const generated = set?.continuations.length ?? BEHAVIOR_COUNT;
-  const representative = set ? representativeContinuations(set.continuations, DISPLAY_COUNT).length : DISPLAY_COUNT;
+  const futures = generated;
   const envelope = set?.rules.envelope;
   const moduleLabel = envelope
     ? `${envelope.sizeX}×${envelope.sizeY}×${envelope.sizeZ}`
@@ -138,25 +132,22 @@ export function ProcessStory({
   useEffect(() => {
     if (!focusArchetype || focusCandidate == null) return;
     const controller = new AbortController();
-    const bundleUrl = presentationBundleUrl(focusArchetype, focusCandidate);
-    if (!bundleUrl) {
-      setSet(null);
-      setError("This presentation shows Vertical Void 351.");
-      setPending(false);
-      return;
-    }
-    const load = (): Promise<void> => fetch(bundleUrl, { signal: controller.signal }).then(async (response): Promise<void> => {
-      if (controller.signal.aborted) return;
-      if (response.status === 404) throw new Error("This presentation shows Vertical Void 351.");
-      const body = (await response.json()) as ApiSet & { error?: string };
-      if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
-      if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
-        throw new Error("Continuation identity did not match the selected candidate.");
-      }
-      if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
-      setSet(joinSet(body));
+    const params = new URLSearchParams({
+      archetype: focusArchetype,
+      candidate: String(focusCandidate),
+      cache: "1",
     });
-    load()
+    fetch(`/api/vertical?${params}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (controller.signal.aborted || response.status === 404) return;
+        const body = (await response.json()) as ApiSet & { error?: string };
+        if (!response.ok) throw new Error(body.error ?? "The stored continuation was not readable.");
+        if (body.archetypeId !== focusArchetype || body.candidateId !== focusCandidate) {
+          throw new Error("Continuation identity did not match the selected candidate.");
+        }
+        if (body.origin !== "handoff") throw new Error(`Continuation origin ${body.origin}.`);
+        setSet(joinSet(body));
+      })
       .catch((caught) => {
         if (controller.signal.aborted) return;
         setSet(null);
@@ -183,15 +174,6 @@ export function ProcessStory({
             <div><dt>Iteration</dt><dd>{shownExample ? String(shownExample.z0Iteration) : "Pending"}</dd></div>
             <div><dt>Checksum</dt><dd>{shownExample?.checksum ?? "Pending"}</dd></div>
           </dl>
-          {focusArchetype && focusCandidate != null ? (
-            <div className="process-sample-column">
-              <figure>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="vertical-process-plate" src={`/demo/skill2/previews/${focusArchetype}/${focusCandidate}.webp`} alt={`${shownExample?.archetypeName ?? archetype?.name ?? focusArchetype} ${focusCandidate}`} />
-                <figcaption>Selected</figcaption>
-              </figure>
-            </div>
-          ) : null}
         </section>
 
         <section className="process-step process-descriptors" aria-label="Inherit">
@@ -221,14 +203,6 @@ export function ProcessStory({
               );
             })}
           </div>
-          {z0Slice ? (
-            <div className="process-sample-column">
-              <figure>
-                <ProcessPlate slice={z0Slice} />
-                <figcaption>Z0 {z0Slice.iteration}</figcaption>
-              </figure>
-            </div>
-          ) : null}
         </section>
 
         <section className="process-step process-recipes" aria-label="Evolve">
@@ -245,20 +219,6 @@ export function ProcessStory({
               </li>
             ))}
           </ol>
-          {set ? (
-            <div className="process-sample-column">
-              {set.continuations.map((continuation) => {
-                const slice = continuation.field.slices[continuation.field.slices.length - 1];
-                if (!slice) return null;
-                return (
-                  <figure key={continuation.id}>
-                    <ProcessPlate slice={slice} />
-                    <figcaption>{continuation.id}</figcaption>
-                  </figure>
-                );
-              })}
-            </div>
-          ) : null}
         </section>
 
         <section className="process-step process-curate" aria-label="Curate">
@@ -266,11 +226,11 @@ export function ProcessStory({
             <p className="eyebrow">06</p>
             <h2 className="panel-title">Curate</h2>
           </header>
-          <p className="process-kicker">Diversity selection</p>
+          <p className="process-kicker">Temporal futures</p>
           <p className="process-counts">
             <span>{generated > 0 ? generated : "Pending"} generated</span>
             <span aria-hidden="true">→</span>
-            <span>{representative > 0 ? representative : "Pending"} representative</span>
+            <span>{futures > 0 ? futures : "Pending"} temporal futures</span>
             <span aria-hidden="true">→</span>
             <span>{finalId ?? "Final pending"}</span>
           </p>
@@ -278,17 +238,6 @@ export function ProcessStory({
             <span>Catalogue</span>
             <span aria-hidden="true">→</span>
           </Link>
-          {curated && curated.field.slices.length >= 2 ? (
-            <div className="process-sample-column">
-              <figure>
-                <ProcessMorphology
-                  field={curated.field}
-                  cacheIdentity={`${curated.archetypeId}:${curated.candidateId}:${curated.id}`}
-                />
-                <figcaption>{curated.id}</figcaption>
-              </figure>
-            </div>
-          ) : null}
         </section>
       </div>
 
@@ -309,16 +258,6 @@ export function ProcessStory({
         {error ? <p className="process-pending">{error}</p> : null}
         {pending && !shown ? <p className="process-pending">Reading N01</p> : null}
         {!pending && !error && !shown ? <p className="process-pending">N01 pending</p> : null}
-        {shown && aligned ? (
-          <div className="process-sample-column">
-            {shown.field.slices.map((slice, index) => (
-              <figure key={slice.iteration}>
-                <ProcessPlate slice={slice} />
-                <figcaption>{shown.events[index] ? reasonLabel(shown.events[index].reason) : String(slice.iteration)}</figcaption>
-              </figure>
-            ))}
-          </div>
-        ) : null}
         {shown && rows.length > 0 ? (
           <ol className="process-timeline">
             {rows.map((row) => row.kind === "event" ? (
@@ -343,11 +282,16 @@ export function ProcessStory({
           <p className="vertical-process-aside">T → Z · {moduleLabel}</p>
         </header>
         <p className="process-kicker">XYT construction</p>
+        <div className="process-field-mode" role="group" aria-label="Sample presentation">
+          <button type="button" className="process-read" data-active={presentation === "raw" ? "true" : "false"} onClick={() => setPresentation("raw")}>Raw field</button>
+          <button type="button" className="process-read" data-active={presentation === "contour" ? "true" : "false"} onClick={() => setPresentation("contour")}>Clean contour</button>
+        </div>
         <div className="process-xyt-stage">
           {shown && aligned ? (
             <ProcessStack
               field={shown.field}
               plates={shown.field.slices.length}
+              presentation={presentation}
               labels={shown.events.map((event) => String(event.iteration))}
               reasons={shown.events.map((event) => event.reason)}
             />

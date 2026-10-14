@@ -1,5 +1,5 @@
 import type { IsoMesh } from "./isomesh";
-import { moduleViewFit } from "../skill3/view-project";
+import { moduleViewFit, surfaceFrame, uniformModuleZoom } from "../skill3/view-project";
 
 const VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
@@ -8,6 +8,9 @@ uniform float uYaw;
 uniform float uPitch;
 uniform float uAspect;
 uniform float uFit;
+uniform float uOrtho;
+uniform vec3 uCenter;
+uniform vec2 uPan;
 out vec3 vNormal;
 out float vDepth;
 void main() {
@@ -15,7 +18,7 @@ void main() {
   float sy = sin(uYaw);
   float cp = cos(uPitch);
   float sp = sin(uPitch);
-  vec3 p = aPos;
+  vec3 p = aPos - uCenter;
   float x1 = p.x * cy + p.z * sy;
   float z1 = -p.x * sy + p.z * cy;
   float y2 = p.y * cp - z1 * sp;
@@ -26,17 +29,22 @@ void main() {
   float ny2 = n.y * cp - nz1 * sp;
   float nz2 = n.y * sp + nz1 * cp;
   vNormal = vec3(nx1, ny2, nz2);
-  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
-  vDepth = -view.z;
-  float near = 0.35;
-  float far = 14.0;
-  float f = 1.55;
-  gl_Position = vec4(
-    view.x * f,
-    view.y * f,
-    (view.z * (far + near) + 2.0 * far * near) / (near - far),
-    -view.z
-  );
+  if (uOrtho > 0.5) {
+    vDepth = 4.2 + z2 * 0.02;
+    gl_Position = vec4((x1 + uPan.x) * uFit / uAspect, (y2 + uPan.y) * uFit, z2 * 0.0125, 1.0);
+  } else {
+    vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
+    vDepth = -view.z;
+    float near = 0.35;
+    float far = 14.0;
+    float f = 1.55;
+    gl_Position = vec4(
+      view.x * f,
+      view.y * f,
+      (view.z * (far + near) + 2.0 * far * near) / (near - far),
+      -view.z
+    );
+  }
 }`;
 
 const FRAG = `#version 300 es
@@ -181,9 +189,32 @@ void main() {
   oColor = vec4(col, 1.0);
 }`;
 
-export type IsoMeshStyle = "field" | "shell";
+/** Same clay body as the Skill 3 catalogue field. Lighting only. */
+const CLAY_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+in float vDepth;
+layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 oDepth;
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
+  if (dot(n, viewDir) < 0.0) n = -n;
+  vec3 key = normalize(vec3(0.32, 0.86, 0.4));
+  vec3 fill = normalize(vec3(-0.62, 0.12, 0.28));
+  float wrap = clamp((dot(n, key) + 0.62) / 1.62, 0.0, 1.0);
+  float bounce = clamp(dot(n, fill), 0.0, 1.0);
+  vec3 shadow = vec3(0.58, 0.58, 0.56);
+  vec3 body = vec3(0.97, 0.97, 0.96);
+  vec3 tone = mix(shadow, body, wrap);
+  tone += vec3(0.98, 0.98, 0.97) * bounce * 0.08;
+  oColor = vec4(tone, 1.0);
+  oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+}`;
 
-const DRAW_MESH_GEN = 3;
+export type IsoMeshStyle = "field" | "shell" | "clay";
+
+const DRAW_MESH_GEN = 6;
 
 type MeshGl = {
   gl: WebGL2RenderingContext;
@@ -191,6 +222,7 @@ type MeshGl = {
   program: WebGLProgram;
   aoProgram: WebGLProgram;
   shellProgram: WebGLProgram;
+  clayProgram: WebGLProgram;
   shellAoProgram: WebGLProgram;
   floatAoProgram: WebGLProgram;
   position: WebGLBuffer;
@@ -278,9 +310,10 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
   const meshProgram = program(gl, VERT, FRAG);
   const aoProgram = program(gl, AO_VERT, AO_FRAG);
   const shellProgram = program(gl, VERT, SHELL_FRAG);
+  const clayProgram = program(gl, VERT, CLAY_FRAG);
   const shellAoProgram = program(gl, AO_VERT, SHELL_AO_FRAG);
   const floatAoProgram = program(gl, AO_VERT, FLOAT_AO_FRAG);
-  if (!meshProgram || !aoProgram || !shellProgram || !shellAoProgram || !floatAoProgram) return null;
+  if (!meshProgram || !aoProgram || !shellProgram || !clayProgram || !shellAoProgram || !floatAoProgram) return null;
   const position = gl.createBuffer();
   const normal = gl.createBuffer();
   const index = gl.createBuffer();
@@ -310,6 +343,7 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
     program: meshProgram,
     aoProgram,
     shellProgram,
+    clayProgram,
     shellAoProgram,
     floatAoProgram,
     position,
@@ -339,7 +373,7 @@ export function drawIsoMesh(
   pitch: number,
   column: number,
   style: IsoMeshStyle = "field",
-  options?: { transparent?: boolean },
+  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds" },
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -360,14 +394,16 @@ export function drawIsoMesh(
   resizeTargets(gpu, pixelsW, pixelsH);
   gl.bindFramebuffer(gl.FRAMEBUFFER, gpu.fbo);
   gl.viewport(0, 0, pixelsW, pixelsH);
-  gl.clearColor(0, 0, 0, options?.transparent ? 0 : 1);
+  const clay = style === "clay";
+  const clear = clay || options?.transparent === true;
+  gl.clearColor(0, 0, 0, clear ? 0 : 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
-  const meshProgram = style === "shell" ? gpu.shellProgram : gpu.program;
-  const compositeProgram = options?.transparent
+  const meshProgram = clay ? gpu.clayProgram : style === "shell" ? gpu.shellProgram : gpu.program;
+  const compositeProgram = clear
     ? gpu.floatAoProgram
     : style === "shell" ? gpu.shellAoProgram : gpu.aoProgram;
   if (mesh && mesh.triangles > 0) {
@@ -385,13 +421,20 @@ export function drawIsoMesh(
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uYaw"), yaw);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uPitch"), pitch);
     const aspect = width / Math.max(1, height);
-    const fit = moduleViewFit(column, aspect);
+    const framed = options?.fit === "bounds" ? surfaceFrame(mesh.positions, yaw, pitch, aspect) : null;
+    const uniform = options?.uniform === true || framed != null;
+    const fit = framed ? framed.fit : uniform ? uniformModuleZoom(pitch, aspect) : moduleViewFit(column, aspect);
+    const center = framed?.center ?? [0, 0, 0];
+    const pan = framed?.pan ?? [0, 0];
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uAspect"), aspect);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uFit"), fit);
+    gl.uniform3f(gl.getUniformLocation(meshProgram, "uCenter"), center[0], center[1], center[2]);
+    gl.uniform2f(gl.getUniformLocation(meshProgram, "uPan"), pan[0], pan[1]);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uOrtho"), uniform ? 1 : 0);
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
   }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  if (options?.transparent) {
+  if (clear) {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }

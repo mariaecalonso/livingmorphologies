@@ -1,0 +1,606 @@
+{
+  "contract": "carved-mass-module-v1",
+  "folder": "contained-room-within-volume-42",
+  "modules": [
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N01",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N01",
+      "continuationSeed": 3361152650,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.10986529063786009,
+      "components": 1,
+      "openingSize": 66322,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.05572755417956654,
+      "silhouetteVsReference": 0.2894356005788712,
+      "file": "contained-room-within-volume-42/N01.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N02",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N02",
+      "continuationSeed": 3344375031,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.09792416838134431,
+      "components": 1,
+      "openingSize": 68866,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.056572379367720416,
+      "silhouetteVsReference": 0.2716049382716049,
+      "file": "contained-room-within-volume-42/N02.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N03",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N03",
+      "continuationSeed": 3327597412,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.09093953617969822,
+      "components": 1,
+      "openingSize": 70252,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N02",
+      "nearestDifference": 0.09217391304347822,
+      "silhouetteVsReference": 0.2684887459807074,
+      "file": "contained-room-within-volume-42/N03.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N04",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N04",
+      "continuationSeed": 3310819793,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06767618312757202,
+      "components": 1,
+      "openingSize": 75040,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.08577878103837466,
+      "silhouetteVsReference": 0.2777777777777778,
+      "file": "contained-room-within-volume-42/N04.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N05",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N05",
+      "continuationSeed": 3294042174,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06382887517146776,
+      "components": 1,
+      "openingSize": 73793,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N17",
+      "nearestDifference": 0.08607594936708862,
+      "silhouetteVsReference": 0.3268206039076377,
+      "file": "contained-room-within-volume-42/N05.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N06",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N06",
+      "continuationSeed": 3277264555,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.051169731652949246,
+      "components": 1,
+      "openingSize": 76204,
+      "wall": [
+        0.5555555555555556,
+        3.3333333333333335,
+        7.777777777777779
+      ],
+      "nearestId": "N17",
+      "nearestDifference": 0.1741424802110818,
+      "silhouetteVsReference": 0.42086330935251803,
+      "file": "contained-room-within-volume-42/N06.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N07",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N07",
+      "continuationSeed": 3260486936,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.11974612054183814,
+      "components": 1,
+      "openingSize": 57533,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        10.555555555555555
+      ],
+      "nearestId": "N09",
+      "nearestDifference": 0.1826923076923077,
+      "silhouetteVsReference": 0.343015214384509,
+      "file": "contained-room-within-volume-42/N07.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N08",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N08",
+      "continuationSeed": 3243709317,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.10949020490397805,
+      "components": 1,
+      "openingSize": 65752,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.88888888888889
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.041538461538461524,
+      "silhouetteVsReference": 0.2607407407407407,
+      "file": "contained-room-within-volume-42/N08.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N09",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N09",
+      "continuationSeed": 3226931698,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.12222436556927298,
+      "components": 1,
+      "openingSize": 62775,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        9.444444444444445
+      ],
+      "nearestId": "N15",
+      "nearestDifference": 0.05294117647058827,
+      "silhouetteVsReference": 0.28671328671328666,
+      "file": "contained-room-within-volume-42/N09.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N10",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N10",
+      "continuationSeed": 455433934,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.09376339591906721,
+      "components": 1,
+      "openingSize": 72549,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        9.444444444444445
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.0922242314647378,
+      "silhouetteVsReference": 0,
+      "file": "contained-room-within-volume-42/N10.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N11",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N11",
+      "continuationSeed": 472211553,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.08830857767489712,
+      "components": 1,
+      "openingSize": 72151,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.09444444444444444,
+      "silhouetteVsReference": 0.10582010582010581,
+      "file": "contained-room-within-volume-42/N11.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N12",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N12",
+      "continuationSeed": 421878696,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.06290991512345678,
+      "components": 1,
+      "openingSize": 77433,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.777777777777779
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.09070294784580502,
+      "silhouetteVsReference": 0.3037300177619894,
+      "file": "contained-room-within-volume-42/N12.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N13",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N13",
+      "continuationSeed": 438656315,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.10263149434156378,
+      "components": 1,
+      "openingSize": 68558,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.333333333333334
+      ],
+      "nearestId": "N14",
+      "nearestDifference": 0.03883495145631066,
+      "silhouetteVsReference": 0.25531914893617025,
+      "file": "contained-room-within-volume-42/N13.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N14",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N14",
+      "continuationSeed": 522544410,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.10715395661865569,
+      "components": 1,
+      "openingSize": 67908,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.03883495145631066,
+      "silhouetteVsReference": 0.25225225225225223,
+      "file": "contained-room-within-volume-42/N14.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N15",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N15",
+      "continuationSeed": 539322029,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.11472533007544582,
+      "components": 1,
+      "openingSize": 63892,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        9.444444444444445
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.041538461538461524,
+      "silhouetteVsReference": 0.2895863052781741,
+      "file": "contained-room-within-volume-42/N15.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N16",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N16",
+      "continuationSeed": 488989172,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07938957475994513,
+      "components": 1,
+      "openingSize": 67064,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N19",
+      "nearestDifference": 0.24583333333333335,
+      "silhouetteVsReference": 0.3092105263157895,
+      "file": "contained-room-within-volume-42/N16.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N17",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N17",
+      "continuationSeed": 505766791,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.055780606995884774,
+      "components": 1,
+      "openingSize": 78729,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        7.777777777777779
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.08607594936708862,
+      "silhouetteVsReference": 0.36200716845878134,
+      "file": "contained-room-within-volume-42/N17.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N18",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N18",
+      "continuationSeed": 321212982,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0797298311042524,
+      "components": 1,
+      "openingSize": 74489,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.88888888888889
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.045454545454545414,
+      "silhouetteVsReference": 0.14954954954954958,
+      "file": "contained-room-within-volume-42/N18.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N19",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N19",
+      "continuationSeed": 337990601,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.05870091735253772,
+      "components": 1,
+      "openingSize": 72134,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.333333333333334
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.24583333333333335,
+      "silhouetteVsReference": 0.4020979020979021,
+      "file": "contained-room-within-volume-42/N19.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N20",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N20",
+      "continuationSeed": 2502053189,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07173782578875171,
+      "components": 1,
+      "openingSize": 75221,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.333333333333334
+      ],
+      "nearestId": "N23",
+      "nearestDifference": 0.060267857142857095,
+      "silhouetteVsReference": 0.2406417112299465,
+      "file": "contained-room-within-volume-42/N20.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N21",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N21",
+      "continuationSeed": 2485275570,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07890196330589849,
+      "components": 1,
+      "openingSize": 74215,
+      "wall": [
+        0.5555555555555556,
+        4.444444444444445,
+        8.88888888888889
+      ],
+      "nearestId": "N18",
+      "nearestDifference": 0.045454545454545414,
+      "silhouetteVsReference": 0.1606498194945848,
+      "file": "contained-room-within-volume-42/N21.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N22",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N22",
+      "continuationSeed": 2468497951,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07519397290809328,
+      "components": 1,
+      "openingSize": 73031,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.06736842105263163,
+      "silhouetteVsReference": 0.21607142857142858,
+      "file": "contained-room-within-volume-42/N22.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N23",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N23",
+      "continuationSeed": 2451720332,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.07002314814814815,
+      "components": 1,
+      "openingSize": 77578,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.333333333333334
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.060267857142857095,
+      "silhouetteVsReference": 0.22423146473779387,
+      "file": "contained-room-within-volume-42/N23.json"
+    },
+    {
+      "moduleId": "carved-mass:contained-room-within-volume:42:N24",
+      "category": "gathering",
+      "archetypeId": "contained-room-within-volume",
+      "archetypeName": "Contained Room Within Volume",
+      "candidateId": 42,
+      "continuationId": "N24",
+      "continuationSeed": 2434942713,
+      "z0Iteration": 600,
+      "parentChecksum": "60fb3127",
+      "flags": [],
+      "solidFraction": 0.0841022590877915,
+      "components": 1,
+      "openingSize": 75021,
+      "wall": [
+        0.5555555555555556,
+        3.8888888888888893,
+        8.88888888888889
+      ],
+      "nearestId": "N18",
+      "nearestDifference": 0.07450980392156858,
+      "silhouetteVsReference": 0.0922242314647378,
+      "file": "contained-room-within-volume-42/N24.json"
+    }
+  ]
+}
