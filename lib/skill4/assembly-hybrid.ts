@@ -80,7 +80,9 @@ export function placeGeneratedHybrid(
   const targetSpan = sub(targetEnd, targetStart);
   const targetLength = length(targetSpan);
   if (!source || !face || targetLength <= 1e-6) return null;
-  if (Math.abs(dot(source.direction, face.direction)) < 0.999) return null;
+  // Profile centroids sit on the openings, not always on the section-center axis.
+  // A reversed loft is rejected. A tilt still maps each end centroid onto its section center.
+  if (dot(source.direction, face.direction) <= 0) return null;
   const targetDirection = scale(targetSpan, 1 / targetLength);
   const basisA = transportBasis(sourceA, targetA, source.tangent, source.bitangent);
   const basisB = transportBasis(sourceB, targetB, source.tangent, source.bitangent);

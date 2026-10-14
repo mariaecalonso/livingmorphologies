@@ -775,6 +775,13 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   };
 
   useEffect(() => {
+    if (view === "catalog") {
+      allQueueRef.current = false;
+      setAllQueue(false);
+      setPickedId((current) => current ?? ALL_ARCHETYPE_IDS[0] ?? null);
+      setSessionReady(true);
+      return;
+    }
     let live = true;
     void (async () => {
       const { session, snapshots } = await loadRunsSession();
@@ -852,7 +859,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     return () => {
       live = false;
     };
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -927,6 +934,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
   };
 
   useEffect(() => {
+    if (view === "catalog") return;
     const sync = () => {
       const params = new URLSearchParams(window.location.search);
       setWall(params.get("wall") === "1");
@@ -961,7 +969,7 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
     sync();
     window.addEventListener("popstate", sync);
     return () => window.removeEventListener("popstate", sync);
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     if (completed !== RUN_COUNT || savingRef.current) return;

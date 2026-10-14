@@ -64,7 +64,8 @@ function freshBoard(loaded: ReadonlyMap<string, ModuleHandoff>) {
 
 const HybridContext = createContext<HybridStateValue | null>(null);
 
-export function HybridState({ records, children }: { records: Skill4ModuleRecord[]; children: ReactNode }) {
+export function HybridState({ children }: { children: ReactNode }) {
+  const [records, setRecords] = useState<Skill4ModuleRecord[]>([]);
   const provisional = useMemo(() => loadModuleMap(records), [records]);
   const [synthetic, setSynthetic] = useState<ReadonlyMap<string, ModuleHandoff> | null>(null);
   const [syntheticMode, setSyntheticMode] = useState(false);
@@ -72,6 +73,33 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
   const [syntheticError, setSyntheticError] = useState<string | null>(null);
   const loaded = syntheticMode && synthetic ? synthetic : provisional;
   const [board, setBoard] = useState(() => freshBoard(provisional));
+  useEffect(() => {
+    let cancel = false;
+    void fetch("/api/skill4/handoff")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { records?: Skill4ModuleRecord[] } | null) => {
+        if (!cancel && body?.records?.length) setRecords(body.records);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (records.length === 0) return;
+    if (window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) === "1") return;
+    setBoard((current) => {
+      const untouched = current.connections.every((connection) => connection.generationStatus === "not-generated" && !connection.candidateField);
+      if (!untouched) {
+        const tiles = current.tiles.map((tile) => ({
+          ...tile,
+          moduleId: resolveTileModule(tile.archetypeId, provisional).moduleId,
+        }));
+        return { ...current, tiles, connections: reconcileConnections(current.connections, tiles, provisional) };
+      }
+      return freshBoard(provisional);
+    });
+  }, [records, provisional]);
   useEffect(() => {
     if (window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) !== "1") return;
     let cancel = false;
