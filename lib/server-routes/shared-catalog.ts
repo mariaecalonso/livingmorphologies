@@ -2,8 +2,6 @@ import { mkdir, readdir, readFile, rename, rmdir, unlink, writeFile } from "fs/p
 import path from "path";
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
 type IncomingEntry = {
   id: string;
   archetypeId: string;
@@ -41,7 +39,7 @@ async function readEntries(file: string): Promise<IncomingEntry[] | null> {
   }
 }
 
-export async function POST(request: Request) {
+export async function sharedCatalogPost(request: Request) {
   const body = (await request.json()) as { archetypeId?: string; entries?: IncomingEntry[]; replace?: boolean };
   const archetypeId = body.archetypeId;
   const incoming = Array.isArray(body.entries) ? body.entries : [];
@@ -94,7 +92,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, archetypeId, count: entries.length });
 }
 
-export async function DELETE(request: Request) {
+export async function sharedCatalogDelete(request: Request) {
   const archetypeId = new URL(request.url).searchParams.get("archetypeId") ?? "";
   if (!/^[a-z0-9-]+$/.test(archetypeId)) {
     return NextResponse.json({ ok: false, error: "bad archetype" }, { status: 400 });

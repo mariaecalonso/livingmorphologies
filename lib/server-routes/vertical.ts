@@ -9,20 +9,11 @@ import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/li
 import { selectionFromQuery } from "@/lib/skill3/selection";
 import { listSolidifiedCatalogue, readSolidifiedMesh, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
-
-type Context = { params: Promise<{ path?: string[] }> };
-
-/** One function for continuations, solidified meshes, and the carved-mass dataset. */
-export function GET(request: Request, context: Context) {
-  return context.params.then(({ path = [] }) => {
+export function verticalGet(request: Request, path: string[]) {
     if (path.length === 0) return continuations(request);
     if (path.length === 1 && path[0] === "solidified") return solidified(request);
     if (path.length === 3 && path[0] === "experiments" && path[1] === "carved-mass" && path[2] === "dataset") return dataset(request);
     return new NextResponse(null, { status: 404 });
-  });
 }
 
 function continuationBundle(set: NaturalContinuationSet) {

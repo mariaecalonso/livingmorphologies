@@ -6,18 +6,11 @@ import { encodeGrayPng } from "@/lib/skill2/semantic/gray-png";
 import { loadVerifiedZ0 } from "@/lib/skill2/semantic/z0-snapshot";
 import { advanceScan, startScanFromZ0, takeSlice } from "@/lib/scan/volume";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const SLICES = 5;
 const STEPS = 4;
 const VIEW = 48;
 
-type Context = { params: Promise<{ path?: string[] }> };
-
-/** One function for the evolution catalog, drawings, and propagation previews. */
-export async function GET(_request: Request, context: Context) {
-  const { path = [] } = await context.params;
+export async function evolutionGet(_request: Request, path: string[]) {
   if (path.length === 0) return NextResponse.json(catalogScores(loadEvolutionCatalog()));
   if (path.length === 3 && path[2] === "propagation") return propagation(path[0], path[1]);
   if (path.length === 2) return drawing(path[0], path[1]);

@@ -12,14 +12,7 @@ import {
   type FilamentCalibration,
 } from "@/lib/skill2/filament";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-type Context = { params: Promise<{ path?: string[] }> };
-
-/** One function for every filament URL, so the Hobby plan stays under its function limit. */
-export async function GET(request: Request, context: Context) {
-  const { path = [] } = await context.params;
+export function filamentGet(request: Request, path: string[]) {
   if (path.length === 0) return NextResponse.json({ archetypes: filamentArchetypeStatus() });
   if (path[0] === "catalog" && path.length === 3) return catalogInk(request, path[1], path[2]);
   if (path[0] === "plate" && path.length === 3) return plateInk(path[1], path[2]);
@@ -27,8 +20,7 @@ export async function GET(request: Request, context: Context) {
   return new NextResponse(null, { status: 404 });
 }
 
-export async function POST(request: Request, context: Context) {
-  const { path = [] } = await context.params;
+export async function filamentPost(request: Request, path: string[]) {
   if (path.length !== 1) return NextResponse.json({ error: "unknown archetype" }, { status: 404 });
   const archetype = path[0];
   if (!isArchetypeId(archetype)) return NextResponse.json({ error: "unknown archetype" }, { status: 400 });

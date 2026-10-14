@@ -5,22 +5,13 @@ import { catalogHandoff, readCatalogObserved, readCatalogSelection, snapshotMatc
 import { persistCatalogZ0 } from "@/lib/skill2/semantic/persist-published-z0";
 import { loadVerifiedZ0 } from "@/lib/skill2/semantic/z0-snapshot";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const maxDuration = 300;
-
-type Context = { params: Promise<{ path?: string[] }> };
-
-/** One function for a catalog drawing and its selection handoff. */
-export async function GET(_request: Request, context: Context) {
-  const { path = [] } = await context.params;
+export function semanticCatalogGet(_request: Request, path: string[]) {
   if (path.length === 3 && path[2] === "selection") return selectionGet(path[0], path[1]);
   if (path.length === 2) return drawing(path[0], path[1]);
   return new NextResponse(null, { status: 404 });
 }
 
-export async function POST(_request: Request, context: Context) {
-  const { path = [] } = await context.params;
+export function semanticCatalogPost(_request: Request, path: string[]) {
   if (path.length === 3 && path[2] === "selection") return selectionPost(path[0], path[1]);
   return new NextResponse(null, { status: 404 });
 }
