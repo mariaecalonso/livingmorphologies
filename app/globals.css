@@ -2781,12 +2781,9 @@ body:has(.site-display-control) .site-nav {
   text-align: center;
 }
 
-.site-shell[data-site-display="classroom"] .wf-floating-label:not(.is-rising) .wf-proto-index {
-  font-size: 8.5pt;
-}
-
+.site-shell[data-site-display="classroom"] .wf-floating-label:not(.is-rising) .wf-proto-index,
 .site-shell[data-site-display="classroom"] .wf-floating-label:not(.is-rising) .wf-proto-label {
-  font-size: 7pt;
+  font-size: 1em;
 }
 
 .wf-floating-label.is-rising {

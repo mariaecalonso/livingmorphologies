@@ -135,7 +135,8 @@ export function HomeWorkflowPrototype() {
       let nameSize = Math.max(8, Math.min(15, fitted, titleSize * 0.58));
       if (classroom && shell) {
         const frame = shell.clientHeight || stage.clientHeight;
-        nameSize = Math.min(frame * 0.014, titleSize * 0.476);
+        const cardH = cardRect(WORKFLOW_STAGES[0]).h * macroCamera().scale;
+        nameSize = Math.min(Math.max(cardH * 0.2, frame * 0.022), frame * 0.036);
       }
       const lift = focusId ? glide(depth) : 0;
       root.querySelectorAll<HTMLElement>("[data-floating-label]").forEach((label) => {
