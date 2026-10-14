@@ -16,13 +16,17 @@ export async function POST(request: Request) {
   const candidateId = typeof body.candidateId === "number" ? body.candidateId : Number(body.candidateId);
   const selection = readCatalogSelection(archetypeId, candidateId);
   if (!selection) return NextResponse.json({ saved: false }, { status: 404 });
-  writeSavedPick({
-    archetypeId: selection.archetypeId,
-    candidateId: selection.candidateId,
-    typologyId: selection.typologyId,
-    formal: selection.objectives.formal,
-    spatial: selection.objectives.spatial,
-    atmospheric: selection.objectives.atmospheric,
-  });
+  try {
+    writeSavedPick({
+      archetypeId: selection.archetypeId,
+      candidateId: selection.candidateId,
+      typologyId: selection.typologyId,
+      formal: selection.objectives.formal,
+      spatial: selection.objectives.spatial,
+      atmospheric: selection.objectives.atmospheric,
+    });
+  } catch {
+    return NextResponse.json({ saved: false, archetypeId: selection.archetypeId, candidateId: selection.candidateId }, { status: 503 });
+  }
   return NextResponse.json({ saved: true, archetypeId: selection.archetypeId, candidateId: selection.candidateId });
 }
