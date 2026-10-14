@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
+import handoff from "@/data/skill3/final-selection.json";
 import { FinalOrthographicViews } from "@/components/final-orthographic-drawing";
 import { PlaceholderMorphology } from "@/components/final-placeholder-morphology";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { NaturalContinuation } from "@/lib/skill3/continuations";
+import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { readSkill2Selections, type Skill2Selection, type Skill2Selections } from "@/lib/skill2/published-selection";
 import { decodeSolidifiedMesh, solidifiedModuleId, type EncodedSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
 import {
@@ -124,7 +126,7 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
   useEffect(() => {
     const origin = preview ? "provisional" : fixture ? "development-fixture" : "handoff";
     const read = () => {
-      setCollection(readSelectedSkill3Collection(origin));
+      setCollection(origin === "handoff" ? productionCollection() : readSelectedSkill3Collection(origin));
       setSkill2Selections(readSkill2Selections());
     };
     read();
@@ -425,7 +427,7 @@ function Detail({
 }) {
   if (!slot) return null;
   const source = selection ?? handoff;
-  const samples = selection?.acceptedIterations.length ?? null;
+  const samples = selection && selection.acceptedIterations.length > 0 ? selection.acceptedIterations.length : null;
   const envelope = selection?.rules.envelope;
   return (
     <aside className="final-detail" data-tone={slot.typologyId} aria-live="polite">
@@ -501,6 +503,41 @@ function SlotMesh({
       />
     </span>
   );
+}
+
+function productionCollection(): SelectedSkill3Collection {
+  const recorded: SelectedSkill3Collection = {};
+  for (const entry of handoff.selections) {
+    const archetype = Object.values(ARCHETYPES).find((item) => item.id === entry.archetypeId);
+    recorded[entry.archetypeId] = {
+      origin: "handoff",
+      typologyId: entry.category,
+      archetypeId: entry.archetypeId,
+      archetypeName: archetype?.name ?? entry.archetypeId,
+      candidateId: entry.candidateId,
+      runKey: `${entry.archetypeId}@solidified`,
+      continuationId: entry.continuationId,
+      branchIndex: Number(entry.continuationId.slice(1)),
+      continuationSeed: 0,
+      z0Iteration: 0,
+      parentChecksum: entry.moduleId,
+      acceptedIterations: [],
+      rules: {
+        horizon: 64,
+        minGap: 8,
+        maxGap: 24,
+        deltaThreshold: 0.08,
+        envelope: { sizeX: MODULE_SIZE_X, sizeY: MODULE_SIZE_Y, sizeZ: MODULE_SIZE_Z },
+        morphology: "network",
+        transform: "none",
+      },
+    };
+  }
+  const saved = readSelectedSkill3Collection("handoff");
+  for (const [id, selection] of Object.entries(saved)) {
+    if (selection.runKey.endsWith("@solidified")) recorded[id] = selection;
+  }
+  return recorded;
 }
 
 function pickFor(

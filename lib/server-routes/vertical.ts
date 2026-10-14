@@ -1,4 +1,7 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { NextResponse } from "next/server";
+import publishedSelections from "@/data/skill2/pareto-catalog/selections.json";
 import { readArchetypeRecords, readCarvedMassManifest } from "@/lib/skill3/experiments/carved-mass-registry";
 import { CARVED_MASS_SOURCES } from "@/lib/skill3/experiments/carved-mass-sources";
 import { generateCarvedMassArchetype } from "@/lib/skill3/experiments/carved-mass-dataset";
@@ -8,6 +11,36 @@ import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
 import { listSolidifiedCatalogue, readSolidifiedMesh, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
+
+const PUBLISHED = publishedSelections as Record<string, { candidateId?: number; typologyId?: string }>;
+
+/** The five published Lobby candidates. Workspace and Gathering stay cache-only. */
+function publishedLobby(archetypeId: string, candidateId: number) {
+  const pick = PUBLISHED[archetypeId];
+  return pick?.typologyId === "lobby" && pick.candidateId === candidateId;
+}
+
+/** Serving copy of a published Lobby bundle. The verified Z0 files are not written. */
+const LOBBY_BUNDLE_DIR = join(process.cwd(), "data", "skill3", "published-lobby");
+
+function lobbyBundlePath(archetypeId: string, candidateId: number) {
+  return join(LOBBY_BUNDLE_DIR, `${archetypeId}-${candidateId}.json`);
+}
+
+function readLobbyBundle(archetypeId: string, candidateId: number) {
+  const path = lobbyBundlePath(archetypeId, candidateId);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof continuationBundle>;
+  } catch {
+    return null;
+  }
+}
+
+function writeLobbyBundle(archetypeId: string, candidateId: number, bundle: ReturnType<typeof continuationBundle>) {
+  mkdirSync(LOBBY_BUNDLE_DIR, { recursive: true });
+  writeFileSync(lobbyBundlePath(archetypeId, candidateId), JSON.stringify(bundle));
+}
 
 export function verticalGet(request: Request, path: string[]) {
     if (path.length === 0) return continuations(request);
@@ -26,6 +59,19 @@ function continuationBundle(set: NaturalContinuationSet) {
     }),
     fields: continuations.map((continuation) => continuation.field),
   };
+}
+
+function bundleContinuation(bundle: ReturnType<typeof continuationBundle>, continuationId: string | null) {
+  if (!continuationId) return bundle;
+  const index = bundle.continuations.findIndex((item) => item.id === continuationId);
+  if (index < 0) return null;
+  return { continuation: { ...bundle.continuations[index], field: bundle.fields[index] } };
+}
+
+function jsonBundle(bundle: ReturnType<typeof continuationBundle>, continuationId: string | null) {
+  const body = bundleContinuation(bundle, continuationId);
+  if (!body) return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
+  return NextResponse.json(body);
 }
 
 function continuations(request: Request) {
@@ -49,26 +95,48 @@ function continuations(request: Request) {
 
   const preview = url.searchParams.get("preview") === "1";
   if (url.searchParams.get("cache") === "1") {
-    const set = preview
+    const lobby = !preview && publishedLobby(requested.selection.archetypeId, requested.selection.candidateId);
+    let set = preview
       ? peekProvisionalContinuations(requested.selection)
       : peekVerifiedContinuations(requested.selection) ?? peekNaturalContinuations(requested.selection);
-    if (!set || (preview && set.origin !== "provisional")) {
+    const stored = !set && lobby
+      ? readLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId)
+      : null;
+    if (stored?.origin === "handoff") {
+      return jsonBundle(stored, url.searchParams.get("continuation"));
+    }
+    if (!set && lobby) {
+      try {
+        set = loadVerifiedContinuations(requested.selection);
+      } catch (caught) {
+        const error = caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.";
+        return NextResponse.json({ error }, { status: 422 });
+      }
+    }
+    if (!set || (preview ? set.origin !== "provisional" : set.origin !== "handoff")) {
       return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
     }
-    const continuationId = url.searchParams.get("continuation");
-    if (!continuationId) return NextResponse.json(continuationBundle(set));
-    const continuation = set.continuations.find((item) => item.id === continuationId) ?? null;
-    if (!continuation) {
-      return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
+    const bundle = continuationBundle(set);
+    if (lobby && set.origin === "handoff" && !existsSync(lobbyBundlePath(requested.selection.archetypeId, requested.selection.candidateId))) {
+      writeLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId, bundle);
     }
-    return NextResponse.json({ continuation });
+    return jsonBundle(bundle, url.searchParams.get("continuation"));
   }
 
   try {
     const set: NaturalContinuationSet = preview
       ? loadProvisionalContinuations(requested.selection)
       : loadVerifiedContinuations(requested.selection);
-    return NextResponse.json(continuationBundle(set));
+    const bundle = continuationBundle(set);
+    if (
+      !preview
+      && set.origin === "handoff"
+      && publishedLobby(set.archetypeId, set.candidateId)
+      && !existsSync(lobbyBundlePath(set.archetypeId, set.candidateId))
+    ) {
+      writeLobbyBundle(set.archetypeId, set.candidateId, bundle);
+    }
+    return NextResponse.json(bundle);
   } catch (caught) {
     const error = caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.";
     return NextResponse.json({ error }, { status: 422 });
