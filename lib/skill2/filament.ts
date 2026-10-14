@@ -49,10 +49,14 @@ export function loadFilamentCalibration(archetypeId: string): FilamentCalibratio
 export function saveFilamentCalibration(archetypeId: string, value: Partial<FilamentCalibration>) {
   if (!isArchetypeId(archetypeId)) throw new Error("archetype id is not valid");
   const calibration = normalizeFilamentCalibration(value);
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(filamentConfigPath(archetypeId), JSON.stringify(calibration, null, 2));
-  const cache = join(CACHE_DIR, archetypeId);
-  if (existsSync(cache)) rmSync(cache, { recursive: true, force: true });
+  try {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(filamentConfigPath(archetypeId), JSON.stringify(calibration, null, 2));
+    const cache = join(CACHE_DIR, archetypeId);
+    if (existsSync(cache)) rmSync(cache, { recursive: true, force: true });
+  } catch {
+    // A public server cannot store the ink setting. The request still returns it.
+  }
   return calibration;
 }
 
@@ -120,9 +124,13 @@ export function readCatalogFilament(archetypeId: string, sourcePath: string, id:
     return readFileSync(cache);
   }
   const refined = refinePreviewPng(readFileSync(sourcePath), calibration, archetypeId);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(cache, refined);
-  writeFileSync(mark, stamp);
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(cache, refined);
+    writeFileSync(mark, stamp);
+  } catch {
+    // A public server disk is read-only. The drawing is still returned.
+  }
   return refined;
 }
 

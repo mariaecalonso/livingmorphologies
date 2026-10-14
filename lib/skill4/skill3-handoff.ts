@@ -98,40 +98,45 @@ function encodeIsoMesh(mesh: IsoMesh): EncodedIsoMesh {
   };
 }
 
+/** One selected solidified module, registered into the Skill 4 cell. */
+export function loadSkill3HandoffRecord(archetypeId: string): Skill4ModuleRecord | null {
+  const entry = readFinalSelection().selections.find((item) => item.archetypeId === archetypeId);
+  if (!entry) return null;
+  const stored = readSolidifiedMesh(entry.archetypeId, entry.candidateId, entry.continuationId);
+  if (!stored || stored.moduleId !== entry.moduleId || stored.geometry.encoding !== "isomesh-base64") return null;
+  const registration = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+  const registeredGeometry = registerMeshIntoCell(decodeSolidifiedMesh(stored.geometry), registration);
+  return {
+    contract: SKILL4_MODULE_CONTRACT,
+    moduleId: entry.moduleId,
+    revision: 1,
+    archetypeId: entry.archetypeId,
+    source: "skill03",
+    provisional: false,
+    selectedFinal: true,
+    scan: {
+      seed: VIEW_SCAN.seed,
+      iso: VIEW_SCAN.iso,
+      spacing: VIEW_SCAN.spacing,
+      yaw: VIEW_SCAN.yaw,
+      slices: 24,
+      stepsBetweenSlices: 22,
+      stoppedOnConverged: false,
+    },
+    registration,
+    geometry: encodeIsoMesh(registeredGeometry),
+    provenance: {
+      role: "skill03-output",
+      note: SKILL3_HANDOFF_NOTE,
+    },
+  };
+}
+
 /** The 15 selected solidified modules, each with a registered copy in the Skill 4 cell. */
 export function loadSkill3HandoffRecords(): Skill4ModuleRecord[] {
-  const selection = readFinalSelection();
-  const registration = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
-  return selection.selections.map((entry) => {
-    const stored = readSolidifiedMesh(entry.archetypeId, entry.candidateId, entry.continuationId);
-    if (!stored || stored.moduleId !== entry.moduleId || stored.geometry.encoding !== "isomesh-base64") {
-      throw new Error(`repaired solidified mesh missing for ${entry.moduleId}`);
-    }
-    const originalGeometry = decodeSolidifiedMesh(stored.geometry);
-    const registeredGeometry = registerMeshIntoCell(originalGeometry, registration);
-    return {
-      contract: SKILL4_MODULE_CONTRACT,
-      moduleId: entry.moduleId,
-      revision: 1,
-      archetypeId: entry.archetypeId,
-      source: "skill03",
-      provisional: false,
-      selectedFinal: true,
-      scan: {
-        seed: VIEW_SCAN.seed,
-        iso: VIEW_SCAN.iso,
-        spacing: VIEW_SCAN.spacing,
-        yaw: VIEW_SCAN.yaw,
-        slices: 24,
-        stepsBetweenSlices: 22,
-        stoppedOnConverged: false,
-      },
-      registration,
-      geometry: encodeIsoMesh(registeredGeometry),
-      provenance: {
-        role: "skill03-output",
-        note: SKILL3_HANDOFF_NOTE,
-      },
-    };
+  return readFinalSelection().selections.map((entry) => {
+    const record = loadSkill3HandoffRecord(entry.archetypeId);
+    if (!record) throw new Error(`repaired solidified mesh missing for ${entry.moduleId}`);
+    return record;
   });
 }

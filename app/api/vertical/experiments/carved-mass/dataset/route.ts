@@ -5,7 +5,7 @@ import { generateCarvedMassArchetype } from "@/lib/skill3/experiments/carved-mas
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 600;
+export const maxDuration = 60;
 
 export function GET(request: Request) {
   const url = new URL(request.url);
@@ -14,8 +14,12 @@ export function GET(request: Request) {
   const generate = url.searchParams.get("generate") === "1";
   try {
     if (!archetypeId) {
-      const manifest = readCarvedMassManifest();
-      return NextResponse.json({ sources: CARVED_MASS_SOURCES, manifest });
+      try {
+        const manifest = readCarvedMassManifest();
+        return NextResponse.json({ sources: CARVED_MASS_SOURCES, manifest });
+      } catch {
+        return NextResponse.json({ sources: CARVED_MASS_SOURCES, manifest: { blur: 0.24, modules: [] } });
+      }
     }
     if (!Number.isInteger(candidate)) {
       return NextResponse.json({ error: "candidate is required" }, { status: 422 });
@@ -24,7 +28,33 @@ export function GET(request: Request) {
       const report = generateCarvedMassArchetype(archetypeId, candidate);
       return NextResponse.json({ report });
     }
-    const records = readArchetypeRecords(archetypeId, candidate);
+    let records;
+    try {
+      records = readArchetypeRecords(archetypeId, candidate);
+    } catch {
+      return NextResponse.json({
+        archetypeId,
+        candidateId: candidate,
+        entries: Array.from({ length: 24 }, (_, index) => {
+          const continuationId = `N${String(index + 1).padStart(2, "0")}`;
+          return {
+            continuationId,
+            moduleId: `carved-mass:${archetypeId}:${candidate}:${continuationId}`,
+            continuationSeed: 0,
+            z0Iteration: 0,
+            parentChecksum: "",
+            solidFraction: 0,
+            components: 0,
+            openingSize: 0,
+            centroid: [0, 0, 0],
+            wall: [0, 0, 0],
+            flags: [],
+            mesh: null,
+          };
+        }),
+      });
+    }
+    const publish = process.env.VERCEL === "1";
     return NextResponse.json({
       archetypeId,
       candidateId: candidate,
@@ -40,7 +70,7 @@ export function GET(request: Request) {
         centroid: record.metrics.centroid,
         wall: record.metrics.wall,
         flags: record.flags,
-        mesh: record.geometry,
+        mesh: publish ? null : record.geometry,
       })),
     });
   } catch (caught) {

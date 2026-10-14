@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CatalogEntry } from "@/lib/skill4/catalog";
 import { connectionsFromCatalog, tilesFromCatalog } from "@/lib/skill4/catalog";
 import type { FaceId, Skill4ModuleRecord } from "@/lib/skill4/contract";
@@ -64,7 +64,9 @@ function freshBoard(loaded: ReadonlyMap<string, ModuleHandoff>) {
 
 const HybridContext = createContext<HybridStateValue | null>(null);
 
-export function HybridState({ records, children }: { records: Skill4ModuleRecord[]; children: ReactNode }) {
+export function HybridState({ children }: { children: ReactNode }) {
+  const [records, setRecords] = useState<Skill4ModuleRecord[]>([]);
+  const requested = useRef(new Set<string>());
   const provisional = useMemo(() => loadModuleMap(records), [records]);
   const [synthetic, setSynthetic] = useState<ReadonlyMap<string, ModuleHandoff> | null>(null);
   const [syntheticMode, setSyntheticMode] = useState(false);
@@ -92,6 +94,41 @@ export function HybridState({ records, children }: { records: Skill4ModuleRecord
       cancel = true;
     };
   }, []);
+  const archetypeKey = board.tiles.map((tile) => tile.archetypeId).join("|");
+  useEffect(() => {
+    const ids = [...new Set(archetypeKey.split("|").filter(Boolean))];
+    for (const archetypeId of ids) {
+      if (requested.current.has(archetypeId)) continue;
+      requested.current.add(archetypeId);
+      void fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}`)
+        .then(async (response) => (response.ok ? response.json() as Promise<Skill4ModuleRecord> : null))
+        .then((record) => {
+          if (!record?.geometry || record.archetypeId !== archetypeId) {
+            requested.current.delete(archetypeId);
+            return;
+          }
+          setRecords((current) => current.some((item) => item.archetypeId === record.archetypeId) ? current : [...current, record]);
+        })
+        .catch(() => {
+          requested.current.delete(archetypeId);
+        });
+    }
+  }, [archetypeKey]);
+  useEffect(() => {
+    if (syntheticMode) return;
+    setBoard((current) => {
+      let changed = false;
+      const tiles = current.tiles.map((tile) => {
+        const handoff = provisional.get(tile.archetypeId);
+        if (!handoff?.geometry || tile.moduleId === handoff.moduleId) return tile;
+        changed = true;
+        return { ...tile, moduleId: handoff.moduleId };
+      });
+      if (!changed) return current;
+      return { ...current, tiles, connections: reconcileConnections(current.connections, tiles, provisional) };
+    });
+  }, [provisional, syntheticMode]);
+
   const [selectedId, setSelectedId] = useState("A");
   const [canvasSelection, setCanvasSelection] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);

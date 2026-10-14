@@ -94,10 +94,20 @@ export function AllArchetypeFutures() {
         const body = (await response.json()) as { entries?: Array<Omit<Entry, "mesh"> & { mesh: PackedMesh }>; error?: string };
         if (!response.ok) throw new Error(body.error ?? `${source.archetypeName} did not load.`);
         if (cancelled) return;
-        setBoards((current) => ({
-          ...current,
-          [key]: (body.entries ?? []).map((entry) => ({ ...entry, mesh: unpack(entry.mesh) })),
-        }));
+        const entries = (body.entries ?? []).map((entry) => ({ ...entry, mesh: unpack(entry.mesh) }));
+        setBoards((current) => ({ ...current, [key]: entries }));
+        for (const entry of entries) {
+          if (cancelled || entry.mesh) continue;
+          const meshResponse = await fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}&continuation=${encodeURIComponent(entry.continuationId)}`);
+          if (!meshResponse.ok) continue;
+          const meshBody = (await meshResponse.json()) as { geometry?: PackedMesh };
+          const mesh = unpack(meshBody.geometry ?? null);
+          if (cancelled || !mesh) continue;
+          setBoards((current) => ({
+            ...current,
+            [key]: (current[key] ?? []).map((item) => item.continuationId === entry.continuationId ? { ...item, mesh } : item),
+          }));
+        }
       }
     };
     load().catch((caught: unknown) => {

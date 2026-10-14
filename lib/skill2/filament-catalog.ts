@@ -25,7 +25,11 @@ export function sameFilament(left: FilamentCalibration, right: FilamentCalibrati
 
 export function clearPublishedInk(archetypeId: string) {
   const dir = join(CACHE_DIR, archetypeId);
-  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  try {
+    if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  } catch {
+    // The cache directory is not writable on the public server.
+  }
   for (const key of plateCache.keys()) {
     if (key.startsWith(`${archetypeId}/`)) plateCache.delete(key);
   }
@@ -62,9 +66,13 @@ export function readPublishedInk(archetypeId: string, id: string, calibration: F
   const mark = join(dir, `${id}.stamp`);
   if (existsSync(file) && existsSync(mark) && readFileSync(mark, "utf8") === stamp) return readFileSync(file);
   const refined = refinePreviewPng(readFileSync(source.file), setting, archetypeId);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(file, refined);
-  writeFileSync(mark, stamp);
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(file, refined);
+    writeFileSync(mark, stamp);
+  } catch {
+    // A public server disk is read-only. The drawing is still returned.
+  }
   return refined;
 }
 
