@@ -230,7 +230,7 @@ async function executeTile(
       result.status,
       result.kernelStatus,
       success,
-      success ? "" : problem || result.reason || result.status,
+      success ? "" : [problem, result.reason, result.status].filter(Boolean).join(":"),
     ));
   }
   const successfulCutCount = cuts.filter((cut) => cut.success).length;
