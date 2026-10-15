@@ -26,6 +26,8 @@ Do not modify next.config.ts.
 
 ## Responsive Display Requirements
 
+Desktop mode and its website pair, Laptop, are archived. The live website scale is Classroom, paired with Lab Presentation. The Edit control stays so that canvas can be zoomed and panned. Restore the Laptop / Desktop switch by setting `DESKTOP_MODE_ARCHIVED` to false in `components/display-sync.ts`.
+
 The website must work well on both a regular laptop screen and the large classroom presentation display.
 The classroom display resolution is approximately 7407 × 2160 px.
 Do not design the interface as a fixed 7407 × 2160 canvas.
@@ -89,13 +91,25 @@ Diagrams, research graphics, morphologies, and technical content must remain vis
 ### Border / Effect Language
 
 Use thin rounded rectangular outlines where appropriate.
-Corners should be softly rounded, not excessively pill-shaped.
-Borders may use controlled teal-to-copper, white-to-dark, or subtle multi-stop gradients.
+Corners should be softly rounded (`--frame-radius`, currently 16px), not excessively pill-shaped.
+Frames share a luminous edge and a soft atmospheric halo (`--frame-glow` on primary frames, `--frame-glow-soft` on smaller or secondary tiles). Neutral frames use white. Colored frames keep the same rounded rectangle, thin edge, and halo, using copper (`--frame-glow-copper`) or teal (`--frame-glow-teal`) to match the border. The most important frame in a layout uses `.frame-primary`: a slightly thicker 1.5px edge with the full teal → white → copper gradient running left to right, like the active workspace title, and a subtle teal glow on the left and copper on the right. Keep the color subtle. Human-selected morphologies use it too.
+Borders may use controlled teal-to-copper, white-to-dark, or subtle multi-stop gradients on active or identity states.
 Three levels of treatment may be used:
 Gradient — clean thin gradient edge with little or no glow.
 Blur — soft atmospheric halo.
 Together — gradient edge plus controlled glow/blur for focal states.
-These are hierarchy tools, not mandatory effects on every element.
+These are hierarchy tools. Smaller frames glow less than primary ones.
+
+### Layout, Connection, and Black Space
+
+Frames are not the only graphic method. A layout should make the workflow or thinking logic visible.
+Hierarchy comes from frame size and position first: one dominant frame, a narrower column of supporting frames, and a secondary frame. Decoration should not be needed to show what matters most.
+Connecting lines carry the logic between frames. Use thin white leader lines that start at a small dot on the subject and run orthogonally, with right-angle elbows, through the black gutters to the frame they explain. Lines may cross frame edges so the frames read as one argument. Use dashed leaders to tie labels to objects, and a single fading line with dots for sequences or timelines.
+The travelling light and every line attached to a frame are measured from the live frames, never from fixed numbers. When a frame on the light path moves, resizes, changes shape, appears, or disappears, the light route and its attached lines rebuild automatically (`boardLayoutSignature` in `lib/home-workflow-camera.ts`). A new frame joins the route with the `.wf-frame` class, or `data-route-end` for the last stop, and needs no extra wiring.
+Motion is subtle but engaging, modelled on the Non-Dominated Sorting board. Content builds in when it is revealed (a frame lights up or a board opens), never on a constant loop. Points fade in one by one in a short stagger, plates and captions rise 4px while fading in, and bars and arrows grow from their start. Each piece runs about half a second to a second, with tens of milliseconds between items, using the shared `wf-opt-in`, `wf-opt-fill`, and `wf-opt-pop` keyframes in `app/globals.css`. Animate opacity and transform only. Do not bounce, spin, flash, or add colour, and do not delay reading for long.
+Empty black space is intentional and must be planned in every layout. It keeps the layout organized and clean. Leave it inside bigger frames, between their tiles, plates, and iterations, and between the bigger frames themselves. Space between groups is larger than space within a group, so the main categories read before the subcategories. Never pack frames edge to edge. When content must fit, shrink the items before removing the space. Keep gutters wide enough to act as channels for the connecting lines. Frames do not need to fill their container. Inset content inside frames, and let small images float in black rather than stretching to fill.
+Section titles sit small and centered above their frame, not crowded inside it.
+Reserve teal and copper for the subject of the argument. Key regions may get a glowing white outline. Everything else stays greyscale.
 
 ### Typography System
 

@@ -3,7 +3,14 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { DisplayMode } from "@/components/display-mode-toggle";
-import { LAB_DISPLAY_EVENT, labModeForSite, readStoredLab, readStoredSite, syncSiteFromLab } from "@/components/display-sync";
+import {
+  DESKTOP_MODE_ARCHIVED,
+  LAB_DISPLAY_EVENT,
+  labModeForSite,
+  readStoredLab,
+  readStoredSite,
+  syncSiteFromLab,
+} from "@/components/display-sync";
 
 export const PRESENTATION_WIDTH = 7407;
 export const PRESENTATION_HEIGHT = 2160;
@@ -18,6 +25,7 @@ function subscribeViewMode(onChange: () => void) {
 }
 
 function readViewMode(): DisplayMode {
+  if (DESKTOP_MODE_ARCHIVED) return "presentation";
   return readStoredLab() ?? labModeForSite(readStoredSite() ?? "laptop");
 }
 

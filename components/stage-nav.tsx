@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import type { DisplayMode } from "@/components/display-mode-toggle";
+import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
 import { LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
@@ -57,16 +58,18 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
         </Link>
         <div className="stage-nav-tools">
           {mode === "presentation" ? <PresentationEditControls /> : null}
-          <div className="stage-nav-mode">
-            <button
-              type="button"
-              aria-pressed={mode === "presentation"}
-              aria-label={mode === "presentation" ? "Presentation. Switch to desktop" : "Desktop. Switch to presentation"}
-              onClick={() => changeMode(mode === "presentation" ? "desktop" : "presentation")}
-            >
-              {mode === "presentation" ? <PresentationIcon /> : <DesktopIcon />}
-            </button>
-          </div>
+          {DESKTOP_MODE_ARCHIVED ? null : (
+            <div className="stage-nav-mode">
+              <button
+                type="button"
+                aria-pressed={mode === "presentation"}
+                aria-label={mode === "presentation" ? "Presentation. Switch to desktop" : "Desktop. Switch to presentation"}
+                onClick={() => changeMode(mode === "presentation" ? "desktop" : "presentation")}
+              >
+                {mode === "presentation" ? <PresentationIcon /> : <DesktopIcon />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <div className="stage-nav-bottom">

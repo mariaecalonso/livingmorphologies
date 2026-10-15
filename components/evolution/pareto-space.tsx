@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type PointerEvent, type WheelEvent } from "react";
 import Link from "next/link";
 import { Panel } from "@/components/hud";
 import {
@@ -924,7 +924,11 @@ export function ObjectiveBars({ candidate }: { candidate: { formal: number; spat
         <div key={row.label}>
           <dt>{row.label}</dt>
           <dd>
-            <span className="evo-objective-bar" aria-hidden="true">
+            <span
+              className="evo-objective-bar"
+              aria-hidden="true"
+              style={{ "--share": `${Math.max(0, Math.min(1, row.value)) * 100}%` } as CSSProperties}
+            >
               <span style={{ width: `${Math.max(0, Math.min(1, row.value)) * 100}%` }} />
             </span>
             {formatMatch(row.value)}

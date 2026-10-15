@@ -114,8 +114,8 @@
 }
 
 [data-view-mode="presentation"] .hybrid-view {
-  gap: 22px;
-  padding: 22px 32px 26px;
+  gap: 40px;
+  padding: 40px;
   font-size: 30px;
   overflow: hidden;
 }
@@ -132,7 +132,7 @@
   overflow: hidden;
   grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.36fr) minmax(0, 0.42fr);
   grid-template-rows: minmax(0, 1fr) minmax(500px, 0.32fr);
-  gap: 22px;
+  gap: 40px;
 }
 
 [data-view-mode="desktop"] .hybrid-assembly,
@@ -253,7 +253,7 @@
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-som-board {
   flex: 1 1 auto;
   grid-template-columns: repeat(auto-fit, minmax(23%, 1fr));
-  gap: 10px;
+  gap: 28px;
   overflow: hidden;
 }
 
@@ -371,7 +371,7 @@
   gap: 0.45em;
   padding: 0.65em;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: rgba(0, 0, 0, 0.28);
 }
 
@@ -409,7 +409,7 @@
 .hybrid-view select {
   width: 100%;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: #000000;
   color: var(--text);
   font-size: 0.72em;
@@ -448,7 +448,7 @@
 .hybrid-view .criteria-group {
   padding: 0.45em;
   border: 1px solid rgba(242, 242, 238, 0.14);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -527,7 +527,7 @@
   height: 9em;
   min-height: 7.5em;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: #000000;
 }
 
@@ -558,7 +558,7 @@
   min-height: 1.85em;
   padding: 0;
   border: 1px solid rgba(242, 242, 238, 0.22);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: transparent;
   color: var(--muted);
   font-size: 0.62em;
@@ -622,7 +622,7 @@
   flex: 1 1 auto;
   min-height: 12rem;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: #000000;
 }
 
@@ -680,7 +680,7 @@
   gap: 0.4em;
   padding: 0.55em;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
 }
 
 .hybrid-view .hybrid-connection-head[data-active] {
@@ -736,7 +736,7 @@
   min-width: 0;
   padding: 0.35em;
   border: 1px solid rgba(242, 242, 238, 0.14);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
 }
 
 .hybrid-record-preview {
@@ -744,7 +744,7 @@
   height: 4.6em;
   overflow: hidden;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: #000000;
 }
 
@@ -830,7 +830,7 @@
   min-width: 0;
   padding: 0.35em;
   border: 1px solid rgba(242, 242, 238, 0.14);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
 }
 
 .hybrid-som-card {
@@ -855,7 +855,7 @@
   place-items: center;
   min-height: 0;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: #000000;
   color: var(--orange-hot);
   font-size: 0.72em;
@@ -1055,7 +1055,7 @@
 .hybrid-generate {
   align-self: flex-start;
   border: 1px solid rgba(242, 242, 238, 0.28);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
   background: transparent;
   color: var(--text);
   font-size: 0.62em;
@@ -1143,14 +1143,24 @@
   gap: 0.4em;
   padding: 1.2em;
   border: 1px solid rgba(242, 242, 238, 0.18);
-  border-radius: 4px;
+  border-radius: var(--frame-radius);
 }
 
 [data-view-mode="presentation"] .hybrid-catalog-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 40px;
 }
 
 [data-view-mode="presentation"] .hybrid-catalog-preview {
   height: 11em;
   min-height: 9em;
+}
+
+.hybrid-slot,
+.hybrid-view .criteria-group,
+.hybrid-som-mini,
+.hybrid-catalog-empty {
+  border-color: var(--frame-edge);
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-glow-soft);
 }

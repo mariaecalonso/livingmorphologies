@@ -98,7 +98,7 @@
   aspect-ratio: 1;
   background: #000;
   border: 1px solid rgba(15, 115, 119, 0.45);
-  border-radius: 8px;
+  border-radius: var(--frame-radius);
   min-height: 0;
 }
 

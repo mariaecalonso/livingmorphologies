@@ -48,7 +48,7 @@ export type MacroNode = {
 };
 
 /** A little slower than the first pass. Trail time uses the same pace so the streak stays the same length. */
-const LIGHT_PACE = 1.2;
+const LIGHT_PACE = 2.2;
 const MACRO_CYCLE = 16000 * LIGHT_PACE;
 /** Overview camera fit. The main light uses this so its screen speed matches steps 03–06. */
 export const OVERVIEW_FILL = 0.92;
@@ -87,6 +87,27 @@ export const WORKFLOW_BOARD_STOPS: readonly WorkflowPoint[] = [
   { x: 0.48, y: 0.64 },
   { x: 0.66, y: 0.48 },
   { x: 0.86, y: 0.6 },
+];
+
+/** Optimization keeps the right side for its results grid. */
+/** Board-local position and size of every node, to half a pixel. Any move or reshape changes it. */
+export function boardLayoutSignature(board: HTMLElement, nodes: Iterable<Element>) {
+  const box = board.getBoundingClientRect();
+  const scale = box.width / Math.max(1, board.clientWidth) || 1;
+  const values = [board.clientWidth, board.clientHeight];
+  for (const node of nodes) {
+    const rect = node.getBoundingClientRect();
+    values.push(...[rect.left - box.left, rect.top - box.top, rect.width, rect.height].map((value) => Math.round((value / scale) * 2)));
+  }
+  return values.join(",");
+}
+
+export const OPTIMIZATION_BOARD_STOPS: readonly WorkflowPoint[] = [
+  { x: 0.09, y: 0.57 },
+  { x: 0.25, y: 0.49 },
+  { x: 0.41, y: 0.59 },
+  { x: 0.57, y: 0.5 },
+  { x: 0.73, y: 0.57 },
 ];
 
 const BOARD_STOP_Y = [0.62, 0.46, 0.64, 0.48, 0.6] as const;

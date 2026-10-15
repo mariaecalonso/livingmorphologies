@@ -215,7 +215,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
     const measure = () => {
       const { width, height } = node.getBoundingClientRect();
       if (width < 40 || height < 40) return;
-      const gap = wall ? 12 : 8;
+      const gap = wall ? 40 : 8;
       const caption = wall ? 64 : 36;
       const labels = [...node.querySelectorAll<HTMLElement>(".pareto-band-head")];
       const labelH = labels.reduce((sum, label) => {
@@ -232,7 +232,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
         const mergeW = merge.getBoundingClientRect().width;
         const railW = merge.querySelector(":scope > .lab-rail")?.getBoundingClientRect().width ?? 0;
         const detailW = merge.querySelector(":scope > .pareto-catalog-detail")?.getBoundingClientRect().width ?? 0;
-        const flexible = Math.max(0, mergeW - railW - detailW - (wall ? 64 : 32));
+        const flexible = Math.max(0, mergeW - railW - detailW - (wall ? 200 : 32));
         const paretoFloor = Math.max(wall ? 900 : 340, flexible * 0.58);
         const catalogMax = Math.max(columns * 48, flexible - paretoFloor);
         const sizeFromWidth = Math.floor((catalogMax - (wall ? 56 : 28) - gap * (columns - 1)) / columns);
@@ -264,7 +264,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
   }, [selectedKey]);
   const appliedFocus = useRef<string | null>(null);
   const selected = archetype?.candidates.find((candidate) => candidate.key === selectedKey) ?? null;
-  const cardGap = wall ? 12 : 8;
+  const cardGap = wall ? 40 : 8;
   const onSaved = useCallback(() => setInkRevision(Date.now()), []);
   const pageSize = Math.max(1, fit.columns * archiveRows);
 
@@ -357,13 +357,6 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
           onPick={choose}
           chosen={(id) => Boolean(selections[id])}
           disabled={(id) => !catalog.archetypes.some((entry) => entry.archetypeId === id)}
-          note={(id) => {
-            const run = catalog.archetypes.find((entry) => entry.archetypeId === id);
-            if (!run) return "";
-            if (run.completedGenerations < run.generationCount) return ` ${run.completedGenerations}/${run.generationCount}`;
-            const count = catalogDrawings(run.candidates).length;
-            return count ? ` · ${count}` : "";
-          }}
         />
 
         <ParetoBoard
@@ -500,7 +493,13 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
                     </dd>
                   </div>
                 </dl>
-                <button type="button" className="archive-handoff" disabled={saving} onClick={commitSelection}>
+                <button
+                  type="button"
+                  className="archive-handoff"
+                  data-chosen={chosenHere || undefined}
+                  disabled={saving}
+                  onClick={commitSelection}
+                >
                   {chosenHere ? "Selected" : "Select morphology"}
                 </button>
                 {chosenHere && committed ? (

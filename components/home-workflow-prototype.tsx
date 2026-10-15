@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { GenerativeSystemTracks } from "@/components/home-generative-system";
+import { OptimizationWorkflowLayer } from "@/components/home-optimization-workflow";
 import { PrecedentDiagram } from "@/components/home-precedent";
 import { SKILL_WORKFLOW_STEPS } from "@/lib/home-workflow-steps";
 import { WorkflowLightCircles, WorkflowLightFilter } from "@/components/workflow-light";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import {
+  boardLayoutSignature,
+  OPTIMIZATION_BOARD_STOPS,
   WORKFLOW_BOARD_STOPS,
   workflowBoardStops,
   WORKFLOW_CARD,
@@ -643,6 +646,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const linked = stage.id !== "decomposition" && !stage.detailAsset;
+  const optimization = stage.id === "skill-2";
 
   useEffect(() => {
     const dot = dotRef.current;
@@ -661,21 +665,35 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
     let frame = 0;
     let last = performance.now();
     let alive = true;
+    let layout = "";
+    let tick = 0;
+    const routeNodes = () => [
+      ...board.querySelectorAll<HTMLElement>(".wf-frame"),
+      ...board.querySelectorAll<HTMLElement>("[data-route-end]"),
+    ];
+    const signature = () => boardLayoutSignature(board, routeNodes());
     const measure = () => {
+      layout = signature();
       const width = board.clientWidth;
       const height = board.clientHeight;
       if (width < 2 || height < 2) return;
       const box = board.getBoundingClientRect();
-      const frames = [...board.querySelectorAll<HTMLElement>(".wf-frame")].map((node) => {
+      const scale = box.width / width || 1;
+      let detailRadius: number | null = null;
+      const frames = routeNodes().map((node) => {
         const rect = node.getBoundingClientRect();
-        const full = frameRadius(rect.width, rect.height);
-        const radius = node.classList.contains("is-detail") ? full * 0.5 : full;
+        const frameWidth = rect.width / scale;
+        const frameHeight = rect.height / scale;
+        const full = frameRadius(frameWidth, frameHeight);
+        const detail = node.classList.contains("is-detail");
+        const radius = node.hasAttribute("data-route-end") ? detailRadius ?? full * 0.5 : detail ? full * 0.5 : full;
+        if (detail) detailRadius ??= radius;
         node.style.borderRadius = `${radius}px`;
         return {
           id: node.dataset.frame ?? "",
-          center: { x: rect.left - box.left + rect.width / 2, y: rect.top - box.top + rect.height / 2 },
-          width: rect.width,
-          height: rect.height,
+          center: { x: (rect.left - box.left) / scale + frameWidth / 2, y: (rect.top - box.top) / scale + frameHeight / 2 },
+          width: frameWidth,
+          height: frameHeight,
           radius,
         };
       });
@@ -696,7 +714,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       const pose = route.pose(t);
       const nextLit = pose.phase === "frame" ? pose.nodeId : null;
       if (nextLit !== litId) {
-        board.querySelectorAll<HTMLElement>(".wf-frame.is-lit").forEach((node) => node.classList.remove("is-lit"));
+        routeNodes().forEach((node) => node.classList.remove("is-lit"));
         if (nextLit) board.querySelector(`[data-frame="${nextLit}"]`)?.classList.add("is-lit");
         litId = nextLit;
       }
@@ -722,6 +740,8 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           dir = 1;
         }
       }
+      tick = (tick + 1) % 8;
+      if (tick === 0 && signature() !== layout) measure();
       place();
       frame = requestAnimationFrame(loop);
     };
@@ -733,6 +753,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       place();
     });
     observer.observe(board);
+    routeNodes().forEach((node) => observer.observe(node));
     return () => {
       alive = false;
       cancelAnimationFrame(frame);
@@ -741,7 +762,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   }, [linked, run, stage.id]);
 
   return (
-    <article className="wf-board" data-tone={stage.tone} data-steps={SKILL_WORKFLOW_STEPS[stage.id]?.length} ref={boardRef} aria-label={stage.label}>
+    <article className="wf-board" data-stage={stage.id} data-tone={stage.tone} data-steps={SKILL_WORKFLOW_STEPS[stage.id]?.length} ref={boardRef} aria-label={stage.label}>
       {stage.id === "decomposition" ? (
         <PrecedentDiagram />
       ) : stage.detailAsset ? (
@@ -760,7 +781,10 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
             </defs>
             <path ref={pathRef} />
           </svg>
-          {(SKILL_WORKFLOW_STEPS[stage.id] ? workflowBoardStops(SKILL_WORKFLOW_STEPS[stage.id].length) : WORKFLOW_BOARD_STOPS).map((stop, stopIndex) => {
+          {optimization ? (
+            <OptimizationWorkflowLayer cycle={SKILL_WORKFLOW_STEPS[stage.id]?.find((step) => step.cycle)?.cycle ?? ""} />
+          ) : null}
+          {(optimization ? OPTIMIZATION_BOARD_STOPS : SKILL_WORKFLOW_STEPS[stage.id] ? workflowBoardStops(SKILL_WORKFLOW_STEPS[stage.id].length) : WORKFLOW_BOARD_STOPS).map((stop, stopIndex) => {
             const step = SKILL_WORKFLOW_STEPS[stage.id]?.[stopIndex];
             return (
               <span
@@ -774,7 +798,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
                   <>
                     <p className="wf-proto-label">{step.title}</p>
                     <p className="wf-frame-body">{step.body}</p>
-                    {step.cycle ? <p className="wf-frame-cycle">{step.cycle}</p> : null}
+                    {step.cycle && !optimization ? <p className="wf-frame-cycle">{step.cycle}</p> : null}
                   </>
                 ) : null}
               </span>

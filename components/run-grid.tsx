@@ -1175,9 +1175,9 @@ export function RunGrid({ view = "runs" }: { view?: "runs" | "catalog" }) {
               style={{
                 gridTemplateColumns: `repeat(${catalogColumns}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${catalogRows}, minmax(0, 1fr))`,
-                gap: wall ? 12 : 8,
+                gap: wall ? 40 : 8,
                 ["--catalog-rows" as string]: catalogRows,
-                ["--catalog-gap" as string]: wall ? "12px" : "8px",
+                ["--catalog-gap" as string]: wall ? "40px" : "8px",
               }}
             >
               {catalog.slice(pageStart, pageStart + pageSize).map((entry, offset) => (

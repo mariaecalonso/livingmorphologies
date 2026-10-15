@@ -6,6 +6,12 @@ export const SITE_DISPLAY_KEY = "lm-site-display";
 export const LAB_DISPLAY_KEY = "lm-view-mode";
 export const LAB_DISPLAY_EVENT = "lm-view-mode-change";
 
+/**
+ * Desktop and its website pair, Laptop, are archived.
+ * Presentation and Classroom are the only live scale. Set this to false to restore the switch.
+ */
+export const DESKTOP_MODE_ARCHIVED = true;
+
 /** Main Classroom is Lab Presentation. Main Laptop is Lab Desktop. */
 export function labModeForSite(mode: SiteDisplay): DisplayMode {
   return mode === "classroom" ? "presentation" : "desktop";
@@ -31,14 +37,24 @@ function writePair(site: SiteDisplay, lab: DisplayMode) {
   window.dispatchEvent(new Event(LAB_DISPLAY_EVENT));
 }
 
+function liveSite(site: SiteDisplay): SiteDisplay {
+  return DESKTOP_MODE_ARCHIVED ? "classroom" : site;
+}
+
+function liveLab(lab: DisplayMode): DisplayMode {
+  return DESKTOP_MODE_ARCHIVED ? "presentation" : lab;
+}
+
 /** Main site is authoritative, so entering the Lab opens the paired mode. */
 export function syncLabFromSite(site: SiteDisplay) {
-  writePair(site, labModeForSite(site));
+  const next = liveSite(site);
+  writePair(next, labModeForSite(next));
 }
 
 /** Lab is authoritative, so leaving the Lab restores the paired main-site mode. */
 export function syncSiteFromLab(lab: DisplayMode) {
-  writePair(siteModeForLab(lab), lab);
+  const next = liveLab(lab);
+  writePair(siteModeForLab(next), next);
 }
 
 /**
@@ -46,6 +62,10 @@ export function syncSiteFromLab(lab: DisplayMode) {
  * A missing site mode adopts the Lab pair.
  */
 export function reconcileSiteDisplay(): SiteDisplay {
+  if (DESKTOP_MODE_ARCHIVED) {
+    syncLabFromSite("classroom");
+    return "classroom";
+  }
   const site = readStoredSite();
   if (site) {
     syncLabFromSite(site);
@@ -61,6 +81,10 @@ export function reconcileSiteDisplay(): SiteDisplay {
  * A missing Lab mode adopts the main-site pair. Intra-Lab navigation does not call this again.
  */
 export function reconcileLabDisplay(): DisplayMode {
+  if (DESKTOP_MODE_ARCHIVED) {
+    syncSiteFromLab("presentation");
+    return "presentation";
+  }
   const lab = readStoredLab();
   if (lab) {
     syncSiteFromLab(lab);

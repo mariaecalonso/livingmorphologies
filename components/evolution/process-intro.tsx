@@ -547,14 +547,6 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
   const selection = selections[EXAMPLE_ID] ?? null;
   const filedPick = (archetypeId: string) => picks.find((pick) => pick.archetypeId === archetypeId);
   const withImage = candidates.filter((candidate) => candidate.image);
-  const nonDominated = withImage.find((candidate) => candidate.pareto || candidate.archived) ?? null;
-  const diversityKept =
-    withImage.find(
-      (candidate) =>
-        candidate.diversity === "tag" ||
-        candidate.diversity === "rescue" ||
-        candidate.preservationRoles?.includes("diversity"),
-    ) ?? null;
   const voidShots = withImage.map((candidate) => candidate.image as string);
   const physarumField = voidShots[0] ?? null;
   const physarumCatalog = Array.from({ length: 6 }, (_, index) => voidShots[index + 1] ?? null);
@@ -582,6 +574,16 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
   const rememberVerticalVoid = () => {
     window.sessionStorage.setItem(ARCHETYPE_STORAGE_KEY, EXAMPLE_ID);
   };
+  const keptCount = candidates.filter(
+    (candidate) =>
+      candidate.archived ||
+      (candidate.preservationRoles?.length ?? 0) > 0 ||
+      candidate.diversity === "tag" ||
+      candidate.diversity === "rescue",
+  ).length;
+  const paretoCount = candidates.filter((candidate) => candidate.pareto).length;
+  const dominatedCount = candidates.filter((candidate) => !candidate.pareto && !candidate.archived).length;
+  const voidHandoff = savedPicks.find((item) => item.id === EXAMPLE_ID) ?? null;
 
   return (
     <main className="evo-page process-page">
@@ -663,30 +665,47 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
                 null;
               const shares = [
                 ["explorer", "Explorers", row.explorers],
-                ["pareto", "Non-dominated", row.pareto],
+                ["pareto", "Nondominated", row.pareto],
                 ["diversity", "Diversity", row.diversity],
               ] as const;
+              const generation = archetype?.generations.find((item) => item.index === row.generation) ?? null;
+              const born = candidates.filter((candidate) => candidate.generation === row.generation);
+              const bornPareto = born.filter((candidate) => candidate.pareto).length;
+              const bornArchive = born.filter((candidate) => candidate.archived).length;
               return (
                 <article key={row.id} className="evo-gen-frame">
-                  <header>
-                    <p className="eyebrow">{GENERATION_ROLE[index].title}</p>
+                  <header className="evo-gen-head">
                     <h2>Generation {String(row.generation).padStart(2, "0")}</h2>
                   </header>
-                  <p className="evo-gen-why">{GENERATION_ROLE[index].why}</p>
-                  <figure className="evo-gen-shot glass-plate">
-                    <EvolutionImage src={shot?.image ?? null} />
-                  </figure>
-                  <ul className="evo-gen-mix">
-                    {shares.map(([tone, label, count]) => (
-                      <li key={tone} data-tone={tone}>
-                        <span>{label}</span>
-                        <b>{row.generation === 1 && tone !== "explorer" ? "—" : shareLabel(count, row.total)}</b>
-                        <i>
-                          <b style={{ width: shareLabel(count, row.total) }} />
-                        </i>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="evo-gen-body">
+                    <figure className="evo-gen-shot glass-plate">
+                      <EvolutionImage src={shot?.image ?? null} />
+                    </figure>
+                    <div className="evo-gen-read">
+                      <p className="evo-gen-kicker">Population distribution</p>
+                      <ul className="evo-gen-mix">
+                        {shares.map(([tone, label, count]) => (
+                          <li key={tone} data-tone={tone}>
+                            <span>{label}</span>
+                            <b>{row.generation === 1 && tone !== "explorer" ? "—" : shareLabel(count, row.total)}</b>
+                            <i style={{ ["--share" as string]: shareLabel(count, row.total) }}>
+                              <b />
+                            </i>
+                          </li>
+                        ))}
+                      </ul>
+                      <footer className="evo-gen-foot">
+                        <span>
+                          {generation
+                            ? `Evaluated ${generation.evaluated} / Feasible ${generation.feasible} / Pareto ${generation.pareto} / Archive ${generation.archived}`
+                            : born.length
+                              ? `${born.length} morphologies / Pareto ${bornPareto} / Archive ${bornArchive}`
+                              : "Pending"}
+                        </span>
+                        <p>{GENERATION_ROLE[index].title}</p>
+                      </footer>
+                    </div>
+                  </div>
                 </article>
               );
             })}
@@ -702,71 +721,74 @@ export function ProcessIntro({ initial, picks }: { initial: EvolutionCatalog; pi
                 <p>The Pareto front, the roles that keep a morphology, and the human selection.</p>
               </div>
             </header>
-            <div className="so-top">
-              <article className="so-panel">
-                <header>
-                  <div>
-                    <h3>Pareto</h3>
-                    <p>The non-dominated set, continued on the Pareto tab.</p>
-                  </div>
-                  <MetricInfo label="Pareto" sections={EXPLAIN.pareto} />
-                </header>
-                <Link href={paretoHref} className="so-plot" aria-label="Open the Pareto graph" onClick={rememberVerticalVoid}>
-                  <ParetoCloud candidates={candidates} />
-                </Link>
-                <ul className="pareto-legend so-plot-key">
-                  <li data-state="dominated">Dominated</li>
-                  <li data-state="pareto">Non-dominated</li>
-                  <li data-state="archive">Kept</li>
-                </ul>
-              </article>
-              <article className="so-panel so-roles">
-                <header>
-                  <div>
-                    <h3>Preservation roles</h3>
-                    <p>Specialists are off. A morphology is kept for one of these roles.</p>
-                  </div>
-                  <MetricInfo label="Preservation roles" sections={EXPLAIN.preservation} />
-                </header>
-                <ul className="so-role-list">
-                  <li data-tone="pareto">
-                    <strong>Non-dominated</strong>
-                    <p>Nothing else is at least as strong on all three objectives and stronger on one.</p>
-                    <span className="so-well glass-plate">
-                      <EvolutionImage src={nonDominated?.image ?? null} />
+            <article className="so-panel so-zone so-zone-pareto">
+              <header>
+                <div>
+                  <h3>Pareto analysis</h3>
+                  <p>The non-dominated set, continued on the Pareto tab.</p>
+                </div>
+                <MetricInfo label="Pareto" sections={EXPLAIN.pareto} />
+              </header>
+              <Link href={paretoHref} className="so-plot" aria-label="Open the Pareto graph" onClick={rememberVerticalVoid}>
+                <ParetoCloud candidates={candidates} />
+              </Link>
+              <ul className="pareto-legend so-plot-key">
+                <li data-state="dominated">Dominated</li>
+                <li data-state="pareto">Non-dominated</li>
+                <li data-state="archive">Kept</li>
+              </ul>
+            </article>
+            <article className="so-panel so-zone so-zone-eval">
+              <header>
+                <div>
+                  <h3>Preservation and evaluation</h3>
+                </div>
+                <MetricInfo label="Preservation roles" sections={EXPLAIN.preservation} />
+              </header>
+              <div className="so-eval-split">
+                <div>
+                  <h4>Morphological preservation</h4>
+                  <p>
+                    {candidates.length === 0
+                      ? "Pending"
+                      : `${keptCount} kept. A morphology stays for a non-dominated role or a diversity role.`}
+                  </p>
+                </div>
+                <div>
+                  <h4>Multiobjective evaluation</h4>
+                  <p>
+                    {candidates.length === 0
+                      ? "Pending"
+                      : `Pareto ${paretoCount}. Dominated ${dominatedCount}. Formal, Spatial, and Atmospheric stay separate.`}
+                  </p>
+                </div>
+              </div>
+            </article>
+            <article className="so-panel so-zone so-zone-select">
+              <header>
+                <div>
+                  <h3>Human selection</h3>
+                  <p>Saved drawings, one for each archetype, with the scores from the search.</p>
+                </div>
+                <MetricInfo label="Human selection" sections={EXPLAIN.selection} />
+              </header>
+              <ul className="so-saved">
+                {savedPicks.map((item) => (
+                  <li key={item.id} aria-label={item.picked ? `${item.name}. ${item.meta}` : item.name}>
+                    <span className="glass-plate" data-chosen={item.picked || undefined}>
+                      <EvolutionImage src={item.image} />
                     </span>
+                    <span className="so-saved-name">{item.name}</span>
+                    <span className="so-saved-meta">{item.picked ? item.meta : "Not selected"}</span>
                   </li>
-                  <li data-tone="diversity">
-                    <strong>Morphological diversity</strong>
-                    <p>The phenotype sits apart from the morphologies already kept, so the catalog does not collapse to one shape.</p>
-                    <span className="so-well glass-plate">
-                      <EvolutionImage src={diversityKept?.image ?? null} />
-                    </span>
-                  </li>
-                </ul>
-              </article>
-            </div>
-            <span className="source-arrow" aria-hidden="true" />
-            <div className="so-bottom">
-              <article className="so-panel">
-                <header>
-                  <div>
-                    <h3>Human selection</h3>
-                    <p>Saved drawings, one for each archetype, with the scores from the search.</p>
-                  </div>
-                  <MetricInfo label="Human selection" sections={EXPLAIN.selection} />
-                </header>
-                <ul className="so-saved">
-                  {savedPicks.map((item) => (
-                    <li key={item.id} aria-label={item.picked ? `${item.name}. ${item.meta}` : item.name}>
-                      <span className="glass-plate" data-chosen={item.picked || undefined}>
-                        <EvolutionImage src={item.image} />
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            </div>
+                ))}
+              </ul>
+              <p className="so-handoff">
+                {voidHandoff?.picked
+                  ? `${voidHandoff.name} ${voidHandoff.meta} continues to vertical propagation.`
+                  : "Vertical Void is not selected."}
+              </p>
+            </article>
           </div>
         </section>
       </div>

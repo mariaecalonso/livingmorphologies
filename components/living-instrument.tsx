@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArchetypeRail } from "@/components/archetype-rail";
 import { AxonModel, SectionDrawing } from "@/components/drawings";
+import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import { useViewMode } from "@/components/view-mode";
 import {
@@ -170,7 +171,7 @@ export function LivingInstrument() {
     showAttraction: true,
   });
   const [targetIterations, setTargetIterations] = useState(DISPLAY_ITERATIONS);
-  const displayMode: DisplayMode = useViewMode() ?? "desktop";
+  const displayMode: DisplayMode = useViewMode() ?? (DESKTOP_MODE_ARCHIVED ? "presentation" : "desktop");
   const [workspace] = useState<"skill1" | "skill2-audit">("skill1");
   const [carveThreshold, setCarveThreshold] = useState(DIRECT_CARVE_THRESHOLD);
   const [slime, setSlime] = useState<SlimeControls | null>(null);

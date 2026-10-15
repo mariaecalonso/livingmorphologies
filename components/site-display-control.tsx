@@ -2,12 +2,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { reconcileSiteDisplay, syncLabFromSite, type SiteDisplay } from "@/components/display-sync";
+import { DESKTOP_MODE_ARCHIVED, reconcileSiteDisplay, syncLabFromSite, type SiteDisplay } from "@/components/display-sync";
 import { IDENTITY_VIEWPORT, bindViewportEdit, resetViewport, type Viewport } from "@/components/viewport-edit";
 
 export function SiteDisplayControl() {
   const pathname = usePathname();
-  const [mode, setMode] = useState<SiteDisplay>("laptop");
+  const [mode, setMode] = useState<SiteDisplay>(DESKTOP_MODE_ARCHIVED ? "classroom" : "laptop");
   const [editing, setEditing] = useState(false);
   const viewRef = useRef<Viewport>({ ...IDENTITY_VIEWPORT });
   const resetRef = useRef<HTMLButtonElement>(null);
@@ -82,29 +82,31 @@ export function SiteDisplayControl() {
           Edit
         </button>
       ) : null}
-      <button
-        type="button"
-        className="site-display-control"
-        aria-pressed={mode === "classroom"}
-        aria-label={`${label} resolution. Switch to ${next} resolution`}
-        onClick={() => {
-          const following = mode === "laptop" ? "classroom" : "laptop";
-          syncLabFromSite(following);
-          setMode(following);
-        }}
-      >
-        {mode === "laptop" ? (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="5" y="5" width="14" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M3 18.5h18" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="2" y="6" width="20" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M9 20h6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        )}
-      </button>
+      {DESKTOP_MODE_ARCHIVED ? null : (
+        <button
+          type="button"
+          className="site-display-control"
+          aria-pressed={mode === "classroom"}
+          aria-label={`${label} resolution. Switch to ${next} resolution`}
+          onClick={() => {
+            const following = mode === "laptop" ? "classroom" : "laptop";
+            syncLabFromSite(following);
+            setMode(following);
+          }}
+        >
+          {mode === "laptop" ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="5" width="14" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M3 18.5h18" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="2" y="6" width="20" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M9 20h6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   );
 }

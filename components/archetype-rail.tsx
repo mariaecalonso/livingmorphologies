@@ -53,6 +53,7 @@ export function ArchetypeRail({
                     type="button"
                     disabled={off}
                     title={off ? "Search not run yet" : undefined}
+                    data-active={active || undefined}
                     data-chosen={chosen?.(item.id) ? "true" : undefined}
                     onClick={() => {
                       if (!off) onPick(item.id);

@@ -591,7 +591,6 @@ export function VerticalProcess({
   const specialist = specialistRole(semantic?.specialist ?? undefined);
   const context = [
     typology,
-    archetypeName,
     candidateId != null ? `Candidate ${candidateId}` : "No candidate",
     z0Iteration != null ? `Z0 ${z0Iteration}` : error ? "Handoff validation failed" : pending ? "Checking handoff" : "Z0 withheld",
   ].join(" · ");
@@ -645,27 +644,20 @@ export function VerticalProcess({
 
   return (
     <main className="evo-page vertical-process" data-origin={activeSet?.origin ?? "pending"} data-handoff={handoffFailed ? "failed" : undefined}>
-      <header className="evo-header">
-        <div>
-          <p className="display evo-header-title">Vertical Propagation</p>
-          <p className="eyebrow evo-header-detail">{context}</p>
-        </div>
-        {fixtureActive ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
-        {verifiedZ0 ? <p className="eyebrow vertical-process-flag">Skill 2 → Skill 3 · Verified Z0</p> : null}
-        {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-        <div data-temporary="skill3-run">
-          <button type="button" onClick={loadOneSelection} disabled={Boolean(initial || candidate)}>Load Skill 2 selection</button>
-          <button type="button" onClick={beginContinuation} disabled={!source || pending || Boolean(initial)}>Run vertical propagation</button>
-          <button type="button" onClick={saveOneResult} disabled={!shown || activeSet?.origin !== "handoff"}>Save result</button>
-          {saveNote ? <span>{saveNote}</span> : null}
-        </div>
-      </header>
-
       <div className="vertical-process-body">
         <div className="vertical-process-inputs" aria-label="Skill 2 Input">
           <section className="vertical-process-frame vertical-process-input-identity">
             <h2 className="panel-title">{archetypeName}</h2>
-            <p className="vertical-process-note">{candidateId != null ? `Candidate ${candidateId}` : "Candidate waiting"}</p>
+            <p className="vertical-process-note">{context}</p>
+            {fixtureActive ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
+            {verifiedZ0 ? <p className="eyebrow vertical-process-flag">Skill 2 → Skill 3 · Verified Z0</p> : null}
+            {preview || activeSet?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
+            <div className="vertical-process-actions" data-temporary="skill3-run">
+              <button type="button" onClick={loadOneSelection} disabled={Boolean(initial || candidate)}>Load Skill 2 selection</button>
+              <button type="button" onClick={beginContinuation} disabled={!source || pending || Boolean(initial)}>Run vertical propagation</button>
+              <button type="button" onClick={saveOneResult} disabled={!shown || activeSet?.origin !== "handoff"}>Save result</button>
+              {saveNote ? <span>{saveNote}</span> : null}
+            </div>
           </section>
           <section className="vertical-process-frame vertical-process-input-descriptors" aria-label="Inherited descriptors">
             <dl>
