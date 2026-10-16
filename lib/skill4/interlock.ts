@@ -1,4 +1,6 @@
 import type { IsoMesh } from "../scan/isomesh";
+import type { ModuleHandoff } from "./adapt";
+import { inwardSurfaceDistance, placeTileMesh } from "./boolean-execution";
 import type { AggregationConnection, AggregationResult } from "./aggregation";
 import type { FaceId, Vec3 } from "./contract";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
@@ -10,8 +12,9 @@ import type { TileInstance } from "./tiles";
  * Tile meshes and stored hybrids are not cut, unioned, or rewritten.
  */
 export const INTERLOCK_SETTINGS = {
-  version: "skill4-interlock-v1",
-  attachmentDepth: 0.08,
+  version: "skill4-interlock-v2",
+  minimumDepth: 0.02,
+  maximumDepth: 1,
 } as const;
 
 export type InterlockStatus = "ready" | "not-ready" | "blocked" | "invalid" | "unresolved";
@@ -60,8 +63,12 @@ export function interlockAssemblyLabel(status: InterlockAssemblyStatus) {
   return "NOT READY";
 }
 
-export function buildInterlocks(aggregation: AggregationResult, tiles: readonly TileInstance[]): InterlockResult {
-  const connections = aggregation.connections.map((connection) => buildConnection(connection, tiles));
+export function buildInterlocks(
+  aggregation: AggregationResult,
+  tiles: readonly TileInstance[],
+  loaded?: ReadonlyMap<string, ModuleHandoff>,
+): InterlockResult {
+  const connections = aggregation.connections.map((connection) => buildConnection(connection, tiles, loaded));
   const readyCount = connections.filter((item) => item.status === "ready").length;
   const failedCount = connections.length - readyCount;
   const status: InterlockAssemblyStatus = connections.length > 0 && readyCount === connections.length
@@ -72,7 +79,11 @@ export function buildInterlocks(aggregation: AggregationResult, tiles: readonly 
   return { connections, readyCount, failedCount, status };
 }
 
-function buildConnection(connection: AggregationConnection, tiles: readonly TileInstance[]): InterlockConnection {
+function buildConnection(
+  connection: AggregationConnection,
+  tiles: readonly TileInstance[],
+  loaded?: ReadonlyMap<string, ModuleHandoff>,
+): InterlockConnection {
   const blank = empty(connection);
   if (connection.status === "blocked") return { ...blank, status: "blocked" };
   if (connection.status === "invalid") return { ...blank, status: "invalid" };
@@ -80,8 +91,10 @@ function buildConnection(connection: AggregationConnection, tiles: readonly Tile
     return { ...blank, status: "not-ready" };
   }
   const layout = ringLayout(connection.geometry);
-  const sideA = endVolume(connection.geometry, 0, layout, connection.contactA, connection.tileA, tiles);
-  const sideB = endVolume(connection.geometry, layout ? layout.steps - 1 : 0, layout, connection.contactB, connection.tileB, tiles);
+  const ringA = layout ? nearerRing(connection.geometry, layout, connection.contactA.center, connection.contactB.center, "a") : 0;
+  const ringB = layout ? nearerRing(connection.geometry, layout, connection.contactA.center, connection.contactB.center, "b") : 0;
+  const sideA = endVolume(connection.geometry, ringA, layout, connection.contactA, connection.tileA, tiles, loaded);
+  const sideB = endVolume(connection.geometry, ringB, layout, connection.contactB, connection.tileB, tiles, loaded);
   if (!sideA || !sideB) return { ...blank, status: "unresolved" };
   return {
     connectionId: connection.connectionId,
@@ -106,6 +119,7 @@ function endVolume(
   contact: NonNullable<AggregationConnection["contactA"]>,
   tileId: string,
   tiles: readonly TileInstance[],
+  loaded?: ReadonlyMap<string, ModuleHandoff>,
 ) {
   if (!layout) return null;
   const inward = inwardDirection(contact.normal);
@@ -114,7 +128,10 @@ function endVolume(
   const towardTile = sub(tile.transform, contact.center);
   if (dot(inward, towardTile) <= 1e-4) return null;
   const ringPoints = readRing(connector, ring, layout.sampleCount);
-  const depth = INTERLOCK_SETTINGS.attachmentDepth;
+  const travel = surfaceTravel(ringPoints, inward, tile, loaded);
+  const depth = travel == null
+    ? requiredDepth(ringPoints, inward, contact.center)
+    : Math.min(INTERLOCK_SETTINGS.maximumDepth, Math.max(INTERLOCK_SETTINGS.minimumDepth, travel + INTERLOCK_SETTINGS.minimumDepth));
   const mesh = insertionVolume(ringPoints, inward, depth);
   const interfaceCenter = centroid(ringPoints);
   const innerCenter = centroid(ringPoints.map((point) => add(point, scale(inward, depth))));
@@ -134,6 +151,42 @@ function endVolume(
       pointsIntoTile: true,
     },
   };
+}
+
+function nearerRing(
+  connector: IsoMesh,
+  layout: { sampleCount: number; steps: number },
+  centerA: Vec3,
+  centerB: Vec3,
+  side: "a" | "b",
+) {
+  const first = centroid(readRing(connector, 0, layout.sampleCount));
+  const last = centroid(readRing(connector, layout.steps - 1, layout.sampleCount));
+  const firstIsA = distance(first, centerA) <= distance(last, centerA);
+  if (side === "a") return firstIsA ? 0 : layout.steps - 1;
+  return firstIsA ? layout.steps - 1 : 0;
+}
+
+function surfaceTravel(
+  ring: readonly Vec3[],
+  inward: Vec3,
+  tile: TileInstance,
+  loaded?: ReadonlyMap<string, ModuleHandoff>,
+) {
+  const source = loaded?.get(tile.archetypeId);
+  if (!source || source.status !== "ready") return null;
+  const placed = placeTileMesh(source.geometry, tile);
+  if (!placed) return null;
+  const hits = [centroid(ring), ...ring]
+    .map((point) => inwardSurfaceDistance(point, inward, placed))
+    .filter((value): value is number => value != null)
+    .sort((a, b) => a - b);
+  return hits.length > 0 ? hits[Math.floor(hits.length / 2)] : null;
+}
+
+function requiredDepth(ring: readonly Vec3[], inward: Vec3, contact: Vec3) {
+  const ahead = dot(sub(contact, centroid(ring)), inward);
+  return Math.min(INTERLOCK_SETTINGS.maximumDepth, Math.max(INTERLOCK_SETTINGS.minimumDepth, ahead));
 }
 
 function inwardDirection(normal: Vec3): Vec3 | null {

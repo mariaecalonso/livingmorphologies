@@ -146,15 +146,17 @@ async function main() {
   assert(interlocks.status === "ready" && interlocks.connections[0]?.insertionA != null && interlocks.connections[0].insertionB != null, "interlock builds both insertion volumes");
   const plan = buildBooleanPlan(interlocks);
   assert(plan.status === "ready" && plan.connections[0]?.connectorGeometry !== null && plan.connections[0].connectorGeometry !== selected.geometry, "the boolean plan records the placed connector, not the stored loft");
-  const beforeInsertion = Float32Array.from(plan.connections[0].connectorOperation!.insertionA.positions);
+  assert(plan.connections[0]?.participants.length === 3, "the boolean plan requires both parents and the hybrid");
+  const beforeInsertion = Float32Array.from(interlocks.connections[0].insertionA!.positions);
   const beforePlaced = Float32Array.from(plan.connections[0].connectorGeometry!.positions);
   const execution = await executeBooleanAssembly(plan, tiles, loaded);
-  assert(execution.status === "ready" && execution.assembly.kernelStatus === "NoError", "boolean execution joins the synthetic assembly");
+  assert(execution.status === "ready" && execution.assembly.kernelStatus === "NoError" && execution.assembly.componentCount === 1 && execution.assembly.boundaryEdgeCount === 0, "boolean execution joins the synthetic assembly");
   assert(execution.connections[0]?.connectorConditionStatus === "closed" && execution.connections[0].connectorSourceOpen === true, "execution closes a derived connector");
+  assert(execution.connections[0]?.parentAPresent && execution.connections[0].hybridPresent && execution.connections[0].parentBPresent, "both parents and the hybrid stay in the join");
   assert(execution.tiles.every((tile) => tile.readiness?.booleanReady && tile.derivedGeometry && tile.derivedGeometry.positions !== moduleA.geometry.positions), "tile booleans use derived copies");
   assert(execution.connections[0]?.derivedConnector !== selected.geometry, "the closed connector is not the stored loft");
   assert(same(moduleA.geometry.positions, beforeA) && same(moduleB.geometry.positions, beforeB), "source module meshes stay unchanged");
-  assert(same(selected.geometry.positions, beforeConnector) && same(plan.connections[0].connectorGeometry!.positions, beforePlaced) && same(plan.connections[0].connectorOperation!.insertionA.positions, beforeInsertion), "stored connector, placed connector, and insertion buffers stay unchanged");
+  assert(same(selected.geometry.positions, beforeConnector) && same(plan.connections[0].connectorGeometry!.positions, beforePlaced) && same(interlocks.connections[0].insertionA!.positions, beforeInsertion), "stored connector, placed connector, and insertion buffers stay unchanged");
 
   const turned = tiles.map((tile) => tile.instanceId === "A"
     ? { ...tile, rotationQuarter: 1 as const }

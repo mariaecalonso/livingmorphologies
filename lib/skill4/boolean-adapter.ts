@@ -94,7 +94,53 @@ export async function booleanUnion(source: IsoMesh, tool: IsoMesh): Promise<Bool
   return operate(source, tool, "union");
 }
 
-async function operate(source: IsoMesh, tool: IsoMesh, operation: "difference" | "union"): Promise<BooleanIsoResult> {
+export async function booleanVolume(mesh: IsoMesh): Promise<number | null> {
+  const probe = await isoMeshToBooleanMesh(mesh);
+  const held = probe.mesh ? asHeld(probe.mesh) : null;
+  if (!held) {
+    probe.mesh?.release();
+    return null;
+  }
+  try {
+    return held.manifold.volume();
+  } finally {
+    held.release();
+  }
+}
+
+/** Volume of `container ∩ part` divided by the volume of `part`. */
+export async function containedVolumeRatio(container: IsoMesh, part: IsoMesh): Promise<number | null> {
+  const wasm = await loadBooleanKernel();
+  const holder = await isoMeshToBooleanMesh(container);
+  const piece = await isoMeshToBooleanMesh(part);
+  const left = holder.mesh ? asHeld(holder.mesh) : null;
+  const right = piece.mesh ? asHeld(piece.mesh) : null;
+  if (!left || !right) {
+    holder.mesh?.release();
+    piece.mesh?.release();
+    return null;
+  }
+  let hit: { status(): string; isEmpty(): boolean; volume(): number; delete(): void } | null = null;
+  try {
+    const partVolume = right.manifold.volume();
+    if (!(partVolume > 1e-12)) return null;
+    hit = wasm.Manifold.intersection(left.manifold, right.manifold);
+    if (hit.status() !== "NoError" || hit.isEmpty()) return 0;
+    return hit.volume() / partVolume;
+  } catch {
+    return null;
+  } finally {
+    hit?.delete();
+    left.release();
+    right.release();
+  }
+}
+
+export async function booleanIntersection(source: IsoMesh, tool: IsoMesh): Promise<BooleanIsoResult> {
+  return operate(source, tool, "intersection");
+}
+
+async function operate(source: IsoMesh, tool: IsoMesh, operation: "difference" | "union" | "intersection"): Promise<BooleanIsoResult> {
   const left = await isoMeshToBooleanMesh(source);
   if (!left.mesh) return { status: left.status, mesh: null, reason: left.reason, kernelStatus: null };
   const right = await isoMeshToBooleanMesh(tool);
@@ -110,7 +156,11 @@ async function operate(source: IsoMesh, tool: IsoMesh, operation: "difference" |
     return { status: "invalid-input", mesh: null, reason: "foreign-boolean-mesh", kernelStatus: null };
   }
   try {
-    const combined = operation === "difference" ? a.manifold.subtract(b.manifold) : a.manifold.add(b.manifold);
+    const combined = operation === "difference"
+      ? a.manifold.subtract(b.manifold)
+      : operation === "intersection"
+        ? a.manifold.intersect(b.manifold)
+        : a.manifold.add(b.manifold);
     const status = combined.status();
     if (status !== "NoError" || combined.isEmpty()) {
       combined.delete();

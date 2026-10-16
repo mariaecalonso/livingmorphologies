@@ -1,0 +1,465 @@
+import type { FaceId, Vec3 } from "./contract";
+import { faceFrames, groundPlaneY, registrationEnvelope, VIEW_SCAN } from "./contract";
+import type { TileConnection } from "./connections";
+import { basisDeterminant, manualBasis, rotateByBasis, type Mat3 } from "./tile-basis";
+import { HYBRID_GAP, type TileInstance } from "./tiles";
+
+/**
+ * Turns placed tiles so the selected connection faces oppose across the hybrid gap.
+ * The source mesh is not written. Manual Rotate 90 and Mirror stay on the tile
+ * and are composed into the same yaw / mirror the canvas already draws.
+ */
+const LOCAL_NORMAL: Record<FaceId, Vec3> = {
+  E: { x: 1, y: 0, z: 0 },
+  W: { x: -1, y: 0, z: 0 },
+  N: { x: 0, y: 0, z: 1 },
+  S: { x: 0, y: 0, z: -1 },
+  T: { x: 0, y: 1, z: 0 },
+  B: { x: 0, y: -1, z: 0 },
+};
+
+const QUARTERS = [0, 1, 2, 3] as const;
+type Quarter = (typeof QUARTERS)[number];
+type Mirror = TileInstance["mirror"];
+
+type Pose = {
+  position: Vec3;
+  quarter: Quarter;
+  mirror: Mirror;
+  rotation: Mat3;
+};
+
+export function faceWorldNormal(face: FaceId, tile: Pick<TileInstance, "rotation" | "rotationQuarter" | "mirror">): Vec3 {
+  return rotateByBasis(tile.rotation ?? manualBasis(tile.mirror, tile.rotationQuarter), LOCAL_NORMAL[face]);
+}
+
+export function orientTiles(
+  slots: readonly TileInstance[],
+  connections: readonly TileConnection[],
+  focusConnectionId?: string,
+): { tiles: TileInstance[]; unresolved: ReadonlySet<string> } {
+  const slotAt = new Map(slots.map((tile) => [tile.instanceId, tile]));
+  const placed = new Map<string, Pose>();
+  const depth = new Map<string, number>();
+  const root = [...slots].sort((a, b) => (a.instanceId < b.instanceId ? -1 : 1))[0];
+  if (!root) return { tiles: [], unresolved: new Set() };
+
+  const rootSpin = manualQuarter(root);
+  const rootReqs = requirements(root.instanceId, connections, slotAt, rootSpin);
+  const rootSolve = solvePrioritized(rootReqs, manualMirror(root), rootSpin, focusConnectionId);
+  const rootQuarter = rootSolve?.quarter ?? rootSpin;
+  const rootMirror = rootSolve?.mirror ?? manualMirror(root);
+  placed.set(root.instanceId, poseOf({ ...root.transform }, rootQuarter, rootMirror));
+  depth.set(root.instanceId, 0);
+
+  const queue = [root.instanceId];
+  const seenEdges = new Set<string>();
+  while (queue.length > 0) {
+    const parentId = queue.shift();
+    if (!parentId) break;
+    const parentPose = placed.get(parentId);
+    if (!parentPose) continue;
+    for (const connection of connectionsOf(parentId, connections, focusConnectionId)) {
+      if (seenEdges.has(connection.id)) continue;
+      seenEdges.add(connection.id);
+      const childId = connection.tileAId === parentId ? connection.tileBId : connection.tileAId;
+      const parentFace = connection.tileAId === parentId ? connection.faceA : connection.faceB;
+      const childFace = connection.tileAId === parentId ? connection.faceB : connection.faceA;
+      const child = slotAt.get(childId);
+      if (!child || placed.has(childId)) continue;
+      if (isVertical(parentFace) || isVertical(childFace)) {
+        const posed = placeByFrame(parentPose, parentFace, child, childFace);
+        if (!posed) continue;
+        placed.set(childId, posed);
+        depth.set(childId, (depth.get(parentId) ?? 0) + 1);
+        queue.push(childId);
+        continue;
+      }
+      const toward = directionToward(parentId, parentFace, childFace, childId, slotAt, rootSpin);
+      const parentNormal = normalOf(parentPose, parentFace);
+      if (!toward || dot(parentNormal, toward) < 0.999) continue;
+      const solved = solveTile([{ face: childFace, direction: scale(toward, -1) }], manualMirror(child), manualQuarter(child));
+      if (!solved) continue;
+      const span = separation(parentId, childId, toward, slotAt);
+      placed.set(childId, poseOf(add(parentPose.position, scale(toward, span)), solved.quarter, solved.mirror));
+      depth.set(childId, (depth.get(parentId) ?? 0) + 1);
+      queue.push(childId);
+    }
+  }
+
+  enforceFocus(focusConnectionId, connections, slotAt, placed, depth, root.instanceId, rootSpin);
+  for (const tile of slots) {
+    if (placed.has(tile.instanceId)) continue;
+    placed.set(tile.instanceId, poseOf({ ...tile.transform }, manualQuarter(tile), manualMirror(tile)));
+  }
+
+  const tiles = slots.map((tile) => {
+    const pose = placed.get(tile.instanceId) ?? poseOf({ ...tile.transform }, manualQuarter(tile), manualMirror(tile));
+    return {
+      ...tile,
+      transform: pose.position,
+      rotationQuarter: pose.quarter,
+      mirror: pose.mirror,
+      rotation: pose.rotation,
+      manualQuarter: manualQuarter(tile),
+      manualMirror: manualMirror(tile),
+    };
+  });
+  return { tiles: liftConnectedToGround(tiles, connections, transformedMinY), unresolved: reviewConnections(connections, placed) };
+}
+
+/**
+ * After face alignment, lift each connected group by the same amount.
+ * Every tile in the group stays on the grid and the face gap is unchanged.
+ */
+export function liftConnectedToGround(
+  tiles: readonly TileInstance[],
+  connections: readonly { tileAId: string; tileBId: string }[],
+  lowestY: (tile: TileInstance) => number,
+) {
+  const groundY = groundPlaneY();
+  const parent = new Map(tiles.map((tile) => [tile.instanceId, tile.instanceId]));
+  const find = (id: string): string => {
+    const current = parent.get(id) ?? id;
+    if (current === id) return id;
+    const root = find(current);
+    parent.set(id, root);
+    return root;
+  };
+  const unite = (a: string, b: string) => {
+    const left = find(a);
+    const right = find(b);
+    if (left !== right) parent.set(right, left);
+  };
+  for (const connection of connections) unite(connection.tileAId, connection.tileBId);
+  const liftByRoot = new Map<string, number>();
+  for (const tile of tiles) {
+    const deficit = groundY - lowestY(tile);
+    if (deficit <= 1e-6) continue;
+    const root = find(tile.instanceId);
+    liftByRoot.set(root, Math.max(liftByRoot.get(root) ?? 0, deficit));
+  }
+  return tiles.map((tile) => {
+    const lift = liftByRoot.get(find(tile.instanceId)) ?? 0;
+    if (lift <= 1e-6) return tile;
+    return { ...tile, transform: { ...tile.transform, y: tile.transform.y + lift } };
+  });
+}
+
+/** Lowest world Y of the rotated registration box, then any supplied mesh positions. */
+export function placedBoundsMinY(tile: TileInstance, positions?: ArrayLike<number>) {
+  const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+  const basis = tile.rotation ?? manualBasis(tile.mirror, tile.rotationQuarter);
+  let minY = Infinity;
+  for (const x of [box.min.x, box.max.x]) {
+    for (const y of [box.min.y, box.max.y]) {
+      for (const z of [box.min.z, box.max.z]) {
+        minY = Math.min(minY, rotateByBasis(basis, { x, y, z }).y + tile.transform.y);
+      }
+    }
+  }
+  if (!positions) return minY;
+  for (let index = 0; index < positions.length; index += 3) {
+    const world = rotateByBasis(basis, {
+      x: positions[index] ?? 0,
+      y: positions[index + 1] ?? 0,
+      z: positions[index + 2] ?? 0,
+    });
+    minY = Math.min(minY, world.y + tile.transform.y);
+  }
+  return minY;
+}
+
+function transformedMinY(tile: TileInstance) {
+  return placedBoundsMinY(tile);
+}
+
+function solvePrioritized(
+  reqs: { connectionId: string; face: FaceId; direction: Vec3 | null }[],
+  mirror: Mirror,
+  prefer: Quarter,
+  focusConnectionId?: string,
+) {
+  const ordered = reqs
+    .flatMap((item) => (item.direction ? [{ connectionId: item.connectionId, face: item.face, direction: item.direction }] : []))
+    .sort((a, b) => rank(a.connectionId, b.connectionId, focusConnectionId));
+  for (let count = ordered.length; count >= 1; count -= 1) {
+    const solved = solveTile(ordered.slice(0, count), mirror, prefer);
+    if (solved) return solved;
+  }
+  return null;
+}
+
+/** The edited connection wins over an older pose. Other edges are reviewed afterward. */
+function enforceFocus(
+  focusConnectionId: string | undefined,
+  connections: readonly TileConnection[],
+  slots: ReadonlyMap<string, TileInstance>,
+  placed: Map<string, Pose>,
+  depth: ReadonlyMap<string, number>,
+  rootId: string,
+  rootSpin: Quarter,
+) {
+  if (!focusConnectionId) return;
+  const connection = connections.find((item) => item.id === focusConnectionId);
+  if (!connection) return;
+  const depthA = depth.get(connection.tileAId) ?? Number.POSITIVE_INFINITY;
+  const depthB = depth.get(connection.tileBId) ?? Number.POSITIVE_INFINITY;
+  const upstreamId = depthA <= depthB ? connection.tileAId : connection.tileBId;
+  const downstreamId = upstreamId === connection.tileAId ? connection.tileBId : connection.tileAId;
+  const upstreamFace = upstreamId === connection.tileAId ? connection.faceA : connection.faceB;
+  const downstreamFace = upstreamId === connection.tileAId ? connection.faceB : connection.faceA;
+  const toward = directionToward(upstreamId, upstreamFace, downstreamFace, downstreamId, slots, rootSpin);
+  const upstream = slots.get(upstreamId);
+  const downstream = slots.get(downstreamId);
+  const upstreamPose = placed.get(upstreamId);
+  if (!upstream || !downstream || !upstreamPose) return;
+  if (isVertical(upstreamFace) || isVertical(downstreamFace)) {
+    const posed = placeByFrame(upstreamPose, upstreamFace, downstream, downstreamFace);
+    if (!posed) return;
+    placed.set(downstreamId, posed);
+    return;
+  }
+  if (!toward) return;
+  if (upstreamId !== rootId && dot(normalOf(upstreamPose, upstreamFace), toward) < 0.999) {
+    const solved = solveTile([{ face: upstreamFace, direction: toward }], manualMirror(upstream), manualQuarter(upstream));
+    if (!solved) return;
+    placed.set(upstreamId, poseOf(upstreamPose.position, solved.quarter, solved.mirror));
+  }
+  const aimed = placed.get(upstreamId);
+  if (!aimed || dot(normalOf(aimed, upstreamFace), toward) < 0.999) return;
+  const parentNormal = normalOf(aimed, upstreamFace);
+  const solved = solveTile([{ face: downstreamFace, direction: scale(parentNormal, -1) }], manualMirror(downstream), manualQuarter(downstream));
+  if (!solved) return;
+  const span = separation(upstreamId, downstreamId, parentNormal, slots);
+  placed.set(downstreamId, poseOf(add(aimed.position, scale(parentNormal, span)), solved.quarter, solved.mirror));
+}
+
+function reviewConnections(
+  connections: readonly TileConnection[],
+  placed: ReadonlyMap<string, Pose>,
+) {
+  const unresolved = new Set<string>();
+  for (const connection of connections) {
+    const poseA = placed.get(connection.tileAId);
+    const poseB = placed.get(connection.tileBId);
+    const frameA = localFrame(connection.faceA);
+    const frameB = localFrame(connection.faceB);
+    if (!poseA || !poseB || !frameA || !frameB) {
+      unresolved.add(connection.id);
+      continue;
+    }
+    const normalA = rotateByBasis(poseA.rotation, frameA.normal);
+    const normalB = rotateByBasis(poseB.rotation, frameB.normal);
+    const centerA = add(poseA.position, rotateByBasis(poseA.rotation, frameA.origin));
+    const centerB = add(poseB.position, rotateByBasis(poseB.rotation, frameB.origin));
+    const gap = sub(centerB, centerA);
+    const along = dot(gap, normalA);
+    const sideways = length(sub(gap, scale(normalA, along)));
+    if (dot(normalA, normalB) > -0.999 || Math.abs(along - HYBRID_GAP) > 1e-3 || sideways > 1e-3) {
+      unresolved.add(connection.id);
+    }
+  }
+  return unresolved;
+}
+
+function poseOf(position: Vec3, quarter: Quarter, mirror: Mirror): Pose {
+  return { position, quarter, mirror, rotation: manualBasis(mirror, quarter) };
+}
+
+/** Turns the child so its selected face opposes the parent's, then seats it across the hybrid gap. */
+function placeByFrame(parent: Pose, parentFace: FaceId, child: TileInstance, childFace: FaceId): Pose | null {
+  const parentFrame = localFrame(parentFace);
+  const childFrame = localFrame(childFace);
+  if (!parentFrame || !childFrame) return null;
+  const parentN = rotateByBasis(parent.rotation, parentFrame.normal);
+  const parentU = rotateByBasis(parent.rotation, parentFrame.u);
+  const parentV = rotateByBasis(parent.rotation, parentFrame.v);
+  const manual = manualBasis(manualMirror(child), manualQuarter(child));
+  const localN = rotateByBasis(manual, childFrame.normal);
+  const localU = rotateByBasis(manual, childFrame.u);
+  const localV = rotateByBasis(manual, childFrame.v);
+  const mirrored = basisDeterminant(manual) < 0;
+  const extra = alignFrames(
+    [localN, localU, localV],
+    [scale(parentN, -1), mirrored ? scale(parentU, -1) : parentU, scale(parentV, -1)],
+  );
+  const childOrigin = rotateByBasis(extra, rotateByBasis(manual, childFrame.origin));
+  const parentCenter = add(parent.position, rotateByBasis(parent.rotation, parentFrame.origin));
+  return {
+    position: sub(add(parentCenter, scale(parentN, HYBRID_GAP)), childOrigin),
+    quarter: manualQuarter(child),
+    mirror: manualMirror(child),
+    rotation: multiply(extra, manual),
+  };
+}
+
+function localFrame(face: FaceId) {
+  return faceFrames(registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw))[face];
+}
+
+function alignFrames(from: [Vec3, Vec3, Vec3], to: [Vec3, Vec3, Vec3]): Mat3 {
+  return multiply(columnsOf(to), transposeOf(from));
+}
+
+function columnsOf(axes: [Vec3, Vec3, Vec3]): Mat3 {
+  return [axes[0].x, axes[0].y, axes[0].z, axes[1].x, axes[1].y, axes[1].z, axes[2].x, axes[2].y, axes[2].z];
+}
+
+function transposeOf(axes: [Vec3, Vec3, Vec3]): Mat3 {
+  return [axes[0].x, axes[1].x, axes[2].x, axes[0].y, axes[1].y, axes[2].y, axes[0].z, axes[1].z, axes[2].z];
+}
+
+function multiply(a: Mat3, b: Mat3): Mat3 {
+  const out = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  for (let column = 0; column < 3; column += 1) {
+    for (let row = 0; row < 3; row += 1) {
+      let sum = 0;
+      for (let k = 0; k < 3; k += 1) sum += a[k * 3 + row] * b[column * 3 + k];
+      out[column * 3 + row] = sum;
+    }
+  }
+  return out as unknown as Mat3;
+}
+
+function normalOf(pose: Pose, face: FaceId) {
+  return rotateByBasis(pose.rotation, LOCAL_NORMAL[face]);
+}
+
+function rank(a: string, b: string, focus?: string) {
+  if (a === focus) return -1;
+  if (b === focus) return 1;
+  return a < b ? -1 : 1;
+}
+
+function requirements(
+  tileId: string,
+  connections: readonly TileConnection[],
+  slots: ReadonlyMap<string, TileInstance>,
+  spin: Quarter,
+) {
+  return connectionsOf(tileId, connections).map((connection) => {
+    const otherId = connection.tileAId === tileId ? connection.tileBId : connection.tileAId;
+    const face = connection.tileAId === tileId ? connection.faceA : connection.faceB;
+    const otherFace = connection.tileAId === tileId ? connection.faceB : connection.faceA;
+    return {
+      connectionId: connection.id,
+      face,
+      direction: directionToward(tileId, face, otherFace, otherId, slots, spin),
+    };
+  });
+}
+
+function directionToward(
+  tileId: string,
+  face: FaceId,
+  otherFace: FaceId,
+  otherId: string,
+  slots: ReadonlyMap<string, TileInstance>,
+  spin: Quarter,
+): Vec3 | null {
+  const vertical = isVertical(face) && isVertical(otherFace);
+  const horizontal = isHorizontal(face) && isHorizontal(otherFace);
+  if (vertical) {
+    if (face === "T") return { x: 0, y: 1, z: 0 };
+    if (face === "B") return { x: 0, y: -1, z: 0 };
+    return null;
+  }
+  if (!horizontal) return null;
+  const here = slots.get(tileId);
+  const there = slots.get(otherId);
+  if (!here || !there) return null;
+  const raw = { x: there.transform.x - here.transform.x, y: 0, z: there.transform.z - here.transform.z };
+  const span = Math.hypot(raw.x, raw.z);
+  if (span < 1e-6) return null;
+  return yaw({ x: raw.x / span, y: 0, z: raw.z / span }, spin);
+}
+
+function separation(
+  parentId: string,
+  childId: string,
+  direction: Vec3,
+  slots: ReadonlyMap<string, TileInstance>,
+) {
+  if (Math.abs(direction.y) > 0.5) {
+    const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+    return box.max.y - box.min.y + HYBRID_GAP;
+  }
+  const parent = slots.get(parentId);
+  const child = slots.get(childId);
+  if (!parent || !child) return HYBRID_GAP;
+  return Math.hypot(child.transform.x - parent.transform.x, child.transform.z - parent.transform.z);
+}
+
+function solveTile(
+  reqs: { face: FaceId; direction: Vec3 }[],
+  mirror: Mirror,
+  prefer: Quarter,
+): { quarter: Quarter; mirror: Mirror } | null {
+  const mirrors: Mirror[] = mirror ? [mirror] : [null];
+  if (!mirror && reqs.some((req) => isVertical(req.face))) mirrors.push("y");
+  for (const candidate of mirrors) {
+    for (const quarter of [prefer, ...QUARTERS]) {
+      const fits = reqs.every((req) => dot(yaw(mirrorVec(LOCAL_NORMAL[req.face], candidate), quarter), req.direction) > 0.999);
+      if (fits) return { quarter, mirror: candidate };
+    }
+  }
+  return null;
+}
+
+function connectionsOf(tileId: string, connections: readonly TileConnection[], focusConnectionId?: string) {
+  return connections
+    .filter((connection) => connection.tileAId === tileId || connection.tileBId === tileId)
+    .slice()
+    .sort((a, b) => rank(a.id, b.id, focusConnectionId));
+}
+
+function manualQuarter(tile: TileInstance): Quarter {
+  return tile.manualQuarter ?? 0;
+}
+
+function manualMirror(tile: TileInstance): Mirror {
+  return tile.manualMirror ?? null;
+}
+
+function isHorizontal(face: FaceId) {
+  return face === "N" || face === "S" || face === "E" || face === "W";
+}
+
+function isVertical(face: FaceId) {
+  return face === "T" || face === "B";
+}
+
+function yaw(vector: Vec3, quarter: Quarter): Vec3 {
+  const angle = quarter * Math.PI / 2;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return { x: vector.x * cosine + vector.z * sine, y: vector.y, z: -vector.x * sine + vector.z * cosine };
+}
+
+function mirrorVec(vector: Vec3, axis: Mirror): Vec3 {
+  if (axis === "x") return { x: -vector.x, y: vector.y, z: vector.z };
+  if (axis === "y") return { x: vector.x, y: -vector.y, z: vector.z };
+  if (axis === "z") return { x: vector.x, y: vector.y, z: -vector.z };
+  return vector;
+}
+
+function add(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+
+function sub(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+
+function scale(vector: Vec3, factor: number): Vec3 {
+  return { x: vector.x * factor, y: vector.y * factor, z: vector.z * factor };
+}
+
+function dot(a: Vec3, b: Vec3) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function length(vector: Vec3) {
+  return Math.hypot(vector.x, vector.y, vector.z);
+}

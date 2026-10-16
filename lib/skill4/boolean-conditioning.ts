@@ -155,6 +155,121 @@ export function diagnoseTopology(mesh: IsoMesh): MeshTopology {
   };
 }
 
+/** Copies a loft and moves ring 0 and the last ring. The source mesh is not written. */
+export function offsetLoftEnds(
+  mesh: IsoMesh,
+  sampleCount: number,
+  steps: number,
+  offsetStart: { x: number; y: number; z: number },
+  offsetEnd: { x: number; y: number; z: number },
+): IsoMesh | null {
+  const vertexCount = mesh.positions.length / 3;
+  if (!Number.isInteger(sampleCount) || sampleCount < 3 || vertexCount !== sampleCount * steps) return null;
+  const positions = Float32Array.from(mesh.positions);
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const start = sample * 3;
+    positions[start] += offsetStart.x;
+    positions[start + 1] += offsetStart.y;
+    positions[start + 2] += offsetStart.z;
+    const end = ((steps - 1) * sampleCount + sample) * 3;
+    positions[end] += offsetEnd.x;
+    positions[end + 1] += offsetEnd.y;
+    positions[end + 2] += offsetEnd.z;
+  }
+  return {
+    positions,
+    normals: Float32Array.from(mesh.normals),
+    indices: Uint32Array.from(mesh.indices),
+    triangles: mesh.triangles,
+  };
+}
+
+/** Copies a loft and moves each end-ring vertex by its own depth along the inward normal. */
+export function seatLoftEnds(
+  mesh: IsoMesh,
+  sampleCount: number,
+  steps: number,
+  inwardStart: { x: number; y: number; z: number },
+  inwardEnd: { x: number; y: number; z: number },
+  startDepths: number[],
+  endDepths: number[],
+): IsoMesh | null {
+  const vertexCount = mesh.positions.length / 3;
+  if (!Number.isInteger(sampleCount) || sampleCount < 3 || vertexCount !== sampleCount * steps) return null;
+  if (startDepths.length !== sampleCount || endDepths.length !== sampleCount) return null;
+  const positions = Float32Array.from(mesh.positions);
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const startDepth = startDepths[sample];
+    const endDepth = endDepths[sample];
+    if (!Number.isFinite(startDepth) || !Number.isFinite(endDepth) || startDepth < 0 || endDepth < 0) return null;
+    const start = sample * 3;
+    positions[start] += inwardStart.x * startDepth;
+    positions[start + 1] += inwardStart.y * startDepth;
+    positions[start + 2] += inwardStart.z * startDepth;
+    const end = ((steps - 1) * sampleCount + sample) * 3;
+    positions[end] += inwardEnd.x * endDepth;
+    positions[end + 1] += inwardEnd.y * endDepth;
+    positions[end + 2] += inwardEnd.z * endDepth;
+  }
+  return {
+    positions,
+    normals: Float32Array.from(mesh.normals),
+    indices: Uint32Array.from(mesh.indices),
+    triangles: mesh.triangles,
+  };
+}
+
+/** Copies a loft, moves both end rings along the face inward, and grows them in the ring plane. */
+export function expandLoftEnds(
+  mesh: IsoMesh,
+  sampleCount: number,
+  steps: number,
+  offsetStart: { x: number; y: number; z: number },
+  offsetEnd: { x: number; y: number; z: number },
+  radialGrow: number,
+): IsoMesh | null {
+  const moved = offsetLoftEnds(mesh, sampleCount, steps, offsetStart, offsetEnd);
+  if (!moved || radialGrow === 0) return moved;
+  const positions = moved.positions;
+  growRing(positions, 0, sampleCount, offsetStart, radialGrow);
+  growRing(positions, steps - 1, sampleCount, offsetEnd, radialGrow);
+  return moved;
+}
+
+function growRing(
+  positions: Float32Array,
+  ring: number,
+  sampleCount: number,
+  axis: { x: number; y: number; z: number },
+  grow: number,
+) {
+  const span = Math.hypot(axis.x, axis.y, axis.z) || 1;
+  const direction = { x: axis.x / span, y: axis.y / span, z: axis.z / span };
+  let centroidX = 0;
+  let centroidY = 0;
+  let centroidZ = 0;
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const offset = (ring * sampleCount + sample) * 3;
+    centroidX += positions[offset] / sampleCount;
+    centroidY += positions[offset + 1] / sampleCount;
+    centroidZ += positions[offset + 2] / sampleCount;
+  }
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const offset = (ring * sampleCount + sample) * 3;
+    const x = positions[offset] - centroidX;
+    const y = positions[offset + 1] - centroidY;
+    const z = positions[offset + 2] - centroidZ;
+    const along = x * direction.x + y * direction.y + z * direction.z;
+    const radialX = x - direction.x * along;
+    const radialY = y - direction.y * along;
+    const radialZ = z - direction.z * along;
+    const radial = Math.hypot(radialX, radialY, radialZ) || 1;
+    positions[offset] += (radialX / radial) * grow;
+    positions[offset + 1] += (radialY / radial) * grow;
+    positions[offset + 2] += (radialZ / radial) * grow;
+  }
+}
+
 /** Caps ring 0 and the final ring of an open loft. Positions and side triangles are copied. */
 export function closeConnectorLoft(mesh: IsoMesh, sampleCount: number, steps: number): ClosedConnectorResult {
   if (!Number.isInteger(sampleCount) || sampleCount < 3 || !Number.isInteger(steps) || steps < 2) {

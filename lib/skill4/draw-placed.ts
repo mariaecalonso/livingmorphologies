@@ -1,5 +1,6 @@
 import type { IsoMesh } from "../scan/isomesh";
-import { registrationEnvelope, VIEW_SCAN, type Vec3 } from "./contract";
+import { groundPlaneY, type Vec3 } from "./contract";
+import { IDENTITY_BASIS, type Mat3 } from "./tile-basis";
 
 export type PlacedMesh = {
   id: string;
@@ -8,8 +9,14 @@ export type PlacedMesh = {
   selected: boolean;
   spin?: number;
   mirror?: 0 | 1 | 2 | 3;
+  /** Full local-to-world rotation. Applied before the optional yaw and mirror. */
+  basis?: Mat3;
   kind?: 0 | 1;
   color?: [number, number, number];
+  /** Development overlap debug. Production meshes leave this unset and stay opaque. */
+  opacity?: number;
+  /** Aggregation-canvas hybrid only. Teal at one end, orange at the other. */
+  palette?: boolean;
 };
 
 const VERT = `#version 300 es
@@ -22,16 +29,20 @@ uniform float uFit;
 uniform float uDistance;
 uniform vec3 uTranslate;
 uniform vec3 uCenter;
+uniform mat3 uBasis;
 uniform float uSpin;
 uniform float uMirror;
+uniform vec3 uRampOrigin;
+uniform vec3 uRampDir;
 out vec3 vNormal;
 out float vDepth;
+out float vRamp;
 void main() {
   float cy = cos(uYaw);
   float sy = sin(uYaw);
   float cp = cos(uPitch);
   float sp = sin(uPitch);
-  vec3 spun = aPos;
+  vec3 spun = uBasis * aPos;
   if (uMirror > 0.5 && uMirror < 1.5) spun.x = -spun.x;
   if (uMirror > 1.5 && uMirror < 2.5) spun.y = -spun.y;
   if (uMirror > 2.5) spun.z = -spun.z;
@@ -44,13 +55,15 @@ void main() {
   float z1 = -p.x * sy + p.z * cy;
   float y2 = p.y * cp - z1 * sp;
   float z2 = p.y * sp + z1 * cp;
-  vec3 n = aNormal;
+  vec3 n = uBasis * aNormal;
   if (uMirror > 0.5 && uMirror < 1.5) n.x = -n.x;
   if (uMirror > 1.5 && uMirror < 2.5) n.y = -n.y;
   if (uMirror > 2.5) n.z = -n.z;
   float nrx = n.x * cs + n.z * sn;
   float nrz = -n.x * sn + n.z * cs;
   n = vec3(nrx, n.y, nrz);
+  vec3 placed = vec3(rx, spun.y, rz) + uTranslate;
+  vRamp = dot(placed - uRampOrigin, uRampDir);
   float nx1 = n.x * cy + n.z * sy;
   float nz1 = -n.x * sy + n.z * cy;
   float ny2 = n.y * cp - nz1 * sp;
@@ -73,29 +86,26 @@ const FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
 in float vDepth;
-uniform float uSelected;
-uniform float uKind;
+in float vRamp;
 uniform vec3 uColor;
+uniform float uAlpha;
+uniform float uPalette;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
 void main() {
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
   if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.42, 0.78, 0.55));
-  vec3 fill = normalize(vec3(-0.6, 0.15, 0.35));
+  vec3 key = normalize(vec3(0.35, 0.82, 0.45));
+  vec3 fill = normalize(vec3(-0.55, 0.2, 0.4));
   float lambert = clamp(dot(n, key), 0.0, 1.0);
-  float bounce = clamp(dot(n, fill), 0.0, 1.0) * 0.28;
-  float cavity = pow(1.0 - abs(dot(n, viewDir)), 1.6);
-  vec3 col = uColor * (0.28 + lambert * 0.72 + bounce);
-  col = mix(col, uColor * 0.35, cavity * 0.35);
-  col = mix(col, vec3(1.0), uSelected * 0.22);
-  float rim = pow(1.0 - abs(dot(n, viewDir)), 1.8);
-  col += vec3(0.93, 0.62, 0.38) * rim * uSelected * 0.9;
-  col = mix(col, vec3(0.96, 0.78, 0.62), uKind * 0.35);
-  float fog = smoothstep(3.0, 8.5, vDepth);
-  col = mix(col, vec3(0.0), fog * 0.45);
-  oColor = vec4(col, 1.0);
+  float bounce = clamp(dot(n, fill), 0.0, 1.0);
+  float shade = 0.9 + lambert * 0.08 + bounce * 0.02;
+  vec3 green = vec3(0.058824, 0.450980, 0.466667);
+  vec3 orange = vec3(0.780392, 0.494118, 0.372549);
+  vec3 tint = mix(green, orange, clamp(vRamp, 0.0, 1.0));
+  vec3 col = uPalette > 0.5 ? tint : uColor * shade;
+  oColor = vec4(col, uAlpha);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
@@ -131,12 +141,15 @@ void main() {
     float diff = z - sz;
     ao += step(0.012, diff) * smoothstep(0.55, 0.03, diff);
   }
-  ao = clamp(1.0 - ao / 9.0, 0.22, 1.0);
+  ao = clamp(1.0 - ao / 28.0, 0.92, 1.0);
   oColor = vec4(col * ao, 1.0);
 }`;
 
+const SHADER_VERSION = 4;
+
 type Gpu = {
   gl: WebGL2RenderingContext;
+  shaderVersion: number;
   program: WebGLProgram;
   aoProgram: WebGLProgram;
   position: WebGLBuffer;
@@ -154,11 +167,14 @@ type Gpu = {
   uDistance: WebGLUniformLocation;
   uTranslate: WebGLUniformLocation;
   uCenter: WebGLUniformLocation;
+  uBasis: WebGLUniformLocation;
   uSpin: WebGLUniformLocation;
   uMirror: WebGLUniformLocation;
-  uSelected: WebGLUniformLocation;
-  uKind: WebGLUniformLocation;
   uColor: WebGLUniformLocation;
+  uAlpha: WebGLUniformLocation;
+  uPalette: WebGLUniformLocation;
+  uRampOrigin: WebGLUniformLocation;
+  uRampDir: WebGLUniformLocation;
   uTexel: WebGLUniformLocation;
   width: number;
   height: number;
@@ -205,8 +221,10 @@ function tex(gl: WebGL2RenderingContext, internal: number, format: number, type:
 
 function setup(canvas: HTMLCanvasElement): Gpu | null {
   const existing = cache.get(canvas);
-  if (existing && !existing.gl.isContextLost()) return existing;
-  const gl = canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
+  if (existing && existing.shaderVersion === SHADER_VERSION && !existing.gl.isContextLost()) return existing;
+  const gl = existing && !existing.gl.isContextLost()
+    ? existing.gl
+    : canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = link(gl, VERT, FRAG);
@@ -227,14 +245,17 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const uDistance = gl.getUniformLocation(meshProgram, "uDistance");
   const uTranslate = gl.getUniformLocation(meshProgram, "uTranslate");
   const uCenter = gl.getUniformLocation(meshProgram, "uCenter");
+  const uBasis = gl.getUniformLocation(meshProgram, "uBasis");
   const uSpin = gl.getUniformLocation(meshProgram, "uSpin");
   const uMirror = gl.getUniformLocation(meshProgram, "uMirror");
-  const uSelected = gl.getUniformLocation(meshProgram, "uSelected");
-  const uKind = gl.getUniformLocation(meshProgram, "uKind");
   const uColor = gl.getUniformLocation(meshProgram, "uColor");
+  const uAlpha = gl.getUniformLocation(meshProgram, "uAlpha");
+  const uPalette = gl.getUniformLocation(meshProgram, "uPalette");
+  const uRampOrigin = gl.getUniformLocation(meshProgram, "uRampOrigin");
+  const uRampDir = gl.getUniformLocation(meshProgram, "uRampDir");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
   if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
-  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uSpin || !uMirror || !uSelected || !uKind || !uColor || !uTexel) return null;
+  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uRampOrigin || !uRampDir || !uTexel) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -245,6 +266,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   const gpu: Gpu = {
     gl,
+    shaderVersion: SHADER_VERSION,
     program: meshProgram,
     aoProgram,
     position,
@@ -262,11 +284,14 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
     uDistance,
     uTranslate,
     uCenter,
+    uBasis,
     uSpin,
     uMirror,
-    uSelected,
-    uKind,
     uColor,
+    uAlpha,
+    uPalette,
+    uRampOrigin,
+    uRampDir,
     uTexel,
     width: 0,
     height: 0,
@@ -364,6 +389,36 @@ export function projectPlacement(
   };
 }
 
+function meshRamp(mesh: IsoMesh, translate: Vec3) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  const positions = mesh.positions;
+  for (let index = 0; index < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index]);
+    minY = Math.min(minY, positions[index + 1]);
+    minZ = Math.min(minZ, positions[index + 2]);
+    maxX = Math.max(maxX, positions[index]);
+    maxY = Math.max(maxY, positions[index + 1]);
+    maxZ = Math.max(maxZ, positions[index + 2]);
+  }
+  const spanX = maxX - minX;
+  const spanY = maxY - minY;
+  const spanZ = maxZ - minZ;
+  const span = Math.max(spanX, spanY, spanZ, 1e-6);
+  return {
+    origin: { x: minX + translate.x, y: minY + translate.y, z: minZ + translate.z },
+    dir: {
+      x: spanX >= spanY && spanX >= spanZ ? 1 / span : 0,
+      y: spanY > spanX && spanY >= spanZ ? 1 / span : 0,
+      z: spanZ > spanX && spanZ > spanY ? 1 / span : 0,
+    },
+  };
+}
+
 export function drawPlacedMeshes(
   canvas: HTMLCanvasElement,
   instances: readonly PlacedMesh[],
@@ -410,8 +465,18 @@ export function drawPlacedMeshes(
   gl.uniform1f(gpu.uFit, fit);
   gl.uniform1f(gpu.uDistance, eye);
   gl.uniform3f(gpu.uCenter, center.x, center.y, center.z);
-  for (const instance of instances) {
-    if (instance.mesh.triangles < 1) continue;
+  const drawInstance = (instance: PlacedMesh) => {
+    if (instance.mesh.triangles < 1) return;
+    const opacity = instance.opacity ?? 1;
+    if (opacity < 1) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
+    } else {
+      gl.disable(gl.BLEND);
+      gl.depthMask(true);
+    }
+    gl.uniform1f(gpu.uAlpha, opacity);
     gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
     gl.bufferData(gl.ARRAY_BUFFER, instance.mesh.positions, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(0);
@@ -423,14 +488,46 @@ export function drawPlacedMeshes(
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
     gl.uniform3f(gpu.uTranslate, instance.translate.x, instance.translate.y, instance.translate.z);
+    gl.uniformMatrix3fv(gpu.uBasis, false, new Float32Array(instance.basis ?? IDENTITY_BASIS));
     gl.uniform1f(gpu.uSpin, instance.spin ?? 0);
     gl.uniform1f(gpu.uMirror, instance.mirror ?? 0);
-    gl.uniform1f(gpu.uSelected, instance.selected ? 1 : 0);
-    gl.uniform1f(gpu.uKind, instance.kind ?? 0);
-    const color = instance.color ?? [0.78, 0.494, 0.373];
+    const color = instance.color ?? [1.0, 1.0, 1.0];
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
-    gl.drawElements(gl.TRIANGLES, instance.mesh.indices.length, gl.UNSIGNED_INT, 0);
+    gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
+    const ramp = instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
+    gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
+    gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
+    const count = instance.mesh.indices.length;
+    if (!instance.palette) {
+      gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
+      return;
+    }
+    gl.enable(gl.DEPTH_TEST);
+    gl.colorMask(false, false, false, false);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+    gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
+    gl.colorMask(true, true, true, true);
+    gl.depthFunc(gl.EQUAL);
+    gl.depthMask(false);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
+    gl.depthFunc(gl.LEQUAL);
+  };
+  for (const instance of instances) {
+    if ((instance.opacity ?? 1) >= 1) drawInstance(instance);
   }
+  for (const instance of instances) {
+    if ((instance.opacity ?? 1) < 1 && instance.palette) drawInstance(instance);
+  }
+  gl.disable(gl.DEPTH_TEST);
+  for (const instance of instances) {
+    if ((instance.opacity ?? 1) < 1 && !instance.palette) drawInstance(instance);
+  }
+  gl.enable(gl.DEPTH_TEST);
+  gl.disable(gl.BLEND);
+  gl.depthMask(true);
   if (ground) drawGroundGrid(gpu, instances);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.disable(gl.DEPTH_TEST);
@@ -469,7 +566,7 @@ function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
   maxX = Math.ceil((maxX + pad) / GRID_CELL) * GRID_CELL;
   minZ = Math.floor((minZ - pad) / GRID_CELL) * GRID_CELL;
   maxZ = Math.ceil((maxZ + pad) / GRID_CELL) * GRID_CELL;
-  const y = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).min.y - 0.004;
+  const y = groundPlaneY();
   const grid: number[] = [];
   const axis: number[] = [];
   const push = (bucket: number[], x0: number, z0: number, x1: number, z1: number) => {
@@ -512,11 +609,14 @@ function paintLines(gpu: Gpu, positions: number[], color: [number, number, numbe
   gl.enableVertexAttribArray(1);
   gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
   gl.uniform3f(gpu.uTranslate, 0, 0, 0);
+  gl.uniformMatrix3fv(gpu.uBasis, false, new Float32Array(IDENTITY_BASIS));
   gl.uniform1f(gpu.uSpin, 0);
   gl.uniform1f(gpu.uMirror, 0);
-  gl.uniform1f(gpu.uSelected, 0);
-  gl.uniform1f(gpu.uKind, 0);
   gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
+  gl.uniform1f(gpu.uAlpha, 1);
+  gl.uniform1f(gpu.uPalette, 0);
+  gl.uniform3f(gpu.uRampOrigin, 0, 0, 0);
+  gl.uniform3f(gpu.uRampDir, 0, 0, 0);
   gl.disable(gl.CULL_FACE);
   gl.drawArrays(gl.TRIANGLES, 0, positions.length / 3);
 }

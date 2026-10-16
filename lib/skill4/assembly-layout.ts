@@ -1,7 +1,8 @@
-import { envelopeWidth } from "./tiles";
+import { envelopeWidth, tileStep } from "./tiles";
 import type { FaceId } from "./contract";
 import type { TileInstance } from "./tiles";
 import { connectionSummaryLabel, detectAdjacencies, type TileConnection } from "./connections";
+import { faceWorldNormal } from "./tile-orientation";
 
 export const MOCK_HYBRID_LABEL = "MOCK HYBRIDS · INTERFACE TEST";
 
@@ -49,7 +50,7 @@ export function layoutTiles(
         instanceId,
         archetypeId,
         moduleId: existing?.moduleId ?? "",
-        transform: { x: column * width, y: 0, z: row * width },
+        transform: { x: column * tileStep(width), y: 0, z: row * tileStep(width) },
         rotationQuarter: existing?.rotationQuarter ?? 0,
         mirror: existing?.mirror ?? null,
       });
@@ -82,7 +83,7 @@ function placePattern(arrangement: "t" | "cross", previous: readonly TileInstanc
       instanceId: spot.instanceId,
       archetypeId: existing?.archetypeId ?? FIXTURES[index % 2],
       moduleId: existing?.moduleId ?? "",
-      transform: { x: spot.column * width, y: 0, z: spot.row * width },
+      transform: { x: spot.column * tileStep(width), y: 0, z: spot.row * tileStep(width) },
       rotationQuarter: existing?.rotationQuarter ?? 0,
       mirror: existing?.mirror ?? null,
     };
@@ -107,8 +108,14 @@ export function mockPlacementSupported(connection: Pick<TileConnection, "id" | "
   const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
   const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
   if (!tileA || !tileB) return false;
-  if (detected.faceA === "T" || detected.faceA === "B") return false;
-  return worldFace(connection.faceA, tileA) === detected.faceA && worldFace(connection.faceB, tileB) === detected.faceB;
+  const normalA = faceWorldNormal(connection.faceA, tileA);
+  const normalB = faceWorldNormal(connection.faceB, tileB);
+  const opposed = normalA.x * normalB.x + normalA.y * normalB.y + normalA.z * normalB.z;
+  if (opposed > -0.999) return false;
+  const along = (tileB.transform.x - tileA.transform.x) * normalA.x
+    + (tileB.transform.y - tileA.transform.y) * normalA.y
+    + (tileB.transform.z - tileA.transform.z) * normalA.z;
+  return along > 0;
 }
 
 export function mockSummary(connection: TileConnection, tiles: readonly TileInstance[], blocked: boolean) {

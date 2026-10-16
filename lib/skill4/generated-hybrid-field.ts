@@ -89,7 +89,8 @@ export function generateHybridField(request: GeneratedHybridFieldRequest): Gener
       return failedCandidate(candidate, "invalid", reason);
     }
   });
-  return assemble(request.candidateField.signature, candidates);
+  const field = assemble(request.candidateField.signature, candidates);
+  return field;
 }
 
 function failedCandidate(candidate: HybridCandidate, status: Exclude<HybridGeneratorStatus, "ready">, reason: string): GeneratedHybridCandidate {

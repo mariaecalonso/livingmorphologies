@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { columnHeight, type IsoMesh } from "@/lib/scan/isomesh";
+import { columnHeight } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
 import { aggregationAssemblyLabel, aggregationStatusLabel, evaluateAggregation, type AggregationStatus } from "@/lib/skill4/aggregation";
 import { booleanReadinessLabel, evaluateBooleanReadiness, inspectBooleanReadiness, type BooleanReadiness } from "@/lib/skill4/boolean-conditioning";
@@ -17,12 +17,14 @@ import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import { generationStatusLabel, hybridDisplay } from "@/lib/skill4/hybrid-display";
 import type { ModuleHandoff } from "@/lib/skill4/adapt";
 import type { TypologyId } from "@/lib/types";
-import { envelopeWidth, resolveTileModule } from "@/lib/skill4/tiles";
+import { envelopeWidth, resolveTileModule, tileStep } from "@/lib/skill4/tiles";
+import { tileBasis } from "@/lib/skill4/tile-basis";
 import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
 import { faceFrameOutline } from "@/lib/skill4/face-outline";
 import { Panel, PanelHeader } from "@/components/hud";
 import { AggregationView } from "./aggregation-view";
 import { MockMatrix } from "./mock-matrix";
+import { SomInspect } from "./som-inspect";
 import { MeshPreview } from "./mesh-preview";
 import { useConnectionBlocked, useHybrid } from "./hybrid-state";
 import { ConnectionHeader } from "./connection-header";
@@ -32,30 +34,10 @@ import { captureCatalogEntry, nextCatalogId } from "@/lib/skill4/catalog";
 import { readCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
 import type { TileConnection } from "@/lib/skill4/connections";
 
-const MIRROR = { x: 1, y: 2, z: 3 } as const;
 const CANVAS_WHITE: [number, number, number] = [1, 1, 1];
 
 function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHandoff>): TypologyId | null {
   return resolveTileModule(archetypeId, loaded).identity?.typologyId ?? null;
-}
-
-function hybridSelectionColor(
-  connection: TileConnection,
-  tiles: readonly { instanceId: string; archetypeId: string }[],
-  loaded: ReadonlyMap<string, ModuleHandoff>,
-  selectedId: string,
-): [number, number, number] | null {
-  const selected = tiles.find((tile) => tile.instanceId === selectedId);
-  if (selected && (selected.instanceId === connection.tileAId || selected.instanceId === connection.tileBId)) {
-    const typology = typologyOf(selected.archetypeId, loaded);
-    return typology ? TYPOLOGY_COLOR[typology] : null;
-  }
-  const left = tiles.find((tile) => tile.instanceId === connection.tileAId);
-  const right = tiles.find((tile) => tile.instanceId === connection.tileBId);
-  const typologyA = left ? typologyOf(left.archetypeId, loaded) : null;
-  const typologyB = right ? typologyOf(right.archetypeId, loaded) : null;
-  if (typologyA && typologyA === typologyB) return TYPOLOGY_COLOR[typologyA];
-  return null;
 }
 
 export function HybridAssembly({ view = "process" }: { view?: "process" | "catalog" }) {
@@ -84,14 +66,15 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
   } = useHybrid();
   const width = envelopeWidth();
   const shape = gridShape(count, arrangement);
-  const span = Math.max(columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw), width * Math.max(shape.columns, shape.rows));
+  const span = Math.max(columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw), tileStep(width) * Math.max(shape.columns, shape.rows));
   const detected = detectAdjacencies(tiles);
   const aggregation = evaluateAggregation(connections, tiles, loaded);
-  const interlocks = buildInterlocks(aggregation, tiles);
+  const interlocks = buildInterlocks(aggregation, tiles, loaded);
   const booleanPlan = buildBooleanPlan(interlocks);
   const executionKey = booleanExecutionKey(booleanPlan, tiles);
   const [execution, setExecution] = useState<BooleanExecutionResult | null>(null);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
+  const [inspectId, setInspectId] = useState<string | null>(null);
   const executionInput = useRef({ booleanPlan, tiles, loaded });
   executionInput.current = { booleanPlan, tiles, loaded };
   useEffect(() => {
@@ -133,6 +116,8 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     };
   }, [readinessKey, loaded, tiles]);
   const executionStatus = booleanPlan.readyConnectionCount === 0 ? "unresolved" : execution?.status;
+  const joinedMesh = execution?.status === "ready" ? execution.assembly.mesh : null;
+  const joinedTiles = new Set(execution?.status === "ready" ? execution.tiles.filter((tile) => tile.status === "ready").map((tile) => tile.tileId) : []);
   const placed: PlacedMesh[] = [
     ...tiles.flatMap((tile) => {
       const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -143,10 +128,11 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       const color = chosen ? TYPOLOGY_COLOR[handoff.identity.typologyId] : CANVAS_WHITE;
       const pose = {
         translate: tile.transform,
-        spin: tile.rotationQuarter * Math.PI / 2,
-        mirror: (tile.mirror ? MIRROR[tile.mirror] : 0) as 0 | 1 | 2 | 3,
+        spin: 0,
+        mirror: 0 as const,
+        basis: tileBasis(tile),
       };
-      const solids: PlacedMesh[] = [{
+      const solids: PlacedMesh[] = joinedTiles.has(tile.instanceId) ? [] : [{
         id: tile.instanceId,
         mesh: handoffMesh ?? moduleMock(tile.archetypeId),
         selected: chosen,
@@ -175,18 +161,27 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       const hybrid = resolveAssemblyHybrid(connection, tiles, loaded);
       if (!hybrid.geometry) return [];
       const id = `${hybrid.source}:${connection.id}`;
-      const chosen = id === canvasSelection;
       return [{
         id,
         mesh: hybrid.geometry,
         translate: hybrid.translate,
-        selected: chosen,
+        selected: id === canvasSelection,
         spin: hybrid.spin,
         kind: 1 as const,
-        color: chosen ? hybridSelectionColor(connection, tiles, loaded, selectedId) ?? CANVAS_WHITE : CANVAS_WHITE,
+        palette: true,
       }];
     }),
   ];
+  if (joinedMesh) {
+    placed.push({
+      id: "joined-assembly",
+      mesh: joinedMesh,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      kind: 0,
+      color: CANVAS_WHITE,
+    });
+  }
   const canvasModules = tiles.map((tile) => {
     const handoff = resolveTileModule(tile.archetypeId, loaded);
     return handoff.status === "ready" ? handoff.moduleId : "";
@@ -199,6 +194,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     })
       ? "skill03"
       : "mock";
+  const inspected = connections.find((connection) => connection.id === inspectId) ?? null;
 
   return (
     <main className="hybrid-view hybrid-assembly">
@@ -239,7 +235,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
       </Panel>
       <Panel className="hybrid-canvas">
         <PanelHeader mark="02" title="Aggregation Canvas" />
-        <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""}>
+        <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
           <AggregationView
             instances={placed}
             selectedId={canvasSelection ?? ""}
@@ -253,13 +249,14 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
               if (!id.includes(":")) setSelectedId(id);
             }}
             links={connections.flatMap((connection) => {
+              if (connection.id !== selectedConnectionId) return [];
               const marker = detected.find((item) => item.id === connection.id)?.marker;
               if (!marker) return [];
               return [{
                 id: connection.id,
                 label: `${connection.tileAId}:${connection.faceA} ↔ ${connection.tileBId}:${connection.faceB}`,
                 point: marker,
-                active: connection.id === selectedConnectionId,
+                active: true,
               }];
             })}
             onSelectConnection={focusConnection}
@@ -298,6 +295,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
                   selectedId={connection.selectedMockId}
                   generatedField={connection.generatedHybridField}
                   onSelect={(id) => selectMock(connection.id, id)}
+                  onOpen={() => setInspectId(connection.id)}
                   colorA={colorA}
                   colorB={colorB}
                 />
@@ -340,7 +338,12 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             status={`${interlockAssemblyLabel(interlocks.status)} · ${interlocks.readyCount} / ${interlocks.connections.length}`}
             mesh={interlocks.connections.find((item) => item.insertionA)?.insertionA ?? null}
             empty={interlockAssemblyLabel(interlocks.status)}
-            note={interlocks.connections.find((item) => item.insertionA) ? "Insertion volume" : "No insertion geometry"}
+            note={(() => {
+              const ready = interlocks.connections.find((item) => item.status === "ready" && item.attachmentDepthA != null);
+              return ready
+                ? `A ${ready.attachmentDepthA.toFixed(2)} · B ${ready.attachmentDepthB.toFixed(2)}`
+                : "No insertion geometry";
+            })()}
             marker="interlock"
             markerValue={interlocks.status}
           />
@@ -353,9 +356,12 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             marker="boolean-plan"
             markerValue={booleanPlan.status}
           >
-            {booleanPlan.tiles.map((tile) => (
-              <p key={tile.tileId} className="hybrid-units" data-boolean-tile={tile.tileId}>
-                Tile {tile.tileId} · {tile.operations.length} cuts{tile.operations.some((cut) => cut.potentialCutConflict) ? " · potential conflict" : ""}
+            {booleanPlan.connections.map((connection) => (
+              <p key={connection.connectionId} className="hybrid-units" data-boolean-tile={connection.tileAId ?? connection.connectionId}>
+                {connection.tileAId ?? "—"} + {connection.candidateId ?? "hybrid"} + {connection.tileBId ?? "—"}
+                {execution?.connections.find((item) => item.connectionId === connection.connectionId)?.joinStrategy
+                  ? ` · ${execution.connections.find((item) => item.connectionId === connection.connectionId)?.joinStrategy}`
+                  : ""}
               </p>
             ))}
           </OperationRecord>
@@ -368,9 +374,9 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             marker="boolean-execution"
             markerValue={executionStatus ?? "pending"}
           >
-            {execution?.tiles.map((tile) => (
-              <p key={`execution-${tile.tileId}`} className="hybrid-units" data-boolean-execution-tile={tile.tileId}>
-                Tile {tile.tileId} · {tile.successfulCutCount} / {tile.plannedCutCount} cuts
+            {execution?.connections.map((connection) => (
+              <p key={`execution-${connection.connectionId}`} className="hybrid-units" data-boolean-execution-tile={connection.connectionId}>
+                {connection.candidateId ?? connection.connectionId} · {connection.parentAPresent && connection.hybridPresent && connection.parentBPresent ? "3 / 3" : booleanExecutionLabel(connection.status)}{connection.joinStrategy ? ` · ${connection.joinStrategy}` : ""}{connection.penetrationA !== null && connection.penetrationB !== null ? ` · A ${connection.penetrationA.toFixed(2)} · B ${connection.penetrationB.toFixed(2)}` : ""}{connection.overlapVolumeA !== null && connection.overlapVolumeB !== null ? ` · overlap A ${connection.overlapVolumeA.toExponential(2)} · B ${connection.overlapVolumeB.toExponential(2)}` : ""}
               </p>
             ))}
           </OperationRecord>
@@ -399,6 +405,26 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
           <OperationRecord title="Repeat" status="Pending" mesh={null} empty="Pending" note="Not computed" />
         </div>
       </Panel>
+      {inspected ? (
+        <SomInspect
+          connection={{
+            id: inspected.id,
+            signature: inspected.signature,
+            faceA: inspected.faceA,
+            faceB: inspected.faceB,
+            tileAId: inspected.tileAId,
+            tileBId: inspected.tileBId,
+            parentAName: resolveTileModule(tiles.find((tile) => tile.instanceId === inspected.tileAId)?.archetypeId ?? "", loaded).identity?.name ?? inspected.tileAId,
+            parentBName: resolveTileModule(tiles.find((tile) => tile.instanceId === inspected.tileBId)?.archetypeId ?? "", loaded).identity?.name ?? inspected.tileBId,
+            selectedId: inspected.selectedMockId,
+            generatedField: inspected.generatedHybridField,
+          }}
+          colorA={TYPOLOGY_COLOR[resolveTileModule(tiles.find((tile) => tile.instanceId === inspected.tileAId)?.archetypeId ?? "", loaded).identity?.typologyId ?? "lobby"]}
+          colorB={TYPOLOGY_COLOR[resolveTileModule(tiles.find((tile) => tile.instanceId === inspected.tileBId)?.archetypeId ?? "", loaded).identity?.typologyId ?? "lobby"]}
+          onSelect={(id) => selectMock(inspected.id, id)}
+          onClose={() => setInspectId(null)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -449,7 +475,9 @@ function ConnectionRecord({
   const display = hybridDisplay(connection);
   const generated = display.source === "generated";
   const mesh = generated ? display.selected.mesh : null;
-  const placement = mockPlacementSupported(connection, tiles) ? "" : " · unsupported placement";
+  const placement = connection.orientation === "unresolved"
+    ? " · unresolved orientation"
+    : mockPlacementSupported(connection, tiles) ? "" : " · unsupported placement";
   return (
     <article className="hybrid-record" data-connection-summary={connection.id} data-aggregation-status={status}>
       <ConnectionHeader connection={connection} openOnSelect />
@@ -469,12 +497,8 @@ function ConnectionRecord({
 }
 
 function executionPreview(execution: BooleanExecutionResult | null) {
-  if (execution?.assembly.mesh) return { mesh: execution.assembly.mesh, note: "Assembly union" };
-  const addition = execution?.connections.find((item) => item.additionGeometry);
-  if (addition?.additionGeometry) return { mesh: addition.additionGeometry, note: "Connector union" };
-  const tile = execution?.tiles.find((item) => item.derivedGeometry);
-  if (tile?.derivedGeometry) return { mesh: tile.derivedGeometry, note: `Tile ${tile.tileId} derived` };
-  return { mesh: null, note: "No boolean result" };
+  if (execution?.status === "ready" && execution.assembly.mesh) return { mesh: execution.assembly.mesh, note: "Assembly union" };
+  return { mesh: null, note: "No joined assembly" };
 }
 
 function OperationRecord({

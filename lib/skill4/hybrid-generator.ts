@@ -1,35 +1,35 @@
 import type { IsoMesh } from "../scan/isomesh";
 import type { ReadyModule } from "./adapt";
-import type { HybridCandidate } from "./candidate-field";
+import { parentWeights, rowTransformationIntensity, type HybridCandidate } from "./candidate-field";
 import type { FaceFrame, FaceId } from "./contract";
 import type { FaceObservation } from "./face-sample";
-import { extractFaceProfile } from "./face-profile";
-import { correspondProfiles } from "./profile-correspondence";
-import { loftProfiles } from "./profile-loft";
+import { extractFaceProfile, type FaceProfile, type ProfilePoint } from "./face-profile";
+import type { DeformationDna } from "./hybrid-deformation";
+import { growHybridVolume } from "./network-volume";
 
 /**
  * Skill 04 connector contract.
  * Continuous candidate DNA stays on the request. It is not passed to translateArchetype
- * and is not rounded to catalog rankings. It deforms only the intermediate loft rings.
+ * and is not rounded to catalog rankings.
  *
- * Geometry is a new open IsoMesh: extract a cross-section on each selected face,
- * correspond the largest closed loops, then loft between those reconstructed profiles.
- * Both faces use the same provisional section depth. Source meshes are not rewritten.
+ * Each connector is a network of nodes and edges. Edge strength reinforces,
+ * merges, or prunes those routes, then one implicit volume is built from the
+ * surviving radii. Source meshes are not rewritten.
  * Centroid face samples remain request context. They do not decide the cross-section.
  *
- * Placement is still unresolved. connectorDepth stays null, and tiles are not moved.
- * The loft span is the distance between the two section centers.
+ * Placement maps the volume from the two section frames onto the placed faces.
+ * connectorDepth stays null, and tiles are not moved.
  */
 export const HYBRID_GENERATOR_SETTINGS = {
-  version: "skill4-hybrid-generator-v1",
+  version: "skill4-hybrid-generator-v4",
   seed: 1,
-  geometry: "profile-loft",
+  geometry: "network-volume",
   extraction: "cross-section",
   placement: "overlap-pending-depth",
   connectorDepth: null,
   sectionDepth: 0.15,
-  profileSamples: 16,
-  loftSteps: 5,
+  profileSamples: 24,
+  loftSteps: 13,
 } as const;
 
 export type CatalogDna = {
@@ -68,6 +68,120 @@ export interface HybridGenerator {
   generate(request: HybridGeneratorRequest): HybridGeneratorResult;
 }
 
+function deformationDna(
+  request: HybridGeneratorRequest,
+  sectionDepth: number,
+  alignedA: readonly { u: number; v: number }[],
+  alignedB: readonly { u: number; v: number }[],
+): DeformationDna {
+  const weights = typeof request.candidate.parentAWeight === "number"
+    ? { parentAWeight: request.candidate.parentAWeight, parentBWeight: request.candidate.parentBWeight }
+    : parentWeights(request.candidate.column);
+  const transformationIntensity = typeof request.candidate.transformationIntensity === "number"
+    ? request.candidate.transformationIntensity
+    : rowTransformationIntensity(request.candidate.row);
+  return {
+    criteria: request.candidate.criteria,
+    parentAWeight: weights.parentAWeight,
+    parentBWeight: weights.parentBWeight,
+    transformationIntensity,
+    localSectionA: localSection(request.moduleA.geometry, request.frameA, sectionDepth, alignedA),
+    localSectionB: localSection(request.moduleB.geometry, request.frameB, sectionDepth, alignedB),
+  };
+}
+
+const localSectionCache = new WeakMap<IsoMesh, Map<string, { u: number; v: number }[] | null>>();
+
+function localSection(
+  geometry: IsoMesh,
+  frame: FaceFrame,
+  sectionDepth: number,
+  contact: readonly { u: number; v: number }[],
+) {
+  const key = `${frame.id}:${sectionDepth}:${contact.length}`;
+  let cached = localSectionCache.get(geometry);
+  if (!cached) {
+    cached = new Map();
+    localSectionCache.set(geometry, cached);
+  }
+  const hit = cached.get(key);
+  if (hit !== undefined) return hit;
+  const section = computeLocalSection(geometry, frame, sectionDepth, contact);
+  cached.set(key, section);
+  return section;
+}
+
+function computeLocalSection(
+  geometry: IsoMesh,
+  frame: FaceFrame,
+  sectionDepth: number,
+  contact: readonly { u: number; v: number }[],
+) {
+  const depths = [sectionDepth * 2.4, sectionDepth * 4, sectionDepth * 6];
+  let best: { area: number; points: ProfilePoint[] } | null = null;
+  for (const depth of depths) {
+    const profile = extractFaceProfile(geometry, frame, depth);
+    const loop = fullestLoop(profile);
+    if (!loop) continue;
+    const area = loopArea(loop);
+    if (!best || area > best.area) best = { area, points: loop };
+  }
+  if (!best || contact.length < 3) return null;
+  return resampleSection(contact, best.points);
+}
+
+function fullestLoop(profile: FaceProfile) {
+  const closed = profile.loops.filter((loop) => loop.closed && loop.points.length >= 3);
+  if (closed.length === 0) return null;
+  return closed.reduce((largest, loop) => (loop.points.length > largest.points.length ? loop : largest)).points;
+}
+
+function loopArea(points: readonly ProfilePoint[]) {
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const next = points[(index + 1) % points.length];
+    area += points[index].u * next.v - next.u * points[index].v;
+  }
+  return Math.abs(area) * 0.5;
+}
+
+function resampleSection(contact: readonly { u: number; v: number }[], deep: readonly ProfilePoint[]) {
+  const contactCenter = averageUv(contact);
+  const deepCenter = averageUv(deep);
+  const polar = deep.map((point) => {
+    const u = point.u - deepCenter.u;
+    const v = point.v - deepCenter.v;
+    return { angle: Math.atan2(v, u), radius: Math.hypot(u, v) };
+  }).sort((left, right) => left.angle - right.angle);
+  return contact.map((sample) => {
+    const angle = Math.atan2(sample.v - contactCenter.v, sample.u - contactCenter.u);
+    const radius = radiusAt(polar, angle);
+    return { u: Math.cos(angle) * radius, v: Math.sin(angle) * radius };
+  });
+}
+
+function radiusAt(polar: readonly { angle: number; radius: number }[], angle: number) {
+  const wrapped = Math.atan2(Math.sin(angle), Math.cos(angle));
+  for (let index = 0; index < polar.length; index += 1) {
+    const next = polar[(index + 1) % polar.length];
+    const from = polar[index].angle;
+    let to = next.angle;
+    let target = wrapped;
+    if (to <= from) to += Math.PI * 2;
+    if (target < from) target += Math.PI * 2;
+    if (target < from || target > to) continue;
+    const span = to - from;
+    const t = span <= 1e-8 ? 0 : (target - from) / span;
+    return polar[index].radius + (next.radius - polar[index].radius) * t;
+  }
+  return polar.reduce((sum, point) => sum + point.radius, 0) / polar.length;
+}
+
+function averageUv(points: readonly { u: number; v: number }[]) {
+  const sum = points.reduce((acc, point) => ({ u: acc.u + point.u, v: acc.v + point.v }), { u: 0, v: 0 });
+  return { u: sum.u / points.length, v: sum.v / points.length };
+}
+
 export function catalogDna(module: ReadyModule): CatalogDna {
   const ratings: Record<string, number> = {};
   for (const group of module.identity.criteria) {
@@ -100,7 +214,7 @@ export const pendingHybridGenerator: HybridGenerator = {
   settings: HYBRID_GENERATOR_SETTINGS,
   generate(request) {
     if (!settingsMatch(request.settings)) {
-      return failed(request, "invalid", "The generator settings do not match skill4-hybrid-generator-v1.");
+      return failed(request, "invalid", "The generator settings do not match skill4-hybrid-generator-v4.");
     }
     const { sectionDepth, profileSamples, loftSteps } = request.settings;
     if (!Number.isFinite(sectionDepth) || sectionDepth < 0 || !Number.isInteger(profileSamples) || profileSamples < 3 || !Number.isInteger(loftSteps) || loftSteps < 2) {
@@ -110,6 +224,9 @@ export const pendingHybridGenerator: HybridGenerator = {
       return failed(request, "blocked", "One or both adapted modules have no mesh. Connector geometry was not created.");
     }
 
+    if (!Array.isArray(request.candidate.criteria)) {
+      return failed(request, "invalid", "Candidate criteria are missing. No connector was created.");
+    }
     const profileA = extractFaceProfile(request.moduleA.geometry, request.frameA, sectionDepth);
     const profileB = extractFaceProfile(request.moduleB.geometry, request.frameB, sectionDepth);
     const profiles = [profileA, profileB];
@@ -122,31 +239,23 @@ export const pendingHybridGenerator: HybridGenerator = {
       return failed(request, "empty", `Face profile ${faces.join(" and ")} has no cross-section. No connector was created.`);
     }
 
-    const correspondence = correspondProfiles(profileA, profileB, profileSamples);
-    if (correspondence.status !== "ready") {
-      return failed(request, correspondence.status, correspondence.reason || "Profile correspondence did not produce a connector.");
-    }
-
-    const loft = loftProfiles({
-      correspondence,
-      frameA: request.frameA,
-      frameB: request.frameB,
-      depthA: sectionDepth,
-      depthB: sectionDepth,
-      steps: loftSteps,
-      deformation: request.candidate,
+    const volume = growHybridVolume({
+      profileA,
+      profileB,
+      candidate: request.candidate,
+      observationA: request.observationA,
+      observationB: request.observationB,
     });
-    if (loft.status !== "ready" || !loft.geometry) {
-      const status = loft.status === "ready" ? "blocked" : loft.status;
-      return failed(request, status, loft.reason || "The loft did not produce a connector.");
+    if (volume.status !== "ready" || !volume.mesh) {
+      return failed(request, volume.status === "ready" ? "blocked" : volume.status, volume.reason || "The network did not produce a connector.");
     }
 
     return {
       status: "ready",
-      geometry: loft.geometry,
+      geometry: volume.mesh,
       candidateId: request.candidate.id,
-      vertexCount: loft.vertexCount,
-      triangleCount: loft.triangleCount,
+      vertexCount: volume.mesh.positions.length / 3,
+      triangleCount: volume.mesh.triangles,
       reason: "",
     };
   },

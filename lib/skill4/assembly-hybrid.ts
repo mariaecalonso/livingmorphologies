@@ -8,6 +8,7 @@ import { currentGeneratedField } from "./hybrid-display";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
 import { mockHybridField } from "./mock-hybrids";
 import type { TileInstance } from "./tiles";
+import { rotateByBasis, tileBasis } from "./tile-basis";
 
 /**
  * A stored connector is lofted between unplaced registration frames.
@@ -34,16 +35,18 @@ export type AssemblyHybrid = {
 
 const ORIGIN: Vec3 = { x: 0, y: 0, z: 0 };
 
-/** Placed face frame. Same order as the assembly preview: mirror, yaw, translation. */
+/** Placed face frame. Same basis the assembly mesh uses, then translation. */
 export function placedFaceFrame(
   frame: FaceFrame,
-  tile: Pick<TileInstance, "transform" | "rotationQuarter" | "mirror">,
+  tile: Pick<TileInstance, "transform" | "rotation" | "rotationQuarter" | "mirror">,
 ): FaceFrame {
+  const basis = tileBasis(tile);
+  const turn = (vector: Vec3) => rotateByBasis(basis, vector);
   const turned = {
-    origin: yaw(mirrorVec(frame.origin, tile.mirror), tile.rotationQuarter),
-    normal: yaw(mirrorVec(frame.normal, tile.mirror), tile.rotationQuarter),
-    u: yaw(mirrorVec(frame.u, tile.mirror), tile.rotationQuarter),
-    v: yaw(mirrorVec(frame.v, tile.mirror), tile.rotationQuarter),
+    origin: turn(frame.origin),
+    normal: turn(frame.normal),
+    u: turn(frame.u),
+    v: turn(frame.v),
   };
   return { ...frame, ...turned, origin: add(turned.origin, tile.transform) };
 }
@@ -84,6 +87,7 @@ export function placeGeneratedHybrid(
   // A reversed loft is rejected. A tilt still maps each end centroid onto its section center.
   if (dot(source.direction, face.direction) <= 0) return null;
   const targetDirection = scale(targetSpan, 1 / targetLength);
+  const alongScale = source.span > 1e-6 ? targetLength / source.span : 1;
   const basisA = transportBasis(sourceA, targetA, source.tangent, source.bitangent);
   const basisB = transportBasis(sourceB, targetB, source.tangent, source.bitangent);
   if (!basisA || !basisB) return null;
@@ -101,7 +105,7 @@ export function placeGeneratedHybrid(
     const along = dot(delta, source.direction);
     const sectionU = dot(delta, source.tangent);
     const sectionV = dot(delta, source.bitangent);
-    write(positions, vertex, add(targetAxis, add(scale(targetDirection, along), add(scale(basis.u, sectionU), scale(basis.v, sectionV)))));
+    write(positions, vertex, add(targetAxis, add(scale(targetDirection, along * alongScale), add(scale(basis.u, sectionU), scale(basis.v, sectionV)))));
     const normal = read(mesh.normals, vertex);
     const turned = add(
       scale(targetDirection, dot(normal, source.direction)),
@@ -176,22 +180,67 @@ function placeConnection(
   if (!sourceA || !sourceB) return null;
   const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
   const vertexCount = mesh.positions.length / 3;
-  if (vertexCount % steps !== 0) return null;
-  const sampleCount = vertexCount / steps;
-  return placeGeneratedHybrid(
-    mesh,
-    sourceA,
-    sourceB,
-    placedFaceFrame(sourceA, tileA),
-    placedFaceFrame(sourceB, tileB),
-    sampleCount,
-    steps,
-  );
+  const sampleCount = vertexCount % steps === 0 ? vertexCount / steps : 0;
+  const loftTriangles = sampleCount >= 3 ? 2 * sampleCount * (steps - 1) : -1;
+  if (sampleCount >= 3 && mesh.triangles === loftTriangles) {
+    return placeGeneratedHybrid(
+      mesh,
+      sourceA,
+      sourceB,
+      placedFaceFrame(sourceA, tileA),
+      placedFaceFrame(sourceB, tileB),
+      sampleCount,
+      steps,
+    );
+  }
+  return placeFreeHybrid(mesh, sourceA, sourceB, placedFaceFrame(sourceA, tileA), placedFaceFrame(sourceB, tileB));
 }
 
 function readyModule(tile: TileInstance, loaded: ReadonlyMap<string, ModuleHandoff>): ReadyModule | null {
   const handoff = loaded.get(tile.archetypeId);
   return handoff?.status === "ready" ? handoff : null;
+}
+
+function placeFreeHybrid(
+  mesh: IsoMesh,
+  sourceA: FaceFrame,
+  sourceB: FaceFrame,
+  targetA: FaceFrame,
+  targetB: FaceFrame,
+): IsoMesh | null {
+  const depth = HYBRID_GENERATOR_SETTINGS.sectionDepth;
+  const sourceStart = sectionCenter(sourceA, depth);
+  const sourceEnd = sectionCenter(sourceB, depth);
+  const targetStart = sectionCenter(targetA, depth);
+  const targetEnd = sectionCenter(targetB, depth);
+  const source = connectorFrame(sourceStart, sourceEnd);
+  const targetSpan = sub(targetEnd, targetStart);
+  const targetLength = length(targetSpan);
+  if (!source || targetLength <= 1e-6 || mesh.normals.length !== mesh.positions.length) return null;
+  const basisA = transportBasis(sourceA, targetA, source.tangent, source.bitangent);
+  const basisB = transportBasis(sourceB, targetB, source.tangent, source.bitangent);
+  if (!basisA || !basisB) return null;
+  const targetDirection = scale(targetSpan, 1 / targetLength);
+  const alongScale = source.span > 1e-6 ? targetLength / source.span : 1;
+  const vertexCount = mesh.positions.length / 3;
+  const positions = new Float32Array(mesh.positions.length);
+  const normals = new Float32Array(mesh.normals.length);
+  for (let vertex = 0; vertex < vertexCount; vertex += 1) {
+    const point = read(mesh.positions, vertex);
+    const delta = sub(point, sourceStart);
+    const along = dot(delta, source.direction);
+    const t = Math.min(1, Math.max(0, along / source.span));
+    const basis = sectionBasis(basisA, basisB, t);
+    write(positions, vertex, add(targetStart, add(scale(targetDirection, along * alongScale), add(scale(basis.u, dot(delta, source.tangent)), scale(basis.v, dot(delta, source.bitangent))))));
+    const normal = read(mesh.normals, vertex);
+    const turned = add(
+      scale(targetDirection, dot(normal, source.direction)),
+      add(scale(basis.u, dot(normal, source.tangent)), scale(basis.v, dot(normal, source.bitangent))),
+    );
+    const turnedLength = length(turned);
+    write(normals, vertex, turnedLength > 1e-8 ? scale(turned, 1 / turnedLength) : { x: 0, y: 1, z: 0 });
+  }
+  return { positions, normals, indices: Uint32Array.from(mesh.indices), triangles: mesh.triangles };
 }
 
 function transportBasis(sourceFace: FaceFrame, targetFace: FaceFrame, tangent: Vec3, bitangent: Vec3): { u: Vec3; v: Vec3 } | null {
@@ -234,20 +283,6 @@ function rodrigues(vector: Vec3, axis: Vec3, angle: number): Vec3 {
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
   return add(add(scale(vector, cosine), scale(cross(axis, vector), sine)), scale(axis, dot(axis, vector) * (1 - cosine)));
-}
-
-function yaw(vector: Vec3, quarter: 0 | 1 | 2 | 3): Vec3 {
-  const angle = quarter * Math.PI / 2;
-  const cosine = Math.cos(angle);
-  const sine = Math.sin(angle);
-  return { x: vector.x * cosine + vector.z * sine, y: vector.y, z: -vector.x * sine + vector.z * cosine };
-}
-
-function mirrorVec(vector: Vec3, axis: TileInstance["mirror"]): Vec3 {
-  if (axis === "x") return { x: -vector.x, y: vector.y, z: vector.z };
-  if (axis === "y") return { x: vector.x, y: -vector.y, z: vector.z };
-  if (axis === "z") return { x: vector.x, y: vector.y, z: -vector.z };
-  return vector;
 }
 
 function blank(source: "none", candidateId: string | null, status: AssemblyHybridStatus): AssemblyHybrid {

@@ -114,36 +114,34 @@ const beforeInsertions = interlocks.connections.map((connection) => ({
 }));
 const plan = buildBooleanPlan(interlocks);
 assert(plan.status === "ready" && plan.readyConnectionCount === 4 && plan.failedConnectionCount === 0, "four ready interlocks make a ready boolean plan");
-assert(plan.connectorAdditions.length === 4 && plan.connectorAdditions.every((item) => item.operation === "union-later"), "each ready connection records a later connector union");
+assert(plan.connections.every((item) => item.participants.map((participant) => participant.role).join() === BOOLEAN_PLAN_SETTINGS.connectionOrder.join()), "each ready connection records parent A, the closed hybrid, and parent B");
+assert(plan.requiredParticipantCount === 12, "four connections require twelve participants");
 
 const east = plan.connections.find((item) => item.connectionId.endsWith(":A:B"));
 const eastInterlock = interlocks.connections.find((item) => item.connectionId.endsWith(":A:B"));
-if (!east?.tileAOperation || !east.tileBOperation || !east.connectorOperation || !eastInterlock?.insertionA || !eastInterlock.insertionB) throw new Error("A-B plan is missing");
-assert(east.tileAOperation.operation === "difference" && east.tileBOperation.operation === "difference", "both tile operations are differences");
-assert(east.cutVolumeA === eastInterlock.insertionA && east.tileAOperation.volume === eastInterlock.insertionA, "tile A is cut by insertion A");
-assert(east.cutVolumeB === eastInterlock.insertionB && east.tileBOperation.volume === eastInterlock.insertionB, "tile B is cut by insertion B");
-assert(east.tileAOperation.tileId === "A" && east.tileAOperation.face === eastInterlock.interfaceA?.face, "tile A ownership is stored on the cut");
-assert(east.tileBOperation.tileId === "B" && east.tileBOperation.face === eastInterlock.interfaceB?.face, "tile B ownership is stored on the cut");
-assert(east.connectorGeometry === eastInterlock.connectorGeometry && east.connectorOperation.connector === eastInterlock.connectorGeometry, "the connector addition keeps the placed connector");
+if (!east || !eastInterlock?.connectorGeometry) throw new Error("A-B plan is missing");
+assert(east.tileAId === "A" && east.tileBId === "B", "the plan names both parents");
+assert(east.candidateId === "H05" && east.participants[1]?.id === "H05", "the plan names the selected hybrid");
+assert(east.faceA === eastInterlock.interfaceA?.face && east.faceB === eastInterlock.interfaceB?.face, "the plan keeps the transformed faces");
+assert(east.inwardA !== null && east.inwardB !== null, "the plan keeps both inward directions");
+assert(east.connectorGeometry === eastInterlock.connectorGeometry, "the plan keeps the placed connector");
 assert(east.validation.accepted && east.validation.failures.length === 0, "a valid interlock passes the boolean checks");
+assert(!("tileAOperation" in east) && !("cutVolumeA" in east), "the plan does not record a subtraction");
 
 const tileA = plan.tiles.find((tile) => tile.tileId === "A");
 if (!tileA) throw new Error("tile A is missing");
-assert(tileA.operations.length === 2, "tile A keeps a cut for each ready neighbor");
-assert(tileA.operations.map((cut) => cut.connectionId).join() === [...tileA.operations.map((cut) => cut.connectionId)].sort().join(), "tile A cuts are sorted by connection id");
-assert(tileA.operations.every((cut, index) => cut.sequence === index), "cut sequence follows that order");
-assert(tileA.order.join() === BOOLEAN_PLAN_SETTINGS.tileOrder.join(), "tile order is difference, preserve, then connector union");
+assert(tileA.connectionIds.length === 2, "tile A is required by two connections");
+assert(tileA.connectionIds.join() === [...tileA.connectionIds].sort().join(), "tile A connections are sorted");
 for (const tileId of ["A", "B", "C", "D"]) {
   const tile = plan.tiles.find((item) => item.tileId === tileId);
   if (!tile) throw new Error(`${tileId} is missing`);
-  assert(tile.operations.length === 2, `${tileId} has two pending cuts`);
-  assert(tile.operations.every((cut) => cut.potentialCutConflict === false), `${tileId} cuts do not overlap on the default board`);
+  assert(tile.connectionIds.length === 2, `${tileId} is required twice`);
 }
 
 const invalid = blankResult(interlocks.connections[0], "invalid");
 const invalidPlan = buildBooleanPlan(invalid);
 assert(invalidPlan.status === "not-ready" && invalidPlan.readyConnectionCount === 0 && invalidPlan.tiles.length === 0, "an invalid interlock creates no ready boolean plan");
-assert(invalidPlan.connections[0].status === "invalid" && invalidPlan.connections[0].tileAOperation === null, "an invalid interlock records no cut");
+assert(invalidPlan.connections[0].status === "invalid" && invalidPlan.connections[0].participants.length === 0, "an invalid interlock records no participants");
 
 const mixed = {
   ...interlocks,
@@ -169,16 +167,16 @@ const none = buildBooleanPlan({ connections: links.map((connection) => ({
   overlapA: null,
   overlapB: null,
 })), readyCount: 0, failedCount: links.length, status: "not-ready" });
-assert(none.status === "not-ready" && none.readyConnectionCount === 0 && none.connectorAdditions.length === 0, "an unready interlock set has no boolean plan");
+assert(none.status === "not-ready" && none.readyConnectionCount === 0 && none.connections.every((item) => item.participants.length === 0), "an unready interlock set has no boolean participants");
 
-const overlap = buildBooleanPlan({
-  connections: [interlocks.connections[0], { ...interlocks.connections[0], connectionId: `${interlocks.connections[0].connectionId}:overlap` }],
+const shared = buildBooleanPlan({
+  connections: [interlocks.connections[0], { ...interlocks.connections[0], connectionId: `${interlocks.connections[0].connectionId}:shared` }],
   readyCount: 2,
   failedCount: 0,
   status: "ready",
 });
-const overlapped = overlap.tiles.find((tile) => tile.tileId === "A");
-assert(overlapped !== undefined && overlapped.operations.length === 2 && overlapped.operations.every((cut) => cut.potentialCutConflict), "overlapping cut bounds are flagged and still kept");
+const sharedTile = shared.tiles.find((tile) => tile.tileId === "A");
+assert(sharedTile !== undefined && sharedTile.connectionIds.length === 2, "a parent required twice keeps both connection ids");
 
 readyLinks.forEach((connection, index) => {
   const positions = connection.generatedHybridField?.candidates.find((item) => item.candidateId === "H05")?.geometry?.positions;
@@ -212,4 +210,4 @@ function blankResult(connection: InterlockConnection, status: InterlockConnectio
   };
 }
 
-console.log(`skill4 boolean plan ok · ready ${plan.readyConnectionCount}/4 · tile A cuts ${tileA.operations.length}`);
+console.log(`skill4 boolean plan ok · ready ${plan.readyConnectionCount}/4 · tile A connections ${tileA.connectionIds.length}`);

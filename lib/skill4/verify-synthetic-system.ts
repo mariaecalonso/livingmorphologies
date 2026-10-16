@@ -150,7 +150,7 @@ async function runArrangement(
   const plan = buildBooleanPlan(interlocks);
   check(plan.status === "ready", `${label} boolean plan ${plan.status}`);
   const execution = await executeBooleanAssembly(plan, tiles, loaded);
-  check(execution.status === "ready", `${label} boolean execution ${execution.status} ${execution.connections.map((item) => `${item.connectionId}:${item.status}:${item.reason}:${item.connectorConditionReason}:kernel ${item.kernelStatus ?? "-"}`).join(" | ")} tiles ${execution.tiles.map((item) => `${item.tileId}:${item.status}:${item.cuts.map((cut) => cut.reason).join(",")}`).join(" ")}`);
+  check(execution.status === "ready", `${label} boolean execution ${execution.status} ${execution.connections.map((item) => `${item.connectionId}:${item.status}:${item.reason}:${item.connectorConditionReason}:kernel ${item.kernelStatus ?? "-"}:overlap ${item.overlapExtension ?? "-"}`).join(" | ")} tiles ${execution.tiles.map((item) => `${item.tileId}:${item.status}`).join(" ")}`);
   notes.push(`${label} connections ${connections.length} boolean ${execution.status}`);
 }
 

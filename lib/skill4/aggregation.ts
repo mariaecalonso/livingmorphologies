@@ -5,7 +5,7 @@ import { detectAdjacencies, type TileConnection } from "./connections";
 import type { FaceId, Vec3 } from "./contract";
 import { currentGeneratedField } from "./hybrid-display";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
-import type { TileInstance } from "./tiles";
+import { HYBRID_GAP, type TileInstance } from "./tiles";
 
 /**
  * Relational fit for one selected hybrid.
@@ -123,7 +123,7 @@ function evaluateConnection(
   const tolerance = AGGREGATION_SETTINGS.attachmentTolerance;
   const attached = errorA !== null && errorB !== null && errorA <= tolerance && errorB <= tolerance;
   const detected = detectAdjacencies(tiles).find((item) => item.id === connection.id);
-  const facesMeet = detected?.faceA === connection.faceA && detected?.faceB === connection.faceB;
+  const facesMeet = detected ? selectedFacesMeet(connection, tiles, loaded, detected.faceA === connection.faceA && detected.faceB === connection.faceB) : false;
   return {
     ...base,
     status: attached && facesMeet ? "ready" : "unresolved",
@@ -131,6 +131,33 @@ function evaluateConnection(
     attachmentErrorA: errorA,
     attachmentErrorB: errorB,
   };
+}
+
+function selectedFacesMeet(
+  connection: TileConnection,
+  tiles: readonly TileInstance[],
+  loaded: ReadonlyMap<string, ModuleHandoff>,
+  labelsMatch: boolean,
+) {
+  if (labelsMatch) return true;
+  const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
+  const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
+  const moduleA = tileA ? loaded.get(tileA.archetypeId) : null;
+  const moduleB = tileB ? loaded.get(tileB.archetypeId) : null;
+  if (!tileA || !tileB || moduleA?.status !== "ready" || moduleB?.status !== "ready") return false;
+  const frameA = placedFaceFrame(moduleA.faces[connection.faceA], tileA);
+  const frameB = placedFaceFrame(moduleB.faces[connection.faceB], tileB);
+  const gap = {
+    x: frameB.origin.x - frameA.origin.x,
+    y: frameB.origin.y - frameA.origin.y,
+    z: frameB.origin.z - frameA.origin.z,
+  };
+  const along = gap.x * frameA.normal.x + gap.y * frameA.normal.y + gap.z * frameA.normal.z;
+  const sideX = gap.x - frameA.normal.x * along;
+  const sideY = gap.y - frameA.normal.y * along;
+  const sideZ = gap.z - frameA.normal.z * along;
+  const oppose = frameA.normal.x * frameB.normal.x + frameA.normal.y * frameB.normal.y + frameA.normal.z * frameB.normal.z;
+  return oppose < -0.999 && Math.abs(along - HYBRID_GAP) <= 1e-3 && Math.hypot(sideX, sideY, sideZ) <= 1e-3;
 }
 
 function contactFor(

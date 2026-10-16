@@ -6,6 +6,7 @@ import { ratingLabel } from "@/lib/physarum";
 import type { FaceId } from "@/lib/skill4/contract";
 import type { TileConnection } from "@/lib/skill4/connections";
 import { resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
+import { tileBasis } from "@/lib/skill4/tile-basis";
 import type { GroupId } from "@/lib/types";
 import type { ModuleHandoff, ModuleIdentity } from "@/lib/skill4/adapt";
 import { MeshPreview } from "./mesh-preview";
@@ -120,9 +121,9 @@ export function HybridTiles({ compact = false, only, faceNote }: { compact?: boo
             ) : null}
             {compact ? null : (
               <>
-                <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)}>
+                <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-spin={tile.rotationQuarter}>
                   {previewMesh(syntheticMode, tile.archetypeId, handoff) ? (
-                    <MeshPreview mesh={previewMesh(syntheticMode, tile.archetypeId, handoff)} color={previewColor(identity?.typologyId)} kind={0} contain />
+                    <MeshPreview mesh={previewMesh(syntheticMode, tile.archetypeId, handoff)} color={active ? previewColor(identity?.typologyId) : [1, 1, 1]} kind={0} contain basis={tileBasis(tile)} />
                   ) : null}
                   {handoff.status === "ready" ? null : <p className="hybrid-missing">{handoff.reason}</p>}
                 </div>
@@ -209,16 +210,17 @@ function TileSelectionCard({
         <p className="hybrid-source">{sourceLine(handoff)}</p>
         <p className="hybrid-status" data-available={status.available || undefined}>{status.label}</p>
       </div>
-      <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-module={handoff.status === "ready" ? handoff.moduleId : ""} data-preview-triangles={mesh?.triangles ?? 0} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-yaw={faceView(activeFace).yaw.toFixed(2)}>
+      <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-module={handoff.status === "ready" ? handoff.moduleId : ""} data-preview-triangles={mesh?.triangles ?? 0} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-spin={tile.rotationQuarter}>
         {mesh ? (
           <MeshPreview
             mesh={mesh}
-            color={previewColor(identity?.typologyId)}
+            color={active ? previewColor(identity?.typologyId) : [1, 1, 1]}
             kind={0}
             contain
             guides={guides}
-            yaw={faceView(activeFace).yaw}
-            pitch={faceView(activeFace).pitch}
+            yaw={0.7}
+            pitch={0.35}
+            basis={tileBasis(tile)}
           />
         ) : null}
         {handoff.status === "ready" ? null : <p className="hybrid-missing">{handoff.reason}</p>}
@@ -319,20 +321,6 @@ function previewMesh(syntheticMode: boolean, archetypeId: string, handoff: Modul
 function previewColor(typologyId?: ModuleIdentity["typologyId"]): [number, number, number] {
   if (typologyId) return TYPOLOGY_COLOR[typologyId];
   return [1, 1, 1];
-}
-
-const FACE_VIEW: Record<FaceId, { yaw: number; pitch: number }> = {
-  N: { yaw: 0.22, pitch: 0.42 },
-  S: { yaw: Math.PI - 0.22, pitch: 0.42 },
-  E: { yaw: -1.05, pitch: 0.4 },
-  W: { yaw: 1.05, pitch: 0.4 },
-  T: { yaw: 0.5, pitch: 1.05 },
-  B: { yaw: 0.5, pitch: -0.95 },
-};
-
-function faceView(face: FaceId | null) {
-  if (!face) return { yaw: 0.7, pitch: 0.35 };
-  return FACE_VIEW[face];
 }
 
 function assignedFaces(tileId: string, connections: readonly TileConnection[]) {

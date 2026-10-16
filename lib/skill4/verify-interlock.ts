@@ -180,9 +180,9 @@ assert(dot(travelA, east.interfaceA.inward) / length(travelA) > 0.999, "insertio
 assert(dot(travelB, east.interfaceB.inward) / length(travelB) > 0.999, "insertion B follows the inward normal");
 assert(dot(east.interfaceA.inward, east.interfaceA.normal) < -0.999, "face A inward is opposite its placed normal");
 assert(dot(east.interfaceB.inward, east.interfaceB.normal) < -0.999, "face B inward is opposite its placed normal");
-assert(east.attachmentDepthA === INTERLOCK_SETTINGS.attachmentDepth && east.attachmentDepthB === INTERLOCK_SETTINGS.attachmentDepth, "attachment depth uses the configured value");
-assert(Math.abs(east.overlapA.insertionSpan - INTERLOCK_SETTINGS.attachmentDepth) < 1e-5, "insertion A span matches the depth");
-assert(Math.abs(east.overlapB.insertionSpan - INTERLOCK_SETTINGS.attachmentDepth) < 1e-5, "insertion B span matches the depth");
+assert(east.attachmentDepthA !== null && east.attachmentDepthB !== null && east.attachmentDepthA >= INTERLOCK_SETTINGS.minimumDepth && east.attachmentDepthB <= INTERLOCK_SETTINGS.maximumDepth, "attachment depth is measured for this connection");
+assert(Math.abs((east.overlapA?.insertionSpan ?? 0) - (east.attachmentDepthA ?? 0)) < 1e-5, "insertion A span matches the measured depth");
+assert(Math.abs((east.overlapB?.insertionSpan ?? 0) - (east.attachmentDepthB ?? 0)) < 1e-5, "insertion B span matches the measured depth");
 assert(east.overlapA.pointsIntoTile && east.overlapB.pointsIntoTile, "both insertions point into their tiles");
 assert(east.connectorGeometry.positions !== aggregation.connections[0].geometry?.positions, "the interlock connector uses its own buffers");
 for (let index = 0; index < beforeConnector.length; index += 1) {
@@ -231,4 +231,4 @@ tiles.forEach((tile, index) => {
   for (let offset = 0; offset < positions.length; offset += 1) assert(positions[offset] === beforeTiles[index][offset], `${tile.instanceId} mesh stays unchanged`);
 });
 
-console.log(`skill4 interlock ok · ready ${interlocks.readyCount}/4 · depth ${INTERLOCK_SETTINGS.attachmentDepth}`);
+console.log(`skill4 interlock ok · ready ${interlocks.readyCount}/4 · depth ${east.attachmentDepthA}`);

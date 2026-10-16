@@ -7,15 +7,14 @@ import type { FaceId, Skill4ModuleRecord } from "@/lib/skill4/contract";
 import {
   adjacencyMarker,
   connectionBlocked,
-  connectionInputSignature,
   generateConnectionHybridField,
   reconcileConnections,
-  syncConnectionInputs,
   type TileConnection,
 } from "@/lib/skill4/connections";
 import { generateCandidateField } from "@/lib/skill4/candidate-field";
 import { layoutTiles, type AssemblyArrangement, type AssemblyCount, type MirrorAxis } from "@/lib/skill4/assembly-layout";
-import { envelopeWidth, loadModuleMap, resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
+import { liftConnectedToGround, orientTiles, placedBoundsMinY } from "@/lib/skill4/tile-orientation";
+import { loadModuleMap, resolveTileModule, tileStep, type TileInstance } from "@/lib/skill4/tiles";
 import { loadSyntheticTestRecords, SKILL4_SYNTHETIC_KEY } from "@/lib/skill4/synthetic-modules";
 import type { ModuleHandoff } from "@/lib/skill4/adapt";
 
@@ -55,10 +54,44 @@ function freshBoard(loaded: ReadonlyMap<string, ModuleHandoff>) {
     moduleId: resolveTileModule(tile.archetypeId, loaded).moduleId,
   }));
   return {
-    tiles,
-    connections: reconcileConnections([], tiles, loaded),
+    ...settle(tiles, reconcileConnections([], tiles, loaded), 4, "grid", loaded),
     count: 4 as AssemblyCount,
     arrangement: "grid" as AssemblyArrangement,
+  };
+}
+
+function settle(
+  tiles: TileInstance[],
+  connections: TileConnection[],
+  count: AssemblyCount,
+  arrangement: AssemblyArrangement,
+  loaded: ReadonlyMap<string, ModuleHandoff>,
+  focusConnectionId?: string,
+) {
+  const slots = layoutTiles(count, arrangement, tiles).map((tile) => {
+    const prior = tiles.find((item) => item.instanceId === tile.instanceId);
+    return {
+      ...tile,
+      moduleId: prior?.moduleId || tile.moduleId,
+      manualQuarter: prior?.manualQuarter ?? 0,
+      manualMirror: prior?.manualMirror ?? null,
+    };
+  });
+  const oriented = orientTiles(slots, connections, focusConnectionId);
+  const nextTiles = liftConnectedToGround(oriented.tiles, connections, (tile) => {
+    const handoff = resolveTileModule(tile.archetypeId, loaded);
+    const positions = handoff.status === "ready" ? handoff.geometry?.positions : undefined;
+    return placedBoundsMinY({ ...tile, moduleId: tile.moduleId || handoff.moduleId }, positions);
+  }).map((tile) => ({
+    ...tile,
+    moduleId: tile.moduleId || resolveTileModule(tile.archetypeId, loaded).moduleId,
+  }));
+  return {
+    tiles: nextTiles,
+    connections: reconcileConnections(connections, nextTiles, loaded).map((connection) => ({
+      ...connection,
+      orientation: oriented.unresolved.has(connection.id) ? "unresolved" as const : "ready" as const,
+    })),
   };
 }
 
@@ -147,14 +180,12 @@ export function HybridState({ children }: { children: ReactNode }) {
 
   const chooseFace = (connectionId: string, side: "faceA" | "faceB", face: FaceId) => {
     setSelectedConnectionId(connectionId);
-    setBoard((current) => ({
-      ...current,
-      connections: current.connections.map((connection) => {
-        if (connection.id !== connectionId) return connection;
-        const next = { ...connection, [side]: face, faceSelection: "user" as const };
-        return syncConnectionInputs(next, connectionInputSignature(next, current.tiles, loaded));
-      }),
-    }));
+    setBoard((current) => {
+      const connections = current.connections.map((connection) => (
+        connection.id === connectionId ? { ...connection, [side]: face, faceSelection: "user" as const } : connection
+      ));
+      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+    });
   };
 
   const generateInputs = (connectionId: string) => {
@@ -213,8 +244,11 @@ export function HybridState({ children }: { children: ReactNode }) {
       const tiles = layoutTiles(count, arrangement, current.tiles).map((tile) => ({
         ...tile,
         moduleId: tile.moduleId || resolveTileModule(tile.archetypeId, loaded).moduleId,
+        manualQuarter: current.tiles.find((item) => item.instanceId === tile.instanceId)?.manualQuarter ?? 0,
+        manualMirror: current.tiles.find((item) => item.instanceId === tile.instanceId)?.manualMirror ?? null,
       }));
-      return { tiles, connections: reconcileConnections(current.connections, tiles, loaded), count, arrangement };
+      const connections = reconcileConnections(current.connections, tiles, loaded);
+      return { ...settle(tiles, connections, count, arrangement, loaded), count, arrangement };
     });
   };
 
@@ -226,15 +260,32 @@ export function HybridState({ children }: { children: ReactNode }) {
   };
 
   const rotateSelected = () => {
-    poseTiles((tile) => ({ ...tile, rotationQuarter: ((tile.rotationQuarter + 1) % 4) as 0 | 1 | 2 | 3 }));
+    setBoard((current) => {
+      const anchor = [...current.tiles].sort((a, b) => (a.instanceId < b.instanceId ? -1 : 1))[0]?.instanceId;
+      const bump = new Set([selectedId]);
+      if (anchor && anchor !== selectedId) bump.add(anchor);
+      const tiles = current.tiles.map((tile) => {
+        if (!bump.has(tile.instanceId)) return tile;
+        const manualQuarter = ((tile.manualQuarter ?? 0) + 1) % 4 as 0 | 1 | 2 | 3;
+        return { ...tile, manualQuarter };
+      });
+      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded) };
+    });
   };
 
   const mirrorSelected = (axis: MirrorAxis) => {
-    poseTiles((tile) => ({ ...tile, mirror: tile.mirror === axis ? null : axis }));
+    setBoard((current) => {
+      const tiles = current.tiles.map((tile) => {
+        if (tile.instanceId !== selectedId) return tile;
+        const manualMirror = (tile.manualMirror ?? null) === axis ? null : axis;
+        return { ...tile, manualMirror };
+      });
+      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded) };
+    });
   };
 
   const translateSelected = (x: number, z: number) => {
-    const step = envelopeWidth();
+    const step = tileStep();
     poseTiles((tile) => ({ ...tile, transform: { ...tile.transform, x: tile.transform.x + x * step, z: tile.transform.z + z * step } }));
   };
 

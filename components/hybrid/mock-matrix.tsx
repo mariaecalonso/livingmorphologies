@@ -40,7 +40,8 @@ function centeredMesh(mesh: IsoMesh): IsoMesh {
 }
 
 function imageFor(mesh: IsoMesh, key: string, color: [number, number, number]) {
-  const cached = images.get(key);
+  const storedKey = `${key}:${color.join(",")}`;
+  const cached = images.get(storedKey);
   if (cached) return cached;
   if (!host || !shared) {
     host = document.createElement("div");
@@ -49,9 +50,9 @@ function imageFor(mesh: IsoMesh, key: string, color: [number, number, number]) {
     host.appendChild(shared);
     document.body.appendChild(host);
   }
-  drawPlacedMeshes(shared, [{ id: key, mesh: centeredMesh(mesh), translate: { x: 0, y: 0, z: 0 }, selected: false, color, kind: 1 }], 0.8, 0.35, 1, true, undefined, false, 1.6);
+  drawPlacedMeshes(shared, [{ id: key, mesh: centeredMesh(mesh), translate: { x: 0, y: 0, z: 0 }, selected: false, color, kind: 0 }], 0.8, 0.35, 1, true, undefined, false, 1.6);
   const url = shared.toDataURL("image/png");
-  images.set(key, url);
+  images.set(storedKey, url);
   return url;
 }
 
@@ -59,13 +60,26 @@ function StatusCard({
   slot,
   active,
   onSelect,
+  onHover,
+  lane = false,
 }: {
   slot: HybridDisplaySlot;
   active: boolean;
   onSelect: (id: string) => void;
+  onHover?: (id: string | null) => void;
+  lane?: boolean;
 }) {
   return (
-    <button type="button" data-mock-id={slot.id} data-hybrid-status={slot.source} data-active={active || undefined} onClick={() => onSelect(slot.id)}>
+    <button
+      type="button"
+      data-mock-id={slot.id}
+      data-hybrid-status={slot.source}
+      data-active={active || undefined}
+      data-lane={lane || undefined}
+      onClick={() => onSelect(slot.id)}
+      onMouseEnter={() => onHover?.(slot.id)}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <span>{slot.label}</span>
       <span>{slot.id}</span>
     </button>
@@ -79,6 +93,8 @@ function Thumb({
   active,
   color,
   onSelect,
+  onHover,
+  lane = false,
 }: {
   mesh: IsoMesh;
   cacheKey: string;
@@ -86,6 +102,8 @@ function Thumb({
   active: boolean;
   color: [number, number, number];
   onSelect: (id: string) => void;
+  onHover?: (id: string | null) => void;
+  lane?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useLayoutEffect(() => {
@@ -101,22 +119,39 @@ function Thumb({
     image.src = imageFor(mesh, cacheKey, color);
   }, [cacheKey, color, mesh]);
   return (
-    <button type="button" data-mock-id={id} data-active={active || undefined} onClick={() => onSelect(id)}>
+    <button
+      type="button"
+      data-mock-id={id}
+      data-active={active || undefined}
+      data-lane={lane || undefined}
+      onClick={() => onSelect(id)}
+      onMouseEnter={() => onHover?.(id)}
+      onMouseLeave={() => onHover?.(null)}
+    >
       <canvas ref={ref} width={176} height={176} />
       <span>{id}</span>
     </button>
   );
 }
 
+function laneAt(index: number, emphasis: { row?: number | null; column?: number | null } | null) {
+  if (!emphasis) return false;
+  const row = Math.floor(index / 5);
+  const column = index % 5;
+  return emphasis.row === row || emphasis.column === column;
+}
+
 function mix(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-export function MockMatrix({
+export function HybridMatrixGrid({
   signature,
   selectedId,
   generatedField = null,
   onSelect,
+  onHover,
+  emphasis = null,
   colorA = [0.78, 0.494, 0.373],
   colorB = [0.49, 0.722, 0.722],
 }: {
@@ -124,30 +159,69 @@ export function MockMatrix({
   selectedId: string;
   generatedField?: GeneratedHybridField | null;
   onSelect: (id: string) => void;
+  onHover?: (id: string | null) => void;
+  emphasis?: { row?: number | null; column?: number | null } | null;
   colorA?: [number, number, number];
   colorB?: [number, number, number];
 }) {
   const display = hybridDisplay({ signature, selectedMockId: selectedId, generatedHybridField: generatedField ?? null });
   return (
-    <div className="hybrid-matrix" data-mock-matrix={signature} data-hybrid-source={display.source}>
+    <div className="hybrid-matrix-grid">
+      {display.slots.map((slot, index) => (
+        slot.mesh ? (
+          <Thumb
+            key={slot.id}
+            mesh={slot.mesh}
+            cacheKey={`${display.source}:${signature}:${slot.id}:${slot.mesh.triangles}:${slot.mesh.positions.length}`}
+            id={slot.id}
+            active={slot.id === selectedId}
+            color={slot.id === selectedId ? mix(colorA, colorB, (index % 5) / 4) : [1, 1, 1]}
+            onSelect={onSelect}
+            onHover={onHover}
+            lane={laneAt(index, emphasis)}
+          />
+        ) : (
+          <StatusCard key={slot.id} slot={slot} active={slot.id === selectedId} onSelect={onSelect} onHover={onHover} lane={laneAt(index, emphasis)} />
+        )
+      ))}
+    </div>
+  );
+}
+
+export function MockMatrix({
+  signature,
+  selectedId,
+  generatedField = null,
+  onSelect,
+  onOpen,
+  colorA = [0.78, 0.494, 0.373],
+  colorB = [0.49, 0.722, 0.722],
+}: {
+  signature: string;
+  selectedId: string;
+  generatedField?: GeneratedHybridField | null;
+  onSelect: (id: string) => void;
+  onOpen?: () => void;
+  colorA?: [number, number, number];
+  colorB?: [number, number, number];
+}) {
+  const display = hybridDisplay({ signature, selectedMockId: selectedId, generatedHybridField: generatedField ?? null });
+  return (
+    <div
+      className="hybrid-matrix"
+      data-mock-matrix={signature}
+      data-hybrid-source={display.source}
+      onClick={() => onOpen?.()}
+    >
       <p className="hybrid-mock-banner">{display.banner}</p>
-      <div className="hybrid-matrix-grid">
-        {display.slots.map((slot, index) => (
-          slot.mesh ? (
-            <Thumb
-              key={slot.id}
-              mesh={slot.mesh}
-              cacheKey={`${display.source}:${signature}:${slot.id}:${index}`}
-              id={slot.id}
-              active={slot.id === selectedId}
-              color={mix(colorA, colorB, (index % 5) / 4)}
-              onSelect={onSelect}
-            />
-          ) : (
-            <StatusCard key={slot.id} slot={slot} active={slot.id === selectedId} onSelect={onSelect} />
-          )
-        ))}
-      </div>
+      <HybridMatrixGrid
+        signature={signature}
+        selectedId={selectedId}
+        generatedField={generatedField}
+        onSelect={onSelect}
+        colorA={colorA}
+        colorB={colorB}
+      />
     </div>
   );
 }

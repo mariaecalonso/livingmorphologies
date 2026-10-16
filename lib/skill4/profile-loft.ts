@@ -1,7 +1,7 @@
 import type { IsoMesh } from "../scan/isomesh";
 import type { FaceFrame, Vec3 } from "./contract";
 import { profilePointToWorld } from "./face-profile";
-import { connectorFrame, deformRing, type DeformationDna } from "./hybrid-deformation";
+import { connectorFrame, deformationEnvelope, type ConnectorFrame, type DeformationDna } from "./hybrid-deformation";
 import type { CorrespondenceSample, ProfileCorrespondence } from "./profile-correspondence";
 
 /**
@@ -12,7 +12,7 @@ import type { CorrespondenceSample, ProfileCorrespondence } from "./profile-corr
  */
 export const PROFILE_LOFT_SETTINGS = {
   version: "skill4-profile-loft-v1",
-  interpolation: "linear between corresponding world points",
+  interpolation: "parent-weighted between corresponding world points; ends stay on the contact rings",
   ends: "open",
   minimumSteps: 2,
   centerEpsilon: 1e-6,
@@ -92,8 +92,11 @@ export function loftProfiles(request: ProfileLoftRequest): ProfileLoft {
 
   for (let ring = 0; ring < steps; ring += 1) {
     const t = ring / (steps - 1);
-    const straight = ringA.map((point, index) => lerp(point, ringB[index], t));
-    const placed = dna && frame ? deformRing(straight, t, dna, frame) : straight;
+    const shapeT = sectionParameter(t, dna);
+    const straight = ringA.map((point, index) => lerp(point, ringB[index], shapeT));
+    const inherited = inheritLocalSection(straight, t, shapeT, dna, centerA, centerB);
+    const evolved = dna && frame ? evolveSection(inherited, t, dna, frame) : inherited;
+    const placed = frame ? bendCenterline(evolved, t, dna, frame) : evolved;
     for (let sample = 0; sample < sampleCount; sample += 1) {
       const point = placed[sample];
       const offset = (ring * sampleCount + sample) * 3;
@@ -138,6 +141,146 @@ export function loftProfiles(request: ProfileLoftRequest): ProfileLoft {
     span,
     reason: "",
   };
+}
+
+function sectionParameter(t: number, dna: DeformationDna | null) {
+  if (t <= 0 || t >= 1 || !dna) return t;
+  const parentA = dna.parentAWeight;
+  const parentB = dna.parentBWeight;
+  if (typeof parentA !== "number" || typeof parentB !== "number") return t;
+  if (parentA <= 0 || parentB <= 0) return t;
+  const exponent = Math.min(9, Math.max(1 / 9, parentA / parentB));
+  return t ** exponent;
+}
+
+function inheritLocalSection(
+  points: Vec3[],
+  t: number,
+  shapeT: number,
+  dna: DeformationDna | null,
+  centerA: Vec3,
+  centerB: Vec3,
+) {
+  const sectionA = dna?.localSectionA;
+  const sectionB = dna?.localSectionB;
+  if (!sectionA || !sectionB || sectionA.length !== points.length || sectionB.length !== points.length) return points;
+  const intensity = typeof dna.transformationIntensity === "number" ? dna.transformationIntensity : 0;
+  const mix = deformationEnvelope(t) * (0.42 + 0.58 * Math.min(1, Math.max(0, intensity)));
+  if (mix <= 0) return points;
+  const axis = lerp(centerA, centerB, t);
+  const direction = normalize(sub(centerB, centerA));
+  if (!direction) return points;
+  return points.map((point, index) => {
+    const delta = sub(point, axis);
+    const along = dot(delta, direction);
+    const radial = sub(delta, scale(direction, along));
+    const radius = length(radial);
+    if (radius <= 1e-8) return point;
+    const u = sectionA[index].u * (1 - shapeT) + sectionB[index].u * shapeT;
+    const v = sectionA[index].v * (1 - shapeT) + sectionB[index].v * shapeT;
+    const target = Math.min(radius * 2.6, Math.max(radius * 0.35, Math.hypot(u, v)));
+    const next = radius * (1 - mix) + target * mix;
+    return add(axis, add(scale(direction, along), scale(radial, next / radius)));
+  });
+}
+
+/**
+ * Sequential morphological states along one loft.
+ * Ends stay on the parent sections. Intermediate rings split into lobes,
+ * then weak lobes shrink and the surviving route thickens.
+ */
+function evolveSection(points: Vec3[], t: number, dna: DeformationDna, frame: ConnectorFrame): Vec3[] {
+  if (t <= 0 || t >= 1) return points;
+  const intensity = Math.min(1, Math.max(0, dna.transformationIntensity ?? 0));
+  const envelope = Math.sin(Math.PI * t);
+  if (envelope < 1e-4 || intensity === 0) return points;
+  const parentA = dna.parentAWeight ?? 0.5;
+  const parentB = dna.parentBWeight ?? 0.5;
+  const branches = intensity < 0.34 ? 1 : intensity < 0.68 ? 2 : 3;
+  const count = points.length;
+  const axis = lerp(frame.centerA, frame.centerB, t);
+  const local = points.map((point) => {
+    const delta = sub(point, axis);
+    return {
+      along: dot(delta, frame.direction),
+      u: dot(delta, frame.tangent),
+      v: dot(delta, frame.bitangent),
+    };
+  });
+  const mean = local.reduce((sum, point) => sum + Math.hypot(point.u, point.v), 0) / count;
+  if (mean < 1e-6) return points;
+  const dominance = Math.abs(parentA - parentB);
+  const towardDominant = parentA >= parentB ? 1 - t : t;
+  const negotiate = 1 - dominance * towardDominant * 0.55;
+  const openness = criterionAmount(dna, "openness");
+  const complexity = criterionAmount(dna, "complexity");
+  const directionality = criterionAmount(dna, "directionality");
+  const reinforce = smoothstep(0.28, 0.62, t) * (1 - 0.25 * smoothstep(0.82, 1, t));
+
+  return local.map((point, index) => {
+    const branch = Math.min(branches - 1, Math.floor((index * branches) / count));
+    const life = branchLife(branch, t, intensity);
+    const start = Math.floor((branch * count) / branches);
+    const end = Math.floor(((branch + 1) * count) / branches);
+    const group = Math.max(1, end - start);
+    const around = ((index - start) / group) * Math.PI * 2;
+    const heading = (branch + 0.5) * ((Math.PI * 2) / branches) + directionality * 0.6;
+    const reach = branch === 0 ? 0.28 : 1;
+    const spread = mean * (0.7 + intensity * 0.85 + openness * 0.35) * envelope * life * reach;
+    const thick = mean * (branch === 0
+      ? 0.62 + 0.48 * reinforce * (0.45 + intensity)
+      : 0.18 + 0.42 * life * (0.4 + complexity));
+    const lobeU = Math.cos(heading) * spread + Math.cos(around) * thick;
+    const lobeV = Math.sin(heading) * spread + Math.sin(around) * thick;
+    const mix = envelope * (0.4 + 0.6 * intensity) * negotiate * (branch === 0 ? 0.5 + 0.5 * reinforce : Math.min(1, life));
+    const u = point.u * (1 - mix) + lobeU * mix;
+    const v = point.v * (1 - mix) + lobeV * mix;
+    return add(axis, add(
+      scale(frame.direction, point.along),
+      add(scale(frame.tangent, u), scale(frame.bitangent, v)),
+    ));
+  });
+}
+
+function branchLife(branch: number, t: number, intensity: number) {
+  if (branch <= 0) return 1;
+  if (branch === 1) {
+    const grow = smoothstep(0.1, 0.28, t);
+    const prune = 1 - smoothstep(0.58, 0.86, t);
+    return grow * prune * (0.45 + 0.55 * intensity);
+  }
+  const grow = smoothstep(0.18, 0.38, t);
+  const merge = 1 - smoothstep(0.46, 0.72, t);
+  return grow * merge * intensity;
+}
+
+function smoothstep(edge0: number, edge1: number, value: number) {
+  const t = Math.min(1, Math.max(0, (value - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function bendCenterline(points: Vec3[], t: number, dna: DeformationDna | null, frame: ConnectorFrame) {
+  if (!dna || typeof dna.transformationIntensity !== "number") return points;
+  const parentA = dna.parentAWeight ?? 0.5;
+  const parentB = dna.parentBWeight ?? 0.5;
+  const intensity = Math.min(1, Math.max(0, dna.transformationIntensity));
+  const envelope = deformationEnvelope(t);
+  if (envelope === 0 || intensity === 0) return points;
+  const directionality = criterionAmount(dna, "directionality");
+  const complexity = criterionAmount(dna, "complexity");
+  const side = parentB - parentA;
+  const wave = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
+  const curl = Math.sin(2 * Math.PI * t);
+  const shift = frame.span * (wave * side * (0.22 + intensity * 0.38) + curl * intensity * 0.18);
+  const lift = frame.span * wave * intensity * (0.14 + (complexity - 0.35) * 0.22 + (directionality - 0.5) * 0.16);
+  const offset = add(scale(frame.tangent, shift), scale(frame.bitangent, lift));
+  return points.map((point) => add(point, offset));
+}
+
+function criterionAmount(dna: DeformationDna, id: string) {
+  const found = dna.criteria.find((criterion) => criterion.criterionId === id);
+  if (!found || !Number.isFinite(found.value)) return 0;
+  return Math.min(1, Math.max(0, found.value / 2));
 }
 
 function windingFlip(ringA: Vec3[], ringB: Vec3[], centerA: Vec3, centerB: Vec3) {

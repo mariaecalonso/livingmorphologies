@@ -39,6 +39,11 @@ const CRITERION = {
 
 export type DeformationDna = {
   criteria: readonly Pick<HybridCriterionValue, "criterionId" | "value">[];
+  parentAWeight?: number;
+  parentBWeight?: number;
+  transformationIntensity?: number;
+  localSectionA?: readonly { u: number; v: number }[] | null;
+  localSectionB?: readonly { u: number; v: number }[] | null;
 };
 
 export type ConnectorFrame = {
@@ -82,14 +87,23 @@ export function deformRing(points: readonly Vec3[], t: number, dna: DeformationD
     return { along: dot(delta, frame.direction), u, v };
   });
   const meanRadius = local.reduce((sum, point) => sum + Math.hypot(point.u, point.v), 0) / Math.max(1, local.length);
-  const complexity = weight * readCriterion(dna, CRITERION.complexity) * AMPLITUDE.complexity;
-  const proportionality = weight * readCriterion(dna, CRITERION.proportionality);
-  const openness = weight * readCriterion(dna, CRITERION.openness) * AMPLITUDE.openness;
-  const directionality = weight * readCriterion(dna, CRITERION.directionality) * AMPLITUDE.directionality * meanRadius;
-  const connectivity = weight * readCriterion(dna, CRITERION.connectivity) * AMPLITUDE.connectivity;
-  const plate = weight * readCriterion(dna, CRITERION.plateArticulation) * AMPLITUDE.plateArticulation * meanRadius;
-  const scaleU = 1 + proportionality * AMPLITUDE.proportionality;
-  const scaleV = 1 - proportionality * AMPLITUDE.proportionalityNarrow;
+  const driven = typeof dna.transformationIntensity === "number" && Number.isFinite(dna.transformationIntensity);
+  const intensity = driven ? Math.min(1, Math.max(0, dna.transformationIntensity)) : 1;
+  const dominance = Math.abs((dna.parentAWeight ?? 0.5) - (dna.parentBWeight ?? 0.5));
+  const explore = intensity * (1 - dominance * 0.62);
+  const gain = driven ? 0.35 + explore * 2.4 : 1;
+  const complexity = weight * readCriterion(dna, CRITERION.complexity) * AMPLITUDE.complexity * (driven ? Math.min(gain, 1.8) : 1);
+  const proportionality = weight * readCriterion(dna, CRITERION.proportionality) * (driven ? Math.min(gain, 1.8) : 1);
+  const openness = weight * readCriterion(dna, CRITERION.openness) * AMPLITUDE.openness * (driven ? Math.min(gain, 1.8) : 1);
+  const directionality = weight * readCriterion(dna, CRITERION.directionality) * AMPLITUDE.directionality * meanRadius * (driven ? Math.min(gain, 1.6) : 1);
+  const connectivity = weight * readCriterion(dna, CRITERION.connectivity) * AMPLITUDE.connectivity * (driven ? Math.min(gain, 1.8) : 1);
+  const plate = weight * readCriterion(dna, CRITERION.plateArticulation) * AMPLITUDE.plateArticulation * meanRadius * (driven ? Math.min(gain, 1.6) : 1);
+  const immersive = driven ? weight * readCriterion(dna, "immersive") * 0.28 * intensity : 0;
+  const visibility = driven ? weight * readCriterion(dna, "visibility") * 0.22 * intensity : 0;
+  const centrality = driven ? weight * readCriterion(dna, "centrality") * 0.28 * intensity * meanRadius : 0;
+  const shared = driven ? weight * Math.max(readCriterion(dna, "collaboration"), readCriterion(dna, "social-proximity")) * 0.35 * intensity : 0;
+  const scaleU = 1 + Math.min(driven ? 0.7 : Infinity, proportionality * AMPLITUDE.proportionality);
+  const scaleV = 1 - Math.min(driven ? 0.45 : Infinity, proportionality * AMPLITUDE.proportionalityNarrow);
 
   return local.map((point) => {
     let u = point.u;
@@ -98,17 +112,34 @@ export function deformRing(points: readonly Vec3[], t: number, dna: DeformationD
     if (radius > 1e-8) {
       const unitU = u / radius;
       const unitV = v / radius;
-      let next = radius + (meanRadius - radius) * connectivity;
+      let next = radius + (meanRadius - radius) * Math.min(0.92, connectivity + shared);
       const theta = Math.atan2(v, u);
-      next *= 1 + complexity * Math.sin(3 * theta);
-      next *= 1 + openness;
+      const lobes = driven ? 2 + Math.round(explore * 5) : 3;
+      if (driven) {
+        const ripple = complexity * Math.sin(lobes * theta) + connectivity * 0.45 * Math.cos((2 + Math.round(explore * 2)) * theta) + openness + immersive;
+        const floor = 0.42;
+        const limit = 1 + explore * 1.15;
+        next *= Math.max(floor, Math.min(limit, 1 + ripple));
+        next = Math.min(meanRadius * (1.15 + explore * 1.35), Math.max(meanRadius * 0.28, next));
+      } else {
+        next *= 1 + complexity * Math.sin(lobes * theta);
+        next *= 1 + openness;
+      }
       u = unitU * next;
       v = unitV * next;
     }
-    u *= scaleU;
-    v *= scaleV;
-    u += directionality;
+    u *= scaleU * (1 + visibility);
+    v *= scaleV * (1 - visibility * 0.45);
+    u += directionality + centrality;
     v += plate;
+    if (driven && radius > 1e-8) {
+      const branchAngle = ((dna.parentBWeight ?? 0.5) - 0.5) * Math.PI;
+      const branch = Math.max(0, Math.cos(Math.atan2(v, u) - branchAngle));
+      const reach = meanRadius * explore * (0.55 + complexity + connectivity) * branch * branch;
+      const spanU = Math.hypot(u, v) || 1;
+      u += (u / spanU) * reach;
+      v += (v / spanU) * reach;
+    }
     return add(
       axis,
       add(scale(frame.direction, point.along), add(scale(frame.tangent, u), scale(frame.bitangent, v))),

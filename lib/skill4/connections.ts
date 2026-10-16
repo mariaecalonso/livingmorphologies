@@ -1,5 +1,6 @@
 import { FACE_IDS, SKILL4_MODULE_CONTRACT, registrationEnvelope, VIEW_SCAN, type FaceId, type Vec3 } from "./contract";
-import { resolveTileModule, type TileInstance } from "./tiles";
+import { HYBRID_GAP, resolveTileModule, type TileInstance } from "./tiles";
+import { rotateByBasis, tileBasis } from "./tile-basis";
 import type { ModuleHandoff } from "./adapt";
 import { CANDIDATE_FIELD_SETTINGS, type CandidateField } from "./candidate-field";
 import { FACE_SAMPLE_SETTINGS } from "./face-sample";
@@ -38,6 +39,8 @@ export type TileConnection = {
   origin: ConnectionOrigin;
   generationStatus: GenerationStatus;
   faceSelection: FaceSelection;
+  /** Set when selected faces cannot share one tile orientation. */
+  orientation?: "ready" | "unresolved";
   inputsChanged: boolean;
   signature: string;
   candidateField: CandidateField | null;
@@ -55,22 +58,38 @@ export function tileBounds(
   tile: TileInstance,
   registration = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw),
 ): Bounds {
-  return {
-    min: {
-      x: registration.min.x + tile.transform.x,
-      y: registration.min.y + tile.transform.y,
-      z: registration.min.z + tile.transform.z,
-    },
-    max: {
-      x: registration.max.x + tile.transform.x,
-      y: registration.max.y + tile.transform.y,
-      z: registration.max.z + tile.transform.z,
-    },
-  };
+  const basis = tileBasis(tile);
+  const xs = [registration.min.x, registration.max.x];
+  const ys = [registration.min.y, registration.max.y];
+  const zs = [registration.min.z, registration.max.z];
+  const min = { x: Infinity, y: Infinity, z: Infinity };
+  const max = { x: -Infinity, y: -Infinity, z: -Infinity };
+  for (const x of xs) {
+    for (const y of ys) {
+      for (const z of zs) {
+        const world = rotateByBasis(basis, { x, y, z });
+        const px = world.x + tile.transform.x;
+        const py = world.y + tile.transform.y;
+        const pz = world.z + tile.transform.z;
+        min.x = Math.min(min.x, px);
+        min.y = Math.min(min.y, py);
+        min.z = Math.min(min.z, pz);
+        max.x = Math.max(max.x, px);
+        max.y = Math.max(max.y, py);
+        max.z = Math.max(max.z, pz);
+      }
+    }
+  }
+  return { min, max };
 }
 
 function overlap(a0: number, a1: number, b0: number, b1: number) {
   return Math.min(a1, b1) - Math.max(a0, b0);
+}
+
+/** Flush contact, or the designed hybrid gap. A larger separation is not a connection. */
+function facesMeet(span: number) {
+  return Math.abs(span) <= ADJACENCY_TOLERANCE || Math.abs(span + HYBRID_GAP) <= ADJACENCY_TOLERANCE;
 }
 
 function suggestedFaces(axis: Axis, a: Bounds, b: Bounds): { faceA: FaceId; faceB: FaceId } {
@@ -122,7 +141,7 @@ export function detectAdjacencies(tiles: readonly TileInstance[]): DetectedAdjac
         y: overlap(boxA.min.y, boxA.max.y, boxB.min.y, boxB.max.y),
         z: overlap(boxA.min.z, boxA.max.z, boxB.min.z, boxB.max.z),
       };
-      const contact = AXES.filter((axis) => Math.abs(spans[axis]) <= ADJACENCY_TOLERANCE);
+      const contact = AXES.filter((axis) => facesMeet(spans[axis]));
       const broad = AXES.filter((axis) => spans[axis] > ADJACENCY_TOLERANCE);
       if (contact.length !== 1 || broad.length !== 2) continue;
       const axis = contact[0];
@@ -171,6 +190,12 @@ export function connectionInputSignature(
         moduleId: handoff.moduleId,
         revision: handoff.revision,
         face,
+        quarter: tile.rotationQuarter,
+        mirror: tile.mirror,
+        basis: (tile.rotation ?? [1, 0, 0, 0, 1, 0, 0, 0, 1]).map((value) => Math.round(value * 10000) / 10000),
+        x: Math.round(tile.transform.x * 10000) / 10000,
+        y: Math.round(tile.transform.y * 10000) / 10000,
+        z: Math.round(tile.transform.z * 10000) / 10000,
       };
     })
     .sort((a, b) => (a.instanceId < b.instanceId ? -1 : 1));

@@ -5,6 +5,7 @@ import type { IsoMesh } from "../scan/isomesh";
 import { isoMeshToBooleanMesh } from "./boolean-adapter";
 import { executeBooleanAssembly } from "./boolean-execution";
 import type { BooleanAssemblyPlan } from "./boolean-plan";
+import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
 import { readProvisionalMock } from "./fixtures";
 import {
   ensureGeometryPreflight,
@@ -194,39 +195,68 @@ assert(first.geometry === dirty, "design handoff keeps the original mesh");
 const report = await ensureGeometryPreflight(first.moduleId, first.revision, first.geometry);
 assert(report.manifoldReady && report.physicalGeometry !== null && report.physicalGeometry !== first.geometry, "the cached physical copy is distinct");
 
-const bite = box([0.05, 0.05, 0.05], [0.35, 0.35, 0.35]);
-const plan: BooleanAssemblyPlan = {
-  connections: [],
-  tiles: [{
-    tileId: "A",
-    operations: [{
-      connectionId: "A-B",
-      candidateId: "H01",
-      tileId: "A",
-      face: "E",
-      operation: "difference",
-      sequence: 1,
-      volume: bite,
-      potentialCutConflict: false,
-    }],
-    order: ["difference", "preserve-tile", "union-connector-later"],
-  }],
-  connectorAdditions: [],
-  readyConnectionCount: 0,
-  failedConnectionCount: 0,
-  status: "not-ready",
+const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
+const loftPositions: number[] = [];
+for (let ring = 0; ring < steps; ring += 1) {
+  const x = 0.05 + (0.9 * ring) / (steps - 1);
+  loftPositions.push(x, -0.05, -0.05, x, 0.05, -0.05, x, 0.05, 0.05, x, -0.05, 0.05);
+}
+const loftIndices: number[] = [];
+for (let ring = 0; ring < steps - 1; ring += 1) {
+  for (let sample = 0; sample < 4; sample += 1) {
+    const next = (sample + 1) % 4;
+    const a = ring * 4 + sample;
+    const b = ring * 4 + next;
+    const c = (ring + 1) * 4 + next;
+    const d = (ring + 1) * 4 + sample;
+    loftIndices.push(a, b, c, a, c, d);
+  }
+}
+const bridge: IsoMesh = {
+  positions: Float32Array.from(loftPositions),
+  normals: new Float32Array(loftPositions.length),
+  indices: Uint32Array.from(loftIndices),
+  triangles: loftIndices.length / 3,
 };
-const tile: TileInstance = {
-  instanceId: "A",
+const plan: BooleanAssemblyPlan = {
+  connections: [{
+    connectionId: "A-B",
+    candidateId: "H01",
+    status: "ready",
+    tileAId: "A",
+    tileBId: "B",
+    faceA: "E",
+    faceB: "W",
+    inwardA: { x: -1, y: 0, z: 0 },
+    inwardB: { x: 1, y: 0, z: 0 },
+    participants: [
+      { role: "parent-a", id: "A", required: true },
+      { role: "closed-hybrid", id: "H01", required: true },
+      { role: "parent-b", id: "B", required: true },
+    ],
+    connectorGeometry: bridge,
+    validation: { accepted: true, failures: [] },
+  }],
+  tiles: [
+    { tileId: "A", connectionIds: ["A-B"] },
+    { tileId: "B", connectionIds: ["A-B"] },
+  ],
+  readyConnectionCount: 1,
+  failedConnectionCount: 0,
+  requiredParticipantCount: 3,
+  status: "ready",
+};
+const pair: TileInstance[] = [0, 1].map((index) => ({
+  instanceId: index === 0 ? "A" : "B",
   archetypeId: ids[0],
   moduleId: first.moduleId,
-  transform: { x: 0, y: 0, z: 0 },
-  rotationQuarter: 0,
+  transform: { x: index, y: 0, z: 0 },
+  rotationQuarter: 0 as const,
   mirror: null,
-};
-const execution = await executeBooleanAssembly(plan, [tile], loaded);
+}));
+const execution = await executeBooleanAssembly(plan, pair, loaded);
 assert(sameBytes(dirty.positions, dirtyPositions), "boolean execution does not rewrite the original");
-assert(execution.tiles[0]?.successfulCutCount === 1 && execution.tiles[0].derivedGeometry !== null, "boolean execution uses the conditioned manifold");
+assert(execution.status === "ready" && execution.connections[0]?.parentAPresent && execution.connections[0].parentBPresent, "boolean execution uses the conditioned manifold");
 assert(first.geometry === dirty, "display geometry is still the original mesh");
 
 function filesUnder(dir: string): string[] {

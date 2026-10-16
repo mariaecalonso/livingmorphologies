@@ -131,7 +131,7 @@ const loaded = loadModuleMap([
 const tiles = initialTiles(loaded);
 assert(tiles[0].archetypeId === "topographic-ground-field" && tiles[1].archetypeId === "linear-gallery", "default tiles");
 assert(tiles[0].transform.x === 0 && tiles[0].transform.y === 0 && tiles[0].transform.z === 0, "A stays at the registration origin");
-assert(near(tiles[1].transform.x, 1) && tiles[1].transform.y === 0 && tiles[1].transform.z === 0, "B is the next envelope to the east");
+assert(near(tiles[1].transform.x, 1.45) && tiles[1].transform.y === 0 && tiles[1].transform.z === 0, "B is the next envelope to the east, across the hybrid gap");
 const groundModule = resolveTileModule("topographic-ground-field", loaded);
 const groundAgain = resolveTileModule("topographic-ground-field", loaded);
 assert(groundModule.status === "ready" && groundAgain.status === "ready", "mock resolves");

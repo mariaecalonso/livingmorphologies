@@ -46,18 +46,6 @@ function withGeometry(module: ReadyModule, geometry: IsoMesh): ReadyModule {
   return { ...module, geometry };
 }
 
-function sameRing(a: IsoMesh, b: IsoMesh, ring: number, sampleCount: number) {
-  const start = ring * sampleCount * 3;
-  for (let index = 0; index < sampleCount * 3; index += 1) {
-    if (a.positions[start + index] !== b.positions[start + index]) return false;
-  }
-  return true;
-}
-
-function ringMoved(a: IsoMesh, b: IsoMesh, ring: number, sampleCount: number) {
-  return !sameRing(a, b, ring, sampleCount);
-}
-
 function sameMesh(a: IsoMesh, b: IsoMesh) {
   if (a.triangles !== b.triangles || a.positions.length !== b.positions.length || a.indices.length !== b.indices.length) return false;
   for (let index = 0; index < a.positions.length; index += 1) {
@@ -131,7 +119,7 @@ const first = pendingHybridGenerator.generate(request);
 const second = pendingHybridGenerator.generate(request);
 assert(first.status === "ready" && first.geometry !== null, "a cut pair produces a connector");
 if (!first.geometry || !second.geometry) throw new Error("unreachable");
-assert(first.vertexCount === 80 && first.triangleCount === 128, "counts follow 16 samples and 5 rings");
+assert(first.vertexCount > 400 && first.triangleCount > 400, "the network volume is not a loft ring mesh");
 assert(first.geometry.positions.length === first.vertexCount * 3, "positions match the vertex count");
 assert(first.geometry.triangles === first.triangleCount, "triangle count is stored on the mesh");
 assert(first.candidateId === candidate.id, "the result keeps the candidate id");
@@ -153,11 +141,7 @@ assert(JSON.stringify(candidate) === candidateBefore, "candidate DNA is not rewr
 const varied = pendingHybridGenerator.generate({ ...request, candidate: otherCandidate });
 assert(varied.status === "ready" && varied.geometry !== null && varied.candidateId === otherCandidate.id, "another candidate still identifies itself");
 if (!varied.geometry) throw new Error("unreachable");
-const samples = HYBRID_GENERATOR_SETTINGS.profileSamples;
-const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
-assert(sameRing(first.geometry, varied.geometry, 0, samples), "the first ring stays on profile A");
-assert(sameRing(first.geometry, varied.geometry, steps - 1, samples), "the last ring stays on profile B");
-assert(ringMoved(first.geometry, varied.geometry, Math.floor(steps / 2), samples), "different candidate DNA moves the middle ring");
+assert(first.geometry.positions.length !== varied.geometry.positions.length || !sameMesh(first.geometry, varied.geometry), "different candidate DNA changes the network volume");
 assert(JSON.stringify(otherCandidate) === otherBefore, "the second candidate is not rewritten");
 
 const renamed = pendingHybridGenerator.generate({
@@ -192,7 +176,7 @@ assert(invalid.status === "invalid" && invalid.geometry === null, "a non-finite 
 
 assert(HYBRID_GENERATOR_SETTINGS.connectorDepth === null, "connector depth is not chosen silently");
 assert(HYBRID_GENERATOR_SETTINGS.sectionDepth === 0.15, "section depth is an explicit provisional setting");
-assert(HYBRID_GENERATOR_SETTINGS.profileSamples === 16 && HYBRID_GENERATOR_SETTINGS.loftSteps === 5, "sample count and loft steps are explicit");
+assert(HYBRID_GENERATOR_SETTINGS.profileSamples === 24 && HYBRID_GENERATOR_SETTINGS.loftSteps === 13, "sample count and loft steps are explicit");
 assert(Object.values(request.catalogA.ratings).every((value) => value === 0 || value === 1 || value === 2), "catalog DNA stays on discrete rankings");
 assert(
   field.field.candidates.some((item) => item.criteria.some((criterion) => criterion.role === "blended" && !Number.isInteger(criterion.value))),

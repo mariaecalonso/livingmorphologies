@@ -117,6 +117,11 @@ export function registrationEnvelope(spacing: number, yaw: number) {
   };
 }
 
+/** World Y of the aggregation grid: just under an upright registration bottom. */
+export function groundPlaneY() {
+  return registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).min.y - 0.004;
+}
+
 /** Documents the field-to-mesh map. Does not transform stored vertices. */
 export function fieldToMesh(fieldX: number, fieldY: number, sliceIndex: number, pitch: number): Vec3 {
   const full = (SCAN_SLICES - 1) * pitch;

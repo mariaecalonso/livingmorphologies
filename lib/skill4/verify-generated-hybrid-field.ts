@@ -61,10 +61,10 @@ function unchanged(mesh: IsoMesh, before: ReturnType<typeof snapshot>, label: st
   }
 }
 
-function sameRing(a: IsoMesh, b: IsoMesh, ring: number, sampleCount: number) {
-  const start = ring * sampleCount * 3;
-  for (let index = 0; index < sampleCount * 3; index += 1) {
-    if (a.positions[start + index] !== b.positions[start + index]) return false;
+function sameMesh(a: IsoMesh, b: IsoMesh) {
+  if (a.triangles !== b.triangles || a.positions.length !== b.positions.length) return false;
+  for (let index = 0; index < a.positions.length; index += 1) {
+    if (a.positions[index] !== b.positions[index]) return false;
   }
   return true;
 }
@@ -129,13 +129,11 @@ assert(first.status === "ready" && first.readyCount === 25, "every sectionable c
 assert(first.blockedCount === 0 && first.emptyCount === 0 && first.invalidCount === 0, "the sectionable field has no failed candidates");
 assert(countsMatch(first), "status counts equal the candidate count");
 
-const samples = HYBRID_GENERATOR_SETTINGS.profileSamples;
-const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
 const buffers = new Set<Float32Array | Uint32Array>();
 for (const item of first.candidates) {
   assert(item.geometry !== null, `${item.candidateId} has a mesh`);
   if (!item.geometry) throw new Error("unreachable");
-  assert(item.vertexCount === 80 && item.triangleCount === 128, `${item.candidateId} keeps the loft counts`);
+  assert(item.vertexCount > 400 && item.triangleCount > 400, `${item.candidateId} is a network volume`);
   assert(!buffers.has(item.geometry.positions) && !buffers.has(item.geometry.normals) && !buffers.has(item.geometry.indices), `${item.candidateId} owns its buffers`);
   buffers.add(item.geometry.positions);
   for (let index = 0; index < item.geometry.positions.length; index += 1) {
@@ -151,9 +149,7 @@ for (const item of first.candidates) {
 const opening = first.candidates[0].geometry;
 const closing = first.candidates[24].geometry;
 if (!opening || !closing) throw new Error("unreachable");
-assert(sameRing(opening, closing, 0, samples), "different DNA keeps the first ring");
-assert(sameRing(opening, closing, steps - 1, samples), "different DNA keeps the last ring");
-assert(!sameRing(opening, closing, Math.floor(steps / 2), samples), "different DNA moves an intermediate ring");
+assert(opening.positions.length !== closing.positions.length || !sameMesh(opening, closing), "H01 and H25 are different volumes");
 
 assert(second.candidates.length === first.candidates.length, "a repeated field has the same length");
 for (let index = 0; index < first.candidates.length; index += 1) {
