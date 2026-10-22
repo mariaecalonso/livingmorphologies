@@ -686,6 +686,7 @@ export function LivingInstrument() {
                 <div
                   key={group.id}
                   className="criteria-group border border-[rgba(242,242,238,0.14)] bg-[rgba(255,255,255,0.03)] px-2 py-1.5"
+                  data-kind={group.id}
                 >
                   <div className="mb-1 flex items-center gap-2 text-[var(--text)]">
                     <Icon />
@@ -708,20 +709,24 @@ export function LivingInstrument() {
                       return (
                         <div
                           key={criterion.id}
-                          className="block cursor-not-allowed"
+                          className="criteria-meter relative cursor-not-allowed"
                           title={`${description} Ranked and locked.`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
-                              {criterion.label}
-                            </span>
-                            <span className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--orange-hot)]">
-                              {ratingLabel(value)}
-                            </span>
-                          </div>
+                          <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
+                            {criterion.label}
+                          </span>
+                          <span className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--orange-hot)]">
+                            {ratingLabel(value)}
+                          </span>
+                          <span
+                            className="criteria-share"
+                            aria-hidden="true"
+                            style={{ ["--share" as string]: `${(value / 2) * 100}%` }}
+                          >
+                            <b />
+                          </span>
                           <input
-                            className="range-hud"
-                            data-high={value === 2 ? "true" : "false"}
+                            className="criteria-meter-input"
                             type="range"
                             min={0}
                             max={2}
@@ -777,12 +782,14 @@ export function LivingInstrument() {
 
         <section className="agent-system-region min-w-0">
           <Panel padded={false} className="flex min-h-[22rem] min-w-0 flex-col">
+            <div className="frame-title">
+              <h2 className="panel-title">Agent / Simulation</h2>
+              <span className="border border-[rgba(242,242,238,0.24)] px-1.5 py-0.5 text-[0.5rem] tracking-[0.16em] uppercase text-[var(--muted)]">
+                {archetype.name}
+              </span>
+            </div>
             <div className="agent-system-body min-h-0 flex-1 px-3 pb-3 pt-3">
               <aside className="agent-information" aria-label="Agent simulation">
-                <div className="agent-information-header">
-                  <p className="eyebrow">{archetype.name}</p>
-                  <h3 className="panel-title mt-1">Agent / Simulation</h3>
-                </div>
                 <div className="agent-logic">
                   <PhysarumParameterPanel
                     sensorDistance={slime?.sensorDistance ?? LAST_WALL_CONTROLS.sensorDistance}

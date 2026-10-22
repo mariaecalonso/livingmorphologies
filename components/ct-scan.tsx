@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 import { useVerticalView } from "@/components/vertical-view";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { trailMaskCutoff } from "@/lib/skill1/maps";
@@ -148,12 +149,12 @@ export function CtScan() {
       const parent = canvas?.parentElement;
       if (!canvas || !parent) return;
       const dpr = window.devicePixelRatio || 1;
-      const width = Math.max(1, Math.floor(parent.clientWidth));
-      const height = Math.max(1, Math.floor(parent.clientHeight));
+      const frame = paintedBox(parent);
+      const { width, height } = frame;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      canvas.style.width = `${frame.layoutW}px`;
+      canvas.style.height = `${frame.layoutH}px`;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

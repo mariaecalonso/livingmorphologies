@@ -233,6 +233,8 @@ function ParameterSlider({
   display: string;
   onChange: (value: number) => void;
 }) {
+  const span = max - min;
+  const share = span === 0 ? 0 : Math.max(0, Math.min(100, ((value - min) / span) * 100));
   return (
     <label className="archetype-control mt-2 flex flex-col gap-1 text-[0.58rem] uppercase tracking-[0.12em] text-[var(--muted)]">
       <span className="archetype-control-label">
@@ -240,6 +242,7 @@ function ParameterSlider({
       </span>
       <input
         className="range-hud archetype-control-input"
+        style={{ ["--share" as string]: `${share}%` }}
         type="range"
         min={min}
         max={max}

@@ -17,7 +17,7 @@ export function StageShell({ children }: { children: ReactNode }) {
   if (mode === "presentation" && !frame.framed) return <PresentationFrame />;
 
   return (
-    <div className="stage-shell" data-view-mode={mode}>
+    <div className="stage-shell" data-view-mode={mode} data-presentation-frame={frame.presentationFrame ? "on" : undefined}>
       <StageNav mode={mode} presentationFrame={frame.presentationFrame} />
       <div className="stage-body">{children}</div>
     </div>

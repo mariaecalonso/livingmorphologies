@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 import { sampleField } from "@/lib/skill1/engine";
 import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
 import {
@@ -37,14 +38,13 @@ function useCanvas(
     const parent = canvas.parentElement;
     if (!parent) return;
     const render = () => {
-      const rect = parent.getBoundingClientRect();
+      const frame = paintedBox(parent);
       const dpr = window.devicePixelRatio || 1;
-      const width = Math.max(1, Math.floor(rect.width));
-      const height = Math.max(1, Math.floor(rect.height));
+      const { width, height } = frame;
       canvas.width = width * dpr;
       canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      canvas.style.width = `${frame.layoutW}px`;
+      canvas.style.height = `${frame.layoutH}px`;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
