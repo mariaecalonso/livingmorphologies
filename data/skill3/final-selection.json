@@ -74,7 +74,7 @@
       "candidateId": 86,
       "continuationId": "N16",
       "moduleId": "carved-mass:void-edge:86:N16",
-      "status": "Review"
+      "status": "Validated"
     },
     {
       "category": "workspace",
@@ -106,7 +106,7 @@
       "candidateId": 265,
       "continuationId": "N02",
       "moduleId": "carved-mass:inserted-horizontal-plate:265:N02",
-      "status": "Review"
+      "status": "Validated"
     },
     {
       "category": "gathering",
@@ -122,7 +122,7 @@
       "candidateId": 121,
       "continuationId": "N02",
       "moduleId": "carved-mass:linear-edge-gallery:121:N02",
-      "status": "Review"
+      "status": "Validated"
     }
   ]
 }
