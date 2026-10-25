@@ -1,0 +1,21 @@
+{
+  "continuationId": "N48",
+  "status": "READY",
+  "plateBodies": 1,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [],
+  "voidStatus": "none",
+  "longest": null,
+  "signedVolume": 616.6722,
+  "originalVolume": 616.6722,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 1,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": []
+}

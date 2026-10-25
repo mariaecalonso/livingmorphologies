@@ -1,0 +1,92 @@
+{
+  "continuationId": "N20",
+  "status": "READY",
+  "plateBodies": 3,
+  "connectors": 2,
+  "connectorsDetail": [
+    {
+      "bodies": [
+        0,
+        2
+      ],
+      "length": 2.4123,
+      "used": true,
+      "measuredStart": {
+        "thickness": 2.5118,
+        "width": 4.4849
+      },
+      "measuredEnd": {
+        "thickness": 2.0463,
+        "width": 3.0437
+      },
+      "start": {
+        "thickness": 2.5118,
+        "width": 3.642
+      },
+      "end": {
+        "thickness": 2.048,
+        "width": 2.9574
+      },
+      "mid": {
+        "thickness": 1.652,
+        "width": 2.1691
+      },
+      "voidClearance": 0.6564,
+      "loftKernel": "ready"
+    },
+    {
+      "bodies": [
+        1,
+        2
+      ],
+      "length": 3.1288,
+      "used": true,
+      "measuredStart": {
+        "thickness": 1.4969,
+        "width": 2.8221
+      },
+      "measuredEnd": {
+        "thickness": 1.8609,
+        "width": 2.6447
+      },
+      "start": {
+        "thickness": 1.4969,
+        "width": 2.1704
+      },
+      "end": {
+        "thickness": 1.8968,
+        "width": 2.6389
+      },
+      "mid": {
+        "thickness": 1.2882,
+        "width": 1.5468
+      },
+      "voidClearance": 0.4331,
+      "loftKernel": "ready"
+    }
+  ],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 1.7315,
+      "low": -1.2453,
+      "high": 0.4861
+    }
+  ],
+  "voidStatus": "kept open",
+  "longest": 3.1288,
+  "signedVolume": 829.1482,
+  "originalVolume": 812.5972,
+  "addedVolume": 16.5509,
+  "addedVolumePct": 2.0368,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 1,
+  "kernel": "ready",
+  "blend": "faired",
+  "blendVertices": 158,
+  "reasons": []
+}

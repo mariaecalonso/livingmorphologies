@@ -1,0 +1,79 @@
+{
+  "ready": {
+    "before": 4,
+    "after": 2,
+    "beforeIds": [
+      "N03",
+      "N08",
+      "N12",
+      "N20"
+    ],
+    "afterIds": [
+      "N08",
+      "N20"
+    ]
+  },
+  "review": {
+    "before": 20,
+    "after": 22
+  },
+  "fail": {
+    "before": 0,
+    "after": 0,
+    "afterIds": []
+  },
+  "changed": [
+    {
+      "id": "N03",
+      "before": "READY",
+      "after": "REVIEW",
+      "reasons": [
+        "LOFT_OVERSIZED"
+      ]
+    },
+    {
+      "id": "N12",
+      "before": "READY",
+      "after": "REVIEW",
+      "reasons": [
+        "LOFT_OVERSIZED"
+      ]
+    }
+  ],
+  "averageAdded": {
+    "before": 12.834966666666668,
+    "after": 1.0558166666666666
+  },
+  "averageWidth": {
+    "before": 4.6490214285714275,
+    "after": 3.8786615384615386
+  },
+  "maxWidth": {
+    "before": 8.3587,
+    "after": 4.557
+  },
+  "minClearance": {
+    "before": 0.0009,
+    "after": 0.1298
+  },
+  "minMid": {
+    "before": 1.5163,
+    "after": 1.1656
+  },
+  "reasons": {
+    "PROTECTED_VOID_CONNECTION_REQUIRED": 20,
+    "LONG_SPAN_CONNECTION": 7,
+    "VOID_CLEARANCE_LOW": 3,
+    "LOFT_OVERSIZED": 7
+  },
+  "blendFailed": [],
+  "unfairedLofts": [
+    "N03",
+    "N04",
+    "N05",
+    "N11",
+    "N12",
+    "N16",
+    "N24"
+  ]
+}

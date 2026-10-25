@@ -98,62 +98,102 @@ export function ProcessStack({
     if (plates.length === 0) return;
     const shown = stackDisplayIndices(field.slices.length, plateLimit);
     const count = plates.length;
-    const marginL = Math.max(34, width * 0.16);
-    const marginR = Math.max(42, width * 0.2);
-    const marginT = Math.max(18, height * 0.05);
-    const marginB = Math.max(22, height * 0.06);
-    const innerH = Math.max(1, height - marginT - marginB);
-    const planeW = Math.max(1, width - marginL - marginR);
-    const planeH = Math.max(12, Math.min(planeW * 0.38, (innerH - Math.max(0, count - 1) * 10) / count));
-    const gap = count > 1 ? (innerH - planeH * count) / (count - 1) : 0;
-    const axisX = marginL * 0.42;
-    const nextHits: { index: number; x: number; y: number }[] = [];
-
+    const project = (x: number, y: number, z: number) => ({
+      x: (x - y) * 0.86,
+      y: (x + y) * 0.28 - z * 0.78,
+    });
+    const zAt = (index: number) => (count <= 1 ? 0.42 : index / (count - 1));
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const consider = (x: number, y: number, z: number) => {
+      const point = project(x, y, z);
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    };
+    for (let index = 0; index < count; index += 1) {
+      const z = zAt(index);
+      consider(0, 0, z);
+      consider(1, 0, z);
+      consider(1, 1, z);
+      consider(0, 1, z);
+    }
+    consider(0, 0, 0);
+    consider(0, 0, 1.12);
+    const scale = Math.min((width * 0.76) / Math.max(0.001, maxX - minX), (height * 0.76) / Math.max(0.001, maxY - minY));
+    const ox = width * 0.46 - ((minX + maxX) / 2) * scale;
+    const oy = height * 0.52 - ((minY + maxY) / 2) * scale;
+    const screen = (x: number, y: number, z: number) => {
+      const point = project(x, y, z);
+      return { x: ox + point.x * scale, y: oy + point.y * scale };
+    };
+    const base = screen(0, 0, 0);
+    const tip = screen(0, 0, 1.12);
     ctx.strokeStyle = "rgba(15,115,119,0.85)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(axisX, marginT);
-    ctx.lineTo(axisX, height - marginB);
+    ctx.moveTo(base.x, base.y);
+    ctx.lineTo(tip.x, tip.y);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(axisX, marginT + 1);
-    ctx.lineTo(axisX - 4, marginT + 9);
-    ctx.lineTo(axisX + 4, marginT + 9);
-    ctx.closePath();
     ctx.fillStyle = "rgba(199,126,95,0.95)";
+    ctx.beginPath();
+    ctx.moveTo(tip.x, tip.y);
+    ctx.lineTo(tip.x - 4, tip.y + 8);
+    ctx.lineTo(tip.x + 4, tip.y + 8);
+    ctx.closePath();
     ctx.fill();
     ctx.font = `${Math.max(11, height * 0.028)}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "rgba(199,126,95,0.95)";
-    ctx.fillText("Z", axisX, marginT - 8);
+    ctx.fillText("Z", tip.x, tip.y - 10);
     ctx.fillStyle = "rgba(15,115,119,0.95)";
-    ctx.fillText("T", axisX, height - marginB + 10);
+    ctx.fillText("T", base.x, base.y + 12);
 
+    const nextHits: { index: number; x: number; y: number }[] = [];
     for (let index = 0; index < count; index += 1) {
       const sourceIndex = shown[index] ?? index;
-      const y = height - marginB - planeH - index * (planeH + gap);
+      const plate = plates[index];
+      const z = zAt(index);
+      const origin = screen(0, 0, z);
+      const across = screen(1, 0, z);
+      const depth = screen(0, 1, z);
+      const far = screen(1, 1, z);
       const active = index === count - 1;
-      const reason = reasons?.[sourceIndex];
-      ctx.strokeStyle = "rgba(15,115,119,0.45)";
-      ctx.lineWidth = 1;
+      const plateWidth = Math.max(1, plate.width);
+      const plateHeight = Math.max(1, plate.height);
+      ctx.save();
+      ctx.globalAlpha = active ? 1 : 0.78;
+      ctx.setTransform(
+        dpr * (across.x - origin.x) / plateWidth,
+        dpr * (across.y - origin.y) / plateWidth,
+        dpr * (depth.x - origin.x) / plateHeight,
+        dpr * (depth.y - origin.y) / plateHeight,
+        dpr * origin.x,
+        dpr * origin.y,
+      );
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(plate, 0, 0);
+      ctx.restore();
+      ctx.strokeStyle = PLANE_INK[reasons?.[sourceIndex] ?? ""] ?? "rgba(242,242,238,0.7)";
+      ctx.lineWidth = active ? 1.5 : 1;
       ctx.beginPath();
-      ctx.moveTo(axisX, y + planeH / 2);
-      ctx.lineTo(marginL, y + planeH / 2);
+      ctx.moveTo(origin.x, origin.y);
+      ctx.lineTo(across.x, across.y);
+      ctx.lineTo(far.x, far.y);
+      ctx.lineTo(depth.x, depth.y);
+      ctx.closePath();
       ctx.stroke();
-      ctx.globalAlpha = active ? 1 : 0.5;
-      drawPixelPlate(ctx, plates[index], marginL, y, planeW, planeH);
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = PLANE_INK[reason ?? ""] ?? "rgba(242,242,238,0.7)";
-      ctx.lineWidth = active ? 2 : 1;
-      ctx.strokeRect(marginL, y, planeW, planeH);
-      nextHits.push({ index: sourceIndex, x: marginL + planeW / 2, y: y + planeH / 2 });
+      nextHits.push({ index: sourceIndex, x: (origin.x + far.x) / 2, y: (origin.y + far.y) / 2 });
       const label = labels?.[sourceIndex];
       if (!label) continue;
       ctx.font = `${Math.max(11, height * 0.026)}px sans-serif`;
       ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
       ctx.fillStyle = active ? "#f2f2ee" : "rgba(242,242,238,0.62)";
-      ctx.fillText(label, marginL + planeW + 6, y + planeH / 2);
+      ctx.fillText(label, across.x + 8, across.y);
     }
     hits.current = nextHits;
   }, plates);
@@ -161,7 +201,7 @@ export function ProcessStack({
     <canvas
       ref={ref}
       style={{ imageRendering: "pixelated" }}
-      aria-label="Accepted samples stacked through time"
+      aria-label="Accepted samples in axonometric XYT"
       onClick={(event) => {
         const pick = onPickRef.current;
         const canvas = ref.current;
@@ -190,6 +230,8 @@ export function ProcessMorphology({
   turnSeconds = 22,
   refine = false,
   uniformFrame = false,
+  frame = "bounds",
+  steer = false,
 }: {
   field?: VerticalViewerField | null;
   /** Stored module. When present, the continuation field is not meshed. */
@@ -202,6 +244,10 @@ export function ProcessMorphology({
   refine?: boolean;
   /** Fit the 20×20×20 module by orthographic zoom. Pitch and yaw stay fixed. */
   uniformFrame?: boolean;
+  /** Module keeps one camera across successive meshes. Bounds frames each mesh on its own. */
+  frame?: "module" | "bounds";
+  /** Drag orbit. Off while a recording is playing, so the camera stays put. */
+  steer?: boolean;
 }) {
   const external = storedMesh !== undefined;
   const [built, setBuilt] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
@@ -231,6 +277,37 @@ export function ProcessMorphology({
   }, [mesh, onTriangles]);
   const column = moduleViewColumn(moduleEnvelope(MODULE_SIZE_Z));
   const ref = useRef<HTMLCanvasElement>(null);
+  const angle = useRef({ yaw: Math.PI / 4, pitch: 0.62 });
+  const [steered, setSteered] = useState(0);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas || !steer) return;
+    let drag: { x: number; y: number } | null = null;
+    const down = (event: PointerEvent) => {
+      drag = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+    };
+    const move = (event: PointerEvent) => {
+      if (!drag) return;
+      angle.current.yaw += (event.clientX - drag.x) * 0.005;
+      angle.current.pitch = Math.min(1.25, Math.max(0.08, angle.current.pitch + (event.clientY - drag.y) * 0.005));
+      drag = { x: event.clientX, y: event.clientY };
+      setSteered((value) => value + 1);
+    };
+    const up = () => {
+      drag = null;
+    };
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointermove", move);
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", up);
+    return () => {
+      canvas.removeEventListener("pointerdown", down);
+      canvas.removeEventListener("pointermove", move);
+      canvas.removeEventListener("pointerup", up);
+      canvas.removeEventListener("pointercancel", up);
+    };
+  }, [steer]);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -238,16 +315,19 @@ export function ProcessMorphology({
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const spinning = orbit && !reduced && !external;
     const started = performance.now();
-    let frame = 0;
+    let frameId = 0;
     const paint = (now = started) => {
-      const yaw = external
-        ? Math.PI / 4
-        : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
-      const pitch = external ? 0.62 : float || spinning ? 0.36 : 0.42;
+      const held = frame === "module";
+      const yaw = held
+        ? angle.current.yaw
+        : external
+          ? Math.PI / 4
+          : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
+      const pitch = held ? angle.current.pitch : external ? 0.62 : float || spinning ? 0.36 : 0.42;
       drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, external ? "clay" : "shell", {
         transparent: float || external,
         uniform: external ? false : uniformFrame,
-        fit: external ? "bounds" : "module",
+        fit: held || !external ? "module" : "bounds",
       });
     };
     paint();
@@ -257,14 +337,14 @@ export function ProcessMorphology({
     if (spinning) {
       const loop = (now: number) => {
         paint(now);
-        frame = window.requestAnimationFrame(loop);
+        frameId = window.requestAnimationFrame(loop);
       };
-      frame = window.requestAnimationFrame(loop);
+      frameId = window.requestAnimationFrame(loop);
     }
     return () => {
-      if (frame) window.cancelAnimationFrame(frame);
+      if (frameId) window.cancelAnimationFrame(frameId);
       observer?.disconnect();
     };
-  }, [column, external, float, mesh, orbit, turnSeconds, uniformFrame]);
+  }, [column, external, float, frame, mesh, orbit, steered, turnSeconds, uniformFrame]);
   return <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
 }

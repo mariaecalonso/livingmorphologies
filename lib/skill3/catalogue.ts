@@ -15,10 +15,11 @@ export function catalogueSlots(continuations: readonly NaturalContinuation[]) {
 }
 
 /** Module center in the shared catalogue world. Index 0 is the left of the back row. */
-export function catalogueOrigin(index: number, pitch = CATALOGUE_PITCH): [number, number, number] {
+export function catalogueOrigin(index: number, pitch = CATALOGUE_PITCH, count = CATALOGUE_SLOT_COUNT): [number, number, number] {
+  const rows = Math.max(CATALOGUE_ROWS, Math.ceil(Math.max(count, 1) / CATALOGUE_COLUMNS));
   const col = index % CATALOGUE_COLUMNS;
   const row = Math.floor(index / CATALOGUE_COLUMNS);
   const x = (col - (CATALOGUE_COLUMNS - 1) / 2) * pitch;
-  const z = (row - (CATALOGUE_ROWS - 1) / 2) * pitch;
+  const z = (row - (rows - 1) / 2) * pitch;
   return [x, 0, z];
 }

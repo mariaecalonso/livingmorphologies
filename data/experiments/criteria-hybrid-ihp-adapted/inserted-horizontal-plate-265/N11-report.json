@@ -1,0 +1,74 @@
+{
+  "continuationId": "N11",
+  "status": "REVIEW",
+  "plateBodies": 3,
+  "connectors": 1,
+  "connectorsDetail": [
+    {
+      "bodies": [
+        1,
+        2
+      ],
+      "length": 1.1327,
+      "used": true,
+      "measuredStart": {
+        "thickness": 3.0669,
+        "width": 4.2576
+      },
+      "measuredEnd": {
+        "thickness": 3.0424,
+        "width": 4.5314
+      },
+      "start": {
+        "thickness": 3.0669,
+        "width": 4.2576
+      },
+      "end": {
+        "thickness": 3.0442,
+        "width": 4.4056
+      },
+      "mid": {
+        "thickness": 2.1515,
+        "width": 3.0283
+      },
+      "voidClearance": 0.2563,
+      "loftKernel": "ready"
+    }
+  ],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 2.1184,
+      "low": -0.8754,
+      "high": 1.243
+    },
+    {
+      "bodies": [
+        0,
+        2
+      ],
+      "height": 5.0385,
+      "low": -3.7955,
+      "high": 1.243
+    }
+  ],
+  "voidStatus": "required",
+  "longest": 1.1327,
+  "signedVolume": 776.5234,
+  "originalVolume": 767.2769,
+  "addedVolume": 9.2465,
+  "addedVolumePct": 1.2051,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 2,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "PROTECTED_VOID_CONNECTION_REQUIRED",
+    "LOFT_OVERSIZED"
+  ]
+}

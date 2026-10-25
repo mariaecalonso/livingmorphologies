@@ -8,6 +8,7 @@ import { CatalogueField, type CatalogueModule, type CatalogueSurface } from "@/c
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
 import { CATALOGUE_COLUMNS, CATALOGUE_ROWS, catalogueSlots } from "@/lib/skill3/catalogue";
+import type { CatalogueReadiness, MaterializationState, ReadinessVerdict } from "@/lib/skill3/catalogue-readiness";
 import type { ContinuationEvent, NaturalContinuation, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import {
@@ -80,6 +81,40 @@ function z0Event(iteration: number): ContinuationEvent {
     reinforcement: 0,
     connectivityChange: 0,
   };
+}
+
+function storedReadingSeed(archetypeId: string, candidateId: number, branchIndex: number) {
+  const text = `${archetypeId}#${candidateId}#${branchIndex}`;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+  return hash >>> 0;
+}
+
+function withStoredReadings(set: NaturalContinuationSet, ids: readonly string[]): NaturalContinuationSet {
+  const template = set.continuations[0];
+  if (!template) return set;
+  const known = new Set(set.continuations.map((item) => item.id));
+  const added = ids.flatMap((id) => {
+    if (!/^N\d{2}$/.test(id) || known.has(id)) return [];
+    const index = Number(id.slice(1));
+    if (!Number.isInteger(index) || index < 1) return [];
+    return [{
+      ...template,
+      id,
+      index,
+      continuationSeed: storedReadingSeed(set.archetypeId, set.candidateId, index),
+      acceptedIterations: [template.z0Iteration],
+      sampleCount: 1,
+      eventCount: 0,
+      events: [z0Event(template.z0Iteration)],
+      field: {
+        lineage: { ...template.field.lineage, futureId: id },
+        slices: [],
+      },
+    }];
+  });
+  if (added.length === 0) return set;
+  return { ...set, continuations: [...set.continuations, ...added] };
 }
 
 function setFromSolidified(body: SolidifiedIndex): NaturalContinuationSet {
@@ -170,7 +205,9 @@ function ResultDetail({
   horizon,
   morphology,
   triangles,
-  status,
+  readiness,
+  stateLabel,
+  unaudited,
   chosen,
   savedContinuationId,
   finalHref,
@@ -187,7 +224,9 @@ function ResultDetail({
   horizon: string;
   morphology: string;
   triangles: number | null;
-  status: SolidifiedStatus | null;
+  readiness: { status: ReadinessVerdict; reasons: string[]; facts?: Record<string, string> } | null;
+  stateLabel: string | null;
+  unaudited: boolean;
   chosen: boolean;
   savedContinuationId: string | null;
   finalHref: string;
@@ -211,8 +250,16 @@ function ResultDetail({
       </button>
       {chosen ? <Link href={finalHref} className="vertical-catalogue-reset">View in final</Link> : null}
       {!chosen && savedContinuationId ? <p className="vertical-process-note">Final selection {savedContinuationId}</p> : null}
-      <PreviewToggle surface={surface} onSurface={onSurface} />
+      {CATALOGUE_SURFACE_CONTROL ? <PreviewToggle surface={surface} onSurface={onSurface} /> : null}
       <dl className="vertical-catalogue-facts">
+        {stateLabel ? <div><dt>State</dt><dd>{stateLabel}</dd></div> : null}
+        {readiness ? <div><dt>Status</dt><dd>{readiness.status}</dd></div> : null}
+        {readiness?.facts ? Object.entries(readiness.facts).map(([key, value]) => (
+          <div key={key}><dt>{key}</dt><dd>{value}</dd></div>
+        )) : null}
+        {readiness && readiness.reasons.length > 0 ? (
+          <div><dt>Reason</dt><dd className="vertical-catalogue-reason">{readiness.reasons.join(" · ")}</dd></div>
+        ) : null}
         <div><dt>Result</dt><dd>{resultId}</dd></div>
         <div><dt>Continuation</dt><dd>{continuation.id}</dd></div>
         <div><dt>Seed</dt><dd>{String(continuation.continuationSeed)}</dd></div>
@@ -227,8 +274,8 @@ function ResultDetail({
         <div><dt>Rank</dt><dd>{resultId}</dd></div>
         <div><dt>Mode</dt><dd>{morphology}</dd></div>
         <div><dt>Triangles</dt><dd>{triangles != null ? String(triangles) : "—"}</dd></div>
-        <div><dt>Status</dt><dd>{status === "review" ? "Review" : status === "validated" ? "Validated" : "—"}</dd></div>
       </dl>
+      {unaudited ? <p className="vertical-process-note">Readiness not audited</p> : null}
       <h2 className="panel-title">Behavior profile</h2>
       <p className="vertical-process-note">Behavior descriptors pending</p>
       <h2 className="panel-title">Accepted samples</h2>
@@ -257,6 +304,41 @@ function PreviewToggle({
     <div className="vertical-catalogue-choices" role="group" aria-label="Morphology preview">
       <button type="button" data-active={surface === "refined" || undefined} onClick={() => onSurface("refined")}>Refined</button>
       <button type="button" data-active={surface === "raw" || undefined} onClick={() => onSurface("raw")}>Raw</button>
+    </div>
+  );
+}
+
+const CATALOGUE_SURFACE_CONTROL = false;
+
+type CatalogueReading = MaterializationState;
+
+const STATE_LABEL: Record<CatalogueReading, string> = {
+  open: "Open",
+  capped: "Capped",
+  adapted: "Capped + Adapt",
+  shrinkwrapped: "Shrinkwrapped",
+  thickened: "Thickened",
+};
+
+const OPEN_ONLY: CatalogueReading[] = ["open"];
+const HIDDEN_READINGS = new Set<CatalogueReading>(["shrinkwrapped", "thickened"]);
+
+function ReadingToggle({
+  reading,
+  states,
+  onReading,
+}: {
+  reading: CatalogueReading;
+  states: readonly CatalogueReading[];
+  onReading: (reading: CatalogueReading) => void;
+}) {
+  return (
+    <div className="vertical-catalogue-choices" role="group" aria-label="State">
+      {states.map((state) => (
+        <button key={state} type="button" data-active={reading === state || undefined} onClick={() => onReading(state)}>
+          {STATE_LABEL[state]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -319,9 +401,10 @@ export function VerticalCatalogue({
   const [inspecting, setInspecting] = useState(false);
   const [storedChoice, setStoredChoice] = useState<SelectedSkill3Morphology | null>(null);
   const [triangles, setTriangles] = useState<Record<string, number>>({});
-  const [statusById, setStatusById] = useState<Record<string, SolidifiedStatus>>({});
-  const [viewReset, setViewReset] = useState(0);
+  const [readiness, setReadiness] = useState<{ archetypeId: string; body: CatalogueReadiness } | null>(null);
+  const viewReset = 0;
   const [surface, setSurface] = useState<CatalogueSurface>("refined");
+  const [reading, setReading] = useState<CatalogueReading>("open");
   const [typologyId, setTypologyId] = useState(initial?.typologyId || candidate?.typologyId || requestedArchetype?.typologyId || "lobby");
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId || candidate?.archetypeId || requestedArchetype?.id || "continuous-hall");
   const alignedSelection = useRef(false);
@@ -374,15 +457,17 @@ export function VerticalCatalogue({
         if (response.status === 404) {
           loadedKey.current = `miss:${key}`;
           setSet(null);
-          setStatusById({});
           replaceQuery(fromQuery == null && fromSession == null ? null : candidateId);
           return;
         }
         const body = (await response.json()) as SolidifiedIndex & { error?: string };
         if (!response.ok) throw new Error(body.error ?? "The solidified catalogue is not loaded.");
+        const listed = await fetch(`/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(archetypeId)}`, { signal: controller.signal })
+          .then(async (reading) => reading.ok ? reading.json() as Promise<{ continuations?: string[] }> : { continuations: [] as string[] })
+          .catch(() => ({ continuations: [] as string[] }));
+        if (controller.signal.aborted) return;
         loadedKey.current = `solidified:${archetypeId}:${body.candidateId}`;
-        setSet(setFromSolidified(body));
-        setStatusById(Object.fromEntries(body.continuations.map((entry) => [entry.continuationId, entry.status])));
+        setSet(withStoredReadings(setFromSolidified(body), listed.continuations ?? []));
         replaceQuery(body.candidateId);
       })
       .catch((caught) => {
@@ -396,6 +481,31 @@ export function VerticalCatalogue({
   }, [archetypeId, candidate, initial, router, searchString]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`/api/vertical/catalogue-readiness?archetype=${encodeURIComponent(archetypeId)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("The materialization status is not loaded.");
+        return response.json() as Promise<CatalogueReadiness>;
+      })
+      .then((body) => {
+        if (!controller.signal.aborted) setReadiness({ archetypeId, body });
+      })
+      .catch((caught) => {
+        if (controller.signal.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
+        setReadiness({ archetypeId, body: { states: OPEN_ONLY, downstream: {} } });
+      });
+    return () => controller.abort();
+  }, [archetypeId]);
+
+  const currentReadiness = readiness?.archetypeId === archetypeId ? readiness.body : null;
+  const availableStates = (currentReadiness?.states ?? OPEN_ONLY).filter((state) => !HIDDEN_READINGS.has(state));
+
+  useEffect(() => {
+    if (!currentReadiness) return;
+    if (HIDDEN_READINGS.has(reading) || !currentReadiness.states.includes(reading)) setReading("open");
+  }, [currentReadiness, reading]);
+
+  useEffect(() => {
     if (!set) return;
     setStoredChoice(readSelectedSkill3Morphology(set.origin, set.archetypeId));
   }, [set]);
@@ -404,6 +514,8 @@ export function VerticalCatalogue({
   const slots = useMemo(() => (matches && set ? catalogueSlots(set.continuations) : []), [matches, set]);
   const selected = slots.find((item) => item.id === selectedId) ?? null;
   const generated = matches && set ? set.continuations.length : 0;
+  const downstream = reading === "open" ? null : currentReadiness?.downstream[reading] ?? null;
+  const auditedDownstream = downstream?.audited ? downstream : null;
   const archetypeName = archetypesFor(typologyId).find((item) => item.id === archetypeId)?.name
     ?? (matches ? set?.archetypeName : null)
     ?? "Archetype";
@@ -414,11 +526,11 @@ export function VerticalCatalogue({
     return slots.map((item) => ({
       id: item.id,
       label: item.id,
-      cacheIdentity: `solidified:${item.archetypeId}:${item.candidateId}:${item.id}:${item.parentChecksum}`,
-      status: statusById[item.id],
-      meshUrl: `/api/vertical/solidified?archetype=${encodeURIComponent(item.archetypeId)}&candidate=${item.candidateId}&continuation=${item.id}`,
+      cacheIdentity: `hybrid:${reading}:${item.archetypeId}:${item.candidateId}:${item.id}:${item.parentChecksum}`,
+      status: reading === "adapted" ? undefined : auditedDownstream?.candidates[item.id]?.status,
+      meshUrl: `/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(item.archetypeId)}&continuation=${item.id}&reading=${reading}`,
     }));
-  }, [matches, set, slots, statusById]);
+  }, [auditedDownstream, matches, reading, set, slots]);
   const chosenContinuation = storedChoice && matches && set && storedChoice.origin === set.origin
     ? set.continuations.find((item) => sameSelectedMorphology(storedChoice, item)) ?? null
     : null;
@@ -449,10 +561,28 @@ export function VerticalCatalogue({
       <div className="vertical-catalogue-body">
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame">
+            {reading !== "open" && downstream ? <p className="vertical-process-note">State · {STATE_LABEL[reading]}</p> : null}
             <p className="vertical-catalogue-figure">{generated}</p>
             <p className="vertical-process-note">Generated</p>
-            <p className="vertical-catalogue-figure">{slots.length || generated}</p>
-            <p className="vertical-process-note">Temporal futures</p>
+            {reading === "open" ? (
+              <>
+                <p className="vertical-catalogue-figure">{slots.length || generated}</p>
+                <p className="vertical-process-note">Temporal futures</p>
+              </>
+            ) : !downstream ? (
+              <p className="vertical-process-note">Reading status</p>
+            ) : auditedDownstream ? (
+              <>
+                <p className="vertical-catalogue-figure">{auditedDownstream.ready}</p>
+                <p className="vertical-process-note">{reading === "adapted" ? "Ready" : "Ready for Skill 4"}</p>
+                <p className="vertical-catalogue-figure">{auditedDownstream.review}</p>
+                <p className="vertical-process-note">Review</p>
+                <p className="vertical-catalogue-figure">{auditedDownstream.fail}</p>
+                <p className="vertical-process-note">Fail</p>
+              </>
+            ) : (
+              <p className="vertical-process-note">Readiness not audited</p>
+            )}
             <p className="vertical-catalogue-figure">{selected ? 1 : 0}</p>
             <p className="vertical-process-note">{selected ? `Selected ${selected.id}` : "No morphology selected"}</p>
           </section>
@@ -502,6 +632,7 @@ export function VerticalCatalogue({
             modules={modules}
             origin={set?.origin ?? "pending"}
             selectedId={selectedId}
+            chosenId={chosenContinuation?.id ?? null}
             onSelect={(id) => {
               setSelectedId(id);
               setInspecting(id != null);
@@ -526,7 +657,9 @@ export function VerticalCatalogue({
                 horizon={String(set.rules.horizon)}
                 morphology={set.rules.morphology}
                 triangles={triangles[selected.id] ?? null}
-                status={statusById[selected.id] ?? null}
+                readiness={auditedDownstream?.candidates[selected.id] ?? null}
+                stateLabel={reading === "open" ? null : STATE_LABEL[reading]}
+                unaudited={reading !== "open" && downstream != null && !downstream.audited}
                 chosen={chosenContinuation?.id === selected.id}
                 savedContinuationId={storedChoice?.archetypeId === set.archetypeId ? storedChoice.continuationId : null}
                 finalHref={preview ? "/lab/vertical/final?preview=1" : "/lab/vertical/final"}
@@ -556,7 +689,23 @@ export function VerticalCatalogue({
                   <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
                   <div><dt>Candidate</dt><dd>{matches && set ? String(set.candidateId) : "—"}</dd></div>
                   <div><dt>Generated</dt><dd>{generated ? String(generated) : "—"}</dd></div>
-                  <div><dt>Temporal futures</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+                  {reading === "open" ? (
+                    <div><dt>Temporal futures</dt><dd>{slots.length ? String(slots.length) : "—"}</dd></div>
+                  ) : !downstream ? (
+                    <div><dt>Status</dt><dd>Reading</dd></div>
+                  ) : auditedDownstream ? (
+                    <>
+                      <div><dt>{reading === "adapted" ? "Ready" : "Ready for Skill 4"}</dt><dd>{String(auditedDownstream.ready)}</dd></div>
+                      <div><dt>Review</dt><dd>{String(auditedDownstream.review)}</dd></div>
+                      <div><dt>Fail</dt><dd>{String(auditedDownstream.fail)}</dd></div>
+                      <div><dt>State</dt><dd>{STATE_LABEL[reading]}</dd></div>
+                    </>
+                  ) : (
+                    <>
+                      <div><dt>State</dt><dd>{STATE_LABEL[reading]}</dd></div>
+                      <div><dt>Readiness</dt><dd>Not audited</dd></div>
+                    </>
+                  )}
                   <div><dt>Module</dt><dd>{set ? `${set.rules.envelope.sizeX}×${set.rules.envelope.sizeY}×${set.rules.envelope.sizeZ}` : "20×20×20"}</dd></div>
                 </dl>
                 {error ? <p className="vertical-process-note">{error}</p> : null}
@@ -576,17 +725,10 @@ export function VerticalCatalogue({
             )}
           </section>
           <section className="vertical-catalogue-frame vertical-catalogue-controls">
-            <h2 className="panel-title">Controls</h2>
-            <PreviewToggle surface={surface} onSurface={setSurface} />
-            <dl className="vertical-catalogue-facts">
-              <div><dt>Orbit</dt><dd>Drag</dd></div>
-              <div><dt>Pan</dt><dd>Shift drag</dd></div>
-              <div><dt>Zoom</dt><dd>Wheel</dd></div>
-              <div><dt>Inspect</dt><dd>Click</dd></div>
-            </dl>
-            <button type="button" className="vertical-catalogue-reset" onClick={() => setViewReset((value) => value + 1)}>
-              Reset view
-            </button>
+            <h2 className="panel-title">State</h2>
+            <ReadingToggle reading={reading} states={availableStates} onReading={setReading} />
+            <h2 className="panel-title">Orbit</h2>
+            <p className="vertical-process-note">Drag</p>
           </section>
         </aside>
       </div>

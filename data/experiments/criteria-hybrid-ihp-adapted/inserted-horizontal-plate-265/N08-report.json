@@ -1,0 +1,52 @@
+{
+  "continuationId": "N08",
+  "status": "READY",
+  "plateBodies": 2,
+  "connectors": 1,
+  "connectorsDetail": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "length": 2.7856,
+      "used": true,
+      "measuredStart": {
+        "thickness": 2.2784,
+        "width": 3.267
+      },
+      "measuredEnd": {
+        "thickness": 2.5723,
+        "width": 2.8863
+      },
+      "start": {
+        "thickness": 2.2784,
+        "width": 3.267
+      },
+      "end": {
+        "thickness": 2.5923,
+        "width": 2.8759
+      },
+      "mid": {
+        "thickness": 1.7743,
+        "width": 2.1455
+      },
+      "voidClearance": null,
+      "loftKernel": "ready"
+    }
+  ],
+  "protectedVoids": [],
+  "voidStatus": "none",
+  "longest": 2.7856,
+  "signedVolume": 1129.3491,
+  "originalVolume": 1117.8837,
+  "addedVolume": 11.4654,
+  "addedVolumePct": 1.0256,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 1,
+  "kernel": "ready",
+  "blend": "faired",
+  "blendVertices": 48,
+  "reasons": []
+}

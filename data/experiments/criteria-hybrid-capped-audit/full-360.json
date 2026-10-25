@@ -1,0 +1,692 @@
+{
+  "audited": 360,
+  "frame": [
+    -10,
+    10
+  ],
+  "extractionPad": 0.363636,
+  "padRule": "Overflow at or below one extraction cell (20/55) is the known padded closer and is not a handoff failure.",
+  "selfIntersectionSource": "manifold-3d status() does not expose self-intersection",
+  "counts": {
+    "READY": 329,
+    "GEOMETRY_REVIEW": 31,
+    "HANDOFF_REVIEW": 0,
+    "FAIL": 0
+  },
+  "byArchetype": {
+    "vertical-void": {
+      "name": "Vertical Void",
+      "READY": 22,
+      "GEOMETRY_REVIEW": 2,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "compressed-sequential": {
+      "name": "Compressed Sequential",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "continuous-hall": {
+      "name": "Continuous Hall",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "topographic-ground-field": {
+      "name": "Topographic Ground Field",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "linear-gallery": {
+      "name": "Linear Gallery",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "open-hall": {
+      "name": "Open Hall",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "terraced": {
+      "name": "Terraced",
+      "READY": 23,
+      "GEOMETRY_REVIEW": 1,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "flat-deep-plan": {
+      "name": "Flat Deep Plan",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "void-edge": {
+      "name": "Void Edge",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "undulated": {
+      "name": "Undulated",
+      "READY": 23,
+      "GEOMETRY_REVIEW": 1,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "stepped-amphitheater": {
+      "name": "Stepped Amphitheater",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "void-field": {
+      "name": "Void Field",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "inserted-horizontal-plate": {
+      "name": "Inserted Horizontal Plate",
+      "READY": 0,
+      "GEOMETRY_REVIEW": 24,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "contained-room-within-volume": {
+      "name": "Contained Room Within Volume",
+      "READY": 24,
+      "GEOMETRY_REVIEW": 0,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    },
+    "linear-edge-gallery": {
+      "name": "Linear Edge Gallery",
+      "READY": 21,
+      "GEOMETRY_REVIEW": 3,
+      "HANDOFF_REVIEW": 0,
+      "FAIL": 0
+    }
+  },
+  "reasonTotals": {
+    "MULTIBODY": 29,
+    "NON_MANIFOLD": 2,
+    "KERNEL_REJECTED": 2
+  },
+  "beyondOneCell": 0,
+  "maxOverflow": 0.193912,
+  "notReady": [
+    {
+      "archetypeId": "vertical-void",
+      "continuationId": "N18",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.066154,
+        0.187401,
+        0.184901
+      ]
+    },
+    {
+      "archetypeId": "vertical-void",
+      "continuationId": "N23",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.167612,
+        0.187413,
+        0.185291
+      ]
+    },
+    {
+      "archetypeId": "terraced",
+      "continuationId": "N24",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "NON_MANIFOLD",
+        "KERNEL_REJECTED"
+      ],
+      "components": 1,
+      "substantialComponents": 1,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 1,
+      "kernel": "NotManifold",
+      "overflow": [
+        0.189302,
+        0.189771,
+        0.188181
+      ]
+    },
+    {
+      "archetypeId": "undulated",
+      "continuationId": "N22",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "NON_MANIFOLD",
+        "KERNEL_REJECTED"
+      ],
+      "components": 1,
+      "substantialComponents": 1,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 2,
+      "kernel": "NotManifold",
+      "overflow": [
+        0.191454,
+        0.193449,
+        0.192904
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N01",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 4,
+      "substantialComponents": 4,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.184711,
+        0.18374,
+        0.188024
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N02",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.18457,
+        0.184376,
+        0.187337
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N03",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.183843,
+        0.184285,
+        0.185838
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N04",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.189067,
+        0.188778,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N05",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188498,
+        0.189225,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N06",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188314,
+        0.189359,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N07",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.164126,
+        0.187241,
+        0.18804
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N08",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.183231,
+        0.182507,
+        0.183945
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N09",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.183834,
+        0.184039,
+        0.185282
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N10",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188365,
+        0.189522,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N11",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188643,
+        0.188886,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N12",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188542,
+        0.189112,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N13",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 4,
+      "substantialComponents": 4,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.184542,
+        0.184412,
+        0.187756
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N14",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.184148,
+        0.184456,
+        0.185958
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N15",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 4,
+      "substantialComponents": 4,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.184211,
+        0.183877,
+        0.188012
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N16",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.189537,
+        0.189086,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N17",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188467,
+        0.189621,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N18",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188529,
+        0.189126,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N19",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.189752,
+        0.189631,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N20",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.191833,
+        0.188877,
+        0.076874
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N21",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188334,
+        0.188914,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N22",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188393,
+        0.189441,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N23",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.188835,
+        0.189079,
+        0
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "continuationId": "N24",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 3,
+      "substantialComponents": 3,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.189939,
+        0.189365,
+        0
+      ]
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "continuationId": "N04",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.192748,
+        0.191444,
+        0.192748
+      ]
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "continuationId": "N15",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.192748,
+        0.191444,
+        0.192748
+      ]
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "continuationId": "N22",
+      "status": "GEOMETRY_REVIEW",
+      "reasons": [
+        "MULTIBODY"
+      ],
+      "components": 2,
+      "substantialComponents": 2,
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "kernel": "ready",
+      "overflow": [
+        0.192748,
+        0.191444,
+        0.192748
+      ]
+    }
+  ]
+}

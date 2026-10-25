@@ -1,0 +1,18 @@
+{
+  "contract": "process-form-prefix-v1",
+  "archetypeId": "vertical-void",
+  "candidateId": 351,
+  "continuationId": "N24",
+  "retainedTotal": 6,
+  "frames": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "finalRetained": 6,
+  "finalSource": "criteria-hybrid open mesh",
+  "finalMatchesOpen": true,
+  "positionDelta": 0,
+  "triangles": 21230
+}

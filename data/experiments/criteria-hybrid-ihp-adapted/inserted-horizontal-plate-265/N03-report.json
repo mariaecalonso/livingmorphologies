@@ -1,0 +1,84 @@
+{
+  "continuationId": "N03",
+  "status": "REVIEW",
+  "plateBodies": 3,
+  "connectors": 2,
+  "connectorsDetail": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "length": 1.9246,
+      "used": true,
+      "measuredStart": {
+        "thickness": 2.3906,
+        "width": 3.6279
+      },
+      "measuredEnd": {
+        "thickness": 0.6616,
+        "width": 0.9617
+      },
+      "start": {
+        "thickness": 2.3906,
+        "width": 3.4663
+      },
+      "end": {
+        "thickness": 0.6639,
+        "width": 0.956
+      },
+      "mid": {
+        "thickness": 1.1656,
+        "width": 1.4456
+      },
+      "voidClearance": null,
+      "loftKernel": "ready"
+    },
+    {
+      "bodies": [
+        1,
+        2
+      ],
+      "length": 2.4527,
+      "used": true,
+      "measuredStart": {
+        "thickness": 3.7436,
+        "width": 4.5456
+      },
+      "measuredEnd": {
+        "thickness": 3.1179,
+        "width": 4.2756
+      },
+      "start": {
+        "thickness": 3.7436,
+        "width": 4.5456
+      },
+      "end": {
+        "thickness": 3.1233,
+        "width": 4.2586
+      },
+      "mid": {
+        "thickness": 2.4034,
+        "width": 3.0639
+      },
+      "voidClearance": null,
+      "loftKernel": "ready"
+    }
+  ],
+  "protectedVoids": [],
+  "voidStatus": "none",
+  "longest": 2.4527,
+  "signedVolume": 856.5911,
+  "originalVolume": 830.5779,
+  "addedVolume": 26.0132,
+  "addedVolumePct": 3.1319,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 1,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "LOFT_OVERSIZED"
+  ]
+}

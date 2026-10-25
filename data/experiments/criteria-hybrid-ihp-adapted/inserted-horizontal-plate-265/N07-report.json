@@ -1,0 +1,34 @@
+{
+  "continuationId": "N07",
+  "status": "REVIEW",
+  "plateBodies": 3,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 2.7991,
+      "low": -5.9423,
+      "high": -3.1432
+    }
+  ],
+  "voidStatus": "required",
+  "longest": null,
+  "signedVolume": 602.9018,
+  "originalVolume": 602.9018,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 3,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "PROTECTED_VOID_CONNECTION_REQUIRED",
+    "LONG_SPAN_CONNECTION"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "continuationId": "N10",
+  "status": "REVIEW",
+  "plateBodies": 2,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 3.7936,
+      "low": -3.7628,
+      "high": 0.0308
+    }
+  ],
+  "voidStatus": "required",
+  "longest": null,
+  "signedVolume": 585.8859,
+  "originalVolume": 585.8859,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 2,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "PROTECTED_VOID_CONNECTION_REQUIRED"
+  ]
+}

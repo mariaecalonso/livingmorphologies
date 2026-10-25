@@ -1,0 +1,33 @@
+{
+  "continuationId": "N23",
+  "status": "REVIEW",
+  "plateBodies": 2,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 3.2169,
+      "low": -3.5194,
+      "high": -0.3025
+    }
+  ],
+  "voidStatus": "required",
+  "longest": null,
+  "signedVolume": 581.6741,
+  "originalVolume": 581.6741,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 2,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "PROTECTED_VOID_CONNECTION_REQUIRED"
+  ]
+}

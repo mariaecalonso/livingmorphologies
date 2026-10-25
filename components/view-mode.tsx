@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { DisplayMode } from "@/components/display-mode-toggle";
 import {
   DESKTOP_MODE_ARCHIVED,
@@ -60,16 +60,7 @@ export function PresentationFrame() {
   const params = new URLSearchParams(search.toString());
   params.set("wall", "1");
   params.set("frame", "1");
-  const src = `${pathname}?${params.toString()}${typeof window === "undefined" ? "" : window.location.hash}`;
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const fit = () =>
-      setScale(Math.min(window.innerWidth / PRESENTATION_WIDTH, window.innerHeight / PRESENTATION_HEIGHT));
-    fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, []);
+  const src = `${pathname}?${params.toString()}`;
 
   return (
     <div className="presentation-stage">
@@ -77,11 +68,6 @@ export function PresentationFrame() {
         src={src}
         title="Living Morphologies presentation canvas"
         className="presentation-canvas"
-        style={{
-          width: PRESENTATION_WIDTH,
-          height: PRESENTATION_HEIGHT,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-        }}
       />
     </div>
   );

@@ -1,0 +1,54 @@
+{
+  "continuationId": "N12",
+  "status": "REVIEW",
+  "plateBodies": 2,
+  "connectors": 1,
+  "connectorsDetail": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "length": 2.3721,
+      "used": true,
+      "measuredStart": {
+        "thickness": 3.633,
+        "width": 4.5288
+      },
+      "measuredEnd": {
+        "thickness": 2.1109,
+        "width": 4.121
+      },
+      "start": {
+        "thickness": 3.633,
+        "width": 4.5288
+      },
+      "end": {
+        "thickness": 2.1128,
+        "width": 3.057
+      },
+      "mid": {
+        "thickness": 2.0111,
+        "width": 2.6284
+      },
+      "voidClearance": null,
+      "loftKernel": "ready"
+    }
+  ],
+  "protectedVoids": [],
+  "voidStatus": "none",
+  "longest": 2.3721,
+  "signedVolume": 774.3842,
+  "originalVolume": 759.7921,
+  "addedVolume": 14.592,
+  "addedVolumePct": 1.9205,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 1,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "LOFT_OVERSIZED"
+  ]
+}

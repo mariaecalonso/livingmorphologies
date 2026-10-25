@@ -1,0 +1,947 @@
+{
+  "candidate": "Vertical Void",
+  "closed": 24,
+  "boundaryAndNonManifoldClear": 20,
+  "kernelReady": 20,
+  "of": 24,
+  "rows": [
+    {
+      "id": "N01",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        12356
+      ],
+      "triangles": 12356,
+      "sheetSplits": 11,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -4.3908,
+          -3.0273,
+          -0.2312
+        ],
+        "max": [
+          10.1894,
+          10.1894,
+          10.1896
+        ],
+        "size": [
+          14.5801,
+          13.2168,
+          10.4208
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1782,
+        0.2393,
+        0.1912
+      ],
+      "descriptorMouthEdgesBeforeClose": 285,
+      "otherNakedEdgesBeforeClose": 34,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N02",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        11764
+      ],
+      "triangles": 11764,
+      "sheetSplits": 15,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -4.042,
+          -2.6638,
+          0.3799
+        ],
+        "max": [
+          10.1894,
+          10.1902,
+          10.1894
+        ],
+        "size": [
+          14.2313,
+          12.854,
+          9.8096
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1895,
+        0.2003,
+        0.1898
+      ],
+      "descriptorMouthEdgesBeforeClose": 289,
+      "otherNakedEdgesBeforeClose": 33,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N03",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 1,
+      "components": 1,
+      "componentTriangles": [
+        12632
+      ],
+      "triangles": 12632,
+      "sheetSplits": 15,
+      "kernel": "NotManifold",
+      "kernelAccepts": false,
+      "boundingBox": {
+        "min": [
+          -4.3511,
+          -3.4599,
+          -0.0038
+        ],
+        "max": [
+          10.1899,
+          10.1903,
+          10.1892
+        ],
+        "size": [
+          14.541,
+          13.6503,
+          10.1929
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1896,
+        0.2342,
+        0.1841
+      ],
+      "descriptorMouthEdgesBeforeClose": 322,
+      "otherNakedEdgesBeforeClose": 35,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N04",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        27040
+      ],
+      "triangles": 27040,
+      "sheetSplits": 8,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1833,
+          -10.1015,
+          -5.3535
+        ],
+        "max": [
+          10.1881,
+          10.189,
+          10.1886
+        ],
+        "size": [
+          20.3714,
+          20.2905,
+          15.5421
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.201,
+        0.2051,
+        0.1951
+      ],
+      "descriptorMouthEdgesBeforeClose": 423,
+      "otherNakedEdgesBeforeClose": 254,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N05",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        20448
+      ],
+      "triangles": 20448,
+      "sheetSplits": 9,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -6.0413,
+          -10.1199,
+          -4.8615
+        ],
+        "max": [
+          10.1866,
+          10.1874,
+          10.1862
+        ],
+        "size": [
+          16.2279,
+          20.3073,
+          15.0476
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1793,
+        0.2158,
+        0.1866
+      ],
+      "descriptorMouthEdgesBeforeClose": 421,
+      "otherNakedEdgesBeforeClose": 120,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N06",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        28144
+      ],
+      "triangles": 28144,
+      "sheetSplits": 3,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1844,
+          -10.1846,
+          -6.4791
+        ],
+        "max": [
+          10.1828,
+          10.1878,
+          10.186
+        ],
+        "size": [
+          20.3672,
+          20.3723,
+          16.6651
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1918,
+        0.2114,
+        0.2059
+      ],
+      "descriptorMouthEdgesBeforeClose": 289,
+      "otherNakedEdgesBeforeClose": 446,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N07",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 4,
+      "components": 1,
+      "componentTriangles": [
+        13992
+      ],
+      "triangles": 13992,
+      "sheetSplits": 17,
+      "kernel": "NotManifold",
+      "kernelAccepts": false,
+      "boundingBox": {
+        "min": [
+          -4.6594,
+          -4.1307,
+          0.0882
+        ],
+        "max": [
+          10.189,
+          10.1902,
+          10.1904
+        ],
+        "size": [
+          14.8484,
+          14.3209,
+          10.1022
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1867,
+        0.1965,
+        0.199
+      ],
+      "descriptorMouthEdgesBeforeClose": 267,
+      "otherNakedEdgesBeforeClose": 71,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N08",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        13188
+      ],
+      "triangles": 13188,
+      "sheetSplits": 16,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -4.614,
+          -3.6697,
+          0.4443
+        ],
+        "max": [
+          10.1906,
+          10.1906,
+          10.1906
+        ],
+        "size": [
+          14.8046,
+          13.8603,
+          9.7463
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1957,
+        0.1895,
+        0.1911
+      ],
+      "descriptorMouthEdgesBeforeClose": 307,
+      "otherNakedEdgesBeforeClose": 48,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N09",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 3,
+      "components": 1,
+      "componentTriangles": [
+        13716
+      ],
+      "triangles": 13716,
+      "sheetSplits": 20,
+      "kernel": "NotManifold",
+      "kernelAccepts": false,
+      "boundingBox": {
+        "min": [
+          -4.5189,
+          -3.4702,
+          -0.2741
+        ],
+        "max": [
+          10.1906,
+          10.191,
+          10.1884
+        ],
+        "size": [
+          14.7095,
+          13.6613,
+          10.4626
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.189,
+        0.2178,
+        0.1922
+      ],
+      "descriptorMouthEdgesBeforeClose": 276,
+      "otherNakedEdgesBeforeClose": 51,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N10",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        23604
+      ],
+      "triangles": 23604,
+      "sheetSplits": 1,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -7.6441,
+          -10.1831,
+          -6.6541
+        ],
+        "max": [
+          10.18,
+          10.1886,
+          10.1845
+        ],
+        "size": [
+          17.8241,
+          20.3716,
+          16.8386
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1982,
+        0.2305,
+        0.2137
+      ],
+      "descriptorMouthEdgesBeforeClose": 270,
+      "otherNakedEdgesBeforeClose": 282,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N11",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        19696
+      ],
+      "triangles": 19696,
+      "sheetSplits": 8,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -6.5089,
+          -10.088,
+          -6.0342
+        ],
+        "max": [
+          10.1706,
+          10.1876,
+          10.185
+        ],
+        "size": [
+          16.6795,
+          20.2756,
+          16.2192
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1821,
+        0.195,
+        0.187
+      ],
+      "descriptorMouthEdgesBeforeClose": 323,
+      "otherNakedEdgesBeforeClose": 161,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N12",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        31160
+      ],
+      "triangles": 31160,
+      "sheetSplits": 7,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1882,
+          -10.1714,
+          -5.0359
+        ],
+        "max": [
+          10.1886,
+          10.1893,
+          10.1893
+        ],
+        "size": [
+          20.3768,
+          20.3608,
+          15.2252
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.2203,
+        0.2023,
+        0.1894
+      ],
+      "descriptorMouthEdgesBeforeClose": 429,
+      "otherNakedEdgesBeforeClose": 328,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N13",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        13152
+      ],
+      "triangles": 13152,
+      "sheetSplits": 13,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -4.5093,
+          -3.5424,
+          0.2307
+        ],
+        "max": [
+          10.1891,
+          10.19,
+          10.1904
+        ],
+        "size": [
+          14.6985,
+          13.7324,
+          9.9597
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.2017,
+        0.2166,
+        0.191
+      ],
+      "descriptorMouthEdgesBeforeClose": 286,
+      "otherNakedEdgesBeforeClose": 44,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N14",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        12848
+      ],
+      "triangles": 12848,
+      "sheetSplits": 8,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -4.408,
+          -3.6186,
+          -0.2089
+        ],
+        "max": [
+          10.1898,
+          10.1905,
+          10.189
+        ],
+        "size": [
+          14.5977,
+          13.8091,
+          10.398
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1836,
+        0.1901,
+        0.1991
+      ],
+      "descriptorMouthEdgesBeforeClose": 314,
+      "otherNakedEdgesBeforeClose": 38,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N15",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 1,
+      "components": 1,
+      "componentTriangles": [
+        12832
+      ],
+      "triangles": 12832,
+      "sheetSplits": 18,
+      "kernel": "NotManifold",
+      "kernelAccepts": false,
+      "boundingBox": {
+        "min": [
+          -4.2696,
+          -2.9493,
+          0.0473
+        ],
+        "max": [
+          10.1915,
+          10.1915,
+          10.1915
+        ],
+        "size": [
+          14.4611,
+          13.1408,
+          10.1442
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1837,
+        0.2203,
+        0.2147
+      ],
+      "descriptorMouthEdgesBeforeClose": 171,
+      "otherNakedEdgesBeforeClose": 85,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N16",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        21364
+      ],
+      "triangles": 21364,
+      "sheetSplits": 5,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -7.3862,
+          -8.6713,
+          -5.1025
+        ],
+        "max": [
+          10.188,
+          10.1892,
+          10.1882
+        ],
+        "size": [
+          17.5741,
+          18.8605,
+          15.2907
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1829,
+        0.1999,
+        0.1976
+      ],
+      "descriptorMouthEdgesBeforeClose": 379,
+      "otherNakedEdgesBeforeClose": 119,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N17",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        28272
+      ],
+      "triangles": 28272,
+      "sheetSplits": 5,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1841,
+          -10.1788,
+          -6.6626
+        ],
+        "max": [
+          10.1898,
+          10.1878,
+          10.1853
+        ],
+        "size": [
+          20.3739,
+          20.3665,
+          16.8479
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1975,
+        0.2134,
+        0.1793
+      ],
+      "descriptorMouthEdgesBeforeClose": 407,
+      "otherNakedEdgesBeforeClose": 333,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N18",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 2,
+      "componentTriangles": [
+        15708,
+        2076
+      ],
+      "triangles": 17784,
+      "sheetSplits": 1,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -6.0262,
+          -10.0309,
+          -6.5177
+        ],
+        "max": [
+          10.0662,
+          10.1874,
+          10.1849
+        ],
+        "size": [
+          16.0923,
+          20.2183,
+          16.7026
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.0666,
+        0.188,
+        0.1871
+      ],
+      "descriptorMouthEdgesBeforeClose": 196,
+      "otherNakedEdgesBeforeClose": 184,
+      "descriptorMouthSealed": true,
+      "multipleBodies": true
+    },
+    {
+      "id": "N19",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        26368
+      ],
+      "triangles": 26368,
+      "sheetSplits": 7,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.184,
+          -10.158,
+          -6.3849
+        ],
+        "max": [
+          10.1828,
+          10.1877,
+          10.1856
+        ],
+        "size": [
+          20.3668,
+          20.3456,
+          16.5705
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.207,
+        0.1996,
+        0.1908
+      ],
+      "descriptorMouthEdgesBeforeClose": 434,
+      "otherNakedEdgesBeforeClose": 291,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N20",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        28304
+      ],
+      "triangles": 28304,
+      "sheetSplits": 14,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1843,
+          -10.145,
+          -5.7177
+        ],
+        "max": [
+          10.1884,
+          10.1896,
+          10.1892
+        ],
+        "size": [
+          20.3727,
+          20.3346,
+          15.9069
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.203,
+        0.2107,
+        0.1912
+      ],
+      "descriptorMouthEdgesBeforeClose": 462,
+      "otherNakedEdgesBeforeClose": 275,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N21",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        30392
+      ],
+      "triangles": 30392,
+      "sheetSplits": 6,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1875,
+          -10.1829,
+          -5.4948
+        ],
+        "max": [
+          10.1862,
+          10.1888,
+          10.1883
+        ],
+        "size": [
+          20.3738,
+          20.3716,
+          15.6831
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1897,
+        0.1985,
+        0.1819
+      ],
+      "descriptorMouthEdgesBeforeClose": 368,
+      "otherNakedEdgesBeforeClose": 394,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N22",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        27756
+      ],
+      "triangles": 27756,
+      "sheetSplits": 1,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1839,
+          -10.1474,
+          -6.3923
+        ],
+        "max": [
+          10.1831,
+          10.1876,
+          10.1856
+        ],
+        "size": [
+          20.367,
+          20.3349,
+          16.5779
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1956,
+        0.1998,
+        0.1857
+      ],
+      "descriptorMouthEdgesBeforeClose": 454,
+      "otherNakedEdgesBeforeClose": 303,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    },
+    {
+      "id": "N23",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 2,
+      "componentTriangles": [
+        15648,
+        2192
+      ],
+      "triangles": 17840,
+      "sheetSplits": 1,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -5.4323,
+          -10.0922,
+          -5.4552
+        ],
+        "max": [
+          10.1676,
+          10.1874,
+          10.1853
+        ],
+        "size": [
+          15.5999,
+          20.2796,
+          15.6405
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.2382,
+        0.2813,
+        0.1734
+      ],
+      "descriptorMouthEdgesBeforeClose": 337,
+      "otherNakedEdgesBeforeClose": 105,
+      "descriptorMouthSealed": true,
+      "multipleBodies": true
+    },
+    {
+      "id": "N24",
+      "boundaryEdges": 0,
+      "nonManifoldEdges": 0,
+      "components": 1,
+      "componentTriangles": [
+        28300
+      ],
+      "triangles": 28300,
+      "sheetSplits": 7,
+      "kernel": "ready",
+      "kernelAccepts": true,
+      "boundingBox": {
+        "min": [
+          -10.1867,
+          -10.1065,
+          -5.9209
+        ],
+        "max": [
+          10.1891,
+          10.1875,
+          10.1892
+        ],
+        "size": [
+          20.3758,
+          20.294,
+          16.1101
+        ]
+      },
+      "expansionBeyondOpenShell": [
+        0.1919,
+        0.2014,
+        0.181
+      ],
+      "descriptorMouthEdgesBeforeClose": 445,
+      "otherNakedEdgesBeforeClose": 302,
+      "descriptorMouthSealed": true,
+      "multipleBodies": false
+    }
+  ]
+}

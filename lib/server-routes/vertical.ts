@@ -71,7 +71,8 @@ function bundleContinuation(bundle: ReturnType<typeof continuationBundle>, conti
 function jsonBundle(bundle: ReturnType<typeof continuationBundle>, continuationId: string | null) {
   const body = bundleContinuation(bundle, continuationId);
   if (!body) return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
-  return NextResponse.json(body);
+  if (!continuationId) return NextResponse.json(body);
+  return NextResponse.json({ rules: bundle.rules, ...body });
 }
 
 function continuations(request: Request) {
@@ -91,6 +92,14 @@ function continuations(request: Request) {
   if (!("selection" in requested)) {
     const error = "error" in requested ? requested.error : "The stored selection is not a Skill 2 candidate.";
     return NextResponse.json({ error }, { status: 400 });
+  }
+
+  if (url.searchParams.get("stored") === "1") {
+    const stored = readLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId);
+    if (!stored || stored.origin !== "handoff") {
+      return NextResponse.json({ error: "The temporal replay is not stored." }, { status: 404 });
+    }
+    return jsonBundle(stored, url.searchParams.get("continuation"));
   }
 
   const preview = url.searchParams.get("preview") === "1";

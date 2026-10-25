@@ -37,6 +37,8 @@ CLAUDE.md
 /calibration/
 # Serving copies of the published Lobby Skill 3 bundles. Rebuilt from verified Z0.
 /data/skill3/published-lobby/
+# Older local snapshots. The live tree is the checkpoint.
+/local-archive/
 # Working Skill 2 catalogs. The kept catalog is data/skill2/pareto-catalog.
 /data/semantic-runs/
 /data/semantic-catalogs/

@@ -1,0 +1,33 @@
+{
+  "continuationId": "N17",
+  "status": "REVIEW",
+  "plateBodies": 2,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [
+    {
+      "bodies": [
+        0,
+        1
+      ],
+      "height": 4.389,
+      "low": -4.0665,
+      "high": 0.3225
+    }
+  ],
+  "voidStatus": "required",
+  "longest": null,
+  "signedVolume": 572.156,
+  "originalVolume": 572.156,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 0,
+  "components": 2,
+  "kernel": "ready",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "PROTECTED_VOID_CONNECTION_REQUIRED"
+  ]
+}

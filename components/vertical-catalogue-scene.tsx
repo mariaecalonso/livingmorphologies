@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
-import { CATALOGUE_COLUMNS, CATALOGUE_PITCH, CATALOGUE_ROWS, catalogueOrigin, MODULE_HALF } from "@/lib/skill3/catalogue";
+import { CATALOGUE_COLUMNS, CATALOGUE_PITCH, CATALOGUE_ROWS, CATALOGUE_SLOT_COUNT, catalogueOrigin, MODULE_HALF } from "@/lib/skill3/catalogue";
 import { MODULE_SIZE_Z } from "@/lib/skill3/envelope";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
 import { decodeSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
@@ -15,7 +15,8 @@ export type CatalogueModule = {
   field?: VerticalViewerField;
   /** Stored solidified mesh. When set, the field is not meshed again. */
   meshUrl?: string;
-  status?: "validated" | "review";
+  /** Skill 4 readiness of this materialization. Omitted for Open and for unaudited meshes. */
+  status?: "ready" | "review" | "fail";
   /** Catalogue stand-in. Drawn only when no continuation field is loaded. */
   placeholder?: boolean;
 };
@@ -279,11 +280,11 @@ function frameSelection(camera: Camera, ox: number, oy: number, oz: number, scal
   };
 }
 
-function composedView(width: number, height: number): Camera {
+function composedView(width: number, height: number, rows = CATALOGUE_ROWS): Camera {
   const aspect = width / Math.max(1, height);
   const pitch = ISO_PITCH;
   const halfX = ((CATALOGUE_COLUMNS - 1) * CATALOGUE_PITCH) / 2 + MODULE_HALF;
-  const halfZ = ((CATALOGUE_ROWS - 1) * CATALOGUE_PITCH) / 2 + MODULE_HALF;
+  const halfZ = ((rows - 1) * CATALOGUE_PITCH) / 2 + MODULE_HALF;
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -324,8 +325,16 @@ function project(x: number, y: number, z: number, camera: Camera, width: number,
   };
 }
 
-function lineColor(selected: boolean): [number, number, number, number] {
-  return selected ? [0.9, 0.9, 0.88, 0.42] : [0.7, 0.69, 0.66, 0.14];
+function readinessDim(status: CatalogueModule["status"], kind: "mesh" | "label" = "mesh") {
+  if (status === "review") return kind === "label" ? 0.55 : 0.4;
+  if (status === "fail") return kind === "label" ? 0.32 : 0.16;
+  return 1;
+}
+
+function lineColor(kind: "plain" | "focus" | "chosen"): [number, number, number, number] {
+  if (kind === "chosen") return [0.4, 0.88, 0.9, 1];
+  if (kind === "focus") return [0.9, 0.9, 0.88, 0.42];
+  return [0.7, 0.69, 0.66, 0.14];
 }
 
 function pushBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number], half = MODULE_HALF) {
@@ -344,6 +353,61 @@ function pushBox(data: number[], ox: number, oy: number, oz: number, color: [num
   for (const [a, b] of edges) {
     for (const point of [corners[a], corners[b]]) {
       data.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3], 0);
+    }
+  }
+}
+
+function pushThickBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number], half: number, thickness: number) {
+  const corners: [number, number, number][] = [];
+  for (const x of [-half, half]) {
+    for (const y of [-half, half]) {
+      for (const z of [-half, half]) corners.push([ox + x, oy + y, oz + z]);
+    }
+  }
+  const edges: [number, number][] = [
+    [0, 1], [2, 3], [4, 5], [6, 7],
+    [0, 2], [1, 3], [4, 6], [5, 7],
+    [0, 4], [1, 5], [2, 6], [3, 7],
+  ];
+  const put = (point: [number, number, number]) => {
+    data.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3], 0);
+  };
+  for (const [ia, ib] of edges) {
+    const a = corners[ia];
+    const b = corners[ib];
+    const dir: [number, number, number] = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const span = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+    dir[0] /= span;
+    dir[1] /= span;
+    dir[2] /= span;
+    const helper: [number, number, number] = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    const side: [number, number, number] = [
+      dir[1] * helper[2] - dir[2] * helper[1],
+      dir[2] * helper[0] - dir[0] * helper[2],
+      dir[0] * helper[1] - dir[1] * helper[0],
+    ];
+    const sideSpan = Math.hypot(side[0], side[1], side[2]) || 1;
+    side[0] /= sideSpan;
+    side[1] /= sideSpan;
+    side[2] /= sideSpan;
+    const lift: [number, number, number] = [
+      dir[1] * side[2] - dir[2] * side[1],
+      dir[2] * side[0] - dir[0] * side[2],
+      dir[0] * side[1] - dir[1] * side[0],
+    ];
+    const ring = (origin: [number, number, number]) => {
+      const signs: [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+      return signs.map(([sx, ly]) => [
+        origin[0] + (side[0] * sx + lift[0] * ly) * thickness,
+        origin[1] + (side[1] * sx + lift[1] * ly) * thickness,
+        origin[2] + (side[2] * sx + lift[2] * ly) * thickness,
+      ] as [number, number, number]);
+    };
+    const start = ring(a);
+    const end = ring(b);
+    for (let index = 0; index < 4; index += 1) {
+      const next = (index + 1) % 4;
+      for (const point of [start[index], end[index], end[next], start[index], end[next], start[next]]) put(point);
     }
   }
 }
@@ -490,22 +554,28 @@ export function CatalogueField({
   modules,
   origin,
   selectedId,
+  chosenId = null,
   onSelect,
   resetToken,
   inspecting = false,
   surface = "refined",
   onTriangles,
+  seatOnFloor = false,
 }: {
   modules: readonly CatalogueModule[];
   origin: string;
   selectedId: string | null;
+  chosenId?: string | null;
   onSelect: (id: string | null) => void;
   resetToken: number;
   inspecting?: boolean;
   surface?: CatalogueSurface;
   onTriangles?: (id: string, count: number) => void;
+  seatOnFloor?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const layoutCountRef = useRef(CATALOGUE_SLOT_COUNT);
+  layoutCountRef.current = Math.max(modules.length, CATALOGUE_SLOT_COUNT);
   const labelRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ yaw: ISO_YAW, pitch: ISO_PITCH, panX: 0, panY: 0, zoom: 0.02 });
   const exploringRef = useRef(false);
@@ -520,14 +590,18 @@ export function CatalogueField({
   const paintRef = useRef<() => void>(() => undefined);
   const modulesRef = useRef(modules);
   const selectedRef = useRef(selectedId);
+  const chosenRef = useRef(chosenId);
   const onSelectRef = useRef(onSelect);
   const onTrianglesRef = useRef(onTriangles);
   const surfaceRef = useRef<CatalogueSurface>(surface);
+  const seatOnFloorRef = useRef(seatOnFloor);
   const stageRef = useRef<HTMLDivElement>(null);
   inspectingRef.current = inspecting;
   surfaceRef.current = surface;
+  seatOnFloorRef.current = seatOnFloor;
   modulesRef.current = modules;
   selectedRef.current = selectedId;
+  chosenRef.current = chosenId;
   onSelectRef.current = onSelect;
   onTrianglesRef.current = onTriangles;
 
@@ -631,6 +705,11 @@ export function CatalogueField({
     }
     paintRef.current();
   }, [surface]);
+
+  useEffect(() => {
+    seatOnFloorRef.current = seatOnFloor;
+    paintRef.current();
+  }, [seatOnFloor]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -737,14 +816,15 @@ export function CatalogueField({
         canvas.height = pixelsH;
       }
       const blend = blendRef.current;
-      const home = composedView(width, height);
+      const rows = Math.max(CATALOGUE_ROWS, Math.ceil(layoutCountRef.current / CATALOGUE_COLUMNS));
+      const home = composedView(width, height, rows);
       const aspect = width / height;
       const shown = modulesRef.current;
       const selected = selectedRef.current;
       const selectedIndex = shown.findIndex((item) => item.id === selected);
       const focusing = inspectingRef.current && selectedIndex >= 0;
       const presence = presenceRef.current;
-      const [stationX, stationY, stationZ] = selectedIndex >= 0 ? catalogueOrigin(selectedIndex) : [0, 0, 0];
+      const [stationX, stationY, stationZ] = selectedIndex >= 0 ? catalogueOrigin(selectedIndex, CATALOGUE_PITCH, layoutCountRef.current) : [0, 0, 0];
       const heroScale = 1 + presence * 1.85;
       const backScale = 1 - presence * 0.48;
       let camera: Camera;
@@ -778,7 +858,7 @@ export function CatalogueField({
         : null;
       poseRef.current = pose;
       const viewYs = shown.map((_, itemIndex) => {
-        const [ox, , oz] = catalogueOrigin(itemIndex);
+        const [ox, , oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
         return rotateView(ox, 0, oz, camera.yaw, camera.pitch).y;
       });
       const near = viewYs.length ? Math.min(...viewYs) : 0;
@@ -789,7 +869,7 @@ export function CatalogueField({
       let fieldMinY = Infinity;
       let fieldMaxY = -Infinity;
       shown.forEach((_, itemIndex) => {
-        const [ox, , oz] = catalogueOrigin(itemIndex);
+        const [ox, , oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
         for (const x of [ox - MODULE_HALF, ox + MODULE_HALF]) {
           for (const z of [oz - MODULE_HALF, oz + MODULE_HALF]) {
             const point = rotateView(x, -MODULE_HALF, z, camera.yaw, camera.pitch);
@@ -818,7 +898,7 @@ export function CatalogueField({
           pushQuad(plates, -MODULE_HALF - 0.04, ground.x0, ground.z0, ground.x1, ground.z1);
           floorCount = plates.length / 6;
           shown.forEach((_, itemIndex) => {
-            const [ox, , oz] = catalogueOrigin(itemIndex);
+            const [ox, , oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
             const pad = 5.2;
             pushQuad(plates, -MODULE_HALF + 0.04, ox - pad, oz - pad, ox + pad, oz + pad);
           });
@@ -857,39 +937,54 @@ export function CatalogueField({
         }
 
         const lineData: number[] = [];
+        const chosenData: number[] = [];
         if (mode === "field") {
           shown.forEach((item, itemIndex) => {
             if (pose && item.id === selected) return;
-            const [ox, oy, oz] = catalogueOrigin(itemIndex);
+            const [ox, oy, oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
             const planted = oy - MODULE_HALF * (1 - backScale);
-            pushBox(lineData, ox, planted, oz, lineColor(false), MODULE_HALF * backScale);
+            if (item.id === chosenRef.current) {
+              pushThickBox(chosenData, ox, planted, oz, lineColor("chosen"), MODULE_HALF * backScale * 1.08, 0.28 * backScale);
+            } else {
+              pushBox(lineData, ox, planted, oz, lineColor("plain"), MODULE_HALF * backScale);
+            }
           });
         } else if (focus) {
           const planted = focus.y - MODULE_HALF * (1 - focus.scale);
-          pushBox(lineData, focus.x, planted, focus.z, lineColor(true), MODULE_HALF * focus.scale);
+          if (selected === chosenRef.current) {
+            pushThickBox(chosenData, focus.x, planted, focus.z, lineColor("chosen"), MODULE_HALF * focus.scale * 1.02, 0.2 * focus.scale);
+          } else {
+            pushBox(lineData, focus.x, planted, focus.z, lineColor("focus"), MODULE_HALF * focus.scale);
+          }
         }
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.useProgram(lines);
-        gl.uniform1f(lineYaw, camera.yaw);
-        gl.uniform1f(linePitch, camera.pitch);
-        gl.uniform1f(lineAspect, aspect);
-        gl.uniform1f(lineZoom, zoom);
-        gl.uniform2f(linePan, camera.panX, camera.panY);
-        gl.uniform1f(lineDim, dim);
-        gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineData), gl.DYNAMIC_DRAW);
-        gl.uniform2f(lineFieldMin, fieldMinX - 0.06, fieldMinY - 0.06);
-        gl.uniform2f(lineFieldMax, fieldMaxX + 0.06, fieldMaxY + 0.06);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
-        gl.enableVertexAttribArray(1);
-        gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 12);
-        gl.enableVertexAttribArray(2);
-        gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 28);
-        gl.drawArrays(gl.LINES, 0, lineData.length / 8);
-        gl.disableVertexAttribArray(2);
-        gl.disable(gl.BLEND);
+        const drawLines = (data: number[], primitive: number, over: boolean) => {
+          if (data.length === 0) return;
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          gl.useProgram(lines);
+          gl.uniform1f(lineYaw, camera.yaw);
+          gl.uniform1f(linePitch, camera.pitch);
+          gl.uniform1f(lineAspect, aspect);
+          gl.uniform1f(lineZoom, zoom);
+          gl.uniform2f(linePan, camera.panX, camera.panY);
+          gl.uniform1f(lineDim, over ? 1 : dim);
+          gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
+          gl.uniform2f(lineFieldMin, fieldMinX - 0.06, fieldMinY - 0.06);
+          gl.uniform2f(lineFieldMax, fieldMaxX + 0.06, fieldMaxY + 0.06);
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
+          gl.enableVertexAttribArray(1);
+          gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 32, 12);
+          gl.enableVertexAttribArray(2);
+          gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 28);
+          if (over) gl.disable(gl.DEPTH_TEST);
+          gl.drawArrays(primitive, 0, data.length / 8);
+          if (over) gl.enable(gl.DEPTH_TEST);
+          gl.disableVertexAttribArray(2);
+          gl.disable(gl.BLEND);
+        };
+        drawLines(lineData, gl.LINES, false);
 
         gl.useProgram(clay);
         gl.uniform1f(clayYaw, camera.yaw);
@@ -897,8 +992,9 @@ export function CatalogueField({
         gl.uniform1f(clayAspect, aspect);
         gl.uniform1f(clayZoom, zoom);
         gl.uniform2f(clayPan, camera.panX, camera.panY);
+        const statusFade = mode === "field" && shown.some((item) => item.status === "review" || item.status === "fail");
         gl.uniform1f(clayDim, mode === "focus" ? 1 : dim);
-        if (mode === "field" && dim < 0.999) {
+        if (mode === "field" && (dim < 0.999 || statusFade)) {
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         }
@@ -906,9 +1002,16 @@ export function CatalogueField({
           const solid = item.placeholder ? PLACEHOLDER_SOLIDS[itemIndex % PLACEHOLDER_SOLIDS.length] : null;
           const mesh = solid ?? meshesRef.current.get(meshKey(item, surfaceRef.current));
           if (!mesh || ("triangles" in mesh && typeof mesh.triangles === "number" && mesh.triangles <= 0)) return;
-          const [ox, oy, oz] = catalogueOrigin(itemIndex);
+          const [ox, oy, oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
           const scale = at ? at.scale : 1;
           const plantedY = (at ? at.y : oy) - MODULE_HALF * (1 - scale);
+          let seat = 0;
+          if (seatOnFloorRef.current) {
+            let minY = Infinity;
+            const positions = mesh.positions;
+            for (let index = 1; index < positions.length; index += 3) minY = Math.min(minY, positions[index]);
+            if (Number.isFinite(minY)) seat = -scale * (MODULE_HALF + minY);
+          }
           gl.bindBuffer(gl.ARRAY_BUFFER, position);
           gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.DYNAMIC_DRAW);
           gl.enableVertexAttribArray(0);
@@ -919,21 +1022,23 @@ export function CatalogueField({
           gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index);
           gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
-          gl.uniform3f(clayOffset, at ? at.x : ox, plantedY, at ? at.z : oz);
+          gl.uniform3f(clayOffset, at ? at.x : ox, plantedY + seat, at ? at.z : oz);
           gl.uniform1f(clayScale, scale);
           gl.uniform1f(clayPlate, 0);
           gl.uniform1f(clayFill, solid ? 1 : 0);
           gl.uniform1f(clayShade, at ? 0 : (viewYs[itemIndex] - near) / Math.max(0.001, far - near));
           gl.uniform1f(claySelected, item.id === selected ? 1 : 0);
+          gl.uniform1f(clayDim, mode === "focus" ? 1 : dim * readinessDim(item.status));
           gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
         };
         if (mode === "focus" && focus && selectedIndex >= 0) drawMesh(shown[selectedIndex], selectedIndex, focus);
         else shown.forEach((item, itemIndex) => {
           if (pose && item.id === selected) return;
-          const [ox, oy, oz] = catalogueOrigin(itemIndex);
+          const [ox, oy, oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
           drawMesh(item, itemIndex, pose ? { x: ox, y: oy, z: oz, scale: backScale } : null);
         });
         if (mode === "field") gl.disable(gl.BLEND);
+        drawLines(chosenData, gl.TRIANGLES, true);
       };
 
       const drawGrid = (dim = 1) => {
@@ -1016,10 +1121,13 @@ export function CatalogueField({
       const nodes = labels.querySelectorAll<HTMLButtonElement>("[data-module]");
       nodes.forEach((node) => {
         const itemIndex = Number(node.dataset.index);
-        const [ox, , oz] = catalogueOrigin(itemIndex);
+        const [ox, , oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
         const point = project(ox, -MODULE_HALF, oz, camera, width, height);
         node.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -130%)`;
-        node.style.opacity = !pose || shown[itemIndex]?.id === selected ? "1" : String(1 - presence * 0.9);
+        const selectedNow = shown[itemIndex]?.id === selected;
+        const emphasis = selectedNow ? 1 : readinessDim(shown[itemIndex]?.status, "label");
+        const presenceFade = !pose || selectedNow ? 1 : 1 - presence * 0.9;
+        node.style.opacity = String(emphasis * presenceFade);
       });
     };
     paintRef.current = draw;
@@ -1072,9 +1180,14 @@ export function CatalogueField({
     return () => cancelAnimationFrame(frame);
   }, [inspecting, selectedId]);
 
+  const layoutSizeRef = useRef(modules.length);
   useEffect(() => {
+    if (layoutSizeRef.current !== modules.length) {
+      layoutSizeRef.current = modules.length;
+      if (!exploringRef.current) composePendingRef.current = true;
+    }
     paintRef.current();
-  }, [modules]);
+  }, [modules, chosenId]);
 
   useEffect(() => {
     exploringRef.current = false;
@@ -1128,7 +1241,7 @@ export function CatalogueField({
           if (index >= 0) {
             const item = modulesRef.current[index];
             const solid = item.placeholder ? PLACEHOLDER_SOLIDS[index % PLACEHOLDER_SOLIDS.length] : meshesRef.current.get(meshKey(item, surfaceRef.current));
-            const [ox, oy, oz] = catalogueOrigin(index);
+            const [ox, oy, oz] = catalogueOrigin(index, CATALOGUE_PITCH, layoutCountRef.current);
             const width = parent.clientWidth;
             const height = parent.clientHeight;
             const bounds = boundsOf(solid?.positions) ?? {
@@ -1158,7 +1271,7 @@ export function CatalogueField({
       const selected = selectedRef.current;
       modulesRef.current.forEach((item, itemIndex) => {
         const focused = pose != null && item.id === selected;
-        const [ox, oy, oz] = catalogueOrigin(itemIndex);
+        const [ox, oy, oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
         const cx = focused && pose ? pose.x : ox;
         const cy = focused && pose ? pose.y : oy;
         const cz = focused && pose ? pose.z : oz;
@@ -1180,7 +1293,8 @@ export function CatalogueField({
       exploringRef.current = true;
       if (inspectingRef.current) steerRef.current = false;
       const camera = cameraRef.current;
-      const frame = composedView(parent.clientWidth, parent.clientHeight);
+      const rows = Math.max(CATALOGUE_ROWS, Math.ceil(layoutCountRef.current / CATALOGUE_COLUMNS));
+      const frame = composedView(parent.clientWidth, parent.clientHeight, rows);
       camera.zoom = Math.min(frame.zoom * 6, Math.max(frame.zoom * 0.34, camera.zoom * Math.exp(-event.deltaY * 0.0011)));
       paintRef.current();
     };
@@ -1212,11 +1326,11 @@ export function CatalogueField({
             data-module={item.id}
             data-index={index}
             data-active={item.id === selectedId || undefined}
+            data-chosen={item.id === chosenId || undefined}
             data-status={item.status}
             onClick={() => onSelect(item.id)}
           >
             {item.label}
-            {item.status ? <small>{item.status === "review" ? "Review" : "Validated"}</small> : null}
           </button>
         ))}
       </div>

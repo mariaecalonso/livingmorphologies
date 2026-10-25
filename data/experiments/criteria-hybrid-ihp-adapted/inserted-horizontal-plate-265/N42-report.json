@@ -1,0 +1,24 @@
+{
+  "continuationId": "N42",
+  "status": "FAIL",
+  "plateBodies": 1,
+  "connectors": 0,
+  "connectorsDetail": [],
+  "protectedVoids": [],
+  "voidStatus": "none",
+  "longest": null,
+  "signedVolume": 616.0015,
+  "originalVolume": 616.0015,
+  "addedVolume": 0,
+  "addedVolumePct": 0,
+  "boundaryEdges": 0,
+  "nonManifoldEdges": 1,
+  "components": 1,
+  "kernel": "NotManifold",
+  "blend": "not applied",
+  "blendVertices": 0,
+  "reasons": [
+    "non-manifold",
+    "kernel rejected"
+  ]
+}
