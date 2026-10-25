@@ -8,8 +8,8 @@
       "category": "lobby",
       "archetypeId": "vertical-void",
       "candidateId": 351,
-      "continuationId": "N04",
-      "moduleId": "carved-mass:vertical-void:351:N04",
+      "continuationId": "N24",
+      "moduleId": "carved-mass:vertical-void:351:N24",
       "status": "Validated"
     },
     {
@@ -24,72 +24,72 @@
       "category": "lobby",
       "archetypeId": "continuous-hall",
       "candidateId": 237,
-      "continuationId": "N13",
-      "moduleId": "carved-mass:continuous-hall:237:N13",
+      "continuationId": "N15",
+      "moduleId": "carved-mass:continuous-hall:237:N15",
       "status": "Validated"
     },
     {
       "category": "lobby",
       "archetypeId": "topographic-ground-field",
       "candidateId": 49,
-      "continuationId": "N12",
-      "moduleId": "carved-mass:topographic-ground-field:49:N12",
+      "continuationId": "N09",
+      "moduleId": "carved-mass:topographic-ground-field:49:N09",
       "status": "Validated"
     },
     {
       "category": "lobby",
       "archetypeId": "linear-gallery",
       "candidateId": 263,
-      "continuationId": "N24",
-      "moduleId": "carved-mass:linear-gallery:263:N24",
+      "continuationId": "N19",
+      "moduleId": "carved-mass:linear-gallery:263:N19",
       "status": "Validated"
     },
     {
       "category": "workspace",
       "archetypeId": "open-hall",
       "candidateId": 333,
-      "continuationId": "N14",
-      "moduleId": "carved-mass:open-hall:333:N14",
+      "continuationId": "N08",
+      "moduleId": "carved-mass:open-hall:333:N08",
       "status": "Validated"
     },
     {
       "category": "workspace",
       "archetypeId": "terraced",
       "candidateId": 46,
-      "continuationId": "N09",
-      "moduleId": "carved-mass:terraced:46:N09",
+      "continuationId": "N06",
+      "moduleId": "carved-mass:terraced:46:N06",
       "status": "Validated"
     },
     {
       "category": "workspace",
       "archetypeId": "flat-deep-plan",
       "candidateId": 83,
-      "continuationId": "N21",
-      "moduleId": "carved-mass:flat-deep-plan:83:N21",
+      "continuationId": "N16",
+      "moduleId": "carved-mass:flat-deep-plan:83:N16",
       "status": "Validated"
     },
     {
       "category": "workspace",
       "archetypeId": "void-edge",
       "candidateId": 86,
-      "continuationId": "N16",
-      "moduleId": "carved-mass:void-edge:86:N16",
+      "continuationId": "N19",
+      "moduleId": "carved-mass:void-edge:86:N19",
       "status": "Validated"
     },
     {
       "category": "workspace",
       "archetypeId": "undulated",
       "candidateId": 71,
-      "continuationId": "N10",
-      "moduleId": "carved-mass:undulated:71:N10",
+      "continuationId": "N06",
+      "moduleId": "carved-mass:undulated:71:N06",
       "status": "Validated"
     },
     {
       "category": "gathering",
       "archetypeId": "stepped-amphitheater",
       "candidateId": 374,
-      "continuationId": "N04",
-      "moduleId": "carved-mass:stepped-amphitheater:374:N04",
+      "continuationId": "N03",
+      "moduleId": "carved-mass:stepped-amphitheater:374:N03",
       "status": "Validated"
     },
     {
@@ -104,16 +104,16 @@
       "category": "gathering",
       "archetypeId": "inserted-horizontal-plate",
       "candidateId": 265,
-      "continuationId": "N02",
-      "moduleId": "carved-mass:inserted-horizontal-plate:265:N02",
+      "continuationId": "N47",
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N47",
       "status": "Validated"
     },
     {
       "category": "gathering",
       "archetypeId": "contained-room-within-volume",
       "candidateId": 42,
-      "continuationId": "N10",
-      "moduleId": "carved-mass:contained-room-within-volume:42:N10",
+      "continuationId": "N04",
+      "moduleId": "carved-mass:contained-room-within-volume:42:N04",
       "status": "Validated"
     },
     {
