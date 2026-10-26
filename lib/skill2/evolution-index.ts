@@ -96,11 +96,20 @@ export function loadEvolutionCatalog(): EvolutionCatalog {
   return { archetypes };
 }
 
-/** Published semantic catalogs when this machine has them, then the committed Pareto catalog. */
+/** The committed Pareto catalog, then any published archetype it does not already contain. */
 function keptCatalogViews(): EvolutionArchetypeView[] {
-  const published = publishedCatalogViews();
-  const seen = new Set(published.map((item) => item.archetypeId));
-  return [...published, ...paretoCatalogViews().filter((item) => !seen.has(item.archetypeId))];
+  const pareto = paretoCatalogViews();
+  const seen = new Set(pareto.map((item) => item.archetypeId));
+  return [...pareto, ...publishedCatalogViews().filter((item) => !seen.has(item.archetypeId))];
+}
+
+/** The single Skill 2 catalog stored in git. */
+export function loadParetoCatalog(): EvolutionCatalog {
+  const archetypes = paretoCatalogViews().sort(
+    (a, b) =>
+      TYPOLOGY_ORDER.indexOf(a.typologyId) - TYPOLOGY_ORDER.indexOf(b.typologyId) || a.name.localeCompare(b.name),
+  );
+  return { archetypes };
 }
 
 type ParetoCatalogIndex = {
