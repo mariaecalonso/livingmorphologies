@@ -1,22 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import handoffFile from "@/data/skill3/final-selection.json";
-import { InheritCriteriaProfile } from "@/components/inherit-criteria-profile";
-import { ProcessPlate, ProcessMorphology, ProcessStack } from "@/components/vertical-process-stage";
-import type { SamplePresentation } from "@/components/vertical-render";
+import { ContinueFamilyFan } from "@/components/continue-family-fan";
+import { InheritFamilySummary } from "@/components/inherit-criteria-profile";
+import { ProcessStartField } from "@/components/process-start-field";
+import { ProcessDevelop, type DevelopPlate } from "@/components/process-develop-view";
+import { ProcessFormEmergence, ProcessGuide, ProcessMorphology, SampleDecisionStack, type SampleFrame } from "@/components/vertical-process-stage";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
 import type { CatalogueReadiness, ReadinessVerdict } from "@/lib/skill3/catalogue-readiness";
-import type { ContinuationEvent, NaturalContinuation, NaturalContinuationRules, NaturalContinuationSet } from "@/lib/skill3/continuations";
+import type { NaturalContinuation, NaturalContinuationRules, NaturalContinuationSet } from "@/lib/skill3/continuations";
 import { CARVED_MASS_SOURCES } from "@/lib/skill3/experiments/carved-mass-sources";
 import type { FinalHandoffSelection } from "@/lib/skill3/final-selection";
 import { readActiveArchetype } from "@/lib/skill2/published-selection";
 import type { ResolvedProcessSource } from "@/lib/skill3/selection";
 import { decodeSolidifiedMesh, type EncodedSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
-import type { VerticalViewerField } from "@/lib/skill3/viewer-field";
 
 const HANDOFF = handoffFile.selections as FinalHandoffSelection[];
 
@@ -36,7 +37,7 @@ type SolidifiedChecks = {
   nonManifoldEdges: number;
   manifold: "PASS" | "FAIL";
   preflight: "PASS" | "FAIL";
-  triangles: number;
+  file?: string;
 };
 
 type ReplayBody = {
@@ -61,19 +62,17 @@ function groupFor(id: string | null) {
   return BEHAVIOR_GROUPS.find((group) => number >= group.start && number <= group.end) ?? null;
 }
 
-function meshVolume(mesh: IsoMesh) {
-  const positions = mesh.positions;
-  const indices = mesh.indices;
-  let sum = 0;
-  for (let index = 0; index < indices.length; index += 3) {
-    const a = indices[index] * 3;
-    const b = indices[index + 1] * 3;
-    const c = indices[index + 2] * 3;
-    sum += positions[a] * (positions[b + 1] * positions[c + 2] - positions[b + 2] * positions[c + 1]);
-    sum += positions[a + 1] * (positions[b + 2] * positions[c] - positions[b] * positions[c + 2]);
-    sum += positions[a + 2] * (positions[b] * positions[c + 1] - positions[b + 1] * positions[c]);
-  }
-  return sum / 6;
+function useLabQuery() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("frame") === "1") return "?wall=1&frame=1";
+      if (params.get("wall") === "1") return "?wall=1";
+      return "";
+    },
+    () => "",
+  );
 }
 
 function verdictLabel(verdict: ReadinessVerdict | null) {
@@ -81,6 +80,39 @@ function verdictLabel(verdict: ReadinessVerdict | null) {
   if (verdict === "review") return "REVIEW";
   if (verdict === "fail") return "FAIL";
   return "Not audited";
+}
+
+type SequencePhase = "sample" | "stack" | "form" | "done";
+type Sequence = { phase: SequencePhase; sample: number; stack: number; veil: number; form: number; playing: boolean };
+const FORM_RISE_STEPS = 18;
+const FORM_SHELL_STEPS = 10;
+const FORM_RESOLVE_STEPS = 8;
+const FORM_EMERGE_STEPS = FORM_RISE_STEPS + FORM_SHELL_STEPS + FORM_RESOLVE_STEPS;
+const IDLE_SEQUENCE: Sequence = { phase: "sample", sample: 0, stack: 0, veil: 0, form: 0, playing: false };
+
+function advanceSequence(current: Sequence, horizon: number, formGoal: number): Sequence {
+  if (!current.playing) return current;
+  if (current.phase === "sample") {
+    if (horizon <= 0 || current.sample >= horizon) return { ...current, phase: "stack", stack: 0, veil: 0 };
+    return { ...current, sample: current.sample + 1 };
+  }
+  if (current.phase === "stack") return current;
+  if (current.phase === "form") {
+    if (formGoal <= 0) return current;
+    if (current.form >= formGoal) return { ...current, phase: "done", playing: false };
+    return { ...current, form: current.form + 1 };
+  }
+  return { ...current, playing: false };
+}
+
+function phaseWord(step: Exclude<SequencePhase, "done">, sequence: Sequence) {
+  if (sequence.phase === "done") return "Complete";
+  const order = ["sample", "stack", "form"] as const;
+  const current = order.indexOf(sequence.phase);
+  const mine = order.indexOf(step);
+  if (current === mine) return "Active";
+  if (current > mine) return "Complete";
+  return "Waiting";
 }
 
 async function readMesh(url: string, signal: AbortSignal) {
@@ -91,66 +123,6 @@ async function readMesh(url: string, signal: AbortSignal) {
   return decodeSolidifiedMesh(body.geometry);
 }
 
-function DeltaClock({
-  events,
-  origin,
-  horizon,
-  threshold,
-  step,
-  onSeek,
-}: {
-  events: readonly ContinuationEvent[];
-  origin: number;
-  horizon: number;
-  threshold: number;
-  step: number;
-  onSeek: (iteration: number) => void;
-}) {
-  if (events.length === 0 || horizon <= 0) return null;
-  const max = Math.max(threshold, ...events.map((event) => event.delta), 0.001) * 1.18;
-  const left = 12;
-  const right = 97;
-  const top = 10;
-  const bottom = 78;
-  const xAt = (iteration: number) => left + (Math.min(horizon, Math.max(0, iteration - origin)) / horizon) * (right - left);
-  const yAt = (value: number) => bottom - (value / max) * (bottom - top);
-  const path = events.map((event, index) => `${index === 0 ? "M" : "L"}${xAt(event.iteration)},${yAt(event.delta)}`).join(" ");
-  const now = xAt(origin + step);
-  const seek = (clientX: number, svg: SVGSVGElement) => {
-    const rect = svg.getBoundingClientRect();
-    const viewX = ((clientX - rect.left) / Math.max(1, rect.width)) * 100;
-    const t = (viewX - left) / (right - left);
-    onSeek(origin + Math.round(Math.min(1, Math.max(0, t)) * horizon));
-  };
-  return (
-    <svg
-      className="vertical-process-graph process-clock"
-      viewBox="0 0 100 100"
-      role="img"
-      aria-label="Iteration against change"
-      onClick={(event) => seek(event.clientX, event.currentTarget)}
-    >
-      <text x={left} y={6} fontSize={4} className="vertical-process-graph-label">Δ</text>
-      <line x1={left} y1={yAt(0)} x2={right} y2={yAt(0)} className="vertical-process-axis" strokeWidth={0.35} />
-      <line x1={left} y1={yAt(threshold)} x2={right} y2={yAt(threshold)} className="vertical-process-threshold" strokeWidth={0.4} />
-      <text x={right} y={yAt(threshold) - 1.5} textAnchor="end" fontSize={3.4} className="vertical-process-graph-label" data-ink="copper">Δ {threshold}</text>
-      <path d={path} strokeWidth={0.7} />
-      <line x1={now} y1={bottom} x2={now} y2={top} className="vertical-process-current" strokeWidth={1.6} />
-      {events.map((event) => {
-        const ahead = event.iteration > origin + step;
-        return (
-          <g key={event.iteration} data-state={ahead ? "ahead" : "reached"} onClick={(pointer) => { pointer.stopPropagation(); onSeek(event.iteration); }}>
-            <circle cx={xAt(event.iteration)} cy={yAt(event.delta)} r={3.2} fill="transparent" />
-            <circle cx={xAt(event.iteration)} cy={yAt(event.delta)} r={1.15} data-reason={event.reason} />
-          </g>
-        );
-      })}
-      <text x={xAt(origin)} y={92} fontSize={3.4} className="vertical-process-graph-label">{origin}</text>
-      <text x={xAt(origin + horizon)} y={92} textAnchor="end" fontSize={3.4} className="vertical-process-graph-label">{origin + horizon}</text>
-    </svg>
-  );
-}
-
 export function ProcessCanvas({
   initial = null,
   resolved = null,
@@ -159,10 +131,7 @@ export function ProcessCanvas({
   resolved?: ResolvedProcessSource | null;
 }) {
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId ?? resolved?.selection.archetypeId ?? CARVED_MASS_SOURCES[0].archetypeId);
-  const [presentation, setPresentation] = useState<SamplePresentation>("raw");
-  const [playing, setPlaying] = useState(false);
-  const [step, setStep] = useState(0);
-  const [generated, setGenerated] = useState<number | null>(null);
+  const [sequence, setSequence] = useState<Sequence>(IDLE_SEQUENCE);
   const [identity, setIdentity] = useState<Identity>({
     z0Iteration: resolved?.z0Iteration ?? null,
     checksum: resolved?.checksum ?? null,
@@ -170,14 +139,15 @@ export function ProcessCanvas({
   });
   const [readiness, setReadiness] = useState<CatalogueReadiness | null>(null);
   const [replay, setReplay] = useState<ReplayBody | null>(null);
+  const [sampleFrames, setSampleFrames] = useState<SampleFrame[] | null>(null);
   const [replayNote, setReplayNote] = useState<string | null>(initial ? null : "Reading stored replay");
   const [openMesh, setOpenMesh] = useState<IsoMesh | null>(null);
-  const [formReading, setFormReading] = useState<{ id: string; total: number; frames: Map<number, IsoMesh> } | null>(null);
+  const [developMeshes, setDevelopMeshes] = useState<Record<number, IsoMesh>>({});
   const [cappedMesh, setCappedMesh] = useState<IsoMesh | null>(null);
   const [adaptMesh, setAdaptMesh] = useState<IsoMesh | null>(null);
   const [finalMesh, setFinalMesh] = useState<IsoMesh | null>(null);
   const [checks, setChecks] = useState<SolidifiedChecks | null>(null);
-  const [volume, setVolume] = useState<number | null>(null);
+  const [z0Plate, setZ0Plate] = useState<{ size: number; values: Uint8Array } | null>(null);
 
   useEffect(() => {
     if (initial) return;
@@ -191,6 +161,30 @@ export function ProcessCanvas({
   }, [initial]);
 
   const source = CARVED_MASS_SOURCES.find((item) => item.archetypeId === archetypeId) ?? null;
+
+  useEffect(() => {
+    if (!source) {
+      setZ0Plate(null);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams({ archetype: source.archetypeId, candidate: String(source.candidateId) });
+    fetch(`/api/vertical/z0/field?${params}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() as Promise<{ size?: number; plate?: string }> : null)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        if (!body?.plate || !body.size) {
+          setZ0Plate(null);
+          return;
+        }
+        const values = Uint8Array.from(atob(body.plate), (char) => char.charCodeAt(0));
+        setZ0Plate(values.length === body.size * body.size ? { size: body.size, values } : null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setZ0Plate(null);
+      });
+    return () => controller.abort();
+  }, [source]);
   const selected = HANDOFF.find((item) => item.archetypeId === archetypeId && item.candidateId === source?.candidateId) ?? null;
   const intent = useMemo(() => {
     try {
@@ -210,17 +204,14 @@ export function ProcessCanvas({
     }
     if (!source) return;
     const controller = new AbortController();
-    setPlaying(false);
-    setStep(0);
+    setSequence(IDLE_SEQUENCE);
     setReplay(null);
-    setFormReading(null);
-    setOpenMesh(null);
+      setDevelopMeshes({});
+      setOpenMesh(null);
     setCappedMesh(null);
     setAdaptMesh(null);
     setFinalMesh(null);
     setChecks(null);
-    setVolume(null);
-    setGenerated(null);
     setReadiness(null);
     setReplayNote("Reading stored replay");
     const sameResolved = resolved?.selection.archetypeId === source.archetypeId && resolved.selection.candidateId === source.candidateId;
@@ -245,24 +236,21 @@ export function ProcessCanvas({
     };
 
     const run = async () => {
-      const chosenId = selected?.continuationId ?? "N01";
-      let body = await loadReplay(chosenId);
-      let note: string | null = null;
-      if (!body && chosenId !== "N01") {
-        body = await loadReplay("N01");
-        if (body) note = "PROCESS REPLAY · N01";
+      const chosenId = selected?.continuationId ?? null;
+      if (!chosenId) {
+        if (!controller.signal.aborted) setReplayNote("No continuation is selected for this archetype");
+        return;
       }
+      const body = await loadReplay(chosenId);
       if (controller.signal.aborted) return;
       setReplay(body);
-      setReplayNote(body ? note : "Temporal replay is not stored for this archetype");
-      const shownId = body?.continuation.id ?? chosenId;
-      const meshBase = `/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(source.archetypeId)}&continuation=${shownId}`;
-      const [open, capped, adapted, solid, list, ready, catalogue, publishedZ0] = await Promise.all([
+      setReplayNote(body ? null : `The stored field for ${chosenId} is not on this archetype`);
+      const meshBase = `/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(source.archetypeId)}&continuation=${chosenId}`;
+      const [open, capped, adapted, solid, ready, catalogue, publishedZ0] = await Promise.all([
         readMesh(`${meshBase}&reading=open`, controller.signal),
         readMesh(`${meshBase}&reading=capped`, controller.signal),
         source.archetypeId === "inserted-horizontal-plate" ? readMesh(`${meshBase}&reading=adapted`, controller.signal) : Promise.resolve(null),
         fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}&continuation=${chosenId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ checks?: SolidifiedChecks; geometry?: EncodedSolidifiedMesh }> : null),
-        fetch(`/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(source.archetypeId)}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ continuations?: string[] }> : null),
         fetch(`/api/vertical/catalogue-readiness?archetype=${encodeURIComponent(source.archetypeId)}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<CatalogueReadiness> : null),
         fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ continuations?: { z0Iteration?: number; parentChecksum?: string; triangles?: number }[] }> : null),
         fetch(`/api/vertical/z0?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ iteration?: number; checksum?: string }> : null),
@@ -272,7 +260,6 @@ export function ProcessCanvas({
       setCappedMesh(capped);
       setAdaptMesh(adapted);
       setReadiness(ready);
-      setGenerated(list?.continuations?.length ?? null);
       const recorded = catalogue?.continuations?.find((item) => (item.triangles ?? 0) > 0) ?? catalogue?.continuations?.[0];
       if (typeof publishedZ0?.iteration === "number" && publishedZ0.checksum) {
         setIdentity({ z0Iteration: publishedZ0.iteration, checksum: publishedZ0.checksum, provenance: "skill2" });
@@ -287,7 +274,6 @@ export function ProcessCanvas({
       const mesh = geometry ? decodeSolidifiedMesh(geometry) : null;
       setFinalMesh(mesh);
       setChecks(solid?.checks ?? null);
-      setVolume(mesh ? meshVolume(mesh) : null);
     };
 
     void run().catch((caught) => {
@@ -297,77 +283,114 @@ export function ProcessCanvas({
     return () => controller.abort();
   }, [archetypeId, initial, resolved, selected?.continuationId, source]);
 
-  const horizon = replay?.rules.horizon ?? 0;
-  const origin = replay?.continuation.z0Iteration ?? identity.z0Iteration ?? 0;
-  const playStep = horizon > 0 ? Math.min(horizon, Math.max(0, step)) : 0;
-  const playIteration = origin + playStep;
-  const keptIndex = useMemo(() => {
-    if (!replay) return -1;
-    let index = -1;
-    replay.continuation.events.forEach((event, eventIndex) => {
-      if (event.iteration <= playIteration) index = eventIndex;
-    });
-    return index;
-  }, [playIteration, replay]);
-  const exactEvent = replay?.continuation.events.find((event) => event.iteration === playIteration) ?? null;
-  const revealedField = useMemo<VerticalViewerField | null>(() => {
-    if (!replay || keptIndex < 0) return null;
-    return { ...replay.continuation.field, slices: replay.continuation.field.slices.slice(0, keptIndex + 1) };
-  }, [keptIndex, replay]);
-  const activeSlice = revealedField?.slices[revealedField.slices.length - 1] ?? null;
-  const retainedPlates = revealedField?.slices.length ?? 0;
-  const formForReplay = replay && formReading?.id === replay.continuation.id ? formReading : null;
-  const formTotal = formForReplay?.total ?? replay?.continuation.field.slices.length ?? 0;
-  const formComplete = Boolean(replay) && formTotal > 0 && retainedPlates >= formTotal;
-  const formMesh = !replay
-    ? openMesh
-    : formComplete
-      ? openMesh
-      : retainedPlates >= 2
-        ? formForReplay?.frames.get(retainedPlates) ?? null
-        : null;
-
   useEffect(() => {
-    if (!playing) return;
-    const timer = window.setInterval(() => {
-      setStep((current) => (current >= horizon ? current : current + 1));
-    }, 120);
-    return () => window.clearInterval(timer);
-  }, [horizon, playing]);
-
-  useEffect(() => {
-    if (playing && horizon > 0 && step >= horizon) setPlaying(false);
-  }, [horizon, playing, step]);
-
-  const seek = useCallback((iteration: number) => {
-    if (!replay || horizon <= 0) return;
-    setPlaying(false);
-    setStep(Math.min(horizon, Math.max(0, iteration - replay.continuation.z0Iteration)));
-  }, [horizon, replay]);
-
-  useEffect(() => {
-    if (!replay || initial) return;
-    const continuationId = replay.continuation.id;
+    const continuationId = selected?.continuationId;
+    if (!source || !continuationId) {
+      setSampleFrames(null);
+      return;
+    }
     const controller = new AbortController();
-    const params = new URLSearchParams({ archetype: archetypeId, continuation: continuationId });
-    fetch(`/api/vertical/process-form?${params}`, { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => response.ok ? response.json() as Promise<{ retainedTotal?: number; frames?: { retained: number; geometry?: EncodedSolidifiedMesh }[] }> : null)
+    setSampleFrames(null);
+    const params = new URLSearchParams({
+      archetype: source.archetypeId,
+      candidate: String(source.candidateId),
+      continuation: continuationId,
+    });
+    fetch(`/api/vertical/process-replay?${params}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() as Promise<{
+        trailSize: number;
+        decisions: { iteration: number; reason: SampleFrame["reason"] }[];
+        plates: string;
+      }> : null)
       .then((body) => {
-        if (!body?.frames?.length) return;
-        const frames = new Map<number, IsoMesh>();
-        for (const frame of body.frames) {
-          if (!frame.geometry?.positions || !frame.geometry.normals || !frame.geometry.indices) continue;
-          frames.set(frame.retained, decodeSolidifiedMesh(frame.geometry));
+        if (controller.signal.aborted) return;
+        if (!body?.plates || !body.decisions?.length) {
+          setSampleFrames(null);
+          return;
         }
-        if (frames.size === 0) return;
-        setFormReading({ id: continuationId, total: body.retainedTotal ?? replay.continuation.field.slices.length, frames });
+        const binary = atob(body.plates);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+        const cell = body.trailSize * body.trailSize;
+        setSampleFrames(body.decisions.map((decision, index) => ({
+          iteration: decision.iteration,
+          trails: bytes.subarray(index * cell, (index + 1) * cell),
+          trailSize: body.trailSize,
+          peak: 255,
+          reason: decision.reason,
+        })));
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!controller.signal.aborted) setSampleFrames(null);
+      });
     return () => controller.abort();
-  }, [archetypeId, initial, replay]);
+  }, [selected?.continuationId, source]);
+
+  useEffect(() => {
+    if (!source || !selected) {
+      setDevelopMeshes({});
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams({ archetype: source.archetypeId, continuation: selected.continuationId });
+    fetch(`/api/vertical/process-form?${params}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() as Promise<{ frames?: { retained: number; geometry?: EncodedSolidifiedMesh }[] }> : null)
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        const next: Record<number, IsoMesh> = {};
+        for (const frame of body?.frames ?? []) {
+          if (!frame.geometry?.positions || !frame.geometry.normals || !frame.geometry.indices) continue;
+          next[frame.retained] = decodeSolidifiedMesh(frame.geometry);
+        }
+        setDevelopMeshes(next);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setDevelopMeshes({});
+      });
+    return () => controller.abort();
+  }, [selected, source]);
+
+  const horizon = replay?.rules.horizon ?? (sampleFrames && sampleFrames.length > 1 ? sampleFrames.length - 1 : 0);
+  const origin = replay?.continuation.z0Iteration ?? sampleFrames?.[0]?.iteration ?? identity.z0Iteration ?? 0;
+  const playStep = horizon > 0 ? Math.min(horizon, Math.max(0, sequence.sample)) : 0;
+  const playIteration = origin + playStep;
+  const formGoal = openMesh ? FORM_EMERGE_STEPS : 0;
+  const formStep = sequence.phase === "done" ? FORM_EMERGE_STEPS : sequence.form;
+  const formRise = Math.min(1, formStep / FORM_RISE_STEPS);
+  const formShellStart = Math.round(FORM_RISE_STEPS * 0.55);
+  const formShell = formStep <= formShellStart
+    ? 0
+    : Math.min(1, (formStep - formShellStart) / (FORM_RISE_STEPS + FORM_SHELL_STEPS - formShellStart));
+  const formResolveStart = FORM_RISE_STEPS + FORM_SHELL_STEPS;
+  const formResolve = sequence.phase === "done" || formStep >= FORM_EMERGE_STEPS
+    ? 1
+    : formStep <= formResolveStart
+      ? 0
+      : (formStep - formResolveStart) / FORM_RESOLVE_STEPS;
+  const formVisible = sequence.phase === "form" || sequence.phase === "done";
+  const retainedPlates = useMemo<DevelopPlate[]>(() => {
+    const kept = (sampleFrames ?? []).filter((frame) => frame.reason).sort((a, b) => a.iteration - b.iteration);
+    if (kept.length < 2) return [];
+    const span = Math.max(1, kept[kept.length - 1].iteration - kept[0].iteration);
+    return kept.map((frame) => ({
+      iteration: frame.iteration,
+      z: (frame.iteration - kept[0].iteration) / span,
+      trails: frame.trails,
+      trailSize: frame.trailSize,
+      peak: frame.peak,
+    }));
+  }, [sampleFrames]);
+
+  useEffect(() => {
+    if (!sequence.playing || sequence.phase === "stack") return;
+    const delay = sequence.phase === "sample" ? 90 : 130;
+    const timer = window.setInterval(() => {
+      setSequence((current) => advanceSequence(current, horizon, formGoal));
+    }, delay);
+    return () => window.clearInterval(timer);
+  }, [formGoal, horizon, sequence.phase, sequence.playing]);
 
   const replayId = replay?.continuation.id ?? null;
-  const replayGroup = groupFor(replayId);
   const selectedGroup = groupFor(selected?.continuationId ?? null);
   const cappedVerdict = selected ? readiness?.downstream.capped?.candidates[selected.continuationId]?.status ?? null : null;
   const adaptedVerdict = selected && archetypeId === "inserted-horizontal-plate"
@@ -375,46 +398,59 @@ export function ProcessCanvas({
     : null;
   const catalogueVerdict = cappedVerdict ?? adaptedVerdict;
   const archetypeName = source?.archetypeName ?? TYPOLOGIES.flatMap((typology) => typology.archetypes).find((item) => item.id === archetypeId)?.name ?? archetypeId;
-  const catalogueHref = source ? `/lab/vertical/catalogue?archetype=${source.archetypeId}&candidate=${source.candidateId}` : "/lab/vertical/catalogue";
-  const recordedReplay = archetypeId === "vertical-void" && replay != null;
-  const recordedReplayLabel = recordedReplay ? `Recorded process replay · ${selected?.continuationId ?? replayId}` : null;
-
+  const labQuery = useLabQuery();
+  const paretoHref = `/lab/evolution/pareto-catalog${labQuery}`;
+  const finalHref = `/lab/vertical/final${labQuery}`;
+  const skill4Href = `/lab/hybrid${labQuery}`;
+  const selectedBranch = branchNumber(selected?.continuationId ?? null);
+  const identityMark = selected ? (
+    <p className="process-identity">
+      <span>Selected continuation</span>
+      <strong>{selected.continuationId} / {selectedBranch != null && selectedBranch > 24 ? 48 : 24}</strong>
+      <span>{archetypeName}</span>
+      <span>Family {selectedGroup?.focus ?? (selectedBranch != null && selectedBranch > 24 ? "Extended" : "Pending")}</span>
+    </p>
+  ) : null;
+  const samplingRule = replay
+    ? `Δ ≥ ${replay.rules.deltaThreshold} after ${replay.rules.minGap} iterations. Maximum gap ${replay.rules.maxGap}.`
+    : "Δ ≥ 0.08 after 8 iterations. Maximum gap 24.";
+  const canPlay = Boolean(sampleFrames && sampleFrames.length > 1 && horizon > 0);
+  const seek = (iteration: number) => {
+    if (horizon <= 0) return;
+    setSequence({ phase: "sample", sample: Math.min(horizon, Math.max(0, iteration - origin)), stack: 0, veil: 0, form: 0, playing: false });
+  };
+  const stackStatus = phaseWord("stack", sequence);
+  const formStatus = phaseWord("form", sequence);
   return (
     <main className="vertical-process process-canvas" data-archetype={archetypeId}>
       <div className="process-setup">
         <section className="process-step process-start" aria-label="Start">
-          <header className="vertical-process-label">
-            <p className="eyebrow">01</p>
-            <h2 className="panel-title">Start</h2>
-          </header>
-          <p className="process-kicker">{identity.provenance === "skill2" ? "Published Skill 2 Z0" : "Verified Z0"}</p>
-          <p className="process-flow">{archetypeName}</p>
-          <dl>
-            <div><dt>Candidate</dt><dd>{source ? source.candidateId : "Pending"}</dd></div>
-            <div><dt>Iteration</dt><dd>{identity.z0Iteration ?? "Pending"}</dd></div>
-            <div><dt>Checksum</dt><dd>{identity.checksum ?? "Pending"}</dd></div>
-            <div><dt>Source</dt><dd>{identity.provenance === "skill2" ? "Skill 2 snapshot" : identity.provenance === "solidified" ? "Solidified header" : identity.provenance === "fixture" ? "Fixture" : "Pending"}</dd></div>
-          </dl>
+          <div className="process-start-source">
+            <header className="vertical-process-label">
+              <p className="eyebrow">01</p>
+              <h2 className="panel-title">Start</h2>
+            </header>
+            <p className="process-start-status">Verified Z0</p>
+            <dl className="process-start-meta">
+              <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
+              <div><dt>Skill 2 candidate</dt><dd>{source ? String(source.candidateId) : "Pending"}</dd></div>
+              <div><dt>Iteration</dt><dd>{identity.z0Iteration ?? "Pending"}</dd></div>
+              <div><dt>Checksum</dt><dd title={identity.checksum ?? undefined}>{identity.checksum && identity.checksum.length > 12 ? `${identity.checksum.slice(0, 6)}...${identity.checksum.slice(-4)}` : identity.checksum ?? "Pending"}</dd></div>
+              <div className="process-start-state"><dt>Status</dt><dd>{identity.provenance === "skill2" ? "Verified" : "Pending"}</dd></div>
+            </dl>
+            <p className="process-start-note"><span>Stored Skill 2 state</span><span>Not regenerated</span></p>
+          </div>
+          <ProcessStartField plate={z0Plate} />
         </section>
 
         <section className="process-step process-descriptors" aria-label="Inherit">
           <header className="vertical-process-label">
             <p className="eyebrow">02</p>
             <h2 className="panel-title">Inherit</h2>
+            <p className="inherit-summary-pill">Inherited criteria profile</p>
           </header>
-          <p className="process-kicker">Skill 2 state + criteria</p>
-          <div className="process-descriptor-row process-inherit">
-            {(["formal", "spatial", "atmospheric"] as const).map((family) => {
-              const branch = intent?.[family];
-              return (
-                <article key={family} data-family={family}>
-                  <h3>{family}</h3>
-                  <p className="process-descriptor-name">{branch?.descriptor ?? "Pending"}</p>
-                  {branch ? <InheritCriteriaProfile family={family} criteria={branch.criteria} /> : null}
-                </article>
-              );
-            })}
-          </div>
+          <p className="inherit-summary-kicker">3 family summary</p>
+          <InheritFamilySummary profile={intent} />
         </section>
 
         <section className="process-step process-recipes" aria-label="Continue">
@@ -422,21 +458,8 @@ export function ProcessCanvas({
             <p className="eyebrow">03</p>
             <h2 className="panel-title">Continue</h2>
           </header>
-          <p className="process-kicker">N01–N24</p>
-          <ol>
-            {BEHAVIOR_GROUPS.map((group) => {
-              const active = replayGroup?.focus === group.focus;
-              return (
-                <li key={group.focus} data-active={active ? "true" : "false"}>
-                  <span>{group.count} {group.focus}</span>
-                  <span>N{String(group.start).padStart(2, "0")}–N{String(group.end).padStart(2, "0")}</span>
-                </li>
-              );
-            })}
-          </ol>
-          {replayNote === "PROCESS REPLAY · N01" ? <p className="process-pending">N01 is the stored replay. It is not the selected continuation.</p> : null}
-          {selected && branchNumber(selected.continuationId) != null && (branchNumber(selected.continuationId) ?? 0) > 24 ? <p className="process-pending">Extended continuations stay in the catalogue.</p> : null}
-          {selectedGroup && replayId && selected?.continuationId !== replayId ? <p className="process-pending">Selected {selected.continuationId} is chosen later.</p> : null}
+          <ContinueFamilyFan groups={BEHAVIOR_GROUPS} activeFocus={selectedGroup?.focus ?? null} selectedId={selected?.continuationId ?? null} plate={z0Plate} />
+          {identityMark}
         </section>
       </div>
 
@@ -445,12 +468,15 @@ export function ProcessCanvas({
           <header className="vertical-process-label">
             <p className="eyebrow">04</p>
             <h2 className="panel-title">Sample</h2>
-            {recordedReplayLabel ? <p className="process-kicker">{recordedReplayLabel}</p> : null}
+            <p className="process-phase" data-phase={phaseWord("sample", sequence).toLowerCase()}>{phaseWord("sample", sequence)}</p>
           </header>
+          {identityMark}
+          <p className="process-kicker">Which temporal states are worth keeping?</p>
+          <p className="process-kicker">{samplingRule}</p>
           <div className="process-transport">
-            <button type="button" onClick={() => { if (step >= horizon) setStep(0); setPlaying(true); }} disabled={!replay || playing}>Play</button>
-            <button type="button" onClick={() => setPlaying(false)} disabled={!playing}>Pause</button>
-            <button type="button" onClick={() => { setPlaying(false); setStep(0); }} disabled={!replay}>Restart</button>
+            <button type="button" onClick={() => setSequence((current) => current.phase === "done" ? { ...IDLE_SEQUENCE, playing: true } : { ...current, playing: true })} disabled={!canPlay || sequence.playing}>Play</button>
+            <button type="button" onClick={() => setSequence((current) => ({ ...current, playing: false }))} disabled={!sequence.playing}>Pause</button>
+            <button type="button" onClick={() => setSequence(IDLE_SEQUENCE)} disabled={!canPlay}>Restart</button>
             <label>
               <span>Scrub</span>
               <input
@@ -458,90 +484,82 @@ export function ProcessCanvas({
                 min={0}
                 max={Math.max(1, horizon)}
                 value={playStep}
-                disabled={!replay}
-                onChange={(event) => { setPlaying(false); setStep(Number(event.target.value)); }}
+                disabled={!canPlay || sequence.phase !== "sample"}
+                onChange={(event) => setSequence({ phase: "sample", sample: Number(event.target.value), stack: 0, veil: 0, form: 0, playing: false })}
               />
             </label>
           </div>
-          <p className="process-sample-read">
-            <span>Δ clock {replay ? playIteration : "—"}</span>
-            <span data-state={exactEvent ? "keep" : replay ? "skip" : "wait"} className="process-verdict">{replay ? exactEvent ? "Keep" : "Skip · field not stored" : "Waiting"}</span>
-            <span>Δ {exactEvent ? exactEvent.delta.toFixed(3) : "—"}</span>
-            <span>Threshold {replay ? replay.rules.deltaThreshold : "—"}</span>
-          </p>
-          <div className="process-field-mode" role="group" aria-label="Sample presentation">
-            <button type="button" className="process-read" data-active={presentation === "raw" ? "true" : "false"} onClick={() => setPresentation("raw")}>Raw field</button>
-            <button type="button" className="process-read" data-active={presentation === "contour" ? "true" : "false"} onClick={() => setPresentation("contour")}>Clean contour</button>
-          </div>
-          {activeSlice ? <p className="process-pending">Sample plate · stored iteration {activeSlice.iteration}</p> : null}
-          <div className="process-plate-stage">
-            {activeSlice ? <ProcessPlate slice={activeSlice} presentation={presentation} /> : <p className="process-pending">{replayNote ?? "Pending"}</p>}
-          </div>
-          {replay ? <p className="process-pending">Δ clock · every iteration</p> : null}
-          {replay ? (
-            <DeltaClock
-              events={replay.continuation.events}
-              origin={origin}
-              horizon={horizon}
-              threshold={replay.rules.deltaThreshold}
-              step={playStep}
-              onSeek={seek}
-            />
-          ) : null}
-          {replay ? <p className="process-sample-rule">Kept at the start, when Δ crosses {replay.rules.deltaThreshold}, and when the gap reaches {replay.rules.maxGap}. Min gap {replay.rules.minGap}.</p> : null}
-        </section>
-
-        <section className="process-step process-live process-xyt" aria-label="Stack">
-          <header className="vertical-process-label">
-            <p className="eyebrow">05</p>
-            <h2 className="panel-title">Stack</h2>
-          </header>
-          {recordedReplayLabel ? <p className="process-kicker">{recordedReplayLabel}</p> : null}
-          <p className="process-kicker">Recorded XYT field</p>
-          <p className="process-pending">{revealedField ? `${revealedField.slices.length} ${revealedField.slices.length === 1 ? "plate" : "plates"}` : "No plate yet"} · sample count, not module height</p>
-          <div className="process-xyt-stage">
-            {revealedField && revealedField.slices.length > 0 ? (
-              <ProcessStack
-                field={revealedField}
-                plates={revealedField.slices.length}
-                presentation={presentation}
-                labels={replay?.continuation.events.slice(0, revealedField.slices.length).map((event) => String(event.iteration))}
-                reasons={replay?.continuation.events.slice(0, revealedField.slices.length).map((event) => event.reason)}
-              />
+          <div className="process-sample-stage">
+            {sampleFrames && sampleFrames.length > 1 ? (
+              <div className="process-sample-decision">
+                <SampleDecisionStack
+                  frames={sampleFrames}
+                  playIteration={playIteration}
+                  onSeek={seek}
+                />
+                <aside className="process-sample-legend">
+                  <ul>
+                    <li data-reason="threshold"><span>Teal</span><span>Retained · Δ threshold</span></li>
+                    <li data-reason="max-gap"><span>Copper</span><span>Retained · max gap</span></li>
+                    <li data-reason="skip"><span>Gray</span><span>Generated · skipped</span></li>
+                    <li data-reason="active"><span>White outline</span><span>Current plate</span></li>
+                  </ul>
+                </aside>
+              </div>
+            ) : selected ? (
+              <p className="process-pending">{replayNote ?? `Reading the temporal record for ${selected.continuationId}`}</p>
             ) : (
-              <p className="process-pending">{replayNote ?? "Pending"}</p>
+              <p className="process-pending">Pending</p>
             )}
           </div>
+        </section>
+
+        <section className="process-step process-live process-xyt" aria-label="Develop">
+          <header className="vertical-process-label">
+            <p className="eyebrow">05</p>
+            <h2 className="panel-title">Develop</h2>
+            <p className="process-phase" data-phase={stackStatus.toLowerCase()}>{stackStatus}</p>
+          </header>
+          {identityMark}
+          <ProcessDevelop
+            plates={retainedPlates}
+            meshes={developMeshes}
+            autoplay={sequence.phase === "stack" && sequence.playing}
+            onEngage={() => setSequence((current) => current.phase === "form" || current.phase === "done" ? current : { ...current, phase: "stack", playing: false })}
+            onComplete={() => setSequence((current) => ({ ...current, phase: "form", form: 0, playing: true }))}
+          />
         </section>
 
         <section className="process-step process-live process-form" aria-label="Form">
           <header className="vertical-process-label">
             <p className="eyebrow">06</p>
             <h2 className="panel-title">Form</h2>
+            <p className="process-phase" data-phase={formStatus.toLowerCase()}>{formStatus}</p>
           </header>
-          {recordedReplayLabel ? <p className="process-kicker">{recordedReplayLabel}</p> : null}
-          {replay ? (
-            <>
-              <p className="process-kicker">Formation state</p>
-              <p className="process-pending">{retainedPlates} / {formTotal} retained plates</p>
-              <p className="process-pending">{formComplete ? "Complete XYT reading" : "Partial XYT reading"}</p>
-              {formComplete ? <p className="process-pending">Open · {replay.continuation.id}</p> : null}
-            </>
-          ) : (
-            <p className="process-kicker">Recorded field → shared formation → open</p>
-          )}
+          {identityMark}
+          <p className="process-kicker">Vertical propagation → emerging body → Open morphology</p>
+          <p className="process-pending">{formStatus === "Complete" && selected ? `Open · ${selected.continuationId}` : formStatus === "Active" ? "Propagating upward" : "Waiting for the retained stack"}</p>
           <div className="process-form-stage">
             <div className="process-form-layer">
-              {formMesh ? (
-                <ProcessMorphology
-                  mesh={formMesh}
-                  cacheIdentity={replay ? `${archetypeId}:form:${replay.continuation.id}:${formComplete ? "open" : retainedPlates}` : `${archetypeId}:open:${replayId ?? selected?.continuationId ?? ""}`}
-                  frame={replay ? "module" : "bounds"}
-                  steer={Boolean(replay) && !playing}
-                />
-              ) : (
-                <p className="process-pending">{replay ? (retainedPlates < 2 ? "Two retained plates" : "Formation frame pending") : "Open mesh pending"}</p>
-              )}
+              {formVisible && openMesh && formResolve < 1 ? (
+                <div className="process-form-layer" style={{ opacity: Math.max(0, 1 - Math.max(0, formResolve - 0.25) / 0.75), pointerEvents: "none" }}>
+                  <ProcessFormEmergence mesh={openMesh} rise={formRise} shell={formShell} />
+                </div>
+              ) : null}
+              {formVisible && openMesh && formResolve > 0 ? (
+                <div className="process-form-layer" style={{ opacity: formResolve }}>
+                  <ProcessMorphology
+                    mesh={openMesh}
+                    cacheIdentity={`${archetypeId}:form:${selected?.continuationId ?? ""}`}
+                    frame="module"
+                    steer={sequence.phase === "done"}
+                    insideBox
+                  />
+                </div>
+              ) : null}
+              {!formVisible || !openMesh ? (
+                <ProcessGuide label={formStatus === "Waiting" ? "Waiting" : "Open morphology"} clear />
+              ) : null}
             </div>
           </div>
           <ul className="process-form-notes">
@@ -553,57 +571,101 @@ export function ProcessCanvas({
         </section>
 
         <div className="process-down">
-          <section className="process-step" aria-label="Cap">
+          <p className="process-close-cue">
+            <span>Open</span>
+            <span data-arrow="true" aria-hidden="true">↓</span>
+            <span>Capped</span>
+            <span data-arrow="true" aria-hidden="true">↓</span>
+            <span>Selected</span>
+            <span data-arrow="true" aria-hidden="true">↓</span>
+            <span>Validated</span>
+            <span data-arrow="true" aria-hidden="true">↓</span>
+            <span>Hand off</span>
+          </p>
+
+          <section className="process-step process-cap" aria-label="Cap">
             <header className="vertical-process-label">
               <p className="eyebrow">07</p>
               <h2 className="panel-title">Cap</h2>
             </header>
-            <p className="process-kicker">Open → capped</p>
             <div className="process-cap-pair">
-              <div>{openMesh ? <ProcessMorphology mesh={openMesh} cacheIdentity={`${archetypeId}:cap-open:${replayId ?? ""}`} /> : <p className="process-pending">Open</p>}</div>
-              <span aria-hidden="true">→</span>
-              <div>{cappedMesh ? <ProcessMorphology mesh={cappedMesh} cacheIdentity={`${archetypeId}:capped:${replayId ?? ""}`} /> : <p className="process-pending">Capped</p>}</div>
+              <div className="process-cap-view">
+                <p className="process-cap-name">Open</p>
+                <div className="process-cap-stage">
+                  {openMesh ? <ProcessMorphology mesh={openMesh} cacheIdentity={`${archetypeId}:cap-open:${replayId ?? ""}`} frame="module" /> : <p className="process-pending">Open</p>}
+                </div>
+              </div>
+              <div className="process-cap-cue">
+                <p>Open → closed mass</p>
+                <svg className="process-boundary-mark" viewBox="0 0 92 28" aria-hidden="true">
+                  <path d="M8 18 A 7 7 0 1 1 22 18" fill="none" stroke="#7ec8c6" strokeWidth="1.4" />
+                  <path d="M30 14 H46" fill="none" stroke="rgba(242,242,238,0.45)" strokeWidth="1.2" />
+                  <path d="M42 10 L48 14 L42 18" fill="none" stroke="rgba(242,242,238,0.45)" strokeWidth="1.2" />
+                  <circle cx="68" cy="14" r="7" fill="none" stroke="#e0a080" strokeWidth="1.4" />
+                </svg>
+              </div>
+              <div className="process-cap-view">
+                <p className="process-cap-name">Capped</p>
+                <div className="process-cap-stage">
+                  {cappedMesh ? <ProcessMorphology mesh={cappedMesh} cacheIdentity={`${archetypeId}:capped:${replayId ?? ""}`} frame="module" /> : <p className="process-pending">Capped</p>}
+                </div>
+              </div>
             </div>
             {adaptMesh ? (
-              <p className="process-pending">Capped → Capped + Adapt · {replayId ?? selected?.continuationId}</p>
-            ) : null}
-            {adaptMesh ? (
-              <div className="process-adapt-mesh">
-                <ProcessMorphology mesh={adaptMesh} cacheIdentity={`${archetypeId}:adapted:${replayId ?? ""}`} />
+              <div className="process-adapt-note">
+                <p>Open → capped → capped + adapt</p>
+                <div className="process-adapt-mesh">
+                  <ProcessMorphology mesh={adaptMesh} cacheIdentity={`${archetypeId}:adapted:${replayId ?? ""}`} frame="module" />
+                </div>
               </div>
             ) : null}
           </section>
 
-          <section className="process-step" aria-label="Choose">
+          <section className="process-step process-choose" aria-label="Choose">
             <header className="vertical-process-label">
               <p className="eyebrow">08</p>
               <h2 className="panel-title">Choose</h2>
             </header>
-            <dl className="process-facts">
-              <div><dt>Generated</dt><dd>{generated ?? "Pending"}</dd></div>
-              <div><dt>Selected</dt><dd>{selected?.continuationId ?? "Pending"}</dd></div>
-              <div><dt>Readiness</dt><dd>{verdictLabel(catalogueVerdict)}</dd></div>
-            </dl>
-            <p className="process-pending">One continuation is chosen by hand.</p>
-            <Link href={catalogueHref} className="vertical-process-catalogue">Catalogue</Link>
+            <p className="process-choose-hero">Selected · <strong>{selected?.continuationId ?? "Pending"}</strong></p>
+            <p className="process-pending">{archetypeName}</p>
+            <p className="process-pending" data-mark={catalogueVerdict ?? undefined}>Readiness · {verdictLabel(catalogueVerdict)}</p>
+            {selectedGroup ? <p className="process-pending">Family · {selectedGroup.focus}</p> : null}
+            <div className="process-choose-field" aria-hidden="true">
+              {Array.from({ length: 24 }, (_, index) => (
+                <span key={index} data-on={selectedBranch === index + 1 ? "true" : "false"} />
+              ))}
+            </div>
+            <p className="process-kicker">24 candidates → 1 selected</p>
+            <Link href={paretoHref} className="vertical-process-catalogue process-catalogue-open">Open catalogue →</Link>
           </section>
 
-          <section className="process-step" aria-label="Solidify and validate">
+          <section className="process-step process-solidify" aria-label="Solidify and validate">
             <header className="vertical-process-label">
               <p className="eyebrow">09</p>
               <h2 className="panel-title">Solidify</h2>
             </header>
-            <p className="process-kicker">{selected ? selected.continuationId : "Selected continuation"}</p>
-            <div className="process-final-mesh">
-              {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity={`${archetypeId}:solid:${selected?.continuationId ?? ""}`} /> : <p className="process-pending">Solidified module pending</p>}
+            <div className="process-solid-body">
+              <div className="process-final-mesh">
+                {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity={`${archetypeId}:solid:${selected?.continuationId ?? ""}`} frame="module" /> : <p className="process-pending">Solidified module pending</p>}
+              </div>
+              <div className="process-solid-panel">
+                <p className="process-solid-ask">Is this geometry ready to become the final module?</p>
+                <p className="process-solid-answer" data-mark={selected?.status === "Validated" ? "pass" : selected?.status === "Review" ? "review" : undefined}>
+                  {selected?.status === "Validated" ? "✓ Ready" : selected?.status === "Review" ? "△ Review" : "Pending"}
+                </p>
+                {checks ? (
+                  <ul className="process-checks">
+                    <li data-mark={checks.components === 1 ? "pass" : "fail"}><span aria-hidden="true">{checks.components === 1 ? "✓" : "✕"}</span><span>Single body</span><span>{checks.components}</span></li>
+                    <li data-mark={checks.boundaryEdges === 0 ? "pass" : "fail"}><span aria-hidden="true">{checks.boundaryEdges === 0 ? "✓" : "✕"}</span><span>Boundary</span><span>{checks.boundaryEdges}</span></li>
+                    <li data-mark={checks.nonManifoldEdges === 0 ? "pass" : "fail"}><span aria-hidden="true">{checks.nonManifoldEdges === 0 ? "✓" : "✕"}</span><span>Nonmanifold</span><span>{checks.nonManifoldEdges}</span></li>
+                    <li data-mark={checks.manifold === "PASS" ? "pass" : "fail"}><span aria-hidden="true">{checks.manifold === "PASS" ? "✓" : "✕"}</span><span>Manifold</span><span>{checks.manifold}</span></li>
+                    <li data-mark={checks.preflight === "PASS" ? "pass" : "fail"}><span aria-hidden="true">{checks.preflight === "PASS" ? "✓" : "✕"}</span><span>Kernel accepted</span><span>{checks.preflight}</span></li>
+                  </ul>
+                ) : (
+                  <p className="process-pending">Stored checks pending</p>
+                )}
+              </div>
             </div>
-            <ul className="process-checks">
-              <li data-pass={checks ? checks.components === 1 : undefined}>Single body {checks ? checks.components : "—"}</li>
-              <li data-pass={checks ? checks.boundaryEdges === 0 : undefined}>Boundary edges {checks ? checks.boundaryEdges : "—"}</li>
-              <li data-pass={checks ? checks.nonManifoldEdges === 0 : undefined}>Non-manifold {checks ? checks.nonManifoldEdges : "—"}</li>
-              <li data-pass={volume != null ? volume > 0 : undefined}>Signed volume {volume == null ? "—" : volume > 0 ? "Positive" : "Not positive"}</li>
-              <li data-pass={checks ? checks.preflight === "PASS" : undefined}>Kernel {checks?.preflight ?? "—"}</li>
-            </ul>
           </section>
 
           <section className="process-step process-handoff-end" aria-label="Hand off">
@@ -611,14 +673,32 @@ export function ProcessCanvas({
               <p className="eyebrow">10</p>
               <h2 className="panel-title">Hand off</h2>
             </header>
-            <p className="process-kicker">Skill 3 final module → Skill 4 input</p>
-            <dl className="process-facts">
-              <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
-              <div><dt>Continuation</dt><dd>{selected?.continuationId ?? "Pending"}</dd></div>
-              <div><dt>Material</dt><dd>Carved mass solidified</dd></div>
-              <div><dt>Status</dt><dd>{selected?.status ?? "Pending"}</dd></div>
-            </dl>
-            <Link href="/lab/hybrid" className="vertical-process-catalogue">Skill 4</Link>
+            <div className="process-handoff-body">
+              <div className="process-final-mesh">
+                {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity={`${archetypeId}:handoff:${selected?.continuationId ?? ""}`} frame="module" /> : <p className="process-pending">Final module pending</p>}
+              </div>
+              <div className="process-handoff-panel">
+                <p className="process-handoff-ready">{selected?.status === "Validated" ? "Ready for Skill 4" : selected?.status === "Review" ? "Review before Skill 4" : "Pending"}</p>
+                <dl className="process-facts">
+                  <div><dt>Archetype</dt><dd>{archetypeName}</dd></div>
+                  <div><dt>Continuation</dt><dd>{selected?.continuationId ?? "Pending"}</dd></div>
+                  <div><dt>Status</dt><dd>{selected?.status ?? "Pending"}</dd></div>
+                  {selected?.moduleId ? <div><dt>Module</dt><dd>{selected.moduleId}</dd></div> : null}
+                  {checks?.file ? <div><dt>File</dt><dd>{checks.file}</dd></div> : null}
+                </dl>
+                <p className="process-handoff-path">
+                  <span>Selected module</span>
+                  <span data-arrow="true" aria-hidden="true">→</span>
+                  <span>Skill 3 final</span>
+                  <span data-arrow="true" aria-hidden="true">→</span>
+                  <span>Skill 4 input</span>
+                </p>
+                <div className="process-handoff-links">
+                  <Link href={finalHref} className="vertical-process-catalogue process-catalogue-open">View final catalogue →</Link>
+                  <Link href={skill4Href} className="vertical-process-catalogue process-skill4">Skill 4 →</Link>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>

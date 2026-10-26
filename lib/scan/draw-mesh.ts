@@ -6,6 +6,7 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 uniform float uYaw;
 uniform float uPitch;
+uniform float uSpin;
 uniform float uAspect;
 uniform float uFit;
 uniform float uOrtho;
@@ -18,12 +19,16 @@ void main() {
   float sy = sin(uYaw);
   float cp = cos(uPitch);
   float sp = sin(uPitch);
+  float cs = cos(uSpin);
+  float ss = sin(uSpin);
   vec3 p = aPos - uCenter;
+  p = vec3(p.x * cs + p.z * ss, p.y, -p.x * ss + p.z * cs);
+  vec3 n = aNormal;
+  n = vec3(n.x * cs + n.z * ss, n.y, -n.x * ss + n.z * cs);
   float x1 = p.x * cy + p.z * sy;
   float z1 = -p.x * sy + p.z * cy;
   float y2 = p.y * cp - z1 * sp;
   float z2 = p.y * sp + z1 * cp;
-  vec3 n = aNormal;
   float nx1 = n.x * cy + n.z * sy;
   float nz1 = -n.x * sy + n.z * cy;
   float ny2 = n.y * cp - nz1 * sp;
@@ -373,7 +378,7 @@ export function drawIsoMesh(
   pitch: number,
   column: number,
   style: IsoMeshStyle = "field",
-  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds" },
+  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds"; spin?: number; margin?: number },
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -419,9 +424,10 @@ export function drawIsoMesh(
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.DYNAMIC_DRAW);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uYaw"), yaw);
+    gl.uniform1f(gl.getUniformLocation(meshProgram, "uSpin"), options?.spin ?? 0);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uPitch"), pitch);
     const aspect = width / Math.max(1, height);
-    const framed = options?.fit === "bounds" ? surfaceFrame(mesh.positions, yaw, pitch, aspect) : null;
+    const framed = options?.fit === "bounds" ? surfaceFrame(mesh.positions, yaw, pitch, aspect, options.margin) : null;
     const uniform = options?.uniform === true || framed != null;
     const fit = framed ? framed.fit : uniform ? uniformModuleZoom(pitch, aspect) : moduleViewFit(column, aspect);
     const center = framed?.center ?? [0, 0, 0];

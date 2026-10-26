@@ -277,6 +277,9 @@ export function futureContinuationSeed(record: Skill2HandoffRecord, futureIndex:
 /** Applied to the clone after each post-Z0 step. Z0 has already been stored as sample 0. */
 export type ContinuationTransform = (state: SimulationState) => void;
 
+/** Reads the live field. It must not change the state or the keep/skip decision. */
+export type ContinuationObserver = (state: SimulationState) => void;
+
 /**
  * Samples one clone of an already replayed Z0. Does not replay or reload the candidate.
  * Z0 is always sample 0. The continuation seed and an optional post-step transform are the
@@ -289,6 +292,7 @@ export function sampleFromParent(
   continuationSeedValue: number,
   config: EventSampleConfig = DEFAULT_EVENT_CONFIG,
   transform?: ContinuationTransform,
+  observe?: ContinuationObserver,
 ): EventSamplingResult {
   assertEventConfig(config);
   const future = cloneSimulationState(parent);
@@ -298,6 +302,7 @@ export function sampleFromParent(
     throw new Error("continuation pose does not match the handoff recipe");
   }
   const samples = [captureSample(future, 0, "z0", null, z0Measures(future, config))];
+  observe?.(future);
   const rng = mulberry32(continuationSeedValue >>> 0);
   const target = future.iteration + config.horizon;
   openContinuation(future, config.horizon);
@@ -317,6 +322,7 @@ export function sampleFromParent(
     );
     if (future.iteration <= before) throw new Error("continuation made no progress");
     transform?.(future);
+    observe?.(future);
     const reference = samples[samples.length - 1];
     const gap = future.iteration - reference.iteration;
     if (gap < config.minGap) continue;

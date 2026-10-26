@@ -44,7 +44,7 @@ export function iterationSpanZ(iterations: readonly number[]) {
   return iterations.map((iteration) => (iteration - iterations[0]) / span);
 }
 
-function downsample(trails: readonly number[], trailSize: number, outSize: number) {
+export function downsample(trails: ArrayLike<number>, trailSize: number, outSize: number) {
   const out = new Array<number>(outSize * outSize);
   let peak = 0.0001;
   for (let y = 0; y < outSize; y += 1) {

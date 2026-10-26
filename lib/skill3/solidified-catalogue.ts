@@ -131,7 +131,7 @@ export function listSolidifiedCatalogue(archetypeId: string, candidateId: number
   return entries.sort((left, right) => (left.continuationId < right.continuationId ? -1 : left.continuationId > right.continuationId ? 1 : 0));
 }
 
-export function readSolidifiedStatus(archetypeId: string, candidateId: number, continuationId: string): SolidifiedStatus | null {
+function readSolidifiedMetric(archetypeId: string, candidateId: number, continuationId: string): MetricFile | null {
   if (!safeName(archetypeId) || !Number.isInteger(candidateId) || !/^N\d{2}$/.test(continuationId)) return null;
   const file = path.join(METRICS, solidifiedFileName(archetypeId, candidateId, continuationId));
   if (!insideRoot(file) || !existsSync(file)) return null;
@@ -139,7 +139,29 @@ export function readSolidifiedStatus(archetypeId: string, candidateId: number, c
   const expected = `carved-mass:${archetypeId}:${candidateId}:${continuationId}`;
   if (metric.moduleId !== expected || metric.archetypeId !== archetypeId || metric.candidateId !== candidateId) return null;
   if (metric.continuationId !== continuationId) return null;
-  return solidifiedStatus(metric);
+  return metric;
+}
+
+export function readSolidifiedStatus(archetypeId: string, candidateId: number, continuationId: string): SolidifiedStatus | null {
+  const metric = readSolidifiedMetric(archetypeId, candidateId, continuationId);
+  return metric ? solidifiedStatus(metric) : null;
+}
+
+/** Stored manifold checks for the process page. This does not recompute or rewrite them. */
+export function readSolidifiedChecks(archetypeId: string, candidateId: number, continuationId: string) {
+  const metric = readSolidifiedMetric(archetypeId, candidateId, continuationId);
+  if (!metric) return null;
+  if (metric.manifold !== "PASS" && metric.manifold !== "FAIL") return null;
+  if (metric.preflight !== "PASS" && metric.preflight !== "FAIL") return null;
+  if (typeof metric.components !== "number" || typeof metric.boundaryEdges !== "number" || typeof metric.nonManifoldEdges !== "number") return null;
+  return {
+    components: metric.components,
+    boundaryEdges: metric.boundaryEdges,
+    nonManifoldEdges: metric.nonManifoldEdges,
+    manifold: metric.manifold,
+    preflight: metric.preflight,
+    ...(typeof metric.file === "string" && metric.file ? { file: metric.file } : {}),
+  };
 }
 
 export function readSolidifiedMesh(archetypeId: string, candidateId: number, continuationId: string) {

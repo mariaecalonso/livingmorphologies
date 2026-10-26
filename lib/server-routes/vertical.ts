@@ -5,12 +5,14 @@ import publishedSelections from "@/data/skill2/pareto-catalog/selections.json";
 import { readArchetypeRecords, readCarvedMassManifest } from "@/lib/skill3/experiments/carved-mass-registry";
 import { CARVED_MASS_SOURCES } from "@/lib/skill3/experiments/carved-mass-sources";
 import { generateCarvedMassArchetype } from "@/lib/skill3/experiments/carved-mass-dataset";
+import { compareCurrentGenerator } from "@/lib/skill3/experiments/generator-compare";
 import { peekNaturalContinuations, type NaturalContinuationSet } from "@/lib/skill3/continuations";
+import { PROCESS_REPLAY_CONTRACT, processReplayPath } from "@/lib/skill3/process-replay";
 import { loadVerifiedContinuations, peekVerifiedContinuations } from "@/lib/skill3/semantic-handoff";
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
-import { listSolidifiedCatalogue, readSolidifiedMesh, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
+import { listSolidifiedCatalogue, readSolidifiedChecks, readSolidifiedMesh, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
 
 const PUBLISHED = publishedSelections as Record<string, { candidateId?: number; typologyId?: string }>;
 
@@ -44,6 +46,8 @@ function writeLobbyBundle(archetypeId: string, candidateId: number, bundle: Retu
 
 export function verticalGet(request: Request, path: string[]) {
     if (path.length === 0) return continuations(request);
+    if (path.length === 1 && path[0] === "process-replay") return processReplay(request);
+    if (path.length === 2 && path[0] === "debug" && path[1] === "open-compare") return openCompare(request);
     if (path.length === 1 && path[0] === "solidified") return solidified(request);
     if (path.length === 3 && path[0] === "experiments" && path[1] === "carved-mass" && path[2] === "dataset") return dataset(request);
     return new NextResponse(null, { status: 404 });
@@ -73,6 +77,41 @@ function jsonBundle(bundle: ReturnType<typeof continuationBundle>, continuationI
   if (!body) return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
   if (!continuationId) return NextResponse.json(body);
   return NextResponse.json({ rules: bundle.rules, ...body });
+}
+
+function openCompare(request: Request) {
+  const url = new URL(request.url);
+  const archetypeId = url.searchParams.get("archetype") ?? "";
+  const candidateId = Number(url.searchParams.get("candidate"));
+  const continuationId = url.searchParams.get("continuation") ?? "";
+  if (!archetypeId || !Number.isInteger(candidateId) || !/^N\d{2}$/.test(continuationId)) {
+    return NextResponse.json({ error: "The comparison needs an archetype, candidate, and continuation." }, { status: 400 });
+  }
+  try {
+    return NextResponse.json(compareCurrentGenerator(archetypeId, candidateId, continuationId));
+  } catch (caught) {
+    const error = caught instanceof Error ? caught.message : "The current generator could not be read.";
+    return NextResponse.json({ error }, { status: 422 });
+  }
+}
+
+function processReplay(request: Request) {
+  const url = new URL(request.url);
+  const archetypeId = url.searchParams.get("archetype") ?? "";
+  const candidateId = Number(url.searchParams.get("candidate"));
+  const continuationId = url.searchParams.get("continuation") ?? "";
+  if (!archetypeId || !Number.isInteger(candidateId) || !/^N\d{2}$/.test(continuationId)) {
+    return NextResponse.json({ error: "No process replay is stored for this continuation." }, { status: 404 });
+  }
+  const file = processReplayPath(archetypeId, candidateId, continuationId);
+  if (!existsSync(file)) {
+    return NextResponse.json({ error: "The process replay has not been exported." }, { status: 404 });
+  }
+  const body = JSON.parse(readFileSync(file, "utf8")) as { contract?: string; archetypeId?: string; candidateId?: number; continuationId?: string };
+  if (body.contract !== PROCESS_REPLAY_CONTRACT || body.archetypeId !== archetypeId || body.candidateId !== candidateId || body.continuationId !== continuationId) {
+    return NextResponse.json({ error: "The process replay contract does not match." }, { status: 500 });
+  }
+  return NextResponse.json(body);
 }
 
 function continuations(request: Request) {
@@ -174,6 +213,7 @@ function solidified(request: Request) {
       candidateId,
       continuationId,
       status,
+      checks: readSolidifiedChecks(archetypeId, candidateId, continuationId),
       geometry: mesh.geometry,
     });
   }
