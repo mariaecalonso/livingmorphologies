@@ -33,19 +33,18 @@ export function clearPublishedInk(archetypeId: string) {
 
 /**
  * A plate is the untoned picture. A baked file is a catalogue preview already inked at the default.
- * Stored plates and run previews come first. The published preview is next.
- * A committed Pareto catalog drawing is used only when those local files are absent.
+ * The committed Pareto catalog drawing is the catalog image. Older plates fill in only when it has no drawing.
  */
 export function filamentSource(archetypeId: string, id: string): { file: string; kind: "plate" | "baked" | "snapshot" } | null {
   if (!/^[a-z0-9-]+$/.test(archetypeId) || !/^\d+$/.test(id)) return null;
+  const snapshot = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "drawings", `${id}.png`);
+  if (existsSync(snapshot)) return { file: snapshot, kind: "snapshot" };
   const stored = join(semanticCatalogRoot(), archetypeId, "plates", `${id}.png`);
   if (existsSync(stored)) return { file: stored, kind: "plate" };
   const run = runPreviewPath(archetypeId, id);
   if (run) return { file: run, kind: "plate" };
   const published = publishedPreviewPath(archetypeId, id);
   if (published) return { file: published, kind: "baked" };
-  const snapshot = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "drawings", `${id}.png`);
-  if (existsSync(snapshot)) return { file: snapshot, kind: "snapshot" };
   return null;
 }
 
