@@ -221,6 +221,7 @@ function solidified(request: Request) {
       status,
       checks: readSolidifiedChecks(archetypeId, candidateId, continuationId),
       geometry: mesh.geometry,
+      original: mesh.original,
     });
   }
   const catalogue = listSolidifiedCatalogue(archetypeId, candidateId);

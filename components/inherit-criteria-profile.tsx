@@ -29,7 +29,7 @@ function glowSpline(points: { x: number; y: number }[]) {
   }, `M ${points[0].x} ${points[0].y}`);
 }
 
-function FamilyJoin({ points }: { points: { x: number; y: number }[] }) {
+function FamilyJoin({ points, glow = 1 }: { points: { x: number; y: number }[]; glow?: number }) {
   const filterId = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -73,18 +73,18 @@ function FamilyJoin({ points }: { points: { x: number; y: number }[] }) {
               <stop offset="100%" stopColor="#ffffff" />
             </linearGradient>
             <filter id={`${filterId}-outer`} filterUnits="userSpaceOnUse" x={-pad} y={-pad} width={size.w + pad * 2} height={size.h + pad * 2}>
-              <feGaussianBlur stdDeviation="28" />
+              <feGaussianBlur stdDeviation={28 * glow} />
             </filter>
             <filter id={`${filterId}-mid`} filterUnits="userSpaceOnUse" x={-pad} y={-pad} width={size.w + pad * 2} height={size.h + pad * 2}>
-              <feGaussianBlur stdDeviation="16" />
+              <feGaussianBlur stdDeviation={16 * glow} />
             </filter>
             <filter id={`${filterId}-core`} filterUnits="userSpaceOnUse" x={-pad} y={-pad} width={size.w + pad * 2} height={size.h + pad * 2}>
-              <feGaussianBlur stdDeviation="6" />
+              <feGaussianBlur stdDeviation={6 * glow} />
             </filter>
           </defs>
-          <path d={spline} fill="none" stroke={`url(#${filterId}-color)`} strokeWidth="110" strokeLinecap="round" strokeLinejoin="round" opacity="0.32" filter={`url(#${filterId}-outer)`} />
-          <path d={spline} fill="none" stroke={`url(#${filterId}-color)`} strokeWidth="64" strokeLinecap="round" strokeLinejoin="round" opacity="0.42" filter={`url(#${filterId}-mid)`} />
-          <path d={spline} fill="none" stroke={`url(#${filterId}-hot)`} strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" opacity="0.24" filter={`url(#${filterId}-core)`} />
+          <path d={spline} fill="none" stroke={`url(#${filterId}-color)`} strokeWidth={110 * glow} strokeLinecap="round" strokeLinejoin="round" opacity="0.32" filter={`url(#${filterId}-outer)`} />
+          <path d={spline} fill="none" stroke={`url(#${filterId}-color)`} strokeWidth={64 * glow} strokeLinecap="round" strokeLinejoin="round" opacity="0.42" filter={`url(#${filterId}-mid)`} />
+          <path d={spline} fill="none" stroke={`url(#${filterId}-hot)`} strokeWidth={22 * glow} strokeLinecap="round" strokeLinejoin="round" opacity="0.24" filter={`url(#${filterId}-core)`} />
         </>
       ) : null}
     </svg>
@@ -114,14 +114,14 @@ function FamilyChart({
 }
 
 /** One summary position per family. Reads stored ratings and does not change them. */
-export function InheritFamilySummary({ profile }: { profile: ArchitecturalIntentProfile | null }) {
+export function InheritFamilySummary({ profile, glow = 1, initials = false }: { profile: ArchitecturalIntentProfile | null; glow?: number; initials?: boolean }) {
   const rows = FAMILIES.map((family) => ({ family, summary: familySummary(profile?.[family]) }));
   return (
     <div className="inherit-summary">
       <div className="inherit-chart">
         <div className="inherit-chart-names">
           {rows.map((row) => (
-            <span key={row.family} data-family={row.family}>{row.family}</span>
+            <span key={row.family} data-family={row.family} aria-label={row.family}>{initials ? row.family.slice(0, 1) : row.family}</span>
           ))}
         </div>
         <div className="inherit-chart-plot">
@@ -135,6 +135,7 @@ export function InheritFamilySummary({ profile }: { profile: ArchitecturalIntent
               <i key={column} className="inherit-guide" style={{ left: `${column}%` }} />
             ))}
             <FamilyJoin
+              glow={glow}
               points={rows.flatMap((row, index) => {
                 if (!row.summary) return [];
                 return [{ x: COLUMN[LEVELS.indexOf(row.summary.level)], y: ((index + 0.5) / rows.length) * 100 }];

@@ -99,6 +99,7 @@ void main() {
 
 const MESH_VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
+uniform float uPoint;
 uniform float uYaw;
 uniform float uPitch;
 uniform float uAspect;
@@ -115,7 +116,7 @@ void main() {
   float z2 = aPos.y * sp + z1 * cp;
   vHeight = aPos.y;
   gl_Position = vec4(x1 * uFit / uAspect, y2 * uFit, z2 * 0.0125, 1.0);
-  gl_PointSize = 5.5;
+  gl_PointSize = uPoint;
 }`;
 
 const MESH_FRAG = `#version 300 es
@@ -230,6 +231,19 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
+function surfacePoints(positions: Float32Array, count: number) {
+  const total = Math.floor(positions.length / 3);
+  if (total <= count) return positions;
+  const out = new Float32Array(count * 3);
+  for (let index = 0; index < count; index += 1) {
+    const source = Math.min(total - 1, Math.floor((index + 0.5) * total / count)) * 3;
+    out[index * 3] = positions[source];
+    out[index * 3 + 1] = positions[source + 1];
+    out[index * 3 + 2] = positions[source + 2];
+  }
+  return out;
+}
+
 function program(gl: WebGL2RenderingContext, vert: string, frag: string) {
   const vertex = compile(gl, gl.VERTEX_SHADER, vert);
   const fragment = compile(gl, gl.FRAGMENT_SHADER, frag);
@@ -255,6 +269,7 @@ export function ProcessGeneration({
   onResetIso,
   onEngage,
   onComplete,
+  surfaceDots = false,
 }: {
   plates: readonly DevelopPlate[];
   meshes: Readonly<Record<number, IsoMesh>>;
@@ -267,6 +282,8 @@ export function ProcessGeneration({
   onResetIso?: () => void;
   onEngage: () => void;
   onComplete: () => void;
+  /** The surface stage ends as separate white dots. The process page keeps the full point field. */
+  surfaceDots?: boolean;
 }) {
   const viewRef = useRef<HTMLCanvasElement>(null);
   const ownedCamera = useRef<ProcessIsoCamera>({ yaw: Math.PI / 4, pitch: Math.atan(1 / Math.SQRT2), zoom: 1 });
@@ -287,8 +304,8 @@ export function ProcessGeneration({
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const prefix = storedPrefix(plates.length);
-  const live = useRef({ step, fade, rasters, meshes, prefix, surface });
-  live.current = { step, fade, rasters, meshes, prefix, surface };
+  const live = useRef({ step, fade, rasters, meshes, prefix, surface, surfaceDots });
+  live.current = { step, fade, rasters, meshes, prefix, surface, surfaceDots };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -466,11 +483,18 @@ export function ProcessGeneration({
           gl.enableVertexAttribArray(0);
           gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
           gl.disableVertexAttribArray(1);
+          const points = frame.surfaceDots ? surfacePoints(mesh.positions, 720) : mesh.positions;
+          gl.uniform1f(gl.getUniformLocation(meshProg, "uPoint"), frame.surfaceDots ? 8 : 5.5);
           gl.uniform1f(gl.getUniformLocation(meshProg, "uAlpha"), 0.94 * frame.fade);
           gl.uniform1f(gl.getUniformLocation(meshProg, "uClipLo"), -MODULE_SIZE_X);
           gl.uniform1f(gl.getUniformLocation(meshProg, "uClipHi"), MODULE_SIZE_X);
           gl.depthMask(false);
-          gl.drawArrays(gl.POINTS, 0, mesh.positions.length / 3);
+          if (points !== mesh.positions) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, meshPos);
+            gl.bufferData(gl.ARRAY_BUFFER, points, gl.DYNAMIC_DRAW);
+            meshKey = `${meshId}:dots`;
+          }
+          gl.drawArrays(gl.POINTS, 0, points.length / 3);
           gl.depthMask(true);
         }
       }
@@ -493,7 +517,7 @@ export function ProcessGeneration({
           const iso = stage === "macro" ? 0.06 + 0.3 * mix : stage === "processed" ? 0.36 + 0.14 * mix : stage === "surface" ? 0.5 : 0.06;
           const isoInner = stage === "macro" && mix > 0.45 ? 0.58 : 0;
           const pale = stage === "macro" ? mix * 0.35 : stage === "xyt" ? 0 : 1;
-          const alpha = stage === "surface" ? 0.9 * (1 - 0.4 * frame.fade) : 0.94;
+          const alpha = stage === "surface" ? 0.9 * (1 - (frame.surfaceDots ? 1 : 0.4) * frame.fade) : 0.94;
           const planes = sectionPlanes(ordered.map((item) => item.z), extend).sort((a, b) => (b.w - a.w) * Math.sin(pitch));
           gl.useProgram(volumeProg);
           setCamera(volumeProg);
