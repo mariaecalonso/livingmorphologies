@@ -2,9 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
-import { drawPlacedMeshes, type PlacedMesh } from "@/lib/skill4/draw-placed";
+import { drawPlacedMeshes, projectPlacement, type PlacedMesh } from "@/lib/skill4/draw-placed";
+import type { Vec3 } from "@/lib/skill4/contract";
 import type { Mat3 } from "@/lib/skill4/tile-basis";
 
+const NO_NOTES: readonly { at: Vec3; label: string; color: string }[] = [];
 const TURN_SECONDS = 32;
 const turntables = new Set<(yaw: number) => void>();
 let turnYaw = 0.7;
@@ -39,6 +41,7 @@ export function MeshPreview({
   fill = false,
   turn = false,
   placed,
+  notes = NO_NOTES,
 }: {
   mesh?: IsoMesh | null;
   color?: [number, number, number];
@@ -54,8 +57,10 @@ export function MeshPreview({
   fill?: boolean;
   turn?: boolean;
   placed?: readonly PlacedMesh[];
+  notes?: readonly { at: Vec3; label: string; color: string }[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const notesRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,7 +81,45 @@ export function MeshPreview({
       })),
     ];
     const paint = (angle: number) => {
-      drawPlacedMeshes(canvas, instances, angle, pitch, 1.2, contain, undefined, false, fitScale, undefined, fill);
+      const frame = drawPlacedMeshes(canvas, instances, angle, pitch, 1.2, contain, undefined, false, fitScale, undefined, fill);
+      const svg = notesRef.current;
+      if (!svg) return;
+      if (!frame || notes.length === 0) {
+        svg.replaceChildren();
+        return;
+      }
+      svg.setAttribute("viewBox", `0 0 ${frame.width} ${frame.height}`);
+      const lift = Math.max(36, frame.height * 0.18);
+      const placedNotes: { x: number; y: number }[] = [];
+      const marks = notes.map((note) => {
+        const anchor = projectPlacement(note.at, frame.center, angle, pitch, frame.fit, frame.width, frame.height);
+        let labelY = Math.max(14, anchor.y - lift);
+        for (const other of placedNotes) {
+          if (Math.abs(other.x - anchor.x) < 28 && Math.abs(other.y - labelY) < 16) labelY = Math.max(14, other.y - 16);
+        }
+        placedNotes.push({ x: anchor.x, y: labelY });
+        return { ...note, x: anchor.x, y: anchor.y, labelY };
+      });
+      svg.replaceChildren(...marks.map((mark) => {
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", String(mark.x));
+        line.setAttribute("y1", String(mark.y));
+        line.setAttribute("x2", String(mark.x));
+        line.setAttribute("y2", String(mark.labelY + 8));
+        line.setAttribute("stroke", mark.color);
+        line.setAttribute("stroke-width", "1.15");
+        line.setAttribute("stroke-dasharray", "1.2 3.5");
+        line.setAttribute("stroke-linecap", "round");
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", String(mark.x));
+        text.setAttribute("y", String(mark.labelY));
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("fill", mark.color);
+        text.textContent = mark.label;
+        group.append(line, text);
+        return group;
+      }));
     };
     paint(turn ? turnYaw : yaw);
     const parent = canvas.parentElement;
@@ -94,7 +137,12 @@ export function MeshPreview({
         turnFrame = 0;
       }
     };
-  }, [basis, color, contain, fill, fitScale, guides, kind, mesh, mirror, pitch, placed, spin, turn, yaw]);
+  }, [basis, color, contain, fill, fitScale, guides, kind, mesh, mirror, notes, pitch, placed, spin, turn, yaw]);
 
-  return <canvas ref={canvasRef} className="hybrid-preview-canvas" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="hybrid-preview-canvas" />
+      {notes.length > 0 ? <svg ref={notesRef} className="hybrid-clip-notes" aria-hidden="true" /> : null}
+    </>
+  );
 }

@@ -70,11 +70,15 @@ export function CatalogInspect({
   loaded,
   onClose,
   onRestore,
+  onSaveFinal,
+  saved = false,
 }: {
   entry: CatalogEntry;
   loaded: ReadonlyMap<string, ModuleHandoff>;
   onClose: () => void;
   onRestore: () => void;
+  onSaveFinal?: () => void;
+  saved?: boolean;
 }) {
   const viewed = useMemo(() => catalogInspectionMeshes(entry, loaded), [entry, loaded]);
   const instances = viewed.meshes;
@@ -100,6 +104,11 @@ export function CatalogInspect({
       >
         <div className="hybrid-stage hybrid-catalog-inspect-stage">
           <CatalogTurntable instances={instances} center={framed.center} span={framed.span * FRAME_MARGIN} height={framed.height} label={entry.id} />
+          {onSaveFinal ? (
+            <button type="button" className="hybrid-generate hybrid-final-save-stage" disabled={saved} onClick={onSaveFinal}>
+              {saved ? "Saved" : "Save to Final Catalog"}
+            </button>
+          ) : null}
         </div>
         <aside className="hybrid-catalog-inspect-info">
           <button type="button" className="hybrid-som-close" onClick={onClose}>Close</button>

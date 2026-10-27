@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import {
@@ -18,26 +18,29 @@ import {
   type CatalogEntry,
   type CatalogFilter,
 } from "@/lib/skill4/catalog";
-import { catalogServerSnapshot, readCatalog, subscribeCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
+import { catalogServerSnapshot, finalCatalogServerSnapshot, hiddenFinalServerSnapshot, hideFinalCatalog, readCatalog, readFinalCatalog, readHiddenFinal, subscribeCatalog, subscribeFinalCatalog, subscribeHiddenFinal, writeCatalog, writeFinalCatalog } from "@/lib/skill4/catalog-store";
 import { CatalogInspect, catalogInspectionMeshes } from "./catalog-inspect";
 import { MeshPreview } from "./mesh-preview";
 import { useHybrid } from "./hybrid-state";
 import { IDENTITY_BASIS, rotateByBasis } from "@/lib/skill4/tile-basis";
 import { SyntheticTestToggle } from "./synthetic-test-toggle";
 
-export function HybridCatalog() {
-  const { loaded, tiles, connections, count, arrangement, restoreAssembly, syntheticMode } = useHybrid();
+export function HybridCatalog({ final = false }: { final?: boolean }) {
+  const { loaded, tiles, connections, count, arrangement, restoreAssembly, syntheticMode, ensureArchetypes, skillModules } = useHybrid();
   const entries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
+  const finalEntries = useSyncExternalStore(subscribeFinalCatalog, readFinalCatalog, finalCatalogServerSnapshot);
+  const hiddenFinal = useSyncExternalStore(subscribeHiddenFinal, readHiddenFinal, hiddenFinalServerSnapshot);
   const [filter, setFilter] = useState<CatalogFilter>(catalogBucket(tiles.length));
   const [scope, setScope] = useState<"iterations" | "selected" | "rerun">("iterations");
-  const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11">("all");
+  const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11" | "TEST_12">("all");
   const [error, setError] = useState<string | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [published, setPublished] = useState<CatalogEntry[]>([]);
+  const [filed, setFiled] = useState<CatalogEntry[]>([]);
   const router = useRouter();
   useEffect(() => {
     let cancel = false;
-    const files = Array.from({ length: 11 }, (_, index) => {
+    const files = Array.from({ length: 12 }, (_, index) => {
       const number = String(index + 1).padStart(2, "0");
       return { batchId: `TEST_${index + 1}`, file: `/skill4/SKILL04-STRESS-TEST-${number}-catalog.json` };
     });
@@ -59,6 +62,29 @@ export function HybridCatalog() {
     };
   }, []);
   useEffect(() => {
+    let cancel = false;
+    void fetch("/skill4/SKILL04-FINAL-CATALOG.json")
+      .then(async (response) => {
+        if (!response.ok) return [];
+        const rows: unknown = await response.json();
+        if (!Array.isArray(rows)) return [];
+        return rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return typeof record.id === "string" && Array.isArray(record.tiles) && Array.isArray(record.connections);
+        });
+      })
+      .then((rows) => {
+        if (!cancel) setFiled(rows);
+      })
+      .catch(() => {
+        if (!cancel) setFiled([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+  useEffect(() => {
     const current = readCatalog();
     let changed = false;
     const next = current.map((entry) => {
@@ -72,8 +98,34 @@ export function HybridCatalog() {
   const storedIds = new Set(iterations.map((entry) => entry.id));
   const catalog = [...iterations, ...published.filter((entry) => !storedIds.has(entry.id))];
   const batchVisible = filterCatalog(catalog, filter).filter((entry) => batch === "all" || catalogBatch(entry) === batch);
-  const visible = scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : batchVisible;
-  const inspected = catalog.find((entry) => entry.id === inspectId) ?? null;
+  const filedFinal = filed.filter((entry) => !hiddenFinal.includes(entry.id));
+  const filedIds = new Set(filedFinal.map((entry) => entry.id));
+  const savedFinal = [...filedFinal, ...finalEntries.filter((entry) => !filedIds.has(entry.id) && !hiddenFinal.includes(entry.id))];
+  const visible = final
+    ? savedFinal
+    : scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : batchVisible;
+  const moduleKey = useMemo(() => {
+    const ids = new Set<string>();
+    for (const entry of [...entries, ...published, ...finalEntries, ...filed]) {
+      for (const tile of entry.tiles) if (tile.archetypeId) ids.add(tile.archetypeId);
+    }
+    return [...ids].sort().join("|");
+  }, [entries, published, finalEntries, filed]);
+  useEffect(() => {
+    ensureArchetypes(moduleKey.split("|").filter(Boolean));
+  }, [moduleKey, ensureArchetypes]);
+  const inspected = (final ? savedFinal : catalog).find((entry) => entry.id === inspectId) ?? null;
+  const savedIds = new Set([...finalEntries.map((entry) => entry.id), ...filed.map((entry) => entry.id)]);
+
+  const saveToFinal = (entry: CatalogEntry) => {
+    if (savedIds.has(entry.id)) return;
+    try {
+      writeFinalCatalog([entry, ...readFinalCatalog()]);
+      setError(null);
+    } catch {
+      setError("The final catalog could not be saved in this browser.");
+    }
+  };
 
   const save = () => {
     const entry = captureCatalogEntry(nextCatalogId(readCatalog()), tiles, connections, count, arrangement, loaded, syntheticMode);
@@ -103,7 +155,7 @@ export function HybridCatalog() {
   return (
     <main className="hybrid-view hybrid-catalog">
       <div className="hybrid-catalog-body">
-      <aside className="hybrid-layout-controls hybrid-catalog-batches" role="group" aria-label="Stress test batch">
+      {final ? null : <aside className="hybrid-layout-controls hybrid-catalog-batches" role="group" aria-label="Stress test batch">
         <button type="button" data-active={batch === "all" || undefined} onClick={() => setBatch("all")}>All</button>
         <button type="button" data-active={batch === "TEST_1" || undefined} onClick={() => setBatch("TEST_1")}>Test 1</button>
         <button type="button" data-active={batch === "TEST_2" || undefined} onClick={() => setBatch("TEST_2")}>Test 2</button>
@@ -116,16 +168,17 @@ export function HybridCatalog() {
         <button type="button" data-active={batch === "TEST_9" || undefined} onClick={() => setBatch("TEST_9")}>Test 9</button>
         <button type="button" data-active={batch === "TEST_10" || undefined} onClick={() => setBatch("TEST_10")}>Test 10</button>
         <button type="button" data-active={batch === "TEST_11" || undefined} onClick={() => setBatch("TEST_11")}>Test 11</button>
-      </aside>
+        <button type="button" data-active={batch === "TEST_12" || undefined} onClick={() => setBatch("TEST_12")}>Test 12</button>
+      </aside>}
       <div className="hybrid-catalog-main">
       <div className="hybrid-catalog-bar">
-        <SyntheticTestToggle />
-        <div className="hybrid-layout-controls" role="group" aria-label="Catalog">
+        {final ? null : <SyntheticTestToggle />}
+        {final ? <p className="hybrid-identity">Final Catalog</p> : <div className="hybrid-layout-controls" role="group" aria-label="Catalog">
           <button type="button" data-active={scope === "iterations" || undefined} onClick={() => setScope("iterations")}>Iterations</button>
           <button type="button" data-active={scope === "selected" || undefined} onClick={() => setScope("selected")}>Selected</button>
           <button type="button" data-active={scope === "rerun" || undefined} onClick={() => setScope("rerun")}>Rerun needed</button>
-        </div>
-        {scope === "iterations" ? (
+        </div>}
+        {!final && scope === "iterations" ? (
           <div className="hybrid-layout-controls" role="group" aria-label="Assembly size">
             {CATALOG_FILTERS.map((value) => (
               <button key={value} type="button" data-active={filter === value || undefined} onClick={() => setFilter(value)}>
@@ -134,16 +187,18 @@ export function HybridCatalog() {
             ))}
           </div>
         ) : null}
-        <p className="hybrid-units">{scope === "iterations" ? catalogCountLabel(filter, visible.length) : scope === "selected" ? `${visible.length} selected for the site` : `${visible.length} awaiting a hybrid rerun`}</p>
-        <button type="button" className="hybrid-generate" onClick={save}>
-          Save current assembly
-        </button>
+        <p className="hybrid-units">{final ? `${visible.length} saved` : scope === "iterations" ? catalogCountLabel(filter, visible.length) : scope === "selected" ? `${visible.length} selected for the site` : `${visible.length} awaiting a hybrid rerun`}</p>
+        {final ? null : (
+          <button type="button" className="hybrid-generate" onClick={save}>
+            Save current assembly
+          </button>
+        )}
       </div>
       {error ? <p className="hybrid-pending">{error}</p> : null}
       {visible.length === 0 ? (
         <div className="hybrid-catalog-empty">
-          <p className="hybrid-identity">{scope === "selected" ? "NO SELECTED ASSEMBLIES" : scope === "rerun" ? "NO RERUNS" : emptyCatalogLabel(filter)}</p>
-          <p className="hybrid-units">{scope === "selected" ? "Select a saved iteration to import it on the site." : scope === "rerun" ? "A site proposal sent back from Site Integration appears here. Connector generation does not run on its own." : "Save the current assembly to add it to the catalog."}</p>
+          <p className="hybrid-identity">{final ? "NO SAVED RESULTS" : scope === "selected" ? "NO SELECTED ASSEMBLIES" : scope === "rerun" ? "NO RERUNS" : emptyCatalogLabel(filter)}</p>
+          <p className="hybrid-units">{final ? "Save a test result from the catalog." : scope === "selected" ? "Select a saved iteration to import it on the site." : scope === "rerun" ? "A site proposal sent back from Site Integration appears here. Connector generation does not run on its own." : "Save the current assembly to add it to the catalog."}</p>
         </div>
       ) : (
         <div className="hybrid-catalog-grid">
@@ -153,8 +208,15 @@ export function HybridCatalog() {
               entry={entry}
               onOpen={() => open(entry)}
               onInspect={() => setInspectId(entry.id)}
-              onDelete={() => remove(entry.id)}
+              onDelete={() => {
+                if (final) {
+                  hideFinalCatalog(entry.id);
+                  writeFinalCatalog(readFinalCatalog().filter((item) => item.id !== entry.id));
+                } else remove(entry.id);
+              }}
               onSelect={() => selectForSite(entry)}
+              onSaveFinal={final || !isTestResult(entry) ? undefined : () => saveToFinal(entry)}
+              saved={savedIds.has(entry.id)}
             />
           ))}
         </div>
@@ -162,15 +224,37 @@ export function HybridCatalog() {
       {inspected ? (
         <CatalogInspect
           entry={inspected}
-          loaded={loaded}
+          loaded={inspected.testData && syntheticMode ? loaded : skillModules}
           onClose={() => setInspectId(null)}
           onRestore={() => open(inspected)}
+          onSaveFinal={final || !isTestResult(inspected) ? undefined : () => saveToFinal(inspected)}
+          saved={savedIds.has(inspected.id)}
         />
       ) : null}
       </div>
       </div>
     </main>
   );
+}
+
+function catalogMeshes(entry: CatalogEntry, loaded: Parameters<typeof catalogPreview>[1], syntheticLoaded: boolean) {
+  try {
+    if (!(entry.testData && !syntheticLoaded)) {
+      const viewed = catalogInspectionMeshes(entry, loaded);
+      if (viewed.meshes.length > 0) return viewed.meshes;
+    }
+    return catalogPreview(entry, loaded);
+  } catch {
+    try {
+      return catalogPreview(entry, loaded);
+    } catch {
+      return [];
+    }
+  }
+}
+
+function isTestResult(entry: CatalogEntry) {
+  return entry.testData === true || catalogBatch(entry) !== null;
 }
 
 function belongsToBatch(entry: unknown, batchId: string): entry is CatalogEntry {
@@ -181,8 +265,8 @@ function belongsToBatch(entry: unknown, batchId: string): entry is CatalogEntry 
   return batchId === "TEST_1" && !record.batchId && /^S04 TEST \d+$/.test(record.id);
 }
 
-function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect }: { entry: CatalogEntry; onOpen: () => void; onInspect: () => void; onDelete: () => void; onSelect: () => void }) {
-  const { loaded, syntheticMode } = useHybrid();
+function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect, onSaveFinal, saved = false }: { entry: CatalogEntry; onOpen: () => void; onInspect: () => void; onDelete: () => void; onSelect: () => void; onSaveFinal?: () => void; saved?: boolean }) {
+  const { loaded, skillModules, syntheticMode } = useHybrid();
   const cardRef = useRef<HTMLElement>(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -195,14 +279,21 @@ function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect }: { entry: 
     return () => observer.disconnect();
   }, []);
   const syntheticLoaded = syntheticMode && loaded.get(entry.tiles[0]?.archetypeId ?? "")?.moduleId.startsWith("synthetic-test:");
-  const viewed = shown && !(entry.testData && !syntheticLoaded) ? catalogInspectionMeshes(entry, loaded) : null;
-  const preview = shown ? (viewed?.meshes.length ? viewed.meshes : catalogPreview(entry, loaded)) : [];
+  const modules = entry.testData && syntheticLoaded ? loaded : skillModules;
+  const preview = shown ? catalogMeshes(entry, modules, syntheticLoaded) : [];
   const connected = preview.some((mesh) => mesh.kind === 1);
   return (
     <article ref={cardRef} className="hybrid-slot hybrid-catalog-card">
       <div className="hybrid-preview hybrid-catalog-preview" onClick={onInspect}>
         {shown && preview.length > 0 ? <MeshPreview placed={frameCatalog(preview)} contain turn fitScale={1.6} /> : shown ? <p className="hybrid-missing">{entry.testData && !syntheticLoaded ? "TEST DATA · synthetic modules are off" : "Geometry unavailable"}</p> : null}
       </div>
+      {onSaveFinal ? (
+        <div className="hybrid-final-save-anchor">
+          <button type="button" className="hybrid-generate hybrid-final-save" disabled={saved} onClick={(event) => { event.stopPropagation(); onSaveFinal(); }}>
+            {saved ? "Saved" : "Save to Final Catalog"}
+          </button>
+        </div>
+      ) : null}
       <div className="hybrid-catalog-copy">
       <p className="hybrid-identity">{entry.id}</p>
       {shown && entry.batch?.status === "failed" && !connected ? <p className="hybrid-units">FAILED CONNECTION</p> : null}
