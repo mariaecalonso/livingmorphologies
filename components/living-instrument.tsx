@@ -19,6 +19,7 @@ import {
   PhysarumParameterPanel,
   agentCountFromDensity,
 } from "@/components/skill1-archetype-info";
+import { Skill1AnalysisDashboard } from "@/components/skill1-analysis-dashboard";
 import { downloadPlanPng, renderPlanImage, Skill1PlanView } from "@/components/skill1-viz";
 import { Skill2AuditWorkspace } from "@/components/skill2-audit";
 import { DIRECT_CARVE_THRESHOLD, Skill2DirectInverseField } from "@/components/skill2-audit-views";
@@ -32,6 +33,12 @@ import {
   ratingDescription,
 } from "@/lib/catalog";
 import { mulberry32, ratingLabel } from "@/lib/physarum";
+import {
+  createAnalysisSession,
+  DEFAULT_SAMPLE_INTERVAL,
+  recordAnalysisSample,
+  type AnalysisSession,
+} from "@/lib/skill1/analysis";
 import {
   captureSnapshot,
   createSimulation,
@@ -51,7 +58,7 @@ import {
   paramsFromRatings,
   translateArchetype,
 } from "@/lib/skill1/translate";
-import type { FieldSnapshot, SimulationState, VizSettings } from "@/lib/skill1/types";
+import type { BiologicalTranslation, FieldSnapshot, SimulationState, VizSettings } from "@/lib/skill1/types";
 import type { RatingsMap, TypologyId } from "@/lib/types";
 import { loadBoardSession, saveBoardSession, simulationFromSnapshot } from "@/lib/persist/session";
 
@@ -181,6 +188,8 @@ export function LivingInstrument() {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [boardReady, setBoardReady] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisSession | null>(null);
+  const [analysisInterval, setAnalysisInterval] = useState(DEFAULT_SAMPLE_INTERVAL);
   const persistReadyRef = useRef(false);
   const slimeRef = useRef<SlimeControls | null>(null);
   const attractorMarksRef = useRef<FieldAttractor[] | null>(null);
@@ -219,6 +228,8 @@ export function LivingInstrument() {
   const debounceRef = useRef<number | null>(null);
   const growthRef = useRef<number | null>(null);
   const simRef = useRef<SimulationState | null>(null);
+  const analysisRef = useRef<AnalysisSession | null>(null);
+  const analysisIntervalRef = useRef(DEFAULT_SAMPLE_INTERVAL);
 
   useEffect(() => {
     let live = true;
@@ -290,6 +301,26 @@ export function LivingInstrument() {
     targetIterationsRef.current = targetIterations;
   }, [targetIterations]);
   useEffect(() => {
+    analysisIntervalRef.current = analysisInterval;
+  }, [analysisInterval]);
+  useEffect(() => {
+    if (!boardReady || simulating || !state || analysisRef.current) return;
+    const simulationId = `restored:${archetype.id}:${state.seed}:${state.iteration}`;
+    const session = createAnalysisSession({
+      simulationId,
+      seed: state.seed,
+      archetypeId: archetype.id,
+      archetypeName: archetype.name,
+      typologyId,
+    });
+    const next = recordAnalysisSample(session, state, analysisInputOf(translationRef.current), {
+      interval: analysisIntervalRef.current,
+      force: true,
+    });
+    analysisRef.current = next;
+    setAnalysis(next);
+  }, [boardReady, simulating, state, archetype.id, archetype.name, typologyId]);
+  useEffect(() => {
     snapshotsRef.current = snapshots;
   }, [snapshots]);
   useEffect(() => {
@@ -304,12 +335,43 @@ export function LivingInstrument() {
   const seedFor = (id: string, nextRun: number) =>
     (0x51c11 ^ (nextRun * 9973) ^ id.length * 131) >>> 0;
 
+  const analysisInputOf = (current: BiologicalTranslation) => ({
+    ratings: current.ratings,
+    typologyId: current.typologyId,
+    isolationRadius: current.recipe.isolationRadius,
+    attractors: (current.recipe.attractors ?? []).map((item) => ({ x: item.x, y: item.y })),
+  });
+
+  const publishAnalysis = (sim: SimulationState, generation: number, force: boolean) => {
+    const current = translationRef.current;
+    const simulationId = `${current.archetypeId}:${sim.seed}:${generation}`;
+    let session = analysisRef.current;
+    if (!session || session.simulationId !== simulationId) {
+      session = createAnalysisSession({
+        simulationId,
+        seed: sim.seed,
+        archetypeId: current.archetypeId,
+        archetypeName: current.archetypeName,
+        typologyId: current.typologyId,
+      });
+    }
+    const next = recordAnalysisSample(session, sim, analysisInputOf(current), {
+      interval: analysisIntervalRef.current,
+      force,
+    });
+    if (next !== analysisRef.current) {
+      analysisRef.current = next;
+      setAnalysis(next);
+    }
+  };
+
   const publishFinalField = (sim: SimulationState, generation: number) => {
     if (growthRef.current != null) window.clearTimeout(growthRef.current);
     const slime = slimeRef.current ?? undefined;
     const trailDecay = vizRef.current.trailDecay;
     simRef.current = sim;
     stateRef.current = sim;
+    publishAnalysis(sim, generation, true);
     setState({ ...sim });
     const pump = () => {
       if (generationRef.current !== generation || !translationRef.current) return;
@@ -330,6 +392,7 @@ export function LivingInstrument() {
       );
       simRef.current = next;
       stateRef.current = next;
+      publishAnalysis(next, generation, next.converged || next.iteration >= next.maxIterations);
       setState({ ...next });
       if (next.converged || next.iteration >= next.maxIterations) {
         const snapshot = captureSnapshot(next);
@@ -496,6 +559,8 @@ export function LivingInstrument() {
     stateRef.current = null;
     snapshotsRef.current = {};
     setSnapshots({});
+    analysisRef.current = null;
+    setAnalysis(null);
   };
 
   const pulse = (message: string) => {
@@ -888,6 +953,15 @@ export function LivingInstrument() {
                       onAttractorsChange={rememberMarks}
                     />
                   </div>
+                  <Skill1AnalysisDashboard
+                    session={analysis}
+                    simulating={simulating}
+                    sampleInterval={analysisInterval}
+                    onSampleInterval={(value) => {
+                      analysisIntervalRef.current = value;
+                      setAnalysisInterval(value);
+                    }}
+                  />
                 </div>
                 <div className="agent-stage agent-carving" ref={carvingExportRef} hidden>
                   <div className="agent-stage-square agent-field bg-[#000000]">
