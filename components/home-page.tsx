@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { HomeClient } from "@/components/home-client";
 import { HomeLabDemo } from "@/components/home-lab-demo";
 import { HomeResults } from "@/components/home-results";
 import { HomeSite } from "@/components/home-site";
@@ -70,13 +71,14 @@ export function HomePage({
         setRailIndex(next);
       }
 
-      if (!home) return;
-      const heroBottom = home.getBoundingClientRect().bottom;
       const visualHeight = viewHeight * scale;
-      const fullEdge = viewTop + visualHeight;
-      const gone = viewTop + visualHeight * 0.7;
-      const fade = Math.min(1, Math.max(0, (heroBottom - gone) / (fullEdge - gone)));
-      root.style.setProperty("--hero-fade", fade.toFixed(3));
+      if (home && visualHeight > 0) {
+        const progress = (viewTop - home.getBoundingClientRect().top) / visualHeight;
+        const heroFade = Math.min(1, Math.max(0, 1 - progress));
+        const clientFade = Math.min(1, Math.max(0, progress <= 1 ? progress : 2 - progress));
+        root.style.setProperty("--hero-fade", heroFade.toFixed(3));
+        root.style.setProperty("--client-fade", clientFade.toFixed(3));
+      }
     };
 
     update();
@@ -243,8 +245,8 @@ export function HomePage({
         </div>
       </section>
 
-      <section className="home-overview" id="client" data-rail-target="client">
-        <HomeSectionHeading title="Our Client" />
+      <section className="home-overview home-client" id="client" data-rail-target="client" aria-label="Our Client">
+        <HomeClient />
       </section>
 
       <section className="home-overview home-workflow" id="workflow" data-rail-target="workflow">
