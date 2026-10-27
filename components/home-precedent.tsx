@@ -790,6 +790,7 @@ function PrecedentCopy() {
 export function PrecedentDiagram() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
+  const [criteriaOrigin, setCriteriaOrigin] = useState<{ x: number; y: number } | null>(null);
   const criteriaClock = usePresentClock(false, () => setCriteriaOpen(false));
   const criteriaFrame = MAINS[2];
 
@@ -921,11 +922,26 @@ export function PrecedentDiagram() {
           left: `${((criteriaFrame.x + criteriaFrame.w) / 7407) * 100}%`,
           top: `${(criteriaFrame.y / 2160) * 100}%`,
         }}
-        onClick={() => setCriteriaOpen(true)}
+        onClick={() => {
+          const stage = rootRef.current;
+          if (stage) {
+            setCriteriaOrigin({
+              x: ((criteriaFrame.x + criteriaFrame.w / 2) / 7407) * stage.clientWidth,
+              y: ((criteriaFrame.y + criteriaFrame.h / 2) / 2160) * stage.clientHeight,
+            });
+          }
+          setCriteriaOpen(true);
+        }}
       >
         <span aria-hidden="true">+</span>
       </button>
-      <section className="wf-opt-zoom" data-criteria="" data-open={criteriaOpen || undefined} aria-hidden={!criteriaOpen}>
+      <section
+        className="wf-opt-zoom"
+        data-criteria=""
+        data-open={criteriaOpen || undefined}
+        aria-hidden={!criteriaOpen}
+        style={criteriaOrigin ? { transformOrigin: `${criteriaOrigin.x}px ${criteriaOrigin.y}px` } : undefined}
+      >
         <p className="wf-opt-trail">
           Typology Analysis <span aria-hidden="true">›</span> Criteria
         </p>

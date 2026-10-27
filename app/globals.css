@@ -5809,13 +5809,6 @@ body:has(.site-display-control) .site-nav {
   padding-top: 0.85rem;
 }
 
-.wf-opt-zoom[data-criteria] .wf-opt-back {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
-}
-
 .wf-opt-zoom[data-criteria] .wf-phy-panel {
   display: flex;
   flex: 1 1 auto;

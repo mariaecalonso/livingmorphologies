@@ -497,6 +497,8 @@ export type FrameNode = {
   width: number;
   height: number;
   radius: number;
+  /** Above 1 shortens this visit. The unscaled visits keep the original pace. */
+  pace?: number;
 };
 
 /** Teal-to-copper link and the traveling light. Overview and steps 03–06 share these. */
@@ -541,8 +543,10 @@ export type FrameRoute = {
   events: RouteEvent[];
   duration: number;
   stops: Record<string, number>;
-  /** Normalized clock at the start and end of each frame outline. */
+  /** Normalized clock at the start and end of the first visit to each frame. */
   bounds: Record<string, { start: number; end: number }>;
+  /** Every visit, in order, including a frame the route walks twice. */
+  visits: { id: string; start: number; end: number }[];
   connectors: { from: WorkflowPoint; to: WorkflowPoint }[];
   path: string;
   pose: (t: number) => MacroPose;
@@ -557,7 +561,7 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
     const exit = next ? snapToPerimeter(boundaryPoint(next, frame.center, frame.width, frame.height, frame.radius), frame.center, frame.width, frame.height, frame.radius) : null;
     return { ...frame, entry, exit };
   });
-  const legs: Array<Omit<RouteMove, "kind" | "ms">> = [];
+  const legs: Array<Omit<RouteMove, "kind" | "ms"> & { pace: number }> = [];
   const frameSpans: { id: string; from: number; to: number }[] = [];
   const opposite = (point: WorkflowPoint, node: (typeof nodes)[number]) => {
     const { length } = perimeterMetrics(node.width, node.height, node.radius);
@@ -569,24 +573,31 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
     const departure = node.exit ?? opposite(node.entry as WorkflowPoint, node);
     const incoming = previous?.exit ?? null;
     const from = legs.length;
-    legs.push(...outlineLegs(frameOutline(arrival, departure, node.center, node.width, node.height, node.radius, incoming), node.id));
+    const pace = node.pace ?? 1;
+    legs.push(...outlineLegs(frameOutline(arrival, departure, node.center, node.width, node.height, node.radius, incoming), node.id).map((leg) => ({ ...leg, pace })));
     frameSpans.push({ id: node.id, from, to: legs.length });
     const next = nodes[index + 1];
-    if (next?.entry) legs.push({ from: departure, to: next.entry, phase: "connector", nodeId: null });
+    if (next?.entry) legs.push({ from: departure, to: next.entry, phase: "connector", nodeId: null, pace: next.pace ?? 1 });
   });
-  const travel = legs.reduce((sum, leg) => sum + pointDistance(leg.from, leg.to), 0);
-  const speed = travel / cycle;
-  const events: RouteEvent[] = legs.map((leg) => ({ kind: "move", ms: pointDistance(leg.from, leg.to) / Math.max(speed, 0.0001), ...leg }));
+  const distance = (leg: (typeof legs)[number]) => pointDistance(leg.from, leg.to);
+  const unscaled = legs.reduce((sum, leg) => sum + (leg.pace === 1 ? distance(leg) : 0), 0);
+  const basis = unscaled > 0 ? unscaled : legs.reduce((sum, leg) => sum + distance(leg), 0);
+  const speed = basis / cycle;
+  const events: RouteEvent[] = legs.map((leg) => ({ kind: "move", ms: distance(leg) / Math.max(speed * leg.pace, 0.0001), from: leg.from, to: leg.to, phase: leg.phase, nodeId: leg.nodeId }));
   const duration = events.reduce((sum, event) => sum + event.ms, 0) || 1;
   const stops: Record<string, number> = {};
   const bounds: Record<string, { start: number; end: number }> = {};
+  const visits: { id: string; start: number; end: number }[] = [];
   frameSpans.forEach((span) => {
     let walked = 0;
     for (let index = 0; index < span.from; index += 1) walked += events[index].ms;
     let across = 0;
     for (let index = span.from; index < span.to; index += 1) across += events[index].ms;
+    const range = { start: walked / duration, end: (walked + across) / duration };
+    visits.push({ id: span.id, ...range });
+    if (bounds[span.id]) return;
     stops[span.id] = (walked + across / 2) / duration;
-    bounds[span.id] = { start: walked / duration, end: (walked + across) / duration };
+    bounds[span.id] = range;
   });
   const connectors = nodes.slice(0, -1).map((node, index) => ({
     from: node.exit as WorkflowPoint,
@@ -613,7 +624,7 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
     const end = nodes[nodes.length - 1];
     return { point: end?.center ?? { x: 0, y: 0 }, phase: "center", nodeId: end?.id ?? null };
   };
-  return { events, duration, stops, bounds, connectors, path, pose };
+  return { events, duration, stops, bounds, visits, connectors, path, pose };
 }
 
 function routeLength(route: FrameRoute) {

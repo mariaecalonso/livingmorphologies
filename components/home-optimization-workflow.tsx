@@ -48,6 +48,7 @@ type Layout = {
   label: Point;
   slots: Slot[];
   zoomOrigin: Point;
+  generationOrigin: Point;
 };
 
 const OBJECTIVES = [
@@ -633,6 +634,7 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         label: { x: (from.cx + to.cx) / 2, y },
         slots,
         zoomOrigin: { x: frames[ZOOM_STEP]?.cx ?? width / 2, y: frames[ZOOM_STEP]?.cy ?? height / 2 },
+        generationOrigin: { x: from.cx, y: from.cy },
       });
     };
     measure();
@@ -666,13 +668,23 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       if (zoomFrame) markManualHold(board);
       setZoomed("sorting");
     };
+    const generationFrame = board.querySelector<HTMLElement>(`.wf-frame[data-frame="${LOOP_FROM}"]`);
+    const openGeneration = (event: MouseEvent) => {
+      event.stopPropagation();
+      setSequence(false);
+      markManualHold(board);
+      setZoomed("generations");
+    };
     zoomFrame?.setAttribute("data-zoomable", "");
     zoomFrame?.addEventListener("click", openZoom);
+    generationFrame?.setAttribute("data-zoomable", "");
+    generationFrame?.addEventListener("click", openGeneration);
     return () => {
       window.clearInterval(follow);
       resize.disconnect();
       watch.disconnect();
       zoomFrame?.removeEventListener("click", openZoom);
+      generationFrame?.removeEventListener("click", openGeneration);
     };
   }, []);
 
@@ -710,6 +722,11 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       if (frame === String(ZOOM_STEP)) {
         setSequence(true);
         setZoomed("sorting");
+        return;
+      }
+      if (frame === String(LOOP_FROM)) {
+        setSequence(true);
+        setZoomed("generations");
         return;
       }
       if (frame !== String(CATALOGUE_STEP) && frame !== String(SELECTION_STEP)) return;
@@ -863,8 +880,9 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         steps={generationSteps}
         links={data.links}
         open={zoomed === "generations"}
-        origin={layout?.label ?? null}
+        origin={layout?.generationOrigin ?? null}
         onClose={closeZoom}
+        sequence={sequence && zoomed === "generations"}
       />
       <section
         className="wf-opt-zoom"

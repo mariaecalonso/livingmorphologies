@@ -49,6 +49,34 @@ function reduced() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** First pass at the normal pace. The return to Objective Evaluation, and the second pass, run a little faster, then the catalogue follows. */
+function optimizationRoute<T extends { id: string; center: { x: number; y: number }; width: number; height: number }>(frames: T[], height: number): T[] {
+  const byId = new Map(frames.map((frame) => [frame.id, frame]));
+  const needed = ["0", "1", "2", "3", "4", "5", "6"].map((id) => byId.get(id));
+  if (needed.some((frame) => !frame)) return frames;
+  const [population, objective, sorting, diversity, next, catalogue, selection] = needed as T[];
+  const bottoms = [objective, sorting, diversity, next].map((frame) => frame.center.y + frame.height / 2);
+  const y = Math.max(...bottoms) + height * 0.17;
+  const fast = 1.25;
+  const visit = (frame: T, pace: number) => ({ ...frame, pace });
+  const bend = (x: number, id: string) => ({ ...next, id, center: { x, y }, width: 4, height: 4, radius: 1, pace: fast });
+  return [
+    visit(population, 1),
+    visit(objective, 1),
+    visit(sorting, 1),
+    visit(diversity, 1),
+    visit(next, 1),
+    bend(next.center.x, "loop-out"),
+    bend(objective.center.x, "loop-back"),
+    visit(objective, fast),
+    visit(sorting, fast),
+    visit(diversity, fast),
+    visit(next, fast),
+    visit(catalogue, 1),
+    visit(selection, 1),
+  ];
+}
+
 export const WORKFLOW_OVERVIEW_EVENT = "lm-workflow-overview";
 
 export function HomeWorkflowPrototype() {
@@ -679,6 +707,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
     let t = 0;
     let dir = 1;
     let duration = 16000;
+    const arrivals: Record<string, number> = {};
     let frame = 0;
     let last = performance.now();
     let alive = true;
@@ -718,7 +747,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
         route = null;
         return;
       }
-      route = frameRoute(frames);
+      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : frames);
       duration = route.duration;
       const view = `0 0 ${width} ${height}`;
       svg?.setAttribute("viewBox", view);
@@ -732,11 +761,17 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       const nextLit = pose.phase === "frame" ? pose.nodeId : null;
       if (nextLit !== litId) {
         const entering = nextLit ? board.querySelector<HTMLElement>(`[data-frame="${nextLit}"]`) : null;
-        if (entering?.hasAttribute("data-zoomable") && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
+        let visit = 0;
+        if (nextLit && dir >= 0) {
+          visit = (arrivals[nextLit] ?? 0) + 1;
+          arrivals[nextLit] = visit;
+        }
+        const repeat = dir >= 0 && visit > 1;
+        if (!repeat && entering?.hasAttribute("data-zoomable") && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
           board.dataset.hold = "1";
           board.dataset.heldFrame = nextLit ?? "";
           delete board.dataset.manual;
-          board.dispatchEvent(new CustomEvent("wf-frame-arrive", { detail: { frame: nextLit } }));
+          board.dispatchEvent(new CustomEvent("wf-frame-arrive", { detail: { frame: nextLit, visit } }));
         }
         routeNodes().forEach((node) => node.classList.remove("is-lit"));
         if (nextLit) board.querySelector(`[data-frame="${nextLit}"]`)?.classList.add("is-lit");
@@ -755,7 +790,9 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       const dt = Math.min(48, now - last);
       last = now;
       if (route && board.dataset.release === "exit") {
-        const bounds = route.bounds[board.dataset.heldFrame ?? ""];
+        const held = board.dataset.heldFrame ?? "";
+        const visit = route.visits.find((item) => item.id === held && t >= item.start - 0.002 && t <= item.end + 0.002);
+        const bounds = visit ?? route.bounds[held];
         if (bounds) t = dir >= 0 ? bounds.end : bounds.start;
         delete board.dataset.release;
         delete board.dataset.hold;
@@ -782,6 +819,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       t = 0;
       dir = 1;
       litId = null;
+      for (const key of Object.keys(arrivals)) delete arrivals[key];
       delete board.dataset.paused;
       delete board.dataset.hold;
       delete board.dataset.release;
