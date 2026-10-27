@@ -292,7 +292,7 @@ function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect, onSaveFinal
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const syntheticLoaded = syntheticMode && loaded.get(entry.tiles[0]?.archetypeId ?? "")?.moduleId.startsWith("synthetic-test:");
+  const syntheticLoaded = Boolean(syntheticMode && loaded.get(entry.tiles[0]?.archetypeId ?? "")?.moduleId.startsWith("synthetic-test:"));
   const modules = entry.testData && syntheticLoaded ? loaded : skillModules;
   const preview = shown ? catalogMeshes(entry, modules, syntheticLoaded) : [];
   const connected = preview.some((mesh) => mesh.kind === 1);
