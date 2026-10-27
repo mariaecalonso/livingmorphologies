@@ -21,7 +21,7 @@ import { AssemblyGlassPreview, OrthoCanvas, PlacedGlassPreview, arrangementFrame
 const site = context as SiteContext;
 const designSite = designSiteFromParcel(site.site.ring);
 const PAGE_SIZE = 10;
-const COMPARE_ROWS = 2;
+const COMPARE_PAGE = 3;
 const VOLUME_HEIGHT = 100;
 const BANDS = [0, 20, 40, 60, 80];
 
@@ -137,7 +137,24 @@ function ShareMeters({ entry }: { entry: SiteConfiguration }) {
   );
 }
 
-function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
+function placedBounds(placed: readonly PlacedModule[]) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const item of placed) {
+    for (const corner of footprintCorners(item.transform.position, item.transform.rotationY)) {
+      minX = Math.min(minX, corner.x);
+      maxX = Math.max(maxX, corner.x);
+      minZ = Math.min(minZ, corner.z);
+      maxZ = Math.max(maxZ, corner.z);
+    }
+  }
+  if (!Number.isFinite(minX)) return { minX: 0, maxX: 1, minZ: 0, maxZ: 1, cx: 0, cz: 0 };
+  return { minX, maxX, minZ, maxZ, cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2 };
+}
+
+function OccupationAxon({ placed, variant, fitFeet }: { placed: readonly PlacedModule[]; variant: "site" | "volume"; fitFeet: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -161,8 +178,17 @@ function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
         const north = (x - centerX) * sine + (z - centerZ) * cosine;
         return { sx: east, sy: north * 0.42 - y };
       };
-      const levels = [0, 20, 40, 60, 80, VOLUME_HEIGHT];
-      const samples = levels.flatMap((level) => designSite.ring.map(([x, z]) => raw(x, z, level)));
+      const local = placedBounds(placed);
+      const half = Math.max(fitFeet, 20) * 0.62;
+      const plate: [number, number][] = [
+        [local.cx - half, local.cz - half],
+        [local.cx + half, local.cz - half],
+        [local.cx + half, local.cz + half],
+        [local.cx - half, local.cz + half],
+      ];
+      const boxHeight = variant === "volume" ? VOLUME_HEIGHT : 8;
+      const levels = variant === "volume" ? [0, 20, 40, 60, 80, VOLUME_HEIGHT] : [0, boxHeight];
+      const samples = levels.flatMap((level) => plate.map(([x, z]) => raw(x, z, level)));
       for (const item of placed) {
         for (const level of [item.transform.position.y, item.transform.position.y + SKILL5_MODULE_ENVELOPE_FEET]) {
           for (const corner of footprintCorners(item.transform.position, item.transform.rotationY)) samples.push(raw(corner.x, corner.z, level));
@@ -178,6 +204,7 @@ function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
         minY = Math.min(minY, sample.sy);
         maxY = Math.max(maxY, sample.sy);
       }
+      if (variant === "volume") maxX += Math.max(1, maxX - minX) * 0.22;
       const pad = 8;
       const project = (x: number, z: number, y: number) => {
         const point = raw(x, z, y);
@@ -190,9 +217,9 @@ function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
       context2d.lineJoin = "round";
       context2d.strokeStyle = "rgba(255, 255, 255, 0.35)";
       context2d.lineWidth = stroke * 0.004;
-      for (const [x, z] of designSite.ring) {
+      for (const [x, z] of plate) {
         const ground = project(x, z, 0);
-        const crown = project(x, z, VOLUME_HEIGHT);
+        const crown = project(x, z, boxHeight);
         context2d.beginPath();
         context2d.moveTo(ground.x, ground.y);
         context2d.lineTo(crown.x, crown.y);
@@ -200,7 +227,7 @@ function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
       }
       for (const level of levels) {
         context2d.beginPath();
-        designSite.ring.forEach(([x, z], index) => {
+        plate.forEach(([x, z], index) => {
           const point = project(x, z, level);
           if (index === 0) context2d.moveTo(point.x, point.y);
           else context2d.lineTo(point.x, point.y);
@@ -226,50 +253,65 @@ function OccupationAxon({ placed }: { placed: readonly PlacedModule[] }) {
         context2d.closePath();
         context2d.fill();
       }
+      if (variant === "volume") {
+        context2d.fillStyle = "rgba(255, 255, 255, 0.55)";
+        context2d.font = `${Math.max(10, height * 0.07)}px Orbitron, sans-serif`;
+        context2d.textAlign = "left";
+        context2d.textBaseline = "middle";
+        for (const level of levels) {
+          if (level === 0) continue;
+          const point = project(plate[1][0], plate[1][1], level);
+          context2d.fillText(String(level), point.x + 4, point.y);
+        }
+      }
     };
     draw();
     const observer = new ResizeObserver(draw);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [placed]);
-  return <canvas ref={canvasRef} aria-label="Site volume, ground to 100 feet" />;
+  }, [placed, variant, fitFeet]);
+  return <canvas ref={canvasRef} aria-label={variant === "volume" ? "Site volume, ground to 100 feet" : "Site occupation"} />;
 }
 
-function VerticalBands({ placed, scale }: { placed: readonly PlacedModule[]; scale: number }) {
+function VerticalBands({ placed, scale, fitFeet }: { placed: readonly PlacedModule[]; scale: number; fitFeet: number }) {
   const bands = bandMass(placed);
   const height = crownFeet(placed);
   const volume = envelopeVolumeShare(placed);
   return (
-    <div className="site-compare-bands">
-      <div className="site-meters" aria-label="Envelope occupation from the ground to 100 feet">
-        {bands.map((band) => (
-          <div key={band.base} className="site-meter">
-            <span>{band.base}–{band.base + 20}</span>
-            <i><b style={{ width: `${scale > 0 ? Math.min(100, band.mass / scale * 100) : 0}%` }} /></i>
-            <em>{band.mass > 0 ? band.mass.toFixed(1) : "0"}</em>
-          </div>
-        ))}
+    <>
+      <div className="site-compare-bands">
+        <figure className="site-compare-diagram">
+          <OccupationAxon placed={placed} variant="volume" fitFeet={fitFeet} />
+        </figure>
+        <div className="site-meters" aria-label="Envelope occupation from the ground to 100 feet">
+          {bands.map((band) => (
+            <div key={band.base} className="site-meter">
+              <span>{band.base}–{band.base + 20}</span>
+              <i><b style={{ width: `${scale > 0 ? Math.min(100, band.mass / scale * 100) : 0}%` }} /></i>
+              <em>{band.mass > 0 ? band.mass.toFixed(1) : "0"}</em>
+            </div>
+          ))}
+        </div>
       </div>
-      <p className="site-note">{height > 0 ? `${Math.round(height)} ft high. ` : ""}Envelope occupies {volume.toFixed(2)}% of the 100 ft site volume.</p>
-    </div>
+      <p className="site-compare-foot site-note">{height > 0 ? `${Math.round(height)} ft high · ` : ""}{volume.toFixed(2)}%</p>
+    </>
   );
 }
 
-function SiteFigures({ entry }: { entry: SiteConfiguration }) {
+function SiteFigures({ entry, fitFeet }: { entry: SiteConfiguration; fitFeet: number }) {
   const placed = useMemo(() => placedOf(entry), [entry]);
   const stats = configurationStats(entry, site.site.ring, site.site.ringAreaSqFt);
   const occupied = stats.area;
-  const open = Math.max(0, designSite.areaSqFt - occupied);
   const plan = designShare(occupied);
-  const openShare = Math.max(0, 100 - plan);
   return (
-    <div className="site-compare-site">
-      <figure className="site-compare-diagram">
-        <OccupationAxon placed={placed} />
-      </figure>
-      <p className="site-note">{Math.round(occupied).toLocaleString("en-US")} ft² occupied · {plan.toFixed(1)}%</p>
-      <p className="site-note">{Math.round(open).toLocaleString("en-US")} ft² open · {openShare.toFixed(1)}%</p>
-    </div>
+    <>
+      <div className="site-compare-site">
+        <figure className="site-compare-diagram">
+          <OccupationAxon placed={placed} variant="site" fitFeet={fitFeet} />
+        </figure>
+      </div>
+      <p className="site-compare-foot site-note">{Math.round(occupied).toLocaleString("en-US")} ft² occupied · {plan.toFixed(1)}%</p>
+    </>
   );
 }
 
@@ -286,6 +328,8 @@ function MatrixLine({ entry, meshes, frames, fitRadius }: { entry: SiteConfigura
       <div className="site-compare-cell" role="cell">
         <div className="site-compare-view">
           <OrthoCanvas modules={placed} meshes={meshes} view="top" frame={frames?.top} bridges={bridges} fitCell label={`${entry.name} plan`} />
+          <span className="site-compare-north">N</span>
+          {frames ? <span className="site-compare-scale">{Math.max(10, Math.round((frames.top.maxX - frames.top.minX) / 10) * 10)} ft</span> : null}
         </div>
       </div>
       <div className="site-compare-cell" role="cell">
@@ -307,6 +351,12 @@ function MatrixLine({ entry, meshes, frames, fitRadius }: { entry: SiteConfigura
       </div>
     </>
   );
+}
+
+function rowClaim(card: Card, modules: number) {
+  const arrangement = card.source?.arrangement;
+  const name = arrangement === "linear" ? "Linear" : arrangement === "grid" ? "Grid" : arrangement === "t" ? "T" : arrangement === "cross" ? "Cross" : null;
+  return name ? `${name} arrangement, ${modules} modules.` : `${modules} modules.`;
 }
 
 export function ConfigurationCatalog() {
@@ -370,9 +420,9 @@ export function ConfigurationCatalog() {
     const card = cards.find((item) => item.entry.id === id);
     return card ? [card] : [];
   }), [cards, selected]);
-  const compareCount = Math.max(1, Math.ceil(chosen.length / COMPARE_ROWS));
+  const compareCount = Math.max(1, Math.ceil(chosen.length / COMPARE_PAGE));
   const compareIndex = Math.min(comparePage, compareCount - 1);
-  const compareRows = chosen.slice(compareIndex * COMPARE_ROWS, compareIndex * COMPARE_ROWS + COMPARE_ROWS);
+  const compareRows = chosen.slice(compareIndex * COMPARE_PAGE, compareIndex * COMPARE_PAGE + COMPARE_PAGE);
   const compareFit = useMemo(() => {
     let max = 0;
     for (const card of chosen) {
@@ -389,6 +439,14 @@ export function ConfigurationCatalog() {
     let max = 0;
     for (const card of chosen) {
       for (const band of bandMass(placedOf(card.entry))) max = Math.max(max, band.mass);
+    }
+    return max;
+  }, [chosen]);
+  const compareFitFeet = useMemo(() => {
+    let max = 40;
+    for (const card of chosen) {
+      const bounds = placedBounds(placedOf(card.entry));
+      max = Math.max(max, bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
     }
     return max;
   }, [chosen]);
@@ -468,13 +526,11 @@ export function ConfigurationCatalog() {
         <div className="site-compare-overlay" role="dialog" aria-label="Comparison">
           <div className="site-compare-bar">
             <p className="site-note">{demonstration ? "Demonstration configurations are test catalog content. They are not saved records." : "Saved configurations."}</p>
-            {compareCount > 1 ? (
-              <div className="site-pages" aria-label="Comparison pages">
-                <button type="button" disabled={compareIndex === 0} onClick={() => setComparePage(compareIndex - 1)}>Previous</button>
-                <span>{compareIndex + 1} / {compareCount}</span>
-                <button type="button" disabled={compareIndex >= compareCount - 1} onClick={() => setComparePage(compareIndex + 1)}>Next</button>
-              </div>
-            ) : null}
+            <div className="site-pages" aria-label="Comparison pages">
+              <button type="button" disabled={compareIndex === 0} onClick={() => setComparePage(compareIndex - 1)}>Previous</button>
+              <span>{compareIndex + 1} / {compareCount}</span>
+              <button type="button" disabled={compareIndex >= compareCount - 1} onClick={() => setComparePage(compareIndex + 1)}>Next</button>
+            </div>
             <button type="button" className="site-catalog-action site-catalog-close" onClick={() => setComparing(false)}>Close</button>
           </div>
           <div className="site-compare-sheet">
@@ -483,24 +539,25 @@ export function ConfigurationCatalog() {
                 <div key={label} role="columnheader">{label}</div>
               ))}
             </div>
-            <div className="site-compare-rows" style={{ "--compare-rows": String(COMPARE_ROWS) } as CSSProperties}>
+            <div className="site-compare-rows" style={{ "--compare-rows": String(Math.max(1, compareRows.length)) } as CSSProperties}>
               {compareRows.map((card) => {
                 const stats = configurationStats(card.entry, site.site.ring, site.site.ringAreaSqFt);
                 return (
                   <div key={card.entry.id} className="site-compare-line" role="row">
                     <div className="site-compare-cell" role="rowheader">
                       <p className="site-identity">{card.entry.name}</p>
+                      <p className="site-compare-claim">{rowClaim(card, stats.modules)}</p>
                     </div>
                     <MatrixLine entry={card.entry} meshes={loadedMeshes} frames={sharedFrames} fitRadius={compareFit} />
                     <div className="site-compare-cell" role="cell">
-                      <p className="site-identity">{stats.modules} modules</p>
                       <ShareMeters entry={card.entry} />
+                      <p className="site-compare-foot site-note">{stats.modules} modules</p>
                     </div>
                     <div className="site-compare-cell" role="cell">
-                      <SiteFigures entry={card.entry} />
+                      <SiteFigures entry={card.entry} fitFeet={compareFitFeet} />
                     </div>
                     <div className="site-compare-cell" role="cell">
-                      <VerticalBands placed={placedOf(card.entry)} scale={bandScale} />
+                      <VerticalBands placed={placedOf(card.entry)} scale={bandScale} fitFeet={compareFitFeet} />
                     </div>
                   </div>
                 );

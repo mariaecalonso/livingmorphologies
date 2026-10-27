@@ -10,3 +10,5 @@ Every expandable panel on an individual workflow returns to that workflow. The c
 `PresentControls` in `components/workflow-present.tsx` owns this. It reads the name from `.wf-board` and renders the button. A new panel uses `PresentControls`. It does not invent a second back control or a different label.
 
 The control stays visible inside the frame. Panel content does not cover it or push it outside.
+
+Pause and Restart stay in the workflow corner. An open panel does not add a second pair, and it does not move the corner pair.
