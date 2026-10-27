@@ -18,6 +18,7 @@ import {
   PhysarumParameterPanel,
   agentCountFromDensity,
 } from "@/components/skill1-archetype-info";
+import { Skill1AnalysisDashboard } from "@/components/skill1-analysis-dashboard";
 import { downloadPlanPng, renderPlanImage, Skill1PlanView } from "@/components/skill1-viz";
 import { Skill2AuditWorkspace } from "@/components/skill2-audit";
 import { DIRECT_CARVE_THRESHOLD, Skill2DirectInverseField } from "@/components/skill2-audit-views";
@@ -31,6 +32,12 @@ import {
   ratingDescription,
 } from "@/lib/catalog";
 import { mulberry32, ratingLabel } from "@/lib/physarum";
+import {
+  createAnalysisSession,
+  DEFAULT_SAMPLE_INTERVAL,
+  recordAnalysisSample,
+  type AnalysisSession,
+} from "@/lib/skill1/analysis";
 import {
   captureSnapshot,
   createSimulation,
@@ -50,7 +57,7 @@ import {
   paramsFromRatings,
   translateArchetype,
 } from "@/lib/skill1/translate";
-import type { FieldSnapshot, SimulationState, VizSettings } from "@/lib/skill1/types";
+import type { BiologicalTranslation, FieldSnapshot, SimulationState, VizSettings } from "@/lib/skill1/types";
 import type { RatingsMap, TypologyId } from "@/lib/types";
 import { loadBoardSession, saveBoardSession, simulationFromSnapshot } from "@/lib/persist/session";
 
@@ -80,6 +87,7 @@ function recipeAttractors(recipe: { attractor: { x: number; y: number }; attract
   return [{ kind: "point" as const, x: recipe.attractor.x, y: recipe.attractor.y, radius: 1.6 }];
 }
 
+const GENERATION_LIMIT_MS = 60_000;
 const WALL_CONTROLS_KEY = "lm-wall-controls";
 
 /** Slider values on the wall just before the runs page replaced that view. */
@@ -180,6 +188,8 @@ export function LivingInstrument() {
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [boardReady, setBoardReady] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisSession | null>(null);
+  const [analysisInterval, setAnalysisInterval] = useState(DEFAULT_SAMPLE_INTERVAL);
   const persistReadyRef = useRef(false);
   const slimeRef = useRef<SlimeControls | null>(null);
   const attractorMarksRef = useRef<FieldAttractor[] | null>(null);
@@ -218,6 +228,8 @@ export function LivingInstrument() {
   const debounceRef = useRef<number | null>(null);
   const growthRef = useRef<number | null>(null);
   const simRef = useRef<SimulationState | null>(null);
+  const analysisRef = useRef<AnalysisSession | null>(null);
+  const analysisIntervalRef = useRef(DEFAULT_SAMPLE_INTERVAL);
 
   useEffect(() => {
     let live = true;
@@ -289,6 +301,26 @@ export function LivingInstrument() {
     targetIterationsRef.current = targetIterations;
   }, [targetIterations]);
   useEffect(() => {
+    analysisIntervalRef.current = analysisInterval;
+  }, [analysisInterval]);
+  useEffect(() => {
+    if (!boardReady || simulating || !state || analysisRef.current) return;
+    const simulationId = `restored:${archetype.id}:${state.seed}:${state.iteration}`;
+    const session = createAnalysisSession({
+      simulationId,
+      seed: state.seed,
+      archetypeId: archetype.id,
+      archetypeName: archetype.name,
+      typologyId,
+    });
+    const next = recordAnalysisSample(session, state, analysisInputOf(translationRef.current), {
+      interval: analysisIntervalRef.current,
+      force: true,
+    });
+    analysisRef.current = next;
+    setAnalysis(next);
+  }, [boardReady, simulating, state, archetype.id, archetype.name, typologyId]);
+  useEffect(() => {
     snapshotsRef.current = snapshots;
   }, [snapshots]);
   useEffect(() => {
@@ -303,44 +335,95 @@ export function LivingInstrument() {
   const seedFor = (id: string, nextRun: number) =>
     (0x51c11 ^ (nextRun * 9973) ^ id.length * 131) >>> 0;
 
+  const analysisInputOf = (current: BiologicalTranslation) => ({
+    ratings: current.ratings,
+    typologyId: current.typologyId,
+    isolationRadius: current.recipe.isolationRadius,
+    attractors: (current.recipe.attractors ?? []).map((item) => ({ x: item.x, y: item.y })),
+  });
+
+  const publishAnalysis = (sim: SimulationState, generation: number, force: boolean) => {
+    const current = translationRef.current;
+    const simulationId = `${current.archetypeId}:${sim.seed}:${generation}`;
+    let session = analysisRef.current;
+    if (!session || session.simulationId !== simulationId) {
+      session = createAnalysisSession({
+        simulationId,
+        seed: sim.seed,
+        archetypeId: current.archetypeId,
+        archetypeName: current.archetypeName,
+        typologyId: current.typologyId,
+      });
+    }
+    const next = recordAnalysisSample(session, sim, analysisInputOf(current), {
+      interval: analysisIntervalRef.current,
+      force,
+    });
+    if (next !== analysisRef.current) {
+      analysisRef.current = next;
+      setAnalysis(next);
+    }
+  };
+
   const publishFinalField = (sim: SimulationState, generation: number) => {
     if (growthRef.current != null) window.clearTimeout(growthRef.current);
     const slime = slimeRef.current ?? undefined;
     const trailDecay = vizRef.current.trailDecay;
     simRef.current = sim;
     stateRef.current = sim;
+    publishAnalysis(sim, generation, true);
     setState({ ...sim });
+    const startedAt = performance.now();
+    let perStep = 50;
+    const finish = (current: SimulationState) => {
+      if (!current.converged && current.iteration < current.maxIterations) current.converged = true;
+      simRef.current = current;
+      stateRef.current = current;
+      publishAnalysis(current, generation, true);
+      setState({ ...current });
+      const snapshot = captureSnapshot(current);
+      snapshotsRef.current = { [snapshot.iteration]: snapshot };
+      setSnapshots(snapshotsRef.current);
+      setSimulating(false);
+    };
     const pump = () => {
       if (generationRef.current !== generation || !translationRef.current) return;
-      const current = simRef.current;
-      if (!current || current.converged) {
-        setSimulating(false);
+      let current = simRef.current;
+      if (!current || current.converged || current.iteration >= current.maxIterations) {
+        if (current) finish(current);
+        else setSimulating(false);
         return;
       }
-      const started = performance.now();
-      const batch = Math.max(1, Math.round(current.maxIterations / 180));
-      const next = stepMany(
-        current,
-        translationRef.current,
-        rngRef.current,
-        batch,
-        trailDecay,
-        slime,
-      );
-      simRef.current = next;
-      stateRef.current = next;
-      setState({ ...next });
-      if (next.converged || next.iteration >= next.maxIterations) {
-        const snapshot = captureSnapshot(next);
-        snapshotsRef.current = { [snapshot.iteration]: snapshot };
-        setSnapshots(snapshotsRef.current);
-        setSimulating(false);
-        return;
+      const paintedAt = performance.now();
+      while (current.iteration < current.maxIterations && !current.converged) {
+        const timeLeft = GENERATION_LIMIT_MS - (performance.now() - startedAt);
+        if (timeLeft <= 3000) break;
+        const remaining = current.maxIterations - current.iteration;
+        const affordable = Math.max(1, Math.floor((timeLeft - 3000) / Math.max(8, perStep)));
+        const batch = Math.min(remaining, affordable, 20);
+        const before = current.iteration;
+        const stepStarted = performance.now();
+        current = stepMany(
+          current,
+          translationRef.current,
+          rngRef.current,
+          batch,
+          trailDecay,
+          slime,
+        );
+        perStep = (performance.now() - stepStarted) / Math.max(1, current.iteration - before);
+        simRef.current = current;
+        stateRef.current = current;
+        if (performance.now() - paintedAt > 12000 && timeLeft > 8000 && current.iteration < current.maxIterations && !current.converged) {
+          publishAnalysis(current, generation, false);
+          setState({ ...current });
+          growthRef.current = window.setTimeout(pump, 0);
+          return;
+        }
       }
-      const delay = Math.max(16, 48 - (performance.now() - started));
-      growthRef.current = window.setTimeout(pump, delay);
+      finish(current);
     };
-    growthRef.current = window.setTimeout(pump, 32);
+    growthRef.current = window.setTimeout(pump, 0);
   };
 
   const liveSnapshot = useMemo(
@@ -349,7 +432,7 @@ export function LivingInstrument() {
   );
 
   useEffect(() => {
-    if (!boardReady) return;
+    if (!boardReady || simulating) return;
     const timer = window.setTimeout(() => {
       void saveBoardSession(
         {
@@ -375,6 +458,7 @@ export function LivingInstrument() {
     return () => window.clearTimeout(timer);
   }, [
     boardReady,
+    simulating,
     typologyId,
     archetypeId,
     ratings,
@@ -495,6 +579,8 @@ export function LivingInstrument() {
     stateRef.current = null;
     snapshotsRef.current = {};
     setSnapshots({});
+    analysisRef.current = null;
+    setAnalysis(null);
   };
 
   const pulse = (message: string) => {
@@ -502,20 +588,10 @@ export function LivingInstrument() {
     window.setTimeout(() => setNotice(null), 1600);
   };
 
-  const selectTypology = (id: TypologyId) => {
-    const next = findTypology(id);
-    const first = next.archetypes[0];
-    setTypologyId(id);
-    setArchetypeId(first.id);
-    setRatings(defaultRatings(first));
-    setIteration(1);
-    setRun(0);
-    clearField();
-    setFocus("Typology");
-  };
-
-  const selectArchetype = (id: string) => {
-    const next = findArchetype(typology, id);
+  const selectArchetype = (nextTypologyId: TypologyId, id: string) => {
+    const nextTypology = findTypology(nextTypologyId);
+    const next = findArchetype(nextTypology, id);
+    setTypologyId(nextTypologyId);
     setArchetypeId(next.id);
     setRatings(defaultRatings(next));
     setIteration(1);
@@ -629,30 +705,6 @@ export function LivingInstrument() {
         <div className="living-instrument-header-identity">
           <p className="eyebrow text-[0.58rem]">Emergent Network</p>
         </div>
-        <nav className="flex items-center gap-1" aria-label="Typology">
-          {TYPOLOGIES.map((item) => {
-            const active = item.id === typologyId;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                title={item.definition}
-                aria-label={`${item.label}. ${item.definition}`}
-                onClick={() => selectTypology(item.id)}
-                className={`group relative min-w-[7.5rem] border px-4 py-1.5 text-[0.72rem] tracking-[0.22em] uppercase transition ${
-                  active
-                    ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.16),rgba(199,126,95,0.16))] text-white"
-                    : "border-[rgba(242,242,238,0.18)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.38)] hover:text-[var(--text)]"
-                }`}
-              >
-                {item.label}
-                <span className="pointer-events-none absolute left-1/2 top-[calc(100%+0.45rem)] z-30 hidden w-[18rem] -translate-x-1/2 border border-[var(--line)] bg-[var(--panel-strong)] px-3 py-2 text-left text-[0.68rem] normal-case tracking-normal text-[#d5eef6] shadow-[0_12px_30px_rgba(0,0,0,0.45)] group-hover:block group-focus-visible:block">
-                  {item.definition}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
         <div className="living-instrument-display-mode flex items-center gap-2" aria-label="Display mode">
           <button
             type="button"
@@ -716,23 +768,28 @@ export function LivingInstrument() {
         <Panel className="flex flex-col">
           <PanelHeader kicker="Input" title="Archetype" />
           <div className="flex flex-1 flex-col gap-1.5">
-            {typology.archetypes.map((item) => {
-              const active = item.id === archetype.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => selectArchetype(item.id)}
-                  className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
-                    active
-                      ? "border-[var(--cyan)] bg-[linear-gradient(90deg,rgba(15,115,119,0.14),rgba(199,126,95,0.14))] text-white"
-                      : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
-                  }`}
-                >
-                  {item.name}
-                </button>
-              );
-            })}
+            {TYPOLOGIES.flatMap((item) => [
+              <p key={`${item.id}-label`} className="archetype-group-label">
+                {item.label}
+              </p>,
+              ...item.archetypes.map((entry) => {
+                const active = item.id === typologyId && entry.id === archetype.id;
+                return (
+                  <button
+                    key={`${item.id}-${entry.id}`}
+                    type="button"
+                    onClick={() => selectArchetype(item.id, entry.id)}
+                    className={`border px-1.5 py-1.5 text-left text-[0.58rem] leading-tight tracking-[0.08em] uppercase transition ${
+                      active
+                        ? "archetype-selected text-white"
+                        : "border-[rgba(242,242,238,0.16)] text-[var(--muted)] hover:border-[rgba(242,242,238,0.32)] hover:text-[var(--text)]"
+                    }`}
+                  >
+                    {entry.name}
+                  </button>
+                );
+              }),
+            ])}
           </div>
         </Panel>
         </section>
@@ -799,6 +856,7 @@ export function LivingInstrument() {
                           <input
                             className="range-hud"
                             data-high={value === 2 ? "true" : "false"}
+                            style={{ ["--slider" as string]: String((value / 2) * 100) }}
                             type="range"
                             min={0}
                             max={2}
@@ -857,7 +915,7 @@ export function LivingInstrument() {
             <div className="flex items-start justify-between gap-3 px-3 pt-3">
               <div>
                 <p className="eyebrow">Physarum Workflow</p>
-                <h2 className="panel-title mt-1">Emergent Spatial Logic</h2>
+                <h2 className="panel-title mt-1">Agent / Simulation</h2>
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -875,7 +933,6 @@ export function LivingInstrument() {
               <aside className="agent-information" aria-label="Agent simulation">
                 <div className="agent-information-header">
                   <p className="eyebrow">{archetype.name}</p>
-                  <h3 className="panel-title mt-1">Agent / Simulation</h3>
                 </div>
                 <div className="agent-logic">
                   <PhysarumParameterPanel
@@ -917,29 +974,6 @@ export function LivingInstrument() {
               <div className="agent-compare agent-compare-field">
                 <div className="agent-compare-head">
                   <p className="eyebrow agent-zone-title">Physarum field</p>
-                  <div className="flex flex-wrap items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={generate}
-                      className="border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--orange-hot)]"
-                    >
-                      Generate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetField}
-                      className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      type="button"
-                      onClick={regenerate}
-                      className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
-                    >
-                      Regenerate
-                    </button>
-                  </div>
                 </div>
                 <div className="agent-compare-head agent-carving" hidden>
                   <p className="eyebrow agent-zone-title">Carving</p>
@@ -955,6 +989,29 @@ export function LivingInstrument() {
                 </div>
                 <div className="agent-stage" ref={physarumExportRef}>
                   <div className="agent-stage-square agent-field bg-[#000000]">
+                    <div className="agent-field-actions">
+                      <button
+                        type="button"
+                        onClick={generate}
+                        className="border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--orange-hot)]"
+                      >
+                        Generate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetField}
+                        className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        onClick={regenerate}
+                        className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
+                      >
+                        Regenerate
+                      </button>
+                    </div>
                     <Skill1PlanView
                       snapshot={liveSnapshot}
                       density={viz.density}
@@ -975,6 +1032,15 @@ export function LivingInstrument() {
                       onAttractorsChange={rememberMarks}
                     />
                   </div>
+                  <Skill1AnalysisDashboard
+                    session={analysis}
+                    simulating={simulating}
+                    sampleInterval={analysisInterval}
+                    onSampleInterval={(value) => {
+                      analysisIntervalRef.current = value;
+                      setAnalysisInterval(value);
+                    }}
+                  />
                 </div>
                 <div className="agent-stage agent-carving" ref={carvingExportRef} hidden>
                   <div className="agent-stage-square agent-field bg-[#000000]">

@@ -105,6 +105,20 @@ export function correspondProfiles(
   );
 }
 
+/** Resample one profile's largest closed loop. Optionally rotate it onto a reference ring. */
+export function sampleProfileLoop(
+  profile: FaceProfile | null,
+  sampleCount: number,
+  reference: readonly CorrespondenceSample[] | null,
+): CorrespondenceSample[] | null {
+  if (!profile || profile.status !== "ready" || !validSampleCount(sampleCount)) return null;
+  const selected = chooseLoop(inspect(profile.loops));
+  if (!selected) return null;
+  const samples = resampleClosed(orient(profile.loops[selected.index].points), sampleCount);
+  if (!reference || reference.length !== sampleCount) return samples;
+  return alignSamples(reference, samples).samples;
+}
+
 function validSampleCount(sampleCount: number) {
   return Number.isInteger(sampleCount) && sampleCount >= PROFILE_CORRESPONDENCE_SETTINGS.minimumSamples;
 }

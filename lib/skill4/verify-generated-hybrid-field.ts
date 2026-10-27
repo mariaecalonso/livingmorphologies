@@ -135,7 +135,9 @@ const buffers = new Set<Float32Array | Uint32Array>();
 for (const item of first.candidates) {
   assert(item.geometry !== null, `${item.candidateId} has a mesh`);
   if (!item.geometry) throw new Error("unreachable");
-  assert(item.vertexCount === 80 && item.triangleCount === 128, `${item.candidateId} keeps the loft counts`);
+  const expectedVertices = samples * steps;
+  const expectedTriangles = 2 * samples * (steps - 1);
+  assert(item.vertexCount === expectedVertices && item.triangleCount === expectedTriangles, `${item.candidateId} keeps the loft counts`);
   assert(!buffers.has(item.geometry.positions) && !buffers.has(item.geometry.normals) && !buffers.has(item.geometry.indices), `${item.candidateId} owns its buffers`);
   buffers.add(item.geometry.positions);
   for (let index = 0; index < item.geometry.positions.length; index += 1) {

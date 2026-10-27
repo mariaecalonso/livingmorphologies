@@ -8,6 +8,7 @@
     "start": "next start --hostname 0.0.0.0 --port 43141",
     "lint": "eslint",
     "verify:skill1": "npx --yes tsx lib/skill1/verify.ts",
+    "verify:skill1-analysis": "npx --yes tsx lib/skill1/verify-analysis.ts",
     "verify:lobby": "npx --yes tsx lib/skill1/verify-lobby-realization.ts",
     "verify:skill2-semantic": "npx --yes tsx lib/skill2/semantic/verify-semantic.ts",
     "verify:skill2-fidelity": "npx --yes tsx lib/skill2/semantic/verify-fidelity-method.ts",

@@ -5,8 +5,9 @@ import type { ModuleHandoff } from "./adapt";
 
 /**
  * SOM-inspired candidate field.
- * Columns move from archetype A toward archetype B. Rows add a fixed deviation
- * around that blend. This is not a trained self-organizing map.
+ * Columns blend archetype A toward archetype B with fixed parent weights.
+ * Rows raise transformation intensity. They do not add another criteria offset.
+ * This is not a trained self-organizing map.
  * A trained SOM would need a distance metric, a neighborhood function,
  * repeated presentation of input vectors, and weight updates on the lattice.
  *
@@ -16,14 +17,16 @@ import type { ModuleHandoff } from "./adapt";
  * A later adapter can map a continuous value onto CRITERION_TARGETS explicitly.
  */
 export const CANDIDATE_FIELD_SETTINGS = {
-  version: "skill4-candidate-field-v1",
+  version: "skill4-candidate-field-v2",
   count: 25,
   rows: 5,
   columns: 5,
   order: "row-major, H01 at row 0 column 0",
-  columnAxis: "t = column / 4, from archetype A to archetype B",
-  rowAxis: "offset = (row - 2) / 2 * 0.25 around the column blend",
-  rowAmplitude: 0.25,
+  columnAxis: "weightA = [0.90, 0.70, 0.50, 0.30, 0.10], weightB = 1 - weightA",
+  rowAxis: "transformation intensity increases from restrained at row 0 to highly transformed at row 4",
+  parentWeightsA: [0.9, 0.7, 0.5, 0.3, 0.1],
+  parentWeightsB: [0.1, 0.3, 0.5, 0.7, 0.9],
+  intensities: [0.22, 0.5, 0.82, 1.2, 1.65],
   range: [0, 2] as const,
   shared: "equal catalog ratings are copied unchanged",
   oneSided: "a criterion ranked by only one archetype keeps that rating on every candidate",
@@ -45,6 +48,11 @@ export type HybridCandidate = {
   id: string;
   row: number;
   column: number;
+  som: {
+    weightA: number;
+    weightB: number;
+    intensity: number;
+  };
   criteria: HybridCriterionValue[];
   generationInput: {
     faceA: FaceObservation;
@@ -73,12 +81,21 @@ function ratingsOf(identity: ModuleIdentity | null) {
   return ratings;
 }
 
-function blend(catalogA: number, catalogB: number, row: number, column: number) {
-  const columns = CANDIDATE_FIELD_SETTINGS.columns - 1;
-  const t = column / columns;
-  const base = catalogA + (catalogB - catalogA) * t;
-  const offset = ((row - 2) / 2) * CANDIDATE_FIELD_SETTINGS.rowAmplitude;
-  const raw = base + offset;
+function columnWeightA(column: number) {
+  return CANDIDATE_FIELD_SETTINGS.parentWeightsA[column] ?? 0.5;
+}
+
+function columnWeightB(column: number) {
+  return CANDIDATE_FIELD_SETTINGS.parentWeightsB[column] ?? 0.5;
+}
+
+function rowIntensity(row: number) {
+  return CANDIDATE_FIELD_SETTINGS.intensities[row] ?? 0.82;
+}
+
+function blend(catalogA: number, catalogB: number, column: number) {
+  const weightB = columnWeightB(column);
+  const raw = catalogA + (catalogB - catalogA) * weightB;
   const value = Math.min(CANDIDATE_FIELD_SETTINGS.range[1], Math.max(CANDIDATE_FIELD_SETTINGS.range[0], raw));
   return { value, clamped: value !== raw };
 }
@@ -95,6 +112,7 @@ export function buildCandidateField(args: {
   for (let row = 0; row < CANDIDATE_FIELD_SETTINGS.rows; row += 1) {
     for (let column = 0; column < CANDIDATE_FIELD_SETTINGS.columns; column += 1) {
       const index = row * CANDIDATE_FIELD_SETTINGS.columns + column + 1;
+      const weightA = columnWeightA(column);
       const criteria = ids.map((criterionId) => {
         const catalogA = args.ratingsA.has(criterionId) ? args.ratingsA.get(criterionId)! : null;
         const catalogB = args.ratingsB.has(criterionId) ? args.ratingsB.get(criterionId)! : null;
@@ -102,7 +120,7 @@ export function buildCandidateField(args: {
           return { criterionId, value: catalogA, catalogA, catalogB, role: "shared" as const, clamped: false };
         }
         if (catalogA !== null && catalogB !== null) {
-          const mixed = blend(catalogA, catalogB, row, column);
+          const mixed = blend(catalogA, catalogB, column);
           return { criterionId, value: mixed.value, catalogA, catalogB, role: "blended" as const, clamped: mixed.clamped };
         }
         const only = catalogA ?? catalogB ?? 0;
@@ -112,6 +130,7 @@ export function buildCandidateField(args: {
         id: `H${String(index).padStart(2, "0")}`,
         row,
         column,
+        som: { weightA, weightB: columnWeightB(column), intensity: rowIntensity(row) },
         criteria,
         generationInput: {
           faceA: args.faceA,

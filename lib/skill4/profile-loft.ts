@@ -1,7 +1,7 @@
 import type { IsoMesh } from "../scan/isomesh";
 import type { FaceFrame, Vec3 } from "./contract";
 import { profilePointToWorld } from "./face-profile";
-import { connectorFrame, deformRing, type DeformationDna } from "./hybrid-deformation";
+import { connectorFrame, deformationEnvelope, deformRing, type DeformationDna } from "./hybrid-deformation";
 import type { CorrespondenceSample, ProfileCorrespondence } from "./profile-correspondence";
 
 /**
@@ -20,6 +20,16 @@ export const PROFILE_LOFT_SETTINGS = {
 
 export type ProfileLoftStatus = "ready" | "blocked" | "invalid" | "empty";
 
+export type SomStation = readonly { u: number; v: number }[];
+
+export type SomGuide = {
+  weightA: number;
+  weightB: number;
+  intensity: number;
+  sectionsA: readonly SomStation[];
+  sectionsB: readonly SomStation[];
+};
+
 export type ProfileLoftRequest = {
   correspondence: ProfileCorrespondence | null;
   frameA: FaceFrame | null;
@@ -28,6 +38,7 @@ export type ProfileLoftRequest = {
   depthB: number;
   steps: number;
   deformation?: DeformationDna | null;
+  som?: SomGuide | null;
 };
 
 export type ProfileLoft = {
@@ -92,8 +103,10 @@ export function loftProfiles(request: ProfileLoftRequest): ProfileLoft {
 
   for (let ring = 0; ring < steps; ring += 1) {
     const t = ring / (steps - 1);
-    const straight = ringA.map((point, index) => lerp(point, ringB[index], t));
-    const placed = dna && frame ? deformRing(straight, t, dna, frame) : straight;
+    const endpoint = t <= 0 ? ringA : t >= 1 ? ringB : null;
+    const straight = endpoint
+      ?? (request.som ? shapeSomRing(ringA, ringB, centerA, centerB, t, request.som, frameA, frameB) : ringA.map((point, index) => lerp(point, ringB[index], t)));
+    const placed = !endpoint && dna && frame ? deformRing(straight, t, dna, frame) : straight;
     for (let sample = 0; sample < sampleCount; sample += 1) {
       const point = placed[sample];
       const offset = (ring * sampleCount + sample) * 3;
@@ -138,6 +151,86 @@ export function loftProfiles(request: ProfileLoftRequest): ProfileLoft {
     span,
     reason: "",
   };
+}
+
+function shapeSomRing(
+  ringA: readonly Vec3[],
+  ringB: readonly Vec3[],
+  centerA: Vec3,
+  centerB: Vec3,
+  t: number,
+  som: SomGuide,
+  frameA: FaceFrame,
+  frameB: FaceFrame,
+): Vec3[] {
+  const blend = sectionBlend(t, som.weightB);
+  const axis = lerp(centerA, centerB, t);
+  const radialA = ringA.map((point) => sub(point, centerA));
+  const radialB = ringB.map((point) => sub(point, centerB));
+  const fade = deformationEnvelope(t);
+  const reveal = fade * Math.min(1.5, Math.max(0, som.intensity));
+  const deltaA = stationDelta(som.sectionsA, reveal, frameA);
+  const deltaB = stationDelta(som.sectionsB, reveal, frameB);
+  const cross = Math.max(0, 1 - Math.abs(som.weightA - som.weightB) / 0.8);
+  const detail = residual(radialA);
+  const detailB = residual(radialB);
+  const keep = Math.min(1, 0.4 + 0.6 * Math.min(1, Math.max(0, som.intensity))) * cross * fade;
+
+  return radialA.map((armA, index) => {
+    const armB = radialB[index];
+    let radial = lerp(armA, armB, blend);
+    const extraA = deltaA[index];
+    const extraB = deltaB[index];
+    if (extraA && extraB) radial = add(radial, lerp(extraA, extraB, blend));
+    if (keep > 0) {
+      radial = add(radial, scale(add(detail[index], detailB[index]), 0.85 * keep));
+    }
+    return add(axis, radial);
+  });
+}
+
+function sectionBlend(t: number, weightB: number) {
+  const clamped = Math.min(1, Math.max(0, t));
+  const b = Math.min(0.95, Math.max(0.05, weightB));
+  const a = 1 - b;
+  const gap = a - b;
+  if (Math.abs(gap) < 0.02) return clamped;
+  const exponent = 1 + Math.abs(gap) * 3.2;
+  return gap > 0 ? clamped ** exponent : 1 - (1 - clamped) ** exponent;
+}
+
+function stationDelta(sections: readonly SomStation[], reveal: number, frame: FaceFrame): Array<Vec3 | null> {
+  const count = sections[0]?.length ?? 0;
+  if (count < 3 || sections.length < 2 || reveal <= 0) return Array.from({ length: count }, () => null);
+  const last = sections.length - 1;
+  const pos = Math.min(last, (reveal / 1.5) * last);
+  const lower = Math.min(last - 1, Math.floor(pos));
+  const upper = Math.min(last, lower + 1);
+  const fraction = pos >= last ? 1 : pos - lower;
+  const base = sections[0];
+  if (base.length !== count || sections[lower].length !== count || sections[upper].length !== count) {
+    return Array.from({ length: count }, () => null);
+  }
+  return base.map((origin, index) => {
+    const from = sections[lower][index];
+    const to = sections[upper][index];
+    const du = (from.u - origin.u) * (1 - fraction) + (to.u - origin.u) * fraction;
+    const dv = (from.v - origin.v) * (1 - fraction) + (to.v - origin.v) * fraction;
+    if (!Number.isFinite(du) || !Number.isFinite(dv)) return null;
+    return add(scale(frame.u, du), scale(frame.v, dv));
+  });
+}
+
+function residual(radial: readonly Vec3[]): Vec3[] {
+  const count = radial.length;
+  const radius = 3;
+  return radial.map((point, index) => {
+    let sum = { x: 0, y: 0, z: 0 };
+    for (let offset = -radius; offset <= radius; offset += 1) {
+      sum = add(sum, radial[(index + offset + count) % count]);
+    }
+    return sub(point, scale(sum, 1 / (radius * 2 + 1)));
+  });
 }
 
 function windingFlip(ringA: Vec3[], ringB: Vec3[], centerA: Vec3, centerB: Vec3) {

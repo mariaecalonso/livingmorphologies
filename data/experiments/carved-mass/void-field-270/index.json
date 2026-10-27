@@ -1,0 +1,600 @@
+{
+  "contract": "carved-mass-module-v1",
+  "folder": "void-field-270",
+  "modules": [
+    {
+      "moduleId": "carved-mass:void-field:270:N01",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N01",
+      "continuationSeed": 1242264828,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.049484525034293556,
+      "components": 1,
+      "openingSize": 63046,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.045454545454545414,
+      "silhouetteVsReference": 0.886780905752754,
+      "file": "void-field-270/N01.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N02",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N02",
+      "continuationSeed": 1292597685,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.0427946030521262,
+      "components": 1,
+      "openingSize": 64828,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N03",
+      "nearestDifference": 0.050724637681159424,
+      "silhouetteVsReference": 0.8968499073502162,
+      "file": "void-field-270/N02.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N03",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N03",
+      "continuationSeed": 1275820066,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.042599022633744855,
+      "components": 1,
+      "openingSize": 63764,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N13",
+      "nearestDifference": 0.03717472118959109,
+      "silhouetteVsReference": 0.9011124845488258,
+      "file": "void-field-270/N03.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N04",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N04",
+      "continuationSeed": 1191931971,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.24837373542524005,
+      "components": 1,
+      "openingSize": 68476,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N11",
+      "nearestDifference": 0.12949194547707554,
+      "silhouetteVsReference": 0.274221961244862,
+      "file": "void-field-270/N04.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N05",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N05",
+      "continuationSeed": 1175154352,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2815982938957476,
+      "components": 1,
+      "openingSize": 52617,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        10
+      ],
+      "nearestId": "N20",
+      "nearestDifference": 0.06307409675443965,
+      "silhouetteVsReference": 0.15453998797354174,
+      "file": "void-field-270/N05.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N06",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N06",
+      "continuationSeed": 1225487209,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.290592313957476,
+      "components": 1,
+      "openingSize": 44407,
+      "wall": [
+        0.5555555555555556,
+        6.111111111111112,
+        11.666666666666668
+      ],
+      "nearestId": "N17",
+      "nearestDifference": 0.13833528722157096,
+      "silhouetteVsReference": 0.3195652173913044,
+      "file": "void-field-270/N06.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N07",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N07",
+      "continuationSeed": 1208709590,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.048332475994513034,
+      "components": 1,
+      "openingSize": 63748,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N09",
+      "nearestDifference": 0.032786885245901676,
+      "silhouetteVsReference": 0.8884803921568627,
+      "file": "void-field-270/N07.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N08",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N08",
+      "continuationSeed": 1393263399,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.04738136574074074,
+      "components": 1,
+      "openingSize": 65015,
+      "wall": [
+        0.5555555555555556,
+        5,
+        7.777777777777779
+      ],
+      "nearestId": "N07",
+      "nearestDifference": 0.042622950819672156,
+      "silhouetteVsReference": 0.8888206388206388,
+      "file": "void-field-270/N08.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N09",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N09",
+      "continuationSeed": 1376485780,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.047515324931412896,
+      "components": 1,
+      "openingSize": 64003,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.333333333333334
+      ],
+      "nearestId": "N07",
+      "nearestDifference": 0.032786885245901676,
+      "silhouetteVsReference": 0.8883435582822086,
+      "file": "void-field-270/N09.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N10",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N10",
+      "continuationSeed": 1544084772,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2678004972565158,
+      "components": 1,
+      "openingSize": 56683,
+      "wall": [
+        0.5555555555555556,
+        5,
+        10
+      ],
+      "nearestId": "N22",
+      "nearestDifference": 0.04512753433616745,
+      "silhouetteVsReference": 0,
+      "file": "void-field-270/N10.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N11",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N11",
+      "continuationSeed": 1560862391,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.29014221107681754,
+      "components": 1,
+      "openingSize": 56596,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.88888888888889
+      ],
+      "nearestId": "N04",
+      "nearestDifference": 0.12949194547707554,
+      "silhouetteVsReference": 0.2589686098654709,
+      "file": "void-field-270/N11.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N12",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N12",
+      "continuationSeed": 1577640010,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.31534797239369,
+      "components": 1,
+      "openingSize": 26446,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        12.777777777777779
+      ],
+      "nearestId": "N21",
+      "nearestDifference": 0.059233449477351874,
+      "silhouetteVsReference": 0.525854108956602,
+      "file": "void-field-270/N12.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N13",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N13",
+      "continuationSeed": 1594417629,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.04226412465706447,
+      "components": 1,
+      "openingSize": 62808,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.333333333333334
+      ],
+      "nearestId": "N03",
+      "nearestDifference": 0.03717472118959109,
+      "silhouetteVsReference": 0.9016697588126159,
+      "file": "void-field-270/N13.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N14",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N14",
+      "continuationSeed": 1476974296,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.053181798696844994,
+      "components": 1,
+      "openingSize": 62558,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.333333333333334
+      ],
+      "nearestId": "N01",
+      "nearestDifference": 0.08132530120481929,
+      "silhouetteVsReference": 0.8790273556231003,
+      "file": "void-field-270/N14.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N15",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N15",
+      "continuationSeed": 1493751915,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [
+        "low-solid"
+      ],
+      "solidFraction": 0.047638567386831275,
+      "components": 1,
+      "openingSize": 46249,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        8.333333333333334
+      ],
+      "nearestId": "N08",
+      "nearestDifference": 0.25970149253731345,
+      "silhouetteVsReference": 0.9090909090909091,
+      "file": "void-field-270/N15.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N16",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N16",
+      "continuationSeed": 1510529534,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.26388085133744854,
+      "components": 1,
+      "openingSize": 56593,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.021192052980132492,
+      "silhouetteVsReference": 0.06829896907216493,
+      "file": "void-field-270/N16.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N17",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N17",
+      "continuationSeed": 1527307153,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2972554441015089,
+      "components": 1,
+      "openingSize": 40283,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        18.333333333333336
+      ],
+      "nearestId": "N06",
+      "nearestDifference": 0.13833528722157096,
+      "silhouetteVsReference": 0.3969072164948454,
+      "file": "void-field-270/N17.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N18",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N18",
+      "continuationSeed": 1409863820,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2701849708504801,
+      "components": 1,
+      "openingSize": 77059,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N11",
+      "nearestDifference": 0.1931155192532089,
+      "silhouetteVsReference": 0.36388286334056397,
+      "file": "void-field-270/N18.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N19",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N19",
+      "continuationSeed": 1426641439,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.24851037379972565,
+      "components": 1,
+      "openingSize": 58743,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N10",
+      "nearestDifference": 0.09126213592233012,
+      "silhouetteVsReference": 0.09126213592233012,
+      "file": "void-field-270/N19.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N20",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N20",
+      "continuationSeed": 3457174623,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.29445301783264743,
+      "components": 1,
+      "openingSize": 50538,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        11.11111111111111
+      ],
+      "nearestId": "N05",
+      "nearestDifference": 0.06307409675443965,
+      "silhouetteVsReference": 0.16254416961130747,
+      "file": "void-field-270/N20.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N21",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N21",
+      "continuationSeed": 3440397004,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.31316711676954734,
+      "components": 1,
+      "openingSize": 29191,
+      "wall": [
+        0.5555555555555556,
+        5.555555555555555,
+        15.555555555555557
+      ],
+      "nearestId": "N12",
+      "nearestDifference": 0.059233449477351874,
+      "silhouetteVsReference": 0.5044747998115874,
+      "file": "void-field-270/N21.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N22",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N22",
+      "continuationSeed": 3490729861,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2616008659122085,
+      "components": 1,
+      "openingSize": 57576,
+      "wall": [
+        0.5555555555555556,
+        5,
+        9.444444444444445
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.032558139534883734,
+      "silhouetteVsReference": 0.04512753433616745,
+      "file": "void-field-270/N22.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N23",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N23",
+      "continuationSeed": 3473952242,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2636531207133059,
+      "components": 1,
+      "openingSize": 65653,
+      "wall": [
+        0.5555555555555556,
+        5,
+        8.88888888888889
+      ],
+      "nearestId": "N24",
+      "nearestDifference": 0.1147335423197492,
+      "silhouetteVsReference": 0.1318885448916408,
+      "file": "void-field-270/N23.json"
+    },
+    {
+      "moduleId": "carved-mass:void-field:270:N24",
+      "category": "gathering",
+      "archetypeId": "void-field",
+      "archetypeName": "Void Field",
+      "candidateId": 270,
+      "continuationId": "N24",
+      "continuationSeed": 3390064147,
+      "z0Iteration": 600,
+      "parentChecksum": "cd1907b6",
+      "flags": [],
+      "solidFraction": 0.2680764531893004,
+      "components": 1,
+      "openingSize": 57826,
+      "wall": [
+        0.5555555555555556,
+        5,
+        10
+      ],
+      "nearestId": "N16",
+      "nearestDifference": 0.021192052980132492,
+      "silhouetteVsReference": 0.07037747920665383,
+      "file": "void-field-270/N24.json"
+    }
+  ]
+}

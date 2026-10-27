@@ -148,6 +148,7 @@ export function ArchetypeSimulationSettings({
         <span className="archetype-control-label">Agents {viz.agentCount}</span>
         <input
           className="range-hud archetype-control-input"
+          style={{ ["--slider" as string]: String(sliderFill(viz.agentCount, MIN_AGENT_COUNT, MAX_AGENT_COUNT)) }}
           type="range"
           min={MIN_AGENT_COUNT}
           max={MAX_AGENT_COUNT}
@@ -161,6 +162,7 @@ export function ArchetypeSimulationSettings({
         <span className="archetype-control-label">Density {viz.density}</span>
         <input
           className="range-hud archetype-control-input"
+          style={{ ["--slider" as string]: String(sliderFill(viz.density, MIN_DENSITY, MAX_DENSITY)) }}
           type="range"
           min={MIN_DENSITY}
           max={MAX_DENSITY}
@@ -174,6 +176,7 @@ export function ArchetypeSimulationSettings({
         <span className="archetype-control-label">Speed {viz.speed}</span>
         <input
           className="range-hud archetype-control-input"
+          style={{ ["--slider" as string]: String(sliderFill(viz.speed, 1, 8)) }}
           type="range"
           min={1}
           max={8}
@@ -188,6 +191,7 @@ export function ArchetypeSimulationSettings({
           <span className="archetype-control-label">Iterations {iterations}</span>
           <input
             className="range-hud archetype-control-input"
+            style={{ ["--slider" as string]: String(sliderFill(iterations, 1, MAX_ITERATIONS)) }}
             type="range"
             min={1}
             max={MAX_ITERATIONS}
@@ -203,6 +207,7 @@ export function ArchetypeSimulationSettings({
           <span className="archetype-control-label">Trail decay {viz.trailDecay.toFixed(3)}</span>
           <input
             className="range-hud archetype-control-input"
+            style={{ ["--slider" as string]: String(sliderFill(viz.trailDecay, 0.96, 0.998)) }}
             type="range"
             min={0.96}
             max={0.998}
@@ -214,6 +219,11 @@ export function ArchetypeSimulationSettings({
       ) : null}
     </div>
   );
+}
+
+function sliderFill(value: number, min: number, max: number) {
+  if (max <= min) return 0;
+  return Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
 }
 
 function ParameterSlider({
@@ -240,6 +250,7 @@ function ParameterSlider({
       </span>
       <input
         className="range-hud archetype-control-input"
+        style={{ ["--slider" as string]: String(sliderFill(value, min, max)) }}
         type="range"
         min={min}
         max={max}

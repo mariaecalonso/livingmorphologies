@@ -7,25 +7,35 @@ import type { HybridCriterionValue } from "./candidate-field";
  * Values stay continuous on [0, 2] and are not rounded to Low / Medium / High.
  */
 export const HYBRID_DEFORMATION_SETTINGS = {
-  version: "skill4-hybrid-deformation-v1",
-  envelope: "4 * t * (1 - t)",
+  version: "skill4-hybrid-deformation-v2",
+  envelope: "4 * t * (1 - t), multiplied by candidate intensity",
   dnaRange: [0, 2] as const,
-  complexity: "radial ripple sin(3θ), amplitude 0.16",
-  proportionality: "stretch section tangent by 0.22 and narrow bitangent by 0.15",
-  openness: "uniform radial expansion, amplitude 0.2",
-  directionality: "shift along section tangent by 0.4 of the mean radius",
-  connectivity: "blend each radius 0.3 of the way toward the mean radius",
-  plateArticulation: "shift along section bitangent by 0.3 of the mean radius",
+  complexity: "radial ripple sin(3θ)+sin(5θ) and a two-cycle longitudinal wave, then mixed back toward the parent radius",
+  proportionality: "stretch section tangent by up to 0.38 and narrow bitangent by up to 0.28",
+  openness: "uniform radial expansion, amplitude 0.28",
+  directionality: "shift along section tangent by 0.42 of the mean radius",
+  connectivity: "blend each radius toward the mean and add a two-lobe link",
+  plateArticulation: "stepped shift along section bitangent by 0.4 of the mean radius",
+  centrality: "pull radii toward the section mean and tighten the core",
+  visibility: "thin the section and cut a directional opening",
+  collaboration: "draw the section toward a shared side",
+  socialProximity: "gather radii into a shared volume",
 } as const;
 
 const AMPLITUDE = {
-  complexity: 0.16,
-  proportionality: 0.22,
-  proportionalityNarrow: 0.15,
-  openness: 0.2,
-  directionality: 0.4,
-  connectivity: 0.3,
-  plateArticulation: 0.3,
+  complexity: 0.24,
+  complexityAlong: 0.14,
+  proportionality: 0.36,
+  proportionalityNarrow: 0.26,
+  openness: 0.28,
+  directionality: 0.42,
+  connectivity: 0.42,
+  connectivityLobe: 0.14,
+  plateArticulation: 0.4,
+  centrality: 0.4,
+  visibility: 0.22,
+  collaboration: 0.32,
+  socialProximity: 0.32,
 } as const;
 
 const CRITERION = {
@@ -35,10 +45,16 @@ const CRITERION = {
   directionality: "directionality",
   connectivity: "connectivity",
   plateArticulation: "plate-articulation",
+  centrality: "centrality",
+  visibility: "visibility",
+  collaboration: "collaboration",
+  socialProximity: "social-proximity",
 } as const;
 
 export type DeformationDna = {
   criteria: readonly Pick<HybridCriterionValue, "criterionId" | "value">[];
+  /** Row intensity. Omitted DNA stays at 1 so a single criterion test is unchanged. */
+  intensity?: number;
 };
 
 export type ConnectorFrame = {
@@ -71,7 +87,8 @@ export function deformationEnvelope(t: number) {
 }
 
 export function deformRing(points: readonly Vec3[], t: number, dna: DeformationDna, frame: ConnectorFrame): Vec3[] {
-  const weight = deformationEnvelope(t);
+  const strength = intensityOf(dna.intensity);
+  const weight = deformationEnvelope(t) * strength;
   if (weight === 0 || !hasActiveCriterion(dna)) return points.map(copyVec);
 
   const axis = lerp(frame.centerA, frame.centerB, Math.min(1, Math.max(0, t)));
@@ -83,37 +100,76 @@ export function deformRing(points: readonly Vec3[], t: number, dna: DeformationD
   });
   const meanRadius = local.reduce((sum, point) => sum + Math.hypot(point.u, point.v), 0) / Math.max(1, local.length);
   const complexity = weight * readCriterion(dna, CRITERION.complexity) * AMPLITUDE.complexity;
+  const complexityAlong = weight * readCriterion(dna, CRITERION.complexity) * AMPLITUDE.complexityAlong;
   const proportionality = weight * readCriterion(dna, CRITERION.proportionality);
   const openness = weight * readCriterion(dna, CRITERION.openness) * AMPLITUDE.openness;
   const directionality = weight * readCriterion(dna, CRITERION.directionality) * AMPLITUDE.directionality * meanRadius;
   const connectivity = weight * readCriterion(dna, CRITERION.connectivity) * AMPLITUDE.connectivity;
-  const plate = weight * readCriterion(dna, CRITERION.plateArticulation) * AMPLITUDE.plateArticulation * meanRadius;
-  const scaleU = 1 + proportionality * AMPLITUDE.proportionality;
-  const scaleV = 1 - proportionality * AMPLITUDE.proportionalityNarrow;
+  const connectivityLobe = weight * readCriterion(dna, CRITERION.connectivity) * AMPLITUDE.connectivityLobe;
+  const plate = deformationEnvelope(stepped(t)) * strength * readCriterion(dna, CRITERION.plateArticulation) * AMPLITUDE.plateArticulation * meanRadius;
+  const centrality = weight * readCriterion(dna, CRITERION.centrality);
+  const visibility = weight * readCriterion(dna, CRITERION.visibility);
+  const collaboration = weight * readCriterion(dna, CRITERION.collaboration);
+  const proximity = weight * readCriterion(dna, CRITERION.socialProximity);
+  const scaleU = 1 + Math.min(0.38, proportionality * AMPLITUDE.proportionality);
+  const scaleV = Math.max(0.62, 1 - Math.min(0.28, proportionality * AMPLITUDE.proportionalityNarrow));
+  const alongWave = 1 + complexityAlong * Math.sin(4 * Math.PI * Math.min(1, Math.max(0, t)));
 
   return local.map((point) => {
     let u = point.u;
     let v = point.v;
     const radius = Math.hypot(u, v);
-    if (radius > 1e-8) {
+    const radialActive = complexity !== 0 || complexityAlong !== 0 || openness !== 0 || connectivity !== 0 || centrality > 0 || visibility > 0 || collaboration > 0 || proximity > 0;
+    if (radius > 1e-8 && radialActive) {
       const unitU = u / radius;
       const unitV = v / radius;
-      let next = radius + (meanRadius - radius) * connectivity;
       const theta = Math.atan2(v, u);
+      let next = radius + (meanRadius - radius) * connectivity;
+      next *= 1 + connectivityLobe * Math.cos(2 * theta);
       next *= 1 + complexity * Math.sin(3 * theta);
+      next *= 1 + complexity * 0.55 * Math.sin(5 * theta);
+      next *= alongWave;
       next *= 1 + openness;
+      if (centrality > 0) {
+        next = next * (1 - centrality * AMPLITUDE.centrality) + meanRadius * centrality * AMPLITUDE.centrality;
+        next *= 1 - centrality * 0.16;
+      }
+      if (visibility > 0) {
+        const opening = Math.max(0, Math.cos(theta));
+        next *= 1 - visibility * AMPLITUDE.visibility * opening * opening;
+        next *= 1 - visibility * 0.18;
+      }
+      if (collaboration > 0) next *= 1 - collaboration * 0.2;
+      if (proximity > 0) {
+        next = next * (1 - proximity * AMPLITUDE.socialProximity) + meanRadius * proximity * AMPLITUDE.socialProximity;
+      }
+      next = radius * 0.42 + next * 0.58;
+      const ceiling = meanRadius * (1.04 + 0.32 * strength);
+      next = Math.min(ceiling, Math.max(meanRadius * 0.2, next));
       u = unitU * next;
       v = unitV * next;
     }
     u *= scaleU;
     v *= scaleV;
     u += directionality;
+    if (collaboration > 0) u += (meanRadius * 0.35 - u) * collaboration * AMPLITUDE.collaboration;
     v += plate;
     return add(
       axis,
       add(scale(frame.direction, point.along), add(scale(frame.tangent, u), scale(frame.bitangent, v))),
     );
   });
+}
+
+function intensityOf(intensity: number | undefined) {
+  if (intensity === undefined || !Number.isFinite(intensity)) return 1;
+  return Math.min(1.85, Math.max(0, intensity));
+}
+
+function stepped(t: number) {
+  const bands = 5;
+  const clamped = Math.min(1, Math.max(0, t));
+  return Math.round(clamped * bands) / bands;
 }
 
 function hasActiveCriterion(dna: DeformationDna) {

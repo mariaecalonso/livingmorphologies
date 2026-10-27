@@ -131,7 +131,9 @@ const first = pendingHybridGenerator.generate(request);
 const second = pendingHybridGenerator.generate(request);
 assert(first.status === "ready" && first.geometry !== null, "a cut pair produces a connector");
 if (!first.geometry || !second.geometry) throw new Error("unreachable");
-assert(first.vertexCount === 80 && first.triangleCount === 128, "counts follow 16 samples and 5 rings");
+const expectedVertices = HYBRID_GENERATOR_SETTINGS.profileSamples * HYBRID_GENERATOR_SETTINGS.loftSteps;
+const expectedTriangles = 2 * HYBRID_GENERATOR_SETTINGS.profileSamples * (HYBRID_GENERATOR_SETTINGS.loftSteps - 1);
+assert(first.vertexCount === expectedVertices && first.triangleCount === expectedTriangles, "counts follow the profile samples and loft rings");
 assert(first.geometry.positions.length === first.vertexCount * 3, "positions match the vertex count");
 assert(first.geometry.triangles === first.triangleCount, "triangle count is stored on the mesh");
 assert(first.candidateId === candidate.id, "the result keeps the candidate id");
@@ -192,7 +194,7 @@ assert(invalid.status === "invalid" && invalid.geometry === null, "a non-finite 
 
 assert(HYBRID_GENERATOR_SETTINGS.connectorDepth === null, "connector depth is not chosen silently");
 assert(HYBRID_GENERATOR_SETTINGS.sectionDepth === 0.15, "section depth is an explicit provisional setting");
-assert(HYBRID_GENERATOR_SETTINGS.profileSamples === 16 && HYBRID_GENERATOR_SETTINGS.loftSteps === 5, "sample count and loft steps are explicit");
+assert(HYBRID_GENERATOR_SETTINGS.profileSamples === 32 && HYBRID_GENERATOR_SETTINGS.loftSteps === 12, "sample count and loft steps are explicit");
 assert(Object.values(request.catalogA.ratings).every((value) => value === 0 || value === 1 || value === 2), "catalog DNA stays on discrete rankings");
 assert(
   field.field.candidates.some((item) => item.criteria.some((criterion) => criterion.role === "blended" && !Number.isInteger(criterion.value))),
