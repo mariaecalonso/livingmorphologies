@@ -33,105 +33,27 @@ export function HybridCatalog() {
   const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11">("all");
   const [error, setError] = useState<string | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
-  const [test4, setTest4] = useState<CatalogEntry[]>([]);
-  const [test5, setTest5] = useState<CatalogEntry[]>([]);
-  const [test6, setTest6] = useState<CatalogEntry[]>([]);
-  const [test7, setTest7] = useState<CatalogEntry[]>([]);
-  const [test8, setTest8] = useState<CatalogEntry[]>([]);
-  const [test9, setTest9] = useState<CatalogEntry[]>([]);
-  const [test10, setTest10] = useState<CatalogEntry[]>([]);
-  const [test11, setTest11] = useState<CatalogEntry[]>([]);
+  const [published, setPublished] = useState<CatalogEntry[]>([]);
   const router = useRouter();
   useEffect(() => {
     let cancel = false;
-    void fetch("/skill4/SKILL04-STRESS-TEST-04-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest4(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_4" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-05-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest5(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_5" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-06-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest6(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_6" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-07-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest7(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_7" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-08-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest8(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_8" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-09-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest9(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_9" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-10-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest10(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_10" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
-    void fetch("/skill4/SKILL04-STRESS-TEST-11-catalog.json")
-      .then((response) => response.ok ? response.json() : [])
-      .then((rows: unknown) => {
-        if (cancel || !Array.isArray(rows)) return;
-        setTest11(rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return record.batchId === "TEST_11" && typeof record.id === "string" && Array.isArray(record.tiles);
-        }));
-      })
-      .catch(() => undefined);
+    const files = Array.from({ length: 11 }, (_, index) => {
+      const number = String(index + 1).padStart(2, "0");
+      return { batchId: `TEST_${index + 1}`, file: `/skill4/SKILL04-STRESS-TEST-${number}-catalog.json` };
+    });
+    void Promise.all(files.map(async ({ batchId, file }) => {
+      try {
+        const response = await fetch(file);
+        if (!response.ok) return [];
+        const rows: unknown = await response.json();
+        if (!Array.isArray(rows)) return [];
+        return rows.filter((entry): entry is CatalogEntry => belongsToBatch(entry, batchId));
+      } catch {
+        return [];
+      }
+    })).then((groups) => {
+      if (!cancel) setPublished(groups.flat());
+    });
     return () => {
       cancel = true;
     };
@@ -148,7 +70,7 @@ export function HybridCatalog() {
   }, []);
   const iterations = entries.filter((entry) => entry.rerunNeeded !== true);
   const storedIds = new Set(iterations.map((entry) => entry.id));
-  const catalog = [...iterations, ...test4.filter((entry) => !storedIds.has(entry.id)), ...test5.filter((entry) => !storedIds.has(entry.id)), ...test6.filter((entry) => !storedIds.has(entry.id)), ...test7.filter((entry) => !storedIds.has(entry.id)), ...test8.filter((entry) => !storedIds.has(entry.id)), ...test9.filter((entry) => !storedIds.has(entry.id)), ...test10.filter((entry) => !storedIds.has(entry.id)), ...test11.filter((entry) => !storedIds.has(entry.id))];
+  const catalog = [...iterations, ...published.filter((entry) => !storedIds.has(entry.id))];
   const batchVisible = filterCatalog(catalog, filter).filter((entry) => batch === "all" || catalogBatch(entry) === batch);
   const visible = scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : batchVisible;
   const inspected = catalog.find((entry) => entry.id === inspectId) ?? null;
@@ -249,6 +171,14 @@ export function HybridCatalog() {
       </div>
     </main>
   );
+}
+
+function belongsToBatch(entry: unknown, batchId: string): entry is CatalogEntry {
+  if (!entry || typeof entry !== "object") return false;
+  const record = entry as CatalogEntry;
+  if (typeof record.id !== "string" || !Array.isArray(record.tiles)) return false;
+  if (record.batchId === batchId) return true;
+  return batchId === "TEST_1" && !record.batchId && /^S04 TEST \d+$/.test(record.id);
 }
 
 function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect }: { entry: CatalogEntry; onOpen: () => void; onInspect: () => void; onDelete: () => void; onSelect: () => void }) {
