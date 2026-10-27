@@ -381,7 +381,7 @@ function orderedCriteria(candidate: HybridCandidate | null) {
 }
 
 function columnAxis(field: GeneratedHybridField | null) {
-  const columns = CANDIDATE_FIELD_SETTINGS.parentAWeights.map((parentA, index) => ({
+  const columns: { parentA: number; parentB: number }[] = CANDIDATE_FIELD_SETTINGS.parentAWeights.map((parentA, index) => ({
     parentA,
     parentB: CANDIDATE_FIELD_SETTINGS.parentBWeights[index],
   }));
@@ -395,7 +395,7 @@ function columnAxis(field: GeneratedHybridField | null) {
 }
 
 function rowAxis(field: GeneratedHybridField | null) {
-  const rows = CANDIDATE_FIELD_SETTINGS.transformationIntensity.map((intensity, index) => ({
+  const rows: { intensity: number; steps: number }[] = CANDIDATE_FIELD_SETTINGS.transformationIntensity.map((intensity, index) => ({
     intensity,
     steps: NETWORK_VOLUME_SETTINGS.rows[index] ?? 0,
   }));

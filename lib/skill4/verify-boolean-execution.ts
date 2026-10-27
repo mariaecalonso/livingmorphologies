@@ -159,7 +159,7 @@ async function main() {
   assert(joined.connectorSourceOpen === true && joined.connectorConditionStatus === "closed", "the open loft is closed before the union");
   assert(diagnoseTopology(joined.derivedConnector).boundaryEdgeCount === 0 && diagnoseTopology(joined.derivedConnector).componentCount === 1, "the derived hybrid is one closed solid");
   assert(diagnoseTopology(connector).boundaryEdgeCount > 0, "the source hybrid stays open");
-  assert(joined.derivedConnector !== connector && once.assembly.mesh !== parent.positions, "derived buffers are independent");
+  assert(joined.derivedConnector !== connector && once.assembly.mesh.positions !== parent.positions, "derived buffers are independent");
   finiteMesh(once.assembly.mesh, "assembly");
   assert(same(once.assembly.mesh.positions, twice.assembly.mesh.positions) && same(once.assembly.mesh.indices, twice.assembly.mesh.indices), "repeated execution is deterministic");
   assert(same(parent.positions, beforeParent) && same(connector.positions, beforeConnector), "source parent and hybrid buffers stay unchanged");

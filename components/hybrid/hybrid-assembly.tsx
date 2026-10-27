@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { columnHeight } from "@/lib/scan/isomesh";
+import { columnHeight, type IsoMesh } from "@/lib/scan/isomesh";
 import { VIEW_SCAN } from "@/lib/skill4/contract";
 import { aggregationAssemblyLabel, aggregationStatusLabel, evaluateAggregation, type AggregationStatus } from "@/lib/skill4/aggregation";
 import { booleanReadinessLabel, evaluateBooleanReadiness, inspectBooleanReadiness, type BooleanReadiness } from "@/lib/skill4/boolean-conditioning";
@@ -340,8 +340,10 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             empty={interlockAssemblyLabel(interlocks.status)}
             note={(() => {
               const ready = interlocks.connections.find((item) => item.status === "ready" && item.attachmentDepthA != null);
-              return ready
-                ? `A ${ready.attachmentDepthA.toFixed(2)} · B ${ready.attachmentDepthB.toFixed(2)}`
+              const depthA = ready?.attachmentDepthA;
+              const depthB = ready?.attachmentDepthB;
+              return depthA != null && depthB != null
+                ? `A ${depthA.toFixed(2)} · B ${depthB.toFixed(2)}`
                 : "No insertion geometry";
             })()}
             marker="interlock"

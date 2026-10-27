@@ -87,8 +87,9 @@ export function deformRing(points: readonly Vec3[], t: number, dna: DeformationD
     return { along: dot(delta, frame.direction), u, v };
   });
   const meanRadius = local.reduce((sum, point) => sum + Math.hypot(point.u, point.v), 0) / Math.max(1, local.length);
-  const driven = typeof dna.transformationIntensity === "number" && Number.isFinite(dna.transformationIntensity);
-  const intensity = driven ? Math.min(1, Math.max(0, dna.transformationIntensity)) : 1;
+  const rawIntensity = dna.transformationIntensity;
+  const driven = typeof rawIntensity === "number" && Number.isFinite(rawIntensity);
+  const intensity = driven ? Math.min(1, Math.max(0, rawIntensity)) : 1;
   const dominance = Math.abs((dna.parentAWeight ?? 0.5) - (dna.parentBWeight ?? 0.5));
   const explore = intensity * (1 - dominance * 0.62);
   const gain = driven ? 0.35 + explore * 2.4 : 1;

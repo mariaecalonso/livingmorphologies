@@ -95,6 +95,13 @@ function settle(
   };
 }
 
+type AssemblyBoard = {
+  tiles: TileInstance[];
+  connections: TileConnection[];
+  count: AssemblyCount;
+  arrangement: AssemblyArrangement;
+};
+
 const HybridContext = createContext<HybridStateValue | null>(null);
 
 export function HybridState({ children }: { children: ReactNode }) {
@@ -106,7 +113,7 @@ export function HybridState({ children }: { children: ReactNode }) {
   const [syntheticPending, setSyntheticPending] = useState(false);
   const [syntheticError, setSyntheticError] = useState<string | null>(null);
   const loaded = syntheticMode && synthetic ? synthetic : provisional;
-  const [board, setBoard] = useState(() => freshBoard(provisional));
+  const [board, setBoard] = useState<AssemblyBoard>(() => freshBoard(provisional));
   useEffect(() => {
     if (window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) !== "1") return;
     let cancel = false;
