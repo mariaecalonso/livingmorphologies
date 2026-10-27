@@ -13,6 +13,8 @@ import {
   emptyCatalogLabel,
   filterCatalog,
   nextCatalogId,
+  rerunEntries,
+  siteLibraryEntries,
   type CatalogEntry,
   type CatalogFilter,
 } from "@/lib/skill4/catalog";
@@ -25,9 +27,11 @@ export function HybridCatalog() {
   const { loaded, tiles, connections, count, arrangement, restoreAssembly, syntheticMode } = useHybrid();
   const entries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
   const [filter, setFilter] = useState<CatalogFilter>(catalogBucket(tiles.length));
+  const [scope, setScope] = useState<"iterations" | "selected" | "rerun">("iterations");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const visible = filterCatalog(entries, filter);
+  const iterations = entries.filter((entry) => entry.rerunNeeded !== true);
+  const visible = scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : filterCatalog(iterations, filter);
 
   const save = () => {
     const entry = captureCatalogEntry(nextCatalogId(readCatalog()), tiles, connections, count, arrangement, loaded, syntheticMode);
@@ -44,6 +48,10 @@ export function HybridCatalog() {
     writeCatalog(readCatalog().filter((entry) => entry.id !== id));
   };
 
+  const selectForSite = (entry: CatalogEntry) => {
+    writeCatalog(readCatalog().map((item) => item.id === entry.id ? { ...item, selected: item.selected !== true } : item));
+  };
+
   const open = (entry: CatalogEntry) => {
     restoreAssembly(entry);
     const query = window.location.search;
@@ -54,14 +62,21 @@ export function HybridCatalog() {
     <main className="hybrid-view hybrid-catalog">
       <div className="hybrid-catalog-bar">
         <SyntheticTestToggle />
-        <div className="hybrid-layout-controls" role="group" aria-label="Assembly size">
-          {CATALOG_FILTERS.map((value) => (
-            <button key={value} type="button" data-active={filter === value || undefined} onClick={() => setFilter(value)}>
-              {value === "custom" ? "Custom" : value}
-            </button>
-          ))}
+        <div className="hybrid-layout-controls" role="group" aria-label="Catalog">
+          <button type="button" data-active={scope === "iterations" || undefined} onClick={() => setScope("iterations")}>Iterations</button>
+          <button type="button" data-active={scope === "selected" || undefined} onClick={() => setScope("selected")}>Selected</button>
+          <button type="button" data-active={scope === "rerun" || undefined} onClick={() => setScope("rerun")}>Rerun needed</button>
         </div>
-        <p className="hybrid-units">{catalogCountLabel(filter, visible.length)}</p>
+        {scope === "iterations" ? (
+          <div className="hybrid-layout-controls" role="group" aria-label="Assembly size">
+            {CATALOG_FILTERS.map((value) => (
+              <button key={value} type="button" data-active={filter === value || undefined} onClick={() => setFilter(value)}>
+                {value === "custom" ? "Custom" : value}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <p className="hybrid-units">{scope === "iterations" ? catalogCountLabel(filter, visible.length) : scope === "selected" ? `${visible.length} selected for the site` : `${visible.length} awaiting a hybrid rerun`}</p>
         <button type="button" className="hybrid-generate" onClick={save}>
           Save current assembly
         </button>
@@ -69,13 +84,13 @@ export function HybridCatalog() {
       {error ? <p className="hybrid-pending">{error}</p> : null}
       {visible.length === 0 ? (
         <div className="hybrid-catalog-empty">
-          <p className="hybrid-identity">{emptyCatalogLabel(filter)}</p>
-          <p className="hybrid-units">Save the current assembly to add it to the catalog.</p>
+          <p className="hybrid-identity">{scope === "selected" ? "NO SELECTED ASSEMBLIES" : scope === "rerun" ? "NO RERUNS" : emptyCatalogLabel(filter)}</p>
+          <p className="hybrid-units">{scope === "selected" ? "Select a saved iteration to import it on the site." : scope === "rerun" ? "A site proposal sent back from Site Integration appears here. Connector generation does not run on its own." : "Save the current assembly to add it to the catalog."}</p>
         </div>
       ) : (
         <div className="hybrid-catalog-grid">
           {visible.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} onOpen={() => open(entry)} onDelete={() => remove(entry.id)} />
+            <CatalogCard key={entry.id} entry={entry} onOpen={() => open(entry)} onDelete={() => remove(entry.id)} onSelect={() => selectForSite(entry)} />
           ))}
         </div>
       )}
@@ -83,7 +98,7 @@ export function HybridCatalog() {
   );
 }
 
-function CatalogCard({ entry, onOpen, onDelete }: { entry: CatalogEntry; onOpen: () => void; onDelete: () => void }) {
+function CatalogCard({ entry, onOpen, onDelete, onSelect }: { entry: CatalogEntry; onOpen: () => void; onDelete: () => void; onSelect: () => void }) {
   const { loaded, syntheticMode } = useHybrid();
   const syntheticLoaded = syntheticMode && loaded.get(entry.tiles[0]?.archetypeId ?? "")?.moduleId.startsWith("synthetic-test:");
   const preview = entry.testData && !syntheticLoaded ? [] : catalogPreview(entry, loaded);
@@ -94,6 +109,8 @@ function CatalogCard({ entry, onOpen, onDelete }: { entry: CatalogEntry; onOpen:
       </div>
       <p className="hybrid-identity">{entry.id}</p>
       {entry.testData ? <p className="hybrid-units">TEST DATA</p> : null}
+      {entry.rerunNeeded ? <p className="hybrid-units">Rerun needed{entry.parentAssemblyId ? ` · from ${entry.parentAssemblyId}` : ""}</p> : null}
+      {entry.selected ? <p className="hybrid-units">Selected for the site</p> : null}
       <p className="hybrid-catalog-archetypes">
         {entry.tiles.map((tile, index) => (
           <span key={tile.instanceId}>
@@ -104,6 +121,7 @@ function CatalogCard({ entry, onOpen, onDelete }: { entry: CatalogEntry; onOpen:
       </p>
       <div className="hybrid-layout-controls">
         <button type="button" onClick={onOpen}>Open in Assembly</button>
+        <button type="button" data-active={entry.selected || undefined} onClick={onSelect}>{entry.selected ? "Selected" : "Select for site"}</button>
         <button type="button" onClick={onDelete} aria-label={`Delete ${entry.id}`}>Delete</button>
       </div>
     </article>

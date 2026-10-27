@@ -48,7 +48,22 @@ export type CatalogEntry = {
   connections: CatalogConnectionRecord[];
   regenerationRequired: boolean;
   testData?: boolean;
+  /** Chosen from the experimental catalog for import on the site. */
+  selected?: boolean;
+  /** A Skill 5 proposal returned for another hybrid connection. Generation is not run. */
+  rerunNeeded?: boolean;
+  parentAssemblyId?: string | null;
+  sourceConfigurationId?: string | null;
+  sourcePlacementId?: string | null;
 };
+
+export function siteLibraryEntries(entries: readonly CatalogEntry[]) {
+  return entries.filter((entry) => entry.selected === true);
+}
+
+export function rerunEntries(entries: readonly CatalogEntry[]) {
+  return entries.filter((entry) => entry.rerunNeeded === true);
+}
 
 const PRESETS = new Set<number>([2, 4, 6, 8]);
 
