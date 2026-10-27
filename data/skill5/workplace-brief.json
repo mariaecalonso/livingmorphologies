@@ -1,0 +1,27 @@
+{
+  "contract": "skill5-workplace-brief-v1",
+  "title": "Waterfront Work-Leisure Workplace",
+  "site": "One Herald Plaza",
+  "role": "Studio requirements. These figures are not a calculated building-performance assessment.",
+  "plan": {
+    "widthFeet": 330,
+    "depthFeet": 820,
+    "areaSqFt": 270600,
+    "note": "The studio site is about 270,600 square feet, 330 by 820 feet. It is not the county property area and it is not the imported parcel ring."
+  },
+  "programs": ["Workspace", "Lobby", "Gathering"],
+  "intention": "A workplace integrating focused work, collaborative work, and public waterfront gathering throughout the day.",
+  "occupancy": {
+    "daytimeWork": "400–500",
+    "eveningGathering": "800",
+    "badgeHoldersAndVisitors": "approximately 1,500",
+    "simultaneous": "The 1,500 badge holders and visitors are not assumed to be on site at the same time."
+  },
+  "operations": {
+    "hours": "8 AM to 10 PM"
+  },
+  "limits": [
+    "Daytime work, evening gathering, and badge-holder figures are brief requirements. Skill 5 does not check whether a composition meets them.",
+    "Module envelopes are not converted into usable floor area or occupant capacity."
+  ]
+}

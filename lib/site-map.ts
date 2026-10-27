@@ -3,6 +3,7 @@ export const HOME_SECTIONS = [
   { href: "/", label: "Home" },
   { href: "/#workflow", label: "Overall Workflow" },
   { href: "/#results", label: "Results" },
+  { href: "/#site", label: "Site" },
   { href: "/#lab-demo", label: "Lab Demo" },
 ] as const;
 
@@ -57,6 +58,17 @@ export const LAB_WORKSPACES = [
     tabs: [
       { href: "/lab/hybrid", label: "Process" },
       { href: "/lab/hybrid/catalog", label: "Catalog" },
+    ],
+  },
+  {
+    id: "site",
+    href: "/lab/site",
+    label: "Site Integration",
+    workflowStage: "skill-5",
+    resultId: null,
+    tabs: [
+      { href: "/lab/site", label: "Site Model" },
+      { href: "/lab/site/configurations", label: "Configurations" },
     ],
   },
 ] as const;

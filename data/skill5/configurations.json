@@ -1,0 +1,56 @@
+{
+  "contract": "skill5-configurations-v2",
+  "siteId": "one-herald-plaza",
+  "configurations": [
+    {
+      "id": "C01",
+      "name": "Spatial check",
+      "parentConfigurationId": null,
+      "createdAt": "2026-10-20T18:57:12.883Z",
+      "updatedAt": "2026-10-20T18:57:12.883Z",
+      "modules": [
+        {
+          "instanceId": "m1",
+          "kind": "archetype",
+          "name": "Vertical Void",
+          "status": "Validated",
+          "geometryState": "available",
+          "program": "gathering",
+          "programSource": "assigned",
+          "provenance": {
+            "moduleId": "carved-mass:vertical-void:351:N04",
+            "archetypeId": "vertical-void",
+            "source": "skill3",
+            "candidateId": 351,
+            "continuationId": "N04"
+          },
+          "transform": {
+            "position": {
+              "x": 80,
+              "y": 0.7,
+              "z": -120
+            },
+            "rotationY": 0
+          },
+          "mirror": null
+        }
+      ],
+      "assemblies": [],
+      "annotations": [
+        {
+          "id": "n1",
+          "kind": "entrance",
+          "attachment": "site",
+          "assemblyPlacementId": null,
+          "label": "Entrance",
+          "position": {
+            "x": -30,
+            "z": -250
+          },
+          "end": null
+        }
+      ]
+    }
+  ],
+  "priorities": []
+}
