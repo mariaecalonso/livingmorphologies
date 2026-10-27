@@ -469,8 +469,8 @@ export function sectionPlate(points: Vec3[]): IsoMesh {
   return { positions, normals, indices: Uint32Array.from(indices), triangles: indices.length / 3 };
 }
 
-export function sectionRibbon(points: Vec3[]): IsoMesh {
-  return ribbon(points, 0.045);
+export function sectionRibbon(points: Vec3[], width = 0.045): IsoMesh {
+  return ribbon(points, width);
 }
 
 export function hybridSectionRings(mesh: IsoMesh | null): Vec3[][] | null {

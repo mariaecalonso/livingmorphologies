@@ -59,6 +59,7 @@ export const LAB_WORKSPACES = [
     tabs: [
       { href: "/lab/hybrid", label: "Process" },
       { href: "/lab/hybrid/catalog", label: "Catalog" },
+      { href: "/lab/hybrid/final-catalog", label: "Final Catalog" },
     ],
   },
   {

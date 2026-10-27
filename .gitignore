@@ -47,3 +47,6 @@ CLAUDE.md
 /data/skill2-selections.json
 /data/skill2-picks-raw.txt
 /data/skill2-picks-found.json
+# Skill 4 stress-test catalogs stay on this computer. The final catalog is public/skill4/SKILL04-FINAL-CATALOG.json.
+/public/skill4/SKILL04-STRESS-TEST-*-catalog.json
+/data/experiments/skill4-stress/

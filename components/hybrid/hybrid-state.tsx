@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { CatalogEntry } from "@/lib/skill4/catalog";
 import { connectionsFromCatalog, tilesFromCatalog } from "@/lib/skill4/catalog";
 import { catalogServerSnapshot, readCatalog, subscribeCatalog } from "@/lib/skill4/catalog-store";
@@ -25,6 +25,7 @@ import { revealHybridField } from "@/lib/skill4/generated-hybrid-field";
 
 type HybridStateValue = {
   loaded: ReadonlyMap<string, ModuleHandoff>;
+  skillModules: ReadonlyMap<string, ModuleHandoff>;
   tiles: TileInstance[];
   connections: TileConnection[];
   selectedId: string;
@@ -53,6 +54,7 @@ type HybridStateValue = {
   syntheticPending: boolean;
   syntheticError: string | null;
   toggleSyntheticTest: () => void;
+  ensureArchetypes: (ids: readonly string[]) => void;
 };
 
 function freshBoard() {
@@ -189,14 +191,9 @@ export function HybridState({ children }: { children: ReactNode }) {
     };
   }, []);
   const catalogEntries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
-  const archetypeKey = [...new Set([
-    ...board.tiles.map((tile) => tile.archetypeId),
-    ...catalogEntries.flatMap((entry) => entry.tiles.map((tile) => tile.archetypeId)),
-  ])].filter(Boolean).sort().join("|");
-  useEffect(() => {
-    const ids = [...new Set(archetypeKey.split("|").filter(Boolean))];
+  const ensureArchetypes = useCallback((ids: readonly string[]) => {
     for (const archetypeId of ids) {
-      if (requested.current.has(archetypeId)) continue;
+      if (!archetypeId || requested.current.has(archetypeId)) continue;
       requested.current.add(archetypeId);
       void fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}&cell=20`, { cache: "no-store" })
         .then(async (response) => (response.ok ? response.json() as Promise<Skill4ModuleRecord> : null))
@@ -211,7 +208,14 @@ export function HybridState({ children }: { children: ReactNode }) {
           requested.current.delete(archetypeId);
         });
     }
-  }, [archetypeKey]);
+  }, []);
+  const archetypeKey = [...new Set([
+    ...board.tiles.map((tile) => tile.archetypeId),
+    ...catalogEntries.flatMap((entry) => entry.tiles.map((tile) => tile.archetypeId)),
+  ])].filter(Boolean).sort().join("|");
+  useEffect(() => {
+    ensureArchetypes(archetypeKey.split("|").filter(Boolean));
+  }, [archetypeKey, ensureArchetypes]);
   useEffect(() => {
     if (syntheticMode) return;
     setBoard((current) => {
@@ -505,6 +509,7 @@ export function HybridState({ children }: { children: ReactNode }) {
     <HybridContext.Provider
       value={{
         loaded,
+        skillModules: provisional,
         tiles: board.tiles,
         connections: board.connections,
         selectedId,
@@ -532,6 +537,7 @@ export function HybridState({ children }: { children: ReactNode }) {
         syntheticPending,
         syntheticError,
         toggleSyntheticTest,
+        ensureArchetypes,
       }}
     >
       {children}

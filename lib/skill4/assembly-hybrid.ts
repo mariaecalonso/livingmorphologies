@@ -3,7 +3,7 @@ import type { ModuleHandoff, ReadyModule } from "./adapt";
 import { mockPlacementSupported } from "./assembly-layout";
 import { detectAdjacencies, type TileConnection } from "./connections";
 import type { FaceFrame, Vec3 } from "./contract";
-import { faceSurfaceHighlight } from "./face-outline";
+import { faceBoundarySamples, faceSurfaceHighlight } from "./face-outline";
 import { connectorFrame } from "./hybrid-deformation";
 import { assembleIntactHybrid } from "./hybrid-attachment";
 import { currentGeneratedField } from "./hybrid-display";
@@ -264,24 +264,46 @@ function habitableDevelopment(
   const rings = source.map((ring) => ring.map((point) => ({ x: point.x, y: point.y, z: point.z })));
   const goalA = mixGoal(rings[0], majorA, nearA);
   const goalB = mixGoal(rings[rings.length - 1], majorB, nearB);
-  const mid = (rings.length - 1) / 2;
-  rings.forEach((ring, index) => {
-    const side = index <= mid ? goalA : goalB;
-    const weight = terminalFalloff(index, rings.length);
-    if (weight <= 0) return;
-    ring.forEach((point, sample) => {
-      const next = lerp(point, side[sample], weight);
-      point.x = next.x;
-      point.y = next.y;
-      point.z = next.z;
+  return loftSectionRings(slimeBridge(goalA, goalB, Math.max(steps, 13)));
+}
+
+/** A vein between the two faces. The ends stay the parent sections. The span forages instead of morphing one outline into the other. */
+function slimeBridge(goalA: Vec3[], goalB: Vec3[], stations: number): Vec3[][] {
+  const count = Math.max(3, stations);
+  const start = averagePoints(goalA);
+  const end = averagePoints(goalB);
+  const chord = sub(end, start);
+  const chordLength = Math.max(length(chord), 1e-4);
+  const forward = normalize(chord);
+  const lateral = unitPerp(forward);
+  const lifted = cross(forward, lateral);
+  const centers = Array.from({ length: count }, (_, index) => {
+    const t = index / (count - 1);
+    const swell = Math.sin(Math.PI * t);
+    return add(lerp(start, end, t * t * (3 - 2 * t)), add(
+      scale(lifted, chordLength * 0.16 * swell),
+      scale(lateral, chordLength * 0.055 * Math.sin(Math.PI * t * 2)),
+    ));
+  });
+  return centers.map((center, index) => {
+    const t = index / (count - 1);
+    const previous = centers[Math.max(0, index - 1)];
+    const next = centers[Math.min(count - 1, index + 1)];
+    const tangent = normalize(length(sub(next, previous)) > 1e-5 ? sub(next, previous) : forward);
+    const side = unitPerp(tangent);
+    const grip = (1 - Math.sin(Math.PI * t)) ** 0.72;
+    return goalA.map((_, sample) => {
+      const fromA = sub(goalA[sample], start);
+      const fromB = sub(goalB[sample], end);
+      const ray = lerp(fromA, fromB, t);
+      const reach = length(ray);
+      const direction = reach > 1e-5 ? scale(ray, 1 / reach) : side;
+      const radius = reach;
+      const vein = add(center, scale(direction, radius));
+      const held = t <= 0.5 ? fromA : fromB;
+      return lerp(vein, add(center, held), grip);
     });
   });
-  const sequence = [
-    ...approach(matchLoop(goalA, majorA), rings[0], 4).slice(0, -1),
-    ...rings,
-    ...approach(rings[rings.length - 1], matchLoop(goalB, majorB), 4).slice(1),
-  ];
-  return loftSectionRings(sequence);
 }
 
 function mixGoal(ring: Vec3[], major: Vec3[], near: Vec3[]) {
@@ -289,22 +311,6 @@ function mixGoal(ring: Vec3[], major: Vec3[], near: Vec3[]) {
   if (near.length < 3) return body;
   const sliver = matchLoop(ring, near);
   return body.map((point, index) => lerp(point, sliver[index], 0.12));
-}
-
-function terminalFalloff(index: number, count: number) {
-  const mid = (count - 1) / 2;
-  const distance = Math.abs(index - mid) / Math.max(mid, 1);
-  const band = Math.max(0, (distance - 0.45) / 0.55);
-  const t = Math.min(1, band);
-  return t * t * (3 - 2 * t);
-}
-
-function approach(from: Vec3[], to: Vec3[], segments: number) {
-  return Array.from({ length: segments + 1 }, (_, step) => {
-    const t = step / segments;
-    const blend = t * t * (3 - 2 * t);
-    return from.map((point, index) => lerp(point, to[index], blend));
-  });
 }
 
 function matchLoop(reference: Vec3[], loop: Vec3[]) {
@@ -410,10 +416,14 @@ function placeSectionalLoft(
       return area > best.area ? { area, loop: section.worldContour } : best;
     }, { area: -1, loop: sections[0]?.worldContour ?? worldA }).loop;
     const majorA = record && record.a.length > 0 ? pose(tileA, dominant(record.a)) : worldA;
-    const nearA = record && record.a.length > 0 ? pose(tileA, record.a[record.a.length - 1].worldContour) : worldA;
     const majorB = record && record.b.length > 0 ? pose(tileB, dominant(record.b)) : worldB;
-    const nearB = record && record.b.length > 0 ? pose(tileB, record.b[0].worldContour) : worldB;
-    const integrated = habitableDevelopment(positions, steps, samples, majorA, nearA, majorB, nearB);
+    const grayLoop = (geometry: ReadyModule["geometry"], frame: typeof frameA, tile: TileInstance, fallback: Vec3[]) => {
+      const boundary = geometry && frame ? faceBoundarySamples(geometry, frame, samples) : null;
+      return boundary && boundary.length >= 3 ? pose(tile, boundary) : fallback;
+    };
+    const grayA = grayLoop(moduleA.geometry, frameA, tileA, majorA);
+    const grayB = grayLoop(moduleB.geometry, frameB, tileB, majorB);
+    const integrated = habitableDevelopment(positions, steps, samples, grayA, [], grayB, []);
     if (integrated) return integrated;
     const coveredA = moduleA.geometry && frameA ? coverWithFace(shaded, faceSurfaceHighlight(moduleA.geometry, frameA), tileA) : shaded;
     return moduleB.geometry && frameB ? coverWithFace(coveredA, faceSurfaceHighlight(moduleB.geometry, frameB), tileB) : coveredA;
