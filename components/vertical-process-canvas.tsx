@@ -13,7 +13,7 @@ import { ProcessGuide, ProcessMorphology, SampleDecisionStack, type SampleFrame 
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
-import { capAddition, capProjectionExtent } from "@/lib/skill3/cap-accent";
+import { capAddition, capProjectionExtent, solidClosure } from "@/lib/skill3/cap-accent";
 import { createProcessIsoCamera, resetProcessIso } from "@/lib/skill3/process-iso-camera";
 import type { CatalogueReadiness, ReadinessVerdict } from "@/lib/skill3/catalogue-readiness";
 import type { NaturalContinuationSet } from "@/lib/skill3/continuations";
@@ -159,12 +159,14 @@ export function ProcessCanvas({
   const [exploredScope, setExploredScope] = useState<string | null>(null);
   const [cappedMesh, setCappedMesh] = useState<IsoMesh | null>(null);
   const [adaptMesh, setAdaptMesh] = useState<IsoMesh | null>(null);
+  const [beforeMesh, setBeforeMesh] = useState<IsoMesh | null>(null);
   const [finalMesh, setFinalMesh] = useState<IsoMesh | null>(null);
   const [checks, setChecks] = useState<SolidifiedChecks | null>(null);
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
   const [z0Plate, setZ0Plate] = useState<{ size: number; values: Uint8Array } | null>(null);
   const isoCamera = useRef(createProcessIsoCamera());
   const capCamera = useRef(createProcessIsoCamera());
+  const solidCamera = useRef(createProcessIsoCamera());
   const [isoTick, setIsoTick] = useState(0);
   const nudgeIso = useCallback(() => setIsoTick((value) => value + 1), []);
   const resetIso = useCallback(() => {
@@ -235,6 +237,7 @@ export function ProcessCanvas({
     setOfficialOpen(null);
     setCappedMesh(null);
     setAdaptMesh(null);
+    setBeforeMesh(null);
     setFinalMesh(null);
     setChecks(null);
     setReadiness(null);
@@ -252,7 +255,7 @@ export function ProcessCanvas({
         readMesh(`${meshBase}&reading=open`, controller.signal),
         readMesh(`${meshBase}&reading=capped`, controller.signal),
         source.archetypeId === "inserted-horizontal-plate" ? readMesh(`${meshBase}&reading=adapted`, controller.signal) : Promise.resolve(null),
-        fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}&continuation=${officialId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ checks?: SolidifiedChecks; geometry?: EncodedSolidifiedMesh }> : null),
+        fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}&continuation=${officialId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ checks?: SolidifiedChecks; geometry?: EncodedSolidifiedMesh; original?: EncodedSolidifiedMesh | null }> : null),
         fetch(`/api/vertical/catalogue-readiness?archetype=${encodeURIComponent(source.archetypeId)}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<CatalogueReadiness> : null),
         fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ continuations?: { continuationId?: string; z0Iteration?: number; parentChecksum?: string; triangles?: number }[] }> : null),
         fetch(`/api/vertical/z0?archetype=${encodeURIComponent(source.archetypeId)}&candidate=${source.candidateId}`, { signal: controller.signal, cache: "no-store" }).then(async (response) => response.ok ? response.json() as Promise<{ iteration?: number; checksum?: string }> : null),
@@ -274,6 +277,7 @@ export function ProcessCanvas({
         });
       }
       const geometry = solid?.geometry;
+      setBeforeMesh(solid?.original ? decodeSolidifiedMesh(solid.original) : null);
       setFinalMesh(geometry ? decodeSolidifiedMesh(geometry) : null);
       setChecks(solid?.checks ?? null);
     };
@@ -281,6 +285,7 @@ export function ProcessCanvas({
     void run().catch(() => {
       if (controller.signal.aborted) return;
       setOfficialOpen(null);
+      setBeforeMesh(null);
       setFinalMesh(null);
     });
     return () => controller.abort();
@@ -436,6 +441,26 @@ export function ProcessCanvas({
     [cappedMesh, officialOpen],
   );
   const capExtent = useMemo(() => (cappedMesh ? capProjectionExtent(cappedMesh) : null), [cappedMesh]);
+  const solidExtent = useMemo(() => {
+    const before = beforeMesh ? capProjectionExtent(beforeMesh) : null;
+    const after = finalMesh ? capProjectionExtent(finalMesh) : null;
+    if (before && after) {
+      return {
+        minX: Math.min(before.minX, after.minX),
+        maxX: Math.max(before.maxX, after.maxX),
+        minY: Math.min(before.minY, after.minY),
+        maxY: Math.max(before.maxY, after.maxY),
+      };
+    }
+    return after ?? before;
+  }, [beforeMesh, finalMesh]);
+  const solidAccent = useMemo(
+    () => (beforeMesh && finalMesh ? solidClosure(beforeMesh, finalMesh) : null),
+    [beforeMesh, finalMesh],
+  );
+  const componentMark = checks ? checks.components === 1 : null;
+  const watertightMark = checks ? checks.boundaryEdges === 0 : null;
+  const manifoldMark = checks ? checks.manifold === "PASS" : null;
   const retainedCount = sampleFrames?.reduce((count, frame) => count + (frame.reason ? 1 : 0), 0) ?? null;
   const samplingRule = "Δ ≥ 0.08 after 8 iterations. Maximum gap 24.";
   const sampleNote = sampleState === "loading"
@@ -567,7 +592,7 @@ export function ProcessCanvas({
             <h2 className="panel-title">Develop</h2>
             <p className="process-phase" data-phase={stackStatus.toLowerCase()}>{stackStatus}</p>
           </header>
-          <p className="process-sentence">{liveGeneration ? "Retained samples become a continuous field, and that field becomes a surface." : "Each retained plate opens the next interval, and the body grows through it."}</p>
+          <p className="process-sentence">{liveGeneration ? "A retained pattern changes into the next, and that change becomes the surface." : "Each retained plate opens the next interval, and the body grows through it."}</p>
           {officialId ? (
             <ContinuationExplorer activeId={activeId} officialId={officialId} extendedId={extendedId} onSelect={setExploredId} />
           ) : null}
@@ -576,6 +601,7 @@ export function ProcessCanvas({
               key={`${archetypeId}:${activeId ?? ""}`}
               plates={retainedPlates}
               meshes={developMeshes}
+              surface={exploreOpen}
               loading={sampleState === "loading" || meshState === "loading"}
               autoplay={sequence.phase === "stack" && sequence.playing}
               isoCamera={isoCamera}
@@ -773,18 +799,46 @@ export function ProcessCanvas({
               <p className="eyebrow">09</p>
               <h2 className="panel-title">Solidify</h2>
             </header>
-            <p className="process-sentence">The geometry is checked before it becomes the final module.</p>
-            <div className="process-solid-body">
-              <div className="process-final-mesh">
-                {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity={`${archetypeId}:solid:${selected?.continuationId ?? ""}`} frame="module" /> : <p className="process-pending">Pending</p>}
-              </div>
-              <div className="process-solid-panel">
-                <p className="process-solid-answer" data-mark={selected?.status === "Validated" ? "pass" : selected?.status === "Review" ? "review" : undefined}>
-                  {selected?.status === "Validated" ? "Ready" : selected?.status === "Review" ? "Review" : "Pending"}
-                </p>
+            <p className="process-sentence">The selected mesh becomes a validated module.</p>
+            <div className="process-solid-pair" data-compare={beforeMesh ? "true" : "false"}>
+              {beforeMesh ? (
+                <div className="process-solid-view">
+                  <div className="process-solid-stage">
+                    <ProcessMorphology
+                      mesh={beforeMesh}
+                      cacheIdentity={`${archetypeId}:solid-before:${officialId ?? ""}`}
+                      frame="module"
+                      isoCamera={solidCamera}
+                      isoExtent={solidExtent}
+                    />
+                  </div>
+                  <p className="process-solid-name">Before</p>
+                </div>
+              ) : null}
+              {beforeMesh ? <p className="process-solid-cue" aria-hidden="true">→</p> : null}
+              <div className="process-solid-view">
+                <div className="process-solid-stage">
+                  {finalMesh ? (
+                    <ProcessMorphology
+                      mesh={finalMesh}
+                      cacheIdentity={`${archetypeId}:solid:${selected?.continuationId ?? ""}`}
+                      frame="module"
+                      isoCamera={solidCamera}
+                      isoExtent={solidExtent}
+                      accent={solidAccent}
+                    />
+                  ) : <p className="process-pending">After</p>}
+                </div>
+                <p className="process-solid-name">After</p>
               </div>
             </div>
+            <ul className="process-solid-marks">
+              <li className="process-solid-mark" data-mark={componentMark == null ? "pending" : componentMark ? "pass" : "fail"}>One component</li>
+              <li className="process-solid-mark" data-mark={watertightMark == null ? "pending" : watertightMark ? "pass" : "fail"}>Watertight</li>
+              <li className="process-solid-mark" data-mark={manifoldMark == null ? "pending" : manifoldMark ? "pass" : "fail"}>Manifold</li>
+            </ul>
             <TechnicalDetails>
+              {beforeMesh ? <p>The before mesh is the stored original. The after mesh is the repaired module.</p> : null}
               {checks ? (
                 <ul className="process-checks">
                   <li data-mark={checks.components === 1 ? "pass" : "fail"}><span aria-hidden="true">{checks.components === 1 ? "✓" : "✕"}</span><span>Single body</span><span>{checks.components}</span></li>

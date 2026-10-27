@@ -89,3 +89,74 @@ export function capProjectionExtent(mesh: IsoMesh) {
   }
   return { minX, maxX, minY, maxY };
 }
+
+const SOLID_CELL = 0.25;
+
+function solidKey(x: number, y: number, z: number) {
+  return (Math.floor(x / SOLID_CELL) + 512) * 1000000
+    + (Math.floor(y / SOLID_CELL) + 512) * 1000
+    + (Math.floor(z / SOLID_CELL) + 512);
+}
+
+/**
+ * Faces on the later mesh farther than `limit` from the earlier surface.
+ * A near-total remesh returns nothing, so the whole body is not painted as a change.
+ */
+export function solidClosure(before: IsoMesh, after: IsoMesh, limit = 0.5): IsoMesh | null {
+  const limitSquared = limit * limit;
+  const reach = Math.ceil(limit / SOLID_CELL) + 1;
+  const bins = new Map<number, number[]>();
+  for (let index = 0; index < before.positions.length; index += 3) {
+    const key = solidKey(before.positions[index], before.positions[index + 1], before.positions[index + 2]);
+    const list = bins.get(key);
+    if (list) list.push(index);
+    else bins.set(key, [index]);
+  }
+  const added = new Uint8Array(after.positions.length / 3);
+  let count = 0;
+  for (let vertex = 0; vertex < added.length; vertex += 1) {
+    const index = vertex * 3;
+    const x = after.positions[index];
+    const y = after.positions[index + 1];
+    const z = after.positions[index + 2];
+    const cx = Math.floor(x / SOLID_CELL);
+    const cy = Math.floor(y / SOLID_CELL);
+    const cz = Math.floor(z / SOLID_CELL);
+    let best = Infinity;
+    for (let dx = -reach; dx <= reach && best >= limitSquared; dx += 1) {
+      for (let dy = -reach; dy <= reach && best >= limitSquared; dy += 1) {
+        for (let dz = -reach; dz <= reach && best >= limitSquared; dz += 1) {
+          const list = bins.get((cx + dx + 512) * 1000000 + (cy + dy + 512) * 1000 + (cz + dz + 512));
+          if (!list) continue;
+          for (let item = 0; item < list.length; item += 1) {
+            const other = list[item];
+            const ox = before.positions[other] - x;
+            const oy = before.positions[other + 1] - y;
+            const oz = before.positions[other + 2] - z;
+            const distance = ox * ox + oy * oy + oz * oz;
+            if (distance < best) best = distance;
+          }
+        }
+      }
+    }
+    if (best >= limitSquared) {
+      added[vertex] = 1;
+      count += 1;
+    }
+  }
+  if (count === 0 || count / added.length > 0.75) return null;
+  const indices: number[] = [];
+  for (let index = 0; index < after.indices.length; index += 3) {
+    const a = after.indices[index];
+    const b = after.indices[index + 1];
+    const c = after.indices[index + 2];
+    if (added[a] || added[b] || added[c]) indices.push(a, b, c);
+  }
+  if (indices.length === 0) return null;
+  return {
+    positions: after.positions,
+    normals: after.normals,
+    indices: Uint32Array.from(indices),
+    triangles: indices.length / 3,
+  };
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
 type FamilyGroup = {
   focus: string;
@@ -20,6 +20,16 @@ const DISPLAY = [
   "Spatial + Atmospheric",
   "Formal + Spatial + Atmospheric",
 ] as const;
+
+const SHORT: Record<string, string> = {
+  Formal: "F",
+  Spatial: "S",
+  Atmospheric: "A",
+  "Formal + Spatial": "F+S",
+  "Formal + Atmospheric": "F+A",
+  "Spatial + Atmospheric": "S+A",
+  "Formal + Spatial + Atmospheric": "F+S+A",
+};
 
 const ACCENT: Record<string, string> = {
   Formal: "#7ec8c6",
@@ -96,12 +106,14 @@ export function ContinueFamilyFan({
   selectedId = null,
   plate = null,
   stance = "final",
+  compact = false,
 }: {
   groups: readonly FamilyGroup[];
   activeFocus?: string | null;
   selectedId?: string | null;
   plate?: Plate;
   stance?: "final" | "alternate";
+  compact?: boolean;
 }) {
   const filterId = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
@@ -119,6 +131,7 @@ export function ContinueFamilyFan({
   }) ?? null;
 
   useEffect(() => {
+    if (compact) return;
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
@@ -127,18 +140,19 @@ export function ContinueFamilyFan({
     const observer = new ResizeObserver(paint);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [plate]);
+  }, [plate, compact]);
 
   useEffect(() => {
     const svg = svgRef.current;
     const list = rowsRef.current;
     const origin = originRef.current;
-    if (!svg || !list || !origin) return;
+    if (!svg || !list || (!compact && !origin)) return;
     const measure = () => {
       const svgBox = svg.getBoundingClientRect();
-      const originBox = origin.getBoundingClientRect();
       const nextSize = { w: Math.max(1, svgBox.width), h: Math.max(1, svgBox.height) };
-      const originY = originBox.top + originBox.height / 2 - svgBox.top;
+      const originY = compact || !origin
+        ? nextSize.h / 2
+        : origin.getBoundingClientRect().top + origin.getBoundingClientRect().height / 2 - svgBox.top;
       const rowYs = [...list.querySelectorAll<HTMLElement>(".continue-flow-row")].map((row) => {
         const box = row.getBoundingClientRect();
         return box.top + box.height / 2 - svgBox.top;
@@ -154,23 +168,25 @@ export function ContinueFamilyFan({
     const observer = new ResizeObserver(measure);
     observer.observe(svg);
     observer.observe(list);
-    observer.observe(origin);
+    if (origin) observer.observe(origin);
     return () => observer.disconnect();
-  }, [rows.length]);
+  }, [rows.length, compact]);
 
   return (
-    <div className="continue-fan">
-      <p className="continue-fan-kicker">One verified Z0, twenty-four continuations, one selected</p>
-      {selectedId ? (
+    <div className="continue-fan" data-compact={compact ? "" : undefined}>
+      {compact ? null : <p className="continue-fan-kicker">One verified Z0, twenty-four continuations, one selected</p>}
+      {!compact && selectedId ? (
         <p className="continue-selected">{stance === "alternate" ? "Exploring" : "Final selected"} · <strong>{selectedId}</strong>{selectedGroup ? ` · ${selectedGroup.focus}` : " · Extended continuation"}</p>
       ) : null}
       <div className="continue-flow" data-focus={hover ?? undefined} onMouseLeave={() => setHover(null)}>
+        {compact ? null : (
         <figure className="continue-origin">
           <div className="continue-origin-frame" ref={originRef}>
             <canvas ref={canvasRef} aria-label="Selected Skill 2 state" />
           </div>
           <p className="continue-origin-label">Selected state</p>
         </figure>
+        )}
         <svg
           ref={svgRef}
           className="continue-flows"
@@ -206,16 +222,17 @@ export function ContinueFamilyFan({
                 className="continue-flow-path"
                 data-hot={hot ? "" : undefined}
                 data-live={activeFocus === group.focus ? "true" : "false"}
+                style={{ "--i": index } as CSSProperties}
                 onMouseEnter={() => setHover(group.focus)}
               >
                 <path d={path} fill="none" stroke="transparent" strokeWidth={16} />
-                <path d={path} fill="none" stroke={`url(#${filterId}-${group.start})`} strokeWidth={broad ? 5.2 : 4} strokeLinecap="round" opacity={broad ? 0.28 : 0.16} filter={`url(#${filterId}-glow)`} />
-                <path d={path} fill="none" stroke={`url(#${filterId}-${group.start})`} strokeWidth={core} strokeLinecap="round" />
+                <path className="continue-flow-halo" d={path} fill="none" stroke={`url(#${filterId}-${group.start})`} strokeWidth={compact ? (broad ? 2.4 : 1.8) : (broad ? 5.2 : 4)} strokeLinecap="round" opacity={compact ? 0.1 : (broad ? 0.28 : 0.16)} filter={compact ? undefined : `url(#${filterId}-glow)`} pathLength={compact ? 1 : undefined} />
+                <path className="continue-flow-core" d={path} fill="none" stroke={`url(#${filterId}-${group.start})`} strokeWidth={compact ? (broad ? 1.7 : 1.25) : core} strokeLinecap="round" pathLength={compact ? 1 : undefined} />
               </g>
             );
           })}
-          <circle className="continue-flow-origin" cx={10} cy={anchors.originY} r={3.1} />
-          <circle className="continue-flow-origin-ring" cx={10} cy={anchors.originY} r={5.4} />
+          <circle className="continue-flow-origin" cx={10} cy={anchors.originY} r={compact ? 1.7 : 3.1} />
+          <circle className="continue-flow-origin-ring" cx={10} cy={anchors.originY} r={compact ? 3.1 : 5.4} />
         </svg>
         <div className="continue-flow-rows" ref={rowsRef}>
           {rows.map((group) => (
@@ -232,7 +249,7 @@ export function ContinueFamilyFan({
               aria-label={`${group.focus}, ${group.count} continuations, ${rangeLabel(group)}`}
             >
               <span className="continue-flow-name" data-family={group.focus.includes("+") ? "mixed" : group.focus.toLowerCase()}>
-                {group.focus}
+                {compact ? SHORT[group.focus] ?? group.focus : group.focus}
                 {selectedGroup?.focus === group.focus ? (
                   <span className="continue-flow-ticks" aria-label={`${selectedId} in ${group.focus}`}>
                     {Array.from({ length: group.count }, (_, index) => {

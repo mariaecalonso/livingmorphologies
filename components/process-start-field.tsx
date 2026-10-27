@@ -15,6 +15,7 @@ function paintPlate(
   canvas: HTMLCanvasElement,
   plate: { size: number; values: Uint8Array } | null,
   view: StartFieldView,
+  chrome: boolean,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -31,10 +32,10 @@ function paintPlate(
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
-  const gutterX = 18;
-  const gutterTop = 14;
-  const gutterBottom = 16;
-  const insetRight = 4;
+  const gutterX = chrome ? Math.min(18, Math.max(4, width * 0.045)) : Math.min(4, Math.max(1, width * 0.02));
+  const gutterTop = chrome ? Math.min(14, Math.max(3, height * 0.08)) : Math.min(4, Math.max(1, height * 0.02));
+  const gutterBottom = chrome ? Math.min(16, Math.max(4, height * 0.1)) : Math.min(4, Math.max(1, height * 0.02));
+  const insetRight = chrome ? Math.min(4, width * 0.02) : gutterX;
   const availW = Math.max(1, width - gutterX - insetRight);
   const availH = Math.max(1, height - gutterTop - gutterBottom);
   const plateSize = plate?.size ?? 1;
@@ -80,6 +81,7 @@ function paintPlate(
   }
   plateCtx.putImageData(pixels, 0, 0);
   ctx.drawImage(image, 0, 0, size, size, destX, destY, destW, destH);
+  if (!chrome) return;
   ctx.strokeStyle = "rgba(242, 242, 238, 0.32)";
   ctx.lineWidth = 1;
   ctx.strokeRect(destX + 0.5, destY + 0.5, Math.max(0, destW - 1), Math.max(0, destH - 1));
@@ -95,19 +97,19 @@ function paintPlate(
 }
 
 /** Static view of one stored Z0 plate. The values are not changed. */
-export function ProcessStartField({ plate }: { plate: { size: number; values: Uint8Array } | null }) {
+export function ProcessStartField({ plate, chrome = true }: { plate: { size: number; values: Uint8Array } | null; chrome?: boolean }) {
   const [view, setView] = useState<StartFieldView>("raw");
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
-    const paint = () => paintPlate(canvas, plate, view);
+    const paint = () => paintPlate(canvas, plate, view, chrome);
     paint();
     const observer = new ResizeObserver(paint);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [plate, view]);
+  }, [plate, view, chrome]);
   return (
     <div className="process-start-field">
       <div className="process-field-mode" role="group" aria-label="Z0 view">

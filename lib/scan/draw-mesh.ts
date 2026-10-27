@@ -217,11 +217,12 @@ void main() {
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
-/** Copper tint for faces that exist only on the capped mesh. */
+/** Tint for faces that differ from the comparison mesh. Copper unless a tint is set. */
 const ACCENT_FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
 in float vDepth;
+uniform vec3 uTint;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
 void main() {
@@ -231,8 +232,7 @@ void main() {
   vec3 key = normalize(vec3(0.32, 0.86, 0.4));
   float wrap = clamp((dot(n, key) + 0.62) / 1.62, 0.0, 1.0);
   vec3 clay = mix(vec3(0.58, 0.58, 0.56), vec3(0.97, 0.97, 0.96), wrap);
-  vec3 copper = vec3(0.78, 0.49, 0.37);
-  oColor = vec4(mix(clay, copper, 0.72), 1.0);
+  oColor = vec4(mix(clay, uTint, 0.72), 1.0);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
@@ -250,6 +250,7 @@ type MeshGl = {
   shellAoProgram: WebGLProgram;
   floatAoProgram: WebGLProgram;
   accentProgram?: WebGLProgram | null;
+  accentGen?: number;
   position: WebGLBuffer;
   normal: WebGLBuffer;
   index: WebGLBuffer;
@@ -398,7 +399,7 @@ export function drawIsoMesh(
   pitch: number,
   column: number,
   style: IsoMeshStyle = "field",
-  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds"; spin?: number; margin?: number; zoom?: number; pan?: [number, number]; accent?: IsoMesh | null },
+  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds"; spin?: number; margin?: number; zoom?: number; pan?: [number, number]; accent?: IsoMesh | null; accentTint?: [number, number, number] },
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -460,7 +461,10 @@ export function drawIsoMesh(
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
     const accentMesh = options?.accent;
     if (accentMesh && accentMesh.triangles > 0) {
-      if (gpu.accentProgram === undefined) gpu.accentProgram = program(gl, VERT, ACCENT_FRAG);
+      if (gpu.accentGen !== 2) {
+        gpu.accentProgram = program(gl, VERT, ACCENT_FRAG);
+        gpu.accentGen = 2;
+      }
       const accentProgram = gpu.accentProgram;
       if (accentProgram) {
         gl.useProgram(accentProgram);
@@ -482,6 +486,8 @@ export function drawIsoMesh(
         gl.uniform3f(gl.getUniformLocation(accentProgram, "uCenter"), center[0], center[1], center[2]);
         gl.uniform2f(gl.getUniformLocation(accentProgram, "uPan"), pan[0], pan[1]);
         gl.uniform1f(gl.getUniformLocation(accentProgram, "uOrtho"), uniform ? 1 : 0);
+        const tint = options?.accentTint ?? [0.78, 0.49, 0.37];
+        gl.uniform3f(gl.getUniformLocation(accentProgram, "uTint"), tint[0], tint[1], tint[2]);
         gl.enable(gl.POLYGON_OFFSET_FILL);
         gl.polygonOffset(-1, -1);
         gl.drawElements(gl.TRIANGLES, accentMesh.indices.length, gl.UNSIGNED_INT, 0);

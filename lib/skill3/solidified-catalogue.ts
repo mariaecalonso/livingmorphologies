@@ -164,14 +164,52 @@ export function readSolidifiedChecks(archetypeId: string, candidateId: number, c
   };
 }
 
+type StoredMesh = { encoding?: string; positions?: string; normals?: string; indices?: string; triangles?: number };
+
+/** The stored pre-solidification mesh, and only when its buffers match the stored topology. */
+function verifiedOriginal(record: { original?: StoredMesh; originalTopology?: { vertices?: number; triangles?: number } }) {
+  const original = record.original;
+  const topology = record.originalTopology;
+  if (!original || !topology) return null;
+  if (original.encoding !== "isomesh-base64") return null;
+  if (typeof original.triangles !== "number" || original.triangles < 1 || original.triangles !== topology.triangles) return null;
+  if (typeof topology.vertices !== "number" || topology.vertices < 1) return null;
+  if (typeof original.positions !== "string" || typeof original.normals !== "string" || typeof original.indices !== "string") return null;
+  const positions = Buffer.from(original.positions, "base64");
+  const normals = Buffer.from(original.normals, "base64");
+  const indices = Buffer.from(original.indices, "base64");
+  if (positions.byteLength !== topology.vertices * 12 || normals.byteLength !== positions.byteLength) return null;
+  if (indices.byteLength !== original.triangles * 12) return null;
+  return {
+    positions: original.positions,
+    normals: original.normals,
+    indices: original.indices,
+    triangles: original.triangles,
+  };
+}
+
 export function readSolidifiedMesh(archetypeId: string, candidateId: number, continuationId: string) {
   if (!safeName(archetypeId) || !Number.isInteger(candidateId) || !/^N\d{2}$/.test(continuationId)) return null;
   const file = path.join(ROOT, solidifiedFileName(archetypeId, candidateId, continuationId));
   if (!insideRoot(file) || !existsSync(file)) return null;
   const record = JSON.parse(readFileSync(file, "utf8")) as {
     moduleId?: string;
-    repaired?: { encoding: string; positions: string; normals: string; indices: string; triangles: number };
+    repaired?: StoredMesh;
+    original?: StoredMesh;
+    originalTopology?: { vertices?: number; triangles?: number };
   };
   if (!record.repaired || record.repaired.encoding !== "isomesh-base64") return null;
-  return { moduleId: record.moduleId ?? null, geometry: record.repaired };
+  if (typeof record.repaired.positions !== "string" || typeof record.repaired.normals !== "string" || typeof record.repaired.indices !== "string") return null;
+  if (typeof record.repaired.triangles !== "number") return null;
+  return {
+    moduleId: record.moduleId ?? null,
+    geometry: {
+      encoding: record.repaired.encoding,
+      positions: record.repaired.positions,
+      normals: record.repaired.normals,
+      indices: record.repaired.indices,
+      triangles: record.repaired.triangles,
+    },
+    original: verifiedOriginal(record),
+  };
 }

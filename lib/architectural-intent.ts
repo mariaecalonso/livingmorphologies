@@ -13,6 +13,8 @@ export type ArchitecturalIntentCriterion = {
   label: string;
   rating: Rating;
   level: ArchitecturalIntentLevel;
+  /** Authored text for the stored level. Display only. */
+  description: string;
 };
 
 export type ArchitecturalIntentBranch = {
@@ -63,6 +65,7 @@ function branchFromGroup(
         label: criterion.label,
         rating,
         level: authoredLevel(criterion),
+        description: criterion.definition.levels[rating].description,
       };
     }),
   };

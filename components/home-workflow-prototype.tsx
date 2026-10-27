@@ -50,6 +50,17 @@ function reduced() {
 }
 
 /** First pass at the normal pace. The return to Objective Evaluation, and the second pass, run a little faster, then the catalogue follows. */
+function verticalRoute<T extends { id: string }>(frames: T[]): T[] {
+  const catalog = frames.find((frame) => frame.id === "catalog");
+  const skill4 = frames.find((frame) => frame.id === "skill4");
+  const next = frames.filter((frame) => frame.id !== "catalog" && frame.id !== "skill4");
+  const selection = next.findIndex((frame) => frame.id === "4");
+  if (catalog && selection >= 0) next.splice(selection + 1, 0, catalog);
+  const handoff = next.findIndex((frame) => frame.id === "5");
+  if (skill4 && handoff >= 0) next.splice(handoff + 1, 0, skill4);
+  return next;
+}
+
 function optimizationRoute<T extends { id: string; center: { x: number; y: number }; width: number; height: number }>(frames: T[], height: number): T[] {
   const byId = new Map(frames.map((frame) => [frame.id, frame]));
   const needed = ["0", "1", "2", "3", "4", "5", "6"].map((id) => byId.get(id));
@@ -747,7 +758,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
         route = null;
         return;
       }
-      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : frames);
+      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : stage.id === "skill-3" ? verticalRoute(frames) : frames);
       duration = route.duration;
       const view = `0 0 ${width} ${height}`;
       svg?.setAttribute("viewBox", view);
@@ -767,7 +778,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           arrivals[nextLit] = visit;
         }
         const repeat = dir >= 0 && visit > 1;
-        if (!repeat && entering?.hasAttribute("data-zoomable") && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
+        if (!repeat && entering && (entering.hasAttribute("data-zoomable") || entering.hasAttribute("data-vert-open")) && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
           board.dataset.hold = "1";
           board.dataset.heldFrame = nextLit ?? "";
           delete board.dataset.manual;
@@ -871,6 +882,28 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           {stage.id === "skill-3" ? <VerticalWorkflowLayer /> : null}
           {stage.id === "recombination" ? <HybridWorkflowLayer /> : null}
           {stage.id === "skill-5" ? <SiteWorkflowLayer /> : null}
+          {stage.id === "skill-3" && stops[4] ? (
+            <span
+              className="wf-frame is-detail"
+              data-frame="catalog"
+              data-tone={stage.tone}
+              style={{ left: `${stops[4].x * 100}%`, top: "84%" }}
+            >
+              <p className="wf-proto-label">Catalog</p>
+              <p className="wf-frame-body">Selected results from each archetype.</p>
+            </span>
+          ) : null}
+          {stage.id === "skill-3" && stops[5] ? (
+            <span
+              className="wf-frame is-detail"
+              data-frame="skill4"
+              data-tone={stage.tone}
+              style={{ left: `${stops[5].x * 100}%`, top: "84%" }}
+            >
+              <p className="wf-proto-label">Skill 4</p>
+              <p className="wf-frame-body">Fifteen selected modules.</p>
+            </span>
+          ) : null}
           {stage.id === "skill-1" ? null : stops.map((stop, stopIndex) => {
             const step = frameSteps[stopIndex];
             return (
