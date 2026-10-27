@@ -39,8 +39,9 @@ function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHando
   return resolveTileModule(archetypeId, loaded).identity?.typologyId ?? null;
 }
 
-export function HybridAssembly({ view = "process" }: { view?: "process" | "catalog" }) {
+export function HybridAssembly({ view = "process" }: { view?: "process" | "catalog" | "final-catalog" }) {
   if (view === "catalog") return <HybridCatalog />;
+  if (view === "final-catalog") return <HybridCatalog final />;
   const {
     loaded,
     tiles,
