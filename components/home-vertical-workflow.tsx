@@ -168,8 +168,8 @@ export function VerticalWorkflowLayer() {
       });
       const ceiling = height * 0.1;
       const gap = height * 0.08;
-      let under: Slot | null = null;
-      const slots = frames.map((frame, index) => {
+      const lower: { plate: Slot | null } = { plate: null };
+      const slots: Slot[] = frames.map((frame, index) => {
         const room = Math.max(0, frame.t - gap - ceiling);
         if (index === 2) {
           const leader = Math.max(14, height * 0.03);
@@ -232,16 +232,16 @@ export function VerticalWorkflowLayer() {
         const belowTop = frame.b + belowGap;
         const belowWidth = Math.min(frame.w * 1.05, width - 24);
         const belowHeight = Math.min(frame.w * 0.38, Math.max(0, height - belowTop - 8));
-        under = { left: Math.max(10, frame.cx - belowWidth / 2), top: belowTop, width: belowWidth, height: belowHeight };
+        lower.plate = { left: Math.max(10, frame.cx - belowWidth / 2), top: belowTop, width: belowWidth, height: belowHeight };
         return { left: frame.cx - slotSize / 2, top: frame.t - leader - slotSize, width: slotSize, height: slotSize };
       });
       setLayout({
         width,
         height,
         slots,
-        under,
+        under: lower.plate,
         leaders: frames.map((frame, index) => ({ x: frame.cx, top: slots[index].top + slots[index].height, bottom: frame.t })),
-        drop: under ? { x: frames[0].cx, top: frames[0].b, bottom: under.top } : null,
+        drop: lower.plate ? { x: frames[0].cx, top: frames[0].b, bottom: lower.plate.top } : null,
       });
     };
     measure();
