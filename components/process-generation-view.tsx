@@ -15,7 +15,6 @@ import {
 
 const HALF = MODULE_SIZE_X / 2;
 const GRID = 72;
-const DENSITY_SLICES = 56;
 const FIELD_PREFIXES = [2, 3, 4, 5, 6] as const;
 const TEAL: [number, number, number] = [38, 188, 184];
 const STAGES = ["plates", "xyt", "macro", "processed", "surface"] as const;
@@ -63,26 +62,47 @@ uniform sampler3D uFrom;
 uniform float uSlice;
 uniform float uMix;
 uniform float uAlpha;
-uniform float uProcessed;
+uniform float uMode;
+uniform float uIso;
+uniform float uIsoInner;
+uniform float uPale;
 layout(location = 0) out vec4 oColor;
 void main() {
   vec3 coord = vec3(vUv, uSlice);
   float value = mix(texture(uFrom, coord).r, texture(uField, coord).r, uMix);
-  float presence = smoothstep(0.02, 0.42, value);
-  if (presence < 0.02) discard;
-  vec3 teal = vec3(0.22, 0.74, 0.72);
-  vec3 mass = vec3(0.80, 0.87, 0.85);
-  oColor = vec4(mix(teal, mass, uProcessed), presence * presence * uAlpha);
+  vec3 teal = vec3(0.16, 0.62, 0.60);
+  vec3 bone = vec3(0.90, 0.95, 0.94);
+  vec3 ink = mix(teal, bone, uPale);
+  if (uMode < 0.5) {
+    float pattern = smoothstep(0.03, 0.1, value);
+    if (pattern < 0.18) discard;
+    oColor = vec4(teal, pattern * uAlpha);
+    return;
+  }
+  float reach = 0.012;
+  float span = 0.08;
+  float nearest = abs(value - uIso);
+  nearest = min(nearest, abs(mix(texture(uFrom, vec3(vUv + vec2(reach, 0.0), uSlice)).r, texture(uField, vec3(vUv + vec2(reach, 0.0), uSlice)).r, uMix) - uIso));
+  nearest = min(nearest, abs(mix(texture(uFrom, vec3(vUv - vec2(reach, 0.0), uSlice)).r, texture(uField, vec3(vUv - vec2(reach, 0.0), uSlice)).r, uMix) - uIso));
+  nearest = min(nearest, abs(mix(texture(uFrom, vec3(vUv + vec2(0.0, reach), uSlice)).r, texture(uField, vec3(vUv + vec2(0.0, reach), uSlice)).r, uMix) - uIso));
+  nearest = min(nearest, abs(mix(texture(uFrom, vec3(vUv - vec2(0.0, reach), uSlice)).r, texture(uField, vec3(vUv - vec2(0.0, reach), uSlice)).r, uMix) - uIso));
+  float edge = 1.0 - smoothstep(0.0, span, nearest);
+  float inner = 0.0;
+  if (uIsoInner > 0.0) {
+    float innerNear = abs(value - uIsoInner);
+    inner = 1.0 - smoothstep(0.0, span, innerNear);
+  }
+  float line = max(edge, inner * 0.65);
+  if (line < 0.28) discard;
+  oColor = vec4(mix(ink, bone, inner), line * uAlpha);
 }`;
 
 const MESH_VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
-layout(location = 1) in vec3 aNormal;
 uniform float uYaw;
 uniform float uPitch;
 uniform float uAspect;
 uniform float uFit;
-out vec3 vNormal;
 out float vHeight;
 void main() {
   float cy = cos(uYaw);
@@ -93,18 +113,13 @@ void main() {
   float z1 = -aPos.x * sy + aPos.z * cy;
   float y2 = aPos.y * cp - z1 * sp;
   float z2 = aPos.y * sp + z1 * cp;
-  float nx1 = aNormal.x * cy + aNormal.z * sy;
-  float nz1 = -aNormal.x * sy + aNormal.z * cy;
-  float ny2 = aNormal.y * cp - nz1 * sp;
-  float nz2 = aNormal.y * sp + nz1 * cp;
-  vNormal = vec3(nx1, ny2, nz2);
   vHeight = aPos.y;
   gl_Position = vec4(x1 * uFit / uAspect, y2 * uFit, z2 * 0.0125, 1.0);
+  gl_PointSize = 5.5;
 }`;
 
 const MESH_FRAG = `#version 300 es
 precision highp float;
-in vec3 vNormal;
 in float vHeight;
 uniform float uAlpha;
 uniform float uClipLo;
@@ -112,12 +127,10 @@ uniform float uClipHi;
 layout(location = 0) out vec4 oColor;
 void main() {
   if (vHeight < uClipLo || vHeight > uClipHi) discard;
-  vec3 n = normalize(vNormal);
-  vec3 viewDir = vec3(0.0, 0.0, 1.0);
-  if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.32, 0.86, 0.4));
-  float light = 0.72 + 0.28 * clamp(dot(n, key), 0.0, 1.0);
-  oColor = vec4(vec3(0.94, 0.95, 0.94) * light, uAlpha);
+  float falloff = length(gl_PointCoord - vec2(0.5));
+  if (falloff > 0.5) discard;
+  float grain = smoothstep(0.5, 0.12, falloff);
+  oColor = vec4(0.949, 0.949, 0.933, grain * uAlpha * 0.86);
 }`;
 
 const LINE_FRAG = `#version 300 es
@@ -138,10 +151,10 @@ const STAGE_LABEL: Record<StageName, string> = {
 
 const STAGE_CAPTION: Record<StageName, string> = {
   plates: "Retained samples, each held at its moment.",
-  xyt: "The samples become one interpolated density.",
-  macro: "That density, read as a continuous field.",
-  processed: "The field, prepared as a volume.",
-  surface: "The white surface is drawn from that volume.",
+  xyt: "Between two plates, the pattern changes. The same change continues up the stack.",
+  macro: "Each of those sections, as the outline of one field.",
+  processed: "The boundary of the field, still in section.",
+  surface: "The white surface follows that boundary.",
 };
 
 const STEPS: readonly { stage: StageName }[] = STAGES.map((stage) => ({ stage }));
@@ -154,8 +167,24 @@ function storedPrefix(count: number) {
 
 function fadeMs(stage: StageName) {
   if (stage === "plates") return 1200;
-  if (stage === "surface") return 900;
-  return 780;
+  if (stage === "xyt") return 1600;
+  if (stage === "surface") return 1100;
+  return 900;
+}
+
+function sectionPlanes(heights: readonly number[], extend: number) {
+  if (heights.length < 2) return [];
+  const ordered = [...heights].sort((a, b) => a - b);
+  const planes: { w: number; gain: number }[] = [];
+  const push = (w: number, gain: number) => {
+    if (gain > 0.02) planes.push({ w, gain });
+  };
+  const span = ordered[1] - ordered[0];
+  for (const t of [0.28, 0.5, 0.72]) push(ordered[0] + span * t, 1);
+  for (let index = 1; index < ordered.length - 1; index += 1) {
+    push((ordered[index] + ordered[index + 1]) * 0.5, extend);
+  }
+  return planes;
 }
 
 function holdMs(stage: StageName) {
@@ -217,6 +246,7 @@ function program(gl: WebGL2RenderingContext, vert: string, frag: string) {
 export function ProcessGeneration({
   plates,
   meshes,
+  surface = null,
   autoplay,
   loading = false,
   isoCamera,
@@ -228,6 +258,7 @@ export function ProcessGeneration({
 }: {
   plates: readonly DevelopPlate[];
   meshes: Readonly<Record<number, IsoMesh>>;
+  surface?: IsoMesh | null;
   autoplay: boolean;
   loading?: boolean;
   isoCamera?: MutableRefObject<ProcessIsoCamera>;
@@ -256,8 +287,8 @@ export function ProcessGeneration({
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const prefix = storedPrefix(plates.length);
-  const live = useRef({ step, fade, rasters, meshes, prefix });
-  live.current = { step, fade, rasters, meshes, prefix };
+  const live = useRef({ step, fade, rasters, meshes, prefix, surface });
+  live.current = { step, fade, rasters, meshes, prefix, surface };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -378,58 +409,16 @@ export function ProcessGeneration({
         return true;
       };
       const stage = current?.stage;
-      const showVolume = stage === "xyt" || stage === "macro" || stage === "processed" || stage === "surface";
-      if (volumeProg && showVolume && volumeTex && fromTex && frame.prefix >= 2) {
-        const toName = stage === "surface" ? "processed" : stage;
-        const fromName = stage === "macro" ? "xyt" : stage === "processed" || stage === "surface" ? "macro" : "";
-        if (!fromName && fromKey !== "zero") {
-          bindVolume(fromTex);
-          gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-          gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
-          fromKey = "zero";
-        }
-        const toReady = uploadField(volumeTex, `${frame.prefix}:${toName}`, "to");
-        const fromReady = fromName ? uploadField(fromTex, `${frame.prefix}:${fromName}`, "from") : fromKey === "zero";
-        if (toReady && fromReady) {
-          const mix = stage === "surface" ? 1 : frame.fade;
-          const processed = stage === "xyt" ? 0 : stage === "macro" ? mix * 0.4 : stage === "processed" ? 0.4 + mix * 0.6 : 1;
-          const alpha = (stage === "surface" ? 1 - frame.fade : stage === "xyt" ? frame.fade : 1) * 0.22;
-          gl.useProgram(volumeProg);
-          setCamera(volumeProg);
-          gl.uniform1i(gl.getUniformLocation(volumeProg, "uField"), 0);
-          gl.uniform1i(gl.getUniformLocation(volumeProg, "uFrom"), 1);
-          gl.uniform1f(gl.getUniformLocation(volumeProg, "uMix"), mix);
-          gl.uniform1f(gl.getUniformLocation(volumeProg, "uAlpha"), alpha);
-          gl.uniform1f(gl.getUniformLocation(volumeProg, "uProcessed"), processed);
-          gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_3D, volumeTex);
-          gl.activeTexture(gl.TEXTURE1);
-          gl.bindTexture(gl.TEXTURE_3D, fromTex);
-          gl.depthMask(false);
-          const order = Array.from({ length: DENSITY_SLICES }, (_, index) => (index + 0.5) / DENSITY_SLICES);
-          order.sort((a, b) => (b - a) * Math.sin(pitch));
-          gl.bindBuffer(gl.ARRAY_BUFFER, plateBuf);
-          gl.enableVertexAttribArray(0);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
-          gl.enableVertexAttribArray(1);
-          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
-          for (const slice of order) {
-            const y = (slice - 0.5) * MODULE_SIZE_X;
-            const quad = new Float32Array([
-              -HALF, y, -HALF, 0, 0,
-              HALF, y, -HALF, 1, 0,
-              HALF, y, HALF, 1, 1,
-              -HALF, y, -HALF, 0, 0,
-              HALF, y, HALF, 1, 1,
-              -HALF, y, HALF, 0, 1,
-            ]);
-            gl.bufferData(gl.ARRAY_BUFFER, quad, gl.DYNAMIC_DRAW);
-            gl.uniform1f(gl.getUniformLocation(volumeProg, "uSlice"), slice);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-          }
-          gl.depthMask(true);
-        }
-      }
+      const ordered = plates.map((plate, index) => ({ index, z: plate.z })).sort((a, b) => a.z - b.z);
+      const rankOf = new Map(ordered.map((item, rank) => [item.index, rank]));
+      const planeQuad = (y: number, flipV: boolean) => new Float32Array([
+        -HALF, y, -HALF, 0, flipV ? 1 : 0,
+        HALF, y, -HALF, 1, flipV ? 1 : 0,
+        HALF, y, HALF, 1, flipV ? 0 : 1,
+        -HALF, y, -HALF, 0, flipV ? 1 : 0,
+        HALF, y, HALF, 1, flipV ? 0 : 1,
+        -HALF, y, HALF, 0, flipV ? 0 : 1,
+      ]);
       if (stage === "plates" || stage === "xyt") {
         gl.useProgram(plateProg);
         setCamera(plateProg);
@@ -444,18 +433,12 @@ export function ProcessGeneration({
           const plate = plates[index];
           const texture = plateTextures[index];
           if (!plate || !texture) continue;
-          const arrival = stage === "plates" ? Math.min(1, Math.max(0, frame.fade * count - index)) : 1 - frame.fade;
+          const rank = rankOf.get(index) ?? index;
+          const arrival = stage === "plates"
+            ? Math.min(1, Math.max(0, frame.fade * count - index))
+            : (rank <= 1 ? 1 : Math.min(1, Math.max(0, (frame.fade - 0.4) / 0.3))) * (1 - Math.min(1, Math.max(0, (frame.fade - 0.72) / 0.28)));
           if (arrival <= 0.01) continue;
-          const y = (plate.z - 0.5) * MODULE_SIZE_X;
-          const quad = new Float32Array([
-            -HALF, y, -HALF, 0, 1,
-            HALF, y, -HALF, 1, 1,
-            HALF, y, HALF, 1, 0,
-            -HALF, y, -HALF, 0, 1,
-            HALF, y, HALF, 1, 0,
-            -HALF, y, HALF, 0, 0,
-          ]);
-          gl.bufferData(gl.ARRAY_BUFFER, quad, gl.DYNAMIC_DRAW);
+          gl.bufferData(gl.ARRAY_BUFFER, planeQuad((plate.z - 0.5) * MODULE_SIZE_X, true), gl.DYNAMIC_DRAW);
           gl.uniform1f(gl.getUniformLocation(plateProg, "uAlpha"), 0.92 * arrival);
           gl.activeTexture(gl.TEXTURE0);
           gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -464,32 +447,80 @@ export function ProcessGeneration({
         }
         gl.depthMask(true);
       }
-      if (stage === "surface" && frame.fade > 0 && frame.prefix >= 2) {
-        const mesh = frame.meshes[frame.prefix];
+      if (stage === "surface" && frame.fade > 0.04 && frame.prefix >= 2) {
+        const mesh = frame.meshes[frame.prefix] ?? frame.surface;
+        const meshId = frame.meshes[frame.prefix] ? String(frame.prefix) : "open";
         if (mesh && mesh.triangles > 0) {
           gl.useProgram(meshProg);
           setCamera(meshProg);
-          if (meshKey !== String(frame.prefix)) {
+          if (meshKey !== meshId) {
             gl.bindBuffer(gl.ARRAY_BUFFER, meshPos);
             gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
             gl.bindBuffer(gl.ARRAY_BUFFER, meshNor);
             gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshIdx);
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-            meshKey = String(frame.prefix);
+            meshKey = meshId;
           }
           gl.bindBuffer(gl.ARRAY_BUFFER, meshPos);
           gl.enableVertexAttribArray(0);
           gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-          gl.bindBuffer(gl.ARRAY_BUFFER, meshNor);
-          gl.enableVertexAttribArray(1);
-          gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, meshIdx);
-          gl.uniform1f(gl.getUniformLocation(meshProg, "uAlpha"), 0.92 * frame.fade);
+          gl.disableVertexAttribArray(1);
+          gl.uniform1f(gl.getUniformLocation(meshProg, "uAlpha"), 0.94 * frame.fade);
           gl.uniform1f(gl.getUniformLocation(meshProg, "uClipLo"), -MODULE_SIZE_X);
           gl.uniform1f(gl.getUniformLocation(meshProg, "uClipHi"), MODULE_SIZE_X);
+          gl.depthMask(false);
+          gl.drawArrays(gl.POINTS, 0, mesh.positions.length / 3);
           gl.depthMask(true);
-          gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
+        }
+      }
+      const showSections = stage === "xyt" || stage === "macro" || stage === "processed" || stage === "surface";
+      if (volumeProg && showSections && volumeTex && fromTex && frame.prefix >= 2) {
+        const toName = stage === "surface" ? "processed" : stage;
+        const fromName = stage === "macro" ? "xyt" : stage === "processed" || stage === "surface" ? "macro" : "";
+        if (!fromName && fromKey !== "zero") {
+          bindVolume(fromTex);
+          gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+          gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, 1, 1, 1, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array([0]));
+          fromKey = "zero";
+        }
+        const toReady = uploadField(volumeTex, `${frame.prefix}:${toName}`, "to");
+        const fromReady = fromName ? uploadField(fromTex, `${frame.prefix}:${fromName}`, "from") : fromKey === "zero";
+        if (toReady && fromReady) {
+          const mix = stage === "xyt" ? Math.min(1, frame.fade / 0.4) : stage === "surface" ? 1 : frame.fade;
+          const extend = stage === "xyt" ? Math.min(1, Math.max(0, (frame.fade - 0.42) / 0.58)) : 1;
+          const mode = stage === "xyt" ? 0 : 1;
+          const iso = stage === "macro" ? 0.06 + 0.3 * mix : stage === "processed" ? 0.36 + 0.14 * mix : stage === "surface" ? 0.5 : 0.06;
+          const isoInner = stage === "macro" && mix > 0.45 ? 0.58 : 0;
+          const pale = stage === "macro" ? mix * 0.35 : stage === "xyt" ? 0 : 1;
+          const alpha = stage === "surface" ? 0.9 * (1 - 0.4 * frame.fade) : 0.94;
+          const planes = sectionPlanes(ordered.map((item) => item.z), extend).sort((a, b) => (b.w - a.w) * Math.sin(pitch));
+          gl.useProgram(volumeProg);
+          setCamera(volumeProg);
+          gl.uniform1i(gl.getUniformLocation(volumeProg, "uField"), 0);
+          gl.uniform1i(gl.getUniformLocation(volumeProg, "uFrom"), 1);
+          gl.uniform1f(gl.getUniformLocation(volumeProg, "uMix"), mix);
+          gl.uniform1f(gl.getUniformLocation(volumeProg, "uMode"), mode);
+          gl.uniform1f(gl.getUniformLocation(volumeProg, "uIso"), iso);
+          gl.uniform1f(gl.getUniformLocation(volumeProg, "uIsoInner"), isoInner);
+          gl.uniform1f(gl.getUniformLocation(volumeProg, "uPale"), pale);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_3D, volumeTex);
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_3D, fromTex);
+          gl.bindBuffer(gl.ARRAY_BUFFER, plateBuf);
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
+          gl.enableVertexAttribArray(1);
+          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+          gl.depthMask(stage !== "surface");
+          for (const plane of planes) {
+            gl.bufferData(gl.ARRAY_BUFFER, planeQuad((plane.w - 0.5) * MODULE_SIZE_X, false), gl.DYNAMIC_DRAW);
+            gl.uniform1f(gl.getUniformLocation(volumeProg, "uSlice"), plane.w);
+            gl.uniform1f(gl.getUniformLocation(volumeProg, "uAlpha"), alpha * plane.gain);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+          gl.depthMask(true);
         }
       }
       gl.useProgram(lineProg);
@@ -524,7 +555,7 @@ export function ProcessGeneration({
 
   useEffect(() => {
     paintRef.current?.();
-  }, [fade, fields, fieldState, isoTick, meshes, step, viewTick]);
+  }, [fade, fields, fieldState, isoTick, meshes, step, surface, viewTick]);
 
   useEffect(() => {
     const canvas = viewRef.current;
@@ -693,8 +724,8 @@ export function ProcessGeneration({
       <details className="process-technical">
         <summary>Technical details</summary>
         <div className="process-technical-body">
-          <p>Retained samples are held at their moments, then fade as the stored XYT density fills the module. The density is the interpolated field between those samples.</p>
-          <p>The macro field is that density read continuously. The processed field is the volume. The white surface is drawn only after that volume is shown.</p>
+          <p>The first change is three horizontal sections of the stored XYT field, drawn between two retained plates. The same section is then taken through the rest of the stack.</p>
+          <p>Macro and processed stay on those sections. Macro is the outline of the continuous field. Processed is the boundary the surface is drawn from.</p>
           <p>Vertical Void N24. Stored 72³ scalar fields, same isometric view as Step 06. Generation data and the Open morphology are unchanged.</p>
         </div>
       </details>
