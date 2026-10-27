@@ -455,19 +455,10 @@ export function SampleDecisionStack({
   frames,
   playIteration,
   onSeek,
-  columns = 4,
-  labelSize = 16,
-  fit = false,
 }: {
   frames: readonly SampleFrame[];
   playIteration: number;
   onSeek?: (iteration: number) => void;
-  /** Columns of plates. The Process page uses four. Zero with fit chooses a column count that keeps the plates large. */
-  columns?: number;
-  /** Earlier / Later size in canvas pixels. Zero hides them. */
-  labelSize?: number;
-  /** Size the columns to the canvas. The Process page stays on its own spacing. */
-  fit?: boolean;
 }) {
   const [plates, setPlates] = useState<Map<number, HTMLCanvasElement>>(new Map());
   const coverage = useRef<Map<number, number>>(new Map());
@@ -501,41 +492,23 @@ export function SampleDecisionStack({
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     const count = frames.length;
-    const xk = 0.9;
-    const yk = 0.24;
-    const usable = height * (fit ? 0.68 : 0.84);
-    const faceRatio = fit ? 0.72 : 0.66;
-    const scaleFor = (cols: number) => {
-      const tall = Math.ceil(count / cols);
-      const pitch = usable / Math.max(1, tall - 1);
-      const fromHeight = (pitch * faceRatio) / (2 * yk);
-      if (!fit) return fromHeight;
-      const factor = cols + Math.max(0, cols - 1) * 0.2;
-      const fromWidth = (width * 0.78) / (2 * xk * factor);
-      return Math.min(fromHeight, fromWidth);
-    };
-    let columnCount = Math.max(1, columns);
-    if (fit && columns < 1) {
-      let bestScale = -1;
-      const maxCols = Math.min(8, count);
-      for (let cols = 1; cols <= maxCols; cols += 1) {
-        const next = scaleFor(cols);
-        if (next > bestScale) {
-          bestScale = next;
-          columnCount = cols;
-        }
-      }
-    }
-    const columnSize = (column: number) => Math.floor(count / columnCount) + (column < count % columnCount ? 1 : 0);
+    const columns = 4;
+    const columnSize = (column: number) => Math.floor(count / columns) + (column < count % columns ? 1 : 0);
     const columnStart = (column: number) => {
       let start = 0;
       for (let index = 0; index < column; index += 1) start += columnSize(index);
       return start;
     };
     const tallest = columnSize(0);
+    const xk = 0.9;
+    const yk = 0.24;
+    const usable = height * 0.84;
     const pitchPx = usable / Math.max(1, tallest - 1);
-    let scale = scaleFor(columnCount);
+    const facePx = pitchPx * 0.66;
+    const scale = facePx / (2 * yk);
     const zSpan = ((tallest - 1) * pitchPx) / scale;
+    const diamondW = 2 * xk * scale;
+    const gutter = 36;
     const slab = 2.2;
     const project = (x: number, y: number, z: number) => ({
       x: (x - y) * xk,
@@ -543,11 +516,11 @@ export function SampleDecisionStack({
     });
     const columnOf = (index: number) => {
       let cursor = 0;
-      for (let column = 0; column < columnCount; column += 1) {
+      for (let column = 0; column < columns; column += 1) {
         cursor += columnSize(column);
         if (index < cursor) return column;
       }
-      return columnCount - 1;
+      return columns - 1;
     };
     const zAt = (index: number) => {
       const column = columnOf(index);
@@ -572,20 +545,8 @@ export function SampleDecisionStack({
     consider(1, 0, 1);
     consider(1, 1, 1);
     consider(0, 1, 1);
-    if (fit) {
-      const span = Math.max(1, maxY - minY);
-      const extra = 2 * yk * scale * 0.55 + 28;
-      const room = height * 0.82;
-      if (span * scale + extra > room) scale = Math.max(1, (room - 28) / span);
-    }
-    const facePx = 2 * yk * scale;
-    const diamondW = 2 * xk * scale;
-    const gutter = fit ? diamondW * 0.2 : 36;
-    const lift = facePx * 0.5 + 12;
-    const topEdge = minY * scale - lift;
-    const bottomEdge = maxY * scale + 6;
-    const oy = fit ? (height - (bottomEdge - topEdge)) / 2 - topEdge : height * 0.5 - ((minY + maxY) / 2) * scale;
-    const columnCenter = (column: number) => width * 0.5 + (column - (columnCount - 1) / 2) * (diamondW + gutter);
+    const oy = height * 0.5 - ((minY + maxY) / 2) * scale;
+    const columnCenter = (column: number) => width * 0.5 + (column - (columns - 1) / 2) * (diamondW + gutter);
     const screen = (x: number, y: number, z: number, column: number) => {
       const point = project(x, y, z);
       const ox = columnCenter(column) - ((minX + maxX) / 2) * scale;
@@ -723,21 +684,7 @@ export function SampleDecisionStack({
       const kept = Boolean(frame.reason);
       const accent = kept ? SAMPLE_INK[frame.reason ?? "z0"] : "rgba(214, 214, 210, 1)";
       paintSlab(corners, kept ? 0.4 : 0.12, accent);
-      if (fit) {
-        ctx.save();
-        ctx.globalAlpha = kept ? 0.34 : 0.12;
-        ctx.fillStyle = accent;
-        ctx.beginPath();
-        ctx.moveTo(corners[0].x, corners[0].y);
-        ctx.lineTo(corners[1].x, corners[1].y);
-        ctx.lineTo(corners[2].x, corners[2].y);
-        ctx.lineTo(corners[3].x, corners[3].y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      } else {
-        fillPlane(corners, kept ? 0.08 : 0.04);
-      }
+      fillPlane(corners, kept ? 0.08 : 0.04);
       paintGrid(corners, kept ? 0.16 : 0.08);
       if (plate) paintField(plate, corners, kept ? 0.92 : 0.62);
       ctx.save();
@@ -753,18 +700,16 @@ export function SampleDecisionStack({
     }
     const first = quad(0);
     const far = quad(count - 1);
-    if (labelSize > 0) {
-      ctx.save();
-      ctx.fillStyle = "rgba(242, 242, 238, 0.55)";
-      ctx.font = `${labelSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText("Earlier", (first[0].x + first[1].x + first[2].x + first[3].x) / 4, Math.max(first[0].y, first[1].y, first[2].y, first[3].y) + 10);
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText("Later", Math.max(far[0].x, far[1].x, far[2].x, far[3].x) + 8, (far[0].y + far[1].y + far[2].y + far[3].y) / 4);
-      ctx.restore();
-    }
+    ctx.save();
+    ctx.fillStyle = "rgba(242, 242, 238, 0.55)";
+    ctx.font = "16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText("Earlier", (first[0].x + first[1].x + first[2].x + first[3].x) / 4, Math.max(first[0].y, first[1].y, first[2].y, first[3].y) + 10);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Later", Math.max(far[0].x, far[1].x, far[2].x, far[3].x) + 12, (far[0].y + far[1].y + far[2].y + far[3].y) / 4);
+    ctx.restore();
     if (currentCorners) {
       const plate = plates.get(playIteration);
       const ink = "rgba(242, 242, 238, 0.98)";
@@ -797,7 +742,7 @@ export function SampleDecisionStack({
       ctx.restore();
     }
     hits.current = nextHits;
-  }, `${playIteration}:${frames.length}:${plates.size}:${columns}:${labelSize}:${fit}`);
+  }, `${playIteration}:${frames.length}:${plates.size}`);
 
   return (
     <div className="process-sample-stack">
@@ -827,7 +772,7 @@ export function SampleDecisionStack({
 type FormDust = { x: number; y: number; z: number; h: number; layer: number };
 type FormFace = { ax: number; ay: number; az: number; bx: number; by: number; bz: number; cx: number; cy: number; cz: number; h: number };
 
-function formField(mesh: IsoMesh, budget = 5400) {
+function formField(mesh: IsoMesh) {
   const { positions, indices } = mesh;
   let minY = Infinity;
   let maxY = -Infinity;
@@ -861,6 +806,7 @@ function formField(mesh: IsoMesh, budget = 5400) {
   const areaSum = triangles.reduce((sum, triangle) => sum + triangle.area, 0) || 1;
   const dust: FormDust[] = [];
   const faces: FormFace[] = [];
+  const budget = 5400;
   triangles.forEach((triangle, index) => {
     const h = ((triangle.ay + triangle.by + triangle.cy) / 3 - minY) / span;
     triangle.h = h;
@@ -979,24 +925,16 @@ export function ProcessFormEmergence({
   mesh,
   rise,
   shell,
-  points = 5400,
-  grain = 1,
 }: {
   mesh: IsoMesh;
   rise: number;
   shell: number;
-  /** Sample count. The process default stays dense. */
-  points?: number;
-  /** Point size relative to the process default. */
-  grain?: number;
 }) {
   const field = useRef<ReturnType<typeof formField> | null>(null);
   const meshId = useRef<IsoMesh | null>(null);
-  const budget = useRef(points);
-  if (meshId.current !== mesh || budget.current !== points) {
+  if (meshId.current !== mesh) {
     meshId.current = mesh;
-    budget.current = points;
-    field.current = formField(mesh, points);
+    field.current = formField(mesh);
   }
   const ref = useFittedCanvas((canvas, width, height) => {
     const body = field.current;
@@ -1070,12 +1008,12 @@ export function ProcessFormEmergence({
       const age = rise - point.h;
       const at = project(point.x, point.y, point.z);
       const front = age < 0.035;
-      const size = (front ? 6.4 : point.layer === 0 ? 5.4 : 4.6) * grain;
+      const size = front ? 6.4 : point.layer === 0 ? 5.4 : 4.6;
       ctx.globalAlpha = front ? 0.95 : point.layer === 0 ? 0.84 : 0.62;
       ctx.fillRect(at.x - size / 2, at.y - size / 2, size, size);
     }
     ctx.restore();
-  }, `${rise.toFixed(3)}:${shell.toFixed(3)}:${grain}:${mesh.triangles}`, true);
+  }, `${rise.toFixed(3)}:${shell.toFixed(3)}:${mesh.triangles}`, true);
   return <canvas ref={ref} aria-label="Vertical propagation building the morphology from the base" />;
 }
 

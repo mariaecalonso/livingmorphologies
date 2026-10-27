@@ -2,12 +2,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { HomeResultPreview, HomeResultSkill } from "@/lib/home-results";
-import { readFinalSelection } from "@/lib/skill3/final-selection";
 import { loadSavedPicks } from "@/lib/skill2/saved-picks";
 
 /** Two saved runs from each of the fifteen archetypes. */
 const PHYSARUM_PLATES = 30;
-/** One human selection, and one vertical continuation, for each archetype. */
+/** One saved selection for each archetype. Vertical Propagation draws its stored modules in the frame. */
 const CHOSEN_PLATES = 15;
 
 export type HomeResultPlates = Partial<Record<HomeResultSkill["id"], readonly HomeResultPreview[]>>;
@@ -62,29 +61,9 @@ function optimizationPlates(): HomeResultPreview[] {
   return plates;
 }
 
+/** The Results frame draws the stored Skill 3 modules itself. These slices are sections, not the modules. */
 function verticalPlates(): HomeResultPreview[] {
-  const names = new Map(TYPOLOGIES.flatMap((typology) => typology.archetypes.map((archetype) => [archetype.id, archetype.name] as const)));
-  const plates: HomeResultPreview[] = [];
-  let selections: ReturnType<typeof readFinalSelection>["selections"] = [];
-  try {
-    selections = readFinalSelection().selections;
-  } catch {
-    return plates;
-  }
-  for (const selection of selections) {
-    const file = join(process.cwd(), "public", "demo", "skill2", "propagation", selection.archetypeId, `${selection.candidateId}.json`);
-    if (!existsSync(file)) continue;
-    const body = JSON.parse(readFileSync(file, "utf8")) as { ready?: boolean; slices?: string[] };
-    const src = body.ready ? body.slices?.[0] : null;
-    if (!src) continue;
-    plates.push({
-      id: `${selection.archetypeId}-${selection.candidateId}`,
-      src,
-      alt: `${names.get(selection.archetypeId) ?? selection.archetypeId} ${selection.candidateId}`,
-    });
-    if (plates.length >= CHOSEN_PLATES) break;
-  }
-  return plates;
+  return [];
 }
 
 /** Real plates for the Results preview. */

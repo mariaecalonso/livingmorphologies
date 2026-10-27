@@ -1,0 +1,398 @@
+[
+  {
+    "id": "S04 TEST2 003",
+    "tileCount": 2,
+    "arrangement": "linear",
+    "count": 2,
+    "tiles": [
+      {
+        "instanceId": "A",
+        "archetypeId": "compressed-sequential",
+        "name": "Compressed Sequential",
+        "moduleId": "carved-mass:compressed-sequential:205:N03",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "B",
+        "archetypeId": "linear-edge-gallery",
+        "name": "Linear Edge Gallery",
+        "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+        "revision": 1,
+        "transform": {
+          "x": 25.158168027605704,
+          "y": 6.856320170664178,
+          "z": -4.449882437908853
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      }
+    ],
+    "connections": [],
+    "regenerationRequired": false,
+    "testData": true,
+    "batchId": "TEST_2"
+  },
+  {
+    "id": "S04 TEST 018",
+    "tileCount": 4,
+    "arrangement": "grid",
+    "count": 4,
+    "tiles": [
+      {
+        "instanceId": "A",
+        "archetypeId": "linear-edge-gallery",
+        "name": "Linear Edge Gallery",
+        "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 28.702431494752695,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "B",
+        "archetypeId": "linear-edge-gallery",
+        "name": "Linear Edge Gallery",
+        "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+        "revision": 1,
+        "transform": {
+          "x": 0.13511767806873448,
+          "y": 1.222771261376522,
+          "z": -0.105798668950835
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "C",
+        "archetypeId": "linear-edge-gallery",
+        "name": "Linear Edge Gallery",
+        "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+        "revision": 1,
+        "transform": {
+          "x": 7.142520820469752,
+          "y": 4.097816909990945,
+          "z": -0.5574765065539395
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "D",
+        "archetypeId": "void-field",
+        "name": "Void Field",
+        "moduleId": "carved-mass:void-field:270:N19",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 28.702431494752695,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      }
+    ],
+    "connections": [],
+    "regenerationRequired": false,
+    "testData": true,
+    "batchId": null
+  },
+  {
+    "id": "S04 TEST10 013",
+    "tileCount": 4,
+    "arrangement": "t",
+    "count": 4,
+    "tiles": [
+      {
+        "instanceId": "A",
+        "archetypeId": "vertical-void",
+        "name": "Vertical Void",
+        "moduleId": "carved-mass:vertical-void:351:N24",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "B",
+        "archetypeId": "vertical-void",
+        "name": "Vertical Void",
+        "moduleId": "carved-mass:vertical-void:351:N24",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "C",
+        "archetypeId": "compressed-sequential",
+        "name": "Compressed Sequential",
+        "moduleId": "carved-mass:compressed-sequential:205:N03",
+        "revision": 1,
+        "transform": {
+          "x": 58,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "D",
+        "archetypeId": "compressed-sequential",
+        "name": "Compressed Sequential",
+        "moduleId": "carved-mass:compressed-sequential:205:N03",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 0,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      }
+    ],
+    "connections": [],
+    "regenerationRequired": false,
+    "testData": true,
+    "batchId": "TEST_10"
+  },
+  {
+    "id": "S04 TEST10 023",
+    "tileCount": 6,
+    "arrangement": "linear",
+    "count": 6,
+    "tiles": [
+      {
+        "instanceId": "A",
+        "archetypeId": "undulated",
+        "name": "Undulated",
+        "moduleId": "carved-mass:undulated:71:N06",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "B",
+        "archetypeId": "stepped-amphitheater",
+        "name": "Stepped Amphitheater",
+        "moduleId": "carved-mass:stepped-amphitheater:374:N03",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "C",
+        "archetypeId": "flat-deep-plan",
+        "name": "Flat Deep Plan",
+        "moduleId": "carved-mass:flat-deep-plan:83:N16",
+        "revision": 1,
+        "transform": {
+          "x": 58,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "D",
+        "archetypeId": "stepped-amphitheater",
+        "name": "Stepped Amphitheater",
+        "moduleId": "carved-mass:stepped-amphitheater:374:N03",
+        "revision": 1,
+        "transform": {
+          "x": 87,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "E",
+        "archetypeId": "flat-deep-plan",
+        "name": "Flat Deep Plan",
+        "moduleId": "carved-mass:flat-deep-plan:83:N16",
+        "revision": 1,
+        "transform": {
+          "x": 116,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "F",
+        "archetypeId": "linear-edge-gallery",
+        "name": "Linear Edge Gallery",
+        "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+        "revision": 1,
+        "transform": {
+          "x": 145,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      }
+    ],
+    "connections": [],
+    "regenerationRequired": false,
+    "testData": true,
+    "batchId": "TEST_10"
+  },
+  {
+    "id": "S04 TEST10 034",
+    "tileCount": 8,
+    "arrangement": "grid",
+    "count": 8,
+    "tiles": [
+      {
+        "instanceId": "A",
+        "archetypeId": "terraced",
+        "name": "Terraced",
+        "moduleId": "carved-mass:terraced:46:N06",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "B",
+        "archetypeId": "undulated",
+        "name": "Undulated",
+        "moduleId": "carved-mass:undulated:71:N06",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "C",
+        "archetypeId": "undulated",
+        "name": "Undulated",
+        "moduleId": "carved-mass:undulated:71:N06",
+        "revision": 1,
+        "transform": {
+          "x": 58,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "D",
+        "archetypeId": "flat-deep-plan",
+        "name": "Flat Deep Plan",
+        "moduleId": "carved-mass:flat-deep-plan:83:N16",
+        "revision": 1,
+        "transform": {
+          "x": 87,
+          "y": 0,
+          "z": 0
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "E",
+        "archetypeId": "open-hall",
+        "name": "Open Hall",
+        "moduleId": "carved-mass:open-hall:333:N08",
+        "revision": 1,
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "F",
+        "archetypeId": "terraced",
+        "name": "Terraced",
+        "moduleId": "carved-mass:terraced:46:N06",
+        "revision": 1,
+        "transform": {
+          "x": 29,
+          "y": 0,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "G",
+        "archetypeId": "terraced",
+        "name": "Terraced",
+        "moduleId": "carved-mass:terraced:46:N06",
+        "revision": 1,
+        "transform": {
+          "x": 58,
+          "y": 0,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      },
+      {
+        "instanceId": "H",
+        "archetypeId": "undulated",
+        "name": "Undulated",
+        "moduleId": "carved-mass:undulated:71:N06",
+        "revision": 1,
+        "transform": {
+          "x": 87,
+          "y": 0,
+          "z": 29
+        },
+        "rotationQuarter": 0,
+        "mirror": null
+      }
+    ],
+    "connections": [],
+    "regenerationRequired": false,
+    "testData": true,
+    "batchId": "TEST_10"
+  }
+]

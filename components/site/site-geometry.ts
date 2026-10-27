@@ -10,6 +10,7 @@ import {
   Vector2,
 } from "three";
 import { siteGridPositions } from "@/lib/skill5/grid";
+import { projectLocal } from "@/lib/skill5/geo";
 import type { SiteBuilding, SiteRoad, XZ } from "@/lib/skill5/site-model";
 
 function shapeFromRing(ring: readonly XZ[]) {
@@ -612,8 +613,12 @@ function deckFrames(samples: readonly DeckSample[]): DeckFrame[] {
   return frames;
 }
 
-/** Display-only. Parallel decks at one level meet at the midline instead of stacking. */
+/** Side-by-side carriageways closer in height than this are one structure. Lidar spread between them is not a second level; a stacked deck clears by more. */
+const PARALLEL_DECK_FEET = 16;
+
+/** Display-only. Parallel decks meet at the midline. A modest gap is paved over. Heights average only when the decks are already within one level; a real step stays. */
 function separateParallelDecks(frames: DeckFrame[][]) {
+  const meets = new Map<DeckFrame, number[]>();
   for (let left = 0; left < frames.length; left += 1) {
     for (let right = left + 1; right < frames.length; right += 1) {
       const pull = (from: DeckFrame[], toward: DeckFrame[]) => {
@@ -624,6 +629,7 @@ function separateParallelDecks(frames: DeckFrame[][]) {
           let qz = frame.cz;
           let tx = 1;
           let tz = 0;
+          let other = 0;
           for (let index = 0; index < toward.length - 1; index += 1) {
             const start = toward[index];
             const finish = toward[index + 1];
@@ -642,19 +648,35 @@ function separateParallelDecks(frames: DeckFrame[][]) {
               const span = Math.hypot(dx, dz) || 1;
               tx = dx / span;
               tz = dz / span;
+              const nx = start.nx + (finish.nx - start.nx) * t;
+              const nz = start.nz + (finish.nz - start.nz) * t;
+              const facing = nx * (frame.cx - x) + nz * (frame.cz - z);
+              const startHalf = facing > 0 ? start.left : start.right;
+              const finishHalf = facing > 0 ? finish.left : finish.right;
+              other = startHalf + (finishHalf - startHalf) * t;
             }
           }
-          if (best < 8 || best > frame.left + frame.right) continue;
-          if (Math.abs(top - frame.top) > DECK_LEVEL_FEET) continue;
           if (Math.abs(frame.nx * -tz + frame.nz * tx) < 0.7) continue;
           const side = frame.nx * (qx - frame.cx) + frame.nz * (qz - frame.cz);
-          if (side > 0) frame.left = Math.min(frame.left, best / 2);
-          else frame.right = Math.min(frame.right, best / 2);
+          const own = side > 0 ? frame.left : frame.right;
+          const clearance = best - own - other;
+          if (clearance > 40) continue;
+          if (clearance > 0 && Math.abs(top - frame.top) > PARALLEL_DECK_FEET + 8) continue;
+          const meet = Math.max(0.5, Math.min(best / 2, own + 40));
+          if (side > 0) frame.left = clearance > 0 ? Math.max(frame.left, meet) : Math.min(frame.left, meet);
+          else frame.right = clearance > 0 ? Math.max(frame.right, meet) : Math.min(frame.right, meet);
+          if (Math.abs(top - frame.top) > PARALLEL_DECK_FEET) continue;
+          const list = meets.get(frame) ?? [];
+          list.push(top);
+          meets.set(frame, list);
         }
       };
       pull(frames[left], frames[right]);
       pull(frames[right], frames[left]);
     }
+  }
+  for (const [frame, tops] of meets) {
+    frame.top = (frame.top + tops.reduce((sum, top) => sum + top, 0)) / (tops.length + 1);
   }
 }
 
@@ -815,8 +837,131 @@ export function elevatedDeckGeometry(roads: readonly SiteRoad[]) {
   return geometry;
 }
 
-export function gridAttribute(ring: readonly XZ[], y: number) {
-  return new Float32BufferAttribute(siteGridPositions(ring, y), 3);
+/**
+ * OpenStreetMap way 11105928, Metromover, bridge and layer 1.
+ * The way publishes no deck elevation. The beam is drawn one module interval
+ * above the ground so the guideway reads as elevated. That height is the model
+ * interval, not a surveyed clearance.
+ */
+const METROMOVER_WAY: ReadonlyArray<readonly [number, number]> = [
+  [-80.1878113, 25.7859436],
+  [-80.1876985, 25.7859911],
+  [-80.1876253, 25.7860258],
+  [-80.187558, 25.7860634],
+  [-80.187429, 25.7861436],
+  [-80.187355, 25.7861842],
+  [-80.1872839, 25.7862162],
+  [-80.1868402, 25.7864048],
+  [-80.1867469, 25.7864494],
+  [-80.1866726, 25.7864985],
+  [-80.1866155, 25.7865565],
+  [-80.1865679, 25.7866306],
+  [-80.1865375, 25.7867271],
+  [-80.1865299, 25.7868267],
+  [-80.1865502, 25.7874079],
+  [-80.1865704, 25.7879891],
+  [-80.1865907, 25.7885703],
+  [-80.1866109, 25.7891515],
+  [-80.1866138, 25.7891888],
+  [-80.1866234, 25.7892643],
+  [-80.1866482, 25.7893462],
+  [-80.1866955, 25.7894149],
+  [-80.186765, 25.7894718],
+  [-80.186848, 25.7895053],
+  [-80.1869392, 25.7895221],
+  [-80.1870283, 25.7895245],
+  [-80.1881352, 25.7894997],
+  [-80.1883123, 25.7894966],
+  [-80.1884725, 25.789498],
+  [-80.1887337, 25.7895127],
+  [-80.1888281, 25.7895147],
+  [-80.1889224, 25.7895129],
+  [-80.1896038, 25.7894977],
+  [-80.1902853, 25.7894825],
+  [-80.1905944, 25.7894829],
+  [-80.1907935, 25.7894807],
+  [-80.1918808, 25.7894474],
+  [-80.192133, 25.7894319],
+  [-80.1923151, 25.7894268],
+  [-80.1929506, 25.7894055],
+  [-80.193008, 25.7894034],
+];
+
+const GUIDEWAY_CLEARANCE_FEET = 20;
+const GUIDEWAY_HALF_FEET = 6;
+const GUIDEWAY_PIER_FEET = 80;
+
+export function metromoverGeometry(origin: { lat: number; lon: number }) {
+  const projected = METROMOVER_WAY.map(([lon, lat]) => {
+    const point = projectLocal(lon, lat, origin);
+    return [point.x, point.z] as XZ;
+  });
+  const runs = clipPath(projected);
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const beam = GUIDEWAY_CLEARANCE_FEET;
+  const soffit = beam - DECK_SLAB;
+  for (const path of runs) {
+    for (let index = 0; index < path.length - 1; index += 1) {
+      const from = path[index];
+      const to = path[index + 1];
+      const dx = to[0] - from[0];
+      const dz = to[1] - from[1];
+      const length = Math.hypot(dx, dz) || 1;
+      const nx = -dz / length * GUIDEWAY_HALF_FEET;
+      const nz = dx / length * GUIDEWAY_HALF_FEET;
+      const corners = [
+        [from[0] + nx, from[1] + nz],
+        [from[0] - nx, from[1] - nz],
+        [to[0] - nx, to[1] - nz],
+        [to[0] + nx, to[1] + nz],
+      ];
+      const top = corners.map(([x, z]) => deckVertex(positions, x, beam, z));
+      const bottom = corners.map(([x, z]) => deckVertex(positions, x, soffit, z));
+      deckQuad(indices, top[0], top[1], top[2], top[3]);
+      deckQuad(indices, bottom[3], bottom[2], bottom[1], bottom[0]);
+      deckQuad(indices, bottom[0], top[0], top[3], bottom[3]);
+      deckQuad(indices, top[1], bottom[1], bottom[2], top[2]);
+    }
+    let traveled = 0;
+    let nextPier = GUIDEWAY_PIER_FEET / 2;
+    for (let index = 0; index < path.length - 1; index += 1) {
+      const from = path[index];
+      const to = path[index + 1];
+      const dx = to[0] - from[0];
+      const dz = to[1] - from[1];
+      const length = Math.hypot(dx, dz);
+      while (nextPier <= traveled + length) {
+        const t = (nextPier - traveled) / (length || 1);
+        const x = from[0] + dx * t;
+        const z = from[1] + dz * t;
+        const pier = 1.5;
+        const base = [
+          [x - pier, z - pier],
+          [x + pier, z - pier],
+          [x + pier, z + pier],
+          [x - pier, z + pier],
+        ];
+        const crown = base.map(([px, pz]) => deckVertex(positions, px, soffit, pz));
+        const foot = base.map(([px, pz]) => deckVertex(positions, px, 0, pz));
+        deckQuad(indices, foot[0], crown[0], crown[1], foot[1]);
+        deckQuad(indices, foot[1], crown[1], crown[2], foot[2]);
+        deckQuad(indices, foot[2], crown[2], crown[3], foot[3]);
+        deckQuad(indices, foot[3], crown[3], crown[0], foot[0]);
+        nextPier += GUIDEWAY_PIER_FEET;
+      }
+      traveled += length;
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  if (indices.length > 0) geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+export function gridAttribute(ring: readonly XZ[], y: number, step?: number) {
+  return new Float32BufferAttribute(siteGridPositions(ring, y, step), 3);
 }
 
 function deviation(point: XZ, start: XZ, end: XZ) {
@@ -1050,6 +1195,41 @@ function compactSmallRing(ring: readonly XZ[]): XZ[] {
   return [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
 }
 
+function cornerDegrees(ring: readonly XZ[], index: number) {
+  const previous = ring[(index - 1 + ring.length) % ring.length];
+  const point = ring[index];
+  const following = ring[(index + 1) % ring.length];
+  const ax = previous[0] - point[0];
+  const az = previous[1] - point[1];
+  const bx = following[0] - point[0];
+  const bz = following[1] - point[1];
+  const length = Math.hypot(ax, az) * Math.hypot(bx, bz);
+  if (length < 1e-9) return 180;
+  return (Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / length))) * 180) / Math.PI;
+}
+
+/** A needle corner is a footprint trace error at context scale. A sharp but real wedge keeps its point when trimming it would cost much of the plan. */
+function trimSpikes(ring: readonly XZ[]): XZ[] {
+  const next = ring.map((point) => [point[0], point[1]] as XZ);
+  const original = ringArea(next);
+  let guard = next.length;
+  while (next.length > 3 && guard > 0) {
+    guard -= 1;
+    let at = -1;
+    let sharpest = 180;
+    for (let index = 0; index < next.length; index += 1) {
+      const angle = cornerDegrees(next, index);
+      if (angle >= 32 || angle >= sharpest) continue;
+      if (angle >= 25 && removalArea(next, index) > original * 0.08) continue;
+      sharpest = angle;
+      at = index;
+    }
+    if (at < 0) break;
+    next.splice(at, 1);
+  }
+  return dedupe(next);
+}
+
 function squareNearAxes(ring: XZ[]) {
   const snapped = ring.map((point) => [point[0], point[1]] as XZ);
   const count = snapped.length;
@@ -1096,7 +1276,7 @@ export function regularizeRing(ring: readonly XZ[], epsilon = CONTEXT_GRAIN_FEET
   const tolerance = Math.max(epsilon, span > 80 ? CONTEXT_GRAIN_FEET : 16);
   const rotated = [...ring.slice(farIndex), ...ring.slice(0, farIndex), ring[farIndex]];
   const simplified = dedupe(simplifyOpen(rotated, tolerance).slice(0, -1));
-  const result = compactSmallRing(collapseSlivers(squareNearAxes(closeChamfers(collapseNotches(collapseSlivers(squareNearAxes(simplified)))))));
+  const result = trimSpikes(compactSmallRing(collapseSlivers(squareNearAxes(closeChamfers(collapseNotches(collapseSlivers(squareNearAxes(simplified))))))));
   const original = ringArea(ring);
   if (original > 0 && ringArea(result) < original * 0.75) {
     const compact = compactSmallRing(ring.map((point) => [point[0], point[1]]));
@@ -1172,6 +1352,19 @@ export function displayRoads(roads: readonly SiteRoad[]): SiteRoad[] {
   return roads.filter((_, index) => !drop.has(index));
 }
 
+/** Display-only. A local fragment shorter than the context grain, and not a continuation of a longer street of the same name, is a nook. */
+export function pruneContextRoads(roads: readonly SiteRoad[]): SiteRoad[] {
+  const longer = new Set<string>();
+  for (const road of roads) {
+    if (road.kind === "local" && road.name && pathLength(road) >= CONTEXT_GRAIN_FEET) longer.add(road.name);
+  }
+  return roads.filter((road) => {
+    if (road.kind !== "local" || road.elevated || road.path.length < 2) return true;
+    if (pathLength(road) >= CONTEXT_GRAIN_FEET) return true;
+    return Boolean(road.name && longer.has(road.name));
+  });
+}
+
 function medianSample(values: Array<number | null> | undefined, fallback: number) {
   const samples = values?.filter((value): value is number => typeof value === "number") ?? [];
   if (samples.length === 0) return fallback;
@@ -1179,11 +1372,42 @@ function medianSample(values: Array<number | null> | undefined, fallback: number
   return sorted[Math.floor(sorted.length / 2)];
 }
 
+function groundStreetKey(road: SiteRoad) {
+  return road.kind === "local" && !road.elevated && !road.deckFeet && road.name && road.name !== "Unnamed" ? road.name : "";
+}
+
+/** One width per named grade street, the length-weighted median of its pieces, so a street does not step where two pieces meet. */
+function sharedStreetHalf(roads: readonly SiteRoad[]) {
+  const pieces = new Map<string, Array<{ half: number; length: number }>>();
+  for (const road of roads) {
+    const key = groundStreetKey(road);
+    if (!key || road.path.length < 2) continue;
+    const list = pieces.get(key) ?? [];
+    list.push({ half: medianSample(road.halfWidthFeet, road.displayHalfWidthFeet), length: pathLength(road) });
+    pieces.set(key, list);
+  }
+  const shared = new Map<string, number>();
+  for (const [key, list] of pieces) {
+    const sorted = [...list].sort((a, b) => a.half - b.half);
+    const total = sorted.reduce((sum, piece) => sum + piece.length, 0);
+    let walked = 0;
+    for (const piece of sorted) {
+      walked += piece.length;
+      if (walked >= total / 2) {
+        shared.set(key, piece.half);
+        break;
+      }
+    }
+  }
+  return shared;
+}
+
 /** Display-only. A grade street within the design-context grain of the compass becomes one straight ribbon. Every corridor keeps one width. Deck paths and their joins stay. */
 export function tidyLocalRoads(roads: readonly SiteRoad[]): SiteRoad[] {
+  const streetHalf = sharedStreetHalf(roads);
   return roads.map((road) => {
     if (road.path.length < 2) return road;
-    const half = medianSample(road.halfWidthFeet, road.displayHalfWidthFeet);
+    const half = streetHalf.get(groundStreetKey(road)) ?? medianSample(road.halfWidthFeet, road.displayHalfWidthFeet);
     const shift = medianSample(road.centerShiftFeet, 0);
     const shifted = Math.abs(shift) > 0.5;
     const steady = (path: readonly XZ[]) => ({
@@ -1449,20 +1673,36 @@ export function groundRoadBlocks(buildings: readonly SiteBuilding[], water: read
   return rings;
 }
 
-export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = []) {
+/** Gaps narrower than twice this between ground streets read as pavement, not as a black seam. */
+const STREET_CLOSE_FEET = 10;
+/** An enclosed opening smaller than this inside the street surface is paved. A city block is far larger. */
+const STREET_NOOK_SQFT = 4000;
+
+/** Display-only. Ground streets as one surface. Outer rings are positive, block openings negative. */
+export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = []): Promise<XZ[][]> {
   const rings = groundCorridorRings(roads, blocked);
-  if (rings.length === 0) return mergeGeometries([]);
+  if (rings.length === 0) return [];
   const wasm = await loadClipper();
   const section = new wasm.CrossSection(rings.map((ring) => ring.map((point) => [point[0], point[1]] as [number, number])));
-  const polygons = section.toPolygons();
+  const grown = section.offset(STREET_CLOSE_FEET, "Miter", 4);
+  const closed = grown.offset(-STREET_CLOSE_FEET, "Miter", 4);
+  const polygons = closed.toPolygons();
   section.delete();
+  grown.delete();
+  closed.delete();
+  return polygons.map(openPolygon).filter((ring) => {
+    const area = signedArea(ring);
+    return area > 1 || area < -STREET_NOOK_SQFT;
+  });
+}
+
+export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = []) {
+  const polygons = await groundRoadSurface(roads, blocked);
+  if (polygons.length === 0) return mergeGeometries([]);
   const outers: XZ[][] = [];
   const holes: XZ[][] = [];
-  for (const polygon of polygons) {
-    const ring = polygon.map(([x, z]) => [x, z] as XZ);
-    const area = signedArea(ring);
-    if (Math.abs(area) < 1) continue;
-    if (area > 0) outers.push(ring);
+  for (const ring of polygons) {
+    if (signedArea(ring) > 0) outers.push(ring);
     else holes.push(ring);
   }
   return mergeGeometries(outers.map((outer) => {
@@ -1590,8 +1830,49 @@ async function cutDisplayFootprints(buildings: readonly SiteBuilding[]) {
   return footprints;
 }
 
-/** Display-only. Generic masses yield where a named or more specific footprint occupies the same plan. */
-export async function displayBuildingGeometry(buildings: readonly SiteBuilding[]) {
-  const footprints = await cutDisplayFootprints(buildings);
+/** Below this, a footprint touching the pavement keeps its corner. Above it, the mass stops at the street edge. */
+const STREET_OVERLAP_SQFT = 400;
+
+type DisplayFootprint = Awaited<ReturnType<typeof cutDisplayFootprints>>[number];
+
+async function clearStreets(footprints: DisplayFootprint[], street: readonly XZ[][]) {
+  if (street.length === 0) return footprints;
+  const wasm = await loadClipper();
+  const pavement = new wasm.CrossSection(street.map((ring) => ring.map((point) => [point[0], point[1]] as [number, number])));
+  const kept: DisplayFootprint[] = [];
+  for (const footprint of footprints) {
+    const plan = new wasm.CrossSection([orientRing(footprint.ring, true), ...footprint.holes.map((hole) => orientRing(hole, false))].map((ring) => ring.map((point) => [point[0], point[1]] as [number, number])));
+    const hit = plan.intersect(pavement);
+    const overlap = hit.area();
+    hit.delete();
+    if (overlap <= STREET_OVERLAP_SQFT) {
+      plan.delete();
+      kept.push(footprint);
+      continue;
+    }
+    const diff = plan.subtract(pavement).simplify(2);
+    plan.delete();
+    const outers: XZ[][] = [];
+    const holes: XZ[][] = [];
+    for (const polygon of diff.toPolygons()) {
+      const ring = openPolygon(polygon);
+      if (ring.length < 3 || ringArea(ring) < 500) continue;
+      if (signedArea(ring) > 0) outers.push(ring);
+      else holes.push(ring);
+    }
+    diff.delete();
+    for (const outer of outers) {
+      const owned = holes.filter((hole) => rayInside(ringCentroid(hole), outer)).map((hole) => orientRing(hole, false));
+      kept.push({ ...footprint, ring: outer, holes: owned });
+    }
+  }
+  pavement.delete();
+  return kept;
+}
+
+/** Display-only. Generic masses yield where a named or more specific footprint occupies the same plan. With streets, a mass that runs onto the pavement stops at its edge. */
+export async function displayBuildingGeometry(buildings: readonly SiteBuilding[], streets?: { roads: readonly SiteRoad[]; blocked: readonly (readonly XZ[])[] }) {
+  const cut = await cutDisplayFootprints(buildings);
+  const footprints = streets ? await clearStreets(cut, await groundRoadSurface(streets.roads, streets.blocked)) : cut;
   return mergeGeometries(footprints.map((footprint) => prismGeometry(footprint.ring, footprint.height, footprint.holes)));
 }

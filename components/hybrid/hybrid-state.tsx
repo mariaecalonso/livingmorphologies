@@ -15,6 +15,7 @@ import {
 import { generateCandidateField } from "@/lib/skill4/candidate-field";
 import { layoutTiles, type AssemblyArrangement, type AssemblyCount, type MirrorAxis } from "@/lib/skill4/assembly-layout";
 import { hybridFaceTargets } from "@/lib/skill4/hybrid-attachment";
+import { loadSkill4Handoff } from "@/lib/skill4/handoff-client";
 import { HYBRID_GAP, loadModuleMap, resolveTileModule, tileStep, type TileInstance } from "@/lib/skill4/tiles";
 import { liftConnectedToGround, meshAttachment, orientTiles, placedBoundsMinY } from "@/lib/skill4/tile-orientation";
 import { loadSyntheticTestRecords, SKILL4_SYNTHETIC_KEY } from "@/lib/skill4/synthetic-modules";
@@ -160,7 +161,7 @@ function connectionSpan(connection: TileConnection, slots: readonly TileInstance
 
 const HybridContext = createContext<HybridStateValue | null>(null);
 
-export function HybridState({ children }: { children: ReactNode }) {
+export function HybridState({ children, syntheticStorage = true }: { children: ReactNode; syntheticStorage?: boolean }) {
   const [records, setRecords] = useState<Skill4ModuleRecord[]>([]);
   const requested = useRef(new Set<string>());
   const provisional = useMemo(() => loadModuleMap(records), [records]);
@@ -171,7 +172,7 @@ export function HybridState({ children }: { children: ReactNode }) {
   const loaded = syntheticMode && synthetic ? synthetic : provisional;
   const [board, setBoard] = useState<AssemblyBoard>(() => freshBoard());
   useEffect(() => {
-    if (window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) !== "1") return;
+    if (!syntheticStorage || window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) !== "1") return;
     let cancel = false;
     setSyntheticPending(true);
     void loadSyntheticTestRecords().then((next) => {
@@ -189,20 +190,34 @@ export function HybridState({ children }: { children: ReactNode }) {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [syntheticStorage]);
   const catalogEntries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
+  const queuedRecords = useRef<Skill4ModuleRecord[]>([]);
+  const flushRecords = useRef(0);
+  useEffect(() => () => window.clearTimeout(flushRecords.current), []);
   const ensureArchetypes = useCallback((ids: readonly string[]) => {
     for (const archetypeId of ids) {
       if (!archetypeId || requested.current.has(archetypeId)) continue;
       requested.current.add(archetypeId);
-      void fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}&cell=20`, { cache: "no-store" })
-        .then(async (response) => (response.ok ? response.json() as Promise<Skill4ModuleRecord> : null))
+      void loadSkill4Handoff(archetypeId)
         .then((record) => {
           if (!record?.geometry || record.archetypeId !== archetypeId) {
             requested.current.delete(archetypeId);
             return;
           }
-          setRecords((current) => current.some((item) => item.archetypeId === record.archetypeId) ? current : [...current, record]);
+          queuedRecords.current.push(record);
+          window.clearTimeout(flushRecords.current);
+          flushRecords.current = window.setTimeout(() => {
+            const incoming = queuedRecords.current;
+            queuedRecords.current = [];
+            setRecords((current) => {
+              const next = [...current];
+              for (const item of incoming) {
+                if (!next.some((existing) => existing.archetypeId === item.archetypeId)) next.push(item);
+              }
+              return next.length === current.length ? current : next;
+            });
+          }, 40);
         })
         .catch(() => {
           requested.current.delete(archetypeId);

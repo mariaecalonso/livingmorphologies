@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { GenerativeSystemTracks } from "@/components/home-generative-system";
 import { OptimizationWorkflowLayer } from "@/components/home-optimization-workflow";
-import { HybridWorkflowLayer, PhysarumWorkflowLayer, SiteWorkflowLayer, VerticalWorkflowLayer } from "@/components/home-workflow-stage-layer";
+import { HybridWorkflowLayer, PhysarumWorkflowLayer, VerticalWorkflowLayer } from "@/components/home-workflow-stage-layer";
+import { SiteWorkflowLayer } from "@/components/home-site-workflow";
+import { ClientWorkflowLayer } from "@/components/home-client-workflow";
 import { PrecedentDiagram } from "@/components/home-precedent";
 import { WorkflowBands } from "@/components/home-workflow-bands";
 import { SKILL_WORKFLOW_STEPS } from "@/lib/home-workflow-steps";
@@ -13,7 +15,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import {
   boardLayoutSignature,
+  HYBRID_BOARD_STOPS,
   OPTIMIZATION_BOARD_STOPS,
+  SITE_BOARD_STOPS,
   WORKFLOW_BOARD_STOPS,
   workflowBoardStops,
   WORKFLOW_CARD,
@@ -24,6 +28,7 @@ import {
   cardRect,
   frameCamera,
   frameRadius,
+  type FrameNode,
   frameRoute,
   glide,
   macroBounds,
@@ -49,37 +54,27 @@ function reduced() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** First pass at the normal pace. The return to Objective Evaluation, and the second pass, run a little faster, then the catalogue follows. */
-function verticalRoute<T extends { id: string }>(frames: T[]): T[] {
-  const catalog = frames.find((frame) => frame.id === "catalog");
-  const skill4 = frames.find((frame) => frame.id === "skill4");
-  const next = frames.filter((frame) => frame.id !== "catalog" && frame.id !== "skill4");
-  const selection = next.findIndex((frame) => frame.id === "4");
-  if (catalog && selection >= 0) next.splice(selection + 1, 0, catalog);
-  const handoff = next.findIndex((frame) => frame.id === "5");
-  if (skill4 && handoff >= 0) next.splice(handoff + 1, 0, skill4);
-  return next;
-}
-
-function optimizationRoute<T extends { id: string; center: { x: number; y: number }; width: number; height: number }>(frames: T[], height: number): T[] {
+/** First pass at the normal pace, through Four Generations. The dashed return and the second pass run a little faster, then the catalogue follows. */
+function optimizationRoute(frames: FrameNode[], height: number): FrameNode[] {
   const byId = new Map(frames.map((frame) => [frame.id, frame]));
-  const needed = ["0", "1", "2", "3", "4", "5", "6"].map((id) => byId.get(id));
+  const needed = ["0", "1", "2", "3", "4", "generations", "5", "6"].map((id) => byId.get(id));
   if (needed.some((frame) => !frame)) return frames;
-  const [population, objective, sorting, diversity, next, catalogue, selection] = needed as T[];
+  const [population, objective, sorting, diversity, next, generations, catalogue, selection] = needed as FrameNode[];
   const bottoms = [objective, sorting, diversity, next].map((frame) => frame.center.y + frame.height / 2);
   const y = Math.max(...bottoms) + height * 0.17;
   const fast = 1.25;
-  const visit = (frame: T, pace: number) => ({ ...frame, pace });
-  const bend = (x: number, id: string) => ({ ...next, id, center: { x, y }, width: 4, height: 4, radius: 1, pace: fast });
+  const visit = (frame: FrameNode, pace: number, omitLink = false): FrameNode => ({ ...frame, pace, omitLink });
+  const bend = (x: number, id: string, pace: number): FrameNode => ({ ...next, id, center: { x, y }, width: 4, height: 4, radius: 1, pace, omitLink: true });
   return [
     visit(population, 1),
     visit(objective, 1),
     visit(sorting, 1),
     visit(diversity, 1),
     visit(next, 1),
-    bend(next.center.x, "loop-out"),
-    bend(objective.center.x, "loop-back"),
-    visit(objective, fast),
+    bend(next.center.x, "loop-out", 1),
+    visit(generations, 1, true),
+    bend(objective.center.x, "loop-back", fast),
+    visit(objective, fast, true),
     visit(sorting, fast),
     visit(diversity, fast),
     visit(next, fast),
@@ -695,14 +690,19 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   const pathRef = useRef<SVGPathElement>(null);
   const linked = stage.id !== "decomposition" && !stage.detailAsset;
   const optimization = stage.id === "skill-2";
+  const site = stage.id === "skill-5";
   const layered = stage.id === "skill-1" || stage.id === "skill-3" || stage.id === "recombination" || stage.id === "skill-5";
   const steps = SKILL_WORKFLOW_STEPS[stage.id] ?? [];
   const frameSteps = steps;
   const stops = optimization
     ? OPTIMIZATION_BOARD_STOPS
-    : steps.length
-      ? workflowBoardStops(steps.length)
-      : WORKFLOW_BOARD_STOPS;
+    : site
+      ? SITE_BOARD_STOPS
+      : stage.id === "recombination"
+        ? HYBRID_BOARD_STOPS
+        : steps.length
+          ? workflowBoardStops(steps.length)
+          : WORKFLOW_BOARD_STOPS;
 
   useEffect(() => {
     const dot = dotRef.current;
@@ -726,6 +726,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
     let tick = 0;
     const routeNodes = () => [
       ...board.querySelectorAll<HTMLElement>(".wf-frame"),
+      ...board.querySelectorAll<HTMLElement>("[data-route-node]"),
       ...board.querySelectorAll<HTMLElement>("[data-route-end]"),
     ];
     const signature = () => boardLayoutSignature(board, routeNodes());
@@ -752,13 +753,14 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           width: frameWidth,
           height: frameHeight,
           radius,
+          linkPace: Number(node.dataset.linkPace) > 0 ? Number(node.dataset.linkPace) : undefined,
         };
       });
       if (frames.length < 2) {
         route = null;
         return;
       }
-      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : stage.id === "skill-3" ? verticalRoute(frames) : frames);
+      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : frames);
       duration = route.duration;
       const view = `0 0 ${width} ${height}`;
       svg?.setAttribute("viewBox", view);
@@ -777,8 +779,9 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           visit = (arrivals[nextLit] ?? 0) + 1;
           arrivals[nextLit] = visit;
         }
-        const repeat = dir >= 0 && visit > 1;
-        if (!repeat && entering && (entering.hasAttribute("data-zoomable") || entering.hasAttribute("data-vert-open")) && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
+        const seen = (arrivals[nextLit ?? ""] ?? 0) >= 1;
+        const repeat = (dir >= 0 && visit > 1) || ((board.dataset.stage === "skill-2" || board.dataset.stage === "skill-5" || board.dataset.stage === "recombination") && dir < 0 && seen);
+        if (!repeat && entering?.hasAttribute("data-zoomable") && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
           board.dataset.hold = "1";
           board.dataset.heldFrame = nextLit ?? "";
           delete board.dataset.manual;
@@ -882,28 +885,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           {stage.id === "skill-3" ? <VerticalWorkflowLayer /> : null}
           {stage.id === "recombination" ? <HybridWorkflowLayer /> : null}
           {stage.id === "skill-5" ? <SiteWorkflowLayer /> : null}
-          {stage.id === "skill-3" && stops[4] ? (
-            <span
-              className="wf-frame is-detail"
-              data-frame="catalog"
-              data-tone={stage.tone}
-              style={{ left: `${stops[4].x * 100}%`, top: "84%" }}
-            >
-              <p className="wf-proto-label">Catalog</p>
-              <p className="wf-frame-body">Selected results from each archetype.</p>
-            </span>
-          ) : null}
-          {stage.id === "skill-3" && stops[5] ? (
-            <span
-              className="wf-frame is-detail"
-              data-frame="skill4"
-              data-tone={stage.tone}
-              style={{ left: `${stops[5].x * 100}%`, top: "84%" }}
-            >
-              <p className="wf-proto-label">Skill 4</p>
-              <p className="wf-frame-body">Fifteen selected modules.</p>
-            </span>
-          ) : null}
+          {stage.id === "client" ? <ClientWorkflowLayer /> : null}
           {stage.id === "skill-1" ? null : stops.map((stop, stopIndex) => {
             const step = frameSteps[stopIndex];
             return (
@@ -911,6 +893,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
                 key={`${stage.id}-${stopIndex}`}
                 className={step ? "wf-frame is-detail" : "wf-frame"}
                 data-frame={String(stopIndex)}
+                data-link-pace={stage.id === "recombination" && stopIndex > 0 ? "0.7" : undefined}
                 data-tone={stage.tone}
                 style={{ left: `${stop.x * 100}%`, top: `${stop.y * 100}%` }}
               >

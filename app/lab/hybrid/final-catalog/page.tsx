@@ -1,4 +1,4 @@
-import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
+import { HybridCatalog } from "@/components/hybrid/hybrid-catalog";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("hybrid");
@@ -9,5 +9,5 @@ export const metadata = {
 };
 
 export default function HybridFinalCatalogPage() {
-  return <HybridAssembly view="final-catalog" />;
+  return <HybridCatalog final />;
 }

@@ -43,7 +43,7 @@ export function geometryStatus(handoff: ModuleHandoff) {
   return { label: "Geometry unavailable", available: false };
 }
 
-export function HybridTiles({ compact = false, only, faceNote }: { compact?: boolean; only?: string; faceNote?: string }) {
+export function HybridTiles({ compact = false, only, faceNote, locked = false }: { compact?: boolean; only?: string; faceNote?: string; locked?: boolean }) {
   const { loaded, tiles, connections, selectedId, selectedConnectionId, setSelectedId, setCanvasSelection, chooseArchetype, chooseFace, syntheticMode } = useHybrid();
 
   return (
@@ -65,12 +65,17 @@ export function HybridTiles({ compact = false, only, faceNote }: { compact?: boo
               connections={connections}
               selectedConnectionId={selectedConnectionId}
               syntheticMode={syntheticMode}
+              locked={locked}
               onSelect={() => {
                 setSelectedId(tile.instanceId);
                 setCanvasSelection(tile.instanceId);
               }}
-              onArchetype={(archetypeId) => chooseArchetype(tile.instanceId, archetypeId)}
-              onFace={(face) => chooseTileFace(tile.instanceId, face, connections, selectedConnectionId, chooseFace)}
+              onArchetype={(archetypeId) => {
+                if (!locked) chooseArchetype(tile.instanceId, archetypeId);
+              }}
+              onFace={(face) => {
+                if (!locked) chooseTileFace(tile.instanceId, face, connections, selectedConnectionId, chooseFace);
+              }}
             />
           );
         }
@@ -149,6 +154,7 @@ function TileSelectionCard({
   connections,
   selectedConnectionId,
   syntheticMode,
+  locked = false,
   onSelect,
   onArchetype,
   onFace,
@@ -161,6 +167,7 @@ function TileSelectionCard({
   connections: readonly TileConnection[];
   selectedConnectionId: string | null;
   syntheticMode: boolean;
+  locked?: boolean;
   onSelect: () => void;
   onArchetype: (archetypeId: string) => void;
   onFace: (face: FaceId) => void;
@@ -193,6 +200,7 @@ function TileSelectionCard({
           <span className="eyebrow">Archetype</span>
           <select
             value={tile.archetypeId}
+            disabled={locked}
             onChange={(event) => onArchetype(event.target.value)}
             onClick={(event) => event.stopPropagation()}
           >

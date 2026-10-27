@@ -7,8 +7,8 @@ export const MODULE_GROUND_Y = 0.7;
 
 export const MODULE_FOOTPRINT_FEET = SKILL5_MODULE_ENVELOPE_FEET;
 
-/** A module occupies two grid squares on each side, so placement steps by 20 ft. */
-export const MODULE_GRID_SPAN = 2;
+/** A module occupies one grid cell, so placement steps by 20 ft. */
+export const MODULE_GRID_SPAN = 1;
 
 export function snapModuleOrigin(x: number, z: number) {
   const step = SITE_GRID_FEET * MODULE_GRID_SPAN;
@@ -226,9 +226,8 @@ function separateGroup(movers: readonly PlanExtent[], still: readonly PlanExtent
 }
 
 /**
- * Move a dragged module onto the 2-by-2 grid, so each 20 ft envelope covers two
- * grid squares on each side and neighboring modules share an edge. The result
- * does not overlap.
+ * Move a dragged module onto the 20 ft grid, so each envelope covers one
+ * cell and neighboring modules share an edge. The result does not overlap.
  */
 export function settleMove(
   movers: readonly PlanExtent[],

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { TYPOLOGIES, findTypology } from "@/lib/catalog";
 import { boardLayoutSignature } from "@/lib/home-workflow-camera";
+import { hashSeed, mulberry32 } from "@/lib/physarum";
+import { semanticProductionConfig } from "@/lib/skill2/semantic/lobby-semantic-v1";
 import { closeWorkflowPanel, markManualHold, PresentControls, usePresentClock, useRevealed } from "@/components/workflow-present";
 import { crowdingDistances, nondominatedSort, type Rankable } from "@/lib/skill2/nsga";
 import type { TypologyId } from "@/lib/types";
@@ -13,13 +15,18 @@ const ARCHETYPE_NAME = "Vertical Void";
 /** Next Generation returns to Objective Evaluation. */
 const LOOP_FROM = 4;
 const LOOP_TO = 1;
-/** Non Dominated Sorting opens its own board. */
+/** Non Dominated Sorting and Diversity Preservation open their own boards. */
 const ZOOM_STEP = 2;
+const DIVERSITY_STEP = 3;
+/** Next Generation opens its own board. The diagram above the frame stays the parent and child. */
+const NEXT_STEP = 4;
 /** The catalogue is the stop after the five step frames. The selection frame follows it. */
 const CATALOGUE_STEP = 5;
 const SELECTION_STEP = 6;
 const GRID_PLATES = 9;
 const DOT = 4;
+/** The catalogue preview is two rows of fifteen, for every archetype. */
+const CATALOG_SLOTS = 30;
 
 type Candidate = {
   id: number;
@@ -48,6 +55,8 @@ type Layout = {
   label: Point;
   slots: Slot[];
   zoomOrigin: Point;
+  diversityOrigin: Point;
+  nextOrigin: Point;
   generationOrigin: Point;
 };
 
@@ -57,24 +66,30 @@ const OBJECTIVES = [
   { key: "atmospheric", label: "Atmospheric", color: "var(--orange-hot)" },
 ] as const;
 
+type ObjectiveKey = (typeof OBJECTIVES)[number]["key"];
+
 const SORT_STEPS = [
   {
-    title: "Score Every Candidate",
-    body: "Each archived candidate is placed by its Formal and Spatial scores. Dot size shows Atmospheric.",
+    title: "Plot Every Candidate",
+    body: "Each candidate is placed by its Formal and Spatial scores. Dot size shows Atmospheric.",
   },
   {
-    title: "Front 1",
-    body: "A candidate is non-dominated when no other candidate scores at least as well on all three objectives and better on one.",
+    title: "Best Trade-offs",
+    body: "A candidate is a best trade-off when no other candidate scores at least as well on all three objectives and better on one.",
   },
   {
-    title: "Peel and Repeat",
-    body: "Front 1 is set aside and the sort repeats on the rest, giving front 2, then front 3, until every candidate has a rank.",
+    title: "Rank the Rest in Layers",
+    body: "The best trade-offs are set aside and the test repeats on the rest, giving a second layer, then a third, until every candidate has a rank.",
   },
   {
-    title: "Spread Within a Front",
-    body: "Crowding distance measures how isolated each candidate is. Boundary candidates and wide gaps are kept first, so the front stays diverse.",
+    title: "Keep Variety Along the Front",
+    body: "Inside the best trade-offs, candidates with the most room around them are kept first, and the two ends are always kept.",
   },
 ] as const;
+
+/** Bars in the score cards start at this score, so differences between strong candidates stay visible. */
+const SCORE_FLOOR = 0.5;
+const SCORE_CARDS = 4;
 
 const SORT_MODES = ["all", "front", "fronts", "crowding"] as const;
 
@@ -115,8 +130,18 @@ function useOptimizationData() {
     const seeds = pictured.filter((item) => item.generation === 1).slice(0, 6);
     const lastGeneration = subject?.generation ?? Math.max(0, ...candidates.map((item) => item.generation));
     const final = pictured.filter((item) => item.generation === lastGeneration);
-    const front = final.filter((item) => item.pareto).slice(0, 4);
-    const rescued = final.filter((item) => item.diversity === "rescue").slice(0, 4);
+    const families = new Map<number, Candidate[]>();
+    for (const item of final) {
+      if (!item.pareto || item.diversity !== "none" || item.parentId == null || item.id === subject?.id) continue;
+      families.set(item.parentId, [...(families.get(item.parentId) ?? []), item]);
+    }
+    const siblings = [...families.values()].filter((group) => group.length > 1).sort((a, b) => b.length - a.length).flat();
+    const diversity = {
+      generation: lastGeneration,
+      similar: siblings.slice(0, 6),
+      kept: final.filter((item) => item.diversity === "rescue").slice(0, 6),
+      both: final.filter((item) => item.diversity === "tag").slice(0, 2),
+    };
     const visible = pictured.filter((item) => item.catalogVisible !== false && item.id !== subject?.id).sort((a, b) => b.generation - a.generation);
     const grid = subject?.image ? [subject, ...visible.slice(0, GRID_PLATES - 1)] : visible.slice(0, GRID_PLATES);
     const items: Rankable[] = candidates.map((item) => ({
@@ -127,22 +152,16 @@ function useOptimizationData() {
     const rank = new Map<number, number>();
     fronts.forEach((members, index) => members.forEach((member) => rank.set(member, index + 1)));
     const crowding = fronts[0] ? crowdingDistances(items, fronts[0]) : new Map<number, number>();
-    const picturedOrdered = pictured.filter((item) => item.id !== subject?.id);
-    const evaluation: Candidate[] = [];
-    const evaluationCount = 15;
-    if (subject?.image) evaluation.push(subject);
-    const room = evaluationCount - evaluation.length;
-    if (picturedOrdered.length <= room) evaluation.push(...picturedOrdered);
-    else {
-      const seen = new Set(evaluation.map((item) => item.id));
-      for (let index = 0; index < room; index += 1) {
-        const item = picturedOrdered[Math.round((index * (picturedOrdered.length - 1)) / Math.max(1, room - 1))];
-        if (!seen.has(item.id)) {
-          seen.add(item.id);
-          evaluation.push(item);
-        }
-      }
+    const strongest = (key: ObjectiveKey) => pictured.reduce<Candidate | null>((best, item) => (!best || item[key] > best[key] ? item : best), null);
+    const scoreCards: Candidate[] = [];
+    for (const item of [subject, parent, strongest("formal"), strongest("spatial"), strongest("atmospheric")]) {
+      if (scoreCards.length < SCORE_CARDS && item?.image && !scoreCards.some((card) => card.id === item.id)) scoreCards.push(item);
     }
+    const median = (key: ObjectiveKey) => {
+      const sorted = candidates.map((item) => item[key]).sort((a, b) => a - b);
+      return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+    };
+    const medians = { formal: median("formal"), spatial: median("spatial"), atmospheric: median("atmospheric") };
     const lineage = [subject, parent].filter((item): item is Candidate => Boolean(item?.image));
     const generations = [1, 2, 3, 4].map((generation) => {
       const members = candidates.filter((item) => item.generation === generation);
@@ -155,11 +174,23 @@ function useOptimizationData() {
       .flatMap((item) => item.plates)
       .filter((item) => item.parentId != null && shown.has(item.parentId))
       .map((item) => ({ from: item.parentId as number, to: item.id, lit: item.id === subject?.id }));
-    return { candidates, subject, parent, seeds, evaluation, front, rescued, grid, fronts, rank, crowding, generations, links, byArchetype, picks, ready };
+    return { candidates, subject, parent, seeds, scoreCards, medians, diversity, grid, fronts, rank, crowding, generations, links, byArchetype, picks, ready };
   }, [candidates, pick, byArchetype, picks, ready]);
 }
 
 type Data = ReturnType<typeof useOptimizationData>;
+
+/** Seeded draw without replacement, so each archetype always shows the same plates. Shown in catalogue order. */
+function sampleCatalog(items: Candidate[], count: number, archetypeId: string) {
+  if (items.length <= count) return [...items].sort((a, b) => a.generation - b.generation || a.id - b.id);
+  const rng = mulberry32(hashSeed(["optimization-catalogue", archetypeId]));
+  const pool = [...items];
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(rng() * (index + 1));
+    [pool[index], pool[swap]] = [pool[swap], pool[index]];
+  }
+  return pool.slice(0, count).sort((a, b) => a.generation - b.generation || a.id - b.id);
+}
 
 function Plate({ candidate, chosen, index = 0, dashed, name = ARCHETYPE_NAME }: { candidate: Candidate; chosen?: boolean; index?: number; dashed?: boolean; name?: string }) {
   const classes = ["wf-opt-plate", chosen ? "frame-primary" : "", dashed ? "is-rescued" : ""].filter(Boolean).join(" ");
@@ -177,9 +208,9 @@ function cloudKey(data: Data, mode: "front" | "all" | "fronts" | "crowding"): Ke
   const total = data.candidates.length;
   const first = data.fronts[0]?.length ?? 0;
   if (mode === "all") return [{ label: `${total} candidates`, tone: "rest", r: 1.1 }, { label: "Larger = more Atmospheric", tone: "rest", r: 1.8 }];
-  if (mode === "front") return [{ label: `Front 1 · ${first}`, tone: "front" }, { label: `Dominated · ${total - first}`, tone: "rest" }];
-  if (mode === "fronts") return [{ label: "Front 1", tone: "f1" }, { label: "Front 2", tone: "f2" }, { label: "Front 3", tone: "f3" }, { label: "Later", tone: "rest" }];
-  return [{ label: "Edge, always kept", tone: "front", boundary: true }, { label: "Larger = more space", tone: "front", r: 1.8 }];
+  if (mode === "front") return [{ label: `Best trade-offs · ${first}`, tone: "front" }, { label: `Beaten · ${total - first}`, tone: "rest" }];
+  if (mode === "fronts") return [{ label: "Layer 1", tone: "f1" }, { label: "Layer 2", tone: "f2" }, { label: "Layer 3", tone: "f3" }, { label: "Later", tone: "rest" }];
+  return [{ label: "End, always kept", tone: "front", boundary: true }, { label: "Larger = more room", tone: "front", r: 1.8 }];
 }
 
 function Cloud({ data, mode, legend }: { data: Data; mode: "front" | "all" | "fronts" | "crowding"; legend?: boolean }) {
@@ -264,9 +295,9 @@ function selectionRows(data: Data) {
 function SelectionMatrix({ data, compact = false }: { data: Data; compact?: boolean }) {
   const rows = selectionRows(data);
   return (
-    <div className={compact ? "wf-opt-select-preview" : "wf-opt-select-frame frame-primary"}>
+    <div className={compact ? "wf-opt-select-preview" : "wf-opt-select-strip"}>
       {rows.map((family) => (
-        <div key={family.id} className="wf-opt-select-row">
+        <div key={family.id} className={compact ? "wf-opt-select-row" : "wf-opt-select-group"}>
           {compact ? null : <p className="wf-proto-label">{family.label}</p>}
           {family.archetypes.map((item) => (
             <figure key={item.archetype.id}>
@@ -364,7 +395,7 @@ function ParetoSpin({ data }: { data: Data }) {
           <circle key={point.id} cx={point.sx} cy={point.sy} r={point.tone === "subject" ? 1.7 : point.tone === "front" ? 1.25 : 0.85} data-tone={point.tone} />
         ))}
       </svg>
-      <p className="wf-opt-caption">Front 1 · {data.fronts[0]?.length ?? 0} of {data.candidates.length}</p>
+      <p className="wf-opt-caption">Best trade-offs · {data.fronts[0]?.length ?? 0} of {data.candidates.length}</p>
     </div>
   );
 }
@@ -383,21 +414,8 @@ function StepVisual({ step, data, seeds }: { step: number; data: Data; seeds: st
       </div>
     );
   }
-  if (step === 1 && data.evaluation.length > 0) {
-    return (
-      <div className="wf-opt-eval-field" aria-label={`${data.evaluation.length} evaluated iterations`}>
-        {data.evaluation.map((item, index) => (
-          <span key={item.id} className="wf-opt-eval-cell" style={{ "--i": index } as CSSProperties}>
-            <Plate candidate={item} index={index} chosen={item.id === data.subject?.id} />
-            <span className="wf-opt-eval-bars" aria-hidden="true">
-              {OBJECTIVES.map((objective) => (
-                <i key={objective.key} style={{ "--share": `${item[objective.key] * 100}%`, "--tone": objective.color } as CSSProperties} />
-              ))}
-            </span>
-          </span>
-        ))}
-      </div>
-    );
+  if (step === 1 && data.scoreCards.length > 0) {
+    return <ScoreCards data={data} />;
   }
   if (step === 2) {
     return <ParetoSpin data={data} />;
@@ -405,10 +423,17 @@ function StepVisual({ step, data, seeds }: { step: number; data: Data; seeds: st
   if (step === 3) {
     return (
       <div className="wf-opt-diversity">
-        <p className="wf-opt-caption">Pareto front</p>
-        <div>{data.front.map((item, index) => <Plate key={item.id} candidate={item} index={index} chosen={item.id === data.subject?.id} />)}</div>
-        <p className="wf-opt-caption">Kept for diversity</p>
-        <div>{data.rescued.map((item, index) => <Plate key={item.id} candidate={item} index={index + 4} dashed />)}</div>
+        <figure>
+          <div className="wf-opt-diversity-stack">
+            {data.diversity.similar.slice(0, 3).map((item, index) => <Plate key={item.id} candidate={item} index={index} />)}
+          </div>
+          <figcaption className="wf-opt-caption">Similar</figcaption>
+        </figure>
+        <span className="wf-opt-diversity-arrow" aria-hidden="true" />
+        <figure>
+          <div>{data.diversity.kept.slice(0, 2).map((item, index) => <Plate key={item.id} candidate={item} index={index + 3} dashed />)}</div>
+          <figcaption className="wf-opt-caption">Different · kept</figcaption>
+        </figure>
       </div>
     );
   }
@@ -433,6 +458,130 @@ function StepVisual({ step, data, seeds }: { step: number; data: Data; seeds: st
   return null;
 }
 
+const scoreHeight = (value: number) => Math.max(0, Math.min(1, (value - SCORE_FLOOR) / (1 - SCORE_FLOOR)));
+
+function ScoreCards({ data }: { data: Data }) {
+  return (
+    <div className="wf-opt-score-cards" aria-label="Scores of selected candidates on the three objectives">
+      {data.scoreCards.map((item, index) => (
+        <figure key={item.id} className="wf-opt-score-card">
+          <Plate candidate={item} index={index} chosen={item.id === data.subject?.id} />
+          <figcaption>{item.id} · G{item.generation}</figcaption>
+          <div className="wf-opt-score-bars">
+            {OBJECTIVES.map((objective) => (
+              <span
+                key={objective.key}
+                style={{ "--score": scoreHeight(item[objective.key]), "--median": scoreHeight(data.medians[objective.key]), "--tone": objective.color } as CSSProperties}
+              >
+                <b>{item[objective.key].toFixed(2)}</b>
+                <i />
+                <em>{objective.label[0]}</em>
+              </span>
+            ))}
+          </div>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+/** Kept plates from earlier generations, parent first, then two from each generation. */
+function keptSources(data: Data) {
+  const earlier = data.candidates.filter((item) => item.image && item.generation < 4 && (item.pareto || item.diversity !== "none"));
+  const chosen: Candidate[] = [];
+  if (data.parent?.image) chosen.push(data.parent);
+  for (const generation of [1, 2, 3]) {
+    for (const item of earlier.filter((candidate) => candidate.generation === generation)) {
+      if (chosen.length >= 6) return chosen;
+      if (!chosen.some((picked) => picked.id === item.id)) chosen.push(item);
+    }
+  }
+  return chosen;
+}
+
+const NEXT_LANES = [
+  { tone: "explorer", title: "Explorers", body: "New candidates sampled from the Physarum translation. No parent." },
+  { tone: "pareto", title: "Children of best trade-offs", body: "The parent is copied and one refinement setting, Aspect, is changed." },
+  { tone: "diversity", title: "Children of different shapes", body: "These would change a growth setting. Vertical Void has none, so the slots go to Explorers." },
+] as const;
+
+function NextGenerationBoard({ data, open, origin, onClose, sequence }: { data: Data; open: boolean; origin: Point | null; onClose: () => void; sequence: boolean }) {
+  const clock = usePresentClock(sequence && open, onClose);
+  return (
+    <section
+      className="wf-opt-zoom"
+      data-open={open || undefined}
+      aria-hidden={!open}
+      onPointerDown={clock.hold}
+      style={origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : undefined}
+    >
+      <p className="wf-opt-trail">
+        Optimization <span aria-hidden="true">›</span> Next Generation
+        <span className="wf-opt-trail-count">{ARCHETYPE_NAME}</span>
+      </p>
+      {open ? <NextGenerationDiagram data={data} /> : null}
+      <PresentControls run={sequence && open} clock={clock} onClose={onClose} open={open} />
+    </section>
+  );
+}
+
+function NextGenerationDiagram({ data }: { data: Data }) {
+  const kept = keptSources(data);
+  const parent = data.parent?.image ? data.parent : null;
+  const child = data.subject?.image ? data.subject : null;
+  return (
+    <div className="wf-opt-next">
+      <div className="wf-opt-next-kept">
+        <p className="wf-opt-caption">Kept candidates · Generations 1–3</p>
+        <div>
+          {kept.map((item, index) => <Plate key={item.id} candidate={item} index={index} chosen={item.id === parent?.id} />)}
+        </div>
+        <p className="wf-frame-body">Best trade-offs and different shapes stay in the catalogue and compete again.</p>
+      </div>
+      <div className="wf-opt-next-lanes">
+        {NEXT_LANES.map((lane, index) => (
+          <div key={lane.tone} data-tone={lane.tone} style={{ "--i": index } as CSSProperties}>
+            <div className="wf-opt-next-copy">
+              <p className="wf-proto-label">{lane.title}</p>
+              <p className="wf-frame-body">{lane.body}</p>
+              {lane.tone === "pareto" && parent && child ? (
+                <span className="wf-opt-next-pair">
+                  <Plate candidate={parent} />
+                  <span className="wf-opt-lineage-arrow" aria-hidden="true" />
+                  <Plate candidate={child} index={1} />
+                </span>
+              ) : null}
+            </div>
+            <span className="wf-opt-next-line" aria-hidden="true" />
+          </div>
+        ))}
+      </div>
+      <div className="wf-opt-next-out">
+        <p className="wf-opt-caption">Generation {child?.generation ?? 4} · 100 new candidates</p>
+        <div className="wf-opt-next-load" role="img" aria-label="Generation 4 filling with 100 new candidates">
+          <i />
+        </div>
+        <p className="wf-frame-body">Explorers and children of best trade-offs. The realized split is not recorded.</p>
+      </div>
+    </div>
+  );
+}
+
+function DiversityPlates({ items, dashed, chosen }: { items: Candidate[]; dashed?: boolean; chosen?: boolean }) {
+  return (
+    <div className="wf-opt-diversity-fit">
+      <div className="wf-opt-diversity-grid" data-count={items.length} style={{ "--cols": Math.min(3, items.length) } as CSSProperties}>
+        {items.map((item, index) => (
+          <figure key={item.id}>
+            <Plate candidate={item} index={index} dashed={dashed} chosen={chosen} />
+            <figcaption>{item.id}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GenerationVisual({ data, generation }: { data: Data; generation: number }) {
   const entry = data.generations[generation - 1];
   if (!entry) return null;
@@ -444,12 +593,61 @@ function GenerationVisual({ data, generation }: { data: Data; generation: number
           <Plate key={item.id} candidate={item} index={index} chosen={lineage.has(item.id)} />
         ))}
       </div>
-      <dl className="wf-opt-gen-score">
-        {OBJECTIVES.map((objective) => (
-          <div key={objective.key} style={{ "--share": `${entry.scores[objective.key] * 100}%`, "--tone": objective.color } as CSSProperties}>
-            <dt>{objective.label}</dt>
-            <i />
-            <dd>{Math.round(entry.scores[objective.key] * 100)}%</dd>
+      <GenerationMix generation={generation} />
+    </div>
+  );
+}
+
+type MixPart = { tone: "explorer" | "pareto" | "diversity"; label: string; count: number; share: number | null };
+
+/**
+ * Same production mix the Evolutionary Process page prints.
+ * Generation 1 is all explorers. Generations 2–4 use the locked composition.
+ * The three counts are one origin each, so they do not overlap and their sum is the denominator.
+ */
+const PRODUCTION_MIX = semanticProductionConfig(ARCHETYPE);
+
+function generationMix(generation: number): { total: number; parts: MixPart[] } | null {
+  const births = PRODUCTION_MIX.populationSize;
+  const requested = generation === 1
+    ? { explorers: births, pareto: 0, diversity: 0 }
+    : PRODUCTION_MIX.composition?.[generation as 2 | 3 | 4];
+  if (!requested) return null;
+  const total = requested.explorers + requested.pareto + requested.diversity;
+  const denominator = total === births ? total : null;
+  const share = (count: number) => (denominator == null || denominator === 0 ? null : (count / denominator) * 100);
+  return {
+    total,
+    parts: [
+      { tone: "explorer", label: "Explorers", count: requested.explorers, share: share(requested.explorers) },
+      { tone: "pareto", label: "Nondominated parents", count: requested.pareto, share: share(requested.pareto) },
+      { tone: "diversity", label: "Diversity parents", count: requested.diversity, share: share(requested.diversity) },
+    ],
+  };
+}
+
+function mixPercent(generation: number, count: number, share: number | null) {
+  if (generation === 1 && count === 0) return "—";
+  if (share == null) return "—";
+  return Number.isInteger(share) ? `${share}%` : `${share.toFixed(1)}%`;
+}
+
+function GenerationMix({ generation }: { generation: number }) {
+  const mix = generationMix(generation);
+  if (!mix) return <p className="wf-opt-gen-scope">Mix not in the production record</p>;
+  return (
+    <div className="wf-opt-gen-mix" aria-label={`Generation ${generation}: origin of ${mix.total} new candidates`}>
+      <p className="wf-opt-gen-scope">{mix.total} new candidates</p>
+      <div className="wf-opt-gen-bar">
+        {mix.parts.filter((part) => part.count > 0).map((part) => (
+          <i key={part.tone} data-tone={part.tone} style={{ "--share": part.count } as CSSProperties} />
+        ))}
+      </div>
+      <dl className="wf-opt-gen-key">
+        {mix.parts.map((part) => (
+          <div key={part.tone} data-tone={part.tone} data-empty={part.count === 0 || undefined}>
+            <dt>{part.label}</dt>
+            <dd>{mixPercent(generation, part.count, part.share)}</dd>
           </div>
         ))}
       </dl>
@@ -516,7 +714,7 @@ function LineageLinks({ links, open, host }: { links: Link[]; open: boolean; hos
 
 type ZoomStep = { title: string; body: string; visual: ReactNode };
 
-function ZoomBoard({ title, count, steps, open, origin, onClose, links, sequence = false }: { title: string; count: string; steps: ZoomStep[]; open: boolean; origin: Point | null; onClose: () => void; links?: Link[]; sequence?: boolean }) {
+function ZoomBoard({ title, count, steps, open, origin, onClose, links, sequence = false }: { title: string; count: string; steps: readonly ZoomStep[]; open: boolean; origin: Point | null; onClose: () => void; links?: Link[]; sequence?: boolean }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const clock = usePresentClock(sequence && open, onClose);
   return (
@@ -532,7 +730,7 @@ function ZoomBoard({ title, count, steps, open, origin, onClose, links, sequence
         Optimization <span aria-hidden="true">›</span> {title}
         <span className="wf-opt-trail-count">{count}</span>
       </p>
-      <ol className="wf-opt-zoom-steps">
+      <ol className="wf-opt-zoom-steps" style={{ "--steps": steps.length } as CSSProperties}>
         {steps.map((step) => (
           <li key={step.title} className="wf-opt-zoom-step">
             <div className="wf-opt-zoom-visual">{open ? step.visual : null}</div>
@@ -554,7 +752,7 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
   const revealed = useRevealed(lit);
   const litRef = useRef<number | null>(null);
   const [plays, setPlays] = useState<number[]>(() => [0, 0, 0, 0, 0, 0, 0]);
-  const [zoomed, setZoomed] = useState<"sorting" | "generations" | null>(null);
+  const [zoomed, setZoomed] = useState<"sorting" | "diversity" | "next" | "generations" | null>(null);
   const [panel, setPanel] = useState<"catalog" | "selection" | null>(null);
   const [origin, setOrigin] = useState<Point | null>(null);
   const [typologyId, setTypologyId] = useState<TypologyId>("lobby");
@@ -575,12 +773,32 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
   };
   const panelClock = usePresentClock(Boolean(sequence && panel), closePanel);
   const sortSteps = SORT_STEPS.map((step, index) => ({ ...step, visual: <Cloud data={data} mode={SORT_MODES[index]} legend /> }));
+  const bothIds = data.diversity.both.map((item) => item.id).join(" and ");
+  const diversitySteps: ZoomStep[] = [
+    {
+      title: "Similar Shapes",
+      body: "Best trade-offs that share a parent. Each one is kept for its scores, but the shapes repeat.",
+      visual: <DiversityPlates items={data.diversity.similar} />,
+    },
+    {
+      title: "Different Shapes Kept",
+      body: "Not best trade-offs. Each one is kept because its shape is farther than the set distance from every shape already kept.",
+      visual: <DiversityPlates items={data.diversity.kept} dashed />,
+    },
+    ...(data.diversity.both.length
+      ? [{
+          title: "Both Marks",
+          body: `${bothIds} ${data.diversity.both.length > 1 ? "are best trade-offs" : "is a best trade-off"} and also unlike every other kept shape.`,
+          visual: <DiversityPlates items={data.diversity.both} dashed chosen />,
+        }]
+      : []),
+  ];
   const generationSteps = GENERATION_NOTES.map((note, index) => {
     const generation = index + 1;
     const members = data.candidates.filter((item) => item.generation === generation);
     return {
       title: `Generation ${generation}`,
-      body: `${members.length} candidates, ${members.filter((item) => item.pareto).length} on the front. ${note}`,
+      body: `100 new candidates, ${members.length} kept in the catalogue, ${members.filter((item) => item.pareto).length} on the front. ${note}`,
       visual: <GenerationVisual data={data} generation={generation} />,
     };
   });
@@ -616,8 +834,18 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       const gap = height * 0.08;
       const ends = [...board.querySelectorAll("[data-route-end]")].map(local);
       const stops = [...frames, ...ends];
-      const slots = stops.map((frame) => {
+      const slots = stops.map((frame, index) => {
         const room = Math.max(0, frame.t - gap - ceiling);
+        if (index === 0) {
+          const margin = height * 0.02;
+          const bottom = frame.t - height * 0.035;
+          const size = Math.min(frame.w, Math.max(36, bottom - margin));
+          return { left: frame.cx - size / 2, top: bottom - size, width: size, height: size };
+        }
+        if (index === 2) {
+          const slotHeight = Math.min(room, frame.w);
+          return { left: frame.l, top: Math.max(ceiling, frame.t - gap - slotHeight), width: frame.w, height: slotHeight };
+        }
         const slotHeight = Math.min(room, frame.w * 0.5);
         return { left: frame.l, top: ceiling, width: frame.w, height: slotHeight };
       });
@@ -634,7 +862,14 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         label: { x: (from.cx + to.cx) / 2, y },
         slots,
         zoomOrigin: { x: frames[ZOOM_STEP]?.cx ?? width / 2, y: frames[ZOOM_STEP]?.cy ?? height / 2 },
-        generationOrigin: { x: from.cx, y: from.cy },
+        diversityOrigin: { x: frames[DIVERSITY_STEP]?.cx ?? width / 2, y: frames[DIVERSITY_STEP]?.cy ?? height / 2 },
+        nextOrigin: { x: frames[NEXT_STEP]?.cx ?? width / 2, y: frames[NEXT_STEP]?.cy ?? height / 2 },
+        generationOrigin: (() => {
+          const node = board.querySelector("[data-frame='generations']");
+          if (!node) return { x: (from.cx + to.cx) / 2, y };
+          const box = local(node);
+          return { x: box.cx, y: box.cy };
+        })(),
       });
     };
     measure();
@@ -661,30 +896,26 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
     };
     const watch = new MutationObserver(read);
     watch.observe(board, { subtree: true, attributes: true, attributeFilter: ["class"] });
-    const zoomFrame = board.querySelector<HTMLElement>(`.wf-frame[data-frame="${ZOOM_STEP}"]`);
-    const openZoom = (event: MouseEvent) => {
-      event.stopPropagation();
-      setSequence(false);
-      if (zoomFrame) markManualHold(board);
-      setZoomed("sorting");
-    };
-    const generationFrame = board.querySelector<HTMLElement>(`.wf-frame[data-frame="${LOOP_FROM}"]`);
-    const openGeneration = (event: MouseEvent) => {
-      event.stopPropagation();
-      setSequence(false);
-      markManualHold(board);
-      setZoomed("generations");
-    };
-    zoomFrame?.setAttribute("data-zoomable", "");
-    zoomFrame?.addEventListener("click", openZoom);
-    generationFrame?.setAttribute("data-zoomable", "");
-    generationFrame?.addEventListener("click", openGeneration);
+    const zoomFrames = [
+      { node: board.querySelector<HTMLElement>(`.wf-frame[data-frame="${ZOOM_STEP}"]`), board: "sorting" as const },
+      { node: board.querySelector<HTMLElement>(`.wf-frame[data-frame="${DIVERSITY_STEP}"]`), board: "diversity" as const },
+      { node: board.querySelector<HTMLElement>(`.wf-frame[data-frame="${NEXT_STEP}"]`), board: "next" as const },
+    ].map((item) => {
+      const open = (event: MouseEvent) => {
+        event.stopPropagation();
+        setSequence(false);
+        markManualHold(board);
+        setZoomed(item.board);
+      };
+      item.node?.setAttribute("data-zoomable", "");
+      item.node?.addEventListener("click", open);
+      return { node: item.node, open };
+    });
     return () => {
       window.clearInterval(follow);
       resize.disconnect();
       watch.disconnect();
-      zoomFrame?.removeEventListener("click", openZoom);
-      generationFrame?.removeEventListener("click", openGeneration);
+      zoomFrames.forEach((item) => item.node?.removeEventListener("click", item.open));
     };
   }, []);
 
@@ -708,7 +939,7 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
     fetch("/demo/skill1/vertical-void/entries.json", { signal: controller.signal })
       .then((response) => response.json())
       .then((entries: { image?: string }[]) => {
-        setSeeds(entries.map((entry) => entry.image).filter((src): src is string => Boolean(src)).slice(0, 6));
+        setSeeds(entries.map((entry) => entry.image).filter((src): src is string => Boolean(src)).slice(0, 9));
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -719,12 +950,12 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
     if (!board) return;
     const onArrive = (event: Event) => {
       const frame = String((event as CustomEvent<{ frame: string }>).detail.frame);
-      if (frame === String(ZOOM_STEP)) {
+      if (frame === String(ZOOM_STEP) || frame === String(DIVERSITY_STEP) || frame === String(NEXT_STEP)) {
         setSequence(true);
-        setZoomed("sorting");
+        setZoomed(frame === String(ZOOM_STEP) ? "sorting" : frame === String(DIVERSITY_STEP) ? "diversity" : "next");
         return;
       }
-      if (frame === String(LOOP_FROM)) {
+      if (frame === "generations") {
         setSequence(true);
         setZoomed("generations");
         return;
@@ -764,10 +995,11 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
   const catalogPlates = useMemo(() => {
     const list = data.byArchetype[archetypeId] ?? [];
     const pickId = data.picks[archetypeId] ?? null;
-    const pictured = list.filter((item) => item.image);
+    const pictured = list.filter((item) => item.image && item.catalogVisible !== false);
     const selected = pickId == null ? null : pictured.find((item) => item.id === pickId) ?? null;
-    const rest = pictured.filter((item) => item.id !== selected?.id).sort((a, b) => b.generation - a.generation || b.id - a.id);
-    return { plates: selected ? [selected, ...rest] : rest, pickId };
+    const rest = pictured.filter((item) => item.id !== selected?.id);
+    const sample = sampleCatalog(rest, CATALOG_SLOTS - (selected ? 1 : 0), archetypeId);
+    return { plates: selected ? [selected, ...sample] : sample, pickId, total: pictured.length };
   }, [archetypeId, data.byArchetype, data.picks]);
   const catalogName = findTypology(typologyId).archetypes.find((item) => item.id === archetypeId)?.name ?? ARCHETYPE_NAME;
 
@@ -800,6 +1032,8 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         <button
           type="button"
           className="wf-opt-cycle"
+          data-route-node=""
+          data-frame="generations"
           data-zoomable=""
           style={{ left: `${(layout.label.x / layout.width) * 100}%`, top: `${(layout.label.y / layout.height) * 100}%` }}
           onClick={(event) => {
@@ -867,12 +1101,28 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       </div>
       <ZoomBoard
         title="Non Dominated Sorting"
-        count={`${data.candidates.length} ${ARCHETYPE_NAME} candidates · ${data.fronts.length} fronts`}
+        count={`${data.candidates.length} ${ARCHETYPE_NAME} candidates · ${data.fronts.length} layers`}
         steps={sortSteps}
         open={zoomed === "sorting"}
         origin={layout?.zoomOrigin ?? null}
         onClose={closeZoom}
         sequence={sequence && zoomed === "sorting"}
+      />
+      <ZoomBoard
+        title="Diversity Preservation"
+        count={`${ARCHETYPE_NAME} · Generation ${data.diversity.generation}`}
+        steps={diversitySteps}
+        open={zoomed === "diversity"}
+        origin={layout?.diversityOrigin ?? null}
+        onClose={closeZoom}
+        sequence={sequence && zoomed === "diversity"}
+      />
+      <NextGenerationBoard
+        data={data}
+        open={zoomed === "next"}
+        origin={layout?.nextOrigin ?? null}
+        onClose={closeZoom}
+        sequence={sequence && zoomed === "next"}
       />
       <ZoomBoard
         title="Four Generations"
@@ -895,6 +1145,14 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         <p className="wf-opt-trail">
           Optimization <span aria-hidden="true">›</span>{" "}
           {panel === "selection" ? "Selected for Vertical Propagation" : `Optimization Catalogue · ${catalogName}`}
+          {panel === "catalog" ? (
+            <>
+              <span className="wf-opt-trail-count">
+                {Math.min(catalogPlates.plates.length, catalogPlates.total)} of {catalogPlates.total} iterations
+              </span>
+              <a className="wf-phy-lab wf-opt-cat-link" href="/lab/evolution/pareto-catalog">Open Optimization Catalogue</a>
+            </>
+          ) : null}
         </p>
         <div className="wf-phy-panel">
           {panel === "catalog" ? (
@@ -933,14 +1191,7 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
                   ) : catalogPlates.plates.length === 0 ? (
                     <p className="wf-frame-body">Catalog plates for this archetype are pending.</p>
                   ) : (
-                    <div
-                      className="wf-opt-cat-sheet"
-                      style={{
-                        "--rows": 4,
-                        "--cols": Math.ceil(catalogPlates.plates.length / 4),
-                        gridTemplateColumns: `repeat(${Math.ceil(catalogPlates.plates.length / 4)}, minmax(0, 1fr))`,
-                      } as CSSProperties}
-                    >
+                    <div className="wf-opt-cat-sheet">
                       {catalogPlates.plates.map((item, index) => (
                         <Plate key={item.id} candidate={item} index={index} name={catalogName} chosen={item.id === catalogPlates.pickId} />
                       ))}

@@ -8,10 +8,8 @@ import { PROGRAM_LABEL, SITE_ARCHETYPES } from "@/lib/skill5/catalog";
 import { SKILL5_MODULE_ENVELOPE_FEET } from "@/lib/skill5/contract";
 import { configurationStats, type ConfigurationDocument, type SiteConfiguration } from "@/lib/skill5/configurations";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
-import { importAssembly } from "@/lib/skill5/assembly";
 import { loadArchetypeMesh } from "@/lib/skill5/load-module";
 import { programDistribution, scenePlaced } from "@/lib/skill5/metrics";
-import { SKILL5_MOCK_ASSEMBLIES } from "@/lib/skill5/mock-assemblies";
 import { localDemonstrationBridge, worldSourceBridge } from "@/lib/skill5/mock-bridge";
 import { footprintCorners, type PlacedModule } from "@/lib/skill5/placement";
 import type { SiteContext } from "@/lib/skill5/site-model";
@@ -30,21 +28,6 @@ type Card = { entry: SiteConfiguration; placeholder: boolean; source: CatalogEnt
 
 const centerX = (designSite.ring[0][0] + designSite.ring[1][0]) / 2;
 const centerZ = (designSite.ring[0][1] + designSite.ring[3][1]) / 2;
-
-const MOCK_CARDS: Card[] = SKILL5_MOCK_ASSEMBLIES.map((source) => ({
-  placeholder: true,
-  source,
-  entry: {
-    id: source.id,
-    name: source.id,
-    parentConfigurationId: null,
-    createdAt: "2026-10-26T00:00:00.000Z",
-    updatedAt: "2026-10-26T00:00:00.000Z",
-    modules: [],
-    assemblies: [importAssembly(source, { x: centerX, z: centerZ }, source.id)],
-    annotations: [],
-  },
-}));
 
 function placedOf(entry: SiteConfiguration) {
   return scenePlaced(entry.modules, entry.assemblies);
@@ -87,7 +70,7 @@ function envelopeVolumeShare(placed: readonly PlacedModule[]) {
     const top = Math.min(VOLUME_HEIGHT, item.transform.position.y + SKILL5_MODULE_ENVELOPE_FEET);
     occupied += Math.max(0, top - bottom) * SKILL5_MODULE_ENVELOPE_FEET * SKILL5_MODULE_ENVELOPE_FEET;
   }
-  return capacity > 0 ? occupied / capacity * 100 : 0;
+  return capacity > 0 ? occupied / capacity * 100 : null;
 }
 
 function crownFeet(placed: readonly PlacedModule[]) {
@@ -178,14 +161,7 @@ function OccupationAxon({ placed, variant, fitFeet }: { placed: readonly PlacedM
         const north = (x - centerX) * sine + (z - centerZ) * cosine;
         return { sx: east, sy: north * 0.42 - y };
       };
-      const local = placedBounds(placed);
-      const half = Math.max(fitFeet, 20) * 0.62;
-      const plate: [number, number][] = [
-        [local.cx - half, local.cz - half],
-        [local.cx + half, local.cz - half],
-        [local.cx + half, local.cz + half],
-        [local.cx - half, local.cz + half],
-      ];
+      const plate: [number, number][] = designSite.ring.map(([x, z]) => [x, z]);
       const boxHeight = variant === "volume" ? VOLUME_HEIGHT : 8;
       const levels = variant === "volume" ? [0, 20, 40, 60, 80, VOLUME_HEIGHT] : [0, boxHeight];
       const samples = levels.flatMap((level) => plate.map(([x, z]) => raw(x, z, level)));
@@ -284,16 +260,21 @@ function VerticalBands({ placed, scale, fitFeet }: { placed: readonly PlacedModu
           <OccupationAxon placed={placed} variant="volume" fitFeet={fitFeet} />
         </figure>
         <div className="site-meters" aria-label="Envelope occupation from the ground to 100 feet">
-          {bands.map((band) => (
-            <div key={band.base} className="site-meter">
-              <span>{band.base}–{band.base + 20}</span>
-              <i><b style={{ width: `${scale > 0 ? Math.min(100, band.mass / scale * 100) : 0}%` }} /></i>
-              <em>{band.mass > 0 ? band.mass.toFixed(1) : "0"}</em>
-            </div>
-          ))}
+          {bands.map((band) => {
+            const share = designSite.areaSqFt > 0
+              ? band.mass * SKILL5_MODULE_ENVELOPE_FEET * SKILL5_MODULE_ENVELOPE_FEET / designSite.areaSqFt * 100
+              : null;
+            return (
+              <div key={band.base} className="site-meter">
+                <span>{band.base}–{band.base + 20}</span>
+                <i><b style={{ width: `${scale > 0 ? Math.min(100, band.mass / scale * 100) : 0}%` }} /></i>
+                <em>{share == null ? "Unavailable" : `${share.toFixed(2)}%`}</em>
+              </div>
+            );
+          })}
         </div>
       </div>
-      <p className="site-compare-foot site-note">{height > 0 ? `${Math.round(height)} ft high · ` : ""}{volume.toFixed(2)}%</p>
+      <p className="site-compare-foot site-note">{volume == null ? "Unavailable" : `${height > 0 ? `${Math.round(height)} ft high · ` : ""}${volume.toFixed(2)}%`}</p>
     </>
   );
 }
@@ -302,7 +283,8 @@ function SiteFigures({ entry, fitFeet }: { entry: SiteConfiguration; fitFeet: nu
   const placed = useMemo(() => placedOf(entry), [entry]);
   const stats = configurationStats(entry, site.site.ring, site.site.ringAreaSqFt);
   const occupied = stats.area;
-  const plan = designShare(occupied);
+  const open = designSite.areaSqFt - occupied;
+  const measured = Number.isFinite(occupied) && designSite.areaSqFt > 0;
   return (
     <>
       <div className="site-compare-site">
@@ -310,7 +292,9 @@ function SiteFigures({ entry, fitFeet }: { entry: SiteConfiguration; fitFeet: nu
           <OccupationAxon placed={placed} variant="site" fitFeet={fitFeet} />
         </figure>
       </div>
-      <p className="site-compare-foot site-note">{Math.round(occupied).toLocaleString("en-US")} ft² occupied · {plan.toFixed(1)}%</p>
+      <p className="site-compare-foot site-note">{measured
+        ? `${Math.round(occupied).toLocaleString("en-US")} ft² occupied · ${designShare(occupied).toFixed(1)}% · ${Math.round(open).toLocaleString("en-US")} ft² open · ${designShare(open).toFixed(1)}%`
+        : "Unavailable"}</p>
     </>
   );
 }
@@ -367,14 +351,7 @@ export function ConfigurationCatalog() {
   const [comparing, setComparing] = useState(false);
   const [comparePage, setComparePage] = useState(0);
   const [meshes, setMeshes] = useState<Record<string, PreviewMesh>>({});
-  const cards = useMemo<Card[]>(() => {
-    const savedIds = new Set(saved.map((entry) => entry.id));
-    const mocks = MOCK_CARDS.filter((card) => !savedIds.has(card.entry.id));
-    const records = saved
-      .filter((entry) => !mocks.some((card) => card.entry.id === entry.id))
-      .map((entry) => ({ entry, placeholder: false, source: null }));
-    return [...mocks, ...records];
-  }, [saved]);
+  const cards = useMemo<Card[]>(() => saved.map((entry) => ({ entry, placeholder: false, source: null })), [saved]);
   const pageCount = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
   const pageIndex = Math.min(page, pageCount - 1);
   const visible = cards.slice(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE);
@@ -462,6 +439,7 @@ export function ConfigurationCatalog() {
       <div className="site-catalog-split">
         <div className="site-catalog-stage">
           <div className="site-catalog-row">
+            {visible.length === 0 ? <p className="site-note">No saved configurations yet. Select assemblies in Hybrid Connection, place them on the site, and save a configuration.</p> : null}
             {visible.map((card) => {
               const stats = configurationStats(card.entry, site.site.ring, site.site.ringAreaSqFt);
               const active = selected.includes(card.entry.id);

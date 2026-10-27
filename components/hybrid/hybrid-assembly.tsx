@@ -39,7 +39,9 @@ function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHando
   return resolveTileModule(archetypeId, loaded).identity?.typologyId ?? null;
 }
 
-export function HybridAssembly({ view = "process" }: { view?: "process" | "catalog" | "final-catalog" }) {
+export type HybridLabFrame = "tile" | "canvas" | "som" | "clipping" | "descendant";
+
+export function HybridAssembly({ view = "process", frame, presentation = false }: { view?: "process" | "catalog" | "final-catalog"; frame?: HybridLabFrame; presentation?: boolean }) {
   if (view === "catalog") return <HybridCatalog />;
   if (view === "final-catalog") return <HybridCatalog final />;
   const {
@@ -78,6 +80,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
   const executionInput = useRef({ booleanPlan, tiles, loaded });
   executionInput.current = { booleanPlan, tiles, loaded };
   useEffect(() => {
+    if (presentation) return;
     if (executionInput.current.booleanPlan.readyConnectionCount === 0) {
       setExecution(null);
       return;
@@ -89,10 +92,11 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     return () => {
       cancel = true;
     };
-  }, [executionKey]);
+  }, [executionKey, presentation]);
   const readinessKey = tiles.map((tile) => `${tile.instanceId}:${tile.archetypeId}`).join("|");
   const [kernelReadiness, setKernelReadiness] = useState<ReadonlyMap<string, BooleanReadiness>>(new Map());
   useEffect(() => {
+    if (presentation) return;
     let cancel = false;
     const pending = tiles.flatMap((tile) => {
       const module = loaded.get(tile.archetypeId);
@@ -114,7 +118,7 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     return () => {
       cancel = true;
     };
-  }, [readinessKey, loaded, tiles]);
+  }, [readinessKey, loaded, tiles, presentation]);
   const executionStatus = booleanPlan.readyConnectionCount === 0 ? "unresolved" : execution?.status;
   const showBoolean = CONNECTION_DEBUG_STAGE >= 5 && execution?.status === "ready";
   const joinedMesh = showBoolean && execution?.status === "ready" ? execution.assembly.mesh : null;
@@ -266,14 +270,15 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
     })
       ? "skill03"
       : "mock";
+  const single = Boolean(frame);
   return (
-    <main className="hybrid-view hybrid-assembly">
-      {catalogNotice ? <p className="hybrid-units">{catalogNotice}</p> : null}
-      {generationNotice ? <p className="hybrid-pending">{generationNotice}</p> : null}
-      <SyntheticTestToggle />
-      <Panel className="hybrid-tile major-section-frame">
+    <main className={single ? "hybrid-view hybrid-frame" : "hybrid-view hybrid-assembly"}>
+      {!single && catalogNotice ? <p className="hybrid-units">{catalogNotice}</p> : null}
+      {!single && generationNotice ? <p className="hybrid-pending">{generationNotice}</p> : null}
+      {single ? null : <SyntheticTestToggle />}
+      {!frame || frame === "tile" ? <Panel className="hybrid-tile major-section-frame">
         <PanelHeader mark="01" title="Tile Selection" />
-        <div className="hybrid-layout-controls hybrid-count-row">
+        {presentation ? null : <div className="hybrid-layout-controls hybrid-count-row">
           {([2, 4, 6, 8] as const).map((value) => (
             <button key={value} type="button" data-active={(arrangement === "grid" || arrangement === "linear") && count === value || undefined} onClick={() => setLayout(value, arrangement === "linear" ? "linear" : "grid")}>
               {value}
@@ -291,9 +296,9 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
           <button type="button" data-active={arrangement === "cross" || undefined} onClick={() => setLayout(4, "cross")}>
             Cross
           </button>
-        </div>
-        <HybridTiles />
-        <div className="hybrid-layout-controls">
+        </div>}
+        <HybridTiles locked={presentation} />
+        {presentation ? null : <div className="hybrid-layout-controls">
           <button type="button" onClick={rotateSelected}>Rotate 90</button>
           <button type="button" onClick={() => mirrorSelected("x")}>Mirror X</button>
           <button type="button" onClick={() => mirrorSelected("z")}>Mirror Z</button>
@@ -301,9 +306,9 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
           <button type="button" onClick={() => translateSelected(1, 0)}>East</button>
           <button type="button" onClick={() => translateSelected(0, -1)}>South</button>
           <button type="button" onClick={() => translateSelected(0, 1)}>North</button>
-        </div>
-      </Panel>
-      <Panel className="hybrid-canvas major-section-frame">
+        </div>}
+      </Panel> : null}
+      {!frame || frame === "canvas" ? <Panel className="hybrid-canvas major-section-frame">
         <PanelHeader mark="02" title="Aggregation Canvas" />
         <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
           <AggregationView
@@ -346,9 +351,9 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             })}
           </div>
         </div>
-      </Panel>
-      <Panel className="hybrid-som major-section-frame">
-        <PanelHeader mark="03" title="Hybrid SOM Matrices" aside={<SaveCurrentAssembly />} />
+      </Panel> : null}
+      {!frame || frame === "som" ? <Panel className="hybrid-som major-section-frame">
+        <PanelHeader mark="03" title="Hybrid SOM Matrices" aside={presentation ? undefined : <SaveCurrentAssembly />} />
         <div className="hybrid-som-board">
           {connections.length === 0 ? <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p> : null}
           {connections.map((connection) => {
@@ -371,14 +376,14 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
                   previewId={growth?.connectionId === connection.id ? growth.candidateId : null}
                   previewMesh={growth?.connectionId === connection.id ? growth.mesh : null}
                 /> : <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p>}
-                <div className="hybrid-layout-controls">
+                {presentation ? null : <div className="hybrid-layout-controls">
                   <button type="button" className="hybrid-generate" onClick={() => setGenerationNotice(generateInputs(connection.id))}>
                     Generate candidate inputs
                   </button>
                   <button type="button" className="hybrid-generate" onClick={() => setGenerationNotice(generateHybridFieldForConnection(connection.id))}>
                     Generate real hybrids
                   </button>
-                </div>
+                </div>}
                 <p className="hybrid-units">{generationStatusLabel(connection.generationStatus)}</p>
                 <SomCandidateFacts
                   connection={{
@@ -398,14 +403,15 @@ export function HybridAssembly({ view = "process" }: { view?: "process" | "catal
             );
           })}
         </div>
-      </Panel>
-      <ProcessRow
+      </Panel> : null}
+      {!frame || frame === "clipping" || frame === "descendant" ? <ProcessRow
         connection={connections.find((connection) => connection.id === selectedConnectionId) ?? connections[0] ?? null}
         tiles={tiles}
         loaded={loaded}
         syntheticMode={syntheticMode}
         growth={growth}
-      />
+        part={frame === "descendant" ? "descendant" : frame === "clipping" ? "clipping" : "all"}
+      /> : null}
     </main>
   );
 }

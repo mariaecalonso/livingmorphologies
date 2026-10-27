@@ -1,24 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import context from "@/data/skill5/herald-site.json";
 import { findArchetype, findTypology, groupsForArchetype, TYPOLOGIES } from "@/lib/catalog";
 import { SKILL_WORKFLOW_STEPS } from "@/lib/home-workflow-steps";
 import type { TypologyId } from "@/lib/types";
 import { boardLayoutSignature } from "@/lib/home-workflow-camera";
+import { HYBRID_EXAMPLE_ID, HybridDiagram, useHybridExample } from "@/components/home-hybrid-example";
+import { HYBRID_LAB_FRAMES, HybridLabPanel, HybridPresentation, SelectedGeometries, warmHybridPresentation } from "@/components/home-hybrid-lab-frames";
 import { closeWorkflowPanel, markManualHold, PresentControls, usePresentClock, useRevealed } from "@/components/workflow-present";
 import { CRITERION_TARGETS } from "@/lib/skill1/translate";
-import { PROGRAM_LABEL, SITE_ARCHETYPES, SITE_PROGRAMS } from "@/lib/skill5/catalog";
-import { SKILL5_MODULE_ENVELOPE_FEET } from "@/lib/skill5/contract";
-import { SITE_GRID_FEET } from "@/lib/skill5/grid";
 
 const ARCHETYPE = "vertical-void";
-const VOID_GROWTH = [
-  "/assets/skill0/void-growth-1.gif?v=7",
-  "/assets/skill0/void-growth-2.gif?v=7",
-  "/assets/skill0/void-growth-3.gif?v=7",
-  "/assets/skill0/void-growth-4.gif?v=7",
+/** Six saved Vertical Void runs, chosen because their plates read differently: open crescent, wide bowl, closed ring, ring with a separate island, solid mass, radial field. */
+const VOID_ITERATIONS = [
+  "/demo/skill1/vertical-void/vertical-void-360802-1790449934138-4.webp",
+  "/demo/skill1/vertical-void/vertical-void-264709-1790449934138-7.webp",
+  "/demo/skill1/vertical-void/vertical-void-53992-1790449934138-38.webp",
+  "/demo/skill1/vertical-void/vertical-void-95095-1790449934138-29.webp",
+  "/demo/skill1/vertical-void/vertical-void-863512-1790449934138-54.webp",
+  "/demo/skill1/vertical-void/vertical-void-1031240-1790449934138-70.webp",
 ];
+const VOID_MOTION = [
+  "/assets/skill0/void-panel-1.gif",
+  "/assets/skill0/void-panel-2.gif",
+  "/assets/skill0/void-panel-3.gif",
+  "/assets/skill0/void-panel-4.gif",
+  "/assets/skill0/void-panel-5.gif",
+  "/assets/skill0/void-panel-6.gif",
+];
+const CATALOG_ROWS = 4;
+const CATALOG_COLS = 20;
+const CATALOG_SHOWN = CATALOG_ROWS * CATALOG_COLS;
 const EXAMPLE = findArchetype(findTypology("lobby"), ARCHETYPE);
 const LEVELS = ["Low", "Medium", "High"] as const;
 const TONES = ["#ffffff", "var(--cyan-hot)", "var(--orange-hot)"] as const;
@@ -65,26 +77,6 @@ function Tracks({ rows }: { rows: { label: string; value: string; share: number;
       </dl>
     </div>
   );
-}
-
-function useSlices() {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [slices, setSlices] = useState<string[]>([]);
-  useEffect(() => {
-    const controller = new AbortController();
-    const previewUrl = `/demo/skill2/previews/${ARCHETYPE}/351.webp`;
-    fetch(previewUrl, { signal: controller.signal })
-      .then((response) => setPreview(response.ok ? previewUrl : null))
-      .catch(() => {});
-    fetch(`/demo/skill2/propagation/${ARCHETYPE}/351.json`, { signal: controller.signal })
-      .then((response) => response.json())
-      .then((body: { ready?: boolean; slices?: string[] }) => {
-        if (body.ready && body.slices?.length) setSlices(body.slices);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-  return { preview, slices };
 }
 
 function useBoardLayout(loop: boolean) {
@@ -241,7 +233,103 @@ function Chrome({
   );
 }
 
-type PhysarumPanel = "input" | "generating" | "catalog" | "translation";
+type PhysarumPanel = "generating" | "catalog" | "translation";
+
+function catalogSelection(images: string[]) {
+  if (images.length <= CATALOG_SHOWN) return images;
+  const step = images.length / CATALOG_SHOWN;
+  return Array.from({ length: CATALOG_SHOWN }, (_, index) => images[Math.min(images.length - 1, Math.floor(index * step))]);
+}
+
+function VoidIterations() {
+  return (
+    <div className="wf-phy-iterations">
+      {VOID_ITERATIONS.map((src) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={src} src={src} alt="" decoding="async" />
+      ))}
+    </div>
+  );
+}
+
+/** Shrink a plate so its drawing occupies the same inner area, without enlarging a sparser one. */
+function contentScale(img: HTMLImageElement) {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx || !img.naturalWidth || !img.naturalHeight) return 1;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, size, size);
+  const ratio = img.naturalWidth / img.naturalHeight;
+  const dw = ratio > 1 ? size : size * ratio;
+  const dh = ratio > 1 ? size / ratio : size;
+  ctx.drawImage(img, (size - dw) / 2, (size - dh) / 2, dw, dh);
+  const data = ctx.getImageData(0, 0, size, size).data;
+  let minX = size;
+  let minY = size;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const index = (y * size + x) * 4;
+      if (data[index] + data[index + 1] + data[index + 2] <= 40) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < minX) return 1;
+  const fill = Math.max(maxX - minX + 1, maxY - minY + 1) / size;
+  return Math.min(1, 0.78 / fill);
+}
+
+function FitPlate({ src, alt }: { src: string; alt: string }) {
+  const [scale, setScale] = useState(1);
+  return (
+    <span className="wf-opt-plate">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} decoding="async" style={{ transform: `scale(${scale})` }} onLoad={(event) => setScale(contentScale(event.currentTarget))} />
+    </span>
+  );
+}
+
+function GrowthFrames() {
+  const [play, setPlay] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const stamp = Date.now();
+    Promise.all(
+      VOID_MOTION.map(
+        (src) =>
+          new Promise<void>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = `${src}?play=${stamp}`;
+          }),
+      ),
+    ).then(() => {
+      if (live) setPlay(stamp);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!play) return null;
+  return (
+    <div className="wf-phy-iterations" data-motion="">
+      {VOID_MOTION.map((src) => (
+        <span key={src} className="wf-opt-plate">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${src}?play=${play}`} alt="" />
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function useCatalogImages(id: string, enabled: boolean) {
   const [images, setImages] = useState<string[]>([]);
@@ -332,8 +420,7 @@ function useRuleLinks() {
 function InputCue() {
   const formal = GROUPS.find((group) => group.id === "formal") ?? GROUPS[0];
   return (
-    <div className="wf-phy-input" aria-label="Formal criteria and descriptor for Vertical Void">
-      <p className="wf-opt-caption">Formal</p>
+    <div className="wf-phy-input" aria-label="Formal ratings lead to Dynamic Core">
       <Tracks
         rows={formal.criteria.map((item) => ({
           label: item.label,
@@ -342,7 +429,10 @@ function InputCue() {
           tone: TONES[0],
         }))}
       />
-      <p className="wf-opt-caption">{formal.descriptor}</p>
+      <div className="wf-phy-lead" aria-hidden="true">
+        <i />
+        <p>{formal.descriptor}</p>
+      </div>
     </div>
   );
 }
@@ -384,47 +474,151 @@ const INSTRUCTION: Record<string, string> = {
   "social-proximity": "How closely agents gather",
 };
 
-function TranslationMap() {
+function meterShare(rating: number) {
+  if (rating >= 2) return 1;
+  if (rating === 1) return 0.5;
+  return 0.18;
+}
+
+const FIELD_READING: Record<string, { together: string; marks: { caption: string; kind: string }[] }> = {
+  formal: {
+    together: "One ring. Variation, size, and center act together.",
+    marks: [
+      { caption: "Ring varies", kind: "vary" },
+      { caption: "Ring scale", kind: "scale" },
+      { caption: "Attractor center", kind: "center" },
+    ],
+  },
+  spatial: {
+    together: "Movement can cross, areas join, and the turn toward the attractor stays mild.",
+    marks: [
+      { caption: "Crosses freely", kind: "cross" },
+      { caption: "Areas join", kind: "join" },
+      { caption: "Toward the attractor", kind: "favor" },
+    ],
+  },
+  atmospheric: {
+    together: "Pull and reach are one band. Medium adds no extra release from the source.",
+    marks: [
+      { caption: "Pull strengthens", kind: "pull" },
+      { caption: "Pull widens", kind: "reach" },
+      { caption: "No extra release", kind: "leave" },
+    ],
+  },
+};
+
+function FieldMark({ kind }: { kind: string }) {
+  const frame = <rect className="frame" x="3" y="3" width="74" height="58" rx="6" />;
+  if (kind === "vary") {
+    return <svg viewBox="0 0 80 64" aria-hidden="true">{frame}<ellipse className="ink wf-phy-mark-vary" cx="40" cy="30" rx="16" ry="11" /></svg>;
+  }
+  if (kind === "scale") {
+    return <svg viewBox="0 0 80 64" aria-hidden="true">{frame}<circle className="ink wf-phy-mark-scale" cx="40" cy="30" r="16" /></svg>;
+  }
+  if (kind === "center") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <circle className="ink" cx="40" cy="30" r="12" strokeOpacity="0.35" />
+        <circle className="source" cx="16" cy="46" r="2.4" />
+        <circle className="core wf-phy-mark-sit" cx="40" cy="30" r="3.2" />
+      </svg>
+    );
+  }
+  if (kind === "cross") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <path className="ink wf-phy-mark-cross" d="M10 22 H70" />
+        <path className="ink wf-phy-mark-cross is-soft" d="M12 34 H68" />
+        <path className="ink wf-phy-mark-cross is-soft" d="M14 46 H66" />
+      </svg>
+    );
+  }
+  if (kind === "join") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <circle className="core" cx="18" cy="40" r="2.4" />
+        <circle className="core" cx="40" cy="28" r="2.4" />
+        <circle className="core" cx="62" cy="42" r="2.4" />
+        <path className="ink wf-phy-mark-join" d="M20 39 L38 29" />
+        <path className="ink wf-phy-mark-join" d="M42 29 L60 41" />
+      </svg>
+    );
+  }
+  if (kind === "favor") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <circle className="ink" cx="40" cy="26" r="5" strokeOpacity="0.45" />
+        <circle className="source" cx="16" cy="48" r="2.4" />
+        <path className="ink wf-phy-mark-favor" d="M18 46 C 28 44, 30 40, 36 32" />
+      </svg>
+    );
+  }
+  if (kind === "pull") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <circle className="ink wf-phy-mark-pull" cx="40" cy="30" r="14" />
+        <circle className="core" cx="40" cy="30" r="3" />
+      </svg>
+    );
+  }
+  if (kind === "reach") {
+    return (
+      <svg viewBox="0 0 80 64" aria-hidden="true">
+        {frame}
+        <circle className="ink wf-phy-mark-reach" cx="40" cy="30" r="14" />
+        <circle className="core" cx="40" cy="30" r="3" />
+      </svg>
+    );
+  }
   return (
-    <div className="wf-phy-void" aria-label="How Vertical Void ratings become field instructions">
-      <p className="wf-opt-caption">Criteria set the strength. Descriptors place the field.</p>
-      <div className="wf-phy-void-row">
-        {GROUPS.map((group) => (
-          <div key={group.id} className="wf-phy-void-group">
-            <p className="wf-opt-caption">{group.title}</p>
-            <p className="wf-phy-void-descriptor">{group.descriptor}</p>
-            <ul className="wf-phy-instruct">
-              {group.criteria.map((item) => {
-                const instruction = CRITERION_TARGETS[item.id] ? INSTRUCTION[item.id] : undefined;
-                if (!instruction) return null;
-                return (
-                  <li key={item.id}>
-                    <span>{item.label}</span>
-                    <span>{LEVELS[item.rating]}</span>
-                    <span>{instruction}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </div>
+    <svg viewBox="0 0 80 64" aria-hidden="true">
+      {frame}
+      <circle className="ink" cx="40" cy="28" r="8" strokeOpacity="0.35" />
+      <circle className="source" cx="16" cy="46" r="2.4" />
+      <circle className="source wf-phy-mark-leave" cx="16" cy="46" r="2" />
+    </svg>
   );
 }
 
-function VoidCategories() {
+function TranslationMap() {
   return (
-    <div className="wf-phy-void" aria-label="Vertical Void categories and descriptors">
-      <p className="wf-opt-caption">Vertical Void</p>
-      <div className="wf-phy-void-row">
-        {GROUPS.map((group, index) => (
-          <div key={group.id} className="wf-phy-void-group">
-            <p className="wf-opt-caption">{group.title}</p>
-            <span className="wf-phy-void-link" aria-hidden="true" />
-            <p className="wf-phy-void-descriptor" style={{ color: TONES[index] }}>{group.descriptor}</p>
-          </div>
-        ))}
+    <div className="wf-phy-void" aria-label="How Vertical Void ratings become field instructions">
+      <div className="wf-phy-fields">
+        {GROUPS.map((group) => {
+          const reading = FIELD_READING[group.id];
+          return (
+            <section key={group.id} className="wf-phy-field-col" data-branch={group.id}>
+              <p className="wf-opt-caption">{group.title}</p>
+              <p className="wf-phy-void-descriptor">{group.descriptor}</p>
+              <ul className="wf-phy-meters">
+                {group.criteria.map((item) => {
+                  if (!CRITERION_TARGETS[item.id] || !INSTRUCTION[item.id]) return null;
+                  return (
+                    <li key={item.id} style={{ "--share": `${Math.round(meterShare(item.rating) * 100)}%` } as CSSProperties}>
+                      <span>{item.label}</span>
+                      <i aria-hidden="true" />
+                      <span>{LEVELS[item.rating]}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="wf-phy-marks">
+                {reading.marks.map((mark) => (
+                  <figure key={mark.kind}>
+                    <FieldMark kind={mark.kind} />
+                    <figcaption>{mark.caption}</figcaption>
+                  </figure>
+                ))}
+              </div>
+              <p className="wf-phy-together">{reading.together}</p>
+            </section>
+          );
+        })}
       </div>
     </div>
   );
@@ -473,7 +667,7 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
     if (!board) return;
     const onArrive = (event: Event) => {
       const frame = String((event as CustomEvent<{ frame: string }>).detail.frame);
-      const next: PhysarumPanel | null = frame === "0" ? "input" : frame === "2" ? "translation" : frame === "3" ? "generating" : frame === "catalogue" ? "catalog" : null;
+      const next: PhysarumPanel | null = frame === "2" ? "translation" : frame === "3" ? "generating" : frame === "catalogue" ? "catalog" : null;
       if (!next) return;
       const node = board.querySelector<HTMLElement>(`[data-frame="${frame}"]`);
       if (node) placeOrigin(node);
@@ -503,7 +697,7 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
     <InputCue key="input" />,
     <RulesCue key="rules" />,
     <TranslationCue key="translation" />,
-    plate ? <PlateShot key="generating" plate={{ src: plate, alt: `${EXAMPLE.name}` }} /> : <p key="generating" className="wf-opt-caption">Iteration sequence pending</p>,
+    <VoidIterations key="generating" />,
     plate ? (
       <div key="catalog" className="wf-opt-lineage">
         <figure>
@@ -524,9 +718,9 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
           className="wf-frame is-detail"
           data-frame={String(index)}
           data-tone="teal"
-          data-zoomable={index === 0 || index === 2 || index === 3 ? "" : undefined}
+          data-zoomable={index === 2 || index === 3 ? "" : undefined}
           style={places[index]}
-          onClick={index === 0 || index === 2 || index === 3 ? (event) => openPanel(index === 0 ? "input" : index === 2 ? "translation" : "generating", event.currentTarget) : undefined}
+          onClick={index === 2 || index === 3 ? (event) => openPanel(index === 2 ? "translation" : "generating", event.currentTarget) : undefined}
         >
           <p className="wf-proto-label">{step.title}</p>
           {index === 0 ? (
@@ -616,21 +810,14 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
       >
         <p className="wf-opt-trail">
           Physarum Logic <span aria-hidden="true">›</span>{" "}
-          {panel === "input" ? "Architecture Input" : panel === "translation" ? "Translation" : panel === "generating" ? "Rule-Based Generation" : "Catalog"}
+          {panel === "translation" ? "Translation" : panel === "generating" ? "Rule-Based Generation" : "Catalog"}
           {panel === "catalog" ? (
             <a className="wf-phy-lab" href="/lab/physarum/catalog">Open Physarum Logic Catalog</a>
           ) : null}
         </p>
         <div className="wf-phy-panel">
-          {panel === "input" ? <VoidCategories /> : null}
           {panel === "translation" ? <TranslationMap /> : null}
-          {panel === "generating" ? (
-            <div className="wf-phy-growth">
-              {VOID_GROWTH.map((src) => (
-                <img key={src} src={src} alt="" />
-              ))}
-            </div>
-          ) : null}
+          {panel === "generating" ? <GrowthFrames /> : null}
           {panel === "catalog" ? (
             <>
               <div className="wf-phy-tabs">
@@ -664,17 +851,9 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
               <div className="wf-phy-fit">
                 <div className="wf-phy-fit-size">
                   {catalog.status === "ready" ? (
-                    <div
-                      className="wf-phy-sheet"
-                      style={{
-                      "--rows": 4,
-                      "--cols": Math.ceil(catalog.images.length / 4),
-                      gridTemplateColumns: `repeat(${Math.ceil(catalog.images.length / 4)}, minmax(0, 1fr))`,
-                    } as CSSProperties}
-                    >
-                      {catalog.images.map((src) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={src} src={src} alt="" decoding="async" />
+                    <div className="wf-opt-cat-sheet" style={{ "--rows": CATALOG_ROWS, "--cols": CATALOG_COLS } as CSSProperties}>
+                      {catalogSelection(catalog.images).map((src) => (
+                        <FitPlate key={src} src={src} alt="" />
                       ))}
                     </div>
                   ) : (
@@ -693,77 +872,164 @@ export function PhysarumWorkflowLayer(_props?: { cycle?: string }) {
   );
 }
 
-export function HybridWorkflowLayer() {
-  const { slices } = useSlices();
-  const pair = [slices[0], slices[slices.length - 1]].filter((item): item is string => Boolean(item));
-  const tiles = pair.map((src, index) => ({ src, alt: `${EXAMPLE.name} tile ${index + 1}` }));
-  return (
-    <Chrome
-      note={`Example shown: ${EXAMPLE.name}`}
-      visuals={[
-        <div key="tiles" className="wf-opt-seeds">
-          {tiles.map((item) => (
-            <PlateShot key={item.alt} plate={item} />
-          ))}
-        </div>,
-        <div key="matrix" className="wf-opt-matrix" aria-hidden="true">
-          {Array.from({ length: 25 }, (_, index) => (
-            <span key={index} />
-          ))}
-        </div>,
-        <div key="between" className="wf-opt-join">
-          {tiles[0] ? <PlateShot plate={tiles[0]} /> : null}
-          <span />
-          {tiles[1] ? <PlateShot plate={tiles[1]} /> : null}
-        </div>,
-        <div key="joined" className="wf-opt-seeds">
-          {tiles.map((item) => (
-            <PlateShot key={`joined-${item.alt}`} plate={item} />
-          ))}
-        </div>,
-      ]}
-    />
-  );
-}
+type HybridPanel = "parents" | "sections" | "frames" | "descendant" | "assembly";
 
-export function SiteWorkflowLayer() {
-  const site = context.site;
-  const span = Math.max(site.widthFeet, site.depthFeet);
-  const total = Math.max(1, SITE_ARCHETYPES.length);
+const HYBRID_PANELS: Record<string, { id: HybridPanel; title: string }> = {
+  "1": { id: "parents", title: "Select Parent Geometries + Connection Faces" },
+  "2": { id: "sections", title: "Extract Sectional Information" },
+  "3": { id: "frames", title: "Generate Hybrid Possibilities" },
+  "4": { id: "descendant", title: "Select + Develop a Hybrid Descendant" },
+  "5": { id: "assembly", title: "Negotiate + Integrate the Hybrid Connection" },
+};
+
+export function HybridWorkflowLayer() {
+  const { layout, lit } = useBoardLayout(false);
+  const revealed = useRevealed(lit);
+  const { example, status } = useHybridExample();
+  const panelRef = useRef<HTMLElement>(null);
+  const [panel, setPanel] = useState<HybridPanel | null>(null);
+  const [sequence, setSequence] = useState(false);
+  const [prepared, setPrepared] = useState(false);
+  const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
+  const waiting = useRef<{ id: HybridPanel; sequenced: boolean } | null>(null);
+  const preparedRef = useRef(false);
+  preparedRef.current = prepared;
+  const closePanel = () => {
+    closeWorkflowPanel(panelRef.current?.closest<HTMLElement>(".wf-board") ?? null);
+    setSequence(false);
+    setPanel(null);
+  };
+  const clock = usePresentClock(Boolean(sequence && panel && prepared), closePanel);
+  const placeOrigin = (node: HTMLElement) => {
+    const board = node.closest<HTMLElement>(".wf-board");
+    if (!board) return;
+    const box = board.getBoundingClientRect();
+    const rect = node.getBoundingClientRect();
+    const scale = box.width / board.clientWidth || 1;
+    setOrigin({
+      x: (rect.left + rect.width / 2 - box.left) / scale,
+      y: (rect.top + rect.height / 2 - box.top) / scale,
+    });
+  };
+  useEffect(() => {
+    warmHybridPresentation();
+  }, []);
+  useEffect(() => {
+    if (!prepared || !waiting.current) return;
+    setSequence(waiting.current.sequenced);
+    setPanel(waiting.current.id);
+    waiting.current = null;
+  }, [prepared]);
+  const openFrame = (id: HybridPanel, sequenced: boolean, node: HTMLElement) => {
+    placeOrigin(node);
+    if (!preparedRef.current) {
+      waiting.current = { id, sequenced };
+      setSequence(sequenced);
+      return;
+    }
+    setSequence(sequenced);
+    setPanel(id);
+  };
+  const openFrameRef = useRef(openFrame);
+  openFrameRef.current = openFrame;
+  useEffect(() => {
+    const board = document.querySelector<HTMLElement>('.wf-board[data-stage="recombination"]');
+    if (!board) return;
+    const listeners = [...board.querySelectorAll<HTMLElement>(".wf-frame[data-frame]")].flatMap((node) => {
+      const spec = HYBRID_PANELS[node.dataset.frame ?? ""];
+      if (!spec) return [];
+      node.setAttribute("data-zoomable", "");
+      node.removeAttribute("data-zoom-manual");
+      const onClick = () => {
+        setSequence(false);
+        markManualHold(board);
+        openFrameRef.current(spec.id, false, node);
+      };
+      node.addEventListener("click", onClick);
+      return [{ node, onClick }];
+    });
+    const onArrive = (event: Event) => {
+      const frame = String((event as CustomEvent<{ frame: string }>).detail.frame);
+      const spec = HYBRID_PANELS[frame];
+      if (!spec) return;
+      const node = board.querySelector<HTMLElement>(`.wf-frame[data-frame="${frame}"]`);
+      if (node) openFrameRef.current(spec.id, true, node);
+      else {
+        setSequence(true);
+        setPanel(spec.id);
+      }
+    };
+    board.addEventListener("wf-frame-arrive", onArrive);
+    return () => {
+      board.removeEventListener("wf-frame-arrive", onArrive);
+      listeners.forEach(({ node, onClick }) => node.removeEventListener("click", onClick));
+    };
+  }, []);
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closePanel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel]);
+  const open = Object.values(HYBRID_PANELS).find((item) => item.id === panel) ?? null;
   return (
-    <Chrome
-      note="Example shown: One Herald Plaza"
-      visuals={[
-        <Tracks
-          key="site"
-          rows={[
-            { label: "East–west", value: `${site.widthFeet.toLocaleString("en-US")} ft`, share: site.widthFeet / span, tone: TONES[0] },
-            { label: "North–south", value: `${site.depthFeet.toLocaleString("en-US")} ft`, share: site.depthFeet / span, tone: TONES[1] },
-          ]}
-        />,
-        <Tracks
-          key="library"
-          rows={SITE_PROGRAMS.map((program, index) => {
-            const count = SITE_ARCHETYPES.filter((entry) => entry.program === program).length;
-            return { label: PROGRAM_LABEL[program], value: String(count), share: count / total, tone: TONES[index] ?? TONES[0] };
-          })}
-        />,
-        <Tracks
-          key="grid"
-          rows={[
-            { label: "Grid", value: `${SITE_GRID_FEET} ft`, share: SITE_GRID_FEET / SKILL5_MODULE_ENVELOPE_FEET, tone: TONES[0] },
-            { label: "Envelope", value: `${SKILL5_MODULE_ENVELOPE_FEET} ft`, share: 1, tone: TONES[1] },
-          ]}
-        />,
-        <Tracks
-          key="composition"
-          rows={[
-            { label: "Modules", value: String(total), share: 1, tone: TONES[0] },
-            { label: "Saved", value: "Not saved", share: 0, tone: TONES[2] },
-          ]}
-        />,
-      ]}
-    />
+    <HybridPresentation onReady={() => setPrepared(true)}>
+      <p className="wf-site-note">Example shown: {HYBRID_EXAMPLE_ID}</p>
+      {layout ? layout.slots.map((slot, index) => {
+        const spec = HYBRID_PANELS[String(index)];
+        return (
+        <div
+          key={index}
+          className="wf-opt-visual"
+          data-on={index === 0 || revealed >= index || undefined}
+          style={{
+            left: `${(slot.left / layout.width) * 100}%`,
+            top: `${(slot.top / layout.height) * 100}%`,
+            width: `${(slot.width / layout.width) * 100}%`,
+            height: `${(slot.height / layout.height) * 100}%`,
+          }}
+        >
+          <div className="wf-opt-visual-play">
+            {index === 0 ? (
+              <SelectedGeometries compact />
+            ) : example && spec ? (
+              <HybridDiagram example={example} kind={spec.id} compact />
+            ) : (
+              <p className="wf-frame-body">{status}</p>
+            )}
+          </div>
+        </div>
+        );
+      }) : null}
+      {layout ? (
+        <svg className="wf-site-links" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
+          {layout.leaders.map((leader, index) => (
+            <path key={index} className="wf-opt-leader" data-on={revealed >= index || undefined} d={`M ${leader.x} ${leader.top} L ${leader.x} ${leader.bottom}`} />
+          ))}
+        </svg>
+      ) : null}
+      <section
+        ref={panelRef}
+        className="wf-opt-zoom"
+        data-open={panel || undefined}
+        data-hyb-panel={panel ?? undefined}
+        aria-hidden={!panel}
+        onPointerDown={clock.hold}
+        style={origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : undefined}
+      >
+        <p className="wf-opt-trail">
+          Hybrid Connection <span aria-hidden="true">›</span> {open?.title}
+        </p>
+        <div className="wf-phy-panel">
+          {open ? <HybridLabPanel frame={HYBRID_LAB_FRAMES[open.id]} /> : <p className="wf-frame-body">{status}</p>}
+        </div>
+        <PresentControls run={Boolean(sequence && panel && prepared)} clock={clock} onClose={closePanel} open={Boolean(panel)} />
+      </section>
+    </HybridPresentation>
   );
 }
 

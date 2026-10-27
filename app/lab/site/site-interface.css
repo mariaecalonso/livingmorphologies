@@ -741,7 +741,8 @@
   background: #000000;
 }
 
-.site-frame {
+/* The configuration frame only. The website shell also uses .site-frame, and a bare selector cancels the 1920 × 560 classroom scale. */
+.site-stage > .site-frame {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -752,7 +753,7 @@
   background: #000000;
 }
 
-.site-frame .site-viewport {
+.site-stage > .site-frame .site-viewport {
   border: 0;
   border-radius: 0;
 }
@@ -1140,7 +1141,7 @@
   font-size: 0.86em;
 }
 
-[data-view-mode="presentation"] .site-frame .site-modes button {
+[data-view-mode="presentation"] .site-stage > .site-frame .site-modes button {
   font-size: 0.72em;
   letter-spacing: 0.12em;
 }

@@ -33,12 +33,15 @@ export function ProcessRow({
   loaded,
   syntheticMode,
   growth,
+  part = "all",
 }: {
   connection: TileConnection | null;
   tiles: readonly TileInstance[];
   loaded: ReadonlyMap<string, ModuleHandoff>;
   syntheticMode: boolean;
   growth: { connectionId: string; candidateId: string; mesh: IsoMesh; opacity: number } | null;
+  /** The lab page renders every process frame. A website panel asks for one group. */
+  part?: "all" | "clipping" | "descendant";
 }) {
   const tileA = tiles.find((tile) => tile.instanceId === connection?.tileAId);
   const tileB = tiles.find((tile) => tile.instanceId === connection?.tileBId);
@@ -75,8 +78,7 @@ export function ProcessRow({
     dragRef.current = null;
   };
 
-  return (
-    <div className="hybrid-process-row">
+  const clipping = (
       <Panel className="hybrid-process-card hybrid-process-joined major-section-frame">
         <div className="hybrid-process-join">
           <div className="hybrid-process-join-side">
@@ -115,6 +117,8 @@ export function ProcessRow({
           </div>
         </div>
       </Panel>
+  );
+  const sections = (
       <Panel className="hybrid-process-card major-section-frame">
         <PanelHeader mark="06" title={`Generate Intermediate Hybrid Sections (${selectedId})`} />
         {sequence.length > 0 ? (
@@ -134,6 +138,8 @@ export function ProcessRow({
           <p className="hybrid-missing">Generate the selected hybrid to see A1 through the intermediate sections to B1.</p>
         )}
       </Panel>
+  );
+  const evolution = (
       <Panel className="hybrid-process-card major-section-frame">
         <PanelHeader mark="07" title={`Sectional Evolution of Selected Hybrid (${selectedId})`} />
         <div className="hybrid-process-evolution">
@@ -151,8 +157,10 @@ export function ProcessRow({
           )}
         </div>
       </Panel>
-    </div>
   );
+  if (part === "clipping") return <div className="hybrid-process-row" data-part="clipping">{clipping}</div>;
+  if (part === "descendant") return <div className="hybrid-process-row" data-part="descendant">{sections}{evolution}</div>;
+  return <div className="hybrid-process-row">{clipping}{sections}{evolution}</div>;
 }
 
 function ParentSample({

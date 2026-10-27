@@ -4,7 +4,7 @@
  * Future team SVGs use WORKFLOW_BOARD and replace `detailAsset`.
  */
 
-import { LAB_ENTRY, labWorkspace } from "@/lib/site-map";
+import { labWorkspace } from "@/lib/site-map";
 
 export type WorkflowTone = "neutral" | "teal" | "copper";
 
@@ -147,6 +147,22 @@ export function workflowBoardStops(count: number): readonly WorkflowPoint[] {
   return stops;
 }
 
+/** Six Site Integration stages on the same alternating path as the other boards. */
+export const SITE_BOARD_STOPS: readonly WorkflowPoint[] = workflowBoardStops(6);
+
+/**
+ * Hybrid Connection. The first stop is the compact module preview.
+ * The five stages sit further apart on the same alternating path.
+ */
+export const HYBRID_BOARD_STOPS: readonly WorkflowPoint[] = [
+  { x: 0.08, y: 0.68 },
+  { x: 0.24, y: 0.4 },
+  { x: 0.41, y: 0.7 },
+  { x: 0.58, y: 0.42 },
+  { x: 0.75, y: 0.68 },
+  { x: 0.91, y: 0.4 },
+];
+
 export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   {
     id: "decomposition",
@@ -217,7 +233,6 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     previous: "client",
     next: "recombination",
     tone: "neutral",
-    lab: [{ href: LAB_ENTRY.href, label: LAB_ENTRY.label }],
   },
   {
     id: "recombination",
@@ -499,6 +514,10 @@ export type FrameNode = {
   radius: number;
   /** Above 1 shortens this visit. The unscaled visits keep the original pace. */
   pace?: number;
+  /** Below 1 lengthens only the connector into this frame. */
+  linkPace?: number;
+  /** The connector into this visit stays off the solid path. */
+  omitLink?: boolean;
 };
 
 /** Teal-to-copper link and the traveling light. Overview and steps 03–06 share these. */
@@ -604,6 +623,7 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
     to: nodes[index + 1].entry as WorkflowPoint,
   }));
   const path = connectors
+    .filter((_, index) => !nodes[index + 1]?.omitLink)
     .map((segment) => `M ${segment.from.x.toFixed(2)} ${segment.from.y.toFixed(2)} L ${segment.to.x.toFixed(2)} ${segment.to.y.toFixed(2)}`)
     .join(" ");
   const pose = (t: number): MacroPose => {

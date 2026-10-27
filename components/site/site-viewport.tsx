@@ -7,12 +7,15 @@ import {
   BufferGeometry,
   Color,
   DoubleSide,
+  Float32BufferAttribute,
   LineBasicMaterial,
   OrthographicCamera,
   PerspectiveCamera,
   SRGBColorSpace,
+  ShaderMaterial,
   TextureLoader,
   NoToneMapping,
+  Vector2,
   Vector3,
   type Camera,
   type Texture,
@@ -22,19 +25,20 @@ import {
   clipPolygon,
   clipRoad,
   flatGeometry,
-  gridAttribute,
   inStudy,
   loopAttribute,
   pathAttribute,
   elevatedDeckGeometry,
   ringCentroid,
   displayRoads,
+  pruneContextRoads,
   displayBuildingGeometry,
   groundRoadBlocks,
   groundRoadGeometry,
   regularizeRing,
   regularizeRoad,
   tidyLocalRoads,
+  metromoverGeometry,
   slabGeometry,
   studyLandRing,
 } from "./site-geometry";
@@ -42,6 +46,7 @@ import type { SiteContext, XZ } from "@/lib/skill5/site-model";
 import { elevatedDeckRoads } from "@/lib/skill5/deck-surface";
 import { HERALD_AERIAL } from "@/lib/skill5/aerial";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
+import { SITE_GRID_FEET } from "@/lib/skill5/grid";
 import { northDegrees, placeAxon, placePerspective, placePlan, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
 
@@ -63,9 +68,153 @@ type Bounds = {
 };
 
 const SCALE_STEPS = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
-const SITE_EDGE = new LineBasicMaterial({ color: "#ffffff" });
+/** The property line is the design rectangle. Its weight is in screen pixels so the presentation scale does not break it into dashes. */
+const SITE_EDGE = new ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  side: DoubleSide,
+  toneMapped: false,
+  uniforms: {
+    uMin: { value: new Vector2() },
+    uMax: { value: new Vector2() },
+    uPx: { value: 1.4 },
+  },
+  vertexShader: `
+    varying vec2 vXZ;
+    void main() {
+      vXZ = position.xz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec2 uMin;
+    uniform vec2 uMax;
+    uniform float uPx;
+    varying vec2 vXZ;
+    void main() {
+      vec2 center = (uMin + uMax) * 0.5;
+      vec2 halfSize = (uMax - uMin) * 0.5;
+      vec2 outside = abs(vXZ - center) - halfSize;
+      float dist = length(max(outside, 0.0)) + min(max(outside.x, outside.y), 0.0);
+      float pixel = max(length(fwidth(vXZ)), 1e-4);
+      float core = 1.0 - smoothstep(0.0, pixel * uPx, abs(dist));
+      float glow = (1.0 - smoothstep(0.0, pixel * uPx * 2.6, abs(dist))) * 0.35;
+      float line = max(core, glow);
+      if (line < 0.03) discard;
+      gl_FragColor = vec4(1.0, 1.0, 1.0, line);
+    }
+  `,
+});
 const COAST_LINE = new LineBasicMaterial({ color: "#4a4a4a", transparent: true, opacity: 0.55 });
-const GRID_LINE = new LineBasicMaterial({ color: "#5c5a56", transparent: true, opacity: 0.16 });
+/** Every fifth 20 ft line. A display hierarchy only; spacing and snapping stay on the 20 ft grid. */
+const GRID_MAJOR_FEET = SITE_GRID_FEET * 5;
+
+/** Grid lines are drawn in device pixels so their weight follows the canvas, not the site's foot coordinates. */
+const GRID_SHEET = new ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  side: DoubleSide,
+  toneMapped: false,
+  uniforms: {
+    uMinorOpacity: { value: 0.2 },
+    uMajorOpacity: { value: 0.32 },
+    uMinorPx: { value: 1 },
+    uMajorPx: { value: 1.6 },
+  },
+  vertexShader: `
+    varying vec2 vXZ;
+    void main() {
+      vXZ = position.xz;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uMinorOpacity;
+    uniform float uMajorOpacity;
+    uniform float uMinorPx;
+    uniform float uMajorPx;
+    varying vec2 vXZ;
+    float hairline(float stepSize, float px) {
+      vec2 cell = vXZ / stepSize;
+      vec2 fw = max(fwidth(cell), vec2(1e-4));
+      vec2 dist = min(fract(cell), 1.0 - fract(cell));
+      float alongX = 1.0 - smoothstep(0.0, min(fw.x * px, 0.42), dist.x);
+      float alongZ = 1.0 - smoothstep(0.0, min(fw.y * px, 0.42), dist.y);
+      return max(alongX, alongZ);
+    }
+    void main() {
+      float minor = hairline(${SITE_GRID_FEET}.0, uMinorPx);
+      float major = hairline(${GRID_MAJOR_FEET}.0, uMajorPx);
+      float alpha = max(minor * uMinorOpacity, major * uMajorOpacity);
+      if (alpha < 0.015) discard;
+      vec3 color = mix(vec3(0.42, 0.41, 0.39), vec3(0.72, 0.70, 0.66), major);
+      gl_FragColor = vec4(color, alpha);
+    }
+  `,
+});
+
+/** The presentation sheet is scaled to the window. Line weight uses the width the window actually shows. */
+function displayedCanvasWidth(canvas: HTMLCanvasElement) {
+  const view = canvas.ownerDocument.defaultView;
+  const local = canvas.getBoundingClientRect().width;
+  const frame = view?.frameElement;
+  if (frame instanceof HTMLElement && view && view.innerWidth > 0) {
+    return local * (frame.getBoundingClientRect().width / view.innerWidth);
+  }
+  return local;
+}
+
+/** Close in, a 20 ft cell spans many pixels and the lines stay faint. With the whole site in view, the 100 ft lines carry the reading. */
+function fadeSiteGrid(feetPerPixel: number, devicePixelsPerPixel: number) {
+  const cell = SITE_GRID_FEET / Math.max(1e-6, feetPerPixel);
+  const far = Math.min(1, Math.max(0, Math.log2(36 / cell) / Math.log2(36 / 8)));
+  const dense = cell < 8 ? Math.max(0.15, (cell - 3) / 5) : 1;
+  const pixels = Math.max(1, devicePixelsPerPixel);
+  GRID_SHEET.uniforms.uMinorOpacity.value = (0.2 + 0.34 * far) * dense;
+  GRID_SHEET.uniforms.uMajorOpacity.value = 0.32 + 0.5 * far;
+  GRID_SHEET.uniforms.uMinorPx.value = (cell < 6 ? 0.55 : 0.9) * pixels;
+  GRID_SHEET.uniforms.uMajorPx.value = 1.55 * pixels;
+  SITE_EDGE.uniforms.uPx.value = 1.15 * pixels;
+}
+
+function sheetGeometry(ring: readonly XZ[], y: number, pad = 0) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [x, z] of ring) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute([
+    minX - pad, y, minZ - pad, maxX + pad, y, minZ - pad, maxX + pad, y, maxZ + pad,
+    minX - pad, y, minZ - pad, maxX + pad, y, maxZ + pad, minX - pad, y, maxZ + pad,
+  ], 3));
+  return geometry;
+}
+
+function gridSheet(ring: readonly XZ[]) {
+  return sheetGeometry(ring, 1.08);
+}
+
+function siteEdgeSheet(ring: readonly XZ[]) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [x, z] of ring) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  SITE_EDGE.uniforms.uMin.value.set(minX, minZ);
+  SITE_EDGE.uniforms.uMax.value.set(maxX, maxZ);
+  return sheetGeometry(ring, 1.2, 24);
+}
 const FLAT_LINE = new LineBasicMaterial({ color: "#2e2e2e", transparent: true, opacity: 0.9 });
 const CONTEXT_MARGIN_FEET = 460;
 
@@ -147,7 +296,7 @@ function SiteContent({
       return inStudy(x, z);
     });
     const flat = visible.filter((building) => building.heightFeet === null);
-    const sourceRoads = tidyLocalRoads(displayRoads(context.roads));
+    const sourceRoads = tidyLocalRoads(pruneContextRoads(displayRoads(context.roads)));
     const clipRoads = (roads: typeof context.roads) => roads.map((road) => regularizeRoad(road)).flatMap((road) => clipRoad(road));
     const elevatedRoads = clipRoads(elevatedDeckRoads(sourceRoads));
     const groundRoads = clipRoads(sourceRoads.filter((road) => !road.elevated));
@@ -155,13 +304,14 @@ function SiteContent({
     return {
       land: flatGeometry(studyLandRing(context.water.ring), 0),
       water: slabGeometry(clipPolygon(context.water.ring), 0.5, 0),
-      siteEdge: lineGeometry(loopAttribute([design.ring], 1.15)),
+      siteEdge: siteEdgeSheet(design.ring),
       coast: lineGeometry(pathAttribute(clipPath(context.coastline.path), 0.2, false)),
       elevated: elevatedDeckGeometry(elevatedRoads),
+      guideway: metromoverGeometry(context.origin),
       groundRoads,
       roadBlocks: groundRoadBlocks(visible, context.water.ring, design.ring),
       flatEdges: lineGeometry(loopAttribute(flat.flatMap((building) => [clipPolygon(regularizeRing(building.ring)), ...(building.holes ?? []).map((hole) => clipPolygon(regularizeRing(hole)))].filter((ring) => ring.length >= 3)), 0.35)),
-      grid: lineGeometry(gridAttribute(design.ring, 1.05)),
+      grid: gridSheet(design.ring),
     };
   }, [context]);
 
@@ -171,6 +321,7 @@ function SiteContent({
     geometries.siteEdge.dispose();
     geometries.coast.dispose();
     geometries.elevated.dispose();
+    geometries.guideway.dispose();
     geometries.flatEdges.dispose();
     geometries.grid.dispose();
   }, [geometries]);
@@ -182,7 +333,7 @@ function SiteContent({
       const [x, z] = ringCentroid(building.ring);
       return inStudy(x, z);
     });
-    displayBuildingGeometry(visible).then((geometry) => {
+    displayBuildingGeometry(visible, { roads: geometries.groundRoads, blocked: geometries.roadBlocks }).then((geometry) => {
       if (cancel) {
         geometry.dispose();
         return;
@@ -195,7 +346,7 @@ function SiteContent({
       installed?.dispose();
       setBuildingMesh(null);
     };
-  }, [context]);
+  }, [context, geometries.groundRoads, geometries.roadBlocks]);
   const [roadMesh, setRoadMesh] = useState<BufferGeometry | null>(null);
   useEffect(() => {
     let cancel = false;
@@ -242,8 +393,11 @@ function SiteContent({
       <mesh geometry={geometries.elevated} raycast={skipRaycast}>
         <meshLambertMaterial color="#767676" side={DoubleSide} />
       </mesh>
-      <lineSegments geometry={geometries.siteEdge} material={SITE_EDGE} raycast={skipRaycast} />
-      {showGrid ? <lineSegments geometry={geometries.grid} material={GRID_LINE} raycast={skipRaycast} /> : null}
+      <mesh geometry={geometries.guideway} raycast={skipRaycast}>
+        <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />
+      </mesh>
+      <mesh geometry={geometries.siteEdge} material={SITE_EDGE} raycast={skipRaycast} />
+      {showGrid ? <mesh geometry={geometries.grid} material={GRID_SHEET} raycast={skipRaycast} /> : null}
       <lineSegments geometry={geometries.flatEdges} material={FLAT_LINE} raycast={skipRaycast} />
       {buildingMesh ? <mesh geometry={buildingMesh} raycast={skipRaycast}>
         <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />
@@ -441,6 +595,9 @@ function CameraRig({
     const visible = camera instanceof OrthographicCamera
       ? Math.abs(camera.right - camera.left) / camera.zoom
       : 2 * Math.tan((camera.fov * Math.PI) / 360) * camera.position.distanceTo(target.current) * camera.aspect;
+    const canvas = gl.domElement;
+    const screen = Math.max(1, displayedCanvasWidth(canvas));
+    fadeSiteGrid(visible / screen, canvas.width / screen);
     const scaleFeet = niceScale((visible / Math.max(1, size.width)) * 220);
     const scalePx = (scaleFeet / visible) * size.width;
     const previous = readout.current;

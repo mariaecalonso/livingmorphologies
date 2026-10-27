@@ -112,6 +112,8 @@ const LINES = [
   { d: "M 60.25 71.2 H 87.25", tone: "white", rank: "depend", head: true },
   { d: "M 85.8 8.6 H 87.9", tone: "white", rank: "depend", head: true },
   { d: "M 97 8.6 H 98.6 V 71.2 H 97.65", tone: "white", rank: "loop", head: true },
+  { d: "M 7.53 56.32 V 66.8", tone: "white", rank: "depend", head: false },
+  { d: "M 19.66 54.4 V 66.8", tone: "white", rank: "depend", head: false },
 ] as const;
 
 export function WorkflowBands() {
@@ -349,6 +351,10 @@ export function WorkflowBands() {
         <span className="wf-rel-index">08</span>
         <span className="wf-rel-title">Hybrid Connection</span>
         <p className="wf-rel-anno">Face registration, 5×5 field, connector growth.</p>
+      </section>
+      <section className="wf-rel-source wf-rel-question" style={{ left: "4.6%", top: "66.8%", width: "18%", height: "8.8%" }}>
+        <span className="wf-rel-title">Research Question</span>
+        <p className="wf-rel-anno">How can precedent-derived morphology generate new spatial organizations without reproducing precedent geometry?</p>
       </section>
 
     </div>

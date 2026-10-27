@@ -1,7 +1,7 @@
 import type { XZ } from "./site-model";
 
-/** Developable-site reference. Phase 2 can pass positions through snapSitePlan. */
-export const SITE_GRID_FEET = 10;
+/** Ground grid interval. One interval is one 20 ft module cell. */
+export const SITE_GRID_FEET = 20;
 
 export function snapSitePlan(x: number, z: number, step = SITE_GRID_FEET) {
   return {

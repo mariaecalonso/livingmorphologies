@@ -1,0 +1,16 @@
+---
+description: Propose design changes as a visual option sheet the user chooses from
+alwaysApply: true
+---
+
+# Visual proposals
+
+When a request asks for proposals, recommendations, alternatives, or "mockup first", show them as a visual option sheet, not as a list of text options.
+
+- Build one temporary HTML page outside the repo (for example `%TEMP%\<topic>-mockups\index.html`). Serve it on a temporary local port to screenshot it, then stop that server.
+- Draw each option on a board at the real frame size (classroom frame 1920 × 560) in the project's visual language: black ground, thin frames, uppercase small labels, cyan `#49d7de` and orange `#c77e5f`.
+- Use real project data and real plates (loaded from the running dev server). Never use placeholder images or invented values. When data is missing, say so on the board.
+- Give each option a short tag (`Option A · …`) and mark one as recommended.
+- For label changes, show a Current → Proposed table above the diagrams.
+- Embed the screenshots in the reply and give the page path.
+- Do not implement any option until the user chooses. Then build only the chosen ones.

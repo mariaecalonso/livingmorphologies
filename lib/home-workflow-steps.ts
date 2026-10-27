@@ -27,7 +27,7 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
   ],
   "skill-2": [
     {
-      title: "Population Initialization",
+      title: "Initial Population",
       body: "The initial population is loaded from the Physarum Logic Catalogue, establishing the seed population for the optimization process.",
     },
     {
@@ -76,44 +76,76 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
   ],
   recombination: [
     {
-      title: "Tile Selection",
-      body: "Tiles are selected from the Skill 03 output, along with the two faces that will be used for morphological connection.",
+      title: "Selected 3D Candidates",
+      body: "Fifteen modules, one per archetype.",
     },
     {
-      title: "Connector Candidate Field",
-      body: "Two registered faces are sampled, then a 5×5 candidate field blends the parent modules and sets transformation intensity. The field is not a trained self-organizing map.",
+      title: "01 — Select Parent Geometries + Connection Faces",
+      body: "Choose two modules from Vertical Propagation and identify the faces to connect, establishing their orientation and connection direction.",
     },
     {
-      title: "Aggregation Operations",
-      body: "The selected hybrid is positioned between the two faces, checked for fit, converted into an interlocking connection, and used to plan the required boolean cuts and final joining operations.",
+      title: "02 — Extract Sectional Information",
+      body: "Sample both parent geometries through successive sectional cuts to reveal how their spatial characteristics change through depth.",
     },
     {
-      title: "Connection Summary",
-      body: "The two tiles are joined through the selected hybrid, completing the morphological connection.",
+      title: "03 — Generate Hybrid Possibilities",
+      body: "Recombine sectional information from both parents to generate hybrid alternatives, each expressing a different relationship between the two geometries.",
+    },
+    {
+      title: "04 — Select + Develop a Hybrid Descendant",
+      body: "Select a hybrid candidate and develop its three-dimensional form through sectional evolution along the connection path.",
+    },
+    {
+      title: "05 — Negotiate + Integrate the Hybrid Connection",
+      body: "Adapt the selected hybrid to both parent geometries, integrating the three components into a continuous spatial assembly.",
     },
   ],
   client: [
     {
-      title: "The Client",
-      body: "",
+      title: "15 Selected Modules",
+      body: "From Vertical Propagation. Five for each program.",
+    },
+    {
+      title: "Client Identity",
+      body: "Living Morphologies Studio. Physarum research for furniture and fashion.",
+    },
+    {
+      title: "Work + Leisure",
+      body: "Workspace, Lobby, and Gathering.",
+    },
+    {
+      title: "Day + Evening Occupancy",
+      body: "Open 8 AM to 10 PM.",
+    },
+    {
+      title: "Design Implications",
+      body: "Five floors at most. Work 50%, gathering 40%, lobby 10%.",
     },
   ],
   "skill-5": [
     {
       title: "Site Context",
-      body: "The One Herald Plaza parcel, its streets, and the surrounding buildings establish the ground the modules occupy.",
+      body: "The parcel, the water, the streets, and the surrounding buildings.",
+    },
+    {
+      title: "Site Measurements",
+      body: "East–west and north–south extents of the design site. North is up.",
     },
     {
       title: "Module Library",
-      body: "Fifteen Skill 3 modules are loaded, one for each archetype, each held in a 20 × 20 × 20 ft envelope.",
+      body: "Fifteen validated modules. One from each program stays above the stage.",
+    },
+    {
+      title: "Assembly Library",
+      body: "Skill 4 assemblies. A Hybrid Connection selection replaces the catalog.",
     },
     {
       title: "Grid Placement",
-      body: "A chosen module is placed on the parcel, snapped to the 10 ft grid, then moved or rotated.",
+      body: "The parcel and the 20 ft grid.",
     },
     {
-      title: "Session Composition",
-      body: "Placed modules form a composition for this session. Analysis, comparison, and saved configurations are not part of this phase.",
+      title: "Comparison",
+      body: "Saved configurations, shown side by side.",
     },
   ],
 };

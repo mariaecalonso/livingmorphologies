@@ -62,7 +62,7 @@ export function placeAxon(camera: OrthographicCamera, size: { width: number; hei
   camera.right = size.width / 2;
   camera.top = size.height / 2;
   camera.bottom = -size.height / 2;
-  camera.zoom = Math.min(size.width, size.height) / (frame.span * (fit === "site" ? 1.28 : 1.72));
+  camera.zoom = Math.min(size.width, size.height) / (frame.span * (fit === "site" ? 1.08 : 1.72));
   camera.up.set(0, 1, 0);
   const eye = storedToWorld(frame.cx + frame.span * 0.62, frame.span * 0.48, frame.cz - frame.span * 0.62);
   camera.position.set(eye.x, eye.y, eye.z);
@@ -73,7 +73,7 @@ export function placeAxon(camera: OrthographicCamera, size: { width: number; hei
 }
 
 export function placePerspective(camera: PerspectiveCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context") {
-  const reach = fit === "site" ? 1.48 : 1.18;
+  const reach = fit === "site" ? 1.16 : 1.18;
   camera.fov = 32;
   camera.aspect = size.width / Math.max(1, size.height);
   camera.up.set(0, 1, 0);

@@ -181,11 +181,11 @@ function stamp(rgba: Uint8Array, cx: number, cy: number, radius: number, color: 
   }
 }
 
-function encode(frames: Uint8Array[]) {
+function encode(frames: Uint8Array[], delay = DELAY) {
   const palette = quantize(frames[frames.length - 1], 64);
   const gif = GIFEncoder();
   frames.forEach((rgba, frame) => {
-    gif.writeFrame(applyPalette(rgba, palette), SIZE, SIZE, { palette: frame === 0 ? palette : undefined, delay: DELAY, repeat: 0 });
+    gif.writeFrame(applyPalette(rgba, palette), SIZE, SIZE, { palette: frame === 0 ? palette : undefined, delay, repeat: 0 });
   });
   gif.finish();
   return Buffer.from(gif.bytes());
@@ -202,9 +202,20 @@ function inkOf(rgba: Uint8Array) {
   return ink;
 }
 
-RUNS.forEach((run, slot) => {
-  const entry = entries.find((item) => item.run === run);
-  if (!entry) throw new Error(`missing run ${run}`);
+const requested = process.argv.slice(2);
+const jobs = requested.length
+  ? requested.map((id, slot) => {
+      const entry = entries.find((item) => item.id === id);
+      if (!entry) throw new Error(`missing entry ${id}`);
+      return { entry, file: `public/assets/skill0/void-panel-${slot + 1}.gif` };
+    })
+  : RUNS.map((run, slot) => {
+      const entry = entries.find((item) => item.run === run);
+      if (!entry) throw new Error(`missing run ${run}`);
+      return { entry, file: `public/assets/skill0/void-growth-${slot + 1}.gif` };
+    });
+
+jobs.forEach(({ entry, file }) => {
   const variant = rebuild(entry);
   const state = createSimulation(variant.translation, variant.seed, variant.agents, RUN_TRAIL_SCALE);
   state.maxIterations = DISPLAY_ITERATIONS;
@@ -226,8 +237,7 @@ RUNS.forEach((run, slot) => {
   let half = painted.findIndex((frame) => inkOf(frame) >= goal);
   if (half < 1) half = painted.length - 1;
   const frames = Array.from({ length: FRAMES }, (_, frame) => painted[Math.round((half * frame) / (FRAMES - 1))]);
-  const file = `public/assets/skill0/void-growth-${slot + 1}.gif`;
-  writeFileSync(file, encode(frames));
+  writeFileSync(file, encode(frames, requested.length ? 450 : DELAY));
   const share = Math.round((inkOf(painted[half]) / inkOf(finished)) * 100);
   console.log(file, entry.id, `${Date.now() - started}ms`, `stop at iteration ${half}`, `${share}%`);
 });

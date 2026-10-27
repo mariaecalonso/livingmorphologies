@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { groupsForArchetype, TYPOLOGIES } from "@/lib/catalog";
+import { ratingLabel } from "@/lib/physarum";
 import { PresentControls, usePresentClock } from "@/components/workflow-present";
 import { beginWorkflowLights, WorkflowLightFilter, WorkflowPathLight } from "@/components/workflow-light";
 import { WORKFLOW_TRACK_TAIL } from "@/lib/home-workflow-camera";
 
 /** A little faster than the shared track. All three lights use this one clock. */
-const ONE_WAY = 62;
+const ONE_WAY = 46;
 
 const COPPER = "#c77e5f";
 const WHITE = "#f4f1ec";
@@ -387,7 +389,7 @@ const CYCLE_SECONDS = FORWARD_SECONDS * 2;
 const CYCLE = `${CYCLE_SECONDS.toFixed(2)}s`;
 const STEM_PORTION = ONE_WAY / FORWARD_SECONDS;
 
-const TRACKS = TRACK_STEMS.map((track, index) => {
+const DRAFT_TRACKS = TRACK_STEMS.map((track, index) => {
   const scale = TRACK_LENGTHS[index].stem / TRACK_LENGTHS[index].full;
   const oldPoints = track.keyPoints.split(";").map(Number);
   const oldTimes = LIGHT_TIMES.split(";").map(Number);
@@ -395,7 +397,30 @@ const TRACKS = TRACK_STEMS.map((track, index) => {
   const times = oldTimes.map((time) => time * STEM_PORTION);
   points.push(1);
   times.push(1);
-  return { ...track, forwardPoints: points, forwardTimes: times, motion: roundTrip(points, times) };
+  return { ...track, forwardPoints: points, forwardTimes: times };
+});
+
+function criteriaEntry(path: string) {
+  const rect = MAINS[2];
+  const hit = pathSamples(path).pts.find((point) => point.x >= rect.x - 8 && point.y >= rect.y - 8 && point.y <= rect.y + rect.h + 8);
+  return hit?.u ?? 1;
+}
+
+/** One arrival time, so the three lights enter Criteria + Descriptor Development together. */
+const CRITERIA_REACHED = Math.max(...DRAFT_TRACKS.map((track) => clockAt(criteriaEntry(track.path), track.forwardPoints, track.forwardTimes)));
+
+function meetTimes(points: number[], times: number[], entry: number) {
+  const arrive = clockAt(entry, points, times);
+  if (arrive <= 0.001 || arrive >= 0.999) return times;
+  return times.map((time) => {
+    if (time <= arrive) return time * (CRITERIA_REACHED / arrive);
+    return CRITERIA_REACHED + ((time - arrive) / (1 - arrive)) * (1 - CRITERIA_REACHED);
+  });
+}
+
+const TRACKS = DRAFT_TRACKS.map((track) => {
+  const times = meetTimes(track.forwardPoints, track.forwardTimes, criteriaEntry(track.path));
+  return { ...track, forwardTimes: times, motion: roundTrip(track.forwardPoints, times) };
 });
 
 const TRACK_SAMPLES = TRACKS.map((track) => ({
@@ -431,6 +456,9 @@ function mergeLight(color: string, reached: number, points: number[], times: num
     fillTimes: stamp,
   };
 }
+
+const VERTICAL_VOID = TYPOLOGIES.find((item) => item.id === "lobby")?.archetypes.find((item) => item.id === "vertical-void");
+const VOID_TONE = { formal: "copper", spatial: "white", atmospheric: "teal" } as const;
 
 function clockAt(progress: number, points: number[], times: number[]) {
   let index = 1;
@@ -548,12 +576,12 @@ function GlassEdges() {
         <stop offset="1" stopColor="#f4f1ec" stopOpacity="0.55" />
       </linearGradient>
       <linearGradient id="precedent-glass-copper" x1="0" y1="0" x2="0.2" y2="1">
-        <stop offset="0" stopColor="#e0a48c" stopOpacity="0.8" />
-        <stop offset="0.5" stopColor="#c77e5f" stopOpacity="0.4" />
-        <stop offset="1" stopColor="#c77e5f" stopOpacity="0.62" />
+        <stop offset="0" stopColor="#d4845e" stopOpacity="0.88" />
+        <stop offset="0.5" stopColor="#c46b45" stopOpacity="0.55" />
+        <stop offset="1" stopColor="#c46b45" stopOpacity="0.74" />
       </linearGradient>
       <linearGradient id="precedent-glass-teal" x1="0" y1="0" x2="0.2" y2="1">
-        <stop offset="0" stopColor="#7db8b8" stopOpacity="0.8" />
+        <stop offset="0" stopColor="#49d7de" stopOpacity="0.82" />
         <stop offset="0.5" stopColor="#0f7377" stopOpacity="0.42" />
         <stop offset="1" stopColor="#0f7377" stopOpacity="0.66" />
       </linearGradient>
@@ -738,7 +766,7 @@ function PrecedentCopy() {
 
       {FIELD_ROWS.map((row) => (
         <g key={row.label}>
-          <LitFrame box={row.frame} rx={FRAME_R} stroke={row.color === TEAL ? "#7db8b8" : row.color} role="family" toneName={tone(row.color)} />
+          <LitFrame box={row.frame} rx={FRAME_R} stroke={row.color === TEAL ? "#49d7de" : row.color === COPPER ? "#c46b45" : row.color} role="family" toneName={tone(row.color)} />
           <text className="precedent-live-type is-start" x={2200 - ANALYSIS_SHIFT} y={row.y + row.h / 2} fontSize={TYPE_TITLE}>{row.label}</text>
           {row.names.map((lines, index) => {
             const x = row.xs[index];
@@ -762,7 +790,7 @@ function PrecedentCopy() {
         const innerH = 240;
         return (
           <g key={group.title}>
-            <LitFrame box={group.rect} rx={FRAME_R} stroke={group.color === TEAL ? "#7db8b8" : group.color} role="mid" toneName={tone(group.color)} />
+            <LitFrame box={group.rect} rx={FRAME_R} stroke={group.color === TEAL ? "#49d7de" : group.color === COPPER ? "#c46b45" : group.color} role="mid" toneName={tone(group.color)} />
             <Lines x={x} y={y + 22} w={w} h={70} lines={[group.title]} size={TYPE_TITLE} />
             <rect className="precedent-live-frame" data-role="quiet" data-tone={tone(group.color)} x={x + inset} y={innerY} width={innerW} height={innerH} rx={FRAME_R} stroke={glass(group.color)} />
             <rect className="precedent-live-frame" data-role="quiet" data-tone={tone(group.color)} x={x + inset + innerW + gap} y={innerY} width={innerW} height={innerH} rx={FRAME_R} stroke={glass(group.color)} />
@@ -787,11 +815,39 @@ function PrecedentCopy() {
   );
 }
 
+function VoidCriteria() {
+  if (!VERTICAL_VOID) return null;
+  const groups = groupsForArchetype("lobby", VERTICAL_VOID, VERTICAL_VOID.ratings);
+  return (
+    <div className="precedent-void" aria-label="Vertical Void criteria and descriptors">
+      {groups.map((group) => (
+        <section key={group.id} className="precedent-void-group" data-tone={VOID_TONE[group.id]}>
+          <p className="precedent-void-title">{group.title}</p>
+          <p className="precedent-void-sub">{group.subtitle}</p>
+          <ul>
+            {group.criteria.map((criterion) => (
+              <li key={criterion.id}>
+                <span>{criterion.label}</span>
+                <span className="precedent-void-level">{ratingLabel(criterion.rating)}</span>
+                <i style={{ "--share": `${(criterion.rating / 2) * 100}%` } as CSSProperties} aria-hidden="true"><b /></i>
+              </li>
+            ))}
+          </ul>
+          <p className="precedent-void-scale"><span>Low</span><span>Medium</span><span>High</span></p>
+          <span className="precedent-void-stem" aria-hidden="true" />
+          <p className="precedent-void-descriptor">{group.descriptor}</p>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function PrecedentDiagram() {
   const rootRef = useRef<HTMLDivElement>(null);
   const [criteriaOpen, setCriteriaOpen] = useState(false);
   const [criteriaOrigin, setCriteriaOrigin] = useState<{ x: number; y: number } | null>(null);
-  const criteriaClock = usePresentClock(false, () => setCriteriaOpen(false));
+  const closeCriteria = () => setCriteriaOpen(false);
+  const criteriaClock = usePresentClock(criteriaOpen, closeCriteria);
   const criteriaFrame = MAINS[2];
 
   useEffect(() => {
@@ -806,12 +862,26 @@ export function PrecedentDiagram() {
     let started = false;
     let origin = 0;
     let frame = 0;
+    let opened = false;
     const board = root.closest<HTMLElement>(".wf-board");
-    const held = () => board?.dataset.paused === "1";
+    const held = () => board?.dataset.paused === "1" || root.dataset.hold === "1";
+    const reveal = () => {
+      setCriteriaOrigin({
+        x: ((criteriaFrame.x + criteriaFrame.w / 2) / 7407) * root.clientWidth,
+        y: ((criteriaFrame.y + criteriaFrame.h / 2) / 2160) * root.clientHeight,
+      });
+      setCriteriaOpen(true);
+    };
     const paint = () => {
       const elapsed = Math.max(0, motion.getCurrentTime() - origin);
       const anim = (elapsed % CYCLE_SECONDS) / CYCLE_SECONDS;
       const t = anim <= 0.5 ? anim * 2 : (1 - anim) * 2;
+      const forward = anim <= 0.5;
+      if (forward && t >= CRITERIA_REACHED && !opened) {
+        opened = true;
+        reveal();
+      }
+      if (!forward && t < CRITERIA_REACHED) opened = false;
       root.querySelectorAll<SVGElement>(".precedent-archetype").forEach((node) => {
         const on = Number(node.dataset.on);
         node.classList.toggle("is-on", Number.isFinite(on) && t >= on);
@@ -851,6 +921,7 @@ export function PrecedentDiagram() {
       rides.forEach((ride) => ride.beginElement());
       origin = motion.getCurrentTime();
       started = true;
+      opened = false;
       syncHold();
     };
     const watch = board ? new MutationObserver(syncHold) : null;
@@ -865,6 +936,21 @@ export function PrecedentDiagram() {
       window.cancelAnimationFrame(frame);
     };
   }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const sheets = [...root.querySelectorAll<SVGSVGElement>(".home-precedent-copy, .home-precedent-tracks")];
+    const board = root.closest<HTMLElement>(".wf-board");
+    if (criteriaOpen) {
+      root.dataset.hold = "1";
+      sheets.forEach((sheet) => sheet.pauseAnimations());
+      return;
+    }
+    delete root.dataset.hold;
+    if (board?.dataset.paused === "1") return;
+    sheets.forEach((sheet) => sheet.unpauseAnimations());
+  }, [criteriaOpen]);
 
   return (
     <div className="home-precedent-stage" ref={rootRef}>
@@ -897,7 +983,7 @@ export function PrecedentDiagram() {
           <WorkflowPathLight
             key={track.id}
             id={`precedent-${track.id}`}
-            color={track.color}
+            color={track.color === TEAL ? "#49d7de" : track.color === COPPER ? "#c46b45" : track.color}
             scale={0.8}
             motion={{
               path: track.path,
@@ -940,30 +1026,16 @@ export function PrecedentDiagram() {
         data-criteria=""
         data-open={criteriaOpen || undefined}
         aria-hidden={!criteriaOpen}
+        onPointerDown={criteriaClock.hold}
         style={criteriaOrigin ? { transformOrigin: `${criteriaOrigin.x}px ${criteriaOrigin.y}px` } : undefined}
       >
+        <PresentControls run={criteriaOpen} clock={criteriaClock} onClose={closeCriteria} open={criteriaOpen} />
         <p className="wf-opt-trail">
-          Typology Analysis <span aria-hidden="true">›</span> Criteria
+          Typology Analysis <span aria-hidden="true">›</span> Vertical Void
         </p>
         <div className="wf-phy-panel">
-          <div className="precedent-criteria-diagram" aria-label="Criteria and descriptors">
-            {CRITERIA.map((group, index) => (
-              <div key={group.title} className="precedent-criteria-map" data-tone={tone(group.color)}>
-                <ul>
-                  {[...group.global, ...group.specific].map((item) => (
-                    <li key={item}>
-                      <span>{item.replace("\n", " ")}</span>
-                      <i aria-hidden="true"><b /></i>
-                    </li>
-                  ))}
-                </ul>
-                <span className="precedent-criteria-join" aria-hidden="true" />
-                <p>{["Formal", "Spatial", "Atmospheric"][index]} Descriptor</p>
-              </div>
-            ))}
-          </div>
+          <VoidCriteria />
         </div>
-        <PresentControls run={false} clock={criteriaClock} onClose={() => setCriteriaOpen(false)} open={criteriaOpen} />
       </section>
     </div>
   );

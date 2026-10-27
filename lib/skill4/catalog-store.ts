@@ -104,3 +104,46 @@ export function subscribeHiddenFinal(listener: () => void) {
 export function hiddenFinalServerSnapshot(): string[] {
   return [];
 }
+
+/** Final catalog results chosen for import on the site. The filed catalog is read-only, so the choice is kept by id. */
+const SELECTED_FINAL_KEY = "lm-skill4-final-selected";
+const selectedListeners = new Set<() => void>();
+let selectedCache: string[] | null = null;
+
+export function readSelectedFinal(): string[] {
+  if (selectedCache) return selectedCache;
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SELECTED_FINAL_KEY) ?? "[]") as unknown;
+    selectedCache = Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    selectedCache = [];
+  }
+  return selectedCache;
+}
+
+export function toggleSelectedFinal(id: string) {
+  const current = readSelectedFinal();
+  const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+  selectedCache = next;
+  window.localStorage.setItem(SELECTED_FINAL_KEY, JSON.stringify(next));
+  selectedListeners.forEach((listener) => listener());
+}
+
+export function subscribeSelectedFinal(listener: () => void) {
+  selectedListeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== SELECTED_FINAL_KEY) return;
+    selectedCache = null;
+    listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    selectedListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function selectedFinalServerSnapshot(): string[] {
+  return [];
+}

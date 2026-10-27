@@ -18,7 +18,25 @@ import {
   type CatalogEntry,
   type CatalogFilter,
 } from "@/lib/skill4/catalog";
-import { catalogServerSnapshot, finalCatalogServerSnapshot, hiddenFinalServerSnapshot, hideFinalCatalog, readCatalog, readFinalCatalog, readHiddenFinal, subscribeCatalog, subscribeFinalCatalog, subscribeHiddenFinal, writeCatalog, writeFinalCatalog } from "@/lib/skill4/catalog-store";
+import {
+  catalogServerSnapshot,
+  finalCatalogServerSnapshot,
+  hiddenFinalServerSnapshot,
+  hideFinalCatalog,
+  readCatalog,
+  readFinalCatalog,
+  readHiddenFinal,
+  readSelectedFinal,
+  selectedFinalServerSnapshot,
+  subscribeCatalog,
+  subscribeFinalCatalog,
+  subscribeHiddenFinal,
+  subscribeSelectedFinal,
+  toggleSelectedFinal,
+  writeCatalog,
+  writeFinalCatalog,
+} from "@/lib/skill4/catalog-store";
+import { loadFiledFinalCatalog, mergeFinalCatalog } from "@/lib/skill4/final-catalog";
 import { CatalogInspect, catalogInspectionMeshes } from "./catalog-inspect";
 import { MeshPreview } from "./mesh-preview";
 import { useHybrid } from "./hybrid-state";
@@ -30,6 +48,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   const entries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
   const finalEntries = useSyncExternalStore(subscribeFinalCatalog, readFinalCatalog, finalCatalogServerSnapshot);
   const hiddenFinal = useSyncExternalStore(subscribeHiddenFinal, readHiddenFinal, hiddenFinalServerSnapshot);
+  const selectedFinal = useSyncExternalStore(subscribeSelectedFinal, readSelectedFinal, selectedFinalServerSnapshot);
   const [filter, setFilter] = useState<CatalogFilter>(catalogBucket(tiles.length));
   const [scope, setScope] = useState<"iterations" | "selected" | "rerun">("iterations");
   const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11" | "TEST_12">("all");
@@ -39,6 +58,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   const [filed, setFiled] = useState<CatalogEntry[]>([]);
   const router = useRouter();
   useEffect(() => {
+    if (final) return;
     let cancel = false;
     const files = Array.from({ length: 12 }, (_, index) => {
       const number = String(index + 1).padStart(2, "0");
@@ -60,26 +80,12 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [final]);
   useEffect(() => {
     let cancel = false;
-    void fetch("/skill4/SKILL04-FINAL-CATALOG.json")
-      .then(async (response) => {
-        if (!response.ok) return [];
-        const rows: unknown = await response.json();
-        if (!Array.isArray(rows)) return [];
-        return rows.filter((entry): entry is CatalogEntry => {
-          if (!entry || typeof entry !== "object") return false;
-          const record = entry as CatalogEntry;
-          return typeof record.id === "string" && Array.isArray(record.tiles) && Array.isArray(record.connections);
-        });
-      })
-      .then((rows) => {
-        if (!cancel) setFiled(rows);
-      })
-      .catch(() => {
-        if (!cancel) setFiled([]);
-      });
+    void loadFiledFinalCatalog().then((rows) => {
+      if (!cancel) setFiled(rows);
+    });
     return () => {
       cancel = true;
     };
@@ -98,9 +104,10 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   const storedIds = new Set(iterations.map((entry) => entry.id));
   const catalog = [...iterations, ...published.filter((entry) => !storedIds.has(entry.id))];
   const batchVisible = filterCatalog(catalog, filter).filter((entry) => batch === "all" || catalogBatch(entry) === batch);
-  const filedFinal = filed.filter((entry) => !hiddenFinal.includes(entry.id));
-  const filedIds = new Set(filedFinal.map((entry) => entry.id));
-  const savedFinal = [...filedFinal, ...finalEntries.filter((entry) => !filedIds.has(entry.id) && !hiddenFinal.includes(entry.id))];
+  const savedFinal = useMemo(() => {
+    const chosen = new Set(selectedFinal);
+    return mergeFinalCatalog(filed, finalEntries, hiddenFinal).map((entry) => ({ ...entry, selected: chosen.has(entry.id) }));
+  }, [filed, finalEntries, hiddenFinal, selectedFinal]);
   const visible = final
     ? savedFinal
     : scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : batchVisible;
@@ -143,7 +150,13 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   };
 
   const selectForSite = (entry: CatalogEntry) => {
-    writeCatalog(readCatalog().map((item) => item.id === entry.id ? { ...item, selected: item.selected !== true } : item));
+    try {
+      if (final) toggleSelectedFinal(entry.id);
+      else writeCatalog(readCatalog().map((item) => item.id === entry.id ? { ...item, selected: item.selected !== true } : item));
+      setError(null);
+    } catch {
+      setError("The site selection could not be saved in this browser.");
+    }
   };
 
   const open = (entry: CatalogEntry) => {
@@ -210,6 +223,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
               onInspect={() => setInspectId(entry.id)}
               onDelete={() => {
                 if (final) {
+                  if (readSelectedFinal().includes(entry.id)) toggleSelectedFinal(entry.id);
                   hideFinalCatalog(entry.id);
                   writeFinalCatalog(readFinalCatalog().filter((item) => item.id !== entry.id));
                 } else remove(entry.id);

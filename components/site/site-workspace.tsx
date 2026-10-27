@@ -3,7 +3,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import context from "@/data/skill5/herald-site.json";
 import { nextCatalogId, siteLibraryEntries, type CatalogEntry } from "@/lib/skill4/catalog";
-import { catalogServerSnapshot, readCatalog, subscribeCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
+import {
+  catalogServerSnapshot,
+  finalCatalogServerSnapshot,
+  hiddenFinalServerSnapshot,
+  readCatalog,
+  readFinalCatalog,
+  readHiddenFinal,
+  readSelectedFinal,
+  selectedFinalServerSnapshot,
+  subscribeCatalog,
+  subscribeFinalCatalog,
+  subscribeHiddenFinal,
+  subscribeSelectedFinal,
+  writeCatalog,
+} from "@/lib/skill4/catalog-store";
+import { loadFiledFinalCatalog, mergeFinalCatalog } from "@/lib/skill4/final-catalog";
 import { localOnAssembly, worldAnnotations, type SiteAnnotation } from "@/lib/skill5/annotations";
 import { assemblyWorldModules, cellToFeet, earlierProposals, explodeShifts, findSentProposal, importAssembly, keepAssemblyInSkill5, markAssemblySent, proposalCatalogEntry, reconcileSentAssemblies, reviseAssemblyMembers, worldToAssemblyLocal, type SiteAssembly } from "@/lib/skill5/assembly";
 import brief from "@/data/skill5/workplace-brief.json";
@@ -602,7 +617,7 @@ export function clayPreviewRadius(mesh: IsoMesh) {
   return previewRadius(centeredPreview(mesh));
 }
 
-function GlassThumb({ mesh, interactive = true, fitRadius }: { mesh: IsoMesh | null; interactive?: boolean; fitRadius?: number }) {
+function GlassThumb({ mesh, interactive = true, fitRadius, spin = false }: { mesh: IsoMesh | null; interactive?: boolean; fitRadius?: number; spin?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -630,6 +645,24 @@ function GlassThumb({ mesh, interactive = true, fitRadius }: { mesh: IsoMesh | n
       paintClayPreview(source, mesh, yaw.current, fitRadius);
       context2d.drawImage(source, 0, 0);
     };
+    if (spin && !reduced) {
+      let last = 0;
+      const turn = (now: number) => {
+        const dt = Math.min(0.05, last ? (now - last) / 1000 : 0);
+        last = now;
+        yaw.current += 0.35 * dt;
+        paint();
+        frame = requestAnimationFrame(turn);
+      };
+      paint();
+      frame = requestAnimationFrame(turn);
+      const observer = new ResizeObserver(paint);
+      observer.observe(canvas.parentElement ?? host);
+      return () => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+      };
+    }
     if (!interactive) {
       paint();
       const observer = new ResizeObserver(paint);
@@ -684,7 +717,7 @@ function GlassThumb({ mesh, interactive = true, fitRadius }: { mesh: IsoMesh | n
       host.removeEventListener("blur", stop);
       observer.disconnect();
     };
-  }, [fitRadius, interactive, mesh]);
+  }, [fitRadius, interactive, mesh, spin]);
   return (
     <span className="site-module-glass" data-spin-host={interactive ? "" : undefined}>
       <canvas ref={canvasRef} aria-hidden="true" />
@@ -703,9 +736,18 @@ function AssemblyThumb({ entry, meshes }: { entry: CatalogEntry; meshes: Record<
   return <AssemblyGlassPreview entry={entry} meshes={meshes} />;
 }
 
-export function AssemblyGlassPreview({ entry, meshes, interactive = true }: { entry: CatalogEntry; meshes: Record<string, PreviewMesh>; interactive?: boolean }) {
+export function assemblyPreviewRadius(entry: CatalogEntry, meshes: Record<string, PreviewMesh>) {
+  const mesh = composeAssemblyPreview(entry, meshes);
+  return mesh ? clayPreviewRadius(mesh) : 0;
+}
+
+export function AssemblyGlassPreview({ entry, meshes, interactive = true, spin = false, fitRadius }: { entry: CatalogEntry; meshes: Record<string, PreviewMesh>; interactive?: boolean; spin?: boolean; fitRadius?: number }) {
   const mesh = useMemo(() => composeAssemblyPreview(entry, meshes), [entry, meshes]);
-  return <GlassThumb mesh={mesh} interactive={interactive} />;
+  return <GlassThumb mesh={mesh} interactive={interactive && !spin} spin={spin} fitRadius={fitRadius} />;
+}
+
+export function ModuleGlassPreview({ mesh, spin = false, fitRadius }: { mesh: IsoMesh | null; spin?: boolean; fitRadius?: number }) {
+  return <GlassThumb mesh={mesh} interactive={!spin} spin={spin} fitRadius={fitRadius} />;
 }
 
 export function PlacedGlassPreview({ modules, meshes, bridges = [], interactive = true, fitRadius }: { modules: readonly PlacedModule[]; meshes: Record<string, IsoMesh>; bridges?: readonly IsoMesh[]; interactive?: boolean; fitRadius?: number }) {
@@ -768,7 +810,28 @@ export function SiteWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [memberEditId, setMemberEditId] = useState<string | null>(null);
   const storedCatalog = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
-  const catalog = useMemo(() => siteLibraryEntries(storedCatalog), [storedCatalog]);
+  const savedFinal = useSyncExternalStore(subscribeFinalCatalog, readFinalCatalog, finalCatalogServerSnapshot);
+  const hiddenFinal = useSyncExternalStore(subscribeHiddenFinal, readHiddenFinal, hiddenFinalServerSnapshot);
+  const selectedFinal = useSyncExternalStore(subscribeSelectedFinal, readSelectedFinal, selectedFinalServerSnapshot);
+  const [filedFinal, setFiledFinal] = useState<CatalogEntry[]>([]);
+  const wantsFiledFinal = selectedFinal.length > 0;
+  useEffect(() => {
+    if (!wantsFiledFinal) return;
+    let cancel = false;
+    void loadFiledFinalCatalog().then((rows) => {
+      if (!cancel) setFiledFinal(rows);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [wantsFiledFinal]);
+  const catalog = useMemo(() => {
+    const working = siteLibraryEntries(storedCatalog);
+    const ids = new Set(working.map((entry) => entry.id));
+    const chosen = new Set(selectedFinal);
+    const final = mergeFinalCatalog(filedFinal, savedFinal, hiddenFinal).filter((entry) => chosen.has(entry.id) && !ids.has(entry.id));
+    return [...final, ...working];
+  }, [storedCatalog, filedFinal, savedFinal, hiddenFinal, selectedFinal]);
   const [assemblyPage, setAssemblyPage] = useState(0);
   const assemblyPageCount = Math.max(1, Math.ceil(catalog.length / ASSEMBLY_PAGE_SIZE));
   const assemblyPageIndex = Math.min(assemblyPage, assemblyPageCount - 1);
