@@ -52,6 +52,57 @@ function excludedSolidified() {
 
 const productionData = productionDataFiles();
 
+function relative(full: string) {
+  return path.relative(process.cwd(), full).replace(/\\/g, "/");
+}
+
+function listFiles(directory: string) {
+  const root = path.join(process.cwd(), directory);
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else files.push(relative(full));
+    }
+  };
+  walk(root);
+  return files;
+}
+
+/** Stored Vertical Void 351 N24 generation replay. This folder has no other continuations. */
+const generationFiles = listFiles("data/experiments/process-generation/vertical-void-351/N24");
+
+/** Stored Vertical Void 351 N24 formation readings. The other archetypes have none. */
+const formFiles = listFiles("data/experiments/process-form/vertical-void-351/N24");
+
+/** Official open, capped, and the one adapted reading used by Form, Cap, Choose, and the catalogue. */
+function officialHybridFiles() {
+  const files: string[] = [];
+  for (const row of selected) {
+    const folder = `${row.archetypeId}-${row.candidateId}`;
+    const name = `${row.continuationId}.json`;
+    files.push(
+      `data/experiments/criteria-hybrid/${folder}/${name}`,
+      `data/experiments/criteria-hybrid-capped/${folder}/${name}`,
+    );
+    if (row.archetypeId === "inserted-horizontal-plate") {
+      files.push(`data/experiments/criteria-hybrid-ihp-adapted/${folder}/${name}`);
+    }
+  }
+  return files;
+}
+
+const hybridFiles = officialHybridFiles();
+
+/** Files inside one reading tree that the Lab does not serve. */
+function excludedExcept(directory: string, keep: Set<string>) {
+  return listFiles(directory).filter((file) => !keep.has(file));
+}
+
+const hybridKeep = new Set(hybridFiles);
+
 const nextConfig: NextConfig = {
   agentRules: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
@@ -61,11 +112,15 @@ const nextConfig: NextConfig = {
     "/api/vertical/[[...path]]": productionData,
     "/api/vertical/z0": productionData,
     "/api/skill4/handoff": productionData,
+    "/api/vertical/process-generation": generationFiles,
+    "/api/vertical/process-form": formFiles,
+    "/api/vertical/experiments/criteria-hybrid": hybridFiles,
   },
   outputFileTracingExcludes: {
     "*": [
       "data/**/*.png",
       "public/demo/**",
+      "public/skill4/**",
       "public/shared-catalog/**",
       "public/assets/**",
       "public/references/**",
@@ -77,13 +132,11 @@ const nextConfig: NextConfig = {
       "data/semantic-catalogs/**/previews/**",
       "data/semantic-catalogs/**/plates/**",
       "data/experiments/carved-mass/**",
-      "data/experiments/process-generation/**",
-      "data/experiments/process-form/**",
-      "data/experiments/criteria-hybrid/**",
-      "data/experiments/criteria-hybrid-capped/**",
       "data/experiments/criteria-hybrid-capped-audit/**",
-      "data/experiments/criteria-hybrid-ihp-adapted/**",
       "data/experiments/criteria-hybrid-ihp-adapted-audit/**",
+      ...excludedExcept("data/experiments/criteria-hybrid", hybridKeep),
+      ...excludedExcept("data/experiments/criteria-hybrid-capped", hybridKeep),
+      ...excludedExcept("data/experiments/criteria-hybrid-ihp-adapted", hybridKeep),
       "data/experiments/criteria-hybrid-shrinkwrapped/**",
       "data/experiments/criteria-hybrid-shrinkwrapped-audit/**",
       "data/experiments/criteria-hybrid-thickened/**",
@@ -92,6 +145,11 @@ const nextConfig: NextConfig = {
       "data/skill3/published-lobby/**",
       ...excludedSolidified(),
     ],
+    "/lab/vertical": [...generationFiles, ...formFiles, ...hybridFiles],
+    "/api/vertical/[[...path]]": [...generationFiles, ...formFiles, ...hybridFiles],
+    "...path": [...generationFiles, ...formFiles, ...hybridFiles],
+    "/api/vertical/z0": [...generationFiles, ...formFiles, ...hybridFiles],
+    "/api/vertical/experiments/criteria-hybrid": [...generationFiles, ...formFiles],
   },
 };
 
