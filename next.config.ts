@@ -96,12 +96,20 @@ function officialHybridFiles() {
 
 const hybridFiles = officialHybridFiles();
 
+/** All stored open readings. This tree is served only by the criteria-hybrid route. */
+const openFiles = listFiles("data/experiments/criteria-hybrid");
+
+const officialCappedAndAdapted = hybridFiles.filter(
+  (file) => !file.startsWith("data/experiments/criteria-hybrid/"),
+);
+
 /** Files inside one reading tree that the Lab does not serve. */
 function excludedExcept(directory: string, keep: Set<string>) {
   return listFiles(directory).filter((file) => !keep.has(file));
 }
 
 const hybridKeep = new Set(hybridFiles);
+const keptOffSharedFunctions = [...generationFiles, ...formFiles, ...hybridFiles, ...openFiles];
 
 const nextConfig: NextConfig = {
   agentRules: false,
@@ -114,7 +122,7 @@ const nextConfig: NextConfig = {
     "/api/skill4/handoff": productionData,
     "/api/vertical/process-generation": generationFiles,
     "/api/vertical/process-form": formFiles,
-    "/api/vertical/experiments/criteria-hybrid": hybridFiles,
+    "/api/vertical/experiments/criteria-hybrid": [...openFiles, ...officialCappedAndAdapted],
   },
   outputFileTracingExcludes: {
     "*": [
@@ -134,7 +142,6 @@ const nextConfig: NextConfig = {
       "data/experiments/carved-mass/**",
       "data/experiments/criteria-hybrid-capped-audit/**",
       "data/experiments/criteria-hybrid-ihp-adapted-audit/**",
-      ...excludedExcept("data/experiments/criteria-hybrid", hybridKeep),
       ...excludedExcept("data/experiments/criteria-hybrid-capped", hybridKeep),
       ...excludedExcept("data/experiments/criteria-hybrid-ihp-adapted", hybridKeep),
       "data/experiments/criteria-hybrid-shrinkwrapped/**",
@@ -145,10 +152,14 @@ const nextConfig: NextConfig = {
       "data/skill3/published-lobby/**",
       ...excludedSolidified(),
     ],
-    "/lab/vertical": [...generationFiles, ...formFiles, ...hybridFiles],
-    "/api/vertical/[[...path]]": [...generationFiles, ...formFiles, ...hybridFiles],
-    "...path": [...generationFiles, ...formFiles, ...hybridFiles],
-    "/api/vertical/z0": [...generationFiles, ...formFiles, ...hybridFiles],
+    "/lab/vertical": keptOffSharedFunctions,
+    "/api/vertical/[[...path]]": keptOffSharedFunctions,
+    "...path": keptOffSharedFunctions,
+    "/api/vertical/z0": keptOffSharedFunctions,
+    "/api/vertical/catalogue-readiness": openFiles,
+    "/api/skill4/handoff": openFiles,
+    "/api/vertical/process-generation": openFiles,
+    "/api/vertical/process-form": openFiles,
     "/api/vertical/experiments/criteria-hybrid": [...generationFiles, ...formFiles],
   },
 };
