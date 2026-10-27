@@ -12,6 +12,7 @@ import { LAB_ENTRY } from "@/lib/site-map";
 
 const RAIL = [
   { href: "#home", id: "home", label: "Home" },
+  { href: "#client", id: "client", label: "Our Client" },
   { href: "#workflow", id: "workflow", label: "Workflow" },
   { href: "#results", id: "results", label: "Results" },
   { href: "#site", id: "site", label: "Site" },
@@ -240,6 +241,10 @@ export function HomePage({
             </span>
           </Link>
         </div>
+      </section>
+
+      <section className="home-overview" id="client" data-rail-target="client">
+        <HomeSectionHeading title="Our Client" />
       </section>
 
       <section className="home-overview home-workflow" id="workflow" data-rail-target="workflow">

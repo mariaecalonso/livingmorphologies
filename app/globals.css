@@ -2004,7 +2004,7 @@ body:has(.site-display-control) .site-nav {
   --rail-index: 0;
   --rail-travel: 0;
   --rail-step: 14%;
-  --home-rail-start: calc((100% - var(--rail-span, 4) * var(--rail-step)) / 2);
+  --home-rail-start: calc((100% - var(--rail-span, 5) * var(--rail-step)) / 2);
   position: relative;
   background: #000000;
   color: #ffffff;

@@ -1,6 +1,7 @@
 /** Homepage sections on `/`. Lab screens stay on their own routes. */
 export const HOME_SECTIONS = [
   { href: "/", label: "Home" },
+  { href: "/#client", label: "Our Client" },
   { href: "/#workflow", label: "Overall Workflow" },
   { href: "/#results", label: "Results" },
   { href: "/#site", label: "Site" },
