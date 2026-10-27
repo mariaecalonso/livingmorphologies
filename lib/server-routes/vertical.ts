@@ -44,6 +44,17 @@ function writeLobbyBundle(archetypeId: string, candidateId: number, bundle: Retu
   writeFileSync(lobbyBundlePath(archetypeId, candidateId), JSON.stringify(bundle));
 }
 
+/** The response does not depend on this cache. A read-only deploy cannot write it. */
+function rememberLobbyBundle(archetypeId: string, candidateId: number, bundle: ReturnType<typeof continuationBundle>) {
+  if (existsSync(lobbyBundlePath(archetypeId, candidateId))) return;
+  try {
+    writeLobbyBundle(archetypeId, candidateId, bundle);
+  } catch (caught) {
+    const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
+    if (code !== "EROFS" && code !== "EPERM" && code !== "EACCES") throw caught;
+  }
+}
+
 export function verticalGet(request: Request, path: string[]) {
     if (path.length === 0) return continuations(request);
     if (path.length === 1 && path[0] === "process-replay") return processReplay(request);
@@ -165,8 +176,8 @@ function continuations(request: Request) {
       return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
     }
     const bundle = continuationBundle(set);
-    if (lobby && set.origin === "handoff" && !existsSync(lobbyBundlePath(requested.selection.archetypeId, requested.selection.candidateId))) {
-      writeLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId, bundle);
+    if (lobby && set.origin === "handoff") {
+      rememberLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId, bundle);
     }
     return jsonBundle(bundle, url.searchParams.get("continuation"));
   }
@@ -176,13 +187,8 @@ function continuations(request: Request) {
       ? loadProvisionalContinuations(requested.selection)
       : loadVerifiedContinuations(requested.selection);
     const bundle = continuationBundle(set);
-    if (
-      !preview
-      && set.origin === "handoff"
-      && publishedLobby(set.archetypeId, set.candidateId)
-      && !existsSync(lobbyBundlePath(set.archetypeId, set.candidateId))
-    ) {
-      writeLobbyBundle(set.archetypeId, set.candidateId, bundle);
+    if (!preview && set.origin === "handoff" && publishedLobby(set.archetypeId, set.candidateId)) {
+      rememberLobbyBundle(set.archetypeId, set.candidateId, bundle);
     }
     return NextResponse.json(bundle);
   } catch (caught) {
