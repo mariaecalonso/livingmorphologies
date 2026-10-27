@@ -1,6 +1,6 @@
 import type { IsoMesh } from "../scan/isomesh";
-import { groundPlaneY, type Vec3 } from "./contract";
-import { IDENTITY_BASIS, type Mat3 } from "./tile-basis";
+import { MODULE_SIZE, groundPlaneY, type Vec3 } from "./contract";
+import { IDENTITY_BASIS, rotateByBasis, type Mat3 } from "./tile-basis";
 
 export type PlacedMesh = {
   id: string;
@@ -19,6 +19,16 @@ export type PlacedMesh = {
   palette?: boolean;
 };
 
+/** Camera pull-back used by the placed-mesh view. Previews stay at this distance. */
+export const CANVAS_EYE = 3.4;
+/** Catalog and other placed views. The Aggregation Canvas uses MIN_CAMERA_DISTANCE. */
+export const CANVAS_EYE_MIN = 2.05;
+export const CANVAS_EYE_MAX = 8.4;
+/** Closest Aggregation Canvas pull-back. About 35% of the previous 2.05 limit. */
+export const MIN_CAMERA_DISTANCE = 0.72;
+const NEAR_PLANE = 0.35;
+const FAR_PLANE = 14;
+
 const VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
@@ -35,6 +45,8 @@ uniform float uMirror;
 uniform vec3 uRampOrigin;
 uniform vec3 uRampDir;
 out vec3 vNormal;
+out vec3 vObjectN;
+out vec3 vLocal;
 out float vDepth;
 out float vRamp;
 void main() {
@@ -62,6 +74,8 @@ void main() {
   float nrx = n.x * cs + n.z * sn;
   float nrz = -n.x * sn + n.z * cs;
   n = vec3(nrx, n.y, nrz);
+  vObjectN = n;
+  vLocal = vec3(rx, spun.y, rz);
   vec3 placed = vec3(rx, spun.y, rz) + uTranslate;
   vRamp = dot(placed - uRampOrigin, uRampDir);
   float nx1 = n.x * cy + n.z * sy;
@@ -71,8 +85,8 @@ void main() {
   vNormal = vec3(nx1, ny2, nz2);
   vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - uDistance);
   vDepth = -view.z;
-  float near = 0.35;
-  float far = 14.0;
+  float near = uDistance < ${CANVAS_EYE_MIN} ? uDistance * ${(NEAR_PLANE / CANVAS_EYE_MIN).toFixed(8)} : ${NEAR_PLANE};
+  float far = ${FAR_PLANE.toFixed(1)};
   float f = 1.55;
   gl_Position = vec4(
     view.x * f,
@@ -85,13 +99,21 @@ void main() {
 const FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
+in vec3 vObjectN;
+in vec3 vLocal;
 in float vDepth;
 in float vRamp;
 uniform vec3 uColor;
 uniform float uAlpha;
 uniform float uPalette;
+uniform float uStyle;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
+float surfaceLine(float coord) {
+  float dist = 0.5 - abs(fract(coord) - 0.5);
+  float width = min(max(fwidth(coord) * 0.55, 0.0018), 0.07);
+  return 1.0 - smoothstep(width, width * 2.1, dist);
+}
 void main() {
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
@@ -105,6 +127,35 @@ void main() {
   vec3 orange = vec3(0.780392, 0.494118, 0.372549);
   vec3 tint = mix(green, orange, clamp(vRamp, 0.0, 1.0));
   vec3 col = uPalette > 0.5 ? tint : uColor * shade;
+  if (uStyle > 1.5) {
+    vec3 surfaceN = normalize(vObjectN);
+    vec3 tangent = abs(surfaceN.y) > 0.85 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    tangent = normalize(cross(surfaceN, tangent));
+    vec3 bitangent = cross(surfaceN, tangent);
+    vec2 uv = vec2(dot(vLocal, tangent), dot(vLocal, bitangent));
+    float spacing = 0.52;
+    vec2 id = floor(uv / spacing);
+    float objDist = length(uv - (id + 0.5) * spacing);
+    float pixel = max(length(fwidth(uv)), 0.0012);
+    float point = 1.0 - smoothstep(pixel * 1.05, pixel * 2.15, objDist);
+    float halo = (1.0 - smoothstep(pixel * 2.0, pixel * 3.6, objDist)) * 0.34;
+    vec3 body = tint * (0.26 + lambert * 0.16);
+    vec3 glow = min(vec3(0.9), tint * (1.08 + lambert * 0.28) + vec3(0.03));
+    col = mix(body, glow, clamp(point + halo, 0.0, 1.0));
+  } else if (uStyle > 0.5) {
+    vec3 surfaceN = normalize(vObjectN);
+    vec3 tangent = abs(surfaceN.y) > 0.85 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    tangent = normalize(cross(surfaceN, tangent));
+    vec3 bitangent = cross(surfaceN, tangent);
+    float along = dot(vLocal, tangent);
+    float across = dot(vLocal, bitangent);
+    float rim = pow(1.0 - abs(dot(n, viewDir)), 2.1);
+    float crease = smoothstep(0.05, 0.42, length(fwidth(n)));
+    float flow = max(surfaceLine(along * 1.8), surfaceLine(across * 1.8));
+    float contour = surfaceLine((along + across) * 1.25);
+    float ink = clamp(max(rim, crease * 0.7) * 0.5 + max(flow, contour * 0.65) * 0.36, 0.0, 0.52);
+    col = mix(col, vec3(0.15, 0.16, 0.17), ink);
+  }
   oColor = vec4(col, uAlpha);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
@@ -145,7 +196,7 @@ void main() {
   oColor = vec4(col * ao, 1.0);
 }`;
 
-const SHADER_VERSION = 4;
+const SHADER_VERSION = 14;
 
 type Gpu = {
   gl: WebGL2RenderingContext;
@@ -173,6 +224,7 @@ type Gpu = {
   uColor: WebGLUniformLocation;
   uAlpha: WebGLUniformLocation;
   uPalette: WebGLUniformLocation;
+  uStyle: WebGLUniformLocation;
   uRampOrigin: WebGLUniformLocation;
   uRampDir: WebGLUniformLocation;
   uTexel: WebGLUniformLocation;
@@ -251,11 +303,12 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const uColor = gl.getUniformLocation(meshProgram, "uColor");
   const uAlpha = gl.getUniformLocation(meshProgram, "uAlpha");
   const uPalette = gl.getUniformLocation(meshProgram, "uPalette");
+  const uStyle = gl.getUniformLocation(meshProgram, "uStyle");
   const uRampOrigin = gl.getUniformLocation(meshProgram, "uRampOrigin");
   const uRampDir = gl.getUniformLocation(meshProgram, "uRampDir");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
   if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
-  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uRampOrigin || !uRampDir || !uTexel) return null;
+  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uStyle || !uRampOrigin || !uRampDir || !uTexel) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -290,6 +343,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
     uColor,
     uAlpha,
     uPalette,
+    uStyle,
     uRampOrigin,
     uRampDir,
     uTexel,
@@ -313,12 +367,7 @@ function resize(gpu: Gpu, width: number, height: number) {
   gpu.height = height;
 }
 
-/** Camera pull-back used by the placed-mesh view. Previews stay at this distance. */
-export const CANVAS_EYE = 3.4;
-export const CANVAS_EYE_MIN = 2.05;
-export const CANVAS_EYE_MAX = 8.4;
-
-const GRID_CELL = 0.25;
+const GRID_CELL = MODULE_SIZE / 4;
 const GRID_COLOR: [number, number, number] = [0.3, 0.3, 0.28];
 const AXIS_COLOR: [number, number, number] = [0.46, 0.45, 0.42];
 
@@ -342,6 +391,39 @@ function containedFit(instances: readonly PlacedMesh[], aspect: number) {
   const limit = 0.82;
   const fitX = (limit * depth) / (radius * (focal + limit));
   return Math.min(fitX, fitX / Math.max(0.2, aspect));
+}
+
+/** World bounds of placed meshes. The camera uses this. The meshes are not resized. */
+export function placedAssemblyBounds(instances: readonly PlacedMesh[]) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  let found = false;
+  for (const instance of instances) {
+    if (instance.id.startsWith("guide:") || instance.mesh.triangles < 1) continue;
+    const positions = instance.mesh.positions;
+    for (let index = 0; index < positions.length; index += 3) {
+      const point = placeVertex(instance, positions[index], positions[index + 1], positions[index + 2]);
+      found = true;
+      if (point.x < minX) minX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.z < minZ) minZ = point.z;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y > maxY) maxY = point.y;
+      if (point.z > maxZ) maxZ = point.z;
+    }
+  }
+  if (!found) return { center: { x: 0, y: 0, z: 0 }, span: 1, height: 1, min: null, max: null };
+  return {
+    center: { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 },
+    span: Math.max(maxX - minX, maxY - minY, maxZ - minZ, 1),
+    height: Math.max(maxY - minY, 1),
+    min: { x: minX, y: minY, z: minZ },
+    max: { x: maxX, y: maxY, z: maxZ },
+  };
 }
 
 export function placementCenter(instances: readonly PlacedMesh[]): Vec3 {
@@ -389,6 +471,155 @@ export function projectPlacement(
   };
 }
 
+const VIEW_FOCAL = 1.55;
+
+function rotatedToWorld(x1: number, y2: number, z2: number, yaw: number, pitch: number): Vec3 {
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  const py = y2 * cp + z2 * sp;
+  const z1 = -y2 * sp + z2 * cp;
+  return {
+    x: x1 * cy - z1 * sy,
+    y: py,
+    z: x1 * sy + z1 * cy,
+  };
+}
+
+/** Ray through a canvas pixel. Matches the placed-mesh projection. */
+export function placementCameraRay(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  center: Vec3,
+  yaw: number,
+  pitch: number,
+  fit: number,
+  eye = CANVAS_EYE,
+) {
+  const aspect = width / Math.max(1, height);
+  const ndcX = (x / Math.max(1, width)) * 2 - 1;
+  const ndcY = 1 - (y / Math.max(1, height)) * 2;
+  const originOffset = rotatedToWorld(0, 0, -eye / fit, yaw, pitch);
+  const direction = rotatedToWorld(ndcX / (fit * VIEW_FOCAL), ndcY / (fit * aspect * VIEW_FOCAL), 1 / fit, yaw, pitch);
+  const length = Math.hypot(direction.x, direction.y, direction.z) || 1;
+  return {
+    origin: { x: center.x + originOffset.x, y: center.y + originOffset.y, z: center.z + originOffset.z },
+    direction: { x: direction.x / length, y: direction.y / length, z: direction.z / length },
+  };
+}
+
+function placeVertex(instance: PlacedMesh, x: number, y: number, z: number): Vec3 {
+  let placed = rotateByBasis(instance.basis ?? IDENTITY_BASIS, { x, y, z });
+  const mirror = instance.mirror ?? 0;
+  if (mirror === 1) placed = { ...placed, x: -placed.x };
+  if (mirror === 2) placed = { ...placed, y: -placed.y };
+  if (mirror === 3) placed = { ...placed, z: -placed.z };
+  const spin = instance.spin ?? 0;
+  const cs = Math.cos(spin);
+  const sn = Math.sin(spin);
+  return {
+    x: placed.x * cs + placed.z * sn + instance.translate.x,
+    y: placed.y + instance.translate.y,
+    z: -placed.x * sn + placed.z * cs + instance.translate.z,
+  };
+}
+
+function nearestMeshHit(
+  instances: readonly PlacedMesh[],
+  origin: Vec3,
+  direction: Vec3,
+) {
+  let best = Number.POSITIVE_INFINITY;
+  for (const instance of instances) {
+    if (instance.id.startsWith("guide:") || instance.mesh.triangles < 1) continue;
+    const positions = instance.mesh.positions;
+    const world = new Float32Array(positions.length);
+    for (let index = 0; index < positions.length; index += 3) {
+      const point = placeVertex(instance, positions[index], positions[index + 1], positions[index + 2]);
+      world[index] = point.x;
+      world[index + 1] = point.y;
+      world[index + 2] = point.z;
+    }
+    const indices = instance.mesh.indices;
+    for (let index = 0; index < indices.length; index += 3) {
+      const hit = rayTriangle(origin, direction, world, indices[index] * 3, indices[index + 1] * 3, indices[index + 2] * 3);
+      if (hit != null && hit < best) best = hit;
+    }
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+function rayTriangle(origin: Vec3, direction: Vec3, positions: Float32Array, a: number, b: number, c: number) {
+  const ax = positions[a];
+  const ay = positions[a + 1];
+  const az = positions[a + 2];
+  const abx = positions[b] - ax;
+  const aby = positions[b + 1] - ay;
+  const abz = positions[b + 2] - az;
+  const acx = positions[c] - ax;
+  const acy = positions[c + 1] - ay;
+  const acz = positions[c + 2] - az;
+  const px = direction.y * acz - direction.z * acy;
+  const py = direction.z * acx - direction.x * acz;
+  const pz = direction.x * acy - direction.y * acx;
+  const det = abx * px + aby * py + abz * pz;
+  if (Math.abs(det) < 1e-8) return null;
+  const inverse = 1 / det;
+  const sx = origin.x - ax;
+  const sy = origin.y - ay;
+  const sz = origin.z - az;
+  const u = (sx * px + sy * py + sz * pz) * inverse;
+  if (u < 0 || u > 1) return null;
+  const qx = sy * abz - sz * aby;
+  const qy = sz * abx - sx * abz;
+  const qz = sx * aby - sy * abx;
+  const v = (direction.x * qx + direction.y * qy + direction.z * qz) * inverse;
+  if (v < 0 || u + v > 1) return null;
+  const t = (acx * qx + acy * qy + acz * qz) * inverse;
+  return t > 1e-4 ? t : null;
+}
+
+/**
+ * World point under the cursor: nearest visible assembly surface, otherwise the
+ * registration ground, otherwise the current orbit target.
+ */
+export function cursorZoomPoint(
+  instances: readonly PlacedMesh[],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  center: Vec3,
+  yaw: number,
+  pitch: number,
+  fit: number,
+  eye = CANVAS_EYE,
+): { point: Vec3; source: "mesh" | "ground" | "target" } {
+  const ray = placementCameraRay(x, y, width, height, center, yaw, pitch, fit, eye);
+  const meshDistance = nearestMeshHit(instances, ray.origin, ray.direction);
+  if (meshDistance != null) {
+    return { point: pointAlong(ray.origin, ray.direction, meshDistance), source: "mesh" };
+  }
+  const groundDistance = ray.direction.y < -1e-4 || ray.direction.y > 1e-4
+    ? (groundPlaneY() - ray.origin.y) / ray.direction.y
+    : null;
+  if (groundDistance != null && groundDistance > 1e-4 && groundDistance < 48) {
+    return { point: pointAlong(ray.origin, ray.direction, groundDistance), source: "ground" };
+  }
+  return { point: center, source: "target" };
+}
+
+function pointAlong(origin: Vec3, direction: Vec3, distance: number): Vec3 {
+  return {
+    x: origin.x + direction.x * distance,
+    y: origin.y + direction.y * distance,
+    z: origin.z + direction.z * distance,
+  };
+}
+
 function meshRamp(mesh: IsoMesh, translate: Vec3) {
   let minX = Infinity;
   let minY = Infinity;
@@ -419,6 +650,80 @@ function meshRamp(mesh: IsoMesh, translate: Vec3) {
   };
 }
 
+/** Largest view that keeps every vertex inside the frame. */
+function frameFit(instances: readonly PlacedMesh[], aspect: number, eye: number) {
+  const focal = 1.55;
+  const limit = 0.99;
+  const points: Vec3[] = [];
+  for (const instance of instances) {
+    const positions = instance.mesh.positions;
+    for (let index = 0; index < positions.length; index += 3) {
+      points.push(placeVertex(instance, positions[index], positions[index + 1], positions[index + 2]));
+    }
+  }
+  if (points.length === 0) return { fit: 1, center: { x: 0, y: 0, z: 0 }, yaw: 0.42, pitch: 0.14 };
+  let best = { fit: 0, center: { x: 0, y: 0, z: 0 }, yaw: 0.42, pitch: 0.14, cover: -1 };
+  for (let yaw = 0; yaw < Math.PI; yaw += 0.22) {
+    for (let pitch = -0.5; pitch <= 0.7; pitch += 0.16) {
+      const cy = Math.cos(yaw);
+      const sy = Math.sin(yaw);
+      const cp = Math.cos(pitch);
+      const sp = Math.sin(pitch);
+      let center = points.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y, z: sum.z + point.z }), { x: 0, y: 0, z: 0 });
+      center = { x: center.x / points.length, y: center.y / points.length, z: center.z / points.length };
+      let fit = 0.02;
+      let cover = 0;
+      for (let pass = 0; pass < 6; pass += 1) {
+        const samples = points.map((point) => {
+          const x = point.x - center.x;
+          const y = point.y - center.y;
+          const z = point.z - center.z;
+          const x1 = x * cy + z * sy;
+          const z1 = -x * sy + z * cy;
+          return { x1, y2: y * cp - z1 * sp, z2: y * sp + z1 * cp };
+        });
+        const inside = (scale: number) => samples.every((sample) => {
+          const depth = sample.z2 * scale + eye;
+          return depth > 0.05
+            && Math.abs(sample.x1 * scale * focal) <= limit * depth
+            && Math.abs(sample.y2 * scale * aspect * focal) <= limit * depth;
+        });
+        let low = 0.02;
+        let high = 0.02;
+        for (let step = 0; step < 24 && inside(high); step += 1) {
+          low = high;
+          high *= 1.5;
+        }
+        for (let step = 0; step < 16; step += 1) {
+          const mid = (low + high) * 0.5;
+          if (inside(mid)) low = mid;
+          else high = mid;
+        }
+        fit = low;
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+        for (const sample of samples) {
+          const depth = sample.z2 * fit + eye;
+          minX = Math.min(minX, sample.x1 * fit * focal / depth);
+          maxX = Math.max(maxX, sample.x1 * fit * focal / depth);
+          minY = Math.min(minY, sample.y2 * fit * aspect * focal / depth);
+          maxY = Math.max(maxY, sample.y2 * fit * aspect * focal / depth);
+        }
+        cover = (maxX - minX) * (maxY - minY);
+        const midX = (minX + maxX) / 2;
+        const midY = (minY + maxY) / 2;
+        if (Math.abs(midX) < 0.015 && Math.abs(midY) < 0.015) break;
+        const shift = rotatedToWorld(midX * eye / (fit * focal), midY * eye / (fit * aspect * focal), 0, yaw, pitch);
+        center = { x: center.x + shift.x, y: center.y + shift.y, z: center.z + shift.z };
+      }
+      if (cover > best.cover) best = { fit, center, yaw, pitch, cover };
+    }
+  }
+  return best;
+}
+
 export function drawPlacedMeshes(
   canvas: HTMLCanvasElement,
   instances: readonly PlacedMesh[],
@@ -429,6 +734,8 @@ export function drawPlacedMeshes(
   eye = CANVAS_EYE,
   ground = false,
   fitScale = 1,
+  lookAt?: Vec3,
+  fill = false,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
@@ -456,11 +763,12 @@ export function drawPlacedMeshes(
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
   const aspect = width / Math.max(1, height);
-  const fit = (contain ? containedFit(instances, aspect) : placementFit(span, aspect)) * fitScale;
-  const center = placementCenter(instances);
+  const framed = fill ? frameFit(instances, aspect, eye) : null;
+  const center = framed?.center ?? lookAt ?? placementCenter(instances);
+  const fit = framed?.fit ?? (contain ? containedFit(instances, aspect) : placementFit(span, aspect)) * fitScale;
   gl.useProgram(gpu.program);
-  gl.uniform1f(gpu.uYaw, yaw);
-  gl.uniform1f(gpu.uPitch, pitch);
+  gl.uniform1f(gpu.uYaw, framed?.yaw ?? yaw);
+  gl.uniform1f(gpu.uPitch, framed?.pitch ?? pitch);
   gl.uniform1f(gpu.uAspect, aspect);
   gl.uniform1f(gpu.uFit, fit);
   gl.uniform1f(gpu.uDistance, eye);
@@ -494,6 +802,12 @@ export function drawPlacedMeshes(
     const color = instance.color ?? [1.0, 1.0, 1.0];
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
     gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
+    const whiteParent = !instance.palette
+      && !instance.id.startsWith("guide:")
+      && instance.id !== "joined-assembly"
+      && (instance.id === "preview" || !instance.id.includes(":"))
+      && color[0] > 0.96 && color[1] > 0.96 && color[2] > 0.96;
+    gl.uniform1f(gpu.uStyle, instance.palette ? 2 : whiteParent ? 1 : 0);
     const ramp = instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
     gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
     gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
@@ -521,9 +835,18 @@ export function drawPlacedMeshes(
   for (const instance of instances) {
     if ((instance.opacity ?? 1) < 1 && instance.palette) drawInstance(instance);
   }
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.POLYGON_OFFSET_FILL);
+  for (const instance of instances) {
+    if ((instance.opacity ?? 1) < 1 && !instance.palette && instance.id.startsWith("guide:")) {
+      gl.polygonOffset(-1, -1);
+      drawInstance(instance);
+    }
+  }
+  gl.disable(gl.POLYGON_OFFSET_FILL);
   gl.disable(gl.DEPTH_TEST);
   for (const instance of instances) {
-    if ((instance.opacity ?? 1) < 1 && !instance.palette) drawInstance(instance);
+    if ((instance.opacity ?? 1) < 1 && !instance.palette && !instance.id.startsWith("guide:")) drawInstance(instance);
   }
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
@@ -549,19 +872,27 @@ export function drawPlacedMeshes(
 /** Display-only XZ lines on the registration ground. Not a placed instance, so it cannot be picked. */
 function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
   const bodies = instances.filter((instance) => !instance.id.startsWith("guide:"));
-  if (!bodies.length) return;
-  const half = 0.5;
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
   let maxZ = -Infinity;
-  for (const instance of bodies) {
-    minX = Math.min(minX, instance.translate.x - half);
-    maxX = Math.max(maxX, instance.translate.x + half);
-    minZ = Math.min(minZ, instance.translate.z - half);
-    maxZ = Math.max(maxZ, instance.translate.z + half);
+  if (!bodies.length) {
+    minX = -MODULE_SIZE / 2;
+    maxX = MODULE_SIZE / 2;
+    minZ = -MODULE_SIZE / 2;
+    maxZ = MODULE_SIZE / 2;
   }
-  const pad = GRID_CELL * 4;
+  for (const instance of bodies) {
+    const positions = instance.mesh.positions;
+    for (let index = 0; index < positions.length; index += 3) {
+      const point = placeVertex(instance, positions[index], positions[index + 1], positions[index + 2]);
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minZ = Math.min(minZ, point.z);
+      maxZ = Math.max(maxZ, point.z);
+    }
+  }
+  const pad = MODULE_SIZE;
   minX = Math.floor((minX - pad) / GRID_CELL) * GRID_CELL;
   maxX = Math.ceil((maxX + pad) / GRID_CELL) * GRID_CELL;
   minZ = Math.floor((minZ - pad) / GRID_CELL) * GRID_CELL;
@@ -573,8 +904,8 @@ function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
     const dx = x1 - x0;
     const dz = z1 - z0;
     const length = Math.hypot(dx, dz) || 1;
-    const ox = (-dz / length) * 0.004;
-    const oz = (dx / length) * 0.004;
+    const ox = (-dz / length) * 0.08;
+    const oz = (dx / length) * 0.08;
     const ax = x0 + ox;
     const az = z0 + oz;
     const bx = x1 + ox;
@@ -585,11 +916,12 @@ function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
     const dz2 = z0 - oz;
     bucket.push(ax, y, az, bx, y, bz, cx, y, cz, ax, y, az, cx, y, cz, dx2, y, dz2);
   };
+  const moduleLine = (value: number) => Math.abs(value / MODULE_SIZE - Math.round(value / MODULE_SIZE)) < 0.08;
   for (let x = minX; x <= maxX + GRID_CELL * 0.25; x += GRID_CELL) {
-    push(Math.abs(x) < GRID_CELL * 0.2 ? axis : grid, x, minZ, x, maxZ);
+    push(moduleLine(x) ? axis : grid, x, minZ, x, maxZ);
   }
   for (let z = minZ; z <= maxZ + GRID_CELL * 0.25; z += GRID_CELL) {
-    push(Math.abs(z) < GRID_CELL * 0.2 ? axis : grid, minX, z, maxX, z);
+    push(moduleLine(z) ? axis : grid, minX, z, maxX, z);
   }
   paintLines(gpu, grid, GRID_COLOR);
   paintLines(gpu, axis, AXIS_COLOR);
@@ -615,6 +947,7 @@ function paintLines(gpu: Gpu, positions: number[], color: [number, number, numbe
   gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
   gl.uniform1f(gpu.uAlpha, 1);
   gl.uniform1f(gpu.uPalette, 0);
+  gl.uniform1f(gpu.uStyle, 0);
   gl.uniform3f(gpu.uRampOrigin, 0, 0, 0);
   gl.uniform3f(gpu.uRampDir, 0, 0, 0);
   gl.disable(gl.CULL_FACE);

@@ -10,6 +10,6 @@ export function skill4HandoffGet(request: Request) {
   const record = loadSkill3HandoffRecord(archetypeId);
   if (!record) return NextResponse.json({ error: "That Skill 03 module is not in the handoff." }, { status: 404 });
   return NextResponse.json(record, {
-    headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" },
+    headers: { "Cache-Control": "no-store" },
   });
 }

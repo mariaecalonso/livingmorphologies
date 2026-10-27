@@ -68,6 +68,8 @@ function field(signature: string, geometry: IsoMesh | null, status: GeneratedHyb
       vertexCount: mesh ? mesh.positions.length / 3 : 0,
       triangleCount: mesh?.triangles ?? 0,
       reason: "",
+      branches: 0,
+      openings: 0,
     };
   });
   return {

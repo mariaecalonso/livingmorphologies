@@ -1,4 +1,3 @@
-import { columnHeight } from "../scan/isomesh";
 import { evaluateAggregation } from "./aggregation";
 import { layoutTiles, worldFace } from "./assembly-layout";
 import { placedFaceFrame, resolveAssemblyHybrid, sectionCenter } from "./assembly-hybrid";
@@ -6,7 +5,7 @@ import { connectorFrame } from "./hybrid-deformation";
 import { buildBooleanPlan } from "./boolean-plan";
 import { executeBooleanAssembly } from "./boolean-execution";
 import { generateCandidateField } from "./candidate-field";
-import { FACE_IDS, VIEW_SCAN, type FaceId } from "./contract";
+import { FACE_IDS, registrationEnvelope, type FaceId } from "./contract";
 import {
   connectionInputSignature,
   detectAdjacencies,
@@ -236,7 +235,7 @@ async function main() {
   check(mirroredFrame.normal.x === -plainMirror.normal.x, "mirror X did not flip the east normal");
   await runArrangement("rotation-mirror", turned, loaded, ["A:E-B:W"]);
 
-  const height = columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+  const height = registrationEnvelope().max.y - registrationEnvelope().min.y;
   const stacked = [
     tile("A", SYNTHETIC_MODULE_A.archetypeId, 0, 0, idA, 0),
     tile("B", SYNTHETIC_MODULE_B.archetypeId, 0, 0, idB, height),

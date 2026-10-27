@@ -41,6 +41,72 @@ export type ProfileBounds = {
   maxV: number;
 };
 
+export type FaceDepthSignature = {
+  widths: [number, number, number];
+  heights: [number, number, number];
+  areas: [number, number, number];
+  aspect: number;
+  plate: number;
+  expansion: number;
+  drift: number;
+  occupancy: number;
+};
+
+const FACE_SIGNATURE_DEPTHS = [0.045, 0.12, 0.28] as const;
+
+export function readFaceSignature(mesh: IsoMesh, frame: FaceFrame, occupancy = 0): FaceDepthSignature {
+  const span = Math.max(frame.extent.u, frame.extent.v, 1);
+  const cuts = FACE_SIGNATURE_DEPTHS.map((depth) => cutMeasures(extractFaceProfile(mesh, frame, depth * span)));
+  const areas = cuts.map((cut) => cut.area) as [number, number, number];
+  const widths = cuts.map((cut) => cut.width) as [number, number, number];
+  const heights = cuts.map((cut) => cut.height) as [number, number, number];
+  const near = areas[0] > 1e-6 ? areas[0] : Math.max(areas[1], 1e-6);
+  const major = Math.max(widths[1], heights[1], 1e-6);
+  const minor = Math.max(1e-6, Math.min(widths[1], heights[1]));
+  return {
+    widths,
+    heights,
+    areas,
+    aspect: major / minor,
+    plate: 1 - minor / major,
+    expansion: areas[2] / near,
+    drift: Math.hypot(cuts[2].centerU - cuts[0].centerU, cuts[2].centerV - cuts[0].centerV),
+    occupancy,
+  };
+}
+
+function cutMeasures(profile: FaceProfile) {
+  const loop = profile.loops.filter((item) => item.closed && item.points.length >= 3)
+    .sort((left, right) => right.points.length - left.points.length)[0];
+  if (!loop) return { width: 1.6, height: 1.6, area: 2.4, centerU: 0, centerV: 0 };
+  let minU = Infinity;
+  let maxU = -Infinity;
+  let minV = Infinity;
+  let maxV = -Infinity;
+  let area = 0;
+  let centerU = 0;
+  let centerV = 0;
+  for (let index = 0; index < loop.points.length; index += 1) {
+    const point = loop.points[index];
+    const next = loop.points[(index + 1) % loop.points.length];
+    minU = Math.min(minU, point.u);
+    maxU = Math.max(maxU, point.u);
+    minV = Math.min(minV, point.v);
+    maxV = Math.max(maxV, point.v);
+    area += point.u * next.v - next.u * point.v;
+    centerU += point.u;
+    centerV += point.v;
+  }
+  const count = loop.points.length;
+  return {
+    width: Math.max(0.04, maxU - minU),
+    height: Math.max(0.04, maxV - minV),
+    area: Math.max(1e-5, Math.abs(area) * 0.5),
+    centerU: centerU / count,
+    centerV: centerV / count,
+  };
+}
+
 export type FaceProfile = {
   version: typeof FACE_PROFILE_SETTINGS.version;
   status: FaceProfileStatus;

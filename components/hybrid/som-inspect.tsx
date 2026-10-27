@@ -6,7 +6,10 @@ import { CANDIDATE_FIELD_SETTINGS, type HybridCandidate, type HybridCriterionVal
 import type { GeneratedHybridCandidate, GeneratedHybridField } from "@/lib/skill4/generated-hybrid-field";
 import { hybridDisplay } from "@/lib/skill4/hybrid-display";
 import { NETWORK_VOLUME_SETTINGS } from "@/lib/skill4/network-volume";
+import type { PlacedMesh } from "@/lib/skill4/draw-placed";
+import { AggregationView } from "./aggregation-view";
 import { HybridMatrixGrid } from "./mock-matrix";
+import { MeshPreview } from "./mesh-preview";
 
 export type SomInspectConnection = {
   id: string;
@@ -30,12 +33,22 @@ export function SomInspect({
   connection,
   colorA,
   colorB,
+  instances,
+  span,
+  anchorIds,
+  previewId = null,
+  previewMesh = null,
   onSelect,
   onClose,
 }: {
   connection: SomInspectConnection;
   colorA: [number, number, number];
   colorB: [number, number, number];
+  instances: readonly PlacedMesh[];
+  span: number;
+  anchorIds: readonly string[];
+  previewId?: string | null;
+  previewMesh?: IsoMesh | null;
   onSelect: (id: string) => void;
   onClose: () => void;
 }) {
@@ -76,74 +89,110 @@ export function SomInspect({
   return (
     <div className="hybrid-som-inspect" data-som-inspect={connection.id} onClick={onClose}>
       <div className="hybrid-som-inspect-panel" role="dialog" aria-modal="true" aria-label="SOM inspection" style={{ "--som": `${size}px` } as CSSProperties} onClick={(event) => event.stopPropagation()}>
-        <div className="hybrid-som-inspect-stage">
+        <section className="hybrid-som-isolate" aria-label={`Isolated connection ${connection.tileAId}:${connection.faceA} to ${connection.tileBId}:${connection.faceB}`}>
+          <header className="hybrid-som-isolate-label">
+            <div>
+              <p>Connection</p>
+              <strong>{connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}</strong>
+            </div>
+            <div>
+              <p>Parent A</p>
+              <span>{connection.parentAName}</span>
+            </div>
+            <div>
+              <p>Parent B</p>
+              <span>{connection.parentBName}</span>
+            </div>
+            <div>
+              <p className="hybrid-som-id">{selected.id}</p>
+              <span>{character(position)}</span>
+            </div>
+          </header>
+          {generated?.sectionReport ? (
+            <p className="hybrid-som-hover">
+              {`Sections A ${generated.sectionReport.sectionsA} · B ${generated.sectionReport.sectionsB} · near openings A ${generated.sectionReport.nearOpeningsA} · B ${generated.sectionReport.nearOpeningsB} · H stations ${generated.sectionReport.stations} · correspondence ${generated.sectionReport.correspondence}`}
+              {generated.sectionReport.fromA ? `  FROM A: ${generated.sectionReport.fromA}` : ""}
+              {generated.sectionReport.fromB ? `  FROM B: ${generated.sectionReport.fromB}` : ""}
+              {generated.sectionReport.recombined ? `  RECOMBINED: ${generated.sectionReport.recombined}` : ""}
+              {generated.sectionReport.dropped ? `  DROPPED: ${generated.sectionReport.dropped}` : ""}
+            </p>
+          ) : null}
+          <div className="hybrid-stage hybrid-som-isolate-stage" data-isolated-connection={connection.id} data-isolated-hybrid={selected.id}>
+            <AggregationView
+              key={connection.id}
+              instances={instances}
+              selectedId={selected.id}
+              onSelect={() => {}}
+              links={[]}
+              onSelectConnection={() => {}}
+              span={span}
+              anchorIds={anchorIds}
+            />
+          </div>
+        </section>
+        <div className="hybrid-som-inspect-column">
+          <header className="hybrid-som-column-head">
+            <p>{connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}</p>
+            <button type="button" className="hybrid-som-close" onClick={onClose}>Close</button>
+          </header>
           <p className="hybrid-som-hover">{tip}</p>
-          <div className="hybrid-som-inspect-body">
-            <div className="hybrid-som-y-words" style={{ height: size }}>
-              <span>Restrained</span>
-              <span>Exploratory</span>
-            </div>
-            <div className="hybrid-som-y" style={{ height: size }}>
-              {rows.map((row, index) => (
-                <button
-                  key={row.intensity}
-                  type="button"
-                  data-active={emphasis?.row === index || undefined}
-                  aria-label={`Row ${index + 1}, intensity ${formatNumber(row.intensity)}`}
-                  onMouseEnter={() => setLane({ row: index })}
-                  onMouseLeave={() => setLane(null)}
-                >
-                  <i style={{ height: `${28 + index * 18}%` }} />
-                </button>
-              ))}
-            </div>
-            <div className="hybrid-som-square" style={{ width: size, height: size }}>
-              <HybridMatrixGrid
-                signature={connection.signature}
-                selectedId={connection.selectedId}
-                generatedField={connection.generatedField}
+          <div className="hybrid-som-y-words" style={{ height: size }}>
+            <span>Restrained</span>
+            <span>Exploratory</span>
+          </div>
+          <div className="hybrid-som-y" style={{ height: size }}>
+            {rows.map((row, index) => (
+              <button
+                key={row.intensity}
+                type="button"
+                data-active={emphasis?.row === index || undefined}
+                aria-label={`Row ${index + 1}, intensity ${formatNumber(row.intensity)}`}
+                onMouseEnter={() => setLane({ row: index })}
+                onMouseLeave={() => setLane(null)}
+              >
+                <i style={{ height: `${28 + index * 18}%` }} />
+              </button>
+            ))}
+          </div>
+          <div className="hybrid-som-square" style={{ width: size, height: size }}>
+            <HybridMatrixGrid
+              signature={connection.signature}
+              selectedId={connection.selectedId}
+              generatedField={connection.generatedField}
                 onSelect={onSelect}
                 onHover={setHoverId}
                 emphasis={emphasis}
                 colorA={colorA}
                 colorB={colorB}
+                previewId={previewId}
+                previewMesh={previewMesh}
               />
+          </div>
+          <div className="hybrid-som-x">
+            <div className="hybrid-som-x-words">
+              <span>A dominant</span>
+              <span>Balanced</span>
+              <span>B dominant</span>
+            </div>
+            <div className="hybrid-som-x-bar">
+              {columns.map((column, index) => (
+                <button
+                  key={`${column.parentA}-${column.parentB}`}
+                  type="button"
+                  data-active={emphasis?.column === index || undefined}
+                  aria-label={`Column ${index + 1}, A ${percent(column.parentA)}, B ${percent(column.parentB)}`}
+                  onMouseEnter={() => setLane({ column: index })}
+                  onMouseLeave={() => setLane(null)}
+                />
+              ))}
+            </div>
+            <div className="hybrid-som-x-ratios">
+              {columns.map((column) => (
+                <span key={`ratio-${column.parentA}`}>{Math.round(column.parentA * 100)}/{Math.round(column.parentB * 100)}</span>
+              ))}
             </div>
           </div>
-          <div className="hybrid-som-inspect-body">
-            <span />
-            <span />
-            <div className="hybrid-som-x" style={{ width: size }}>
-              <div className="hybrid-som-x-words">
-                <span>A dominant</span>
-                <span>Balanced</span>
-                <span>B dominant</span>
-              </div>
-              <div className="hybrid-som-x-bar">
-                {columns.map((column, index) => (
-                  <button
-                    key={`${column.parentA}-${column.parentB}`}
-                    type="button"
-                    data-active={emphasis?.column === index || undefined}
-                    aria-label={`Column ${index + 1}, A ${percent(column.parentA)}, B ${percent(column.parentB)}`}
-                    onMouseEnter={() => setLane({ column: index })}
-                    onMouseLeave={() => setLane(null)}
-                  />
-                ))}
-              </div>
-              <div className="hybrid-som-x-ratios">
-                {columns.map((column) => (
-                  <span key={`ratio-${column.parentA}`}>{Math.round(column.parentA * 100)}/{Math.round(column.parentB * 100)}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
         <aside className="hybrid-som-info">
-          <div className="hybrid-som-info-head">
-            <p>{connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}</p>
-            <button type="button" className="hybrid-som-close" onClick={onClose}>Close</button>
-          </div>
           <p className="hybrid-som-id">{selected.id}</p>
           <p className="hybrid-som-character">{character(position)}</p>
           <p className="hybrid-som-parents">{connection.parentAName} · {connection.faceA}<span>{connection.parentBName} · {connection.faceB}</span></p>
@@ -161,8 +210,57 @@ export function SomInspect({
           {mode === "morphology" ? <MorphologyMode candidate={generated?.candidate ?? null} row={position?.row ?? 0} steps={position ? rows[position.row]?.steps : null} /> : null}
           {mode === "geometry" ? <GeometryMode generated={generated} mesh={selected.mesh} status={selected.source} /> : null}
         </aside>
+        </div>
       </div>
     </div>
+  );
+}
+
+export function SomCandidateFacts({
+  connection,
+}: {
+  connection: SomInspectConnection;
+}) {
+  const display = hybridDisplay({
+    signature: connection.signature,
+    selectedMockId: connection.selectedId,
+    generatedHybridField: connection.generatedField,
+  });
+  const selected = display.selected;
+  const generated = connection.generatedField?.candidates.find((item) => item.candidateId === selected.id) ?? null;
+  const position = cellPosition(selected.id);
+  const weights = candidateWeights(generated?.candidate, position);
+  const intensity = generated?.candidate?.transformationIntensity ?? (position ? CANDIDATE_FIELD_SETTINGS.transformationIntensity[position.row] : null);
+  const report = generated?.sectionReport;
+  const columns = columnAxis(connection.generatedField);
+  const rows = rowAxis(connection.generatedField);
+  const column = position ? columns[position.column] : null;
+  const row = position ? rows[position.row] : null;
+  return (
+    <aside className="hybrid-som-facts">
+      <div className="hybrid-som-facts-copy">
+        <p className="hybrid-som-id">{selected.id}</p>
+        <p className="hybrid-som-character">{character(position)}{position ? ` · row ${position.row + 1} · col ${position.column + 1}` : ""}</p>
+        <p className="hybrid-som-parents">{connection.parentAName} · {connection.faceA}<span>{connection.parentBName} · {connection.faceB}</span></p>
+        <p className="hybrid-units">Rows · Restrained · Low change · Medium · High change · Exploratory{row ? ` · this row ${formatNumber(row.intensity)}` : ""}</p>
+        <p className="hybrid-units">Columns · A dominant · Balanced · B dominant{column ? ` · this column ${Math.round(column.parentA * 100)}/${Math.round(column.parentB * 100)}` : ""}</p>
+        <Balance weights={weights} />
+        <Meter label="Transformation" value={intensity} max={1} />
+        <Sequence row={position?.row ?? 0} />
+        {report ? (
+          <p className="hybrid-units">
+            {`Sections A ${report.sectionsA} · B ${report.sectionsB} · openings A ${report.nearOpeningsA} · B ${report.nearOpeningsB} · stations ${report.stations} · ${report.correspondence}`}
+            {report.fromA ? ` · From A ${report.fromA}` : ""}
+            {report.fromB ? ` · From B ${report.fromB}` : ""}
+            {report.recombined ? ` · ${report.recombined}` : ""}
+          </p>
+        ) : null}
+        {generated ? <p className="hybrid-units">{`Vertices ${generated.vertexCount} · triangles ${generated.triangleCount}`}</p> : null}
+      </div>
+      <div className="hybrid-som-facts-preview">
+        <MeshPreview mesh={selected.mesh} kind={1} contain fitScale={1.45} yaw={0.9} pitch={0.28} />
+      </div>
+    </aside>
   );
 }
 
@@ -332,14 +430,12 @@ function useInspectSquare() {
   useEffect(() => {
     const measure = () => {
       const narrow = window.innerWidth < 980;
-      const gutter = 78;
-      if (narrow) {
-        setSize(Math.max(220, Math.floor(Math.min(window.innerWidth - 36 - gutter, window.innerHeight * 0.58))));
-        return;
-      }
-      const somWidth = (window.innerWidth - 40) * 0.72 - gutter;
-      const somHeight = window.innerHeight * 0.74 - 92;
-      setSize(Math.max(260, Math.floor(Math.min(somWidth, somHeight))));
+      const panel = window.innerWidth * 0.96;
+      const panelH = window.innerHeight * (narrow ? 0.46 : 0.92);
+      const column = narrow ? panel - 36 : panel * 0.35;
+      const gutter = narrow ? 56 : 78;
+      const chrome = narrow ? 220 : 620;
+      setSize(Math.max(200, Math.floor(Math.min(column - gutter, panelH - chrome))));
     };
     measure();
     window.addEventListener("resize", measure);

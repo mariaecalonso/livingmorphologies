@@ -3867,7 +3867,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .agent-system-body {
-  grid-template-columns: max-content auto;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: stretch;
   justify-content: start;
   gap: 40px;
@@ -3954,9 +3954,10 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 [data-view-mode="presentation"] .living-instrument-shell .agent-compare-field {
   width: auto;
-  aspect-ratio: 1;
-  max-width: 100%;
-  justify-self: end;
+  min-width: 0;
+  aspect-ratio: auto;
+  max-width: none;
+  justify-self: stretch;
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .range-hud {

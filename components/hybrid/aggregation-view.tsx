@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CANVAS_EYE, CANVAS_EYE_MAX, CANVAS_EYE_MIN, drawPlacedMeshes, placementCenter, placementFit, projectPlacement, type PlacedMesh } from "@/lib/skill4/draw-placed";
+import { CANVAS_EYE, cursorZoomPoint, drawPlacedMeshes, MIN_CAMERA_DISTANCE, placementCenter, placementFit, projectPlacement, type PlacedMesh } from "@/lib/skill4/draw-placed";
 import type { Vec3 } from "@/lib/skill4/contract";
+
+const MAX_ZOOM_OUT_MULTIPLIER = 1.2;
 
 type CanvasLink = {
   id: string;
@@ -18,6 +20,7 @@ export function AggregationView({
   links,
   onSelectConnection,
   span,
+  anchorIds,
 }: {
   instances: readonly PlacedMesh[];
   selectedId: string;
@@ -25,6 +28,8 @@ export function AggregationView({
   links: readonly CanvasLink[];
   onSelectConnection: (id: string) => void;
   span: number;
+  /** Camera frames these instances. Other meshes, such as a swapped connector, do not move it. */
+  anchorIds?: readonly string[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
@@ -32,13 +37,20 @@ export function AggregationView({
   const [yaw, setYaw] = useState(0.7);
   const [pitch, setPitch] = useState(0.35);
   const [eye, setEye] = useState(CANVAS_EYE);
+  const [focus, setFocus] = useState<Vec3>({ x: 0, y: 0, z: 0 });
+  const eyeRef = useRef(CANVAS_EYE);
+  const focusRef = useRef<Vec3>({ x: 0, y: 0, z: 0 });
+  const fitEyeRef = useRef(CANVAS_EYE);
   const [markers, setMarkers] = useState<Array<{ id: string; label: string; active: boolean; x: number; y: number }>>([]);
+  const framed = anchorIds?.length ? instances.filter((item) => anchorIds.includes(item.id)) : instances;
+  const base = placementCenter(framed.length ? framed : instances);
+  const lookAt = { x: base.x + focus.x, y: base.y + focus.y, z: base.z + focus.z };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const paint = () => {
-      const frame = drawPlacedMeshes(canvas, instances, yaw, pitch, span, false, eye, true);
+      const frame = drawPlacedMeshes(canvas, instances, yaw, pitch, span, false, eye, true, 1, lookAt);
       if (!frame) {
         setMarkers((current) => (current.length === 0 ? current : []));
         return;
@@ -66,7 +78,11 @@ export function AggregationView({
     const observer = new ResizeObserver(paint);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [eye, instances, links, pitch, span, yaw]);
+  }, [eye, instances, links, lookAt, pitch, span, yaw]);
+
+  useEffect(() => {
+    fitEyeRef.current = CANVAS_EYE;
+  }, [span]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -75,12 +91,55 @@ export function AggregationView({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       event.stopPropagation();
+      const currentEye = eyeRef.current;
+      const currentFocus = focusRef.current;
       const factor = Math.exp(event.deltaY * 0.0012);
-      setEye((current) => Math.min(CANVAS_EYE_MAX, Math.max(CANVAS_EYE_MIN, current * factor)));
+      const fit = fitEyeRef.current;
+      const limit = fit * MAX_ZOOM_OUT_MULTIPLIER;
+      if (factor > 1) {
+        if (currentEye >= limit - 1e-3) return;
+        const nextEye = Math.min(limit, currentEye * factor);
+        const arrived = Math.min(nextEye, fit);
+        const keep = currentEye < fit - 1e-4 ? (fit - arrived) / (fit - currentEye) : 0;
+        const nextFocus = { x: currentFocus.x * keep, y: currentFocus.y * keep, z: currentFocus.z * keep };
+        eyeRef.current = nextEye;
+        focusRef.current = nextFocus;
+        setEye(nextEye);
+        setFocus(nextFocus);
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const nextEye = Math.max(MIN_CAMERA_DISTANCE, currentEye * factor);
+      const applied = nextEye / currentEye;
+      const scene = placementCenter(framed.length ? framed : instances);
+      const target = { x: scene.x + currentFocus.x, y: scene.y + currentFocus.y, z: scene.z + currentFocus.z };
+      const aspect = rect.width / Math.max(1, rect.height);
+      const hit = cursorZoomPoint(
+        instances,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+        rect.width,
+        rect.height,
+        target,
+        yaw,
+        pitch,
+        placementFit(span, aspect),
+        currentEye,
+      );
+      const shift = 1 - applied;
+      const nextFocus = {
+        x: currentFocus.x + (hit.point.x - target.x) * shift,
+        y: currentFocus.y + (hit.point.y - target.y) * shift,
+        z: currentFocus.z + (hit.point.z - target.z) * shift,
+      };
+      eyeRef.current = nextEye;
+      focusRef.current = nextFocus;
+      setEye(nextEye);
+      setFocus(nextFocus);
     };
     stage.addEventListener("wheel", onWheel, { passive: false });
     return () => stage.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [framed, instances, pitch, span, yaw]);
 
   const pick = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -88,7 +147,7 @@ export function AggregationView({
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    const center = placementCenter(instances);
+    const center = lookAt;
     const aspect = rect.width / Math.max(1, rect.height);
     const fit = placementFit(span, aspect);
     let best = instances.find((instance) => !instance.id.startsWith("guide:")) ?? null;
@@ -148,8 +207,9 @@ export function AggregationView({
         data-orbit-yaw={yaw.toFixed(3)}
         data-orbit-pitch={pitch.toFixed(3)}
         data-camera-eye={eye.toFixed(3)}
-        data-eye-min={CANVAS_EYE_MIN}
-        data-eye-max={CANVAS_EYE_MAX}
+        data-camera-target={`${lookAt.x.toFixed(3)},${lookAt.y.toFixed(3)},${lookAt.z.toFixed(3)}`}
+        data-eye-min={MIN_CAMERA_DISTANCE}
+        data-eye-max={CANVAS_EYE * MAX_ZOOM_OUT_MULTIPLIER}
         data-ground="registration"
         aria-label={`Aggregation canvas, ${selectedId} selected`}
       />

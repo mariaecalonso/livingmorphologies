@@ -12,6 +12,7 @@ import {
 import { closeConnectorLoft, diagnoseTopology, evaluateBooleanReadiness, seatLoftEnds, type BooleanReadiness } from "./boolean-conditioning";
 import { physicalOperand } from "./geometry-preflight";
 import type { BooleanAssemblyPlan, BooleanConnectionPlan, BooleanPlanStatus } from "./boolean-plan";
+import { PROFILE_SAMPLES } from "./face-hybrid-profile";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
 import type { ErrorStatus } from "manifold-3d/manifold";
 import type { Vec3 } from "./contract";
@@ -24,10 +25,10 @@ import type { TileInstance } from "./tiles";
  * A failed parent is never dropped from a ready result.
  */
 export const BOOLEAN_EXECUTION_SETTINGS = {
-  version: "skill4-boolean-execution-v4",
+  version: "skill4-boolean-execution-v5",
   unionOrder: ["parent-a", "closed-hybrid", "parent-b"],
-  penetrationDepths: [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.16, 0.2],
-  minimumOverlapVolume: 1e-4,
+  penetrationDepths: [0.4, 0.8, 1.2, 1.6, 2, 2.4, 3.2, 4],
+  minimumOverlapVolume: 0.8,
   containedRatio: 0.9,
 } as const;
 
@@ -600,6 +601,9 @@ function seatEnd(positions: Float32Array, indices: number[], inward: Vec3, paren
   let distance = 0;
   for (let sample = 0; sample < indices.length; sample += 1) {
     const index = indices[sample] ?? 0;
+    const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
+    const station = Math.floor(index / PROFILE_SAMPLES);
+    if (index < PROFILE_SAMPLES * steps && station >= 2 && station <= steps - 3) continue;
     const point = readVec(positions, index * 3);
     const surface = found[sample];
     const hit = surface?.hit ?? add(point, scale(inward, fill));

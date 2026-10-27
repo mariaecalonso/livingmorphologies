@@ -1,5 +1,4 @@
-import { columnHeight } from "../scan/isomesh";
-import { VIEW_SCAN } from "./contract";
+import { registrationEnvelope } from "./contract";
 import {
   ADJACENCY_TOLERANCE,
   connectionBlocked,
@@ -18,8 +17,9 @@ const assert = (condition: boolean, message: string) => {
 
 const loaded = loadModuleMap(PROVISIONAL_MOCK_IDS.map((id) => readProvisionalMock(id)));
 const width = envelopeWidth();
-const depth = 1;
-const height = columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+const cell = registrationEnvelope();
+const depth = cell.max.z - cell.min.z;
+const height = cell.max.y - cell.min.y;
 
 function moved(tiles: TileInstance[], index: number, transform: TileInstance["transform"]) {
   return tiles.map((tile, tileIndex) => (tileIndex === index ? { ...tile, transform } : tile));

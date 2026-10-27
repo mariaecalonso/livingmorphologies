@@ -1,6 +1,6 @@
 import type { IsoMesh } from "../scan/isomesh";
 import { booleanDifference, booleanUnion } from "./boolean-adapter";
-import { registrationEnvelope, VIEW_SCAN, type Skill4ModuleRecord, type Vec3 } from "./contract";
+import { MODULE_SIZE, registrationEnvelope, VIEW_SCAN, type Skill4ModuleRecord, type Vec3 } from "./contract";
 
 /**
  * Development-only closed solids.
@@ -100,17 +100,17 @@ export async function buildSyntheticTestRecords(): Promise<Skill4ModuleRecord[]>
   const bounds = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
   const block = solidBox(bounds.min, bounds.max);
   const notch = solidBox(
-    { x: 0.12, y: 0.05, z: -0.08 },
-    { x: bounds.max.x + 0.08, y: bounds.max.y + 0.08, z: 0.46 },
+    { x: 0.12 * MODULE_SIZE, y: 0.05 * MODULE_SIZE, z: -0.08 * MODULE_SIZE },
+    { x: bounds.max.x + 0.08 * MODULE_SIZE, y: bounds.max.y + 0.08 * MODULE_SIZE, z: 0.46 * MODULE_SIZE },
   );
   const stepped = await requireSolid(await booleanDifference(block, notch), "stepped notch");
   const plinth = solidBox(
     bounds.min,
-    { x: bounds.max.x, y: bounds.min.y + 0.62, z: bounds.max.z },
+    { x: bounds.max.x, y: bounds.min.y + 0.62 * MODULE_SIZE, z: bounds.max.z },
   );
   const spine = solidBox(
-    { x: -0.04, y: bounds.min.y + 0.2, z: -0.22 },
-    { x: 0.48, y: bounds.max.y, z: 0.42 },
+    { x: -0.04 * MODULE_SIZE, y: bounds.min.y + 0.2 * MODULE_SIZE, z: -0.22 * MODULE_SIZE },
+    { x: 0.48 * MODULE_SIZE, y: bounds.max.y, z: 0.42 * MODULE_SIZE },
   );
   const offset = await requireSolid(await booleanUnion(plinth, spine), "offset spine");
   return [

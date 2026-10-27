@@ -41,47 +41,30 @@ function boundsOf(positions: Float32Array) {
 }
 
 /**
- * Maps each axis of the mesh bounds onto the Skill 4 registration cell.
- * The source buffers are not written. Triangle connectivity stays the same.
- * Normals are rescaled with the inverse transpose so the copy stays shaded.
+ * Seats a solidified mesh in the registration cell without resizing it.
+ * Plan is centered on the cell. The lowest vertex sits on the cell floor.
+ * Normals are copied. The source buffers are not written.
  */
 export function registerMeshIntoCell(mesh: IsoMesh, cell: RegistrationCell): IsoMesh {
   const bounds = boundsOf(mesh.positions);
   const sizeX = bounds.maxX - bounds.minX;
   const sizeY = bounds.maxY - bounds.minY;
   const sizeZ = bounds.maxZ - bounds.minZ;
-  const cellX = cell.max.x - cell.min.x;
-  const cellY = cell.max.y - cell.min.y;
-  const cellZ = cell.max.z - cell.min.z;
-  if (!(sizeX > 0 && sizeY > 0 && sizeZ > 0 && cellX > 0 && cellY > 0 && cellZ > 0)) {
+  if (!(sizeX > 0 && sizeY > 0 && sizeZ > 0)) {
     throw new Error("mesh bounds cannot be registered");
   }
-  const scaleX = cellX / sizeX;
-  const scaleY = cellY / sizeY;
-  const scaleZ = cellZ / sizeZ;
+  const shiftX = (cell.min.x + cell.max.x) / 2 - (bounds.minX + bounds.maxX) / 2;
+  const shiftY = cell.min.y - bounds.minY;
+  const shiftZ = (cell.min.z + cell.max.z) / 2 - (bounds.minZ + bounds.maxZ) / 2;
   const positions = new Float32Array(mesh.positions.length);
-  const normals = new Float32Array(mesh.normals.length);
   for (let index = 0; index < mesh.positions.length; index += 3) {
-    positions[index] = cell.min.x + (mesh.positions[index] - bounds.minX) * scaleX;
-    positions[index + 1] = cell.min.y + (mesh.positions[index + 1] - bounds.minY) * scaleY;
-    positions[index + 2] = cell.min.z + (mesh.positions[index + 2] - bounds.minZ) * scaleZ;
-    const nx = mesh.normals[index] / scaleX;
-    const ny = mesh.normals[index + 1] / scaleY;
-    const nz = mesh.normals[index + 2] / scaleZ;
-    const length = Math.hypot(nx, ny, nz);
-    if (length > 1e-8) {
-      normals[index] = nx / length;
-      normals[index + 1] = ny / length;
-      normals[index + 2] = nz / length;
-    } else {
-      normals[index] = mesh.normals[index];
-      normals[index + 1] = mesh.normals[index + 1];
-      normals[index + 2] = mesh.normals[index + 2];
-    }
+    positions[index] = mesh.positions[index] + shiftX;
+    positions[index + 1] = mesh.positions[index + 1] + shiftY;
+    positions[index + 2] = mesh.positions[index + 2] + shiftZ;
   }
   return {
     positions,
-    normals,
+    normals: Float32Array.from(mesh.normals),
     indices: new Uint32Array(mesh.indices),
     triangles: mesh.triangles,
   };

@@ -1,5 +1,4 @@
 import type { IsoMesh } from "../scan/isomesh";
-import { columnHeight } from "../scan/isomesh";
 import { SCAN_SLICES } from "../scan/volume";
 import { FIELD_SIZE, SECTION_HEIGHT } from "../skill1/maps";
 
@@ -107,19 +106,29 @@ export const COORDINATE_CONVENTION = {
   ],
 } as const;
 
-export function registrationEnvelope(spacing: number, yaw: number) {
-  const halfPlan = 0.5;
-  const halfHeight = columnHeight(spacing, yaw) / 2;
+/**
+ * The 20 × 20 × 20 module is where tiles are organized.
+ * Skill 03 meshes already use this length. The cell does not resize them.
+ */
+export const MODULE_SIZE = 20;
+
+/** A length authored on the old 1-wide display cell, in current module units. */
+export function moduleLength(cellUnits: number) {
+  return cellUnits * MODULE_SIZE;
+}
+
+export function registrationEnvelope(_spacing?: number, _yaw?: number) {
+  const half = MODULE_SIZE / 2;
   return {
     origin: { x: 0, y: 0, z: 0 },
-    min: { x: -halfPlan, y: -halfHeight, z: -halfPlan },
-    max: { x: halfPlan, y: halfHeight, z: halfPlan },
+    min: { x: -half, y: -half, z: -half },
+    max: { x: half, y: half, z: half },
   };
 }
 
 /** World Y of the aggregation grid: just under an upright registration bottom. */
 export function groundPlaneY() {
-  return registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw).min.y - 0.004;
+  return registrationEnvelope().min.y - moduleLength(0.004);
 }
 
 /** Documents the field-to-mesh map. Does not transform stored vertices. */

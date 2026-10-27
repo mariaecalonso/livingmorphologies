@@ -1,5 +1,6 @@
 import type { IsoMesh } from "../scan/isomesh";
 import { MOCK_HYBRID_LABEL, MOCK_PREVIEW_SETTINGS } from "./assembly-layout";
+import { MODULE_SIZE } from "./contract";
 
 export { MOCK_HYBRID_LABEL };
 
@@ -104,7 +105,7 @@ function mockMesh(row: number, column: number): IsoMesh {
     tube(branch, radius * 0.75, positions, normals, indices);
   }
   return {
-    positions: Float32Array.from(positions),
+    positions: Float32Array.from(positions, (value) => value * MODULE_SIZE),
     normals: Float32Array.from(normals),
     indices: Uint32Array.from(indices),
     triangles: indices.length / 3,

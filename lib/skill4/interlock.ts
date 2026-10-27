@@ -4,6 +4,7 @@ import { inwardSurfaceDistance, placeTileMesh } from "./boolean-execution";
 import type { AggregationConnection, AggregationResult } from "./aggregation";
 import type { FaceId, Vec3 } from "./contract";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
+import { PROFILE_SAMPLES } from "./face-hybrid-profile";
 import type { TileInstance } from "./tiles";
 
 /**
@@ -248,10 +249,13 @@ function empty(connection: AggregationConnection): InterlockConnection {
 function ringLayout(mesh: IsoMesh) {
   const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
   const vertexCount = mesh.positions.length / 3;
-  if (!Number.isInteger(vertexCount) || vertexCount % steps !== 0) return null;
-  const sampleCount = vertexCount / steps;
-  if (sampleCount < 3) return null;
-  return { sampleCount, steps };
+  if (Number.isInteger(vertexCount) && vertexCount % steps === 0) {
+    const sampleCount = vertexCount / steps;
+    if (sampleCount >= 3) return { sampleCount, steps };
+  }
+  const core = PROFILE_SAMPLES * steps;
+  if (vertexCount > core) return { sampleCount: PROFILE_SAMPLES, steps };
+  return null;
 }
 
 function readRing(mesh: IsoMesh, ring: number, sampleCount: number): Vec3[] {

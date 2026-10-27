@@ -5,7 +5,8 @@ import type { FaceFrame, FaceId } from "./contract";
 import type { FaceObservation } from "./face-sample";
 import { extractFaceProfile, type FaceProfile, type ProfilePoint } from "./face-profile";
 import type { DeformationDna } from "./hybrid-deformation";
-import { growHybridVolume } from "./network-volume";
+import { faceOutline } from "./face-hybrid-profile";
+import { buildHybridSpine } from "./hybrid-spine";
 
 /**
  * Skill 04 connector contract.
@@ -20,8 +21,13 @@ import { growHybridVolume } from "./network-volume";
  * Placement maps the volume from the two section frames onto the placed faces.
  * connectorDepth stays null, and tiles are not moved.
  */
+/** Section depth is a fraction of the smaller face edge, not a fixed world length. */
+export function sectionReach(frame: { extent: { u: number; v: number } }, fraction: number = HYBRID_GENERATOR_SETTINGS.sectionDepth) {
+  return fraction * Math.max(1e-6, Math.min(frame.extent.u, frame.extent.v));
+}
+
 export const HYBRID_GENERATOR_SETTINGS = {
-  version: "skill4-hybrid-generator-v4",
+  version: "skill4-hybrid-generator-v6",
   seed: 1,
   geometry: "network-volume",
   extraction: "cross-section",
@@ -61,6 +67,10 @@ export type HybridGeneratorResult = {
   vertexCount: number;
   triangleCount: number;
   reason: string;
+  branches: number;
+  openings: number;
+  /** Real network snapshots. Visualization only. The final mesh is `geometry`. */
+  growth?: IsoMesh[];
 };
 
 export interface HybridGenerator {
@@ -85,8 +95,8 @@ function deformationDna(
     parentAWeight: weights.parentAWeight,
     parentBWeight: weights.parentBWeight,
     transformationIntensity,
-    localSectionA: localSection(request.moduleA.geometry, request.frameA, sectionDepth, alignedA),
-    localSectionB: localSection(request.moduleB.geometry, request.frameB, sectionDepth, alignedB),
+    localSectionA: localSection(request.moduleA.geometry, request.frameA, sectionReach(request.frameA, sectionDepth), alignedA),
+    localSectionB: localSection(request.moduleB.geometry, request.frameB, sectionReach(request.frameB, sectionDepth), alignedB),
   };
 }
 
@@ -98,7 +108,7 @@ function localSection(
   sectionDepth: number,
   contact: readonly { u: number; v: number }[],
 ) {
-  const key = `${frame.id}:${sectionDepth}:${contact.length}`;
+  const key = `${frame.id}:${sectionDepth}:${contact.length}:${contact[0]?.u.toFixed(3) ?? "0"}:${contact[Math.floor(contact.length / 2)]?.v.toFixed(3) ?? "0"}:${contact[contact.length - 1]?.u.toFixed(3) ?? "0"}`;
   let cached = localSectionCache.get(geometry);
   if (!cached) {
     cached = new Map();
@@ -198,6 +208,8 @@ function failed(request: HybridGeneratorRequest, status: Exclude<HybridGenerator
     vertexCount: 0,
     triangleCount: 0,
     reason,
+    branches: 0,
+    openings: 0,
   };
 }
 
@@ -214,7 +226,7 @@ export const pendingHybridGenerator: HybridGenerator = {
   settings: HYBRID_GENERATOR_SETTINGS,
   generate(request) {
     if (!settingsMatch(request.settings)) {
-      return failed(request, "invalid", "The generator settings do not match skill4-hybrid-generator-v4.");
+      return failed(request, "invalid", "The generator settings do not match skill4-hybrid-generator-v6.");
     }
     const { sectionDepth, profileSamples, loftSteps } = request.settings;
     if (!Number.isFinite(sectionDepth) || sectionDepth < 0 || !Number.isInteger(profileSamples) || profileSamples < 3 || !Number.isInteger(loftSteps) || loftSteps < 2) {
@@ -227,8 +239,8 @@ export const pendingHybridGenerator: HybridGenerator = {
     if (!Array.isArray(request.candidate.criteria)) {
       return failed(request, "invalid", "Candidate criteria are missing. No connector was created.");
     }
-    const profileA = extractFaceProfile(request.moduleA.geometry, request.frameA, sectionDepth);
-    const profileB = extractFaceProfile(request.moduleB.geometry, request.frameB, sectionDepth);
+    const profileA = extractFaceProfile(request.moduleA.geometry, request.frameA, sectionReach(request.frameA, sectionDepth));
+    const profileB = extractFaceProfile(request.moduleB.geometry, request.frameB, sectionReach(request.frameB, sectionDepth));
     const profiles = [profileA, profileB];
     if (profiles.some((profile) => profile.status === "invalid")) {
       const faces = profiles.filter((profile) => profile.status === "invalid").map((profile) => profile.face ?? "unknown");
@@ -239,24 +251,33 @@ export const pendingHybridGenerator: HybridGenerator = {
       return failed(request, "empty", `Face profile ${faces.join(" and ")} has no cross-section. No connector was created.`);
     }
 
-    const volume = growHybridVolume({
+    const outlineA = faceOutline(profileA);
+    const outlineB = faceOutline(profileB);
+    if (!outlineA || !outlineB) {
+      return failed(request, "empty", "A selected face has no outline. No hybrid profile was created.");
+    }
+    const volume = buildHybridSpine({
       profileA,
       profileB,
-      candidate: request.candidate,
-      observationA: request.observationA,
-      observationB: request.observationB,
+      outlineA,
+      outlineB,
+      column: request.candidate.column,
+      row: request.candidate.row,
+      intensity: request.candidate.transformationIntensity,
+      steps: loftSteps,
     });
-    if (volume.status !== "ready" || !volume.mesh) {
-      return failed(request, volume.status === "ready" ? "blocked" : volume.status, volume.reason || "The network did not produce a connector.");
-    }
-
+    if (!volume.mesh) return failed(request, "blocked", volume.reason);
+    const mesh = volume.mesh;
     return {
       status: "ready",
-      geometry: volume.mesh,
+      geometry: mesh,
       candidateId: request.candidate.id,
-      vertexCount: volume.mesh.positions.length / 3,
-      triangleCount: volume.mesh.triangles,
+      vertexCount: mesh.positions.length / 3,
+      triangleCount: mesh.triangles,
       reason: "",
+      branches: 1 + request.candidate.row,
+      openings: request.candidate.row >= 2 ? 1 : 0,
+      growth: [mesh],
     };
   },
 };

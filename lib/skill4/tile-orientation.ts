@@ -1,7 +1,8 @@
-import type { FaceId, Vec3 } from "./contract";
-import { faceFrames, groundPlaneY, registrationEnvelope, VIEW_SCAN } from "./contract";
+import type { FaceFrame, FaceId, Vec3 } from "./contract";
+import { faceFrames, groundPlaneY, moduleLength, registrationEnvelope, VIEW_SCAN } from "./contract";
 import type { TileConnection } from "./connections";
 import { basisDeterminant, manualBasis, rotateByBasis, type Mat3 } from "./tile-basis";
+import { CONNECTION_SPAN_MAX, CONNECTION_SPAN_MIN } from "./connection-span";
 import { HYBRID_GAP, type TileInstance } from "./tiles";
 
 /**
@@ -33,10 +34,70 @@ export function faceWorldNormal(face: FaceId, tile: Pick<TileInstance, "rotation
   return rotateByBasis(tile.rotation ?? manualBasis(tile.mirror, tile.rotationQuarter), LOCAL_NORMAL[face]);
 }
 
+/** Local point on the mesh that actually forms this face. */
+export function meshAttachment(positions: ArrayLike<number>, frame: FaceFrame): Vec3 | null {
+  const count = Math.floor(positions.length / 3);
+  if (count < 3) return null;
+  let maxAlong = -Infinity;
+  for (let index = 0; index < count; index += 1) {
+    maxAlong = Math.max(maxAlong, faceAlong(positions, index, frame));
+  }
+  const span = Math.min(frame.extent.u, frame.extent.v);
+  const band = Math.max(0.05, span * 0.08);
+  return gatherCap(positions, count, frame, maxAlong - band, true) ?? gatherCap(positions, count, frame, maxAlong - band, false);
+}
+
+function faceAlong(positions: ArrayLike<number>, index: number, frame: FaceFrame) {
+  const offset = index * 3;
+  return (positions[offset] - frame.origin.x) * frame.normal.x
+    + (positions[offset + 1] - frame.origin.y) * frame.normal.y
+    + (positions[offset + 2] - frame.origin.z) * frame.normal.z;
+}
+
+function gatherCap(positions: ArrayLike<number>, count: number, frame: FaceFrame, limit: number, useExtent: boolean): Vec3 | null {
+  const halfU = frame.extent.u * 0.5;
+  const halfV = frame.extent.v * 0.5;
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  let kept = 0;
+  for (let index = 0; index < count; index += 1) {
+    if (faceAlong(positions, index, frame) < limit) continue;
+    const offset = index * 3;
+    const dx = positions[offset] - frame.origin.x;
+    const dy = positions[offset + 1] - frame.origin.y;
+    const dz = positions[offset + 2] - frame.origin.z;
+    if (useExtent) {
+      const u = dx * frame.u.x + dy * frame.u.y + dz * frame.u.z;
+      const v = dx * frame.v.x + dy * frame.v.y + dz * frame.v.z;
+      if (Math.abs(u) > halfU || Math.abs(v) > halfV) continue;
+    }
+    x += positions[offset];
+    y += positions[offset + 1];
+    z += positions[offset + 2];
+    kept += 1;
+  }
+  if (kept < 3) return null;
+  return { x: x / kept, y: y / kept, z: z / kept };
+}
+
+type SpanPlan = {
+  gap: number;
+  localA: Vec3;
+  localB: Vec3;
+  travel: Vec3;
+  forward: Vec3;
+  principal: Vec3;
+  faceU: Vec3;
+  penetration: number;
+};
+
 export function orientTiles(
   slots: readonly TileInstance[],
   connections: readonly TileConnection[],
   focusConnectionId?: string,
+  attachment?: (tileId: string, face: FaceId) => Vec3 | null,
+  spanFor?: (connection: TileConnection) => number | SpanPlan,
 ): { tiles: TileInstance[]; unresolved: ReadonlySet<string> } {
   const slotAt = new Map(slots.map((tile) => [tile.instanceId, tile]));
   const placed = new Map<string, Pose>();
@@ -67,9 +128,12 @@ export function orientTiles(
       const childFace = connection.tileAId === parentId ? connection.faceB : connection.faceA;
       const child = slotAt.get(childId);
       if (!child || placed.has(childId)) continue;
+      const gap = connectionGap(connection, spanFor);
+      const plan = readSpan(connection, spanFor);
       if (isVertical(parentFace) || isVertical(childFace)) {
-        const posed = placeByFrame(parentPose, parentFace, child, childFace);
+        const posed = placeByFrame(parentPose, parentFace, child, childFace, pointOn(attachment, parentId, parentFace), pointOn(attachment, childId, childFace), gap);
         if (!posed) continue;
+        if (plan) posed.position = positionFromPlan(plan, parentId === connection.tileAId, parentPose, parentFace, posed.rotation);
         placed.set(childId, posed);
         depth.set(childId, (depth.get(parentId) ?? 0) + 1);
         queue.push(childId);
@@ -80,14 +144,21 @@ export function orientTiles(
       if (!toward || dot(parentNormal, toward) < 0.999) continue;
       const solved = solveTile([{ face: childFace, direction: scale(toward, -1) }], manualMirror(child), manualQuarter(child));
       if (!solved) continue;
-      const span = separation(parentId, childId, toward, slotAt);
-      placed.set(childId, poseOf(add(parentPose.position, scale(toward, span)), solved.quarter, solved.mirror));
+      const rotation = manualBasis(solved.mirror, solved.quarter);
+      placed.set(childId, {
+        position: plan
+          ? positionFromPlan(plan, parentId === connection.tileAId, parentPose, parentFace, rotation)
+          : seatPosition(parentPose, parentFace, pointOn(attachment, parentId, parentFace), rotation, pointOn(attachment, childId, childFace), gap),
+        quarter: solved.quarter,
+        mirror: solved.mirror,
+        rotation,
+      });
       depth.set(childId, (depth.get(parentId) ?? 0) + 1);
       queue.push(childId);
     }
   }
 
-  enforceFocus(focusConnectionId, connections, slotAt, placed, depth, root.instanceId, rootSpin);
+  enforceFocus(focusConnectionId, connections, slotAt, placed, depth, root.instanceId, rootSpin, attachment, spanFor);
   for (const tile of slots) {
     if (placed.has(tile.instanceId)) continue;
     placed.set(tile.instanceId, poseOf({ ...tile.transform }, manualQuarter(tile), manualMirror(tile)));
@@ -105,7 +176,7 @@ export function orientTiles(
       manualMirror: manualMirror(tile),
     };
   });
-  return { tiles: liftConnectedToGround(tiles, connections, transformedMinY), unresolved: reviewConnections(connections, placed) };
+  return { tiles: liftConnectedToGround(tiles, connections, transformedMinY), unresolved: reviewConnections(connections, placed, attachment, spanFor) };
 }
 
 /**
@@ -146,10 +217,22 @@ export function liftConnectedToGround(
   });
 }
 
-/** Lowest world Y of the rotated registration box, then any supplied mesh positions. */
+/** Lowest world Y of the placed mesh. Without a mesh, the registration box is used. */
 export function placedBoundsMinY(tile: TileInstance, positions?: ArrayLike<number>) {
-  const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
   const basis = tile.rotation ?? manualBasis(tile.mirror, tile.rotationQuarter);
+  if (positions && positions.length >= 3) {
+    let minY = Infinity;
+    for (let index = 0; index < positions.length; index += 3) {
+      const world = rotateByBasis(basis, {
+        x: positions[index] ?? 0,
+        y: positions[index + 1] ?? 0,
+        z: positions[index + 2] ?? 0,
+      });
+      minY = Math.min(minY, world.y + tile.transform.y);
+    }
+    return minY;
+  }
+  const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
   let minY = Infinity;
   for (const x of [box.min.x, box.max.x]) {
     for (const y of [box.min.y, box.max.y]) {
@@ -157,15 +240,6 @@ export function placedBoundsMinY(tile: TileInstance, positions?: ArrayLike<numbe
         minY = Math.min(minY, rotateByBasis(basis, { x, y, z }).y + tile.transform.y);
       }
     }
-  }
-  if (!positions) return minY;
-  for (let index = 0; index < positions.length; index += 3) {
-    const world = rotateByBasis(basis, {
-      x: positions[index] ?? 0,
-      y: positions[index + 1] ?? 0,
-      z: positions[index + 2] ?? 0,
-    });
-    minY = Math.min(minY, world.y + tile.transform.y);
   }
   return minY;
 }
@@ -199,6 +273,8 @@ function enforceFocus(
   depth: ReadonlyMap<string, number>,
   rootId: string,
   rootSpin: Quarter,
+  attachment?: (tileId: string, face: FaceId) => Vec3 | null,
+  spanFor?: (connection: TileConnection) => number | SpanPlan,
 ) {
   if (!focusConnectionId) return;
   const connection = connections.find((item) => item.id === focusConnectionId);
@@ -215,8 +291,10 @@ function enforceFocus(
   const upstreamPose = placed.get(upstreamId);
   if (!upstream || !downstream || !upstreamPose) return;
   if (isVertical(upstreamFace) || isVertical(downstreamFace)) {
-    const posed = placeByFrame(upstreamPose, upstreamFace, downstream, downstreamFace);
+    const posed = placeByFrame(upstreamPose, upstreamFace, downstream, downstreamFace, pointOn(attachment, upstreamId, upstreamFace), pointOn(attachment, downstreamId, downstreamFace), connectionGap(connection, spanFor));
     if (!posed) return;
+    const plan = readSpan(connection, spanFor);
+    if (plan) posed.position = positionFromPlan(plan, upstreamId === connection.tileAId, upstreamPose, upstreamFace, posed.rotation);
     placed.set(downstreamId, posed);
     return;
   }
@@ -231,13 +309,23 @@ function enforceFocus(
   const parentNormal = normalOf(aimed, upstreamFace);
   const solved = solveTile([{ face: downstreamFace, direction: scale(parentNormal, -1) }], manualMirror(downstream), manualQuarter(downstream));
   if (!solved) return;
-  const span = separation(upstreamId, downstreamId, parentNormal, slots);
-  placed.set(downstreamId, poseOf(add(aimed.position, scale(parentNormal, span)), solved.quarter, solved.mirror));
+  const rotation = manualBasis(solved.mirror, solved.quarter);
+  const focusPlan = readSpan(connection, spanFor);
+  placed.set(downstreamId, {
+    position: focusPlan
+      ? positionFromPlan(focusPlan, upstreamId === connection.tileAId, aimed, upstreamFace, rotation)
+      : seatPosition(aimed, upstreamFace, pointOn(attachment, upstreamId, upstreamFace), rotation, pointOn(attachment, downstreamId, downstreamFace), connectionGap(connection, spanFor)),
+    quarter: solved.quarter,
+    mirror: solved.mirror,
+    rotation,
+  });
 }
 
 function reviewConnections(
   connections: readonly TileConnection[],
   placed: ReadonlyMap<string, Pose>,
+  attachment?: (tileId: string, face: FaceId) => Vec3 | null,
+  spanFor?: (connection: TileConnection) => number | SpanPlan,
 ) {
   const unresolved = new Set<string>();
   for (const connection of connections) {
@@ -251,12 +339,22 @@ function reviewConnections(
     }
     const normalA = rotateByBasis(poseA.rotation, frameA.normal);
     const normalB = rotateByBasis(poseB.rotation, frameB.normal);
-    const centerA = add(poseA.position, rotateByBasis(poseA.rotation, frameA.origin));
-    const centerB = add(poseB.position, rotateByBasis(poseB.rotation, frameB.origin));
+    const plan = readSpan(connection, spanFor);
+    if (plan) {
+      const centerA = add(poseA.position, rotateByBasis(poseA.rotation, plan.localA));
+      const centerB = add(poseB.position, rotateByBasis(poseB.rotation, plan.localB));
+      const faceU = rotateByBasis(poseA.rotation, plan.faceU);
+      const expected = sub(mapTravel(plan.travel, plan.forward, plan.principal, normalA, faceU), scale(normalA, plan.penetration * 2));
+      if (dot(normalA, normalB) > -0.999 || length(sub(sub(centerB, centerA), expected)) > moduleLength(0.08)) unresolved.add(connection.id);
+      continue;
+    }
+    const centerA = add(poseA.position, rotateByBasis(poseA.rotation, pointOn(attachment, connection.tileAId, connection.faceA)));
+    const centerB = add(poseB.position, rotateByBasis(poseB.rotation, pointOn(attachment, connection.tileBId, connection.faceB)));
     const gap = sub(centerB, centerA);
     const along = dot(gap, normalA);
     const sideways = length(sub(gap, scale(normalA, along)));
-    if (dot(normalA, normalB) > -0.999 || Math.abs(along - HYBRID_GAP) > 1e-3 || sideways > 1e-3) {
+    const tolerance = spanFor ? moduleLength(0.08) : 1e-3;
+    if (dot(normalA, normalB) > -0.999 || Math.abs(along - connectionGap(connection, spanFor)) > tolerance || sideways > 1e-3) {
       unresolved.add(connection.id);
     }
   }
@@ -268,7 +366,15 @@ function poseOf(position: Vec3, quarter: Quarter, mirror: Mirror): Pose {
 }
 
 /** Turns the child so its selected face opposes the parent's, then seats it across the hybrid gap. */
-function placeByFrame(parent: Pose, parentFace: FaceId, child: TileInstance, childFace: FaceId): Pose | null {
+function placeByFrame(
+  parent: Pose,
+  parentFace: FaceId,
+  child: TileInstance,
+  childFace: FaceId,
+  parentPoint: Vec3,
+  childPoint: Vec3,
+  gap = HYBRID_GAP,
+): Pose | null {
   const parentFrame = localFrame(parentFace);
   const childFrame = localFrame(childFace);
   if (!parentFrame || !childFrame) return null;
@@ -284,14 +390,85 @@ function placeByFrame(parent: Pose, parentFace: FaceId, child: TileInstance, chi
     [localN, localU, localV],
     [scale(parentN, -1), mirrored ? scale(parentU, -1) : parentU, scale(parentV, -1)],
   );
-  const childOrigin = rotateByBasis(extra, rotateByBasis(manual, childFrame.origin));
-  const parentCenter = add(parent.position, rotateByBasis(parent.rotation, parentFrame.origin));
+  const rotation = multiply(extra, manual);
   return {
-    position: sub(add(parentCenter, scale(parentN, HYBRID_GAP)), childOrigin),
+    position: seatPosition(parent, parentFace, parentPoint, rotation, childPoint, gap),
     quarter: manualQuarter(child),
     mirror: manualMirror(child),
-    rotation: multiply(extra, manual),
+    rotation,
   };
+}
+
+function pointOn(attachment: ((tileId: string, face: FaceId) => Vec3 | null) | undefined, tileId: string, face: FaceId) {
+  return attachment?.(tileId, face) ?? localFrame(face).origin;
+}
+
+function seatPosition(parent: Pose, parentFace: FaceId, parentPoint: Vec3, childRotation: Mat3, childPoint: Vec3, gap = HYBRID_GAP) {
+  const parentNormal = rotateByBasis(parent.rotation, localFrame(parentFace).normal);
+  const parentWorld = add(parent.position, rotateByBasis(parent.rotation, parentPoint));
+  return sub(add(parentWorld, scale(parentNormal, gap)), rotateByBasis(childRotation, childPoint));
+}
+
+/** Layout gap, or the hybrid's solved span when one was requested. */
+function connectionGap(connection: TileConnection, spanFor?: (connection: TileConnection) => number | SpanPlan) {
+  const requested = spanFor?.(connection);
+  const gap = typeof requested === "number" ? requested : requested?.gap;
+  if (typeof gap !== "number" || !Number.isFinite(gap)) return HYBRID_GAP;
+  return Math.min(CONNECTION_SPAN_MAX, Math.max(CONNECTION_SPAN_MIN, gap));
+}
+
+function readSpan(connection: TileConnection, spanFor?: (connection: TileConnection) => number | SpanPlan) {
+  const requested = spanFor?.(connection);
+  if (!requested || typeof requested === "number") return null;
+  return requested;
+}
+
+function positionFromPlan(plan: SpanPlan, parentIsA: boolean, parent: Pose, parentFace: FaceId, childRotation: Mat3) {
+  const source = parentIsA ? plan.localA : plan.localB;
+  const target = parentIsA ? plan.localB : plan.localA;
+  const travel = parentIsA ? plan.travel : scale(plan.travel, -1);
+  const forward = parentIsA ? plan.forward : scale(plan.forward, -1);
+  const principal = parentIsA ? plan.principal : scale(plan.principal, -1);
+  const normal = normalOf(parent, parentFace);
+  const faceU = rotateByBasis(parent.rotation, plan.faceU);
+  const surfaceDelta = sub(mapTravel(travel, forward, principal, normal, faceU), scale(normal, plan.penetration * 2));
+  const parentWorld = add(parent.position, rotateByBasis(parent.rotation, source));
+  return sub(add(parentWorld, surfaceDelta), rotateByBasis(childRotation, target));
+}
+
+function mapTravel(travel: Vec3, forward: Vec3, principal: Vec3, faceNormal: Vec3, faceU: Vec3) {
+  void principal;
+  void faceU;
+  return turnFromTo(forward, faceNormal)(travel);
+}
+
+function turnFromTo(from: Vec3, to: Vec3) {
+  const a = normalize(from);
+  const b = normalize(to);
+  const sine = cross(a, b);
+  const sineLength = length(sine);
+  const cosine = Math.min(1, Math.max(-1, dot(a, b)));
+  if (sineLength < 1e-6) {
+    if (cosine > 0) return (vector: Vec3) => vector;
+    const helper = Math.abs(a.y) < 0.9 ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 };
+    return (vector: Vec3) => rotateAround(vector, normalize(cross(a, helper)), Math.PI);
+  }
+  return (vector: Vec3) => rotateAround(vector, scale(sine, 1 / sineLength), Math.acos(cosine));
+}
+
+function rotateAround(vector: Vec3, axis: Vec3, angle: number) {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  const crossed = cross(axis, vector);
+  return add(add(scale(vector, cosine), scale(crossed, sine)), scale(axis, dot(axis, vector) * (1 - cosine)));
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
+}
+
+function normalize(vector: Vec3) {
+  return scale(vector, 1 / Math.max(1e-8, length(vector)));
 }
 
 function localFrame(face: FaceId) {
@@ -373,22 +550,6 @@ function directionToward(
   const span = Math.hypot(raw.x, raw.z);
   if (span < 1e-6) return null;
   return yaw({ x: raw.x / span, y: 0, z: raw.z / span }, spin);
-}
-
-function separation(
-  parentId: string,
-  childId: string,
-  direction: Vec3,
-  slots: ReadonlyMap<string, TileInstance>,
-) {
-  if (Math.abs(direction.y) > 0.5) {
-    const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
-    return box.max.y - box.min.y + HYBRID_GAP;
-  }
-  const parent = slots.get(parentId);
-  const child = slots.get(childId);
-  if (!parent || !child) return HYBRID_GAP;
-  return Math.hypot(child.transform.x - parent.transform.x, child.transform.z - parent.transform.z);
 }
 
 function solveTile(

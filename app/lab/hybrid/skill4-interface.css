@@ -1,4 +1,4 @@
-﻿/* Hybrid Connection. Selectors stay under .hybrid-view so other stages keep their layout. */
+/* Hybrid Connection. Selectors stay under .hybrid-view so other stages keep their layout. */
 
 .hybrid-view {
   display: flex;
@@ -27,6 +27,24 @@
   min-height: 0;
 }
 
+/* Large white section frames only. Internal colored cards keep their own borders. */
+.hybrid-view > .major-section-frame {
+  --major-frame-radius: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: var(--major-frame-radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 26%),
+    linear-gradient(155deg, rgba(30, 30, 30, 0.94) 0%, rgba(12, 12, 12, 0.97) 46%, rgba(0, 0, 0, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 8px rgba(255, 255, 255, 0.26),
+    0 0 24px rgba(255, 255, 255, 0.16),
+    0 0 52px rgba(255, 255, 255, 0.09),
+    0 0 100px rgba(255, 255, 255, 0.045),
+    0 0 160px rgba(255, 255, 255, 0.02);
+}
+
 .hybrid-process-grid > .hybrid-canvas,
 .hybrid-assembly > .hybrid-canvas,
 .hybrid-connections > .hybrid-som-card {
@@ -49,7 +67,7 @@
 
   .hybrid-process-grid > .hybrid-tile {
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1;
   }
 
   .hybrid-process-grid > .hybrid-canvas {
@@ -77,15 +95,15 @@
   .hybrid-assembly {
     display: grid;
     flex: 1 1 auto;
-    grid-template-columns: minmax(15rem, 0.2fr) minmax(0, 0.36fr) minmax(0, 0.44fr);
-    grid-template-rows: minmax(0, 1fr) minmax(7.5rem, 0.24fr);
+    grid-template-columns: minmax(15rem, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr);
+    grid-template-rows: minmax(0, 1.25fr) minmax(16rem, 0.78fr);
     min-height: 0;
     overflow: hidden;
   }
 
   .hybrid-assembly > .hybrid-tile {
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1;
   }
 
   .hybrid-assembly > .hybrid-canvas {
@@ -121,8 +139,8 @@
 }
 
 [data-view-mode="presentation"] .hybrid-process-grid {
-  grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.36fr) minmax(0, 0.42fr);
-  grid-template-rows: minmax(0, 1fr) minmax(500px, 0.32fr);
+  grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr);
+  grid-template-rows: minmax(0, 1.25fr) minmax(620px, 0.78fr);
   gap: 22px;
 }
 
@@ -130,9 +148,9 @@
   display: grid;
   align-items: stretch;
   overflow: hidden;
-  grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.36fr) minmax(0, 0.42fr);
-  grid-template-rows: minmax(0, 1fr) minmax(500px, 0.32fr);
-  gap: 40px;
+  grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr);
+  grid-template-rows: minmax(0, 1.25fr) minmax(620px, 0.78fr);
+  gap: 28px;
 }
 
 [data-view-mode="desktop"] .hybrid-assembly,
@@ -180,7 +198,31 @@
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board .hybrid-preview {
   height: auto;
-  min-height: 9.5em;
+  min-height: 6.2em;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 12px;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-slots {
+  gap: 0.28em;
+  overflow: hidden;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-slot {
+  gap: 0.18em;
+  padding: 0.28em 0.4em;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-preview {
+  height: 4.2em;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-tile .hybrid-layout-controls {
+  gap: 0.18em;
 }
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board {
@@ -209,7 +251,23 @@
 }
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board .hybrid-criteria {
-  gap: 0.28em;
+  gap: 0.12em;
+  align-self: start;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board .hybrid-criterion {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board .hybrid-criteria-head {
+  margin-bottom: 0;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-slot-board .range-hud {
+  height: 8px;
+  margin-top: 0;
 }
 
 [data-view-mode="presentation"] .hybrid-assembly .panel-title,
@@ -304,27 +362,65 @@
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-som-board:has(> :only-child) {
   container-type: size;
-  grid-template-columns: minmax(0, max-content);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  justify-content: start;
+  justify-content: stretch;
 }
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child {
-  width: min(100cqw, 100cqh);
+  width: 100%;
   max-width: 100%;
   height: 100%;
   min-height: 0;
   min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(16rem, 0.78fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  column-gap: 14px;
+  align-items: stretch;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child > .hybrid-connection-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child > .hybrid-matrix {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child > .hybrid-layout-controls,
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child > .hybrid-units {
+  grid-column: 1;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-facts {
+  display: contents;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-facts-preview {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  height: 100%;
+  min-height: 0;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly .hybrid-som-facts-copy {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  min-height: 0;
 }
 
 [data-view-mode="presentation"] .hybrid-assembly .hybrid-som-mini:only-child .hybrid-matrix-grid {
   flex: 1 1 auto;
   width: auto;
-  height: auto;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 1;
-  align-self: start;
+  justify-self: center;
+  align-self: center;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-template-rows: repeat(5, minmax(0, 1fr));
 }
@@ -833,6 +929,212 @@
   border-radius: var(--frame-radius);
 }
 
+.hybrid-process-row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 1.15fr 0.95fr 1.2fr 1.2fr;
+  gap: 22px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.hybrid-process-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-process-pair,
+.hybrid-process-column,
+.hybrid-process-sequence {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.35em;
+  min-height: 0;
+}
+
+.hybrid-process-column {
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hybrid-process-sequence {
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.65em;
+}
+
+.hybrid-process-profiles-stack {
+  flex-direction: column;
+}
+
+.hybrid-process-profiles-stack > .hybrid-process-profiles {
+  flex: 1 1 0;
+}
+
+.hybrid-process-profiles {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.55em;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-process-profiles .hybrid-process-figure svg,
+.hybrid-process-sequence .hybrid-process-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-process-parent,
+.hybrid-process-figure {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.2em;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.hybrid-process-figure[data-active] svg {
+  outline: 1px solid rgba(242, 242, 238, 0.7);
+  outline-offset: 3px;
+}
+
+.hybrid-process-sample {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.35em;
+  min-height: 0;
+}
+
+.hybrid-process-tags {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0.15em 0;
+  list-style: none;
+  font-size: 0.62em;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.hybrid-process-parent[data-side="a"] .hybrid-process-tags {
+  color: #f26b28;
+}
+
+.hybrid-process-parent[data-side="b"] .hybrid-process-tags {
+  color: #3ec8d0;
+}
+
+.hybrid-process-preview,
+.hybrid-process-evolution,
+.hybrid-som-facts-preview {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hybrid-process-preview canvas,
+.hybrid-process-evolution canvas,
+.hybrid-som-facts-preview canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-process-parent figcaption,
+.hybrid-process-figure figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05em;
+  font-size: 0.62em;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.hybrid-process-parent figcaption em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.hybrid-process-figure svg {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hybrid-process-figure svg polygon {
+  fill: none;
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+}
+
+.hybrid-som-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 0.4em 0.55em;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-som-facts-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28em;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-assembly > .hybrid-layout-controls,
+.hybrid-assembly > .hybrid-units,
+.hybrid-assembly > .hybrid-pending {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  z-index: 3;
+  align-self: start;
+  justify-self: end;
+  margin: 0;
+}
+
+.hybrid-som-facts-preview {
+  flex: 1 1 auto;
+  min-height: 8em;
+}
+
+[data-view-mode="desktop"] .hybrid-process-row {
+  grid-column: auto;
+  grid-row: auto;
+  grid-template-columns: 1fr 1fr;
+  min-height: 32rem;
+}
+
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-tile,
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-canvas,
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-som,
+[data-view-mode="presentation"] .hybrid-assembly > .hybrid-process-row {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .hybrid-som-card {
   display: flex;
   flex: 1 1 auto;
@@ -1095,6 +1397,29 @@
   overflow: hidden;
 }
 
+.hybrid-catalog-body {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.8em;
+  min-height: 0;
+  min-width: 0;
+}
+
+.hybrid-catalog-batches {
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.hybrid-catalog-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.8em;
+  min-width: 0;
+  min-height: 0;
+}
+
 .hybrid-catalog-bar {
   display: flex;
   flex-wrap: wrap;
@@ -1113,14 +1438,36 @@
 }
 
 .hybrid-catalog-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.45em;
 }
 
 .hybrid-catalog-preview {
-  height: 14em;
-  min-height: 12em;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  height: auto;
+  min-height: 0;
+}
+
+.hybrid-catalog-preview .hybrid-preview-canvas {
+  transform: translateX(10%);
+}
+
+.hybrid-catalog-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  margin-top: 14.45em;
+  pointer-events: none;
+}
+
+.hybrid-catalog-copy .hybrid-layout-controls {
+  pointer-events: auto;
 }
 
 .hybrid-catalog-archetypes {
@@ -1146,14 +1493,92 @@
   border-radius: var(--frame-radius);
 }
 
+.hybrid-catalog-preview {
+  cursor: pointer;
+}
+
+.hybrid-catalog-inspect {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 5vw;
+  background: rgba(0, 0, 0, 0.86);
+}
+
+.hybrid-catalog-inspect-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22em, 34em);
+  gap: 1.2rem;
+  width: 88vw;
+  height: 86vh;
+}
+
+.hybrid-catalog-inspect-stage {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.hybrid-catalog-inspect-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  min-height: 0;
+  overflow: auto;
+  color: var(--muted);
+  font-size: 1.65em;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hybrid-catalog-inspect-info strong {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.hybrid-catalog-inspect-info ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hybrid-catalog-inspect-info .hybrid-som-close {
+  align-self: flex-start;
+  font-size: 0.72em;
+}
+
+@media (max-width: 979px) {
+  .hybrid-catalog-inspect-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 88vh;
+  }
+
+  .hybrid-catalog-inspect-stage {
+    min-height: 64vh;
+  }
+
+  .hybrid-catalog-inspect-info {
+    max-height: 20vh;
+  }
+}
+
 [data-view-mode="presentation"] .hybrid-catalog-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 40px;
 }
 
 [data-view-mode="presentation"] .hybrid-catalog-preview {
-  height: 11em;
-  min-height: 9em;
+  height: auto;
+  min-height: 0;
+}
+
+[data-view-mode="presentation"] .hybrid-catalog-copy {
+  margin-top: 11.45em;
 }
 
 .hybrid-slot,
@@ -1185,11 +1610,124 @@
 }
 
 .hybrid-som-inspect-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.86fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 1.2rem;
+  width: 96vw;
+  height: 92vh;
+}
+
+.hybrid-som-isolate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-som-isolate-label {
+  position: absolute;
+  z-index: 2;
+  top: 0.7rem;
+  left: 0.9rem;
+  right: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.3rem;
+  align-items: flex-end;
+  pointer-events: none;
+  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hybrid-som-isolate-label p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.hybrid-som-isolate-label strong,
+.hybrid-som-isolate-label span,
+.hybrid-som-isolate-label .hybrid-som-id {
+  display: block;
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.hybrid-som-isolate-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hybrid-som-isolate-stage .hybrid-stage-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-som-inspect-column {
+  display: grid;
+  grid-template-columns: auto auto var(--som);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  justify-content: start;
+  align-content: stretch;
+  column-gap: 0.45rem;
+  row-gap: 0.4rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hybrid-som-column-head,
+.hybrid-som-inspect-column > .hybrid-som-hover {
+  grid-column: 1 / -1;
+}
+
+.hybrid-som-column-head {
   display: flex;
   align-items: center;
-  gap: 1.6rem;
-  max-width: 96vw;
-  max-height: 94vh;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin: 0;
+  color: var(--text);
+  font-size: calc(var(--som) / 28);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hybrid-som-column-head p {
+  margin: 0;
+}
+
+.hybrid-som-inspect-column > .hybrid-som-y-words {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.hybrid-som-inspect-column > .hybrid-som-y {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.hybrid-som-inspect-column > .hybrid-som-square {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+.hybrid-som-inspect-column > .hybrid-som-x {
+  grid-column: 3;
+  grid-row: 4;
+  width: 100%;
+}
+
+.hybrid-som-inspect-column > .hybrid-som-info {
+  grid-column: 3;
+  grid-row: 5;
 }
 
 .hybrid-som-inspect-stage {
@@ -1341,11 +1879,11 @@
 
 .hybrid-som-info {
   display: flex;
-  flex: 0 0 auto;
   flex-direction: column;
   gap: 0.55em;
-  width: calc(var(--som) * 0.4);
-  max-height: 88vh;
+  width: 100%;
+  min-height: 0;
+  max-height: 100%;
   overflow: auto;
   padding: 0.7em 0.75em;
   border: 1px solid rgba(242, 242, 238, 0.18);
@@ -1593,13 +2131,23 @@
 
 @media (max-width: 979px) {
   .hybrid-som-inspect-panel {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    max-height: 94vh;
     overflow: auto;
   }
 
+  .hybrid-som-isolate-stage {
+    height: 42vh;
+    min-height: 16rem;
+  }
+
+  .hybrid-som-inspect-column {
+    overflow: visible;
+  }
+
   .hybrid-som-info {
-    width: min(94vw, calc(var(--som) * 0.55));
+    width: 100%;
     max-height: none;
   }
 }

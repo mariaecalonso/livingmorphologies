@@ -1,7 +1,7 @@
 import type { IsoMesh } from "../scan/isomesh";
 import type { TypologyId } from "../types";
 
-/** Authoring box for a Skill 04 module mock. Drawn at 1/20 so it fills one registration cell. */
+/** Authoring box for a Skill 04 module mock. Kept at this size; the cell does not shrink it. */
 export const MODULE_BOX = 20;
 
 /** Lobby terracotta, workspace white, gathering cyan. These are the existing interface tokens. */
@@ -97,9 +97,8 @@ export function moduleMock(archetypeId: string): IsoMesh {
     }
     tube(points, 0.55, positions, normals, indices);
   }
-  const scale = 1 / MODULE_BOX;
   const mesh: IsoMesh = {
-    positions: Float32Array.from(positions.map((value) => value * scale)),
+    positions: Float32Array.from(positions),
     normals: Float32Array.from(normals),
     indices: Uint32Array.from(indices),
     triangles: indices.length / 3,

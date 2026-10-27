@@ -1,4 +1,4 @@
-import { registrationEnvelope, VIEW_SCAN, type Skill4ModuleRecord, type Vec3 } from "./contract";
+import { moduleLength, registrationEnvelope, VIEW_SCAN, type Skill4ModuleRecord, type Vec3 } from "./contract";
 import type { Mat3 } from "./tile-basis";
 import { adaptModule, catalogIdentity, type ModuleHandoff } from "./adapt";
 import { scheduleSkill03Preflight } from "./geometry-preflight";
@@ -27,9 +27,9 @@ export const DEFAULT_TILE_ARCHETYPES: Record<TileId, string> = {
 
 /**
  * Open distance between two connected registration faces.
- * The connector is generated across this gap. 0.45 is just under half a plan cell.
+ * The connector is generated across this gap. 0.45 of a module, just under half a plan cell.
  */
-export const HYBRID_GAP = 0.45;
+export const HYBRID_GAP = moduleLength(0.45);
 
 export function envelopeWidth() {
   const box = registrationEnvelope(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
@@ -87,7 +87,24 @@ export function unavailableModule(archetypeId: string): ModuleHandoff {
 
 /** Uses a loaded fixture when one exists. Never copies another archetype's mesh. */
 export function resolveTileModule(archetypeId: string, loaded: ReadonlyMap<string, ModuleHandoff>) {
+  if (!archetypeId) return unselectedModule();
   return loaded.get(archetypeId) ?? unavailableModule(archetypeId);
+}
+
+function unselectedModule(): ModuleHandoff {
+  return {
+    status: "unavailable",
+    moduleId: "",
+    revision: 0,
+    archetypeId: "",
+    source: "skill03",
+    provisional: true,
+    selectedFinal: false,
+    reason: "Select geometry",
+    substituted: false,
+    identity: null,
+    geometry: null,
+  };
 }
 
 export function initialTiles(loaded: ReadonlyMap<string, ModuleHandoff>): TileInstance[] {

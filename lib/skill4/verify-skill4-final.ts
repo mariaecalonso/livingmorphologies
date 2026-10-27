@@ -1,4 +1,3 @@
-import { columnHeight } from "../scan/isomesh";
 import type { IsoMesh } from "../scan/isomesh";
 import { evaluateAggregation } from "./aggregation";
 import { resolveAssemblyHybrid } from "./assembly-hybrid";
@@ -95,6 +94,8 @@ function failedField(signature: string, status: "blocked" | "empty" | "invalid")
     vertexCount: 0,
     triangleCount: 0,
     reason: status,
+    branches: 0,
+    openings: 0,
   }));
   return {
     version: GENERATED_HYBRID_FIELD_SETTINGS.version,
@@ -163,7 +164,7 @@ async function main() {
     : { ...tile, mirror: "x" as const });
   const turnedHybrid = resolveAssemblyHybrid(connected, turned, loaded);
   assert(turnedHybrid.source === "real" && turnedHybrid.geometry !== null && turnedHybrid.geometry.positions !== selected.geometry.positions, "rotated and mirrored placement writes a new mesh");
-  const height = columnHeight(VIEW_SCAN.spacing, VIEW_SCAN.yaw);
+  const height = registrationEnvelope().max.y - registrationEnvelope().min.y;
   const stacked = [tiles[0], { ...tiles[1], transform: { x: 0, y: height, z: 0 } }];
   const vertical = reconcileConnections([], stacked, loaded)[0];
   if (!vertical || (vertical.faceA !== "T" && vertical.faceA !== "B")) throw new Error("stacked tiles do not meet on a vertical face");

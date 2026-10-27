@@ -4,8 +4,10 @@ import { placedFaceFrame, resolveAssemblyHybrid, sectionCenter } from "./assembl
 import { detectAdjacencies, type TileConnection } from "./connections";
 import type { FaceId, Vec3 } from "./contract";
 import { currentGeneratedField } from "./hybrid-display";
-import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
-import { HYBRID_GAP, type TileInstance } from "./tiles";
+import { HYBRID_GENERATOR_SETTINGS, sectionReach } from "./hybrid-generator";
+import { SECTIONAL_GENERATOR_SETTINGS } from "./section-hybrid";
+import { CONNECTION_SPAN_MAX, CONNECTION_SPAN_MIN } from "./connection-span";
+import { type TileInstance } from "./tiles";
 
 /**
  * Relational fit for one selected hybrid.
@@ -157,7 +159,8 @@ function selectedFacesMeet(
   const sideY = gap.y - frameA.normal.y * along;
   const sideZ = gap.z - frameA.normal.z * along;
   const oppose = frameA.normal.x * frameB.normal.x + frameA.normal.y * frameB.normal.y + frameA.normal.z * frameB.normal.z;
-  return oppose < -0.999 && Math.abs(along - HYBRID_GAP) <= 1e-3 && Math.hypot(sideX, sideY, sideZ) <= 1e-3;
+  const span = along >= CONNECTION_SPAN_MIN - 1e-3 && along <= CONNECTION_SPAN_MAX + 1e-3;
+  return oppose < -0.999 && span && Math.hypot(sideX, sideY, sideZ) <= 1e-3;
 }
 
 function contactFor(
@@ -176,15 +179,20 @@ function contactFor(
   return {
     tileId,
     face,
-    center: sectionCenter(placed, HYBRID_GENERATOR_SETTINGS.sectionDepth),
+    center: sectionCenter(placed, sectionReach(placed)),
     normal: { x: placed.normal.x, y: placed.normal.y, z: placed.normal.z },
   };
 }
 
 function ringSampleCount(mesh: IsoMesh) {
-  const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
   const vertexCount = mesh.positions.length / 3;
-  if (!Number.isInteger(vertexCount) || vertexCount % steps !== 0) return null;
+  if (!Number.isInteger(vertexCount) || vertexCount < 2) return null;
+  const sectionalSamples = SECTIONAL_GENERATOR_SETTINGS.samples;
+  if (vertexCount % sectionalSamples === 0 && vertexCount / sectionalSamples >= 2) {
+    return { sampleCount: sectionalSamples, steps: vertexCount / sectionalSamples };
+  }
+  const steps = HYBRID_GENERATOR_SETTINGS.loftSteps;
+  if (vertexCount % steps !== 0) return null;
   return { sampleCount: vertexCount / steps, steps };
 }
 

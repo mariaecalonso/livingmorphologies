@@ -102,7 +102,7 @@ const turned = syncConnectionInputs(
 );
 assert(turned.signature !== east.signature, "a face change changes the A-B signature");
 assert(turned.generatedHybridField === null && turned.candidateField === null && turned.generationStatus === "not-generated", "the A-B field is cleared");
-assert(turned.selectedMockId === "H02", "clearing A-B keeps its selected hybrid id");
+assert(turned.selectedMockId === "", "a face change clears the selected hybrid so the new pair can choose its own");
 assert(north.generatedHybridField === northField && north.signature === northField.connectionSignature, "A-C remains stored");
 
 const reconciled = reconcileConnections([turned, north], tiles, loaded);

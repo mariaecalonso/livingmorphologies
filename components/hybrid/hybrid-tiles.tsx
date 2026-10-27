@@ -10,8 +10,8 @@ import { tileBasis } from "@/lib/skill4/tile-basis";
 import type { GroupId } from "@/lib/types";
 import type { ModuleHandoff, ModuleIdentity } from "@/lib/skill4/adapt";
 import { MeshPreview } from "./mesh-preview";
-import { moduleMock, TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
-import { faceFrameOutline } from "@/lib/skill4/face-outline";
+import { TYPOLOGY_COLOR } from "@/lib/skill4/module-mock";
+import { FACE_HIGHLIGHT_COLOR, FACE_HIGHLIGHT_OPACITY, faceSurfaceHighlight } from "@/lib/skill4/face-outline";
 import { syntheticModuleLabel } from "@/lib/skill4/synthetic-modules";
 import { useHybrid } from "./hybrid-state";
 
@@ -172,8 +172,11 @@ function TileSelectionCard({
     : null;
   const testLabel = syntheticMode ? syntheticModuleLabel(handoff.status === "ready" ? handoff.moduleId : tile.moduleId) : null;
   const mesh = previewMesh(syntheticMode, tile.archetypeId, handoff);
-  const guides = handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") && activeFace
-    ? [{ mesh: faceFrameOutline(handoff.faces[activeFace]), color: [0.95, 0.78, 0.42] as [number, number, number] }]
+  const coat = mesh && handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") && activeConnection?.id === selectedConnectionId && activeFace
+    ? faceSurfaceHighlight(mesh, handoff.faces[activeFace])
+    : null;
+  const guides = coat
+    ? [{ mesh: coat, color: FACE_HIGHLIGHT_COLOR, opacity: FACE_HIGHLIGHT_OPACITY }]
     : [];
   return (
     <article
@@ -193,6 +196,7 @@ function TileSelectionCard({
             onChange={(event) => onArchetype(event.target.value)}
             onClick={(event) => event.stopPropagation()}
           >
+            <option value="">Select geometry</option>
             {TYPOLOGIES.map((typology) => (
               <optgroup key={typology.id} label={typology.label}>
                 {typology.archetypes.map((archetype) => (
@@ -204,11 +208,11 @@ function TileSelectionCard({
             ))}
           </select>
         </label>
-        {testLabel ? <p className="hybrid-identity" data-synthetic-label={tile.instanceId}>{testLabel}</p> : identity ? <p className="hybrid-identity">{identity.name}</p> : null}
-        <p className="hybrid-units">{tile.moduleId}</p>
-        <p className="hybrid-typology">{identity?.typologyLabel ?? "Typology unavailable"}</p>
-        <p className="hybrid-source">{sourceLine(handoff)}</p>
-        <p className="hybrid-status" data-available={status.available || undefined}>{status.label}</p>
+        {testLabel ? <p className="hybrid-identity" data-synthetic-label={tile.instanceId}>{testLabel}</p> : identity ? <p className="hybrid-identity">{identity.name}</p> : <p className="hybrid-missing">Select geometry</p>}
+        {tile.archetypeId ? <p className="hybrid-units">{tile.moduleId}</p> : null}
+        {tile.archetypeId ? <p className="hybrid-typology">{identity?.typologyLabel ?? "Typology unavailable"}</p> : null}
+        {tile.archetypeId ? <p className="hybrid-source">{sourceLine(handoff)}</p> : null}
+        {tile.archetypeId ? <p className="hybrid-status" data-available={status.available || undefined}>{status.label}</p> : null}
       </div>
       <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-module={handoff.status === "ready" ? handoff.moduleId : ""} data-preview-triangles={mesh?.triangles ?? 0} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-spin={tile.rotationQuarter}>
         {mesh ? (
@@ -223,9 +227,9 @@ function TileSelectionCard({
             basis={tileBasis(tile)}
           />
         ) : null}
-        {handoff.status === "ready" ? null : <p className="hybrid-missing">{handoff.reason}</p>}
+        {tile.archetypeId && handoff.status !== "ready" ? <p className="hybrid-missing">{handoff.reason}</p> : null}
       </div>
-      <div className="hybrid-face-diagram" aria-label={`${tile.instanceId} faces`}>
+      {tile.archetypeId ? <div className="hybrid-face-diagram" aria-label={`${tile.instanceId} faces`}>
         {FACE_LAYOUT.map(({ face, area }) => (
           <button
             key={face}
@@ -244,7 +248,7 @@ function TileSelectionCard({
             {face}
           </button>
         ))}
-      </div>
+      </div> : null}
       {identity ? <CriteriaList identity={identity} /> : null}
     </article>
   );
@@ -313,9 +317,9 @@ function sourceLine(handoff: ModuleHandoff) {
 }
 
 function previewMesh(syntheticMode: boolean, archetypeId: string, handoff: ModuleHandoff) {
+  if (!archetypeId) return null;
   if (handoff.status === "ready" && (syntheticMode || handoff.source === "skill03")) return handoff.geometry;
-  if (syntheticMode || handoff.source === "skill03") return null;
-  return moduleMock(archetypeId);
+  return null;
 }
 
 function previewColor(typologyId?: ModuleIdentity["typologyId"]): [number, number, number] {

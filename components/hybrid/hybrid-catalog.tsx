@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import {
   CATALOG_FILTERS,
   captureCatalogEntry,
+  catalogBatch,
   catalogBucket,
   catalogCountLabel,
   catalogPreview,
@@ -19,8 +19,10 @@ import {
   type CatalogFilter,
 } from "@/lib/skill4/catalog";
 import { catalogServerSnapshot, readCatalog, subscribeCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
+import { CatalogInspect, catalogInspectionMeshes } from "./catalog-inspect";
 import { MeshPreview } from "./mesh-preview";
 import { useHybrid } from "./hybrid-state";
+import { IDENTITY_BASIS, rotateByBasis } from "@/lib/skill4/tile-basis";
 import { SyntheticTestToggle } from "./synthetic-test-toggle";
 
 export function HybridCatalog() {
@@ -28,10 +30,128 @@ export function HybridCatalog() {
   const entries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
   const [filter, setFilter] = useState<CatalogFilter>(catalogBucket(tiles.length));
   const [scope, setScope] = useState<"iterations" | "selected" | "rerun">("iterations");
+  const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11">("all");
   const [error, setError] = useState<string | null>(null);
+  const [inspectId, setInspectId] = useState<string | null>(null);
+  const [test4, setTest4] = useState<CatalogEntry[]>([]);
+  const [test5, setTest5] = useState<CatalogEntry[]>([]);
+  const [test6, setTest6] = useState<CatalogEntry[]>([]);
+  const [test7, setTest7] = useState<CatalogEntry[]>([]);
+  const [test8, setTest8] = useState<CatalogEntry[]>([]);
+  const [test9, setTest9] = useState<CatalogEntry[]>([]);
+  const [test10, setTest10] = useState<CatalogEntry[]>([]);
+  const [test11, setTest11] = useState<CatalogEntry[]>([]);
   const router = useRouter();
+  useEffect(() => {
+    let cancel = false;
+    void fetch("/skill4/SKILL04-STRESS-TEST-04-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest4(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_4" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-05-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest5(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_5" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-06-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest6(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_6" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-07-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest7(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_7" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-08-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest8(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_8" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-09-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest9(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_9" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-10-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest10(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_10" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    void fetch("/skill4/SKILL04-STRESS-TEST-11-catalog.json")
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows: unknown) => {
+        if (cancel || !Array.isArray(rows)) return;
+        setTest11(rows.filter((entry): entry is CatalogEntry => {
+          if (!entry || typeof entry !== "object") return false;
+          const record = entry as CatalogEntry;
+          return record.batchId === "TEST_11" && typeof record.id === "string" && Array.isArray(record.tiles);
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, []);
+  useEffect(() => {
+    const current = readCatalog();
+    let changed = false;
+    const next = current.map((entry) => {
+      if (entry.batchId || !/^S04 TEST \d+$/.test(entry.id)) return entry;
+      changed = true;
+      return { ...entry, batchId: "TEST_1" };
+    });
+    if (changed) writeCatalog(next);
+  }, []);
   const iterations = entries.filter((entry) => entry.rerunNeeded !== true);
-  const visible = scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : filterCatalog(iterations, filter);
+  const storedIds = new Set(iterations.map((entry) => entry.id));
+  const catalog = [...iterations, ...test4.filter((entry) => !storedIds.has(entry.id)), ...test5.filter((entry) => !storedIds.has(entry.id)), ...test6.filter((entry) => !storedIds.has(entry.id)), ...test7.filter((entry) => !storedIds.has(entry.id)), ...test8.filter((entry) => !storedIds.has(entry.id)), ...test9.filter((entry) => !storedIds.has(entry.id)), ...test10.filter((entry) => !storedIds.has(entry.id)), ...test11.filter((entry) => !storedIds.has(entry.id))];
+  const batchVisible = filterCatalog(catalog, filter).filter((entry) => batch === "all" || catalogBatch(entry) === batch);
+  const visible = scope === "selected" ? siteLibraryEntries(entries) : scope === "rerun" ? rerunEntries(entries) : batchVisible;
+  const inspected = catalog.find((entry) => entry.id === inspectId) ?? null;
 
   const save = () => {
     const entry = captureCatalogEntry(nextCatalogId(readCatalog()), tiles, connections, count, arrangement, loaded, syntheticMode);
@@ -60,6 +180,22 @@ export function HybridCatalog() {
 
   return (
     <main className="hybrid-view hybrid-catalog">
+      <div className="hybrid-catalog-body">
+      <aside className="hybrid-layout-controls hybrid-catalog-batches" role="group" aria-label="Stress test batch">
+        <button type="button" data-active={batch === "all" || undefined} onClick={() => setBatch("all")}>All</button>
+        <button type="button" data-active={batch === "TEST_1" || undefined} onClick={() => setBatch("TEST_1")}>Test 1</button>
+        <button type="button" data-active={batch === "TEST_2" || undefined} onClick={() => setBatch("TEST_2")}>Test 2</button>
+        <button type="button" data-active={batch === "TEST_3" || undefined} onClick={() => setBatch("TEST_3")}>Test 3</button>
+        <button type="button" data-active={batch === "TEST_4" || undefined} onClick={() => setBatch("TEST_4")}>Test 4</button>
+        <button type="button" data-active={batch === "TEST_5" || undefined} onClick={() => setBatch("TEST_5")}>Test 5</button>
+        <button type="button" data-active={batch === "TEST_6" || undefined} onClick={() => setBatch("TEST_6")}>Test 6</button>
+        <button type="button" data-active={batch === "TEST_7" || undefined} onClick={() => setBatch("TEST_7")}>Test 7</button>
+        <button type="button" data-active={batch === "TEST_8" || undefined} onClick={() => setBatch("TEST_8")}>Test 8</button>
+        <button type="button" data-active={batch === "TEST_9" || undefined} onClick={() => setBatch("TEST_9")}>Test 9</button>
+        <button type="button" data-active={batch === "TEST_10" || undefined} onClick={() => setBatch("TEST_10")}>Test 10</button>
+        <button type="button" data-active={batch === "TEST_11" || undefined} onClick={() => setBatch("TEST_11")}>Test 11</button>
+      </aside>
+      <div className="hybrid-catalog-main">
       <div className="hybrid-catalog-bar">
         <SyntheticTestToggle />
         <div className="hybrid-layout-controls" role="group" aria-label="Catalog">
@@ -90,24 +226,56 @@ export function HybridCatalog() {
       ) : (
         <div className="hybrid-catalog-grid">
           {visible.map((entry) => (
-            <CatalogCard key={entry.id} entry={entry} onOpen={() => open(entry)} onDelete={() => remove(entry.id)} onSelect={() => selectForSite(entry)} />
+            <CatalogCard
+              key={entry.id}
+              entry={entry}
+              onOpen={() => open(entry)}
+              onInspect={() => setInspectId(entry.id)}
+              onDelete={() => remove(entry.id)}
+              onSelect={() => selectForSite(entry)}
+            />
           ))}
         </div>
       )}
+      {inspected ? (
+        <CatalogInspect
+          entry={inspected}
+          loaded={loaded}
+          onClose={() => setInspectId(null)}
+          onRestore={() => open(inspected)}
+        />
+      ) : null}
+      </div>
+      </div>
     </main>
   );
 }
 
-function CatalogCard({ entry, onOpen, onDelete, onSelect }: { entry: CatalogEntry; onOpen: () => void; onDelete: () => void; onSelect: () => void }) {
+function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect }: { entry: CatalogEntry; onOpen: () => void; onInspect: () => void; onDelete: () => void; onSelect: () => void }) {
   const { loaded, syntheticMode } = useHybrid();
+  const cardRef = useRef<HTMLElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver((entries) => {
+      setShown(entries.some((item) => item.isIntersecting));
+    }, { rootMargin: "160px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const syntheticLoaded = syntheticMode && loaded.get(entry.tiles[0]?.archetypeId ?? "")?.moduleId.startsWith("synthetic-test:");
-  const preview = entry.testData && !syntheticLoaded ? [] : catalogPreview(entry, loaded);
+  const viewed = shown && !(entry.testData && !syntheticLoaded) ? catalogInspectionMeshes(entry, loaded) : null;
+  const preview = shown ? (viewed?.meshes.length ? viewed.meshes : catalogPreview(entry, loaded)) : [];
+  const connected = preview.some((mesh) => mesh.kind === 1);
   return (
-    <article className="hybrid-slot hybrid-catalog-card">
-      <div className="hybrid-preview hybrid-catalog-preview">
-        {preview.length > 0 ? <MeshPreview mesh={frameAssembly(preview)} kind={0} contain /> : <p className="hybrid-missing">{entry.testData && !syntheticLoaded ? "TEST DATA · synthetic modules are off" : "Geometry unavailable"}</p>}
+    <article ref={cardRef} className="hybrid-slot hybrid-catalog-card">
+      <div className="hybrid-preview hybrid-catalog-preview" onClick={onInspect}>
+        {shown && preview.length > 0 ? <MeshPreview placed={frameCatalog(preview)} contain turn fitScale={1.6} /> : shown ? <p className="hybrid-missing">{entry.testData && !syntheticLoaded ? "TEST DATA · synthetic modules are off" : "Geometry unavailable"}</p> : null}
       </div>
+      <div className="hybrid-catalog-copy">
       <p className="hybrid-identity">{entry.id}</p>
+      {shown && entry.batch?.status === "failed" && !connected ? <p className="hybrid-units">FAILED CONNECTION</p> : null}
       {entry.testData ? <p className="hybrid-units">TEST DATA</p> : null}
       {entry.rerunNeeded ? <p className="hybrid-units">Rerun needed{entry.parentAssemblyId ? ` · from ${entry.parentAssemblyId}` : ""}</p> : null}
       {entry.selected ? <p className="hybrid-units">Selected for the site</p> : null}
@@ -124,59 +292,100 @@ function CatalogCard({ entry, onOpen, onDelete, onSelect }: { entry: CatalogEntr
         <button type="button" data-active={entry.selected || undefined} onClick={onSelect}>{entry.selected ? "Selected" : "Select for site"}</button>
         <button type="button" onClick={onDelete} aria-label={`Delete ${entry.id}`}>Delete</button>
       </div>
+      </div>
     </article>
   );
 }
 
-function frameAssembly(instances: readonly PlacedMesh[]): IsoMesh {
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const indices: number[] = [];
-  let offset = 0;
+function frameCatalog(instances: readonly PlacedMesh[]): PlacedMesh[] {
+  const groups = new Map<boolean, { positions: number[]; normals: number[]; indices: number[] }>();
+  const ensure = (palette: boolean) => {
+    const found = groups.get(palette);
+    if (found) return found;
+    const next = { positions: [] as number[], normals: [] as number[], indices: [] as number[] };
+    groups.set(palette, next);
+    return next;
+  };
   for (const instance of instances) {
     const source = instance.mesh;
+    const palette = instance.palette === true || instance.kind === 1;
+    const group = ensure(palette);
     const angle = instance.spin ?? 0;
     const cosine = Math.cos(angle);
     const sine = Math.sin(angle);
     const mirror = instance.mirror ?? 0;
+    const base = group.positions.length / 3;
     for (let index = 0; index < source.positions.length; index += 3) {
-      let x = source.positions[index];
-      let y = source.positions[index + 1];
-      let z = source.positions[index + 2];
-      if (mirror === 1) x = -x;
-      if (mirror === 2) y = -y;
-      if (mirror === 3) z = -z;
-      const spunX = x * cosine + z * sine;
-      const spunZ = -x * sine + z * cosine;
-      positions.push(spunX + instance.translate.x, y + instance.translate.y, spunZ + instance.translate.z);
-      normals.push(source.normals[index], source.normals[index + 1], source.normals[index + 2]);
+      const turned = rotateByBasis(instance.basis ?? IDENTITY_BASIS, {
+        x: source.positions[index],
+        y: source.positions[index + 1],
+        z: source.positions[index + 2],
+      });
+      const normal = rotateByBasis(instance.basis ?? IDENTITY_BASIS, {
+        x: source.normals[index] ?? 0,
+        y: source.normals[index + 1] ?? 1,
+        z: source.normals[index + 2] ?? 0,
+      });
+      let x = turned.x;
+      let y = turned.y;
+      let z = turned.z;
+      let nx = normal.x;
+      let ny = normal.y;
+      let nz = normal.z;
+      if (mirror === 1) { x = -x; nx = -nx; }
+      if (mirror === 2) { y = -y; ny = -ny; }
+      if (mirror === 3) { z = -z; nz = -nz; }
+      group.positions.push(x * cosine + z * sine + instance.translate.x, y + instance.translate.y, -x * sine + z * cosine + instance.translate.z);
+      group.normals.push(nx * cosine + nz * sine, ny, -nx * sine + nz * cosine);
     }
-    for (const index of source.indices) indices.push(index + offset);
-    offset += source.positions.length / 3;
+    for (const index of source.indices) group.indices.push(index + base);
   }
   let cx = 0;
   let cy = 0;
   let cz = 0;
-  const count = positions.length / 3;
-  for (let index = 0; index < positions.length; index += 3) {
-    cx += positions[index];
-    cy += positions[index + 1];
-    cz += positions[index + 2];
+  let count = 0;
+  for (const group of groups.values()) {
+    for (let index = 0; index < group.positions.length; index += 3) {
+      cx += group.positions[index];
+      cy += group.positions[index + 1];
+      cz += group.positions[index + 2];
+      count += 1;
+    }
   }
   if (count > 0) {
     cx /= count;
     cy /= count;
     cz /= count;
-    for (let index = 0; index < positions.length; index += 3) {
-      positions[index] -= cx;
-      positions[index + 1] -= cy;
-      positions[index + 2] -= cz;
+    for (const group of groups.values()) {
+      for (let index = 0; index < group.positions.length; index += 3) {
+        group.positions[index] -= cx;
+        group.positions[index + 1] -= cy;
+        group.positions[index + 2] -= cz;
+      }
     }
   }
-  return {
-    positions: Float32Array.from(positions),
-    normals: Float32Array.from(normals),
-    indices: Uint32Array.from(indices),
-    triangles: indices.length / 3,
-  };
+  const origin = { x: 0, y: 0, z: 0 };
+  const packed: PlacedMesh[] = [];
+  const parent = groups.get(false);
+  const hybrid = groups.get(true);
+  if (parent && parent.indices.length > 0) {
+    packed.push({
+      id: "preview",
+      mesh: { positions: Float32Array.from(parent.positions), normals: Float32Array.from(parent.normals), indices: Uint32Array.from(parent.indices), triangles: parent.indices.length / 3 },
+      translate: origin,
+      selected: false,
+      color: [1, 1, 1],
+    });
+  }
+  if (hybrid && hybrid.indices.length > 0) {
+    packed.push({
+      id: "hybrid",
+      mesh: { positions: Float32Array.from(hybrid.positions), normals: Float32Array.from(hybrid.normals), indices: Uint32Array.from(hybrid.indices), triangles: hybrid.indices.length / 3 },
+      translate: origin,
+      selected: false,
+      kind: 1,
+      palette: true,
+    });
+  }
+  return packed;
 }

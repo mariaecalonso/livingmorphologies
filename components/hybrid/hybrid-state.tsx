@@ -1,22 +1,27 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { CatalogEntry } from "@/lib/skill4/catalog";
 import { connectionsFromCatalog, tilesFromCatalog } from "@/lib/skill4/catalog";
+import { catalogServerSnapshot, readCatalog, subscribeCatalog } from "@/lib/skill4/catalog-store";
 import type { FaceId, Skill4ModuleRecord } from "@/lib/skill4/contract";
 import {
   adjacencyMarker,
+  assignGeneratedHybridField,
   connectionBlocked,
-  generateConnectionHybridField,
   reconcileConnections,
   type TileConnection,
 } from "@/lib/skill4/connections";
 import { generateCandidateField } from "@/lib/skill4/candidate-field";
 import { layoutTiles, type AssemblyArrangement, type AssemblyCount, type MirrorAxis } from "@/lib/skill4/assembly-layout";
-import { liftConnectedToGround, orientTiles, placedBoundsMinY } from "@/lib/skill4/tile-orientation";
-import { loadModuleMap, resolveTileModule, tileStep, type TileInstance } from "@/lib/skill4/tiles";
+import { hybridFaceTargets } from "@/lib/skill4/hybrid-attachment";
+import { HYBRID_GAP, loadModuleMap, resolveTileModule, tileStep, type TileInstance } from "@/lib/skill4/tiles";
+import { liftConnectedToGround, meshAttachment, orientTiles, placedBoundsMinY } from "@/lib/skill4/tile-orientation";
 import { loadSyntheticTestRecords, SKILL4_SYNTHETIC_KEY } from "@/lib/skill4/synthetic-modules";
 import type { ModuleHandoff } from "@/lib/skill4/adapt";
+import type { IsoMesh } from "@/lib/scan/isomesh";
+import { HYBRID_GENERATOR_SETTINGS } from "@/lib/skill4/hybrid-generator";
+import { revealHybridField } from "@/lib/skill4/generated-hybrid-field";
 
 type HybridStateValue = {
   loaded: ReadonlyMap<string, ModuleHandoff>;
@@ -40,6 +45,8 @@ type HybridStateValue = {
   mirrorSelected: (axis: MirrorAxis) => void;
   translateSelected: (x: number, z: number) => void;
   selectMock: (connectionId: string, mockId: string) => void;
+  /** Transient network preview. Null means draw the stored final mesh. */
+  growth: { connectionId: string; candidateId: string; mesh: IsoMesh; opacity: number } | null;
   restoreAssembly: (entry: CatalogEntry) => void;
   catalogNotice: string | null;
   syntheticMode: boolean;
@@ -48,16 +55,45 @@ type HybridStateValue = {
   toggleSyntheticTest: () => void;
 };
 
-function freshBoard(loaded: ReadonlyMap<string, ModuleHandoff>) {
-  const tiles = layoutTiles(4, "grid").map((tile) => ({
+function freshBoard() {
+  const tiles = layoutTiles(2, "grid").map((tile) => ({
     ...tile,
-    moduleId: resolveTileModule(tile.archetypeId, loaded).moduleId,
+    archetypeId: "",
+    moduleId: "",
   }));
   return {
-    ...settle(tiles, reconcileConnections([], tiles, loaded), 4, "grid", loaded),
-    count: 4 as AssemblyCount,
+    tiles,
+    connections: [] as TileConnection[],
+    count: 2 as AssemblyCount,
     arrangement: "grid" as AssemblyArrangement,
   };
+}
+
+/** New connections stay unselected. Restored and user-chosen hybrids keep their id. */
+function openConnections(
+  previous: readonly TileConnection[],
+  tiles: readonly TileInstance[],
+  loaded: ReadonlyMap<string, ModuleHandoff>,
+  count: AssemblyCount,
+  arrangement: AssemblyArrangement,
+  adjacencySource: readonly TileInstance[] = tiles,
+) {
+  const adjacency = layoutAdjacency(count, arrangement, adjacencySource).filter((tile) => tile.archetypeId);
+  return reconcileConnections(previous, tiles, loaded, adjacency).map((connection) => {
+    const prior = previous.find((item) => item.id === connection.id);
+    if (prior?.selectedMockId) return connection;
+    return { ...connection, selectedMockId: "" };
+  });
+}
+
+/** Layout neighbors, before face orientation moves the registration boxes. */
+function layoutAdjacency(count: AssemblyCount, arrangement: AssemblyArrangement, tiles: readonly TileInstance[]) {
+  return layoutTiles(count, arrangement, tiles).map((tile) => ({
+    ...tile,
+    rotationQuarter: 0 as const,
+    mirror: null,
+    rotation: undefined,
+  }));
 }
 
 function settle(
@@ -77,7 +113,13 @@ function settle(
       manualMirror: prior?.manualMirror ?? null,
     };
   });
-  const oriented = orientTiles(slots, connections, focusConnectionId);
+  const oriented = orientTiles(slots, connections, focusConnectionId, (tileId, face) => {
+    const tile = slots.find((item) => item.instanceId === tileId);
+    if (!tile) return null;
+    const handoff = resolveTileModule(tile.archetypeId, loaded);
+    if (handoff.status !== "ready" || !handoff.geometry) return null;
+    return meshAttachment(handoff.geometry.positions, handoff.faces[face]);
+  }, (connection) => connectionSpan(connection, slots, loaded));
   const nextTiles = liftConnectedToGround(oriented.tiles, connections, (tile) => {
     const handoff = resolveTileModule(tile.archetypeId, loaded);
     const positions = handoff.status === "ready" ? handoff.geometry?.positions : undefined;
@@ -88,7 +130,7 @@ function settle(
   }));
   return {
     tiles: nextTiles,
-    connections: reconcileConnections(connections, nextTiles, loaded).map((connection) => ({
+    connections: openConnections(connections, nextTiles, loaded, count, arrangement, slots).map((connection) => ({
       ...connection,
       orientation: oriented.unresolved.has(connection.id) ? "unresolved" as const : "ready" as const,
     })),
@@ -102,6 +144,18 @@ type AssemblyBoard = {
   arrangement: AssemblyArrangement;
 };
 
+function connectionSpan(connection: TileConnection, slots: readonly TileInstance[], loaded: ReadonlyMap<string, ModuleHandoff>) {
+  const selected = connection.generatedHybridField?.candidates.find((item) => item.candidateId === connection.selectedMockId);
+  const mesh = selected?.status === "ready" ? selected.geometry : null;
+  const tileA = slots.find((tile) => tile.instanceId === connection.tileAId);
+  const tileB = slots.find((tile) => tile.instanceId === connection.tileBId);
+  if (!mesh || !tileA || !tileB) return HYBRID_GAP;
+  const moduleA = resolveTileModule(tileA.archetypeId, loaded);
+  const moduleB = resolveTileModule(tileB.archetypeId, loaded);
+  if (moduleA.status !== "ready" || moduleB.status !== "ready" || !moduleA.geometry || !moduleB.geometry) return HYBRID_GAP;
+  return hybridFaceTargets(mesh, moduleA.geometry, moduleA.faces[connection.faceA], moduleB.geometry, moduleB.faces[connection.faceB]) ?? HYBRID_GAP;
+}
+
 const HybridContext = createContext<HybridStateValue | null>(null);
 
 export function HybridState({ children }: { children: ReactNode }) {
@@ -113,7 +167,7 @@ export function HybridState({ children }: { children: ReactNode }) {
   const [syntheticPending, setSyntheticPending] = useState(false);
   const [syntheticError, setSyntheticError] = useState<string | null>(null);
   const loaded = syntheticMode && synthetic ? synthetic : provisional;
-  const [board, setBoard] = useState<AssemblyBoard>(() => freshBoard(provisional));
+  const [board, setBoard] = useState<AssemblyBoard>(() => freshBoard());
   useEffect(() => {
     if (window.localStorage.getItem(SKILL4_SYNTHETIC_KEY) !== "1") return;
     let cancel = false;
@@ -123,7 +177,7 @@ export function HybridState({ children }: { children: ReactNode }) {
       const map = loadModuleMap(next);
       setSynthetic(map);
       setSyntheticMode(true);
-      setBoard(freshBoard(map));
+      setBoard(freshBoard());
       setSyntheticPending(false);
     }).catch(() => {
       if (cancel) return;
@@ -134,13 +188,17 @@ export function HybridState({ children }: { children: ReactNode }) {
       cancel = true;
     };
   }, []);
-  const archetypeKey = board.tiles.map((tile) => tile.archetypeId).join("|");
+  const catalogEntries = useSyncExternalStore(subscribeCatalog, readCatalog, catalogServerSnapshot);
+  const archetypeKey = [...new Set([
+    ...board.tiles.map((tile) => tile.archetypeId),
+    ...catalogEntries.flatMap((entry) => entry.tiles.map((tile) => tile.archetypeId)),
+  ])].filter(Boolean).sort().join("|");
   useEffect(() => {
     const ids = [...new Set(archetypeKey.split("|").filter(Boolean))];
     for (const archetypeId of ids) {
       if (requested.current.has(archetypeId)) continue;
       requested.current.add(archetypeId);
-      void fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}`)
+      void fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}&cell=20`, { cache: "no-store" })
         .then(async (response) => (response.ok ? response.json() as Promise<Skill4ModuleRecord> : null))
         .then((record) => {
           if (!record?.geometry || record.archetypeId !== archetypeId) {
@@ -165,7 +223,7 @@ export function HybridState({ children }: { children: ReactNode }) {
         return { ...tile, moduleId: handoff.moduleId };
       });
       if (!changed) return current;
-      return { ...current, tiles, connections: reconcileConnections(current.connections, tiles, provisional) };
+      return { ...current, tiles, connections: openConnections(current.connections, tiles, provisional, current.count, current.arrangement) };
     });
   }, [provisional, syntheticMode]);
 
@@ -173,6 +231,9 @@ export function HybridState({ children }: { children: ReactNode }) {
   const [canvasSelection, setCanvasSelection] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
+  const [growth, setGrowth] = useState<HybridStateValue["growth"]>(null);
+  const playback = useRef(0);
+  const generationTokens = useRef(new Map<string, number>());
 
   const chooseArchetype = (instanceId: string, archetypeId: string) => {
     const handoff = resolveTileModule(archetypeId, loaded);
@@ -180,7 +241,7 @@ export function HybridState({ children }: { children: ReactNode }) {
       const tiles = current.tiles.map((tile) =>
         tile.instanceId === instanceId ? { ...tile, archetypeId, moduleId: handoff.moduleId } : tile,
       );
-      return { ...current, tiles, connections: reconcileConnections(current.connections, tiles, loaded) };
+      return { ...current, tiles, connections: openConnections(current.connections, tiles, loaded, current.count, current.arrangement) };
     });
     setSelectedId(instanceId);
   };
@@ -218,6 +279,32 @@ export function HybridState({ children }: { children: ReactNode }) {
     return null;
   };
 
+  const playGrowth = (connectionId: string, candidateId: string, frames: IsoMesh[], hold: number) => {
+    const token = playback.current + 1;
+    playback.current = token;
+    if (frames.length === 0) {
+      setGrowth(null);
+      return;
+    }
+    let index = 0;
+    const step = () => {
+      if (playback.current !== token) return;
+      if (index >= frames.length) {
+        setGrowth(null);
+        return;
+      }
+      setGrowth({
+        connectionId,
+        candidateId,
+        mesh: frames[index],
+        opacity: 0.38 + (index / frames.length) * 0.5,
+      });
+      index += 1;
+      window.setTimeout(step, hold);
+    };
+    step();
+  };
+
   const generateHybridFieldForConnection = (connectionId: string) => {
     const found = board.connections.find((item) => item.id === connectionId);
     if (!found) return "The connection is no longer adjacent.";
@@ -236,25 +323,87 @@ export function HybridState({ children }: { children: ReactNode }) {
       if (!inputs.ok) return inputs.reason;
       connection = { ...connection, candidateField: inputs.field, inputsChanged: false };
     }
-    const result = generateConnectionHybridField(connection, board.tiles, loaded);
-    if (!result.ok) return result.reason;
-    if (result.reused) return null;
-    setBoard((current) => ({
-      ...current,
-      connections: current.connections.map((item) => (item.id === connectionId ? result.connection : item)),
-    }));
-    return null;
+    const expected = connection.candidateField?.candidates.length ?? 0;
+    const finished = connection.generatedHybridField?.connectionSignature === connection.signature
+      && connection.generatedHybridField.candidates.length >= expected
+      && expected > 0
+      ? connection.generatedHybridField
+      : null;
+    if (finished) {
+      const seated = assignGeneratedHybridField(connection, finished);
+      const chosen = seated.generatedHybridField?.candidates.find((item) => item.candidateId === seated.selectedMockId);
+      if (chosen?.growth?.length) playGrowth(connectionId, chosen.candidateId, chosen.growth, 280);
+      setBoard((current) => {
+        const connections = current.connections.map((item) => (
+          item.id === connectionId ? assignGeneratedHybridField(item, finished) : item
+        ));
+        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+      });
+      return null;
+    }
+    const tileA = board.tiles.find((tile) => tile.instanceId === connection.tileAId);
+    const tileB = board.tiles.find((tile) => tile.instanceId === connection.tileBId);
+    if (!tileA || !tileB || !connection.candidateField) return "The connection tiles are missing.";
+    const moduleA = resolveTileModule(tileA.archetypeId, loaded);
+    const moduleB = resolveTileModule(tileB.archetypeId, loaded);
+    if (moduleA.status !== "ready" || moduleB.status !== "ready") return "Geometry is unavailable for this connection.";
+    const token = (generationTokens.current.get(connectionId) ?? 0) + 1;
+    generationTokens.current.set(connectionId, token);
+    const live = () => generationTokens.current.get(connectionId) === token;
+    void revealHybridField({
+      moduleA,
+      moduleB,
+      faceA: connection.faceA,
+      faceB: connection.faceB,
+      candidateField: connection.candidateField,
+      settings: HYBRID_GENERATOR_SETTINGS,
+    }, async (field) => {
+      if (!live()) return;
+      setBoard((current) => {
+        let seat = false;
+        const connections = current.connections.map((item) => {
+          if (item.id !== connectionId) return item;
+          const withInputs = connection.candidateField ? { ...item, candidateField: connection.candidateField, inputsChanged: false } : item;
+          const assigned = assignGeneratedHybridField(withInputs, field);
+          const chosen = assigned.generatedHybridField?.candidates.find((candidate) => candidate.candidateId === assigned.selectedMockId);
+          const previous = item.generatedHybridField?.candidates.find((candidate) => candidate.candidateId === item.selectedMockId);
+          if (chosen?.status === "ready" && chosen.geometry && (assigned.selectedMockId !== item.selectedMockId || chosen.geometry !== previous?.geometry)) {
+            seat = true;
+          }
+          return assigned;
+        });
+        if (!seat) return { ...current, connections };
+        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+      });
+      const latest = field.candidates[field.candidates.length - 1];
+      const frames = latest?.growth ?? [];
+      for (let index = 0; index < frames.length; index += 1) {
+        if (!live()) return;
+        setGrowth({ connectionId, candidateId: latest.candidateId, mesh: frames[index], opacity: 0.36 + (index / frames.length) * 0.5 });
+        await new Promise((resolve) => window.setTimeout(resolve, 55));
+      }
+    }, () => !live()).then(() => {
+      if (live()) setGrowth((current) => (current?.connectionId === connectionId ? null : current));
+    });
+    return "Sensing";
   };
 
   const setLayout = (count: AssemblyCount, arrangement: AssemblyArrangement) => {
     setBoard((current) => {
-      const tiles = layoutTiles(count, arrangement, current.tiles).map((tile) => ({
-        ...tile,
-        moduleId: tile.moduleId || resolveTileModule(tile.archetypeId, loaded).moduleId,
-        manualQuarter: current.tiles.find((item) => item.instanceId === tile.instanceId)?.manualQuarter ?? 0,
-        manualMirror: current.tiles.find((item) => item.instanceId === tile.instanceId)?.manualMirror ?? null,
-      }));
-      const connections = reconcileConnections(current.connections, tiles, loaded);
+      const prior = new Set(current.tiles.map((tile) => tile.instanceId));
+      const tiles = layoutTiles(count, arrangement, current.tiles).map((tile) => {
+        const previous = current.tiles.find((item) => item.instanceId === tile.instanceId);
+        if (!prior.has(tile.instanceId)) {
+          return { ...tile, archetypeId: "", moduleId: "", manualQuarter: 0 as const, manualMirror: null };
+        }
+        return {
+          ...tile,
+          moduleId: tile.moduleId || (tile.archetypeId ? resolveTileModule(tile.archetypeId, loaded).moduleId : ""),
+          manualQuarter: previous?.manualQuarter ?? 0,
+          manualMirror: previous?.manualMirror ?? null,
+        };
+      });
+      const connections = openConnections(current.connections, tiles, loaded, count, arrangement);
       return { ...settle(tiles, connections, count, arrangement, loaded), count, arrangement };
     });
   };
@@ -262,7 +411,7 @@ export function HybridState({ children }: { children: ReactNode }) {
   const poseTiles = (change: (tile: TileInstance) => TileInstance) => {
     setBoard((current) => {
       const tiles = current.tiles.map((tile) => (tile.instanceId === selectedId ? change(tile) : tile));
-      return { ...current, tiles, connections: reconcileConnections(current.connections, tiles, loaded) };
+      return { ...current, tiles, connections: openConnections(current.connections, tiles, loaded, current.count, current.arrangement) };
     });
   };
 
@@ -298,12 +447,16 @@ export function HybridState({ children }: { children: ReactNode }) {
 
   const selectMock = (connectionId: string, mockId: string) => {
     setSelectedConnectionId(connectionId);
-    setBoard((current) => ({
-      ...current,
-      connections: current.connections.map((connection) =>
+    const found = board.connections.find((item) => item.id === connectionId);
+    const candidate = found?.generatedHybridField?.candidates.find((item) => item.candidateId === mockId);
+    if (candidate?.growth?.length) playGrowth(connectionId, mockId, candidate.growth, 280);
+    else setGrowth(null);
+    setBoard((current) => {
+      const connections = current.connections.map((connection) =>
         connection.id === connectionId ? { ...connection, selectedMockId: mockId } : connection,
-      ),
-    }));
+      );
+      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+    });
   };
 
   const focusConnection = (id: string) => {
@@ -316,7 +469,7 @@ export function HybridState({ children }: { children: ReactNode }) {
       window.localStorage.setItem(SKILL4_SYNTHETIC_KEY, "0");
       setSyntheticMode(false);
       setSyntheticError(null);
-      setBoard(freshBoard(provisional));
+      setBoard(freshBoard());
       return;
     }
     setSyntheticPending(true);
@@ -325,7 +478,7 @@ export function HybridState({ children }: { children: ReactNode }) {
       const map = loadModuleMap(next);
       setSynthetic(map);
       setSyntheticMode(true);
-      setBoard(freshBoard(map));
+      setBoard(freshBoard());
       window.localStorage.setItem(SKILL4_SYNTHETIC_KEY, "1");
       setSyntheticPending(false);
     }).catch(() => {
@@ -345,11 +498,7 @@ export function HybridState({ children }: { children: ReactNode }) {
     });
     setSelectedId(tiles[0]?.instanceId ?? "A");
     setSelectedConnectionId(connections[0]?.id ?? null);
-    setCatalogNotice(
-      entry.regenerationRequired
-        ? "Saved connector geometry is not stored. Generate real hybrids again before the connectors return."
-        : null,
-    );
+    setCatalogNotice(connections.some((connection) => connection.catalogHybrid === "missing") ? "SAVED_HYBRID_MISSING" : null);
   };
 
   return (
@@ -376,6 +525,7 @@ export function HybridState({ children }: { children: ReactNode }) {
         mirrorSelected,
         translateSelected,
         selectMock,
+        growth,
         restoreAssembly,
         catalogNotice,
         syntheticMode,

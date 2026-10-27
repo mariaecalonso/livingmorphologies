@@ -84,6 +84,8 @@ function field(signature: string, meshes: Map<string, { status: GeneratedHybridC
       vertexCount: chosen.geometry ? chosen.geometry.positions.length / 3 : 0,
       triangleCount: chosen.geometry?.triangles ?? 0,
       reason: "",
+      branches: 0,
+      openings: 0,
     };
   });
   return {

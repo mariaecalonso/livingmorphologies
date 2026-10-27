@@ -2,6 +2,16 @@ import type { ModuleIdentity } from "./adapt";
 import type { FaceId } from "./contract";
 import { FACE_SAMPLE_SETTINGS, sampleFace, unavailableFace, type FaceObservation } from "./face-sample";
 import type { ModuleHandoff } from "./adapt";
+import { anchorLatentField, type FeatureDiversity } from "./hybrid-features";
+import { planFaceHybrids, type FaceFormDiversity, type FaceHybridState } from "./face-form";
+
+export type FeatureReading = {
+  id: string;
+  parentA: number;
+  parentB: number;
+  transformationIntensity: number;
+  nearest: { id: string; distance: number };
+};
 
 /**
  * SOM-inspired candidate field.
@@ -17,16 +27,16 @@ import type { ModuleHandoff } from "./adapt";
  * A later adapter can map a continuous value onto CRITERION_TARGETS explicitly.
  */
 export const CANDIDATE_FIELD_SETTINGS = {
-  version: "skill4-candidate-field-v2",
+  version: "skill4-candidate-field-v3",
   count: 25,
   rows: 5,
   columns: 5,
   order: "row-major, H01 at row 0 column 0",
-  columnAxis: "parent A weight 0.90, 0.70, 0.50, 0.30, 0.10",
+  columnAxis: "parent A weight 0.95, 0.75, 0.50, 0.25, 0.05",
   rowAxis: "transformation intensity from restrained to strongest",
-  parentAWeights: [0.9, 0.7, 0.5, 0.3, 0.1] as const,
-  parentBWeights: [0.1, 0.3, 0.5, 0.7, 0.9] as const,
-  transformationIntensity: [0.22, 0.4, 0.58, 0.78, 1] as const,
+  parentAWeights: [0.95, 0.75, 0.5, 0.25, 0.05] as const,
+  parentBWeights: [0.05, 0.25, 0.5, 0.75, 0.95] as const,
+  transformationIntensity: [0.16, 0.34, 0.52, 0.74, 1] as const,
   range: [0, 2] as const,
   shared: "equal catalog ratings are copied unchanged",
   oneSided: "a criterion ranked by only one archetype keeps that rating on every candidate",
@@ -44,6 +54,13 @@ export type HybridCriterionValue = {
   clamped: boolean;
 };
 
+export type HybridMorphology = {
+  section: number;
+  curvature: number;
+  void: number;
+  branch: number;
+};
+
 export type HybridCandidate = {
   id: string;
   row: number;
@@ -52,6 +69,13 @@ export type HybridCandidate = {
   parentBWeight: number;
   transformationIntensity: number;
   criteria: HybridCriterionValue[];
+  /** Normalized DNA. Pinned axes stay parent weight and transformation intensity. */
+  features?: number[];
+  morphology?: HybridMorphology;
+  /** Formal section between the two selected faces. Criteria do not define this outline. */
+  faceHybrid?: FaceHybridState;
+  /** Extra separation applied when a neighbor mesh is still too close. */
+  visualGain?: number;
   generationInput: {
     faceA: FaceObservation;
     faceB: FaceObservation;
@@ -65,6 +89,10 @@ export type CandidateField = {
   version: typeof CANDIDATE_FIELD_SETTINGS.version;
   faceA: FaceObservation;
   faceB: FaceObservation;
+  featureNames?: string[];
+  diversity?: FeatureDiversity;
+  faceDiversity?: FaceFormDiversity;
+  readings?: FeatureReading[];
   candidates: HybridCandidate[];
 };
 
@@ -141,12 +169,16 @@ export function buildCandidateField(args: {
       });
     }
   }
+  const latent = anchorLatentField(candidates, args.faceA, args.faceB);
   return {
     signature: args.signature,
     version: CANDIDATE_FIELD_SETTINGS.version,
     faceA: args.faceA,
     faceB: args.faceB,
-    candidates,
+    featureNames: latent.featureNames,
+    diversity: latent.diversity,
+    readings: latent.readings,
+    candidates: latent.candidates,
   };
 }
 
@@ -165,15 +197,31 @@ export function generateCandidateField(args: {
   }
   const faceA = sampleFace(args.moduleA.geometry, args.faceA, args.moduleA.faces[args.faceA]);
   const faceB = sampleFace(args.moduleB.geometry, args.faceB, args.moduleB.faces[args.faceB]);
+  const field = buildCandidateField({
+    signature: args.signature,
+    ratingsA: ratingsOf(args.moduleA.identity),
+    ratingsB: ratingsOf(args.moduleB.identity),
+    faceA,
+    faceB,
+  });
+  const planned = planFaceHybrids({
+    meshA: args.moduleA.geometry,
+    frameA: args.moduleA.faces[args.faceA],
+    observationA: faceA,
+    meshB: args.moduleB.geometry,
+    frameB: args.moduleB.faces[args.faceB],
+    observationB: faceB,
+    cells: field.candidates,
+  });
+  if (!planned) return { ok: true, field };
+  const byId = new Map(planned.states.map((state) => [state.id, state]));
   return {
     ok: true,
-    field: buildCandidateField({
-      signature: args.signature,
-      ratingsA: ratingsOf(args.moduleA.identity),
-      ratingsB: ratingsOf(args.moduleB.identity),
-      faceA,
-      faceB,
-    }),
+    field: {
+      ...field,
+      faceDiversity: planned.diversity,
+      candidates: field.candidates.map((candidate) => ({ ...candidate, faceHybrid: byId.get(candidate.id) })),
+    },
   };
 }
 

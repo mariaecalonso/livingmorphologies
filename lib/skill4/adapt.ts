@@ -56,12 +56,6 @@ export type UnavailableModule = {
 
 export type ModuleHandoff = ReadyModule | UnavailableModule;
 
-const close = (a: number, b: number) => Math.abs(a - b) < 1e-5;
-
-function sameVec(a: Vec3, b: Vec3) {
-  return close(a.x, b.x) && close(a.y, b.y) && close(a.z, b.z);
-}
-
 export function catalogIdentity(archetypeId: string): ModuleIdentity | null {
   for (const typology of TYPOLOGIES) {
     const archetype = typology.archetypes.find((item) => item.id === archetypeId);
@@ -129,11 +123,30 @@ function assertRecord(record: Skill4ModuleRecord) {
   if (record.source === "skill03" && record.provenance.role !== "skill03-output") {
     throw new Error("skill03 provenance must say skill03-output");
   }
-  const expected = registrationEnvelope(record.scan.spacing, record.scan.yaw);
-  if (!sameVec(record.registration.origin, expected.origin) || !sameVec(record.registration.min, expected.min) || !sameVec(record.registration.max, expected.max)) {
-    throw new Error("registration envelope does not match the recorded scan spacing");
+  for (const point of [record.registration.origin, record.registration.min, record.registration.max]) {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) {
+      throw new Error("registration envelope is not finite");
+    }
   }
   if (record.scan.slices < 2) throw new Error("a module scan needs at least two slices");
+}
+
+function meshBounds(mesh: IsoMesh) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (let index = 0; index < mesh.positions.length; index += 3) {
+    minX = Math.min(minX, mesh.positions[index]);
+    minY = Math.min(minY, mesh.positions[index + 1]);
+    minZ = Math.min(minZ, mesh.positions[index + 2]);
+    maxX = Math.max(maxX, mesh.positions[index]);
+    maxY = Math.max(maxY, mesh.positions[index + 1]);
+    maxZ = Math.max(maxZ, mesh.positions[index + 2]);
+  }
+  return { min: { x: minX, y: minY, z: minZ }, max: { x: maxX, y: maxY, z: maxZ } };
 }
 
 function geometryExceedsEnvelope(mesh: IsoMesh, bounds: { min: Vec3; max: Vec3 }) {
@@ -184,7 +197,7 @@ export function adaptModule(record: Skill4ModuleRecord): ModuleHandoff {
       geometry: null,
     };
   }
-  const faces = faceFrames(record.registration);
+  const faces = faceFrames(meshBounds(mesh));
   for (const id of FACE_IDS) {
     if (!faces[id]) throw new Error(`missing face ${id}`);
   }
@@ -198,10 +211,10 @@ export function adaptModule(record: Skill4ModuleRecord): ModuleHandoff {
     provenance: record.provenance,
     identity,
     geometry: mesh,
-    registration: record.registration,
+    registration: registrationEnvelope(),
     faces,
     coordinates: COORDINATE_CONVENTION,
     pitch: sliceSpacing(record.scan.spacing, record.scan.yaw),
-    geometryExceedsEnvelope: geometryExceedsEnvelope(mesh, record.registration),
+    geometryExceedsEnvelope: geometryExceedsEnvelope(mesh, registrationEnvelope()),
   };
 }

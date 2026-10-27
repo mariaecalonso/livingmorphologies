@@ -4,8 +4,10 @@ import { rotateByBasis, tileBasis } from "./tile-basis";
 import type { ModuleHandoff } from "./adapt";
 import { CANDIDATE_FIELD_SETTINGS, type CandidateField } from "./candidate-field";
 import { FACE_SAMPLE_SETTINGS } from "./face-sample";
+import { readFaceSignature } from "./face-profile";
 import { generateHybridField, type GeneratedHybridField } from "./generated-hybrid-field";
 import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
+import { SECTIONAL_GENERATOR_SETTINGS } from "./section-hybrid";
 
 /**
  * Gap, in registration units, that still counts as face contact.
@@ -46,6 +48,8 @@ export type TileConnection = {
   candidateField: CandidateField | null;
   generatedHybridField: GeneratedHybridField | null;
   selectedMockId: string;
+  /** Set only while a catalog entry is opened. It does not change adjacency or generation. */
+  catalogHybrid?: "snapshot" | "reconstructed" | "missing";
 };
 
 type Axis = "x" | "y" | "z";
@@ -184,12 +188,22 @@ export function connectionInputSignature(
       const tile = tileRecord(tiles, instanceId);
       const handoff = resolveTileModule(tile.archetypeId, loaded);
       const face = instanceId === connection.tileAId ? connection.faceA : connection.faceB;
+      const frame = handoff.status === "ready" ? handoff.faces[face] : null;
+      const geometry = handoff.status === "ready" && frame && handoff.geometry ? readFaceSignature(handoff.geometry, frame) : null;
       return {
         instanceId: tile.instanceId,
         archetypeId: tile.archetypeId,
         moduleId: handoff.moduleId,
         revision: handoff.revision,
         face,
+        faceGeometry: geometry
+          ? {
+            aspect: Math.round(geometry.aspect * 1000) / 1000,
+            areas: geometry.areas.map((value) => Math.round(value * 10) / 10),
+            plate: Math.round(geometry.plate * 1000) / 1000,
+            expansion: Math.round(geometry.expansion * 1000) / 1000,
+          }
+          : null,
         quarter: tile.rotationQuarter,
         mirror: tile.mirror,
         basis: (tile.rotation ?? [1, 0, 0, 0, 1, 0, 0, 0, 1]).map((value) => Math.round(value * 10000) / 10000),
@@ -205,6 +219,7 @@ export function connectionInputSignature(
     faceAnalysis: FACE_SAMPLE_SETTINGS,
     candidateField: CANDIDATE_FIELD_SETTINGS,
     hybridGenerator: HYBRID_GENERATOR_SETTINGS,
+    sectionalGenerator: SECTIONAL_GENERATOR_SETTINGS,
     tiles: ordered,
   });
 }
@@ -213,8 +228,9 @@ export function reconcileConnections(
   previous: readonly TileConnection[],
   tiles: readonly TileInstance[],
   loaded: ReadonlyMap<string, ModuleHandoff>,
+  adjacencyTiles: readonly TileInstance[] = tiles,
 ): TileConnection[] {
-  return detectAdjacencies(tiles).map((pair) => {
+  return detectAdjacencies(adjacencyTiles).map((pair) => {
     const existing = previous.find((item) => item.id === pair.id);
     if (!existing) {
       const created: TileConnection = {
@@ -249,25 +265,83 @@ export function reconcileConnections(
   });
 }
 
+/** Tile motion does not change the faces the SOM was built from. */
+function sameAsideFromPose(left: string, right: string) {
+  return poseFreeSignature(left) === poseFreeSignature(right);
+}
+
+function poseFreeSignature(signature: string) {
+  try {
+    const parsed = JSON.parse(signature) as { tiles?: Array<Record<string, unknown>> };
+    if (!parsed.tiles) return signature;
+    parsed.tiles = parsed.tiles.map(({ x: _x, y: _y, z: _z, basis: _basis, quarter: _quarter, mirror: _mirror, ...rest }) => rest);
+    return JSON.stringify(parsed);
+  } catch {
+    return signature;
+  }
+}
+
 export function syncConnectionInputs(connection: TileConnection, signature: string): TileConnection {
-  const candidateField = connection.candidateField?.signature === signature ? connection.candidateField : null;
-  const generatedHybridField = candidateField && connection.generatedHybridField?.connectionSignature === signature
-    ? connection.generatedHybridField
-    : null;
+  const poseOnly = connection.signature !== "" && connection.signature !== signature && sameAsideFromPose(connection.signature, signature);
+  const candidateMatches = connection.candidateField?.signature === signature
+    || (poseOnly && connection.candidateField !== null && sameAsideFromPose(connection.candidateField.signature, signature));
+  const candidateField = !connection.candidateField || !candidateMatches
+    ? null
+    : connection.candidateField.signature === signature
+      ? connection.candidateField
+      : { ...connection.candidateField, signature };
+  const generated = connection.generatedHybridField;
+  const generatedMatches = generated?.connectionSignature === signature
+    || (poseOnly && candidateField !== null && generated !== null && sameAsideFromPose(generated.connectionSignature, signature));
+  const generatedHybridField = !candidateField || !generated || !generatedMatches
+    ? null
+    : generated.connectionSignature === signature
+      ? generated
+      : { ...generated, connectionSignature: signature };
+  const pairChanged = connection.signature !== "" && signature !== connection.signature && !poseOnly;
+  if (pairChanged) {
+    console.info("[connection-debug] PAIR CHANGED", {
+      oldKey: connection.signature,
+      newKey: signature,
+      regenerating: ["face samples", "feature vectors", "25 SOM candidates", "terminal data", "placement solution"],
+    });
+  }
   return {
     ...connection,
     signature,
     candidateField,
     generatedHybridField,
+    selectedMockId: pairChanged ? "" : connection.selectedMockId,
     generationStatus: generatedHybridField ? generatedHybridField.status : "not-generated",
-    inputsChanged: connection.inputsChanged || signature !== connection.signature,
+    inputsChanged: connection.inputsChanged || pairChanged,
   };
 }
 
 export function retainedSelectedHybridId(selectedId: string, field: GeneratedHybridField) {
-  if (field.candidates.some((candidate) => candidate.candidateId === selectedId)) return selectedId;
-  if (field.candidates.some((candidate) => candidate.candidateId === DEFAULT_SELECTED_HYBRID_ID)) return DEFAULT_SELECTED_HYBRID_ID;
-  return field.candidates[12]?.candidateId ?? field.candidates[0]?.candidateId ?? DEFAULT_SELECTED_HYBRID_ID;
+  const present = (id: string) => field.candidates.some((candidate) => candidate.candidateId === id);
+  const stillPublishing = !present("H25") && field.candidates.length < 25;
+  if (selectedId && present(selectedId)) return selectedId;
+  if (selectedId && stillPublishing) return selectedId;
+  const center = field.candidates.find((candidate) => candidate.candidateId === DEFAULT_SELECTED_HYBRID_ID);
+  if (center?.status === "ready" && center.geometry) return center.candidateId;
+  if (stillPublishing) return "";
+  if (center) return center.candidateId;
+  const ready = field.candidates.filter((candidate) => candidate.status === "ready" && candidate.geometry);
+  if (ready.length === 0) return DEFAULT_SELECTED_HYBRID_ID;
+  return nearestCenterCandidate(ready).candidateId;
+}
+
+function nearestCenterCandidate(candidates: GeneratedHybridField["candidates"]) {
+  return candidates.reduce((best, candidate) => (
+    centerDistance(candidate.candidateId) < centerDistance(best.candidateId) ? candidate : best
+  ));
+}
+
+function centerDistance(id: string) {
+  const index = Math.max(0, Number(id.replace(/\D/g, "")) - 1);
+  const row = Math.floor(index / 5) - 2;
+  const column = (index % 5) - 2;
+  return row * row + column * column;
 }
 
 export function reusableGeneratedField(connection: TileConnection) {

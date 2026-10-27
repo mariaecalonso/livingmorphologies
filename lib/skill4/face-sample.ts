@@ -69,7 +69,8 @@ export function sampleFace(mesh: IsoMesh | null, face: FaceId, frame: FaceFrame 
     };
   }
   const resolution = FACE_SAMPLE_SETTINGS.resolution;
-  const depthLimit = FACE_SAMPLE_SETTINGS.depth;
+  const faceSpan = Math.min(frame.extent.u, frame.extent.v);
+  const depthLimit = Math.max(FACE_SAMPLE_SETTINGS.depth, faceSpan * FACE_SAMPLE_SETTINGS.depth);
   const cells = new Array<number>(resolution * resolution).fill(0);
   const { positions, indices } = mesh;
   const halfU = frame.extent.u / 2;

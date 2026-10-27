@@ -8,7 +8,7 @@ import type { FaceId, Vec3 } from "./contract";
 import { PROVISIONAL_MOCK_IDS, readProvisionalMock } from "./fixtures";
 import { GENERATED_HYBRID_FIELD_SETTINGS, type GeneratedHybridCandidate, type GeneratedHybridField } from "./generated-hybrid-field";
 import { connectorFrame } from "./hybrid-deformation";
-import { HYBRID_GENERATOR_SETTINGS } from "./hybrid-generator";
+import { HYBRID_GENERATOR_SETTINGS, sectionReach } from "./hybrid-generator";
 import { loadModuleMap, resolveTileModule, type TileInstance } from "./tiles";
 import type { ReadyModule } from "./adapt";
 
@@ -18,7 +18,6 @@ const assert = (condition: boolean, message: string) => {
 
 const SAMPLES = 4;
 const STEPS = HYBRID_GENERATOR_SETTINGS.loftSteps;
-const DEPTH = HYBRID_GENERATOR_SETTINGS.sectionDepth;
 
 function loftMesh(centerA: Vec3, centerB: Vec3, bulge: number): IsoMesh {
   const frame = connectorFrame(centerA, centerB);
@@ -64,6 +63,8 @@ function field(signature: string, meshes: Map<string, { status: GeneratedHybridC
       vertexCount: chosen.geometry ? chosen.geometry.positions.length / 3 : 0,
       triangleCount: chosen.geometry?.triangles ?? 0,
       reason: "",
+      branches: 0,
+      openings: 0,
     };
   });
   return {
@@ -111,9 +112,11 @@ function connectorMesh(connection: TileConnection, bulge: number) {
   if (!tileA || !tileB) throw new Error("tiles are missing");
   const moduleA = moduleFor(tileA);
   const moduleB = moduleFor(tileB);
+  const frameA = placedFaceFrame(moduleA.faces[connection.faceA], tileA);
+  const frameB = placedFaceFrame(moduleB.faces[connection.faceB], tileB);
   return loftMesh(
-    sectionCenter(moduleA.faces[connection.faceA], DEPTH),
-    sectionCenter(moduleB.faces[connection.faceB], DEPTH),
+    sectionCenter(frameA, sectionReach(frameA)),
+    sectionCenter(frameB, sectionReach(frameB)),
     bulge,
   );
 }
@@ -145,9 +148,11 @@ assert(eastResult.attachmentErrorB !== null && eastResult.attachmentErrorB <= AG
 const tileA = tiles.find((tile) => tile.instanceId === "A");
 const tileB = tiles.find((tile) => tile.instanceId === "B");
 if (!tileA || !tileB) throw new Error("tiles are missing");
+const eastFrameA = placedFaceFrame(moduleFor(tileA).faces[east.faceA as FaceId], tileA);
+const eastFrameB = placedFaceFrame(moduleFor(tileB).faces[east.faceB as FaceId], tileB);
 const expectedSpan = distance(
-  sectionCenter(placedFaceFrame(moduleFor(tileA).faces[east.faceA as FaceId], tileA), DEPTH),
-  sectionCenter(placedFaceFrame(moduleFor(tileB).faces[east.faceB as FaceId], tileB), DEPTH),
+  sectionCenter(eastFrameA, sectionReach(eastFrameA)),
+  sectionCenter(eastFrameB, sectionReach(eastFrameB)),
 );
 assert(eastResult.span !== null && Math.abs(eastResult.span - expectedSpan) < 1e-9, "span is the distance between the placed section centers");
 assert(eastResult.contactA.tileId === "A" && eastResult.contactA.face === east.faceA, "contact A names the selected tile face");

@@ -154,6 +154,8 @@ export function HybridMatrixGrid({
   emphasis = null,
   colorA = [0.78, 0.494, 0.373],
   colorB = [0.49, 0.722, 0.722],
+  previewId = null,
+  previewMesh = null,
 }: {
   signature: string;
   selectedId: string;
@@ -163,6 +165,8 @@ export function HybridMatrixGrid({
   emphasis?: { row?: number | null; column?: number | null } | null;
   colorA?: [number, number, number];
   colorB?: [number, number, number];
+  previewId?: string | null;
+  previewMesh?: IsoMesh | null;
 }) {
   const display = hybridDisplay({ signature, selectedMockId: selectedId, generatedHybridField: generatedField ?? null });
   return (
@@ -171,8 +175,8 @@ export function HybridMatrixGrid({
         slot.mesh ? (
           <Thumb
             key={slot.id}
-            mesh={slot.mesh}
-            cacheKey={`${display.source}:${signature}:${slot.id}:${slot.mesh.triangles}:${slot.mesh.positions.length}`}
+            mesh={previewId === slot.id && previewMesh ? previewMesh : slot.mesh}
+            cacheKey={`${display.source}:${signature}:${slot.id}:${(previewId === slot.id && previewMesh ? previewMesh : slot.mesh).triangles}:${(previewId === slot.id && previewMesh ? previewMesh : slot.mesh).positions.length}`}
             id={slot.id}
             active={slot.id === selectedId}
             color={slot.id === selectedId ? mix(colorA, colorB, (index % 5) / 4) : [1, 1, 1]}
@@ -193,17 +197,19 @@ export function MockMatrix({
   selectedId,
   generatedField = null,
   onSelect,
-  onOpen,
   colorA = [0.78, 0.494, 0.373],
   colorB = [0.49, 0.722, 0.722],
+  previewId,
+  previewMesh,
 }: {
   signature: string;
   selectedId: string;
   generatedField?: GeneratedHybridField | null;
   onSelect: (id: string) => void;
-  onOpen?: () => void;
   colorA?: [number, number, number];
   colorB?: [number, number, number];
+  previewId?: string | null;
+  previewMesh?: IsoMesh | null;
 }) {
   const display = hybridDisplay({ signature, selectedMockId: selectedId, generatedHybridField: generatedField ?? null });
   return (
@@ -211,7 +217,6 @@ export function MockMatrix({
       className="hybrid-matrix"
       data-mock-matrix={signature}
       data-hybrid-source={display.source}
-      onClick={() => onOpen?.()}
     >
       <p className="hybrid-mock-banner">{display.banner}</p>
       <HybridMatrixGrid
@@ -221,6 +226,8 @@ export function MockMatrix({
         onSelect={onSelect}
         colorA={colorA}
         colorB={colorB}
+        previewId={previewId}
+        previewMesh={previewMesh}
       />
     </div>
   );

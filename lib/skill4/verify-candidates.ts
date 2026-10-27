@@ -88,4 +88,23 @@ const manual = buildCandidateField({
 assert(manual.candidates.every((candidate) => candidate.criteria.find((item) => item.criterionId === "openness")?.role === "one-sided"), "a one-sided criterion is not invented for the other archetype");
 assert(manual.candidates[0].criteria.find((item) => item.criterionId === "openness")?.value === 1, "the known rating is kept");
 
+const field = first.field;
+const byId = (id: string) => {
+  const found = field.candidates.find((candidate) => candidate.id === id);
+  if (!found) throw new Error(`missing ${id}`);
+  return found;
+};
+assert(field.diversity?.accepted === true, `the feature field is distinct enough to generate (${field.diversity?.reason ?? "missing"} · min ${field.diversity?.minimumDistance})`);
+assert(field.diversity?.columnOrderValid === true && field.diversity?.rowOrderValid === true, "column and row order stay pinned");
+assert(field.candidates.every((candidate) => candidate.features?.length === field.featureNames?.length), "every candidate has one normalized vector");
+assert(field.candidates.every((candidate) => candidate.features?.every((value) => Number.isFinite(value))), "normalized features stay finite");
+assert(byId("H01").parentAWeight === 0.95 && byId("H05").parentAWeight === 0.05, "the outer columns stay parent anchors");
+assert(byId("H13").parentAWeight === 0.5 && byId("H13").transformationIntensity === 0.52, "the center stays balanced");
+assert(byId("H01").transformationIntensity === 0.16 && byId("H21").transformationIntensity === 1 && byId("H25").transformationIntensity === 1, "row intensity stays on the restrained-to-exploratory schedule");
+assert((byId("H01").morphology?.branch ?? 1) === 0 && (byId("H25").morphology?.branch ?? 0) > 0, "free branch count stays quiet on the restrained row and opens on the exploratory row");
+const parentWeightIndex = field.featureNames?.indexOf("parentAWeight") ?? -1;
+const sharedIndex = field.featureNames?.indexOf("criterion:complexity") ?? -1;
+assert(parentWeightIndex >= 0 && (byId("H01").features?.[parentWeightIndex] ?? 0) > (byId("H05").features?.[parentWeightIndex] ?? 0), "normalized parent weight still runs from A toward B");
+assert(sharedIndex >= 0 && field.candidates.every((candidate) => candidate.features?.[sharedIndex] === 0), "a constant criterion cannot dominate the distance");
+
 console.log(`skill4 candidates ok · ${first.field.candidates.length} · empty ${empty.status} · unavailable ${absent.status}`);
