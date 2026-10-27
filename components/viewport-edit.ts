@@ -60,12 +60,20 @@ export function applyViewport(canvas: HTMLElement, view: Viewport, resetButton: 
   }
 }
 
+/** Visual pixels per canvas pixel, including a scale on an ancestor. */
+function pixelsPerCanvas(canvas: HTMLElement, view: Viewport) {
+  const rect = canvas.getBoundingClientRect();
+  const local = canvas.offsetWidth * view.scale;
+  return rect.width > 1 && local > 1 ? rect.width / local : 1;
+}
+
 export function zoomViewportAt(canvas: HTMLElement, view: Viewport, clientX: number, clientY: number, nextScale: number) {
   const next = clampZoom(nextScale);
   const rect = canvas.getBoundingClientRect();
   if (view.scale <= 0 || rect.width < 1 || rect.height < 1) return;
-  const px = clientX - rect.left;
-  const py = clientY - rect.top;
+  const fit = pixelsPerCanvas(canvas, view);
+  const px = (clientX - rect.left) / fit;
+  const py = (clientY - rect.top) / fit;
   view.x += px * (1 - next / view.scale);
   view.y += py * (1 - next / view.scale);
   view.scale = next;
@@ -98,7 +106,7 @@ export function bindViewportEdit(options: {
     shell.scrollTop = kept;
   });
 
-  let drag: { id: number; x: number; y: number; ox: number; oy: number } | null = null;
+  let drag: { id: number; x: number; y: number; ox: number; oy: number; fit: number } | null = null;
   let pinchBase = view.scale;
   let gesturing = false;
 
@@ -138,7 +146,7 @@ export function bindViewportEdit(options: {
     if (!eventInShell(shell, event.target)) return;
     if (event.button === 0 && isViewportInteractive(event.target, interactiveSelector)) return;
     event.preventDefault();
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, ox: view.x, oy: view.y };
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, ox: view.x, oy: view.y, fit: pixelsPerCanvas(canvas, view) };
     try {
       shell.setPointerCapture(event.pointerId);
     } catch {
@@ -149,8 +157,8 @@ export function bindViewportEdit(options: {
 
   const onPointerMove = (event: PointerEvent) => {
     if (!drag || drag.id !== event.pointerId) return;
-    view.x = drag.ox + (event.clientX - drag.x);
-    view.y = drag.oy + (event.clientY - drag.y);
+    view.x = drag.ox + (event.clientX - drag.x) / drag.fit;
+    view.y = drag.oy + (event.clientY - drag.y) / drag.fit;
     paint();
   };
 

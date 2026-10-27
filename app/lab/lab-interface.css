@@ -3696,7 +3696,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 .stage-shell[data-view-mode="presentation"] .pareto-catalog-page .pareto-merge {
-  grid-template-columns: 600px minmax(0, 1fr) max-content minmax(720px, 900px);
+  grid-template-columns: 600px minmax(0, 0.85fr) minmax(0, 1.35fr) minmax(720px, 900px);
 }
 
 .stage-shell[data-view-mode="presentation"] .living-instrument-content {
@@ -5738,9 +5738,10 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
   font-size: 18px;
 }
 
-/* Catalog black space: 40px between the large frames, 28px inside them. */
+/* Catalog black space: 40px between the large frames, 28px inside them.
+   The chart column stays the narrower share so the catalog can use the rest. */
 [data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-merge {
-  grid-template-columns: 600px minmax(0, 1fr) max-content minmax(720px, 900px);
+  grid-template-columns: 600px minmax(0, 0.85fr) minmax(0, 1.35fr) minmax(720px, 900px);
 }
 
 [data-view-mode="presentation"] .runs-wall.pareto-catalog-page .lab-rail,
@@ -5761,6 +5762,69 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 [data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-board-body {
   gap: 32px;
+}
+
+[data-view-mode="presentation"] .pareto-catalog-page .runs-catalog,
+[data-view-mode="presentation"] .pareto-catalog-page .pareto-catalog-stack {
+  width: 100%;
+  max-width: 100%;
+  justify-self: stretch;
+}
+
+[data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-board .pareto-analytics {
+  gap: 24px;
+  flex: 1 1 38%;
+  height: auto;
+  max-height: 100%;
+  align-self: center;
+  grid-template-rows: repeat(4, auto);
+}
+
+[data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-chart > svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 100 / 36;
+}
+
+[data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-board .pareto-stage-slot {
+  flex: 0 1 52%;
+  width: auto;
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 1;
+  align-self: center;
+}
+
+.pareto-catalog-page .archive-detail-image > .propagation-preview,
+.pareto-catalog-page .archive-detail-image > .evo-empty {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pareto-catalog-page .propagation-preview {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.pareto-catalog-page .propagation-preview img {
+  grid-column: span 2;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  object-fit: contain;
+  background: #000000;
+}
+
+.pareto-catalog-page .propagation-preview img:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+.pareto-catalog-page .propagation-preview img:nth-child(5) {
+  grid-column: 4 / span 2;
 }
 
 [data-view-mode="presentation"] .runs-wall.pareto-catalog-page .pareto-band-head {

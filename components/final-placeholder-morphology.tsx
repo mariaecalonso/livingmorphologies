@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 
 /**
  * Temporary exhibition stand-ins for the Collection view.
@@ -379,8 +380,8 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh, yaw = 0.62) {
   const parent = canvas.parentElement;
   if (!parent) return;
   const dpr = window.devicePixelRatio || 1;
-  const width = Math.max(1, Math.floor(parent.clientWidth));
-  const height = Math.max(1, Math.floor(parent.clientHeight));
+  const frame = paintedBox(parent);
+  const { width, height } = frame;
   const pixelsW = Math.floor(width * dpr);
   const pixelsH = Math.floor(height * dpr);
   if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
@@ -391,8 +392,8 @@ function drawPlaceholder(canvas: HTMLCanvasElement, mesh: Mesh, yaw = 0.62) {
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  canvas.style.width = `${frame.layoutW}px`;
+  canvas.style.height = `${frame.layoutH}px`;
   const { positions } = mesh;
   const pitch = 0.42;
   const cosY = Math.cos(yaw);

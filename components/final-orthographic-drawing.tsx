@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 import { placeholderPositions } from "@/components/final-placeholder-morphology";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { MODULE_SIZE_Z } from "@/lib/skill3/envelope";
@@ -98,13 +99,14 @@ function drawOrthographic(
   const parent = canvas.parentElement;
   if (!parent) return;
   const dpr = window.devicePixelRatio || 1;
-  const width = Math.max(1, Math.floor(parent.clientWidth));
+  const frame = paintedBox(parent);
   const caption = canvas.previousElementSibling instanceof HTMLElement ? canvas.previousElementSibling.offsetHeight : 0;
-  const height = Math.max(1, Math.floor(parent.clientHeight - caption));
+  const width = frame.width;
+  const height = Math.max(1, Math.floor(frame.height - caption * (frame.height / frame.layoutH)));
   const pixelsW = Math.floor(width * dpr);
   const pixelsH = Math.floor(height * dpr);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  canvas.style.width = `${frame.layoutW}px`;
+  canvas.style.height = `${Math.max(1, frame.layoutH - caption)}px`;
   if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
     canvas.width = pixelsW;
     canvas.height = pixelsH;

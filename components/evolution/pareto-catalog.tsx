@@ -204,8 +204,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
   const cardColumns = 4;
   const cardRows = 4;
   const weightedRows = specialists.length > 0 ? 1 : 0;
-  const archiveRows = cardRows;
-  const [fit, setFit] = useState({ columns: cardColumns, size: 120, row: 156 });
+  const [fit, setFit] = useState({ columns: cardColumns, rows: cardRows, size: 120, row: 156 });
   useEffect(() => {
     setWall(new URLSearchParams(window.location.search).get("wall") === "1");
   }, []);
@@ -213,32 +212,38 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
     const node = stackRef.current;
     if (!node) return;
     const measure = () => {
-      const { width, height } = node.getBoundingClientRect();
+      const width = node.clientWidth;
+      const height = node.clientHeight;
       if (width < 40 || height < 40) return;
       const gap = wall ? 40 : 8;
       const caption = wall ? 64 : 36;
       const labels = [...node.querySelectorAll<HTMLElement>(".pareto-band-head")];
       const labelH = labels.reduce((sum, label) => {
         const style = getComputedStyle(label);
-        return sum + label.getBoundingClientRect().height + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+        return sum + label.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
       }, 0);
-      const rows = cardRows;
-      const columns = cardColumns;
-      const usable = Math.max(rows * 48, height - labelH);
-      const row = Math.max(48, Math.floor((usable - gap * (rows - 1)) / rows));
-      let size = Math.max(48, row - caption);
-      const merge = node.closest(".pareto-merge");
-      if (merge) {
-        const mergeW = merge.getBoundingClientRect().width;
-        const railW = merge.querySelector(":scope > .lab-rail")?.getBoundingClientRect().width ?? 0;
-        const detailW = merge.querySelector(":scope > .pareto-catalog-detail")?.getBoundingClientRect().width ?? 0;
-        const flexible = Math.max(0, mergeW - railW - detailW - (wall ? 200 : 32));
-        const paretoFloor = Math.max(wall ? 900 : 340, flexible * 0.58);
-        const catalogMax = Math.max(columns * 48, flexible - paretoFloor);
-        const sizeFromWidth = Math.floor((catalogMax - (wall ? 56 : 28) - gap * (columns - 1)) / columns);
-        size = Math.max(48, Math.min(size, sizeFromWidth));
+      const count = Math.max(archive.length, 1);
+      let columns = cardColumns;
+      let rows = cardRows;
+      let size = 48;
+      let best = 0;
+      for (let nextColumns = 2; nextColumns <= Math.min(8, count); nextColumns += 1) {
+        const nextRows = Math.min(4, Math.ceil(count / nextColumns));
+        const usable = Math.max(nextRows * 48, height - labelH);
+        const rowFromHeight = Math.floor((usable - gap * (nextRows - 1)) / nextRows);
+        const sizeFromHeight = Math.max(48, rowFromHeight - caption);
+        const sizeFromWidth = Math.floor((width - gap * (nextColumns - 1)) / nextColumns);
+        const nextSize = Math.min(sizeFromHeight, sizeFromWidth);
+        const shown = Math.min(count, nextColumns * nextRows);
+        const score = nextSize * shown;
+        if (nextSize >= 48 && score > best) {
+          best = score;
+          columns = nextColumns;
+          rows = nextRows;
+          size = nextSize;
+        }
       }
-      setFit({ columns, size, row });
+      setFit({ columns, rows, size, row: size + caption });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -266,7 +271,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
   const selected = archetype?.candidates.find((candidate) => candidate.key === selectedKey) ?? null;
   const cardGap = wall ? 40 : 8;
   const onSaved = useCallback(() => setInkRevision(Date.now()), []);
-  const pageSize = Math.max(1, fit.columns * archiveRows);
+  const pageSize = Math.max(1, fit.columns * fit.rows);
 
   const filed = archetype ? picks.find((pick) => pick.archetypeId === archetype.archetypeId) ?? null : null;
   const committed = archetype
@@ -409,7 +414,7 @@ export function ParetoCatalog({ initial, picks }: { initial: EvolutionCatalog; p
                 className="runs-catalog-grid"
                 style={{
                   gridTemplateColumns: `repeat(${fit.columns}, ${fit.size}px)`,
-                  gridTemplateRows: `repeat(${archiveRows}, ${fit.row}px)`,
+                  gridTemplateRows: `repeat(${fit.rows}, ${fit.row}px)`,
                   gap: cardGap,
                 }}
               >

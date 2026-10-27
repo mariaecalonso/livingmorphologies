@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { CATALOGUE_COLUMNS, CATALOGUE_PITCH, CATALOGUE_ROWS, CATALOGUE_SLOT_COUNT, catalogueOrigin, MODULE_HALF } from "@/lib/skill3/catalogue";
 import { MODULE_SIZE_Z } from "@/lib/skill3/envelope";
@@ -805,12 +806,12 @@ export function CatalogueField({
       const parent = canvas.parentElement;
       if (!parent) return;
       const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
-      const width = Math.max(1, Math.floor(parent.clientWidth));
-      const height = Math.max(1, Math.floor(parent.clientHeight));
+      const frame = paintedBox(parent);
+      const { width, height } = frame;
       const pixelsW = Math.floor(width * dpr);
       const pixelsH = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      canvas.style.width = `${frame.layoutW}px`;
+      canvas.style.height = `${frame.layoutH}px`;
       if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
         canvas.width = pixelsW;
         canvas.height = pixelsH;

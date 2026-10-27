@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
+import { paintedBox } from "@/lib/canvas-frame";
 import { drawPixelPlate, rasterTrailPlate, type SamplePresentation } from "@/components/vertical-render";
 import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
@@ -19,9 +20,10 @@ function useFittedCanvas(draw: (canvas: HTMLCanvasElement, width: number, height
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
     const paint = () => {
-      const width = Math.max(1, parent.clientWidth);
-      const height = Math.max(1, parent.clientHeight);
-      drawRef.current(canvas, width, height);
+      const frame = paintedBox(parent);
+      canvas.style.width = `${frame.layoutW}px`;
+      canvas.style.height = `${frame.layoutH}px`;
+      drawRef.current(canvas, frame.width, frame.height);
     };
     paint();
     const observer = new ResizeObserver(paint);
