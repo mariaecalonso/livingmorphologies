@@ -5,8 +5,8 @@ export const CATALOGUE_COLUMNS = 6;
 export const CATALOGUE_ROWS = 4;
 export const CATALOGUE_SLOT_COUNT = CATALOGUE_COLUMNS * CATALOGUE_ROWS;
 
-/** World spacing between module centers. Wider than the 20 module so envelopes do not meet. */
-export const CATALOGUE_PITCH = 23;
+/** World spacing between module centers. A clear gap around each 20 module. */
+export const CATALOGUE_PITCH = 38;
 export const MODULE_HALF = 10;
 
 /** Every continuation, in id order. This does not rank or drop any branch. */

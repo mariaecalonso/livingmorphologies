@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import handoff from "@/data/skill3/final-selection.json";
 import { FinalOrthographicViews } from "@/components/final-orthographic-drawing";
-import { PlaceholderMorphology } from "@/components/final-placeholder-morphology";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { NaturalContinuation } from "@/lib/skill3/continuations";
@@ -90,10 +89,6 @@ function slotsFor(row: (typeof ROWS)[number]): Slot[] {
   });
 }
 
-function ModuleMark({ id, spin = false }: { id: string; spin?: boolean }) {
-  return <PlaceholderMorphology id={id} spin={spin} />;
-}
-
 const DRAWING_TONE: Record<RowId, string> = {
   lobby: "#c77e5f",
   workspace: "#f2f2ee",
@@ -119,6 +114,7 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
   const [fields, setFields] = useState<Record<string, VerticalViewerField | null>>({});
   const [picks, setPicks] = useState<Record<string, SolidifiedPick | null>>({});
   const [triangles, setTriangles] = useState<Record<string, number | null>>({});
+  const [enlarged, setEnlarged] = useState<Focus | null>(null);
   const reportTriangles = useCallback((archetypeId: string, count: number | null) => {
     setTriangles((current) => current[archetypeId] === count ? current : { ...current, [archetypeId]: count });
   }, []);
@@ -213,13 +209,31 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
   const focusField = focusSlot && !focusPick ? fields[focusSlot.id] ?? null : null;
   const focusCode = focusSlot ? archetypeCode(focus.row, focus.index) : "";
 
-  const choose = (row: RowId, index: number) => {
+  const choose = (row: RowId, index: number, enlarge: boolean) => {
     setIndexes((current) => ({ ...current, [row]: index }));
     setFocus({ row, index });
+    if (enlarge) setEnlarged({ row, index });
   };
 
+  useEffect(() => {
+    if (!enlarged) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEnlarged(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enlarged]);
+
+  const enlargedRow = enlarged ? rows.find((row) => row.id === enlarged.row) ?? null : null;
+  const enlargedSlot = enlargedRow?.slots[enlarged?.index ?? -1];
+  const enlargedSelection = enlargedSlot ? collection[enlargedSlot.id] ?? null : null;
+  const enlargedHandoff = enlargedSlot && !enlargedSelection ? tracked.find((entry) => entry.archetypeId === enlargedSlot.id) ?? null : null;
+  const enlargedSource = enlargedSelection ?? enlargedHandoff;
+  const enlargedPick = pickFor(enlargedSource, picks);
+  const enlargedField = enlargedSlot && enlargedSelection && !enlargedPick ? fields[enlargedSlot.id] ?? null : null;
+
   return (
-    <main className="final-catalogue">
+    <main className="final-catalogue" data-enlarged={enlarged ? "true" : undefined}>
       <Summary rows={rows} occupied={(id) => Boolean(sourceFor(id))} indexes={indexes} selectedCount={selectedCount} preview={preview} />
       <div className="final-rows">
         {rows.map((row) => (
@@ -236,10 +250,38 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
             fields={fields}
             picks={picks}
             onTriangles={reportTriangles}
-            onChoose={(index) => choose(row.id, index)}
+            onChoose={(index, enlarge) => choose(row.id, index, enlarge)}
           />
         ))}
       </div>
+      {enlarged && enlargedSlot ? (
+        <button
+          type="button"
+          className="final-enlarge"
+          onClick={() => setEnlarged(null)}
+          aria-label={`Close ${enlargedSlot.name}`}
+        >
+          {enlargedPick && enlargedSource ? (
+            <SlotMesh
+              archetypeId={enlargedSource.archetypeId}
+              cacheIdentity={meshIdentity(enlargedSelection, enlargedHandoff) ?? enlargedSource.archetypeId}
+              mesh={enlargedPick.mesh}
+              orbit
+              fitMargin={0.96}
+              onTriangles={reportTriangles}
+            />
+          ) : enlargedField && enlargedSelection ? (
+            <SlotMesh
+              archetypeId={enlargedSelection.archetypeId}
+              cacheIdentity={meshIdentity(enlargedSelection, null) ?? enlargedSelection.archetypeId}
+              field={enlargedField}
+              orbit
+              fitMargin={0.96}
+              onTriangles={reportTriangles}
+            />
+          ) : null}
+        </button>
+      ) : null}
       <Detail
         slot={focusSlot}
         code={focusCode}
@@ -339,7 +381,7 @@ function TypologyBand({
   fields: Record<string, VerticalViewerField | null>;
   picks: Record<string, SolidifiedPick | null>;
   onTriangles: (archetypeId: string, count: number | null) => void;
-  onChoose: (index: number) => void;
+  onChoose: (index: number, enlarge: boolean) => void;
 }) {
   return (
     <section className="final-row" data-tone={rowId} data-focused={focused ? "true" : undefined} aria-label={label}>
@@ -370,7 +412,7 @@ function TypologyBand({
               data-continuation={source?.continuationId}
               data-status={pick?.status}
               aria-current={place === "front-center" ? "true" : undefined}
-              onClick={() => onChoose(slotIndex)}
+              onClick={() => onChoose(slotIndex, place === "front-center")}
               aria-label={skill2Input ? `${slot.name}. Skill 2 input awaiting vertical propagation` : slot.name}
             >
               <span className="final-item-label">
@@ -394,9 +436,7 @@ function TypologyBand({
                   orbit={place === "front-center"}
                   onTriangles={onTriangles}
                 />
-              ) : (
-                <ModuleMark id={slot.id} spin={place === "front-center"} />
-              )}
+              ) : null}
               <span className="final-plinth" aria-hidden="true"><span className="final-plinth-top" /></span>
             </button>
           );
@@ -476,6 +516,7 @@ function SlotMesh({
   field = null,
   mesh,
   orbit = false,
+  fitMargin = 0.9,
   onTriangles,
 }: {
   archetypeId: string;
@@ -483,6 +524,7 @@ function SlotMesh({
   field?: VerticalViewerField | null;
   mesh?: IsoMesh | null;
   orbit?: boolean;
+  fitMargin?: number;
   onTriangles: (archetypeId: string, count: number | null) => void;
 }) {
   const report = useCallback((count: number | null) => {
@@ -495,6 +537,8 @@ function SlotMesh({
         mesh={mesh}
         float
         orbit={orbit}
+        frame="bounds"
+        fitMargin={fitMargin}
         turnSeconds={TURN_SECONDS}
         cacheIdentity={`${cacheIdentity}:refined`}
         onTriangles={report}

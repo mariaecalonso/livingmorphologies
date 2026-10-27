@@ -95,11 +95,13 @@ export function ContinueFamilyFan({
   activeFocus = null,
   selectedId = null,
   plate = null,
+  stance = "final",
 }: {
   groups: readonly FamilyGroup[];
   activeFocus?: string | null;
   selectedId?: string | null;
   plate?: Plate;
+  stance?: "final" | "alternate";
 }) {
   const filterId = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
@@ -160,7 +162,7 @@ export function ContinueFamilyFan({
     <div className="continue-fan">
       <p className="continue-fan-kicker">One verified Z0, twenty-four continuations, one selected</p>
       {selectedId ? (
-        <p className="continue-selected">Selected · <strong>{selectedId}</strong>{selectedGroup ? ` · ${selectedGroup.focus}` : " · Extended continuation"}</p>
+        <p className="continue-selected">{stance === "alternate" ? "Exploring" : "Final selected"} · <strong>{selectedId}</strong>{selectedGroup ? ` · ${selectedGroup.focus}` : " · Extended continuation"}</p>
       ) : null}
       <div className="continue-flow" data-focus={hover ?? undefined} onMouseLeave={() => setHover(null)}>
         <figure className="continue-origin">

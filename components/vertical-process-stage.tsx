@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { paintedBox } from "@/lib/canvas-frame";
 import { drawPixelPlate, rasterTrailPlate, type SamplePresentation } from "@/components/vertical-render";
 import { drawIsoMesh } from "@/lib/scan/draw-mesh";
 import { MODULE_SIZE_X, MODULE_SIZE_Y, MODULE_SIZE_Z, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
 import { moduleViewFit } from "@/lib/skill3/view-project";
+import { orbitProcessIso, processIsoFit, zoomProcessIso, type ProcessIsoCamera } from "@/lib/skill3/process-iso-camera";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { cachedOpeningMesh } from "@/lib/skill3/opening-mesh-cache";
 import { STACK_DISPLAY_PLATES, stackDisplayIndices, stackDisplaySlices } from "@/lib/skill3/stack-display";
@@ -847,11 +848,46 @@ function formSpin(now = performance.now()) {
   return (now / FORM_TURN_MS) * Math.PI * 2;
 }
 
+/** 20×20×20 module boundary in the same orthographic frame as the shared isometric mesh. */
+function drawOrthoModuleBox(ctx: CanvasRenderingContext2D, width: number, height: number, yaw: number, pitch: number, zoom: number) {
+  const half = MODULE_SIZE_Z / 2;
+  const aspect = width / Math.max(1, height);
+  const fit = processIsoFit(pitch, aspect, zoom);
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const cp = Math.cos(pitch);
+  const sp = Math.sin(pitch);
+  const project = (x: number, y: number, z: number) => {
+    const x1 = x * cy + z * sy;
+    const z1 = -x * sy + z * cy;
+    const y2 = y * cp - z1 * sp;
+    const ndcX = (x1 * fit) / aspect;
+    const ndcY = y2 * fit;
+    return { x: (ndcX + 1) * 0.5 * width, y: (1 - ndcY) * 0.5 * height };
+  };
+  const corners: { x: number; y: number }[] = [];
+  for (const x of [-half, half]) {
+    for (const y of [-half, half]) {
+      for (const z of [-half, half]) corners.push(project(x, y, z));
+    }
+  }
+  ctx.save();
+  ctx.strokeStyle = "rgba(232, 244, 240, 0.78)";
+  ctx.lineWidth = 1.7;
+  ctx.beginPath();
+  for (const [a, b] of MODULE_BOX_EDGES) {
+    ctx.moveTo(corners[a].x, corners[a].y);
+    ctx.lineTo(corners[b].x, corners[b].y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Module cage, drawn a little inside the 20 cube so the form reads first. */
-function drawModuleBox(ctx: CanvasRenderingContext2D, width: number, height: number, yaw: number, pitch: number) {
+function drawModuleBox(ctx: CanvasRenderingContext2D, width: number, height: number, yaw: number, pitch: number, zoom = 1) {
   const half = MODULE_SIZE_Z / 2 * 0.9;
   const aspect = width / Math.max(1, height);
-  const fit = moduleViewFit(moduleViewColumn(moduleEnvelope(MODULE_SIZE_Z)) * 0.72, aspect);
+  const fit = moduleViewFit(moduleViewColumn(moduleEnvelope(MODULE_SIZE_Z)) * 0.72, aspect) * zoom;
   const cy = Math.cos(yaw);
   const sy = Math.sin(yaw);
   const cp = Math.cos(pitch);
@@ -994,7 +1030,13 @@ export function ProcessMorphology({
   frame = "bounds",
   steer = false,
   insideBox = false,
+  zoomable = false,
+  isoCamera,
+  onIsoCamera,
+  isoTick = 0,
   fitMargin,
+  accent = null,
+  isoExtent = null,
 }: {
   field?: VerticalViewerField | null;
   /** Stored module. When present, the continuation field is not meshed. */
@@ -1011,10 +1053,20 @@ export function ProcessMorphology({
   frame?: "module" | "bounds";
   /** Drag orbit. Off while a recording is playing, so the camera stays put. */
   steer?: boolean;
-  /** Fixed 20×20×20 cage. The mesh turns inside it. */
+  /** Fixed 20×20×20 module boundary. */
   insideBox?: boolean;
+  /** Wheel zoom. The camera stays on the module frame. */
+  zoomable?: boolean;
+  /** Shared orthographic isometric camera. When set, this view does not spin or fit its own bounds. */
+  isoCamera?: MutableRefObject<ProcessIsoCamera>;
+  onIsoCamera?: () => void;
+  isoTick?: number;
   /** Bounds-fit margin. Lower leaves room for the catalogue spin. */
   fitMargin?: number;
+  /** Faces drawn in copper over the clay mesh. Display only. */
+  accent?: IsoMesh | null;
+  /** Shared projected extent. Both comparison views use it, so neither is fitted on its own. */
+  isoExtent?: { minX: number; maxX: number; minY: number; maxY: number } | null;
 }) {
   const external = storedMesh !== undefined;
   const [built, setBuilt] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
@@ -1046,6 +1098,9 @@ export function ProcessMorphology({
   const ref = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLCanvasElement>(null);
   const angle = useRef({ yaw: Math.PI / 4, pitch: 0.62 });
+  const zoom = useRef(1);
+  const onIsoRef = useRef(onIsoCamera);
+  onIsoRef.current = onIsoCamera;
   const [steered, setSteered] = useState(0);
   useEffect(() => {
     const canvas = ref.current;
@@ -1057,10 +1112,15 @@ export function ProcessMorphology({
     };
     const move = (event: PointerEvent) => {
       if (!drag) return;
-      angle.current.yaw += (event.clientX - drag.x) * 0.005;
-      angle.current.pitch = Math.min(1.25, Math.max(0.08, angle.current.pitch + (event.clientY - drag.y) * 0.005));
+      if (isoCamera) {
+        orbitProcessIso(isoCamera.current, event.clientX - drag.x, event.clientY - drag.y);
+        onIsoRef.current?.();
+      } else {
+        angle.current.yaw += (event.clientX - drag.x) * 0.005;
+        angle.current.pitch = Math.min(1.25, Math.max(0.08, angle.current.pitch + (event.clientY - drag.y) * 0.005));
+        setSteered((value) => value + 1);
+      }
       drag = { x: event.clientX, y: event.clientY };
-      setSteered((value) => value + 1);
     };
     const up = () => {
       drag = null;
@@ -1069,13 +1129,27 @@ export function ProcessMorphology({
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
+    const wheel = (event: WheelEvent) => {
+      if (!zoomable) return;
+      event.preventDefault();
+      if (isoCamera) {
+        zoomProcessIso(isoCamera.current, event.deltaY);
+        onIsoRef.current?.();
+        return;
+      }
+      const next = zoom.current * (event.deltaY > 0 ? 0.92 : 1.08);
+      zoom.current = Math.min(2.4, Math.max(0.55, next));
+      setSteered((value) => value + 1);
+    };
+    canvas.addEventListener("wheel", wheel, { passive: false });
     return () => {
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);
       canvas.removeEventListener("pointercancel", up);
+      canvas.removeEventListener("wheel", wheel);
     };
-  }, [steer]);
+  }, [isoCamera, steer, zoomable]);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -1086,24 +1160,44 @@ export function ProcessMorphology({
     const started = performance.now();
     let frameId = 0;
     const paint = (now = started) => {
-      const held = frame === "module";
-      const yaw = held
-        ? angle.current.yaw
-        : external
-          ? Math.PI / 4
-          : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
-      const pitch = held ? angle.current.pitch : external ? 0.62 : float || spinning ? 0.36 : 0.42;
-      const spin = insideBox
-        ? formSpin(now)
-        : turn && external
-          ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2
-          : 0;
-      drawIsoMesh(canvas, mesh, yaw, pitch, column * 0.72, external ? "clay" : "shell", {
+      const shared = isoCamera?.current;
+      const held = frame === "module" || Boolean(shared);
+      const yaw = shared
+        ? shared.yaw
+        : held
+          ? angle.current.yaw
+          : external
+            ? Math.PI / 4
+            : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
+      const pitch = shared ? shared.pitch : held ? angle.current.pitch : external ? 0.62 : float || spinning ? 0.36 : 0.42;
+      const spin = shared
+        ? 0
+        : insideBox
+          ? formSpin(now)
+          : turn && external
+            ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2
+            : 0;
+      const parentSize = canvas.parentElement;
+      const aspect = parentSize ? parentSize.clientWidth / Math.max(1, parentSize.clientHeight) : 1;
+      let viewZoom = shared ? shared.zoom : 1;
+      let viewPan: [number, number] | undefined;
+      if (shared && isoExtent && parentSize && parentSize.clientWidth > 0 && parentSize.clientHeight > 0) {
+        const moduleFit = processIsoFit(pitch, aspect, 1);
+        const halfX = (isoExtent.maxX - isoExtent.minX) / 2;
+        const halfY = (isoExtent.maxY - isoExtent.minY) / 2;
+        const ndc = Math.max(halfX * moduleFit / aspect, halfY * moduleFit);
+        viewZoom = Math.min(2.2, 0.86 / Math.max(0.05, ndc));
+        viewPan = [-(isoExtent.minX + isoExtent.maxX) / 2, -(isoExtent.minY + isoExtent.maxY) / 2];
+      }
+      drawIsoMesh(canvas, mesh, yaw, pitch, (column * 0.72) / (shared ? 1 : zoom.current), external ? "clay" : "shell", {
         transparent: float || external,
-        uniform: external ? false : uniformFrame,
-        fit: held || !external ? "module" : "bounds",
+        uniform: shared ? true : external ? false : uniformFrame,
+        fit: shared || held || !external ? "module" : "bounds",
         spin,
+        zoom: viewZoom,
+        pan: viewPan,
         margin: fitMargin,
+        accent,
       });
       const cage = boxRef.current;
       const cageParent = cage?.parentElement;
@@ -1116,14 +1210,15 @@ export function ProcessMorphology({
         cage.height = Math.floor(height * dpr);
         cageCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         cageCtx.clearRect(0, 0, width, height);
-        drawModuleBox(cageCtx, width, height, yaw, pitch);
+        if (shared) drawOrthoModuleBox(cageCtx, width, height, shared.yaw, shared.pitch, shared.zoom);
+        else drawModuleBox(cageCtx, width, height, yaw, pitch, zoom.current);
       }
     };
     paint();
     const parent = canvas.parentElement;
     const observer = parent ? new ResizeObserver(() => paint(performance.now())) : null;
     if (parent && observer) observer.observe(parent);
-    if (spinning || (turn && external) || (insideBox && !reduced)) {
+    if (!isoCamera && (spinning || (turn && external) || (insideBox && !reduced))) {
       const loop = (now: number) => {
         paint(now);
         frameId = window.requestAnimationFrame(loop);
@@ -1134,13 +1229,16 @@ export function ProcessMorphology({
       if (frameId) window.cancelAnimationFrame(frameId);
       observer?.disconnect();
     };
-  }, [column, external, float, frame, insideBox, mesh, orbit, steered, turnSeconds, uniformFrame]);
+  }, [accent, column, external, float, frame, insideBox, isoCamera, isoExtent, isoTick, mesh, orbit, steered, turnSeconds, uniformFrame]);
   const meshCanvas = <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
-  if (!insideBox) return meshCanvas;
-  return (
-    <div className="process-mesh-well">
-      {meshCanvas}
-      <canvas ref={boxRef} className="process-voxel-box" aria-hidden="true" />
-    </div>
-  );
+  const boxCanvas = insideBox ? <canvas ref={boxRef} className="process-voxel-box" aria-hidden="true" /> : null;
+  if (isoCamera || insideBox) {
+    return (
+      <div className="process-mesh-well">
+        {meshCanvas}
+        {boxCanvas}
+      </div>
+    );
+  }
+  return meshCanvas;
 }

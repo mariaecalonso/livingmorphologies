@@ -1,0 +1,137 @@
+{
+  "contract": "process-generation-replay-v1",
+  "archetypeId": "vertical-void",
+  "candidateId": 351,
+  "continuationId": "N24",
+  "grid": 72,
+  "module": 20,
+  "formation": "buildXytMacroCase(prefix, true, false, false, true, false, true, false)",
+  "iterations": [
+    600,
+    620,
+    631,
+    639,
+    648,
+    660
+  ],
+  "axis": "Field x is module X, field y is module Z, field z is temporal module Y.",
+  "display": "The viewer requests uint8 bytes, round(clamp(float32, 0, 1) * 255). That quantization is for display. The files here are the float32 fields. The surface stage uses the stored mesh, whose positions were identical to this extraction.",
+  "limitation": "The first retained sample does not build a volume. The generator returns the envelope field used for surface extraction. It does not return the pre-envelope sculpt volume as its own result. XYT is the interpolated trail. Macro is the normalized blur of that trail.",
+  "prefixes": [
+    {
+      "retained": 2,
+      "iterations": [
+        600,
+        620
+      ],
+      "triangles": 28498,
+      "positionHash": "c8fa18c9282e89842b8425eb412c995e4154a12caa1de4dd328454ddc0cb951d",
+      "xyt": {
+        "min": 0,
+        "max": 0.608089
+      },
+      "macro": {
+        "min": 0,
+        "max": 1
+      },
+      "processed": {
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "retained": 3,
+      "iterations": [
+        600,
+        620,
+        631
+      ],
+      "triangles": 25318,
+      "positionHash": "0f29b1b8fbb5387f541ffa70e19881b0fdeed5a6eed11491d4fca36178331614",
+      "xyt": {
+        "min": 0,
+        "max": 0.578562
+      },
+      "macro": {
+        "min": 0,
+        "max": 1
+      },
+      "processed": {
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "retained": 4,
+      "iterations": [
+        600,
+        620,
+        631,
+        639
+      ],
+      "triangles": 25090,
+      "positionHash": "4c0121a8273385fbfeef911415ef1beca7009ea6c370d6ee2d3ed39b21f3312e",
+      "xyt": {
+        "min": 0,
+        "max": 0.587612
+      },
+      "macro": {
+        "min": 0,
+        "max": 1
+      },
+      "processed": {
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "retained": 5,
+      "iterations": [
+        600,
+        620,
+        631,
+        639,
+        648
+      ],
+      "triangles": 22170,
+      "positionHash": "07c776bb5069704395b12274b7bfdbe5e04e7ed2d50e82d37d73f6478c255b28",
+      "xyt": {
+        "min": 0,
+        "max": 0.806013
+      },
+      "macro": {
+        "min": 0,
+        "max": 1
+      },
+      "processed": {
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "retained": 6,
+      "iterations": [
+        600,
+        620,
+        631,
+        639,
+        648,
+        660
+      ],
+      "triangles": 21230,
+      "positionHash": "5f074a792945765d3ae27a01633ad85758c73855070c8df9a3a7c213efb4a864",
+      "xyt": {
+        "min": 0,
+        "max": 0.957638
+      },
+      "macro": {
+        "min": 0,
+        "max": 1
+      },
+      "processed": {
+        "min": 0,
+        "max": 1
+      }
+    }
+  ]
+}

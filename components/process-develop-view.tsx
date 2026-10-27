@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
-import { MODULE_SIZE_X, moduleEnvelope, moduleViewColumn } from "@/lib/skill3/envelope";
-import { moduleViewFit } from "@/lib/skill3/view-project";
+import { MODULE_SIZE_X } from "@/lib/skill3/envelope";
+import {
+  createProcessIsoCamera,
+  orbitProcessIso,
+  processIsoFit,
+  resetProcessIso,
+  zoomProcessIso,
+  type ProcessIsoCamera,
+} from "@/lib/skill3/process-iso-camera";
 import { rasterTrailPlate } from "@/components/vertical-render";
 
 export type DevelopPlate = {
@@ -29,6 +36,7 @@ uniform float uPitch;
 uniform float uAspect;
 uniform float uFit;
 out vec3 vNormal;
+out float vHeight;
 void main() {
   float cy = cos(uYaw);
   float sy = sin(uYaw);
@@ -43,25 +51,27 @@ void main() {
   float ny2 = aNormal.y * cp - nz1 * sp;
   float nz2 = aNormal.y * sp + nz1 * cp;
   vNormal = vec3(nx1, ny2, nz2);
-  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
-  float near = 0.35;
-  float far = 14.0;
-  float f = 1.55;
-  gl_Position = vec4(view.x * f, view.y * f, (view.z * (far + near) + 2.0 * far * near) / (near - far), -view.z);
+  vHeight = aPos.y;
+  gl_Position = vec4(x1 * uFit / uAspect, y2 * uFit, z2 * 0.0125, 1.0);
 }`;
 
 const MESH_FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
+in float vHeight;
 uniform float uAlpha;
+uniform float uClipLo;
+uniform float uClipHi;
 layout(location = 0) out vec4 oColor;
 void main() {
+  if (vHeight < uClipLo || vHeight > uClipHi) discard;
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
   if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.35, 0.82, 0.48));
-  float light = 0.78 + 0.22 * clamp(dot(n, key), 0.0, 1.0);
-  vec3 col = vec3(0.95, 0.96, 0.95) * light;
+  vec3 key = normalize(vec3(0.32, 0.86, 0.4));
+  float light = 0.72 + 0.28 * clamp(dot(n, key), 0.0, 1.0);
+  float rim = pow(1.0 - abs(dot(n, viewDir)), 1.7);
+  vec3 col = vec3(0.94, 0.95, 0.94) * light + vec3(0.72, 0.9, 0.88) * rim * 0.16;
   oColor = vec4(col, uAlpha);
 }`;
 
@@ -83,11 +93,7 @@ void main() {
   float y2 = aPos.y * cp - z1 * sp;
   float z2 = aPos.y * sp + z1 * cp;
   vUv = aUv;
-  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
-  float near = 0.35;
-  float far = 14.0;
-  float f = 1.55;
-  gl_Position = vec4(view.x * f, view.y * f, (view.z * (far + near) + 2.0 * far * near) / (near - far), -view.z);
+  gl_Position = vec4(x1 * uFit / uAspect, y2 * uFit, z2 * 0.0125, 1.0);
 }`;
 
 const PLATE_FRAG = `#version 300 es
@@ -117,11 +123,7 @@ void main() {
   float z1 = -aPos.x * sy + aPos.z * cy;
   float y2 = aPos.y * cp - z1 * sp;
   float z2 = aPos.y * sp + z1 * cp;
-  vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
-  float near = 0.35;
-  float far = 14.0;
-  float f = 1.55;
-  gl_Position = vec4(view.x * f, view.y * f, (view.z * (far + near) + 2.0 * far * near) / (near - far), -view.z);
+  gl_Position = vec4(x1 * uFit / uAspect, y2 * uFit, z2 * 0.0125, 1.0);
 }`;
 
 const LINE_FRAG = `#version 300 es
@@ -227,33 +229,74 @@ function plateHeight(z: number, lift: number) {
   return (z - 0.5) * MODULE_SIZE_X + lift;
 }
 
-/** The mesh stored for this plate count. The last stored prefix is kept only on the final stage. */
-function meshFor(stage: number, total: number, meshes: Readonly<Record<number, IsoMesh>>) {
-  if (stage < 2) return { mesh: null as IsoMesh | null, carried: false };
-  if (meshes[stage]) return { mesh: meshes[stage], carried: false };
-  if (stage === total) {
-    const earlier = Object.keys(meshes).map(Number).filter((count) => count < stage).sort((a, b) => b - a);
-    const last = earlier[0];
-    if (last != null) return { mesh: meshes[last], carried: true };
+function ease(amount: number) {
+  const t = Math.max(0, Math.min(1, amount));
+  return t * t * (3 - 2 * t);
+}
+
+/** Sparse trails through the interval the newest plate opens. They mark inheritance, then leave. */
+function bridgeLines(previous: DevelopPlate, current: DevelopPlate, reveal: number) {
+  const size = Math.max(1, Math.min(previous.trailSize, current.trailSize));
+  const stride = size > 48 ? 5 : 4;
+  const y0 = plateHeight(previous.z, 0);
+  const y1 = plateHeight(current.z, 0);
+  const y = y0 + (y1 - y0) * reveal;
+  const peak = current.peak > 0 ? current.peak : 1;
+  const lines: number[] = [];
+  let count = 0;
+  for (let ty = 0; ty < size && count < 96; ty += stride) {
+    for (let tx = 0; tx < size && count < 96; tx += stride) {
+      const ink = (current.trails[ty * current.trailSize + tx] ?? 0) / peak;
+      if (ink < 0.28) continue;
+      const x = -HALF + ((tx + 0.5) / size) * MODULE_SIZE_X;
+      const z = HALF - ((ty + 0.5) / size) * MODULE_SIZE_X;
+      lines.push(x, y0, z, x, y, z);
+      count += 1;
+    }
   }
-  return { mesh: null, carried: true };
+  return lines;
+}
+
+/** The stored prefix for this plate count. A later stage may hold the last saved prefix. Vertices are never blended. */
+function meshFor(stage: number, total: number, meshes: Readonly<Record<number, IsoMesh>>) {
+  if (stage < 2) return { mesh: null as IsoMesh | null, carried: false, source: null as number | null };
+  if (meshes[stage]) return { mesh: meshes[stage], carried: false, source: stage };
+  if (stage === total) {
+    const earlier = Object.keys(meshes).map(Number).filter((count) => count < stage && meshes[count]).sort((a, b) => b - a);
+    const last = earlier[0];
+    if (last != null) return { mesh: meshes[last], carried: true, source: last };
+  }
+  return { mesh: null, carried: false, source: null };
 }
 
 export function ProcessDevelop({
   plates,
   meshes,
   autoplay,
+  loading = false,
+  isoCamera,
+  isoTick = 0,
+  onIsoCamera,
+  onResetIso,
   onComplete,
   onEngage,
 }: {
   plates: readonly DevelopPlate[];
   meshes: Readonly<Record<number, IsoMesh>>;
   autoplay: boolean;
+  loading?: boolean;
+  isoCamera?: MutableRefObject<ProcessIsoCamera>;
+  isoTick?: number;
+  onIsoCamera?: () => void;
+  onResetIso?: () => void;
   onComplete: () => void;
   onEngage: () => void;
 }) {
   const viewRef = useRef<HTMLCanvasElement>(null);
-  const camera = useRef({ yaw: Math.PI / 4, pitch: 0.62, zoom: 1 });
+  const ownedCamera = useRef<ProcessIsoCamera>(createProcessIsoCamera());
+  const camera = isoCamera ?? ownedCamera;
+  const onIsoRef = useRef(onIsoCamera);
+  onIsoRef.current = onIsoCamera;
   const [viewTick, setViewTick] = useState(0);
   const [stage, setStage] = useState(0);
   const [arrival, setArrival] = useState(1);
@@ -317,8 +360,7 @@ export function ProcessDevelop({
       }
       const { yaw, pitch, zoom } = camera.current;
       const aspect = width / Math.max(1, height);
-      const column = moduleViewColumn(moduleEnvelope(MODULE_SIZE_X)) * 0.72;
-      const fit = moduleViewFit(column, aspect) * zoom;
+      const fit = processIsoFit(pitch, aspect, zoom);
       gl.viewport(0, 0, pixelsW, pixelsH);
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -348,7 +390,7 @@ export function ProcessDevelop({
         const texture = textures[index];
         if (!plate || !texture) continue;
         const entering = index === shown - 1;
-        const y = plateHeight(plate.z, entering ? (1 - frame.arrival) * -1.8 : 0);
+        const y = plateHeight(plate.z, 0);
         const quad = new Float32Array([
           -HALF, y, -HALF, 0, 0,
           HALF, y, -HALF, 1, 0,
@@ -358,7 +400,7 @@ export function ProcessDevelop({
           -HALF, y, HALF, 0, 1,
         ]);
         gl.bufferData(gl.ARRAY_BUFFER, quad, gl.DYNAMIC_DRAW);
-        gl.uniform1f(gl.getUniformLocation(plateProg, "uAlpha"), entering ? 0.15 + frame.arrival * 0.55 : 0.7);
+        gl.uniform1f(gl.getUniformLocation(plateProg, "uAlpha"), entering ? 0.16 + frame.arrival * 0.72 : 0.42);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(gl.getUniformLocation(plateProg, "uPlate"), 0);
@@ -366,21 +408,23 @@ export function ProcessDevelop({
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
 
-      const reading = meshFor(shown, frame.plates.length, frame.meshes);
-      if (reading.mesh && frame.fade > 0) {
+      const drawMesh = (mesh: IsoMesh, clipLo: number, clipHi: number, alpha: number) => {
+        if (alpha <= 0 || clipHi <= clipLo) return;
         const key = `${yaw.toFixed(3)}:${pitch.toFixed(3)}`;
-        const cached = orderCache.current.get(reading.mesh);
-        const indices = cached && cached.key === key ? cached.indices : orderedTriangles(reading.mesh, yaw, pitch);
-        if (!cached || cached.key !== key) orderCache.current.set(reading.mesh, { key, indices });
+        const cached = orderCache.current.get(mesh);
+        const indices = cached && cached.key === key ? cached.indices : orderedTriangles(mesh, yaw, pitch);
+        if (!cached || cached.key !== key) orderCache.current.set(mesh, { key, indices });
         gl.useProgram(meshProg);
         setCamera(meshProg);
-        gl.uniform1f(gl.getUniformLocation(meshProg, "uAlpha"), 0.72 * frame.fade);
-        if (uploaded !== reading.mesh) {
+        gl.uniform1f(gl.getUniformLocation(meshProg, "uAlpha"), alpha);
+        gl.uniform1f(gl.getUniformLocation(meshProg, "uClipLo"), clipLo);
+        gl.uniform1f(gl.getUniformLocation(meshProg, "uClipHi"), clipHi);
+        if (uploaded !== mesh) {
           gl.bindBuffer(gl.ARRAY_BUFFER, meshPos);
-          gl.bufferData(gl.ARRAY_BUFFER, reading.mesh.positions, gl.STATIC_DRAW);
+          gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
           gl.bindBuffer(gl.ARRAY_BUFFER, meshNrm);
-          gl.bufferData(gl.ARRAY_BUFFER, reading.mesh.normals, gl.STATIC_DRAW);
-          uploaded = reading.mesh;
+          gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+          uploaded = mesh;
         }
         gl.bindBuffer(gl.ARRAY_BUFFER, meshPos);
         gl.enableVertexAttribArray(0);
@@ -392,6 +436,23 @@ export function ProcessDevelop({
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.DYNAMIC_DRAW);
         gl.depthMask(true);
         gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+      };
+
+      const reading = meshFor(shown, frame.plates.length, frame.meshes);
+      const previousPlate = shown >= 2 ? frame.plates[shown - 2] : null;
+      const currentPlate = shown > 0 ? frame.plates[shown - 1] : null;
+      const reveal = ease(frame.arrival);
+      const previousY = previousPlate ? plateHeight(previousPlate.z, 0) : -HALF;
+      const currentY = currentPlate ? plateHeight(currentPlate.z, 0) : previousY;
+      const sweep = previousY + (currentY - previousY) * reveal;
+      if (reading.mesh && reading.carried && reading.source != null) {
+        const sourcePlate = frame.plates[reading.source - 1];
+        const sourceY = sourcePlate ? plateHeight(sourcePlate.z, 0) : previousY;
+        drawMesh(reading.mesh, -MODULE_SIZE_X, sourceY, 0.5);
+      } else if (reading.mesh && previousPlate) {
+        const prior = meshFor(shown - 1, frame.plates.length, frame.meshes);
+        if (prior.mesh && prior.mesh !== reading.mesh) drawMesh(prior.mesh, -MODULE_SIZE_X, previousY, 0.5);
+        drawMesh(reading.mesh, previousY, sweep, 0.62 * Math.max(frame.fade, reveal));
       }
 
       gl.useProgram(lineProg);
@@ -404,8 +465,7 @@ export function ProcessDevelop({
       for (let index = 0; index < shown; index += 1) {
         const plate = frame.plates[index];
         if (!plate) continue;
-        const entering = index === shown - 1;
-        const y = plateHeight(plate.z, entering ? (1 - frame.arrival) * -1.8 : 0);
+        const y = plateHeight(plate.z, 0);
         const ring = [[-HALF, y, -HALF], [HALF, y, -HALF], [HALF, y, HALF], [-HALF, y, HALF]];
         for (let edge = 0; edge < 4; edge += 1) {
           lines.push(...ring[edge], ...ring[(edge + 1) % 4]);
@@ -414,9 +474,18 @@ export function ProcessDevelop({
       const origin: [number, number, number] = [-HALF, -HALF, -HALF];
       const axes: Array<[number, number, number]> = [[4.2, 0, 0], [0, 4.2, 0], [0, 0, 4.2]];
       for (const axis of axes) lines.push(...origin, origin[0] + axis[0], origin[1] + axis[1], origin[2] + axis[2]);
+      gl.disableVertexAttribArray(1);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.DYNAMIC_DRAW);
       gl.depthMask(false);
       gl.drawArrays(gl.LINES, 0, lines.length / 3);
+      if (previousPlate && currentPlate && reveal < 0.98) {
+        const bridges = bridgeLines(previousPlate, currentPlate, reveal);
+        if (bridges.length > 0) {
+          gl.uniform4f(gl.getUniformLocation(lineProg, "uColor"), 0.49, 0.84, 0.82, 0.55 * (1 - reveal));
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bridges), gl.DYNAMIC_DRAW);
+          gl.drawArrays(gl.LINES, 0, bridges.length / 3);
+        }
+      }
       gl.depthMask(true);
     };
     paintRef.current = paint;
@@ -440,7 +509,7 @@ export function ProcessDevelop({
 
   useEffect(() => {
     paintRef.current?.();
-  }, [arrival, fade, meshes, plates, stage, viewTick]);
+  }, [arrival, fade, isoTick, meshes, plates, stage, viewTick]);
 
   useEffect(() => {
     const canvas = viewRef.current;
@@ -452,9 +521,9 @@ export function ProcessDevelop({
     };
     const move = (event: PointerEvent) => {
       if (!drag) return;
-      camera.current.yaw += (event.clientX - drag.x) * 0.005;
-      camera.current.pitch = Math.min(1.2, Math.max(0.15, camera.current.pitch + (event.clientY - drag.y) * 0.005));
+      orbitProcessIso(camera.current, event.clientX - drag.x, event.clientY - drag.y);
       drag = { x: event.clientX, y: event.clientY };
+      onIsoRef.current?.();
       setViewTick((value) => value + 1);
     };
     const up = () => {
@@ -462,8 +531,8 @@ export function ProcessDevelop({
     };
     const wheel = (event: WheelEvent) => {
       event.preventDefault();
-      const next = camera.current.zoom * (event.deltaY > 0 ? 0.92 : 1.08);
-      camera.current.zoom = Math.min(1.85, Math.max(0.62, next));
+      zoomProcessIso(camera.current, event.deltaY);
+      onIsoRef.current?.();
       setViewTick((value) => value + 1);
     };
     canvas.addEventListener("pointerdown", down);
@@ -489,7 +558,7 @@ export function ProcessDevelop({
   const jump = (next: number) => {
     stop();
     onEngage();
-    setStage(Math.max(1, Math.min(plates.length, next)));
+    setStage(Math.max(0, Math.min(plates.length, next)));
     setArrival(1);
     setFade(1);
   };
@@ -555,6 +624,13 @@ export function ProcessDevelop({
   };
 
   useEffect(() => {
+    stop();
+    setArrival(1);
+    setFade(1);
+    setStage(plates.length);
+  }, [plates]);
+
+  useEffect(() => {
     if (!autoplay || plates.length === 0) return;
     playFrom(0);
     return () => stop();
@@ -564,14 +640,39 @@ export function ProcessDevelop({
 
   const shown = meshFor(stage, plates.length, meshes);
   const current = plates[stage - 1];
-  const unavailable = stage === plates.length && plates.length > 0 && shown.carried;
+  const storedCount = Object.keys(meshes).length;
+  const prefix = shown.source != null ? `p${String(shown.source).padStart(2, "0")}` : null;
+  const note = loading
+    ? null
+    : plates.length === 0
+      ? "Sampling record unavailable."
+      : shown.carried && shown.source != null
+        ? `Held at ${shown.source} plates.`
+        : storedCount === 0
+          ? "Development record unavailable."
+          : null;
   const resetView = () => {
-    camera.current = { yaw: Math.PI / 4, pitch: 0.62, zoom: 1 };
+    if (onResetIso) {
+      onResetIso();
+      return;
+    }
+    resetProcessIso(camera.current);
     setViewTick((value) => value + 1);
+  };
+  const restart = () => {
+    stop();
+    onEngage();
+    setStage(0);
+    setArrival(1);
+    setFade(1);
   };
 
   return (
     <div className="process-develop">
+      <div className="process-develop-view">
+        <canvas ref={viewRef} aria-label="Retained plates growing the morphology through each new interval" />
+        {note ? <p className="process-develop-note">{note}</p> : null}
+      </div>
       <ol className="process-develop-samples">
         {plates.map((plate, index) => (
           <li key={plate.iteration}>
@@ -582,18 +683,26 @@ export function ProcessDevelop({
           </li>
         ))}
       </ol>
-      <div className="process-develop-view">
-        <canvas ref={viewRef} aria-label="Retained plates and the stored morphology reconstructions" />
-        {unavailable ? <p className="process-develop-note">{plates.length === 6 ? "Six samples retained — intermediate mesh unavailable." : `${plates.length} samples retained — intermediate mesh unavailable.`}</p> : null}
-        {plates.length === 0 ? <p className="process-develop-note">Retained plates are not stored for this continuation.</p> : null}
-      </div>
       <div className="process-develop-time">
         <div className="process-transport">
-          <button type="button" onClick={() => { if (playing) { stop(); onEngage(); return; } onEngage(); playFrom(stage >= plates.length ? 0 : stage === 0 ? 0 : stage); }} disabled={plates.length === 0}>{playing ? "Pause" : "Play"}</button>
+          <button type="button" onClick={() => { if (playing) { stop(); onEngage(); return; } onEngage(); playFrom(stage >= plates.length || stage <= 0 ? 0 : stage); }} disabled={plates.length === 0}>{playing ? "Pause" : "Play"}</button>
+          <button type="button" onClick={() => { stop(); onEngage(); }} disabled={!playing}>Pause</button>
+          <button type="button" onClick={restart} disabled={plates.length === 0}>Restart</button>
           <button type="button" onClick={() => jump(stage - 1)} disabled={stage <= 1}>Previous</button>
-          <button type="button" onClick={() => jump(stage + 1)} disabled={stage >= plates.length}>Next</button>
-          <button type="button" onClick={() => { onEngage(); playFrom(0); }} disabled={plates.length === 0 || playing}>Replay</button>
-          <button type="button" onClick={resetView}>Reset view</button>
+          <button type="button" onClick={() => jump(stage + 1)} disabled={stage >= plates.length || plates.length === 0}>Next</button>
+          <button type="button" onClick={resetView}>Reset to isometric</button>
+          <label>
+            <span>Scrub</span>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(1, plates.length)}
+              value={Math.min(stage, Math.max(1, plates.length))}
+              disabled={plates.length === 0}
+              aria-valuetext={current ? `Iteration ${current.iteration}, ${stage} retained` : "Start"}
+              onChange={(event) => jump(Number(event.target.value))}
+            />
+          </label>
         </div>
         <div className="process-develop-track" role="group" aria-label="Retained plate count">
           {plates.map((plate, index) => (
@@ -605,8 +714,20 @@ export function ProcessDevelop({
             </span>
           ))}
         </div>
-        <p className="process-develop-status">{stage > 0 && current ? `${stage} ${stage === 1 ? "plate" : "plates"} · iteration ${current.iteration}` : "Retained plates"}</p>
+        <p className="process-develop-status">
+          {stage > 0 && current
+            ? `${current.iteration} · ${stage} retained · body through this plate`
+            : loading ? "Reading" : "Retained plates"}
+        </p>
       </div>
+      <details className="process-technical">
+        <summary>Technical details</summary>
+        <div className="process-technical-body">
+          <p>Each new plate opens the next interval. The body already made stays below that plate, and the new reconstruction grows only through the interval.</p>
+          <p>Trail threads mark that interval while it opens, then leave. Vertices are not blended. Step 06 holds the stored Open.</p>
+          {prefix ? <p>{shown.carried ? `${prefix} is held. The ${plates.length}-plate mesh is not stored.` : `Current prefix ${prefix}.`}</p> : null}
+        </div>
+      </details>
     </div>
   );
 }

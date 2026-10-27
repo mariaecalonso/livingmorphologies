@@ -333,7 +333,7 @@ function readinessDim(status: CatalogueModule["status"], kind: "mesh" | "label" 
 }
 
 function lineColor(kind: "plain" | "focus" | "chosen"): [number, number, number, number] {
-  if (kind === "chosen") return [0.4, 0.88, 0.9, 1];
+  if (kind === "chosen") return [1, 1, 1, 0.92];
   if (kind === "focus") return [0.9, 0.9, 0.88, 0.42];
   return [0.7, 0.69, 0.66, 0.14];
 }
@@ -358,7 +358,7 @@ function pushBox(data: number[], ox: number, oy: number, oz: number, color: [num
   }
 }
 
-function pushThickBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number], half: number, thickness: number) {
+function pushDashedBox(data: number[], ox: number, oy: number, oz: number, color: [number, number, number, number], half: number, dash = 1.6, gap = 1) {
   const corners: [number, number, number][] = [];
   for (const x of [-half, half]) {
     for (const y of [-half, half]) {
@@ -370,17 +370,19 @@ function pushThickBox(data: number[], ox: number, oy: number, oz: number, color:
     [0, 2], [1, 3], [4, 6], [5, 7],
     [0, 4], [1, 5], [2, 6], [3, 7],
   ];
+  const thickness = half * 0.02;
   const put = (point: [number, number, number]) => {
     data.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3], 0);
   };
+  const step = dash + gap;
   for (const [ia, ib] of edges) {
     const a = corners[ia];
     const b = corners[ib];
-    const dir: [number, number, number] = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    const span = Math.hypot(dir[0], dir[1], dir[2]) || 1;
-    dir[0] /= span;
-    dir[1] /= span;
-    dir[2] /= span;
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const dz = b[2] - a[2];
+    const length = Math.hypot(dx, dy, dz) || 1;
+    const dir: [number, number, number] = [dx / length, dy / length, dz / length];
     const helper: [number, number, number] = Math.abs(dir[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
     const side: [number, number, number] = [
       dir[1] * helper[2] - dir[2] * helper[1],
@@ -396,7 +398,8 @@ function pushThickBox(data: number[], ox: number, oy: number, oz: number, color:
       dir[2] * side[0] - dir[0] * side[2],
       dir[0] * side[1] - dir[1] * side[0],
     ];
-    const ring = (origin: [number, number, number]) => {
+    const ring = (u: number) => {
+      const origin: [number, number, number] = [a[0] + dx * u, a[1] + dy * u, a[2] + dz * u];
       const signs: [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
       return signs.map(([sx, ly]) => [
         origin[0] + (side[0] * sx + lift[0] * ly) * thickness,
@@ -404,11 +407,13 @@ function pushThickBox(data: number[], ox: number, oy: number, oz: number, color:
         origin[2] + (side[2] * sx + lift[2] * ly) * thickness,
       ] as [number, number, number]);
     };
-    const start = ring(a);
-    const end = ring(b);
-    for (let index = 0; index < 4; index += 1) {
-      const next = (index + 1) % 4;
-      for (const point of [start[index], end[index], end[next], start[index], end[next], start[next]]) put(point);
+    for (let t = 0; t < length - 0.001; t += step) {
+      const start = ring(t / length);
+      const end = ring(Math.min(length, t + dash) / length);
+      for (let index = 0; index < 4; index += 1) {
+        const next = (index + 1) % 4;
+        for (const point of [start[index], end[index], end[next], start[index], end[next], start[next]]) put(point);
+      }
     }
   }
 }
@@ -945,18 +950,14 @@ export function CatalogueField({
             const [ox, oy, oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
             const planted = oy - MODULE_HALF * (1 - backScale);
             if (item.id === chosenRef.current) {
-              pushThickBox(chosenData, ox, planted, oz, lineColor("chosen"), MODULE_HALF * backScale * 1.08, 0.28 * backScale);
+              pushDashedBox(chosenData, ox, planted, oz, lineColor("chosen"), MODULE_HALF * backScale);
             } else {
               pushBox(lineData, ox, planted, oz, lineColor("plain"), MODULE_HALF * backScale);
             }
           });
-        } else if (focus) {
+        } else if (focus && selected !== chosenRef.current) {
           const planted = focus.y - MODULE_HALF * (1 - focus.scale);
-          if (selected === chosenRef.current) {
-            pushThickBox(chosenData, focus.x, planted, focus.z, lineColor("chosen"), MODULE_HALF * focus.scale * 1.02, 0.2 * focus.scale);
-          } else {
-            pushBox(lineData, focus.x, planted, focus.z, lineColor("focus"), MODULE_HALF * focus.scale);
-          }
+          pushBox(lineData, focus.x, planted, focus.z, lineColor("focus"), MODULE_HALF * focus.scale);
         }
         const drawLines = (data: number[], primitive: number, over: boolean) => {
           if (data.length === 0) return;
@@ -1039,7 +1040,7 @@ export function CatalogueField({
           drawMesh(item, itemIndex, pose ? { x: ox, y: oy, z: oz, scale: backScale } : null);
         });
         if (mode === "field") gl.disable(gl.BLEND);
-        drawLines(chosenData, gl.TRIANGLES, true);
+        drawLines(chosenData, gl.TRIANGLES, false);
       };
 
       const drawGrid = (dim = 1) => {
