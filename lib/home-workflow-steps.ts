@@ -9,25 +9,20 @@ export type WorkflowStep = {
 export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
   "skill-1": [
     {
-      title: "Architectural Input",
+      title: "Architecture Input",
       body: "Precedent criteria and descriptors establish the spatial qualities the system should preserve, including openness, connectivity, centrality, visibility, and social proximity.",
     },
     {
-      title: "Criteria → Growth Instincts",
-      body: "Low, Medium, and High criteria ratings control behavioral tendencies such as spreading, concentrating, connecting, branching, following trails, and avoiding areas.",
+      title: "Rules",
+      body: "Low, Medium, and High criteria ratings set growth instincts such as spreading, concentrating, connecting, branching, following trails, and avoiding areas. Descriptors organize the spatial recipe through attractors, voids, boundaries, directional conditions, and spatial nodes.",
     },
     {
-      title: "Descriptors → Spatial Recipe",
-      body: "Descriptors organize the simulation field through attractors, voids, boundaries, directional conditions, and spatial nodes, creating an archetype-specific environment.",
-    },
-    {
-      title: "Translation → Simulation Parameters",
+      title: "Translation",
       body: "Growth instincts and spatial conditions are translated into parameters controlling sensing, movement, attraction, diffusion, trail reinforcement, agent concentration, branching, and merging.",
     },
     {
-      title: "Physarum Executes the Rules",
+      title: "Rule-Based Generation",
       body: "The system repeatedly senses, moves, deposits, reinforces, and adapts. These local behaviors collectively produce an emergent network reflecting the original architectural criteria.",
-      cycle: "Sense → Move → Deposit → Reinforce → Adapt → Repeat",
     },
   ],
   "skill-2": [
@@ -44,7 +39,7 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
       body: "Candidates are ranked through Pareto dominance, retaining stronger tradeoff solutions without collapsing performance into a single aggregate score.",
     },
     {
-      title: "Diversity Preservation + Selection",
+      title: "Diversity Preservation",
       body: "Similarity and distribution are evaluated to reduce redundancy, preserve distinct solutions, and select candidates that continue into the next generation.",
     },
     {
@@ -55,28 +50,28 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
   ],
   "skill-3": [
     {
-      title: "Start — Verified Z0",
-      body: "Begin from the exact 2D morphology selected in Skill 2 and load its verified simulation state, establishing the inherited starting condition for Skill 3.",
+      title: "01 Initialization",
+      body: "Verified Z0 and the inherited descriptors.",
     },
     {
-      title: "Inherit — Descriptors",
-      body: "Carry the Formal, Spatial, and Atmospheric descriptor priorities from Skill 2 forward as the baseline for post-Z0 temporal development.",
+      title: "02 Continuations",
+      body: "Twenty-four branches, then the samples kept from each.",
     },
     {
-      title: "Evolve — 24 Temporal Behaviors",
-      body: "Continue the verified Z0 into 24 different temporal futures by varying when and how strongly the inherited descriptors influence the simulation.",
+      title: "03 Stack",
+      body: "Retained plates ordered into the XYT record.",
     },
     {
-      title: "Sample — Adaptive Evolution",
-      body: "Allow each continuation to evolve for as long as needed and retain only meaningful moments of change, such as merges, splits, openings, or directional shifts.",
+      title: "04 Geometry",
+      body: "Open saddle-shell and capped mass of one continuation.",
     },
     {
-      title: "Stack — XYT Construction",
-      body: "Stack the accepted 2D temporal states vertically, mapping T → Z, to transform the evolving morphology into a 20×20×20 space-time volume.",
+      title: "05 Selection",
+      body: "Hand selection, then the stored geometric checks.",
     },
     {
-      title: "Curate — Diversity Selection",
-      body: "Compare the 24 resulting 3D temporal morphologies and reduce them to 12 representative outcomes for the 3D Catalogue and final selection.",
+      title: "06 Selected for Hybrid Connection",
+      body: "Fifteen modules, one per archetype.",
     },
   ],
   recombination: [
@@ -85,8 +80,8 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
       body: "Tiles are selected from the Skill 03 output, along with the two faces that will be used for morphological connection.",
     },
     {
-      title: "Hybrid SOM Matrices",
-      body: "Each connector is generated through a 5×5 SOM matrix that explores possible hybrid geometries aligned with the spatial characteristics of both tiles.",
+      title: "Connector Candidate Field",
+      body: "Two registered faces are sampled, then a 5×5 candidate field blends the parent modules and sets transformation intensity. The field is not a trained self-organizing map.",
     },
     {
       title: "Aggregation Operations",
@@ -95,6 +90,30 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
     {
       title: "Connection Summary",
       body: "The two tiles are joined through the selected hybrid, completing the morphological connection.",
+    },
+  ],
+  client: [
+    {
+      title: "The Client",
+      body: "",
+    },
+  ],
+  "skill-5": [
+    {
+      title: "Site Context",
+      body: "The One Herald Plaza parcel, its streets, and the surrounding buildings establish the ground the modules occupy.",
+    },
+    {
+      title: "Module Library",
+      body: "Fifteen Skill 3 modules are loaded, one for each archetype, each held in a 20 × 20 × 20 ft envelope.",
+    },
+    {
+      title: "Grid Placement",
+      body: "A chosen module is placed on the parcel, snapped to the 10 ft grid, then moved or rotated.",
+    },
+    {
+      title: "Session Composition",
+      body: "Placed modules form a composition for this session. Analysis, comparison, and saved configurations are not part of this phase.",
     },
   ],
 };

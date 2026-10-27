@@ -28,9 +28,32 @@ export type Camera = { x: number; y: number; scale: number };
 
 export type WorldRect = { x: number; y: number; w: number; h: number };
 
-export const WORKFLOW_WORLD = { width: 8200, height: 1200 };
+/** Prior six-stage span. Card size and step stay in those pixels so the seventh stage does not pack the others. */
+const PRIOR_WORLD = 8200;
+const PRIOR_START = 0.08 * PRIOR_WORLD;
+const PRIOR_STEP = 0.164 * PRIOR_WORLD;
+const PRIOR_CARD_W = 0.132 * PRIOR_WORLD;
+const STAGE_COUNT = 8;
+/**
+ * Primary-frame widths, as a share of the shared card.
+ * Vertical Propagation is wider so its title stays one line.
+ * Optimization and The Client give up that width. The row keeps the same outer edges and even gaps.
+ */
+const STAGE_WIDTH_SCALE = [1, 1, 1, 159 / 170, 192 / 170, 159 / 170, 1, 1] as const;
 
-export const WORKFLOW_CARD = { w: 0.132, h: 0.28, radius: 110 };
+export const WORKFLOW_WORLD = {
+  width: PRIOR_START + (STAGE_COUNT - 1) * PRIOR_STEP + PRIOR_CARD_W / 2 + (PRIOR_START - PRIOR_CARD_W / 2),
+  height: 1200,
+};
+
+export const WORKFLOW_CARD = { w: PRIOR_CARD_W / WORKFLOW_WORLD.width, h: 0.28, radius: 110 };
+
+function stageAnchorX(index: number) {
+  const gap = PRIOR_STEP - PRIOR_CARD_W;
+  let left = PRIOR_START - PRIOR_CARD_W / 2;
+  for (let cursor = 0; cursor < index; cursor += 1) left += PRIOR_CARD_W * STAGE_WIDTH_SCALE[cursor] + gap;
+  return (left + (PRIOR_CARD_W * STAGE_WIDTH_SCALE[index]) / 2) / WORKFLOW_WORLD.width;
+}
 
 export type NodeSide = "left" | "right" | "top" | "bottom";
 
@@ -51,7 +74,7 @@ export type MacroNode = {
 const LIGHT_PACE = 2.2;
 const MACRO_CYCLE = 16000 * LIGHT_PACE;
 /** Overview camera fit. The main light uses this so its screen speed matches steps 03–06. */
-export const OVERVIEW_FILL = 0.92;
+export const OVERVIEW_FILL = 0.96;
 export const WORKFLOW_CYCLE_MS = MACRO_CYCLE;
 /** Steps 01 and 02 only. Tail time uses the same pace so their streak stays the same length. */
 const TRACK_PACE = 1.18;
@@ -62,8 +85,7 @@ export const WORKFLOW_TRACK_TAIL = TRACK_PACE;
  * Shared board for every detailed workflow SVG.
  * Artboard 7407 × 2160. Draw on black. Read left to right.
  * Title zone is the top band. Diagrams stay inside the content rect.
- * Teal #0f7377 marks generative search, Skill 01, and Skill 02.
- * Copper #c77e5f marks Skill 03 and Recombination.
+ * Teal marks biological generation. Copper marks architectural judgment. White marks context.
  * Boxes use a 18px corner, a thin teal-to-copper edge, and a black fill.
  */
 export const WORKFLOW_BOARD = {
@@ -130,17 +152,17 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     id: "decomposition",
     label: "Typology Analysis",
     order: 1,
-    anchor: { x: 0.08, y: 0.58 },
+    anchor: { x: stageAnchorX(0), y: 0.52 },
     detailAsset: null, // /assets/skill0/decomposition.svg
     previous: null,
     next: "generative-system",
-    tone: "neutral",
+    tone: "copper",
   },
   {
     id: "generative-system",
-    label: "Generative System Search",
+    label: "Generative System",
     order: 2,
-    anchor: { x: 0.244, y: 0.42 },
+    anchor: { x: stageAnchorX(1), y: 0.47 },
     detailAsset: "/assets/skill0/generative-system.svg",
     previous: "decomposition",
     next: "skill-1",
@@ -150,7 +172,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     id: "skill-1",
     label: labWorkspace("physarum").label,
     order: 3,
-    anchor: { x: 0.408, y: 0.62 },
+    anchor: { x: stageAnchorX(2), y: 0.53 },
     detailAsset: null, // /assets/skill1/workflow.svg
     previous: "generative-system",
     next: "skill-2",
@@ -160,32 +182,52 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
     id: "skill-2",
     label: labWorkspace("optimization").label,
     order: 4,
-    anchor: { x: 0.572, y: 0.4 },
+    anchor: { x: stageAnchorX(3), y: 0.46 },
     detailAsset: null, // /assets/skill2/workflow.svg
     previous: "skill-1",
     next: "skill-3",
-    tone: "teal",
+    tone: "copper",
   },
   {
     id: "skill-3",
     label: labWorkspace("vertical").label,
     order: 5,
-    anchor: { x: 0.736, y: 0.6 },
+    anchor: { x: stageAnchorX(4), y: 0.53 },
     detailAsset: null, // /assets/skill3/workflow.svg
     previous: "skill-2",
+    next: "client",
+    tone: "teal",
+  },
+  {
+    id: "client",
+    label: "The Client",
+    order: 6,
+    anchor: { x: stageAnchorX(5), y: 0.47 },
+    detailAsset: null,
+    previous: "skill-3",
+    next: "skill-5",
+    tone: "neutral",
+  },
+  {
+    id: "skill-5",
+    label: labWorkspace("site").label,
+    order: 7,
+    anchor: { x: stageAnchorX(6), y: 0.53 },
+    detailAsset: null,
+    previous: "client",
     next: "recombination",
-    tone: "copper",
+    tone: "neutral",
+    lab: [{ href: LAB_ENTRY.href, label: LAB_ENTRY.label }],
   },
   {
     id: "recombination",
     label: labWorkspace("hybrid").label,
-    order: 6,
-    anchor: { x: 0.9, y: 0.44 },
+    order: 8,
+    anchor: { x: stageAnchorX(7), y: 0.47 },
     detailAsset: null, // /assets/skill0/recombination.svg
-    previous: "skill-3",
+    previous: "skill-5",
     next: null,
-    tone: "copper",
-    lab: [{ href: LAB_ENTRY.href, label: LAB_ENTRY.label }],
+    tone: "teal",
   },
 ];
 
@@ -193,16 +235,13 @@ export function workflowStage(id: string) {
   return WORKFLOW_STAGES.find((stage) => stage.id === id) ?? null;
 }
 
-function cardHeight(stage: WorkflowStage) {
-  const base = WORKFLOW_CARD.h * WORKFLOW_WORLD.height;
-  if (stage.label.length > 22) return base * 1.85;
-  if (stage.label.length > 13) return base * 1.58;
-  return base;
+function cardHeight() {
+  return WORKFLOW_CARD.h * WORKFLOW_WORLD.height;
 }
 
 export function cardRect(stage: WorkflowStage): WorldRect {
-  const w = WORKFLOW_CARD.w * WORKFLOW_WORLD.width;
-  const h = cardHeight(stage);
+  const w = WORKFLOW_CARD.w * WORKFLOW_WORLD.width * STAGE_WIDTH_SCALE[stage.order - 1];
+  const h = cardHeight();
   return {
     x: stage.anchor.x * WORKFLOW_WORLD.width - w / 2,
     y: stage.anchor.y * WORKFLOW_WORLD.height - h / 2,
@@ -502,6 +541,8 @@ export type FrameRoute = {
   events: RouteEvent[];
   duration: number;
   stops: Record<string, number>;
+  /** Normalized clock at the start and end of each frame outline. */
+  bounds: Record<string, { start: number; end: number }>;
   connectors: { from: WorkflowPoint; to: WorkflowPoint }[];
   path: string;
   pose: (t: number) => MacroPose;
@@ -538,12 +579,14 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
   const events: RouteEvent[] = legs.map((leg) => ({ kind: "move", ms: pointDistance(leg.from, leg.to) / Math.max(speed, 0.0001), ...leg }));
   const duration = events.reduce((sum, event) => sum + event.ms, 0) || 1;
   const stops: Record<string, number> = {};
+  const bounds: Record<string, { start: number; end: number }> = {};
   frameSpans.forEach((span) => {
     let walked = 0;
     for (let index = 0; index < span.from; index += 1) walked += events[index].ms;
     let across = 0;
     for (let index = span.from; index < span.to; index += 1) across += events[index].ms;
     stops[span.id] = (walked + across / 2) / duration;
+    bounds[span.id] = { start: walked / duration, end: (walked + across) / duration };
   });
   const connectors = nodes.slice(0, -1).map((node, index) => ({
     from: node.exit as WorkflowPoint,
@@ -570,7 +613,7 @@ export function frameRoute(frames: readonly FrameNode[], cycle = MACRO_CYCLE): F
     const end = nodes[nodes.length - 1];
     return { point: end?.center ?? { x: 0, y: 0 }, phase: "center", nodeId: end?.id ?? null };
   };
-  return { events, duration, stops, connectors, path, pose };
+  return { events, duration, stops, bounds, connectors, path, pose };
 }
 
 function routeLength(route: FrameRoute) {

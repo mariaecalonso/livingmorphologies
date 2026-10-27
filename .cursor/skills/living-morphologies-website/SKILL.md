@@ -28,14 +28,9 @@ Do not modify next.config.ts.
 
 Desktop mode and its website pair, Laptop, are archived. The live website scale is Classroom, paired with Lab Presentation. The Edit control stays so that canvas can be zoomed and panned. Restore the Laptop / Desktop switch by setting `DESKTOP_MODE_ARCHIVED` to false in `components/display-sync.ts`.
 
-The website must work well on both a regular laptop screen and the large classroom presentation display.
-The classroom display resolution is approximately 7407 × 2160 px.
-Do not design the interface as a fixed 7407 × 2160 canvas.
-Use responsive layouts, flexible grids, scalable spacing, and adaptable content widths.
-On very wide displays, make intentional use of the additional horizontal space rather than simply stretching text or controls.
-Diagrams, catalogues, workflows, and Lab interfaces may expand horizontally on large displays while remaining fully usable on standard laptop screens.
-Typography, navigation, controls, and interactive elements must remain legible and appropriately scaled at both display sizes.
-Avoid layouts or interactions that only function correctly at one resolution or aspect ratio.
+The classroom website is laid out once, at 1920 × 560 px, which is the 7407:2160 classroom proportion. That frame is scaled to fit the window (`transform: scale` on `.site-frame` in `app/globals.css`). The scale stays off the scrolling page, because a transform on the page stops the travelling light. A laptop and the classroom wall show the same layout. Only the scale changes.
+The travelling light, transitions, and diagram motion are drawn inside that frame, in its pixels. Do not size them from the viewport, and do not let the layout grow with the screen. A glow filter belongs on each light circle. A filter on the whole trail is rasterized at the size of the route, and a large screen drops it, so the light disappears.
+Typography, navigation, and controls stay legible because they scale with the frame. The Lab presentation frame is this same 1920 × 560 px frame.
 
 ## Current Lab Mapping
 
@@ -46,6 +41,10 @@ Do not treat this current instrument as the long-term Home page.
 Do not move or refactor it yet unless explicitly requested.
 When the website structure is developed further, the current instrument should eventually be incorporated into the /lab experience, while / becomes the project overview Home page.
 Preserve all current Lab functionality while that transition is planned.
+
+## Expandable panels
+
+An expandable panel belongs to one individual workflow and always returns to it. The control is `Back to {workflow name}`, taken from that workflow: Back to Optimization on Four Generations, Back to Typology Analysis, Back to Physarum Logic, Back to Vertical Propagation. `PresentControls` in `components/workflow-present.tsx` renders it from the workflow name on `.wf-board`. A new panel uses that control. It does not add a second back button or a different label, and its content leaves the control visible inside the frame.
 
 ## Protected Lab Interface
 

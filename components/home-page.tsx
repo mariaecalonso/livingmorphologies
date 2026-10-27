@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { HomeLabDemo } from "@/components/home-lab-demo";
 import { HomeResults } from "@/components/home-results";
+import { HomeSite } from "@/components/home-site";
 import { HomeWorkflowPrototype, WORKFLOW_OVERVIEW_EVENT } from "@/components/home-workflow-prototype";
 import type { LabDemoMedia } from "@/lib/home-lab-demo-chapters";
 import type { HomeResultPreview, HomeResultSkill } from "@/lib/home-results";
@@ -13,6 +14,7 @@ const RAIL = [
   { href: "#home", id: "home", label: "Home" },
   { href: "#workflow", id: "workflow", label: "Workflow" },
   { href: "#results", id: "results", label: "Results" },
+  { href: "#site", id: "site", label: "Site" },
   { href: "#lab-demo", id: "lab-demo", label: "Lab Demo" },
 ] as const;
 
@@ -48,14 +50,16 @@ export function HomePage({
       const classroom = shell?.dataset.siteDisplay === "classroom" && !!shell && shell.clientHeight > 0;
       const mainScrolls = !classroom && !!main && main.scrollHeight > main.clientHeight + 2;
       const viewEl = classroom ? shell : mainScrolls ? main : null;
-      const viewTop = viewEl ? viewEl.getBoundingClientRect().top : 0;
+      const bounds = viewEl?.getBoundingClientRect();
+      const scale = viewEl && bounds && viewEl.clientHeight > 0 ? bounds.height / viewEl.clientHeight : 1;
+      const viewTop = bounds ? bounds.top : 0;
       const viewHeight = viewEl ? viewEl.clientHeight : window.innerHeight;
       root.style.setProperty("--home-view", `${Math.round(viewHeight)}px`);
 
       const home = root.querySelector<HTMLElement>('[data-rail-target="home"]');
       let travel = 0;
       if (home && viewHeight > 0) {
-        const scrolled = viewTop - home.getBoundingClientRect().top;
+        const scrolled = (viewTop - home.getBoundingClientRect().top) / scale;
         travel = Math.min(RAIL.length - 1, Math.max(0, scrolled / viewHeight));
       }
       root.style.setProperty("--rail-travel", travel.toFixed(3));
@@ -67,8 +71,9 @@ export function HomePage({
 
       if (!home) return;
       const heroBottom = home.getBoundingClientRect().bottom;
-      const fullEdge = viewTop + viewHeight;
-      const gone = viewTop + viewHeight * 0.7;
+      const visualHeight = viewHeight * scale;
+      const fullEdge = viewTop + visualHeight;
+      const gone = viewTop + visualHeight * 0.7;
       const fade = Math.min(1, Math.max(0, (heroBottom - gone) / (fullEdge - gone)));
       root.style.setProperty("--hero-fade", fade.toFixed(3));
     };
@@ -243,9 +248,6 @@ export function HomePage({
             <h2 className="home-overview-title">Overall Workflow</h2>
           </div>
           <div className="wf-heading-face is-detail" aria-hidden="true">
-            <span className="home-index" data-wf-index>
-              01
-            </span>
             <h2 className="home-overview-title" data-wf-label>
               Typology Analysis
             </h2>
@@ -261,6 +263,11 @@ export function HomePage({
           {section.id === "results" ? <HomeResults plates={plates} /> : null}
         </section>
       ))}
+
+      <section className="home-overview" id="site" data-rail-target="site">
+        <HomeSectionHeading title="Site" />
+        <HomeSite />
+      </section>
 
       <section className="home-overview" id="lab-demo" data-rail-target="lab-demo">
         <HomeSectionHeading title="Lab Demo" />

@@ -1,8 +1,7 @@
 /**
  * Homepage Results preview.
  * Names and catalogue links come from the lab workspaces.
- * Physarum and Optimization plates are filled from their catalogues.
- * Vertical stays empty until that catalogue is ready.
+ * Physarum shows about thirty runs. Optimization and Vertical show the fifteen chosen.
  */
 
 import { LAB_WORKSPACES, workspaceResultsTab } from "@/lib/site-map";

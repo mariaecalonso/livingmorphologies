@@ -8,14 +8,10 @@ type HomeResultPlates = Partial<Record<HomeResultSkill["id"], readonly HomeResul
 
 type Grid = { cols: number; rows: number; gap: number; cell: number };
 
-const INITIAL_GRID: Grid = { cols: 3, rows: 3, gap: 12, cell: 0 };
-
-/** Classroom / presentation is a 4×3 exhibition. Twelve square plates per skill. */
-const CLASSROOM_COLS = 4;
-const CLASSROOM_ROWS = 3;
-/** Desktop is a 3×3 exhibition. Nine square plates per skill. */
-const DESKTOP_COLS = 3;
-const DESKTOP_ROWS = 3;
+/** Physarum shows two runs for each archetype. Optimization and Vertical show the fifteen chosen. */
+function plateGrid(skillId: HomeResultSkill["id"]) {
+  return skillId === "skill-1" ? { cols: 6, rows: 5 } : { cols: 5, rows: 3 };
+}
 
 function squareCell(width: number, height: number, cols: number, rows: number, gap: number) {
   const byWidth = (width - gap * (cols - 1)) / cols;
@@ -23,28 +19,21 @@ function squareCell(width: number, height: number, cols: number, rows: number, g
   return Math.max(0, Math.floor(Math.min(byWidth, byHeight)));
 }
 
-function classroomGrid(width: number, height: number): Grid {
-  const gap = Math.round(Math.min(40, Math.max(20, Math.min(width, height) * 0.016)));
+function classroomGrid(skillId: HomeResultSkill["id"], width: number, height: number): Grid {
+  const { cols, rows } = plateGrid(skillId);
+  if (width < 48 || height < 48) return { cols, rows, gap: 12, cell: 0 };
+  const gap = Math.round(Math.min(rows > 3 ? 16 : 28, Math.max(8, Math.min(width, height) * 0.02)));
   return {
-    cols: CLASSROOM_COLS,
-    rows: CLASSROOM_ROWS,
+    cols,
+    rows,
     gap,
-    cell: squareCell(width, height, CLASSROOM_COLS, CLASSROOM_ROWS, gap),
+    cell: squareCell(width, height, cols, rows, gap),
   };
 }
 
-/**
- * Nine plates on desktop. The squares shrink to fit the catalog frame.
- */
-export function resultsPreviewGrid(width: number, height: number): Grid {
-  if (width < 48 || height < 48) return INITIAL_GRID;
-  const gap = Math.round(Math.min(16, Math.max(8, Math.min(width, height) * 0.035)));
-  return {
-    cols: DESKTOP_COLS,
-    rows: DESKTOP_ROWS,
-    gap,
-    cell: squareCell(width, height, DESKTOP_COLS, DESKTOP_ROWS, gap),
-  };
+/** Squares shrink to fit the catalog frame. Counts stay with the skill. */
+export function resultsPreviewGrid(skillId: HomeResultSkill["id"], width: number, height: number): Grid {
+  return classroomGrid(skillId, width, height);
 }
 
 function slotsFor(skill: HomeResultSkill, count: number): (HomeResultPreview | null)[] {
@@ -68,7 +57,7 @@ function FieldFrame({ skill, children }: { skill: HomeResultSkill; children: Rea
 
 function SkillField({ skill }: { skill: HomeResultSkill }) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const [grid, setGrid] = useState<Grid>(INITIAL_GRID);
+  const [grid, setGrid] = useState<Grid>(() => ({ ...plateGrid(skill.id), gap: 12, cell: 0 }));
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -76,8 +65,8 @@ function SkillField({ skill }: { skill: HomeResultSkill }) {
     const measure = () => {
       const classroom = stage.closest<HTMLElement>(".site-shell")?.dataset.siteDisplay === "classroom";
       const next = classroom
-        ? classroomGrid(stage.clientWidth, stage.clientHeight)
-        : resultsPreviewGrid(stage.clientWidth, stage.clientHeight);
+        ? classroomGrid(skill.id, stage.clientWidth, stage.clientHeight)
+        : resultsPreviewGrid(skill.id, stage.clientWidth, stage.clientHeight);
       setGrid((current) =>
         current.cols === next.cols && current.rows === next.rows && current.gap === next.gap && current.cell === next.cell
           ? current
@@ -94,7 +83,7 @@ function SkillField({ skill }: { skill: HomeResultSkill }) {
       observer.disconnect();
       displayObserver.disconnect();
     };
-  }, []);
+  }, [skill.id]);
 
   const slots = slotsFor(skill, grid.cols * grid.rows);
 

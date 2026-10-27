@@ -1,0 +1,12 @@
+---
+description: Expandable workflow panels return with a Back control named for that workflow.
+alwaysApply: true
+---
+
+# Expandable panels
+
+Every expandable panel on an individual workflow returns to that workflow. The control reads `Back to {workflow name}`, using the workflow’s own name. Four Generations in Optimization is the reference: `Back to Optimization`. The same control is `Back to Typology Analysis`, `Back to Physarum Logic`, and `Back to Vertical Propagation` on those workflows.
+
+`PresentControls` in `components/workflow-present.tsx` owns this. It reads the name from `.wf-board` and renders the button. A new panel uses `PresentControls`. It does not invent a second back control or a different label.
+
+The control stays visible inside the frame. Panel content does not cover it or push it outside.

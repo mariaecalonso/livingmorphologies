@@ -1,4 +1,4 @@
-import { LAB_WORKSPACES } from "@/lib/site-map";
+import { LAB_WORKSPACES, type LabWorkspaceId } from "@/lib/site-map";
 
 const NOTES = {
   physarum: {
@@ -34,12 +34,23 @@ const NOTES = {
   },
 } as const;
 
-export const LAB_DEMO_CHAPTERS = LAB_WORKSPACES.map((workspace) => ({
-  id: workspace.id,
-  label: workspace.label,
-  start: NOTES[workspace.id].start,
-  lines: NOTES[workspace.id].lines,
-}));
+function demoNote(id: LabWorkspaceId) {
+  switch (id) {
+    case "physarum":
+    case "optimization":
+    case "vertical":
+    case "hybrid":
+      return NOTES[id];
+    default:
+      return null;
+  }
+}
+
+export const LAB_DEMO_CHAPTERS = LAB_WORKSPACES.flatMap((workspace) => {
+  const note = demoNote(workspace.id);
+  if (!note) return [];
+  return [{ id: workspace.id, label: workspace.label, start: note.start, lines: note.lines }];
+});
 
 export type LabDemoChapter = (typeof LAB_DEMO_CHAPTERS)[number];
 

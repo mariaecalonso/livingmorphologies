@@ -4,8 +4,8 @@ import { WORKFLOW_LIGHT } from "@/lib/home-workflow-camera";
 const ARTBOARD_HEAD = 18;
 const ARTBOARD = ARTBOARD_HEAD / WORKFLOW_LIGHT.radii[WORKFLOW_LIGHT.radii.length - 1];
 
-export function WorkflowLightFilter({ id, artboard = false }: { id: string; artboard?: boolean }) {
-  const blur = WORKFLOW_LIGHT.blur * (artboard ? ARTBOARD : 1);
+export function WorkflowLightFilter({ id, artboard = false, scale = 1 }: { id: string; artboard?: boolean; scale?: number }) {
+  const blur = WORKFLOW_LIGHT.blur * (artboard ? ARTBOARD : 1) * scale;
   return (
     <filter id={id} x="-180%" y="-180%" width="460%" height="460%">
       <feGaussianBlur stdDeviation={blur} result="blur" />
@@ -17,7 +17,7 @@ export function WorkflowLightFilter({ id, artboard = false }: { id: string; artb
   );
 }
 
-export function WorkflowLightCircles({ artboard = false }: { artboard?: boolean }) {
+export function WorkflowLightCircles({ artboard = false, filterId }: { artboard?: boolean; filterId?: string }) {
   const last = WORKFLOW_LIGHT.trailMs.length - 1;
   const scale = artboard ? ARTBOARD : 1;
   return WORKFLOW_LIGHT.trailMs.map((ms, index) => (
@@ -26,6 +26,7 @@ export function WorkflowLightCircles({ artboard = false }: { artboard?: boolean 
       className={index === last ? "head" : "trail"}
       r={WORKFLOW_LIGHT.radii[index] * scale}
       opacity={WORKFLOW_LIGHT.opacity[index]}
+      filter={filterId ? `url(#${filterId})` : undefined}
     />
   ));
 }
@@ -39,6 +40,8 @@ type PathMotion = {
   keySplines?: string;
   opacityValues?: string;
   opacityTimes?: string;
+  fillValues?: string;
+  fillTimes?: string;
   trailScale?: number;
 };
 
@@ -47,13 +50,16 @@ export function WorkflowPathLight({
   id,
   motion,
   color,
+  scale = 1,
 }: {
   id: string;
   motion: PathMotion;
   color?: string;
+  scale?: number;
 }) {
   const last = WORKFLOW_LIGHT.trailMs.length - 1;
   const trailScale = motion.trailScale ?? 1;
+  const size = (artboardScale: number) => artboardScale * scale;
   return WORKFLOW_LIGHT.trailMs.map((ms, index) => {
     const head = index === last;
     const lag = (ms * trailScale) / 1000;
@@ -64,10 +70,14 @@ export function WorkflowPathLight({
         ) : null}
         <circle
           className={head ? "head" : "trail"}
-          r={WORKFLOW_LIGHT.radii[index] * ARTBOARD}
+          r={size(WORKFLOW_LIGHT.radii[index] * ARTBOARD)}
           opacity={WORKFLOW_LIGHT.opacity[index]}
-          style={color ? { fill: color } : undefined}
-        />
+          style={color && !motion.fillValues ? { fill: color } : undefined}
+        >
+          {motion.fillValues ? (
+            <animate attributeName="fill" attributeType="CSS" begin="indefinite" dur={motion.dur} repeatCount="indefinite" calcMode="linear" values={motion.fillValues} keyTimes={motion.fillTimes} />
+          ) : null}
+        </circle>
         <animateMotion
           id={head ? id : undefined}
           begin={head ? "indefinite" : `${id}.begin+${lag}s`}

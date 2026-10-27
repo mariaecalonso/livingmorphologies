@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { GenerativeSystemTracks } from "@/components/home-generative-system";
 import { OptimizationWorkflowLayer } from "@/components/home-optimization-workflow";
+import { HybridWorkflowLayer, PhysarumWorkflowLayer, SiteWorkflowLayer, VerticalWorkflowLayer } from "@/components/home-workflow-stage-layer";
 import { PrecedentDiagram } from "@/components/home-precedent";
+import { WorkflowBands } from "@/components/home-workflow-bands";
 import { SKILL_WORKFLOW_STEPS } from "@/lib/home-workflow-steps";
 import { WorkflowLightCircles, WorkflowLightFilter } from "@/components/workflow-light";
+import { PresentationTransport } from "@/components/workflow-present";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import {
@@ -72,13 +75,13 @@ export function HomeWorkflowPrototype() {
     const circles = [...dot.querySelectorAll("circle")];
     const cards = new Map<string, HTMLElement>();
     const spine = stage.querySelector<SVGElement>(".wf-proto-spine");
+    const relations = stage.querySelector<HTMLElement>(".wf-relations");
     const layer = stage.querySelector<HTMLElement>(".wf-board-layer");
     const controls = stage.querySelector<HTMLElement>(".wf-proto-controls");
     const section = stage.closest<HTMLElement>("#workflow");
     const macroFace = section?.querySelector<HTMLElement>(".wf-heading-face.is-macro");
     const detailFace = section?.querySelector<HTMLElement>(".wf-heading-face.is-detail");
     const labelEl = section?.querySelector<HTMLElement>("[data-wf-label]");
-    const indexEl = section?.querySelector<HTMLElement>("[data-wf-index]");
     stage.querySelectorAll<HTMLElement>("[data-stage]").forEach((node) => {
       const id = node.dataset.stage;
       if (id) cards.set(id, node);
@@ -119,6 +122,19 @@ export function HomeWorkflowPrototype() {
       const focus = focusId ? workflowStage(focusId) : null;
       const depth = settled ? 1 : zoomOf(focus);
       const cover = settled ? 1 : glide(Math.min(1, Math.max(0, (depth - 0.8) / 0.2)));
+      if (relations) {
+        if (!focusId) {
+          relations.style.transform = "none";
+          relations.style.opacity = "1";
+        } else {
+          const macro = macroCamera();
+          const k = macro.scale > 0 ? camera.scale / macro.scale : 1;
+          relations.style.transformOrigin = "0 0";
+          relations.style.transform = `translate(${(camera.x - k * macro.x).toFixed(2)}px, ${(camera.y - k * macro.y).toFixed(2)}px) scale(${k.toFixed(5)})`;
+          const shown = busy ? frameOpacity : settled ? 0 : 1 - depth;
+          relations.style.opacity = shown.toFixed(3);
+        }
+      }
 
       if (spine) spine.style.opacity = (busy ? frameOpacity : 1 - depth).toFixed(3);
       const pose = macroPose(macroT);
@@ -130,16 +146,16 @@ export function HomeWorkflowPrototype() {
         node.style.opacity = (busy ? frameOpacity : shown).toFixed(3);
       });
       const stageBox = stage.getBoundingClientRect();
+      const stageScale = stage.clientWidth > 0 ? stageBox.width / stage.clientWidth : 1;
       const headBox = section?.querySelector("[data-wf-heading]")?.getBoundingClientRect();
       const titleSize = labelEl ? parseFloat(getComputedStyle(labelEl).fontSize) : 24;
       const shell = root.closest<HTMLElement>(".site-shell");
       const classroom = shell?.getAttribute("data-site-display") === "classroom";
-      const fitted = cardRect(WORKFLOW_STAGES[0]).w * macroCamera().scale / 12;
-      let nameSize = Math.max(8, Math.min(15, fitted, titleSize * 0.58));
+      const fitted = cardRect(WORKFLOW_STAGES[0]).w * macroCamera().scale / 16;
+      let nameSize = Math.max(8, Math.min(12, fitted, titleSize * 0.42));
       if (classroom && shell) {
         const frame = shell.clientHeight || stage.clientHeight;
-        const cardH = cardRect(WORKFLOW_STAGES[0]).h * macroCamera().scale;
-        nameSize = Math.min(Math.max(cardH * 0.2, frame * 0.022), frame * 0.036);
+        nameSize = Math.min(frame * 0.0225, frame * 0.026);
       }
       const lift = focusId ? glide(depth) : 0;
       root.querySelectorAll<HTMLElement>("[data-floating-label]").forEach((label) => {
@@ -157,8 +173,8 @@ export function HomeWorkflowPrototype() {
         const across = glide(Math.min(1, Math.max(0, (rise - 0.4) / 0.6)));
         const fromX = cardX;
         const fromY = cardY + Math.max(0, cardH - nameSize * 2.4);
-        const headX = headBox ? headBox.left - stageBox.left : fromX;
-        const headY = headBox ? headBox.top - stageBox.top : fromY;
+        const headX = headBox ? (headBox.left - stageBox.left) / stageScale : fromX;
+        const headY = headBox ? (headBox.top - stageBox.top) / stageScale : fromY;
         const x = fromX + (headX - fromX) * across;
         const y = fromY + (headY - fromY) * up;
         const rising = up > 0.12;
@@ -172,7 +188,6 @@ export function HomeWorkflowPrototype() {
           : `translate(${cardX.toFixed(1)}px, ${cardY.toFixed(1)}px)`;
         label.style.fontSize = `${(nameSize + (titleSize - nameSize) * Math.min(1, rise)).toFixed(2)}px`;
         label.style.opacity = id === focusId ? "1" : (1 - lift).toFixed(3);
-        label.querySelector(".wf-proto-index")?.classList.toggle("is-copper", item.order % 2 === 0);
       });
       if (layer) {
         layer.style.opacity = cover.toFixed(3);
@@ -193,10 +208,6 @@ export function HomeWorkflowPrototype() {
         detailFace.setAttribute("aria-hidden", settled ? "false" : "true");
       }
       if (focus && labelEl) labelEl.textContent = focus.label;
-      if (focus && indexEl) {
-        indexEl.textContent = String(focus.order).padStart(2, "0");
-        indexEl.classList.toggle("is-copper", focus.order % 2 === 0);
-      }
 
       const trailSpan = 1 / Math.max(1, macroRouteDuration());
       const samples = WORKFLOW_LIGHT.trailMs.map((ms) => macroPose(Math.min(1, Math.max(0, macroT - ms * trailSpan * idleDir))));
@@ -505,6 +516,7 @@ export function HomeWorkflowPrototype() {
         ref={stageRef}
       >
         <div className="wf-macro">
+          <WorkflowBands />
           <div
             className="wf-proto-world"
             ref={worldRef}
@@ -531,7 +543,6 @@ export function HomeWorkflowPrototype() {
                   style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: WORKFLOW_CARD.radius }}
                   onClick={() => api.current?.open(stage.id)}
                 >
-                  <span className={stage.order % 2 === 0 ? "wf-proto-index is-copper" : "wf-proto-index"}>{String(stage.order).padStart(2, "0")}</span>
                   <span className="wf-proto-label">{stage.label}</span>
                 </button>
               );
@@ -541,8 +552,8 @@ export function HomeWorkflowPrototype() {
             <defs>
               <WorkflowLightFilter id="wf-proto-glow" />
             </defs>
-            <g ref={dotRef} className="wf-proto-pulse" data-tone="neutral" filter="url(#wf-proto-glow)">
-              <WorkflowLightCircles />
+            <g ref={dotRef} className="wf-proto-pulse" data-tone="neutral">
+              <WorkflowLightCircles filterId="wf-proto-glow" />
             </g>
           </svg>
         </div>
@@ -554,9 +565,6 @@ export function HomeWorkflowPrototype() {
         </div>
 
         <div className="wf-proto-controls">
-          <button type="button" className="wf-proto-overview" onClick={() => api.current?.overview()} disabled={!chrome.settled}>
-            Overview
-          </button>
           <button
             type="button"
             className="wf-proto-arrow is-prev"
@@ -566,6 +574,7 @@ export function HomeWorkflowPrototype() {
           >
             <span aria-hidden="true">←</span>
           </button>
+          {chrome.settled && active ? <PresentationTransport key={active.id} /> : null}
           {chrome.settled && active ? (
             <div className="wf-board-exits">
               {active.lab?.map((item) => (
@@ -597,7 +606,7 @@ export function HomeWorkflowPrototype() {
       <div className="wf-proto-labels" aria-hidden="true">
         {WORKFLOW_STAGES.map((stage) => (
           <span key={stage.id} className="wf-floating-label" data-floating-label={stage.id} data-tone={stage.tone}>
-            <span className={stage.order % 2 === 0 ? "wf-proto-index is-copper" : "wf-proto-index"}>{String(stage.order).padStart(2, "0")}</span>
+            <span className="wf-proto-index">{String(stage.order).padStart(2, "0")}</span>
             <span className="wf-proto-label">{stage.label}</span>
           </span>
         ))}
@@ -647,6 +656,14 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
   const pathRef = useRef<SVGPathElement>(null);
   const linked = stage.id !== "decomposition" && !stage.detailAsset;
   const optimization = stage.id === "skill-2";
+  const layered = stage.id === "skill-1" || stage.id === "skill-3" || stage.id === "recombination" || stage.id === "skill-5";
+  const steps = SKILL_WORKFLOW_STEPS[stage.id] ?? [];
+  const frameSteps = steps;
+  const stops = optimization
+    ? OPTIMIZATION_BOARD_STOPS
+    : steps.length
+      ? workflowBoardStops(steps.length)
+      : WORKFLOW_BOARD_STOPS;
 
   useEffect(() => {
     const dot = dotRef.current;
@@ -714,6 +731,13 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       const pose = route.pose(t);
       const nextLit = pose.phase === "frame" ? pose.nodeId : null;
       if (nextLit !== litId) {
+        const entering = nextLit ? board.querySelector<HTMLElement>(`[data-frame="${nextLit}"]`) : null;
+        if (entering?.hasAttribute("data-zoomable") && !entering.hasAttribute("data-zoom-manual") && run && !reduced() && board.dataset.hold !== "1" && board.dataset.manual !== "1" && board.dataset.paused !== "1") {
+          board.dataset.hold = "1";
+          board.dataset.heldFrame = nextLit ?? "";
+          delete board.dataset.manual;
+          board.dispatchEvent(new CustomEvent("wf-frame-arrive", { detail: { frame: nextLit } }));
+        }
         routeNodes().forEach((node) => node.classList.remove("is-lit"));
         if (nextLit) board.querySelector(`[data-frame="${nextLit}"]`)?.classList.add("is-lit");
         litId = nextLit;
@@ -730,7 +754,14 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       if (!alive) return;
       const dt = Math.min(48, now - last);
       last = now;
-      if (!reduced() && run && route) {
+      if (route && board.dataset.release === "exit") {
+        const bounds = route.bounds[board.dataset.heldFrame ?? ""];
+        if (bounds) t = dir >= 0 ? bounds.end : bounds.start;
+        delete board.dataset.release;
+        delete board.dataset.hold;
+        delete board.dataset.heldFrame;
+        delete board.dataset.manual;
+      } else if (!reduced() && run && route && board.dataset.hold !== "1" && board.dataset.paused !== "1") {
         t += (dt / duration) * dir;
         if (t >= 1) {
           t = 1;
@@ -745,6 +776,19 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
       place();
       frame = requestAnimationFrame(loop);
     };
+    const onTransport = (event: Event) => {
+      const action = (event as CustomEvent<{ action: string }>).detail?.action;
+      if (action !== "restart") return;
+      t = 0;
+      dir = 1;
+      litId = null;
+      delete board.dataset.paused;
+      delete board.dataset.hold;
+      delete board.dataset.release;
+      delete board.dataset.heldFrame;
+      delete board.dataset.manual;
+    };
+    board.addEventListener("wf-transport", onTransport);
     measure();
     place();
     frame = requestAnimationFrame(loop);
@@ -757,12 +801,13 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
     return () => {
       alive = false;
       cancelAnimationFrame(frame);
+      board.removeEventListener("wf-transport", onTransport);
       observer.disconnect();
     };
   }, [linked, run, stage.id]);
 
   return (
-    <article className="wf-board" data-stage={stage.id} data-tone={stage.tone} data-steps={SKILL_WORKFLOW_STEPS[stage.id]?.length} ref={boardRef} aria-label={stage.label}>
+    <article className="wf-board" data-stage={stage.id} data-tone={stage.tone} data-steps={frameSteps.length || steps.length} data-layered={layered || undefined} ref={boardRef} aria-label={stage.label}>
       {stage.id === "decomposition" ? (
         <PrecedentDiagram />
       ) : stage.detailAsset ? (
@@ -782,10 +827,14 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
             <path ref={pathRef} />
           </svg>
           {optimization ? (
-            <OptimizationWorkflowLayer cycle={SKILL_WORKFLOW_STEPS[stage.id]?.find((step) => step.cycle)?.cycle ?? ""} />
+            <OptimizationWorkflowLayer cycle={steps.find((step) => step.cycle)?.cycle ?? ""} />
           ) : null}
-          {(optimization ? OPTIMIZATION_BOARD_STOPS : SKILL_WORKFLOW_STEPS[stage.id] ? workflowBoardStops(SKILL_WORKFLOW_STEPS[stage.id].length) : WORKFLOW_BOARD_STOPS).map((stop, stopIndex) => {
-            const step = SKILL_WORKFLOW_STEPS[stage.id]?.[stopIndex];
+          {stage.id === "skill-1" ? <PhysarumWorkflowLayer cycle={steps.find((step) => step.cycle)?.cycle ?? ""} /> : null}
+          {stage.id === "skill-3" ? <VerticalWorkflowLayer /> : null}
+          {stage.id === "recombination" ? <HybridWorkflowLayer /> : null}
+          {stage.id === "skill-5" ? <SiteWorkflowLayer /> : null}
+          {stage.id === "skill-1" ? null : stops.map((stop, stopIndex) => {
+            const step = frameSteps[stopIndex];
             return (
               <span
                 key={`${stage.id}-${stopIndex}`}
@@ -797,8 +846,8 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
                 {step ? (
                   <>
                     <p className="wf-proto-label">{step.title}</p>
-                    <p className="wf-frame-body">{step.body}</p>
-                    {step.cycle && !optimization ? <p className="wf-frame-cycle">{step.cycle}</p> : null}
+                    {step.body ? <p className="wf-frame-body">{step.body}</p> : null}
+                    {step.cycle && !optimization && !layered ? <p className="wf-frame-cycle">{step.cycle}</p> : null}
                   </>
                 ) : null}
               </span>
@@ -810,8 +859,8 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
         <defs>
           <WorkflowLightFilter id="wf-board-glow" />
         </defs>
-        <g ref={dotRef} className="wf-proto-pulse" data-tone={stage.tone} filter="url(#wf-board-glow)">
-          <WorkflowLightCircles />
+        <g ref={dotRef} className="wf-proto-pulse" data-tone={stage.tone}>
+          <WorkflowLightCircles filterId="wf-board-glow" />
         </g>
       </svg> : null}
     </article>

@@ -456,8 +456,8 @@ export function HomeWorkflow() {
             />
           ))}
           {[0, 1, 2].map((index) => (
-            <g key={index} data-pulse={index} data-phase="analysis" className="wf-proto-pulse" filter="url(#home-workflow-glow)">
-              <WorkflowLightCircles />
+            <g key={index} data-pulse={index} data-phase="analysis" className="wf-proto-pulse">
+              <WorkflowLightCircles filterId="home-workflow-glow" />
             </g>
           ))}
         </svg>

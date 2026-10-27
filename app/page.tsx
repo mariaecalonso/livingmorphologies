@@ -1,6 +1,6 @@
 import { HomePage } from "@/components/home-page";
 import type { LabDemoMedia } from "@/lib/home-lab-demo";
-import type { HomeResultPlates } from "@/lib/home-result-plates";
+import { loadHomeResultPlates } from "@/lib/home-result-plates";
 import presentation from "@/public/demo/home/presentation.json";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 export default function Home() {
   return (
     <HomePage
-      plates={presentation.plates as HomeResultPlates}
+      plates={loadHomeResultPlates()}
       demo={presentation.labDemo as LabDemoMedia}
     />
   );

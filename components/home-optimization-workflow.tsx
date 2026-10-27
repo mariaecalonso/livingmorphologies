@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { TYPOLOGIES, findTypology } from "@/lib/catalog";
 import { boardLayoutSignature } from "@/lib/home-workflow-camera";
+import { closeWorkflowPanel, markManualHold, PresentControls, usePresentClock, useRevealed } from "@/components/workflow-present";
 import { crowdingDistances, nondominatedSort, type Rankable } from "@/lib/skill2/nsga";
+import type { TypologyId } from "@/lib/types";
 
 /** The board follows the human pick of one archetype through the real Skill 2 catalog. */
 const ARCHETYPE = "vertical-void";
@@ -12,8 +15,9 @@ const LOOP_FROM = 4;
 const LOOP_TO = 1;
 /** Non Dominated Sorting opens its own board. */
 const ZOOM_STEP = 2;
-/** The catalogue is the stop after the five step frames. */
+/** The catalogue is the stop after the five step frames. The selection frame follows it. */
 const CATALOGUE_STEP = 5;
+const SELECTION_STEP = 6;
 const GRID_PLATES = 9;
 const DOT = 4;
 
@@ -39,7 +43,6 @@ type Layout = {
   width: number;
   height: number;
   loop: string;
-  arrow: string;
   leaders: { x: number; top: number; bottom: number }[];
   dots: Point[];
   label: Point;
@@ -84,17 +87,23 @@ const GENERATION_NOTES = [
 function useOptimizationData() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [pick, setPick] = useState<number | null>(null);
+  const [byArchetype, setByArchetype] = useState<Record<string, Candidate[]>>({});
+  const [picks, setPicks] = useState<Record<string, number>>({});
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([
       fetch("/demo/skill2/catalog.json", { signal: controller.signal }).then((response) => response.json()),
       fetch("/demo/skill2/picks.json", { signal: controller.signal }).then((response) => response.json()),
     ])
-      .then(([catalog, picks]: [{ archetypes: { archetypeId: string; candidates: Candidate[] }[] }, Pick[]]) => {
+      .then(([catalog, loaded]: [{ archetypes: { archetypeId: string; candidates: Candidate[] }[] }, Pick[]]) => {
+        setByArchetype(Object.fromEntries(catalog.archetypes.map((item) => [item.archetypeId, item.candidates])));
+        setPicks(Object.fromEntries(loaded.map((item) => [item.archetypeId, item.candidateId])));
         setCandidates(catalog.archetypes.find((item) => item.archetypeId === ARCHETYPE)?.candidates ?? []);
-        setPick(picks.find((item) => item.archetypeId === ARCHETYPE)?.candidateId ?? null);
+        setPick(loaded.find((item) => item.archetypeId === ARCHETYPE)?.candidateId ?? null);
+        setReady(true);
       })
-      .catch(() => {});
+      .catch(() => setReady(true));
     return () => controller.abort();
   }, []);
   return useMemo(() => {
@@ -117,6 +126,22 @@ function useOptimizationData() {
     const rank = new Map<number, number>();
     fronts.forEach((members, index) => members.forEach((member) => rank.set(member, index + 1)));
     const crowding = fronts[0] ? crowdingDistances(items, fronts[0]) : new Map<number, number>();
+    const picturedOrdered = pictured.filter((item) => item.id !== subject?.id);
+    const evaluation: Candidate[] = [];
+    const evaluationCount = 15;
+    if (subject?.image) evaluation.push(subject);
+    const room = evaluationCount - evaluation.length;
+    if (picturedOrdered.length <= room) evaluation.push(...picturedOrdered);
+    else {
+      const seen = new Set(evaluation.map((item) => item.id));
+      for (let index = 0; index < room; index += 1) {
+        const item = picturedOrdered[Math.round((index * (picturedOrdered.length - 1)) / Math.max(1, room - 1))];
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          evaluation.push(item);
+        }
+      }
+    }
     const lineage = [subject, parent].filter((item): item is Candidate => Boolean(item?.image));
     const generations = [1, 2, 3, 4].map((generation) => {
       const members = candidates.filter((item) => item.generation === generation);
@@ -129,18 +154,18 @@ function useOptimizationData() {
       .flatMap((item) => item.plates)
       .filter((item) => item.parentId != null && shown.has(item.parentId))
       .map((item) => ({ from: item.parentId as number, to: item.id, lit: item.id === subject?.id }));
-    return { candidates, subject, parent, seeds, front, rescued, grid, fronts, rank, crowding, generations, links };
-  }, [candidates, pick]);
+    return { candidates, subject, parent, seeds, evaluation, front, rescued, grid, fronts, rank, crowding, generations, links, byArchetype, picks, ready };
+  }, [candidates, pick, byArchetype, picks, ready]);
 }
 
 type Data = ReturnType<typeof useOptimizationData>;
 
-function Plate({ candidate, chosen, index = 0, dashed }: { candidate: Candidate; chosen?: boolean; index?: number; dashed?: boolean }) {
+function Plate({ candidate, chosen, index = 0, dashed, name = ARCHETYPE_NAME }: { candidate: Candidate; chosen?: boolean; index?: number; dashed?: boolean; name?: string }) {
   const classes = ["wf-opt-plate", chosen ? "frame-primary" : "", dashed ? "is-rescued" : ""].filter(Boolean).join(" ");
   return (
     <span className={classes} data-candidate={candidate.id} style={{ "--i": index } as CSSProperties}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={candidate.image ?? ""} alt={`${ARCHETYPE_NAME} ${candidate.id}`} />
+      <img src={candidate.image ?? ""} alt={`${name} ${candidate.id}`} />
     </span>
   );
 }
@@ -223,39 +248,158 @@ function Cloud({ data, mode, legend }: { data: Data; mode: "front" | "all" | "fr
   );
 }
 
-function StepVisual({ step, data }: { step: number; data: Data }) {
+function selectionRows(data: Data) {
+  return TYPOLOGIES.map((typology) => ({
+    id: typology.id,
+    label: typology.label,
+    archetypes: typology.archetypes.map((archetype) => {
+      const candidateId = data.picks[archetype.id];
+      const candidate = candidateId == null ? null : data.byArchetype[archetype.id]?.find((item) => item.id === candidateId) ?? null;
+      return { archetype, candidateId: candidateId ?? null, candidate: candidate?.image ? candidate : null };
+    }),
+  }));
+}
+
+function SelectionMatrix({ data, compact = false }: { data: Data; compact?: boolean }) {
+  const rows = selectionRows(data);
+  return (
+    <div className={compact ? "wf-opt-select-preview" : "wf-opt-select-frame frame-primary"}>
+      {rows.map((family) => (
+        <div key={family.id} className="wf-opt-select-row">
+          {compact ? null : <p className="wf-proto-label">{family.label}</p>}
+          {family.archetypes.map((item) => (
+            <figure key={item.archetype.id}>
+              <span className="wf-opt-plate wf-opt-choice">
+                {item.candidate ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.candidate.image ?? ""} alt={`${item.archetype.name} ${item.candidate.id}`} />
+                ) : (
+                  <span className="wf-opt-pending">Pending</span>
+                )}
+              </span>
+              {compact ? null : (
+                <figcaption>
+                  <span>{item.archetype.name}</span>
+                  <span>{item.candidateId ?? "Pending"}</span>
+                </figcaption>
+              )}
+            </figure>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Same projection as the lab Pareto board: X formal, Y spatial, Z atmospheric. */
+function projectPareto([x, y, z]: number[], yaw: number, pitch: number, zoom: number) {
+  const px = x - 0.5;
+  const py = y - 0.5;
+  const pz = z - 0.5;
+  const rx = px * Math.cos(yaw) + pz * Math.sin(yaw);
+  const rz = -px * Math.sin(yaw) + pz * Math.cos(yaw);
+  const ry = py * Math.cos(pitch) - rz * Math.sin(pitch);
+  const depth = py * Math.sin(pitch) + rz * Math.cos(pitch);
+  const perspective = 1 / (2.05 - depth * 0.55);
+  const spread = 78 * zoom;
+  return { sx: 50 + rx * spread * perspective, sy: 50 - ry * spread * perspective, depth };
+}
+
+const PARETO_EDGES: [number[], number[]][] = [
+  [[0, 0, 0], [1, 0, 0]], [[0, 1, 0], [1, 1, 0]], [[0, 0, 1], [1, 0, 1]], [[0, 1, 1], [1, 1, 1]],
+  [[0, 0, 0], [0, 1, 0]], [[1, 0, 0], [1, 1, 0]], [[0, 0, 1], [0, 1, 1]], [[1, 0, 1], [1, 1, 1]],
+  [[0, 0, 0], [0, 0, 1]], [[1, 0, 0], [1, 0, 1]], [[0, 1, 0], [0, 1, 1]], [[1, 1, 0], [1, 1, 1]],
+];
+
+const PARETO_AXIS = [
+  { label: "F", to: [1.12, 0, 0] },
+  { label: "S", to: [0, 1.12, 0] },
+  { label: "A", to: [0, 0, 1.12] },
+];
+
+function ParetoSpin({ data }: { data: Data }) {
+  const [yaw, setYaw] = useState(-0.62);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min(48, now - last);
+      last = now;
+      setYaw((value) => value + dt * 0.00018);
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const pitch = 0.42;
+  const zoom = 1.05;
+  const points = data.candidates
+    .map((item) => {
+      const point = projectPareto([item.formal, item.spatial, item.atmospheric], yaw, pitch, zoom);
+      const tone = item.id === data.subject?.id ? "subject" : item.pareto ? "front" : "rest";
+      return { ...point, tone, id: item.id };
+    })
+    .sort((a, b) => a.depth - b.depth);
+  return (
+    <div className="wf-opt-sort wf-opt-pareto">
+      <svg viewBox="-4 -4 108 108" aria-hidden="true">
+        {PARETO_EDGES.map(([from, to], index) => {
+          const a = projectPareto(from, yaw, pitch, zoom);
+          const b = projectPareto(to, yaw, pitch, zoom);
+          return <line key={index} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy} />;
+        })}
+        {PARETO_AXIS.map((axis) => {
+          const origin = projectPareto([0, 0, 0], yaw, pitch, zoom);
+          const end = projectPareto(axis.to, yaw, pitch, zoom);
+          return (
+            <g key={axis.label}>
+              <line x1={origin.sx} y1={origin.sy} x2={end.sx} y2={end.sy} />
+              <text x={end.sx} y={end.sy}>{axis.label}</text>
+            </g>
+          );
+        })}
+        {points.map((point) => (
+          <circle key={point.id} cx={point.sx} cy={point.sy} r={point.tone === "subject" ? 1.7 : point.tone === "front" ? 1.25 : 0.85} data-tone={point.tone} />
+        ))}
+      </svg>
+      <p className="wf-opt-caption">Front 1 · {data.fronts[0]?.length ?? 0} of {data.candidates.length}</p>
+    </div>
+  );
+}
+
+function StepVisual({ step, data, seeds }: { step: number; data: Data; seeds: string[] }) {
   if (step === 0) {
     return (
       <div className="wf-opt-seeds">
-        {data.seeds.map((item, index) => <Plate key={item.id} candidate={item} index={index} />)}
-        <p className="wf-opt-caption">Generation 1 · {ARCHETYPE_NAME}</p>
+        {seeds.map((src, index) => (
+          <span key={src} className="wf-opt-plate" style={{ "--i": index } as CSSProperties}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt="" />
+          </span>
+        ))}
+        <p className="wf-opt-caption">Generation 1</p>
       </div>
     );
   }
-  if (step === 1 && data.subject) {
-    const subject = data.subject;
+  if (step === 1 && data.evaluation.length > 0) {
     return (
-      <div className="wf-opt-eval">
-        <Plate candidate={subject} />
-        <dl>
-          {OBJECTIVES.map((objective, index) => (
-            <div key={objective.key} style={{ "--i": index, "--share": `${subject[objective.key] * 100}%`, "--tone": objective.color } as CSSProperties}>
-              <dt>{objective.label}</dt>
-              <dd>{Math.round(subject[objective.key] * 100)}%</dd>
-              <i />
-            </div>
-          ))}
-        </dl>
+      <div className="wf-opt-eval-field" aria-label={`${data.evaluation.length} evaluated iterations`}>
+        {data.evaluation.map((item, index) => (
+          <span key={item.id} className="wf-opt-eval-cell" style={{ "--i": index } as CSSProperties}>
+            <Plate candidate={item} index={index} chosen={item.id === data.subject?.id} />
+            <span className="wf-opt-eval-bars" aria-hidden="true">
+              {OBJECTIVES.map((objective) => (
+                <i key={objective.key} style={{ "--share": `${item[objective.key] * 100}%`, "--tone": objective.color } as CSSProperties} />
+              ))}
+            </span>
+          </span>
+        ))}
       </div>
     );
   }
   if (step === 2) {
-    return (
-      <div className="wf-opt-sort">
-        <Cloud data={data} mode="front" />
-        <p className="wf-opt-caption">Front 1 · {data.fronts[0]?.length ?? 0} of {data.candidates.length}</p>
-      </div>
-    );
+    return <ParetoSpin data={data} />;
   }
   if (step === 3) {
     return (
@@ -267,16 +411,7 @@ function StepVisual({ step, data }: { step: number; data: Data }) {
       </div>
     );
   }
-  if (step === 5 && data.subject?.image) {
-    return (
-      <div className="wf-opt-lineage">
-        <figure>
-          <Plate candidate={data.subject} chosen />
-          <figcaption>Selected for propagation</figcaption>
-        </figure>
-      </div>
-    );
-  }
+  if (step === CATALOGUE_STEP || step === SELECTION_STEP) return null;
   if (step === 4 && data.subject) {
     return (
       <div className="wf-opt-lineage">
@@ -380,14 +515,16 @@ function LineageLinks({ links, open, host }: { links: Link[]; open: boolean; hos
 
 type ZoomStep = { title: string; body: string; visual: ReactNode };
 
-function ZoomBoard({ title, count, steps, open, origin, onClose, links }: { title: string; count: string; steps: ZoomStep[]; open: boolean; origin: Point | null; onClose: () => void; links?: Link[] }) {
+function ZoomBoard({ title, count, steps, open, origin, onClose, links, sequence = false }: { title: string; count: string; steps: ZoomStep[]; open: boolean; origin: Point | null; onClose: () => void; links?: Link[]; sequence?: boolean }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
+  const clock = usePresentClock(sequence && open, onClose);
   return (
     <section
       ref={setHost}
       className="wf-opt-zoom"
       data-open={open || undefined}
       aria-hidden={!open}
+      onPointerDown={clock.hold}
       style={origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : undefined}
     >
       <p className="wf-opt-trail">
@@ -404,9 +541,7 @@ function ZoomBoard({ title, count, steps, open, origin, onClose, links }: { titl
         ))}
       </ol>
       {links ? <LineageLinks links={links} open={open} host={host} /> : null}
-      <button type="button" className="wf-board-exit wf-opt-back" onClick={onClose} tabIndex={open ? 0 : -1}>
-        <span aria-hidden="true">←</span> Back to Optimization
-      </button>
+      <PresentControls run={sequence && open} clock={clock} onClose={onClose} open={open} />
     </section>
   );
 }
@@ -415,10 +550,29 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [layout, setLayout] = useState<Layout | null>(null);
   const [lit, setLit] = useState<number | null>(null);
+  const revealed = useRevealed(lit);
   const litRef = useRef<number | null>(null);
-  const [plays, setPlays] = useState<number[]>(() => [0, 0, 0, 0, 0, 0]);
+  const [plays, setPlays] = useState<number[]>(() => [0, 0, 0, 0, 0, 0, 0]);
   const [zoomed, setZoomed] = useState<"sorting" | "generations" | null>(null);
+  const [panel, setPanel] = useState<"catalog" | "selection" | null>(null);
+  const [origin, setOrigin] = useState<Point | null>(null);
+  const [typologyId, setTypologyId] = useState<TypologyId>("lobby");
+  const [archetypeId, setArchetypeId] = useState(ARCHETYPE);
+  const [sequence, setSequence] = useState(false);
+  const [seeds, setSeeds] = useState<string[]>([]);
   const data = useOptimizationData();
+  const boardOf = () => svgRef.current?.parentElement ?? null;
+  const closePanel = () => {
+    closeWorkflowPanel(boardOf());
+    setSequence(false);
+    setPanel(null);
+  };
+  const closeZoom = () => {
+    closeWorkflowPanel(boardOf());
+    setSequence(false);
+    setZoomed(null);
+  };
+  const panelClock = usePresentClock(Boolean(sequence && panel), closePanel);
   const sortSteps = SORT_STEPS.map((step, index) => ({ ...step, visual: <Cloud data={data} mode={SORT_MODES[index]} legend /> }));
   const generationSteps = GENERATION_NOTES.map((note, index) => {
     const generation = index + 1;
@@ -457,11 +611,10 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       if (!from || !to) return;
       const span = frames.slice(LOOP_TO, LOOP_FROM + 1);
       const y = Math.max(...span.map((item) => item.b)) + height * 0.17;
-      const head = height * 0.012;
       const ceiling = height * 0.1;
       const gap = height * 0.08;
-      const catalogue = board.querySelector("[data-route-end]");
-      const stops = catalogue ? [...frames, local(catalogue)] : frames;
+      const ends = [...board.querySelectorAll("[data-route-end]")].map(local);
+      const stops = [...frames, ...ends];
       const slots = stops.map((frame) => {
         const room = Math.max(0, frame.t - gap - ceiling);
         const slotHeight = Math.min(room, frame.w * 0.5);
@@ -471,7 +624,6 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         width,
         height,
         loop: `M ${from.cx} ${from.b} L ${from.cx} ${y} L ${to.cx} ${y} L ${to.cx} ${to.b}`,
-        arrow: `M ${to.cx - head} ${to.b + head * 1.4} L ${to.cx} ${to.b} L ${to.cx + head} ${to.b + head * 1.4}`,
         leaders: stops.map((frame, index) => ({ x: frame.cx, top: slots[index].top + slots[index].height, bottom: frame.t })),
         dots: [
           { x: from.cx, y: from.b },
@@ -493,17 +645,25 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
     }, 150);
     const read = () => {
       const node = board.querySelector<HTMLElement>(".wf-frame.is-lit[data-frame], [data-route-end].is-lit");
-      const next = !node ? null : node.hasAttribute("data-route-end") ? board.querySelectorAll(".wf-frame[data-frame]").length : Number(node.dataset.frame);
+      const frame = Number(node?.dataset.frame);
+      const next = !node ? null : Number.isFinite(frame) ? frame : node.hasAttribute("data-route-end") ? board.querySelectorAll(".wf-frame[data-frame]").length : null;
       if (next == null || next === litRef.current) return;
       litRef.current = next;
       setLit(next);
-      if (next != null) setPlays((counts) => counts.map((count, index) => (index === next ? count + 1 : count)));
+      if (next != null) {
+        setPlays((counts) => {
+          const filled = counts.length > next ? counts : [...counts, ...Array(next - counts.length + 1).fill(0)];
+          return filled.map((count, index) => (index === next ? count + 1 : count));
+        });
+      }
     };
     const watch = new MutationObserver(read);
     watch.observe(board, { subtree: true, attributes: true, attributeFilter: ["class"] });
     const zoomFrame = board.querySelector<HTMLElement>(`.wf-frame[data-frame="${ZOOM_STEP}"]`);
     const openZoom = (event: MouseEvent) => {
       event.stopPropagation();
+      setSequence(false);
+      if (zoomFrame) markManualHold(board);
       setZoomed("sorting");
     };
     zoomFrame?.setAttribute("data-zoomable", "");
@@ -517,16 +677,82 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
   }, []);
 
   useEffect(() => {
-    if (!zoomed) return;
+    if (!zoomed && !panel) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setZoomed(null);
+      closeWorkflowPanel(svgRef.current?.parentElement ?? null);
+      setSequence(false);
+      if (panel) setPanel(null);
+      else setZoomed(null);
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [zoomed]);
+  }, [zoomed, panel]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/demo/skill1/vertical-void/entries.json", { signal: controller.signal })
+      .then((response) => response.json())
+      .then((entries: { image?: string }[]) => {
+        setSeeds(entries.map((entry) => entry.image).filter((src): src is string => Boolean(src)).slice(0, 6));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const board = svgRef.current?.parentElement;
+    if (!board) return;
+    const onArrive = (event: Event) => {
+      const frame = String((event as CustomEvent<{ frame: string }>).detail.frame);
+      if (frame === String(ZOOM_STEP)) {
+        setSequence(true);
+        setZoomed("sorting");
+        return;
+      }
+      if (frame !== String(CATALOGUE_STEP) && frame !== String(SELECTION_STEP)) return;
+      const node = board.querySelector<HTMLElement>(`[data-frame="${frame}"]`);
+      if (!node) return;
+      const box = board.getBoundingClientRect();
+      const rect = node.getBoundingClientRect();
+      const scale = box.width / board.clientWidth || 1;
+      setOrigin({
+        x: (rect.left + rect.width / 2 - box.left) / scale,
+        y: (rect.top + rect.height / 2 - box.top) / scale,
+      });
+      setSequence(true);
+      setPanel(frame === String(CATALOGUE_STEP) ? "catalog" : "selection");
+    };
+    board.addEventListener("wf-frame-arrive", onArrive);
+    return () => board.removeEventListener("wf-frame-arrive", onArrive);
+  }, []);
+
+  const openPanel = (next: "catalog" | "selection", node: HTMLElement) => {
+    setSequence(false);
+    const board = node.closest<HTMLElement>(".wf-board");
+    if (board) markManualHold(board);
+    if (board) {
+      const box = board.getBoundingClientRect();
+      const rect = node.getBoundingClientRect();
+      const scale = box.width / board.clientWidth || 1;
+      setOrigin({
+        x: (rect.left + rect.width / 2 - box.left) / scale,
+        y: (rect.top + rect.height / 2 - box.top) / scale,
+      });
+    }
+    setPanel(next);
+  };
+  const catalogPlates = useMemo(() => {
+    const list = data.byArchetype[archetypeId] ?? [];
+    const pickId = data.picks[archetypeId] ?? null;
+    const pictured = list.filter((item) => item.image);
+    const selected = pickId == null ? null : pictured.find((item) => item.id === pickId) ?? null;
+    const rest = pictured.filter((item) => item.id !== selected?.id).sort((a, b) => b.generation - a.generation || b.id - a.id);
+    return { plates: selected ? [selected, ...rest] : rest, pickId };
+  }, [archetypeId, data.byArchetype, data.picks]);
+  const catalogName = findTypology(typologyId).archetypes.find((item) => item.id === archetypeId)?.name ?? ARCHETYPE_NAME;
 
   return (
     <>
@@ -535,9 +761,8 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         {layout ? (
           <>
             <path className="wf-opt-loop" d={layout.loop} />
-            <path className="wf-opt-arrow" d={layout.arrow} />
-            {layout.leaders.map((leader, index) => (
-              <g key={index} className="wf-opt-leader" data-on={lit === index || undefined}>
+            {layout.leaders.map((leader, index) => index >= CATALOGUE_STEP ? null : (
+              <g key={index} className="wf-opt-leader" data-on={revealed >= index || undefined}>
                 <defs>
                   <linearGradient id={`wf-opt-leader-${index}`} gradientUnits="userSpaceOnUse" x1={leader.x} y1={leader.top} x2={leader.x} y2={leader.bottom}>
                     <stop offset="0" stopColor="#ffffff" stopOpacity="0" />
@@ -562,6 +787,9 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
           style={{ left: `${(layout.label.x / layout.width) * 100}%`, top: `${(layout.label.y / layout.height) * 100}%` }}
           onClick={(event) => {
             event.stopPropagation();
+            setSequence(false);
+            const board = event.currentTarget.closest<HTMLElement>(".wf-board");
+            if (board) markManualHold(board);
             setZoomed("generations");
           }}
         >
@@ -571,10 +799,11 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
       ) : null}
       {layout && data.candidates.length > 0
         ? layout.slots.map((slot, index) => (
+            index >= CATALOGUE_STEP ? null : (
             <div
               key={index}
               className="wf-opt-visual"
-              data-on={lit === index || undefined}
+              data-on={revealed >= index || undefined}
               style={{
                 left: `${(slot.left / layout.width) * 100}%`,
                 top: `${(slot.top / layout.height) * 100}%`,
@@ -583,12 +812,22 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
               }}
             >
               <div key={plays[index]} className="wf-opt-visual-play">
-                <StepVisual step={index} data={data} />
+                <StepVisual step={index} data={data} seeds={seeds} />
               </div>
             </div>
+            )
           ))
         : null}
-      <div className="wf-opt-results" data-route-end="" data-frame="catalogue">
+      <div
+        className="wf-opt-results"
+        data-route-end=""
+        data-frame={String(CATALOGUE_STEP)}
+        data-zoomable=""
+        onClick={(event) => {
+          event.stopPropagation();
+          openPanel("catalog", event.currentTarget);
+        }}
+      >
         <p className="wf-proto-label">Optimization Catalogue</p>
         <div className="wf-opt-plates">
           {data.grid.map((item, index) => (
@@ -596,13 +835,27 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
           ))}
         </div>
       </div>
+      <div
+        className="wf-opt-results wf-opt-selection"
+        data-route-end=""
+        data-frame={String(SELECTION_STEP)}
+        data-zoomable=""
+        onClick={(event) => {
+          event.stopPropagation();
+          openPanel("selection", event.currentTarget);
+        }}
+      >
+        <p className="wf-proto-label">Selected for Vertical Propagation</p>
+        <p className="wf-frame-body">One iteration from each archetype.</p>
+      </div>
       <ZoomBoard
         title="Non Dominated Sorting"
         count={`${data.candidates.length} ${ARCHETYPE_NAME} candidates · ${data.fronts.length} fronts`}
         steps={sortSteps}
         open={zoomed === "sorting"}
         origin={layout?.zoomOrigin ?? null}
-        onClose={() => setZoomed(null)}
+        onClose={closeZoom}
+        sequence={sequence && zoomed === "sorting"}
       />
       <ZoomBoard
         title="Four Generations"
@@ -611,8 +864,80 @@ export function OptimizationWorkflowLayer({ cycle }: { cycle: string }) {
         links={data.links}
         open={zoomed === "generations"}
         origin={layout?.label ?? null}
-        onClose={() => setZoomed(null)}
+        onClose={closeZoom}
       />
+      <section
+        className="wf-opt-zoom"
+        data-open={panel || undefined}
+        data-opt-panel={panel ?? undefined}
+        aria-hidden={!panel}
+        onPointerDown={panelClock.hold}
+        style={origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : undefined}
+      >
+        <p className="wf-opt-trail">
+          Optimization <span aria-hidden="true">›</span>{" "}
+          {panel === "selection" ? "Selected for Vertical Propagation" : `Optimization Catalogue · ${catalogName}`}
+        </p>
+        <div className="wf-phy-panel">
+          {panel === "catalog" ? (
+            <>
+              <div className="wf-phy-tabs">
+                {TYPOLOGIES.map((typology) => (
+                  <button
+                    key={typology.id}
+                    type="button"
+                    aria-pressed={typology.id === typologyId}
+                    onClick={() => {
+                      setTypologyId(typology.id);
+                      setArchetypeId(typology.archetypes[0]?.id ?? ARCHETYPE);
+                    }}
+                  >
+                    {typology.label}
+                  </button>
+                ))}
+              </div>
+              <div className="wf-phy-tabs">
+                {findTypology(typologyId).archetypes.map((archetype) => (
+                  <button
+                    key={archetype.id}
+                    type="button"
+                    aria-pressed={archetype.id === archetypeId}
+                    onClick={() => setArchetypeId(archetype.id)}
+                  >
+                    {archetype.name}
+                  </button>
+                ))}
+              </div>
+              <div className="wf-phy-fit">
+                <div className="wf-phy-fit-size">
+                  {!data.ready ? (
+                    <p className="wf-frame-body">Loading saved plates.</p>
+                  ) : catalogPlates.plates.length === 0 ? (
+                    <p className="wf-frame-body">Catalog plates for this archetype are pending.</p>
+                  ) : (
+                    <div
+                      className="wf-opt-cat-sheet"
+                      style={{
+                        "--rows": 4,
+                        "--cols": Math.ceil(catalogPlates.plates.length / 4),
+                        gridTemplateColumns: `repeat(${Math.ceil(catalogPlates.plates.length / 4)}, minmax(0, 1fr))`,
+                      } as CSSProperties}
+                    >
+                      {catalogPlates.plates.map((item, index) => (
+                        <Plate key={item.id} candidate={item} index={index} name={catalogName} chosen={item.id === catalogPlates.pickId} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
+          {panel === "selection" ? (
+            data.ready ? <SelectionMatrix data={data} /> : <p className="wf-frame-body">Selection pending</p>
+          ) : null}
+        </div>
+        <PresentControls run={Boolean(sequence && panel)} clock={panelClock} onClose={closePanel} open={Boolean(panel)} />
+      </section>
     </>
   );
 }

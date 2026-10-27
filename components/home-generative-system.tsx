@@ -57,7 +57,8 @@ export function GenerativeSystemTracks() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         const active = entry.isIntersecting;
-        if (!active) {
+        const board = motion.closest<HTMLElement>(".wf-board");
+        if (!active || board?.dataset.paused === "1") {
           motion.pauseAnimations();
           return;
         }
@@ -71,7 +72,28 @@ export function GenerativeSystemTracks() {
       { threshold: 0.2 },
     );
     observer.observe(motion);
-    return () => observer.disconnect();
+    const board = motion.closest<HTMLElement>(".wf-board");
+    const syncHold = () => {
+      if (board?.dataset.paused === "1") motion.pauseAnimations();
+      else if (started) motion.unpauseAnimations();
+    };
+    const onTransport = (event: Event) => {
+      if ((event as CustomEvent<{ action?: string }>).detail?.action !== "restart") return;
+      motion.setCurrentTime(0);
+      beginWorkflowLights(motion);
+      started = true;
+      syncHold();
+    };
+    const watch = board ? new MutationObserver(syncHold) : null;
+    if (board) {
+      watch?.observe(board, { attributes: true, attributeFilter: ["data-paused"] });
+      board.addEventListener("wf-transport", onTransport);
+    }
+    return () => {
+      observer.disconnect();
+      watch?.disconnect();
+      board?.removeEventListener("wf-transport", onTransport);
+    };
   }, []);
 
   return (
