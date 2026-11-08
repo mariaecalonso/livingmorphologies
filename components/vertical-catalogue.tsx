@@ -382,10 +382,13 @@ export function VerticalCatalogue({
   initial,
   candidate,
   requestedArchetypeId = null,
+  embedded = false,
 }: {
   initial: NaturalContinuationSet | null;
   candidate: CandidateRequest | null;
   requestedArchetypeId?: string | null;
+  /** Presentation embed. It reads the catalogue and does not rewrite the lab address or the stored choice. */
+  embedded?: boolean;
 }) {
   const search = useSearchParams();
   const searchString = search.toString();
@@ -429,6 +432,7 @@ export function VerticalCatalogue({
     if (loadedKey.current === key || loadedKey.current === `miss:${key}`) return;
     const controller = new AbortController();
     const replaceQuery = (nextCandidateId: number | null) => {
+      if (embedded) return;
       const params = new URLSearchParams(searchString);
       params.set("archetype", archetypeId);
       if (nextCandidateId == null) params.delete("candidate");
@@ -478,7 +482,7 @@ export function VerticalCatalogue({
         if (!controller.signal.aborted) setPending(false);
       });
     return () => controller.abort();
-  }, [archetypeId, candidate, initial, router, searchString]);
+  }, [archetypeId, candidate, embedded, initial, router, searchString]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -536,7 +540,7 @@ export function VerticalCatalogue({
     : null;
 
   const chooseInspected = () => {
-    if (!set || !selected) return;
+    if (embedded || !set || !selected) return;
     const next = selectedMorphologyFrom(set, selected);
     writeSelectedSkill3Morphology(next);
     setStoredChoice(next);
@@ -555,7 +559,7 @@ export function VerticalCatalogue({
         <div className="vertical-catalogue-nav">
           {set?.origin === "development-fixture" ? <p className="eyebrow vertical-process-flag">Development fixture</p> : null}
           {preview || set?.origin === "provisional" ? <p className="eyebrow vertical-process-flag">Provisional preview</p> : null}
-          <Link href={processHref} className="vertical-catalogue-back">Process</Link>
+          {embedded ? null : <Link href={processHref} className="vertical-catalogue-back">Process</Link>}
         </div>
       </header>
       <div className="vertical-catalogue-body">

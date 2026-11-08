@@ -1,24 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DemoWorkflow } from "@/components/demo-workflow/demo-workflow";
 import { HomeClient } from "@/components/home-client";
 import { HomeLabDemo } from "@/components/home-lab-demo";
 import { HomeResults } from "@/components/home-results";
 import { HomeSite } from "@/components/home-site";
-import { HomeWorkflowPrototype, WORKFLOW_OVERVIEW_EVENT } from "@/components/home-workflow-prototype";
+import { HomeWorkflowPrototype } from "@/components/home-workflow-prototype";
 import type { LabDemoMedia } from "@/lib/home-lab-demo-chapters";
 import type { HomeResultPreview, HomeResultSkill } from "@/lib/home-results";
-import { LAB_ENTRY } from "@/lib/site-map";
+import { HOME_RAIL, HOME_RAIL_SELECT, LAB_ENTRY } from "@/lib/site-map";
 
-const RAIL = [
-  { href: "#home", id: "home", label: "Home" },
-  { href: "#client", id: "client", label: "Our Client" },
-  { href: "#workflow", id: "workflow", label: "Workflow" },
-  { href: "#results", id: "results", label: "Results" },
-  { href: "#site", id: "site", label: "Site" },
-  { href: "#lab-demo", id: "lab-demo", label: "Lab Demo" },
-] as const;
+const RAIL = HOME_RAIL;
 
 const STORY = [
   { id: "results", title: "Results" },
@@ -64,8 +58,10 @@ export function HomePage({
         const scrolled = (viewTop - home.getBoundingClientRect().top) / scale;
         travel = Math.min(RAIL.length - 1, Math.max(0, scrolled / viewHeight));
       }
-      root.style.setProperty("--rail-travel", travel.toFixed(3));
-      const next = Math.min(RAIL.length - 1, Math.max(0, Math.round(travel)));
+      const nearest = Math.round(travel);
+      const seam = Math.min(1, Math.max(0, Math.abs(travel - nearest) * 2));
+      root.style.setProperty("--seam", seam.toFixed(3));
+      const next = Math.min(RAIL.length - 1, Math.max(0, nearest));
       if (next !== railIndexRef.current) {
         railIndexRef.current = next;
         setRailIndex(next);
@@ -130,19 +126,12 @@ export function HomePage({
       };
       frame = requestAnimationFrame(tick);
     };
-    const onRail = (event: MouseEvent) => {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const link = (event.target as Element | null)?.closest("a.home-rail-link");
-      if (!link || !root.contains(link)) return;
-      const id = (link.getAttribute("href") || "").replace(/^#/, "");
-      const index = RAIL.findIndex((item) => item.id === id);
-      if (index < 0) return;
-      event.preventDefault();
-      history.pushState(null, "", `#${id}`);
-      if (id === "workflow") window.dispatchEvent(new Event(WORKFLOW_OVERVIEW_EVENT));
+    const onRail = (event: Event) => {
+      const index = (event as CustomEvent<number>).detail;
+      if (typeof index !== "number") return;
       go(index);
     };
-    root.addEventListener("click", onRail);
+    window.addEventListener(HOME_RAIL_SELECT, onRail);
 
     const alignToHash = (animate: boolean) => {
       const index = RAIL.findIndex((item) => item.id === location.hash.replace(/^#/, ""));
@@ -163,7 +152,7 @@ export function HomePage({
       cancelAnimationFrame(frame);
       observer.disconnect();
       displayObserver.disconnect();
-      root.removeEventListener("click", onRail);
+      window.removeEventListener(HOME_RAIL_SELECT, onRail);
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("scroll", update);
       main?.removeEventListener("scroll", update);
@@ -176,48 +165,22 @@ export function HomePage({
   }, []);
 
   return (
-    <div className="home-page" ref={rootRef} style={{ "--rail-index": railIndex, "--rail-span": RAIL.length } as CSSProperties}>
-      <nav className="home-rail" aria-label="Sections">
-        <span className="home-rail-track" aria-hidden="true">
-          <span className="home-rail-line" />
-          <span className="home-rail-energy" />
-        </span>
-        <span className="home-rail-indicator" aria-hidden="true" />
-        {RAIL.map((item, index) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={index === railIndex ? "home-rail-link is-current" : "home-rail-link"}
-            aria-current={index === railIndex ? "true" : undefined}
-            style={{ "--rail-slot": index } as CSSProperties}
-          >
-            <span className="home-rail-node" />
-            {item.label}
-          </Link>
-        ))}
-        <Link
-          href={LAB_ENTRY.href}
-          className="home-rail-link home-rail-lab"
-          style={{ "--rail-slot": RAIL.length } as CSSProperties}
-        >
-          <span className="home-rail-node" />
-          {LAB_ENTRY.label}
-        </Link>
-      </nav>
-
+    <div className="home-page" ref={rootRef}>
       <section className="home-hero" id="home" data-rail-target="home">
-        <img
-          className="home-hero-field home-hero-field-laptop"
-          src="/home-hero-laptop.webp"
-          alt=""
-          draggable={false}
-        />
-        <img
-          className="home-hero-field home-hero-field-classroom"
-          src="/home-hero-classroom.webp"
-          alt=""
-          draggable={false}
-        />
+        <div className="home-hero-live">
+          <img
+            className="home-hero-field home-hero-field-laptop"
+            src="/home-hero-web.png"
+            alt=""
+            draggable={false}
+          />
+          <img
+            className="home-hero-field home-hero-field-classroom"
+            src="/home-hero-web.png"
+            alt=""
+            draggable={false}
+          />
+        </div>
         <div className="home-hero-copy">
           <p className="home-team">
             Maria Alonso <span className="home-team-x home-team-x-teal">+</span> Renata Maguiño{" "}
@@ -249,7 +212,8 @@ export function HomePage({
         <HomeClient />
       </section>
 
-      <section className="home-overview home-workflow" id="workflow" data-rail-target="workflow">
+      {/* Kept, not shown. Remove `hidden` to put Overall Workflow back on the page. */}
+      <section className="home-overview home-workflow" id="workflow" hidden>
         <header className="home-section-heading wf-section-heading" data-wf-heading>
           <div className="wf-heading-face is-macro">
             <h2 className="home-overview-title">Overall Workflow</h2>
@@ -262,6 +226,10 @@ export function HomePage({
         </header>
         {/* Spatial zoom trial. Restore <HomeWorkflow /> from components/home-workflow.tsx to revert. */}
         <HomeWorkflowPrototype />
+      </section>
+
+      <section className="home-overview" id="demo-workflow" data-rail-target="demo-workflow" aria-label="Demo Workflow">
+        <DemoWorkflow />
       </section>
 
       {STORY.map((section) => (

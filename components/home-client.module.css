@@ -170,18 +170,23 @@
 }
 
 .gallery {
+  --plate-h: calc(var(--home-view) * 0.26);
+  --plate-gap: calc(var(--home-view) * 0.007);
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.62fr);
+  grid-template-columns:
+    calc(var(--plate-h) * 445 / 280)
+    calc((var(--plate-h) - var(--plate-gap)) / 2 * 194 / 139);
   grid-template-rows: 1fr 1fr;
-  gap: calc(var(--home-view) * 0.007);
-  height: calc(var(--home-view) * 0.26);
-  background: #000000;
+  gap: var(--plate-gap);
+  width: max-content;
+  max-width: 100%;
+  height: var(--plate-h);
 }
 
 .frame {
   min-width: 0;
   min-height: 0;
-  background: #000000;
+  overflow: hidden;
 }
 
 .frame:first-child {

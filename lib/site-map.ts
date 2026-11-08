@@ -1,8 +1,20 @@
+/** Left rail on every page. Home scrolls to the section; other pages follow the link. */
+export const HOME_RAIL = [
+  { href: "/#home", id: "home", label: "Home" },
+  { href: "/#client", id: "client", label: "Studio" },
+  { href: "/#demo-workflow", id: "demo-workflow", label: "Workflow" },
+  { href: "/#results", id: "results", label: "Results" },
+  { href: "/#site", id: "site", label: "Site" },
+  { href: "/#lab-demo", id: "lab-demo", label: "Demo" },
+] as const;
+
+export const HOME_RAIL_SELECT = "lm-home-rail-select";
+
 /** Homepage sections on `/`. Lab screens stay on their own routes. */
 export const HOME_SECTIONS = [
   { href: "/", label: "Home" },
   { href: "/#client", label: "Our Client" },
-  { href: "/#workflow", label: "Overall Workflow" },
+  { href: "/#demo-workflow", label: "Workflow" },
   { href: "/#results", label: "Results" },
   { href: "/#site", label: "Site" },
   { href: "/#lab-demo", label: "Lab Demo" },

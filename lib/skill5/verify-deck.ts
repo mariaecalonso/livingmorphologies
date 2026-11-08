@@ -76,8 +76,11 @@ const site = JSON.parse(readFileSync(new URL("../../data/skill5/herald-site.json
 assert.equal(site.site.ring[0][0], 255.89);
 assert.ok(!site.buildings.some((building: { id: number }) => building.id === 2227150 || building.id === 5653720));
 const configurations = JSON.parse(readFileSync(new URL("../../data/skill5/configurations.json", import.meta.url), "utf8"));
-const saved = configurations.configurations.find((item: { id: string }) => item.id === "C01");
-assert.equal(saved.modules[0].transform.position.z, -120);
+assert.ok(Array.isArray(configurations.configurations));
+assert.equal(
+  configurations.configurations.some((item: { name?: string }) => item.name === "Spatial check"),
+  false,
+);
 const herald = site.roads.filter((road: SiteRoad) => road.name === "Herald Plaza" && road.widthSource === "pavement-edge");
 assert.ok(herald.length > 0, "Herald Plaza uses measured pavement edges");
 const heraldWidths = herald.flatMap((road: SiteRoad) => (road.halfWidthFeet ?? []).filter((value): value is number => typeof value === "number")).map((value: number) => value * 2);

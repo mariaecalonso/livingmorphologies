@@ -1,0 +1,500 @@
+.demo-vert-lab.demo-vert-lab .process-setup {
+  display: none;
+}
+
+.demo-vert-lab[data-focus] .process-canvas {
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+}
+
+.demo-vert-lab[data-focus] .eyebrow {
+  display: none;
+}
+
+.demo-vert-lab[data-focus] .panel-title {
+  font-size: 15px;
+  letter-spacing: 0.14em;
+}
+
+.demo-vert-lab[data-focus] .process-work {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.demo-vert-lab[data-focus="sample"] .process-step:not(.process-sample),
+.demo-vert-lab[data-focus="develop"] .process-step:not(.process-xyt),
+.demo-vert-lab[data-focus="form"] .process-step:not(.process-form),
+.demo-vert-lab[data-focus="cap"] .process-step:not(.process-cap):not(.process-choose):not(.process-solidify):not(.process-handoff-end),
+.demo-vert-lab[data-focus="cap"] .process-cue[data-exploring] {
+  display: none;
+}
+
+.demo-vert-lab[data-focus="sample"] .process-sample,
+.demo-vert-lab[data-focus="develop"] .process-xyt,
+.demo-vert-lab[data-focus="form"] .process-form {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0.15rem 0.2rem 0;
+}
+
+.demo-vert-lab[data-focus="cap"] .process-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0.55rem;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="cap"] .process-cap {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="cap"] .process-choose {
+  grid-column: 2 / span 2;
+  grid-row: 1;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="cap"] .process-solidify {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="cap"] .process-handoff-end {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.demo-vert-lab[data-focus="cap"] .process-cap,
+.demo-vert-lab[data-focus="cap"] .process-choose,
+.demo-vert-lab[data-focus="cap"] .process-solidify,
+.demo-vert-lab[data-focus="cap"] .process-handoff-end {
+  width: auto;
+  height: 100%;
+  border: 0;
+  padding: 0.1rem 0.15rem 0;
+}
+
+.demo-vert-lab[data-focus="cap"] .process-down {
+  display: contents;
+}
+
+.demo-vert-lab.demo-vert-lab .process-canvas .process-work {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr);
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.demo-vert-lab.demo-vert-lab .process-sample,
+.demo-vert-lab.demo-vert-lab .process-xyt,
+.demo-vert-lab.demo-vert-lab .process-form,
+.demo-vert-lab.demo-vert-lab .process-cap {
+  grid-column: span 3;
+}
+
+.demo-vert-lab.demo-vert-lab .process-choose,
+.demo-vert-lab.demo-vert-lab .process-solidify,
+.demo-vert-lab.demo-vert-lab .process-handoff-end {
+  grid-column: span 4;
+}
+
+.demo-vert-lab.demo-vert-lab .process-down {
+  display: contents;
+}
+
+.demo-vert-lab .process-field-mode,
+.demo-vert-lab .process-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.demo-vert-lab .process-read,
+.demo-vert-lab .process-transport button {
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  background: transparent;
+  color: #f2f2ee;
+  font: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.28rem;
+}
+
+.demo-vert-lab .inherit-profile {
+  display: grid;
+  grid-template-columns: 32% minmax(0, 1fr);
+  gap: 0.3rem;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-step {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  padding: 0.28rem 0.35rem 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: #000000;
+  box-shadow: 0 0 6px rgba(242, 242, 238, 0.05);
+}
+
+.demo-vert-lab .process-sentence,
+.demo-vert-lab .process-technical,
+.demo-vert-lab .process-phase {
+  display: none;
+}
+
+.demo-vert-lab .continuation-explorer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+}
+
+.demo-vert-lab .continuation-steer {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.demo-vert-lab .continuation-index,
+.demo-vert-lab .continuation-strip,
+.demo-vert-lab .continuation-schedule {
+  display: none;
+}
+
+.demo-vert-lab .process-sample-stage,
+.demo-vert-lab .process-develop,
+.demo-vert-lab .process-form-stage,
+.demo-vert-lab .process-cap-pair,
+.demo-vert-lab .process-choose-board,
+.demo-vert-lab .process-solid-pair,
+.demo-vert-lab .process-handoff-body {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.demo-vert-lab .process-sample-decision {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.demo-vert-lab .process-sample-stack,
+.demo-vert-lab .process-sample-plot,
+.demo-vert-lab .process-develop-view,
+.demo-vert-lab .process-form-stage,
+.demo-vert-lab .process-cap-stage,
+.demo-vert-lab .process-choose-stage,
+.demo-vert-lab .process-solid-stage,
+.demo-vert-lab .process-final-mesh,
+.demo-vert-lab .process-mesh-well {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000000;
+}
+
+.demo-vert-lab .process-form-layer,
+.demo-vert-lab .process-form-reveal,
+.demo-vert-lab .process-mesh-well,
+.demo-vert-lab .process-sample-stack canvas,
+.demo-vert-lab .process-develop-view > canvas,
+.demo-vert-lab .process-form-stage canvas,
+.demo-vert-lab .process-cap-stage canvas,
+.demo-vert-lab .process-choose-stage canvas,
+.demo-vert-lab .process-solid-stage canvas,
+.demo-vert-lab .process-final-mesh canvas,
+.demo-vert-lab .process-mesh-well canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.demo-vert-lab .process-cap-pair,
+.demo-vert-lab .process-solid-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1rem minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.demo-vert-lab .process-cap-view,
+.demo-vert-lab .process-solid-view,
+.demo-vert-lab .process-choose-preview {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.demo-vert-lab .process-choose-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 0.35rem;
+}
+
+.demo-vert-lab .process-choose-field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.demo-vert-lab .process-choose-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.15rem;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-choose-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid rgba(242, 242, 238, 0.32);
+  color: rgba(242, 242, 238, 0.72);
+}
+
+.demo-vert-lab .process-choose-mark[data-on="true"] {
+  border-color: #7ec8c6;
+  color: #9af6f8;
+}
+
+.demo-vert-lab .process-handoff-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.demo-vert-lab .process-develop-samples {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.demo-vert-lab .process-develop-samples button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 1.6rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.55);
+}
+
+.demo-vert-lab .process-develop-mark {
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+}
+
+.demo-vert-lab .process-develop-status,
+.demo-vert-lab .process-develop-method,
+.demo-vert-lab .process-develop-track {
+  display: none;
+}
+
+.demo-vert-lab .process-develop-view {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+}
+
+.demo-vert-lab .continuation-stance,
+.demo-vert-lab .process-cue,
+.demo-vert-lab .process-sample-legend {
+  display: none;
+}
+
+.demo-vert-lab .process-sample-decision {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.demo-vert-lab .process-transport {
+  flex-wrap: nowrap;
+  max-height: 1.4rem;
+  overflow: hidden;
+}
+
+.demo-vert-lab .process-transport button:nth-child(2),
+.demo-vert-lab .process-develop-time .process-transport button:nth-child(6) {
+  display: none;
+}
+
+.demo-vert-lab .process-transport label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.demo-vert-lab .process-transport label input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.demo-vert-lab .process-handoff-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-vert-lab .process-final-mesh {
+  flex: 1 1 0;
+  height: auto;
+}
+
+.demo-vert-lab .process-handoff-panel {
+  flex: 0 0 auto;
+}
+
+.demo-vert-lab.demo-vert-lab .demo-run.process-canvas {
+  flex-direction: column;
+}
+
+.demo-vert-lab.demo-vert-lab .demo-run.process-canvas .process-work {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-step[data-live="true"] {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 12px rgba(242, 242, 238, 0.11), 0 0 24px rgba(242, 242, 238, 0.04);
+}
+
+.demo-vert-lab .process-handoff-end[data-transfer="true"] {
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 12px rgba(242, 242, 238, 0.14), 0 0 18px rgba(73, 215, 222, 0.2);
+}
+
+.demo-vert-lab .process-choose-mark[data-pressed="true"],
+.demo-vert-lab button[data-pressed="true"] {
+  outline: 1px solid #49d7de;
+}
+
+.demo-vert-lab .process-choose-preview figcaption {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="sample"] .process-canvas .process-work,
+.demo-vert-lab.demo-vert-lab[data-focus="develop"] .process-canvas .process-work,
+.demo-vert-lab.demo-vert-lab[data-focus="form"] .process-canvas .process-work {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  height: 100%;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="sample"] .process-sample,
+.demo-vert-lab.demo-vert-lab[data-focus="develop"] .process-xyt,
+.demo-vert-lab.demo-vert-lab[data-focus="form"] .process-form {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  grid-column: auto;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="sample"] .process-sentence,
+.demo-vert-lab.demo-vert-lab[data-focus="develop"] .process-sentence,
+.demo-vert-lab.demo-vert-lab[data-focus="form"] .process-sentence {
+  display: block;
+  flex: 0 0 auto;
+  max-width: 42rem;
+  margin: 0.15rem 0 0.35rem;
+  color: rgba(242, 242, 238, 0.72);
+  letter-spacing: 0.03em;
+  line-height: 1.35;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="sample"] .process-sample-legend {
+  display: block;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="sample"] .process-sample-decision {
+  grid-template-columns: minmax(0, 1fr) 7.5rem;
+}
+
+.demo-vert-lab.demo-vert-lab[data-focus="cap"] .process-canvas .process-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.82fr) minmax(0, 0.82fr);
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0.55rem;
+}
+
+.demo-vert-lab .process-step[data-live="true"] {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 12px rgba(242, 242, 238, 0.11), 0 0 24px rgba(242, 242, 238, 0.04);
+}
+
+.demo-vert-lab .process-handoff-end[data-transfer="true"] {
+  border-color: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 12px rgba(242, 242, 238, 0.14), 0 0 18px rgba(73, 215, 222, 0.2);
+}
+
+.demo-vert-lab .process-choose-mark[data-pressed="true"],
+.demo-vert-lab button[data-pressed="true"] {
+  outline: 1px solid #49d7de;
+}
+
+/* One step fills the process frame. The others wait, so the plates and the form have room. */
+.demo-vert-lab.demo-vert-lab .demo-run.process-canvas .process-work {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  grid-template-rows: none;
+}
+
+.demo-vert-lab.demo-vert-lab .demo-run .process-step {
+  display: none;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.demo-vert-lab.demo-vert-lab .demo-run .process-step[data-live="true"] {
+  display: flex;
+}

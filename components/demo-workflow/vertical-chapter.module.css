@@ -1,0 +1,1016 @@
+/* Chapter 03 · Vertical Propagation. Criteria families keep the Physarum Logic tones. */
+
+.stack,
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.stack > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.column {
+  gap: 0.55rem;
+}
+
+.still {
+  min-height: 0;
+}
+
+/* Verified Z0 */
+
+.z0 {
+  display: grid;
+  grid-template-columns: minmax(0, 0.42fr) 1.6rem minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.4rem;
+  row-gap: 0.5rem;
+  height: 100%;
+}
+
+.z0 > :last-child {
+  grid-column: 1 / -1;
+}
+
+.z0 figure,
+.z0Detail figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.z0 figcaption,
+.z0Detail figcaption {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pick,
+.field {
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  background: #000000;
+}
+
+.field {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, #49d7de, rgba(255, 255, 255, 0.92) 50%, #c77e5f);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.arrow {
+  position: relative;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.arrow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.6);
+  transform: rotate(45deg);
+}
+
+.z0Detail {
+  display: grid;
+  grid-template-columns: minmax(0, 0.55fr) 1.4rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.8rem;
+  margin: auto 0 0;
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.facts dt {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.facts dd {
+  margin: 0;
+  color: #ffffff;
+}
+
+/* Continuations */
+
+.continuations {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.continuation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+}
+
+.continuation[data-selected] {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, #49d7de, rgba(255, 255, 255, 0.92) 50%, #c77e5f);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow:
+    -6px 0 10px -6px rgba(73, 215, 222, 0.75),
+    6px 0 10px -6px rgba(199, 126, 95, 0.75);
+}
+
+.families {
+  display: flex;
+  gap: 2px;
+}
+
+.families i,
+.familyLegend i {
+  display: block;
+  width: 5px;
+  height: 14px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.familyLegend i {
+  height: 8px;
+}
+
+:is(.families, .familyLegend) i[data-family="formal"][data-on] {
+  background: #c77e5f;
+}
+
+:is(.families, .familyLegend) i[data-family="spatial"][data-on] {
+  background: #f4f1ec;
+}
+
+:is(.families, .familyLegend) i[data-family="atmospheric"][data-on] {
+  background: #49d7de;
+}
+
+.continuationId,
+.samples {
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.samples {
+  font-family: var(--font-site-display);
+  color: #49d7de;
+}
+
+.continuations[data-named] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.familyLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.familyLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendNote {
+  color: #49d7de;
+}
+
+/* Sampling and the XYT stack */
+
+.plates {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plates li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  font-family: var(--font-site-display);
+  font-size: 0.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.plate {
+  aspect-ratio: 1;
+  border: 1px solid rgba(73, 215, 222, 0.45);
+  border-radius: 4px;
+  background: #000000;
+}
+
+.timeline {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+}
+
+.kept {
+  fill: #49d7de;
+  filter: drop-shadow(0 0 3px rgba(73, 215, 222, 0.8));
+}
+
+.tick,
+.gap {
+  font-family: var(--font-site-text);
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  fill: rgba(255, 255, 255, 0.6);
+}
+
+.gap {
+  fill: #e7a084;
+}
+
+.stackRow {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 0;
+}
+
+/* 3D formation */
+
+.formDetail {
+  flex: 1 1 auto;
+  border-radius: 8px;
+}
+
+.composed .still,
+.composed .formDetail {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.composed > section {
+  min-height: 0;
+}
+
+.composed .modules {
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  height: 100%;
+  min-height: 0;
+  align-content: center;
+}
+
+.composed .module {
+  width: 100%;
+  height: 3.1rem;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+/* Selection */
+
+.modules {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.modules figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.modules figcaption {
+  margin-top: 0.12rem;
+  font-size: 0.4rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.module {
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+  background: #000000;
+}
+
+.programs {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.programs ul {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.programs li {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.programs li span {
+  font-family: var(--font-site-display);
+  color: #49d7de;
+}
+
+/* Process, the 24-model catalog, and the final catalogue each fill their own page. */
+.process,
+.catalog,
+.final {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.process > section,
+.catalog > section,
+.process > section[data-light="current"],
+.catalog > section[data-light="current"],
+.process > section[data-light="lit"],
+.catalog > section[data-light="lit"] {
+  min-height: 0;
+  overflow: hidden;
+  transform: none;
+}
+
+.process > section > :last-child,
+.catalog > section > :last-child {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.process > section > :last-child > *,
+.catalog > section > :last-child > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.catalogField {
+  position: relative;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.catalogField :global(.vertical-catalogue) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: #f2f2ee;
+  font-size: 11px;
+}
+
+.catalogField :global(.vertical-catalogue-body) {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(6.2rem, 7.6rem) minmax(0, 1fr) minmax(9.2rem, 12rem);
+  min-height: 0;
+  height: 100%;
+}
+
+.catalogField :global(.vertical-catalogue-side) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.15rem 0.35rem;
+}
+
+.catalogField :global(.vertical-catalogue-field) {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000000;
+}
+
+.catalogField :global(.vertical-catalogue-stage) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.catalogField :global(.vertical-catalogue-stage) canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.catalogField :global(.vertical-catalogue-labels) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.catalogField :global(.vertical-catalogue-labels) button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.72);
+  padding: 0;
+  font: inherit;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.catalogField :global(.vertical-catalogue-labels) button[data-active] {
+  color: #f2f2ee;
+}
+
+.catalogField :global(.vertical-catalogue-labels) button[data-chosen] {
+  color: #49d7de;
+}
+
+.catalogField :global(.vertical-catalogue-reset) {
+  border: 0;
+  background: transparent;
+  color: #49d7de;
+  padding: 0;
+  font: inherit;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.catalogField :global(.vertical-catalogue[data-inspect]) :global(.vertical-catalogue-controls) {
+  display: none;
+}
+
+.catalogField :global(.evo-header) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.1rem 0.35rem 0;
+}
+
+.catalogField :global(.evo-header-title) {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.catalogField :global(.evo-header-detail) {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.catalogField :global(.vertical-catalogue-figure) {
+  margin: 0.15rem 0 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.catalogField :global(.vertical-catalogue-choices) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.catalogField :global(.vertical-catalogue-choices) button {
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.62);
+  padding: 0.02rem 0.28rem;
+  font: inherit;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.catalogField :global(.vertical-catalogue-choices) button[data-active] {
+  border-left-color: #49d7de;
+  color: #f2f2ee;
+}
+
+.catalogField :global(.vertical-catalogue-facts) {
+  display: grid;
+  gap: 0.16rem;
+  margin: 0.3rem 0 0;
+}
+
+.catalogField :global(.vertical-catalogue-facts) div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  gap: 0.25rem;
+}
+
+.catalogField :global(.vertical-catalogue-facts) dt {
+  color: rgba(242, 242, 238, 0.55);
+}
+
+.catalogField :global(.vertical-catalogue-facts) dd {
+  margin: 0;
+  white-space: normal;
+}
+
+.runBar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.55rem;
+  align-items: center;
+  margin: 0 0 0.28rem;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runBar button {
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.62);
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.runBar button[data-on="true"] {
+  color: #f2f2ee;
+  border-bottom-color: rgba(255, 255, 255, 0.85);
+}
+
+.sampleCue {
+  margin: 0 0 0.2rem;
+  color: rgba(242, 242, 238, 0.62);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.samplePair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.8rem;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+.samplePair > * {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.capRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.72fr) minmax(0, 1fr);
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.developSlot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.solidAfter {
+  opacity: 0.2;
+  transition: opacity 0.7s ease;
+}
+
+.solidAfter[data-shown="true"] {
+  opacity: 1;
+}
+
+.cursor {
+  position: absolute;
+  z-index: 12;
+  width: 18px;
+  height: 22px;
+  margin: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+}
+
+.cursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cursor path {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+.labHost {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.labHost :global(.process-canvas) {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
+  gap: 0.35rem;
+  overflow: hidden;
+  background: #000000;
+  font-size: 11px;
+}
+
+.labHost :global(.process-setup) {
+  display: none;
+}
+
+.labHost :global(.process-work) {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr);
+  gap: 0.4rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.labHost :global(.process-down) {
+  display: contents;
+}
+
+.labHost :global(.process-step) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(15, 115, 119, 0.45);
+  background: #000000;
+  padding: 0.35rem;
+}
+
+.labHost :global(.vertical-catalogue) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 11px;
+  color: #f2f2ee;
+}
+
+.labHost :global(.vertical-catalogue-body) {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 8.4rem) minmax(0, 1fr) minmax(0, 9.6rem);
+  min-height: 0;
+  height: 100%;
+}
+
+.labHost :global(.evo-header) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.15rem 0.35rem 0.1rem;
+}
+
+.labHost :global(.evo-header-title) {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.labHost :global(.evo-header-detail) {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.labHost :global(.vertical-catalogue-figure) {
+  margin: 0.2rem 0 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.labHost :global(.vertical-catalogue-side) {
+  min-width: 0;
+  overflow: auto;
+}
+
+.labHost :global(.vertical-catalogue-choices) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.labHost :global(.vertical-catalogue-choices) button {
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.62);
+  padding: 0.04rem 0.28rem;
+  font: inherit;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.labHost :global(.vertical-catalogue-choices) button[data-active] {
+  border-left-color: #49d7de;
+  color: #f2f2ee;
+}
+
+.labHost :global(.vertical-catalogue-facts) {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0.35rem 0 0;
+}
+
+.labHost :global(.vertical-catalogue-facts) div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+  gap: 0.3rem;
+}
+
+.labHost :global(.vertical-catalogue-facts) dt {
+  color: rgba(242, 242, 238, 0.55);
+}
+
+.labHost :global(.vertical-catalogue-facts) dd {
+  margin: 0;
+}
+
+.labHost :global(.vertical-catalogue-field) {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.labHost :global(.vertical-catalogue-stage) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.labHost :global(.vertical-catalogue-stage) canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.catalogue {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-catalogue) {
+  grid-template-columns: 20em minmax(0, 1fr) 20em;
+  gap: 1.4em;
+  padding: 0.7em 0.85em 0.75em;
+  font-size: 11.5px;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-rows) {
+  width: 86%;
+  margin-inline: auto;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="back-left"]) { left: 12%; }
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-left"]) { left: 26%; }
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-right"]) { left: 74%; }
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="back-right"]) { left: 88%; }
+
+.catalogue:global(.wf-vert-final) :global(.final-summary) :global(.display) {
+  font-size: 1.28em;
+  letter-spacing: 0.045em;
+  line-height: 0.98;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-row-name) {
+  left: 6%;
+  top: 0.35em;
+  width: max-content;
+  max-width: 14em;
+  font-size: 1.35em;
+  letter-spacing: 0.12em;
+  text-align: right;
+  transform: translateX(calc(-100% - 1.4em));
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-row-name span) {
+  max-width: 18em;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-detail) :global(.panel-title) {
+  font-size: 1.2em;
+}
+
+/* Focused composition. The worked example is one row. The fifteen validated modules are the row beneath it. */
+.composed {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.8fr) minmax(0, 1.35fr);
+  grid-template-rows: minmax(4.4rem, 0.24fr) minmax(0, 1fr) minmax(5.4rem, 0.4fr);
+  column-gap: var(--op-gap);
+  row-gap: 0.65rem;
+}
+
+.composed > section:nth-of-type(1) { grid-area: 1 / 1 / 2 / 4; }
+.composed > section:nth-of-type(1)[data-light="current"],
+.composed > section:nth-of-type(5)[data-light="current"] { transform: none; }
+.composed > section:nth-of-type(2) { grid-area: 2 / 1; }
+.composed > section:nth-of-type(3) { grid-area: 2 / 2; }
+.composed > section:nth-of-type(4) { grid-area: 2 / 3; }
+.composed > section:nth-of-type(5) { grid-area: 3 / 1 / 4 / 4; }
+
+.z0Bar {
+  flex-direction: row;
+  align-items: center;
+}
+
+.z0Bar .field {
+  width: 4.2rem;
+  height: 2.6rem;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.volume {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.volumePlate {
+  position: absolute;
+  left: 12%;
+  width: 46%;
+  height: 18%;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 3px;
+  background: transparent;
+  bottom: calc(var(--at) * 78%);
+  animation: stack-in 7s linear infinite;
+  animation-delay: calc(var(--order) * 0.28s);
+}
+
+.volume[data-paused] .volumePlate { animation-play-state: paused; }
+
+.volumePlate[data-kept] {
+  border-color: #49d7de;
+  box-shadow: 0 0 8px rgba(73, 215, 222, 0.35);
+}
+
+.volumePlate img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@keyframes stack-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  12% { opacity: 1; transform: none; }
+  100% { opacity: 1; transform: none; }
+}
+
+.sets p {
+  margin: 0;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sets p span { color: rgba(255, 255, 255, 0.88); }
+
+.sets ol {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 0.18rem;
+  margin: 0.35rem 0 0.7rem;
+  padding: 0;
+  list-style: none;
+}
+
+.sets li {
+  height: 1.6rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.78);
+}
+
+.sets ol[data-open] li {
+  border-top-style: dashed;
+  border-color: #c77e5f;
+}
+
+.sets li[data-on] {
+  border-top-style: solid;
+  border-color: #49d7de;
+  background: rgba(73, 215, 222, 0.16);
+}

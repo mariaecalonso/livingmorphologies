@@ -54,6 +54,18 @@ function reduced() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** Catalog sits with Selection. Skill 4 sits with the fifteen finals. */
+function verticalRoute<T extends { id: string }>(frames: T[]): T[] {
+  const catalog = frames.find((frame) => frame.id === "catalog");
+  const skill4 = frames.find((frame) => frame.id === "skill4");
+  const next = frames.filter((frame) => frame.id !== "catalog" && frame.id !== "skill4");
+  const selection = next.findIndex((frame) => frame.id === "4");
+  if (catalog && selection >= 0) next.splice(selection + 1, 0, catalog);
+  const handoff = next.findIndex((frame) => frame.id === "5");
+  if (skill4 && handoff >= 0) next.splice(handoff + 1, 0, skill4);
+  return next;
+}
+
 /** First pass at the normal pace, through Four Generations. The dashed return and the second pass run a little faster, then the catalogue follows. */
 function optimizationRoute(frames: FrameNode[], height: number): FrameNode[] {
   const byId = new Map(frames.map((frame) => [frame.id, frame]));
@@ -760,7 +772,7 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
         route = null;
         return;
       }
-      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : frames);
+      route = frameRoute(stage.id === "skill-2" ? optimizationRoute(frames, height) : stage.id === "skill-3" ? verticalRoute(frames) : frames);
       duration = route.duration;
       const view = `0 0 ${width} ${height}`;
       svg?.setAttribute("viewBox", view);
@@ -886,6 +898,28 @@ function WorkflowBoard({ stage, run }: { stage: WorkflowStage; run: boolean }) {
           {stage.id === "recombination" ? <HybridWorkflowLayer /> : null}
           {stage.id === "skill-5" ? <SiteWorkflowLayer /> : null}
           {stage.id === "client" ? <ClientWorkflowLayer /> : null}
+          {stage.id === "skill-3" && stops[4] ? (
+            <span
+              className="wf-frame is-detail"
+              data-frame="catalog"
+              data-tone={stage.tone}
+              style={{ left: `${stops[4].x * 100}%`, top: "84%" }}
+            >
+              <p className="wf-proto-label">Catalog</p>
+              <p className="wf-frame-body">Selected results from each archetype.</p>
+            </span>
+          ) : null}
+          {stage.id === "skill-3" && stops[5] ? (
+            <span
+              className="wf-frame is-detail"
+              data-frame="skill4"
+              data-tone={stage.tone}
+              style={{ left: `${stops[5].x * 100}%`, top: "84%" }}
+            >
+              <p className="wf-proto-label">Skill 4</p>
+              <p className="wf-frame-body">Fifteen selected modules.</p>
+            </span>
+          ) : null}
           {stage.id === "skill-1" ? null : stops.map((stop, stopIndex) => {
             const step = frameSteps[stopIndex];
             return (
