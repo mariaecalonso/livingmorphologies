@@ -1,0 +1,1146 @@
+.demo {
+  --demo-teal: #49d7de;
+  --demo-copper: #c77e5f;
+  --demo-line: rgba(255, 255, 255, 0.28);
+  --demo-gap: 2.2rem;
+  --demo-summary: 84cqw;
+  --frame-glow: 0 0 12px rgba(242, 242, 238, 0.11), 0 0 24px rgba(242, 242, 238, 0.04);
+  --frame-glow-soft: 0 0 6px rgba(242, 242, 238, 0.06), 0 0 14px rgba(242, 242, 238, 0.025);
+  /* How much the frame holding the light grows; connectors read it too. */
+  --grow: 1.06;
+  /* Same column as Our Client: titles and frames. Supporting graphics may leave it. */
+  --demo-pad-left: var(--home-pad-left);
+  --demo-pad-right: var(--home-overview-pad-right);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  font-family: var(--font-site-text);
+  color: #ffffff;
+}
+
+/* One row: the title on the left; chapters, the explanation toggle, and playback on the right. */
+.header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 44px;
+  align-items: center;
+  gap: 0.75rem;
+  height: 44px;
+  min-width: 0;
+  padding-left: var(--demo-pad-left);
+  padding-right: var(--demo-pad-right);
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.05rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Explanation control, chapter frames, then pause and restart, held together on the right. */
+.tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.28rem;
+  margin-left: auto;
+}
+
+/* Explanation toggle, play, and restart: one evenly spaced group. */
+.controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.2rem;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.56);
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.control:hover,
+.control[aria-pressed="true"],
+.control[aria-expanded="true"] {
+  color: #ffffff;
+}
+
+.control:focus-visible {
+  outline: 1px solid var(--demo-teal);
+  outline-offset: 1px;
+}
+
+.control:disabled {
+  display: none;
+}
+
+.control svg {
+  width: 0.58rem;
+  height: 0.58rem;
+}
+
+.control path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Chapter tabs show their number; the full name is the tooltip and the accessible label. */
+.nav {
+  display: flex;
+  flex: 0 1 auto;
+  gap: 0.28rem;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Each tab is a small white frame; the current one takes the teal-to-copper outcome frame. */
+.navItem {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  height: 0.95rem;
+  margin: 0;
+  padding: 0 0.32rem;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: #000000;
+  font: inherit;
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+
+.navItem .chapterIndex {
+  font-size: 0.48rem;
+  color: inherit;
+}
+
+.navItem:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.navItem[aria-current="step"] {
+  border-color: transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, var(--demo-teal), rgba(255, 255, 255, 0.92) 50%, var(--demo-copper));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  color: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    -4px 0 8px -6px rgba(73, 215, 222, 0.45),
+    4px 0 8px -6px rgba(199, 126, 95, 0.45);
+}
+
+.navItem:focus-visible {
+  outline: 1px solid var(--demo-teal);
+  outline-offset: 2px;
+}
+
+/* The video page, between 01 and 02. The circle is the mark; the page is empty until a video is added. */
+.navCircle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.navCircle::before {
+  content: "";
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.navCircle:hover::before,
+.navCircle[aria-current="step"]::before {
+  background: var(--demo-teal);
+}
+
+.navCircle:focus-visible {
+  outline: 1px solid var(--demo-teal);
+  outline-offset: 2px;
+}
+
+.videoPage {
+  position: absolute;
+  inset: 0;
+}
+
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.kicker {
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+/* Titles, frames, and captions. The stage around this column stays open for a supporting graphic. */
+.canvas {
+  position: absolute;
+  top: 0;
+  right: var(--demo-pad-right);
+  bottom: 0;
+  left: var(--demo-pad-left);
+  container-type: size;
+  overflow: visible;
+}
+
+/* One chapter, or the overview, held while it leaves or arrives. */
+.stageFrame {
+  position: absolute;
+  inset: 0;
+}
+
+.stageFrame[data-leave] {
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-12cqh);
+  transition:
+    transform var(--demo-transition) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--demo-transition) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The video has no step row, so it fades in place. */
+.stageFrame[data-leave][data-flat] {
+  transform: none;
+}
+
+.stageFrame[data-arrive] {
+  animation: chapter-arrive var(--demo-transition) ease both;
+  animation-delay: calc(var(--demo-transition) * 0.45);
+}
+
+.chapterIndex {
+  font-family: var(--font-site-display);
+  letter-spacing: 0.08em;
+  color: var(--demo-teal);
+}
+
+.arrow {
+  position: relative;
+  flex: 0 0 var(--demo-gap);
+  align-self: center;
+  height: 1px;
+  background: var(--demo-line);
+}
+
+.arrow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-top: 1px solid var(--demo-line);
+  border-right: 1px solid var(--demo-line);
+  transform: rotate(45deg);
+}
+
+/* Chapter: overview and focused explanation */
+
+.chapter {
+  position: absolute;
+  inset: 0;
+  --step-leave: var(--demo-transition);
+}
+
+.stepField {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* The sharp field is the opening. The blurred field stays behind the workflow, only the color remaining. */
+.stepField::before,
+.stepField::after {
+  content: "";
+  position: absolute;
+  background: url("/demo/chapter-steps-membrane.png?v=3") center / cover no-repeat;
+  pointer-events: none;
+}
+
+.stepField::before {
+  inset: 0;
+  animation: step-field-glow 5.5s ease-in-out infinite alternate;
+  transition: opacity var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepField::after {
+  inset: -8%;
+  opacity: 0;
+  filter: blur(12px) saturate(1.6) brightness(1.85);
+  transition: opacity var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chapter[data-phase="focused"] .stepField::before {
+  opacity: 0;
+  animation: none;
+}
+
+.chapter[data-phase="focused"] .stepField::after {
+  opacity: 0.55;
+}
+
+@keyframes step-field-glow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepField::before {
+    animation: none;
+    filter: brightness(1.15);
+  }
+}
+
+.stepRow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin: 0;
+  padding: calc(var(--home-view) * 0.214 - 44px) 0 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s linear 0s;
+}
+
+.coverTitle {
+  max-width: 34%;
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-size: calc(var(--home-view) * 0.048);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.title[data-cover] {
+  visibility: hidden;
+}
+
+.chapter[data-phase="focused"] .stepRow {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12cqh);
+  transition:
+    transform var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s linear var(--step-leave);
+}
+
+.detail[data-arrive] {
+  animation: chapter-arrive var(--demo-transition) ease both;
+  animation-delay: calc(var(--step-leave) * 0.45);
+}
+
+@keyframes chapter-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.summaryButton {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: var(--demo-summary);
+  margin: 0;
+  padding: 0 0 2.2rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transform: translate(-50%, calc(50cqh - 50%));
+  transform-origin: 50% 0;
+  transition: transform var(--demo-transition) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chapter[data-phase="focused"] .summaryButton {
+  transform: translate(-50%, 0) scale(0.7);
+}
+
+.chapterTitle {
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.summary {
+  position: relative;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  column-gap: var(--demo-gap);
+  width: 100%;
+}
+
+.summaryStep {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.summaryStep > .arrow {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: var(--demo-gap);
+}
+
+.summaryCell {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  box-sizing: border-box;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow-soft);
+  text-align: center;
+}
+
+.summaryCell.outcome {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, var(--demo-teal), rgba(255, 255, 255, 0.92) 50%, var(--demo-copper));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow:
+    -10px 0 14px -8px rgba(73, 215, 222, 0.7),
+    10px 0 14px -8px rgba(199, 126, 95, 0.7);
+}
+
+.summaryText {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.note {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--demo-teal);
+}
+
+.twoWay::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-bottom: 1px solid var(--demo-line);
+  border-left: 1px solid var(--demo-line);
+  transform: rotate(45deg);
+}
+
+.detail {
+  position: absolute;
+  top: 36%;
+  right: 6%;
+  bottom: 3%;
+  left: 6%;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity var(--demo-transition) ease,
+    transform var(--demo-transition) ease;
+}
+
+.chapter[data-phase="focused"] .detail {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: calc(var(--step-leave) * 0.45);
+}
+
+.detailSlots {
+  display: flex;
+  gap: 2.5rem;
+  height: 100%;
+}
+
+.detailSlot {
+  flex: 1 1 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--frame-radius);
+}
+
+/* The travelling light: ahead is subdued, current is bright and larger, passed stays bright at its own size. */
+
+.summaryCell,
+.operation,
+.detailColumn {
+  transition:
+    opacity var(--demo-lit) ease,
+    filter var(--demo-lit) ease,
+    transform var(--demo-lit) ease,
+    border-color var(--demo-lit) ease,
+    box-shadow var(--demo-lit) ease;
+}
+
+.summaryCell[data-light="ahead"],
+.operation[data-light="ahead"],
+.detailColumn[data-light="ahead"] {
+  opacity: 0.34;
+  filter: saturate(0.4);
+}
+
+.summaryCell[data-light="lit"],
+.operation[data-light="lit"],
+.detailColumn[data-light="lit"] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--frame-glow);
+}
+
+.operation[data-light="lit"] .operationVisual {
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--frame-glow-soft), 0 0 14px rgba(242, 242, 238, 0.14);
+}
+
+.summaryCell[data-light="current"] {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--frame-glow);
+  transform: scale(1.06);
+}
+
+/* Chapter with its own graphics. Overview: large diagrams with labels below. Focused: the explanations alone. */
+
+.chapter[data-visual] {
+  --op-gap: 2.9rem;
+  --op-full: 70cqh;
+  --op-label: 3.1rem;
+  --move: var(--demo-transition) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focused: the overview rises toward the chapter navigation and fades out; the explanations take its space. */
+.flow {
+  position: absolute;
+  top: 7cqh;
+  --op-full: calc((100cqh - 0.5rem) / var(--grow) - var(--op-label));
+  --op-label: 2.35rem;
+  --move: var(--demo-transition) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focused: the overview rises toward the chapter navigation and fades out; the explanations take its space. */
+.flow {
+  position: absolute;
+  top: calc((var(--op-full) / 2) * (var(--grow) - 1) + 4px);
+  left: 0;
+  width: 100%;
+  transform: none;
+  transition:
+    transform var(--move),
+    opacity calc(var(--demo-transition) * 0.6) ease calc(var(--demo-transition) * 0.25),
+    visibility 0s linear 0s;
+}
+
+.chapter[data-visual][data-feature] .flow {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chapter[data-visual][data-feature] .detail {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.overviewFeature {
+  position: absolute;
+  top: calc(var(--op-full) + 0.28rem);
+  right: 0;
+  z-index: 2;
+}
+
+.chapter[data-phase="focused"] .flow {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-9cqh);
+  transition:
+    transform var(--move),
+    opacity calc(var(--demo-transition) * 0.75) ease-in,
+    visibility 0s linear var(--demo-transition);
+}
+
+.operations {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: var(--op-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operation {
+  position: relative;
+  min-width: 0;
+  height: calc(var(--op-full) + var(--op-label));
+  container-type: inline-size;
+  transform-origin: 50% calc(var(--op-full) / 2);
+  transition:
+    opacity var(--demo-lit) ease,
+    filter var(--demo-lit) ease,
+    transform var(--demo-lit) ease;
+}
+
+.operation[data-light="current"] {
+  transform: scale(var(--grow));
+}
+
+.operationFrame {
+  position: relative;
+  width: 100%;
+  height: var(--op-full);
+}
+
+.operationVisual {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow-soft);
+  transition: border-color var(--demo-lit) ease, box-shadow var(--demo-lit) ease;
+}
+
+.operation[data-light="reached"] .operationVisual {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.operation[data-light="current"] .operationVisual {
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--frame-glow-soft), 0 0 14px rgba(242, 242, 238, 0.14);
+}
+
+.operation[data-outcome] .operationVisual {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, var(--demo-teal), rgba(255, 255, 255, 0.92) 50%, var(--demo-copper));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100cqw - 2px);
+  height: calc(var(--op-full) - 2px);
+  padding: 0.9rem 1rem;
+}
+
+.operationLabel {
+  position: absolute;
+  top: calc(var(--op-full) + 0.5rem);
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.operationHit {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--frame-radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.operationHit:focus-visible {
+  outline: 1px solid var(--demo-teal);
+  outline-offset: 3px;
+}
+
+.detailDot {
+  filter:
+    drop-shadow(0 0 4px #ffffff)
+    drop-shadow(0 0 8px rgba(73, 215, 222, 0.9))
+    drop-shadow(0 0 14px rgba(199, 126, 95, 0.6));
+}
+
+/* Focused explanations. A chapter's `layout` class places them; otherwise five equal columns. */
+
+/* Inset by the current explanation's growth (`--grow`), so the lit frame stays inside the content column. */
+.chapter[data-visual] .detail {
+  top: calc((var(--grow) - 1) * 50%);
+  right: calc((1 - 1 / var(--grow)) * 50%);
+  bottom: calc((var(--grow) - 1) * 50%);
+  left: calc((1 - 1 / var(--grow)) * 50%);
+  width: auto;
+  transform: translateY(8px);
+}
+
+/* One frame, already lit: it fills the column and does not grow past the left and right limits. */
+.chapter[data-visual] .detail[data-steady],
+.chapter[data-still][data-visual] .detail {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  transform: none;
+}
+
+.chapter[data-still]:not([data-loop]) .flow {
+  top: 0;
+  --op-full: calc(100cqh - var(--op-label));
+}
+
+.chapter[data-visual][data-phase="focused"] .detail {
+  transform: none;
+}
+
+/* A later page leaves the way the opening row does: it rises and fades, then the next page is there. */
+.chapter[data-phase="focused"] .detail[data-leave] {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12cqh);
+  transition-delay: 0s;
+  transition:
+    transform var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity var(--step-leave) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chapter[data-visual][data-phase="focused"] .detailColumns {
+  height: 100%;
+  min-height: 0;
+}
+
+.detailColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--frame-radius);
+  background: #000000;
+}
+
+.detailColumn[data-light="current"] {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--frame-glow);
+  transform: scale(var(--grow));
+}
+
+.detailColumn[data-steady] {
+  gap: 0;
+  padding: 0;
+  transform: none;
+}
+
+.detailColumn[data-steady] .detailHead {
+  display: none;
+}
+
+.detailHead,
+.detailHead p {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.detailHead {
+  align-items: center;
+}
+
+/* The explanation's title selects its operation, as the overview frames do. */
+.lock {
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-left: 0.15rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.detailPick {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color var(--demo-lit) ease;
+}
+
+.detailPick:hover,
+.detailPick[aria-current="step"] {
+  color: #ffffff;
+}
+
+.detailPick:focus-visible {
+  outline: 1px solid var(--demo-teal);
+  outline-offset: 3px;
+}
+
+/* Opens the operation's demonstration; sits at the end of its frame's title row. */
+.featureOpen {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin: -0.2rem 0 -0.2rem auto;
+  padding: 0.22rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: #000000;
+  font: inherit;
+  font-size: 0.54rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff;
+  cursor: pointer;
+  transition: border-color var(--demo-lit) ease, box-shadow var(--demo-lit) ease;
+}
+
+.featureOpen svg {
+  width: 0.5rem;
+  height: 0.5rem;
+  fill: currentColor;
+}
+
+.featureOpen:hover,
+.featureOpen:focus-visible,
+.featureClose:hover,
+.featureClose:focus-visible {
+  border-color: var(--demo-teal);
+  box-shadow: 0 0 10px rgba(73, 215, 222, 0.45);
+  outline: none;
+}
+
+.featureClose {
+  margin-left: auto;
+  padding: 0.22rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: #000000;
+  font: inherit;
+  font-size: 0.54rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* While a demonstration is open the explanations step back and it takes their place. */
+.detailColumns {
+  position: relative;
+  transition: opacity calc(var(--demo-transition) * 0.6) ease, visibility 0s linear 0s;
+}
+
+.detail[data-feature] .detailColumns {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity calc(var(--demo-transition) * 0.6) ease, visibility 0s linear calc(var(--demo-transition) * 0.6);
+}
+
+.feature {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+  animation: feature-in var(--demo-transition) ease both;
+}
+
+@keyframes feature-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.detailBody {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* The reading path between explanations, lit up to where the light has been. */
+.detailLinks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* A connector's ends; registered so they ease with the current item's growth. */
+@property --ax {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --ay {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --bx {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --by {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+/* `--t` is how far the light has crossed this connector; `--t-next` the one after it. */
+.detailLinks g {
+  --t: clamp(0, (var(--demo-progress, 0) * var(--n) - var(--i) - (1 - var(--travel))) / var(--travel), 1);
+  --t-next: clamp(0, (var(--demo-progress, 0) * var(--n) - var(--i) - 1 - (1 - var(--travel))) / var(--travel), 1);
+  transition:
+    --ax var(--demo-lit) ease,
+    --ay var(--demo-lit) ease,
+    --bx var(--demo-lit) ease,
+    --by var(--demo-lit) ease;
+}
+
+.detailLinks path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  transition: stroke var(--demo-lit) ease, d var(--demo-lit) ease;
+}
+
+.detailLinks g[data-lit] path {
+  stroke: rgba(255, 255, 255, 0.75);
+}
+
+.detailLinks g .linkTrail {
+  stroke: #ffffff;
+  stroke-width: 2px;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: calc(1 - var(--t));
+  filter: drop-shadow(0 0 3px rgba(73, 215, 222, 0.8));
+}
+
+.detailLinks .junction {
+  fill: #ffffff;
+  stroke: none;
+}
+
+.detailLinks .junction[data-end="start"] {
+  transform: translate(calc(var(--ax) * 1px), calc(var(--ay) * 1px));
+}
+
+.detailLinks .junction[data-end="end"] {
+  transform: translate(calc(var(--bx) * 1px), calc(var(--by) * 1px));
+}
+
+.detailLinks .detailDot {
+  fill: #ffffff;
+  stroke: none;
+  transform: translate(
+    calc((var(--ax) + (var(--bx) - var(--ax)) * var(--t)) * 1px),
+    calc((var(--ay) + (var(--by) - var(--ay)) * var(--t)) * 1px)
+  );
+  opacity: min(clamp(0, var(--t) * 40, 1), 1 - clamp(0, var(--t-next) * 40, 1));
+}
+
+/* Feedback under the sequence, in the copper of the Full Process Overview's feedback. Lit once the light reaches its start. */
+.chapter[data-loop] {
+  --op-full: 64cqh;
+}
+
+.loop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.loop svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.loop path {
+  fill: none;
+  stroke: rgba(199, 126, 95, 0.45);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 4;
+  transition: stroke var(--demo-lit) ease;
+}
+
+.loop marker path {
+  fill: none;
+  stroke-dasharray: none;
+}
+
+.loop[data-lit] path {
+  stroke: #c77e5f;
+}
+
+.loopLabel {
+  position: absolute;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid rgba(199, 126, 95, 0.55);
+  border-radius: 999px;
+  background: #000000;
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(231, 160, 132, 0.7);
+  transform: translate(-50%, -50%);
+  transition: color var(--demo-lit) ease, border-color var(--demo-lit) ease;
+}
+
+.loop[data-lit] .loopLabel {
+  border-color: #c77e5f;
+  color: #e7a084;
+}
+
+.demo:not([data-playing]) .chapter :global(.wf-phy-marks *) {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stageFrame[data-leave],
+  .stageFrame[data-arrive] {
+    transform: none;
+    opacity: 1;
+    transition: none;
+    animation: none;
+  }
+
+  .summaryButton,
+  .detail,
+  .flow,
+  .operation,
+  .operationFrame,
+  .operationLabel,
+  .full,
+  .summaryCell,
+  .detailColumn,
+  .detailLinks g,
+  .detailLinks path,
+  .detailColumns,
+  .featureOpen {
+    transition: none;
+  }
+
+  .feature {
+    animation: none;
+  }
+}
+

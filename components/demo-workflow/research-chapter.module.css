@@ -1,0 +1,750 @@
+/* Chapter 01 · Research + System Definition. Formal, Spatial, and Atmospheric keep the Physarum Logic tones. */
+
+:is(.groupName, .rating, .legendRow)[data-branch="formal"] {
+  --branch: #c77e5f;
+}
+
+:is(.groupName, .rating, .legendRow)[data-branch="spatial"] {
+  --branch: #f4f1ec;
+}
+
+:is(.groupName, .rating, .legendRow)[data-branch="atmospheric"] {
+  --branch: #49d7de;
+}
+
+.stack,
+.column,
+.precedent,
+.physarum {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.stack > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.column {
+  gap: 0.55rem;
+}
+
+/* Precedent */
+
+.photos,
+.graphs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.graphs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.photo {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.composed .photo {
+  width: 100%;
+  height: 5.4rem;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: cover;
+}
+
+.axon {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+/* Typology */
+
+.typologies {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.45rem;
+}
+
+.typology {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.typologyName {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.typology[data-typology="lobby"] .typologyName { color: #c77e5f; }
+.typology[data-typology="workspace"] .typologyName { color: #f4f1ec; }
+.typology[data-typology="gathering"] .typologyName { color: #49d7de; }
+
+.archetypes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.archetypes figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.archetypes .archetype {
+  height: auto;
+}
+
+.archetype {
+  aspect-ratio: 1;
+  padding: 0.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 5px;
+  background: #000000;
+}
+
+.archetypes figcaption {
+  margin-top: 0.2rem;
+  font-size: 0.44rem;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.typologies[data-named] {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  gap: 0.9rem;
+}
+
+.typologies[data-named] .typology {
+  flex: none;
+}
+
+.typologies[data-named] .archetype {
+  aspect-ratio: 4 / 3;
+}
+
+.typologies[data-named] figcaption {
+  font-size: 0.4rem;
+  letter-spacing: 0.03em;
+}
+
+.composed .typologies[data-named] {
+  min-height: 0;
+  gap: 0.2rem;
+  justify-content: space-between;
+}
+
+.composed .typologies[data-named] .typology {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.composed .typologies[data-named] .archetypes {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.composed .typologies[data-named] .archetypes figure {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.composed .typologies[data-named] .archetype {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.composed .typologies[data-named] figcaption {
+  margin-top: 0.08rem;
+  line-height: 1.05;
+}
+
+.extract {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.extractGroup {
+  min-width: 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.extractGroup[data-branch="formal"] { border-color: #c77e5f; }
+.extractGroup[data-branch="atmospheric"] { border-color: #49d7de; }
+
+.extractGroup p,
+.extractNote,
+.descriptor {
+  margin: 0 0 0.25rem;
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.extractGroup ul,
+.analysis ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.5rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.extractGroup li[data-specific] { color: #49d7de; }
+
+.extractNote { color: rgba(255, 255, 255, 0.48); }
+
+.meters {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  height: 100%;
+  min-height: 0;
+  align-content: center;
+}
+
+.meters section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.meters section > p {
+  margin: 0;
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.meters section > span {
+  margin-top: 0.12rem;
+  font-size: 0.36rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.meters ul {
+  margin: 0.28rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meters li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.08rem 0.35rem;
+  margin-top: 0.22rem;
+}
+
+.meters li span,
+.meters li em {
+  font-size: 0.4rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meters li span { color: rgba(255, 255, 255, 0.88); }
+
+.meters li[data-hot] em {
+  color: #ffffff;
+}
+
+.meters li i {
+  position: relative;
+  display: block;
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--meter) 0%,
+    var(--meter-mid) var(--share),
+    var(--meter-fade) calc(var(--share) + 8%),
+    var(--meter-rest) 100%
+  );
+  box-shadow: 0 0 6px var(--meter-glow);
+}
+
+.meters li b {
+  position: absolute;
+  top: 50%;
+  left: var(--share);
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--meter-thumb);
+  transform: translate(-50%, -50%);
+}
+
+.meterScale {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.22rem 0 0;
+  font-size: 0.32rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.meters strong {
+  align-self: center;
+  margin-top: 0.35rem;
+  padding: 0.16rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.38rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.meters strong[data-shown] {
+  opacity: 1;
+  transform: none;
+}
+
+.meterCursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 18px;
+  height: 22px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+  transition: transform 0.75s cubic-bezier(0.45, 0, 0.2, 1), opacity 0.35s ease;
+}
+
+.meterCursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.meterCursor path {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+.meterCursor[data-hidden="true"] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meters strong {
+    opacity: 1;
+    transform: none;
+  }
+
+  .meterCursor {
+    display: none;
+  }
+}
+
+.meters section[data-tone="copper"] {
+  color: #d4845e;
+  --meter: #e09a78;
+  --meter-mid: #c46b45;
+  --meter-fade: rgba(196, 107, 69, 0.22);
+  --meter-rest: rgba(196, 107, 69, 0.06);
+  --meter-glow: rgba(196, 107, 69, 0.55);
+  --meter-thumb: #e7b39a;
+}
+
+.meters section[data-tone="white"] {
+  color: rgba(255, 255, 255, 0.82);
+  --meter: rgba(255, 255, 255, 0.95);
+  --meter-mid: rgba(255, 255, 255, 0.72);
+  --meter-fade: rgba(255, 255, 255, 0.16);
+  --meter-rest: rgba(255, 255, 255, 0.05);
+  --meter-glow: rgba(255, 255, 255, 0.35);
+  --meter-thumb: #ffffff;
+}
+
+.meters section[data-tone="teal"] {
+  color: #49d7de;
+  --meter: #7edfe3;
+  --meter-mid: #49d7de;
+  --meter-fade: rgba(73, 215, 222, 0.22);
+  --meter-rest: rgba(73, 215, 222, 0.06);
+  --meter-glow: rgba(73, 215, 222, 0.55);
+  --meter-thumb: #9fe7ea;
+}
+
+.analysis {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.7rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.analysis > ol {
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.analysis > ol button {
+  width: 100%;
+  padding: 0.18rem 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.48rem;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.analysis > ol button[data-typology="lobby"] { color: #c77e5f; }
+.analysis > ol button[data-typology="workspace"] { color: #f4f1ec; }
+.analysis > ol button[data-typology="gathering"] { color: #49d7de; }
+
+.analysis > ol button[aria-current="true"] { color: #ffffff; }
+
+.analysisBody { min-height: 0; overflow: auto; }
+
+.analysisName {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.analysisName[data-typology="lobby"] { color: #c77e5f; }
+.analysisName[data-typology="workspace"] { color: #f4f1ec; }
+.analysisName[data-typology="gathering"] { color: #49d7de; }
+
+.analysisGroups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.analysisGroups section { min-width: 0; }
+
+.analysisGroups h3 {
+  margin: 0;
+  font-size: 0.52rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.analysisGroups section[data-branch="formal"] h3 { color: #c77e5f; }
+.analysisGroups section[data-branch="spatial"] h3 { color: rgba(255, 255, 255, 0.82); }
+.analysisGroups section[data-branch="atmospheric"] h3 { color: #49d7de; }
+
+.descriptor { color: #ffffff; }
+
+.analysisGroups li { margin-bottom: 0.35rem; }
+
+.analysisGroups li span,
+.analysisGroups li i {
+  display: block;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.analysisGroups li b {
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.analysisGroups li p {
+  margin: 0.1rem 0 0;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.composed .organismDetail {
+  flex: 1 1 auto;
+  min-height: 0;
+  object-fit: contain;
+}
+
+/* Criteria matrix */
+
+.matrix {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.groupName {
+  font-family: var(--font-site-text);
+  font-size: 5.8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  fill: var(--branch);
+}
+
+.rowName {
+  font-family: var(--font-site-text);
+  font-size: 5.4px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  fill: rgba(255, 255, 255, 0.66);
+}
+
+.rating {
+  fill: var(--branch);
+}
+
+.rating[data-empty] {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 0.6;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.legend p {
+  margin: 0;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.legendRow > span:first-child {
+  margin-right: 0.45rem;
+  color: var(--branch);
+}
+
+.levels {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.levels span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.levels svg {
+  width: 0.7rem;
+  height: 0.7rem;
+  fill: rgba(255, 255, 255, 0.8);
+}
+
+/* Generative systems */
+
+.systems {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.system {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: #000000;
+}
+
+.system[data-selected] {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, #49d7de, rgba(255, 255, 255, 0.92) 50%, #c77e5f);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.systemPlate {
+  min-height: 0;
+}
+
+.system figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.systemName {
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.system[data-selected] .systemName {
+  color: #ffffff;
+}
+
+.traits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.systems[data-traits] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Physarum */
+
+.organism,
+.organismDetail {
+  flex: 1 1 auto;
+  object-fit: cover;
+  border-radius: 10px;
+  filter: grayscale(1) brightness(1.2) contrast(1.1);
+}
+
+.organismDetail {
+  flex: 1 1 auto;
+  max-height: 48%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+.physarum {
+  gap: 0.6rem;
+}
+
+.behavior {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.behavior li {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.behavior li span {
+  font-family: var(--font-site-display);
+  color: #49d7de;
+}
+
+.question {
+  margin: auto 0 0;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
+  line-height: 1.45;
+  text-transform: uppercase;
+  color: #e7a084;
+}
+
+/* Focused composition. Precedent, systems, and Physarum are full height. Archetypes sit above the criteria branches. */
+.composed {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.7fr) minmax(0, 0.9fr) minmax(0, 0.95fr);
+  grid-template-rows: minmax(0, 1.42fr) minmax(0, 0.78fr);
+  column-gap: var(--op-gap);
+  row-gap: 0.7rem;
+}
+
+.composed > section:nth-of-type(1) { grid-area: 1 / 1 / 3 / 2; }
+.composed > section:nth-of-type(2) { grid-area: 1 / 2; }
+.composed > section:nth-of-type(3) { grid-area: 2 / 2; }
+.composed > section:nth-of-type(4) { grid-area: 1 / 3 / 3 / 4; }
+.composed > section:nth-of-type(5) { grid-area: 1 / 4 / 3 / 5; }
+
+.branches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.branch {
+  min-width: 0;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.branch[data-branch="formal"] { border-color: #c77e5f; }
+.branch[data-branch="atmospheric"] { border-color: #49d7de; }
+
+.branch p {
+  margin: 0 0 0.3rem;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.branch[data-branch="formal"] p { color: #c77e5f; }
+.branch[data-branch="spatial"] p { color: rgba(255, 255, 255, 0.82); }
+.branch[data-branch="atmospheric"] p { color: #49d7de; }
+
+.branch ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.58rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.74);
+}

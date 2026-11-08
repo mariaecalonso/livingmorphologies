@@ -447,8 +447,8 @@ function groundBounds(camera: Camera, aspect: number, zoom: number) {
 function gridLines(bounds: { x0: number; x1: number; z0: number; z1: number }) {
   const data: number[] = [];
   const y = -MODULE_HALF;
-  const major: [number, number, number, number] = [0.78, 0.78, 0.74, 0.62];
-  const minor: [number, number, number, number] = [0.7, 0.7, 0.66, 0.28];
+  const major: [number, number, number, number] = [0.78, 0.78, 0.74, 0.322];
+  const minor: [number, number, number, number] = [0.7, 0.7, 0.66, 0.14];
   const pitch = CATALOGUE_PITCH;
   const x0 = Math.max(-360, bounds.x0);
   const x1 = Math.min(360, bounds.x1);
@@ -1125,7 +1125,9 @@ export function CatalogueField({
         const itemIndex = Number(node.dataset.index);
         const [ox, , oz] = catalogueOrigin(itemIndex, CATALOGUE_PITCH, layoutCountRef.current);
         const point = project(ox, -MODULE_HALF, oz, camera, width, height);
-        node.style.transform = `translate(${point.x}px, ${point.y}px) translate(-50%, -130%)`;
+        const labelX = frame.layoutW / Math.max(1, width);
+        const labelY = frame.layoutH / Math.max(1, height);
+        node.style.transform = `translate(${point.x * labelX}px, ${point.y * labelY}px) translate(-50%, -130%)`;
         const selectedNow = shown[itemIndex]?.id === selected;
         const emphasis = selectedNow ? 1 : readinessDim(shown[itemIndex]?.status, "label");
         const presenceFade = !pose || selectedNow ? 1 : 1 - presence * 0.9;
@@ -1263,10 +1265,10 @@ export function CatalogueField({
       dragging = false;
       if (moved || event.button !== 0) return;
       const rect = parent.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
       const width = parent.clientWidth;
       const height = parent.clientHeight;
+      const x = (event.clientX - rect.left) * (width / Math.max(1, rect.width));
+      const y = (event.clientY - rect.top) * (height / Math.max(1, rect.height));
       let bestId: string | null = null;
       let bestDistance = Infinity;
       const pose = poseRef.current;

@@ -1,0 +1,404 @@
+/* Chapter 04 · Design Context. Workspace copper, gathering teal, lobby white, as in the Client workflow. */
+
+.stack,
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.stack {
+  justify-content: center;
+}
+
+.column {
+  gap: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Client identity */
+
+.studio {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.studio figure,
+.disciplines figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 0;
+  margin: 0;
+}
+
+.studio figcaption,
+.disciplines figcaption {
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.studioPlate {
+  flex: 1 1 auto;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.disciplines {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.disciplines figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.3rem;
+}
+
+.disciplines figcaption {
+  grid-column: 1 / -1;
+}
+
+.details {
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  min-height: 0;
+}
+
+.traits {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.22rem 0.8rem;
+  margin: 0;
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.traits dt {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.traits dd {
+  margin: 0;
+  color: #ffffff;
+}
+
+/* Program and occupancy */
+
+.chart {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.day,
+.evening,
+.range {
+  stroke: none;
+}
+
+.day {
+  fill: rgba(199, 126, 95, 0.75);
+}
+
+.range {
+  fill: rgba(255, 255, 255, 0.22);
+}
+
+.evening {
+  fill: rgba(73, 215, 222, 0.75);
+}
+
+.axis,
+.core {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+}
+
+.core {
+  stroke: #ffffff;
+  stroke-width: 1.4;
+  stroke-dasharray: 2 2;
+}
+
+.value,
+.label,
+.water {
+  font-family: var(--font-site-text);
+  font-size: 7px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  fill: rgba(255, 255, 255, 0.64);
+}
+
+.value {
+  font-family: var(--font-site-display);
+  font-size: 9px;
+  fill: #ffffff;
+}
+
+.water {
+  fill: #49d7de;
+}
+
+.activities {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activities li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.54rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.activities i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #f4f1ec;
+}
+
+.activities li[data-tone="copper"] i {
+  background: #c77e5f;
+}
+
+.activities li[data-tone="teal"] i {
+  background: #49d7de;
+}
+
+/* Site */
+
+.plan {
+  min-height: 0;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.stack > .plan {
+  flex: 1 1 auto;
+}
+
+.siteViews {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.4rem;
+  min-height: 0;
+}
+
+.siteViews img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.aerial {
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  filter: grayscale(1) brightness(0.95) contrast(1.1);
+}
+
+/* Spatial strategy */
+
+.floor {
+  stroke: none;
+}
+
+.floor[data-program="work"] {
+  fill: rgba(199, 126, 95, 0.8);
+}
+
+.floor[data-program="gathering"] {
+  fill: rgba(73, 215, 222, 0.75);
+}
+
+.floor[data-program="lobby"] {
+  fill: rgba(244, 241, 236, 0.85);
+}
+
+.shares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shares li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.shares b {
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.shares i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 2px;
+}
+
+.shares li[data-program="work"] i {
+  background: rgba(199, 126, 95, 0.8);
+}
+
+.shares li[data-program="gathering"] i {
+  background: rgba(73, 215, 222, 0.75);
+}
+
+.shares li[data-program="lobby"] i {
+  background: rgba(244, 241, 236, 0.85);
+}
+
+.programModules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.programModules p {
+  margin: 0 0 0.25rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #49d7de;
+}
+
+.programModules ul {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.programModules li {
+  font-size: 0.44rem;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Design requirements: one figure per row, value then what it governs. */
+
+.requirements {
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stack > .requirements {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.requirements li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.requirements li:last-child {
+  border-bottom: 0;
+}
+
+.requirements b {
+  font-family: var(--font-site-display);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #49d7de;
+}
+
+.requirements span {
+  font-size: 0.44rem;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.requirements[data-detail] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.requirements[data-detail] b {
+  font-size: 0.86rem;
+}
+
+.requirements[data-detail] span {
+  font-size: 0.5rem;
+}
+
+/* Focused composition. The site is the tall center. Strategy sits above the brief requirements. */
+.composed {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.25fr) minmax(0, 0.88fr);
+  grid-template-rows: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  column-gap: var(--op-gap);
+  row-gap: 0.7rem;
+}
+
+.composed > section:nth-of-type(1) { grid-area: 1 / 1; }
+.composed > section:nth-of-type(2) { grid-area: 2 / 1; }
+.composed > section:nth-of-type(3) { grid-area: 1 / 2 / 3 / 3; }
+.composed > section:nth-of-type(4) { grid-area: 1 / 3; }
+.composed > section:nth-of-type(5) { grid-area: 2 / 3; }
+
+.composed > section {
+  min-height: 0;
+}
+
+.composed .chart {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}

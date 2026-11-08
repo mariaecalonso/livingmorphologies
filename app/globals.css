@@ -1639,6 +1639,13 @@ input[type="range"] {
 }
 
 .site-shell {
+  /* Important text and frames stop here. Supporting graphics may bleed past it. */
+  --home-content-right: 60px;
+  --home-rail-left: clamp(0.55rem, 0.9vw, 1.15rem);
+  --home-rail-label: 0.62rem;
+  --home-rail-node: 0.34rem;
+  /* Rail, the open name, and a gap, so a hovered title clears the frames. */
+  --home-rail-clearance: calc(var(--home-rail-left) + 0.28rem + 0.5px + (var(--home-rail-node) / 2) + 0.65rem + (7.2 * var(--home-rail-label)) + 0.85rem);
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
@@ -1662,9 +1669,9 @@ input[type="range"] {
   --home-hero-columns: minmax(min(42vw, 72rem), 34%) minmax(0, 1fr);
   --home-hero-gap: clamp(2.5rem, 6vw, 9rem);
   --home-pad-top: 1.35rem;
-  --home-pad-right: clamp(2.5rem, 5vw, 7rem);
+  --home-pad-right: var(--home-content-right);
   --home-pad-bottom: 1.35rem;
-  --home-pad-left: clamp(9rem, 6vw, 14rem);
+  --home-pad-left: var(--home-rail-clearance);
   --home-field-top: -10%;
   --home-field-right: -1%;
   --home-field-bottom: -2%;
@@ -1677,7 +1684,7 @@ input[type="range"] {
   --home-rail-node: calc(var(--home-rail-label) * 0.55);
   --home-overview-title: calc(var(--home-title-size) * 0.595);
   --home-overview-copy: min(36vw, 48rem);
-  --home-overview-pad-right: clamp(3rem, 8vw, 10rem);
+  --home-overview-pad-right: var(--home-content-right);
 }
 
 body:has(.site-shell[data-site-display="classroom"]) {
@@ -1749,10 +1756,42 @@ body:has(.site-shell[data-presentation-edit="on"]) {
   min-height: var(--home-view, var(--classroom-frame));
 }
 
+/* Overall Workflow stays in the page, off the visible interface. */
+#workflow[hidden] {
+  display: none !important;
+}
+
 /* The workflow row uses the frame beside the rail. Window vw must not shorten it. */
 .site-shell[data-site-display="classroom"] #workflow.home-overview {
-  padding-left: calc(var(--classroom-design) * 0.075);
-  padding-right: calc(var(--classroom-design) * 0.018);
+  padding-left: var(--home-pad-left);
+  padding-right: var(--home-content-right);
+}
+
+/* Demo Workflow uses the frame. The title row is 44px and the foot is 16px. Titles and frames use the client column; the stage itself runs to the frame edge. */
+#demo-workflow.home-overview {
+  padding: 0 0 16px;
+}
+
+#demo-workflow .home-overview-title {
+  font-size: 1.05rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+
+/* Unframed graphic inside the demo column. It reaches the frame edges and can pass under the left rail. */
+#demo-workflow [data-bleed] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--home-pad-left) * -1);
+  width: calc(100% + var(--home-pad-left) + var(--home-overview-pad-right));
+  max-width: none;
+}
+
+/* Chapter opening field. It covers the presentation, including the title row and the foot, past the content column. */
+#demo-workflow [data-bleed="steps"] {
+  top: -44px;
+  bottom: -16px;
 }
 
 .site-shell[data-site-display="classroom"] .home-team {
@@ -1777,6 +1816,11 @@ body:has(.site-shell[data-presentation-edit="on"]) {
 
 .site-shell[data-site-display="classroom"] .home-panel-kicker {
   font-size: calc(var(--home-title-size) * 0.274);
+}
+
+.site-shell[data-site-display="classroom"] {
+  --home-rail-label: calc(var(--classroom-frame) * 0.05 * 0.236);
+  --home-rail-node: calc(var(--home-rail-label) * 0.55);
 }
 
 .site-shell[data-site-display="classroom"] .home-rail {
@@ -1974,6 +2018,7 @@ body:has(.site-display-control) .site-nav {
 }
 
 .home-page {
+  --seam: 0;
   --font-site-display: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
   --font-site-text: "acumin-variable", sans-serif;
   --home-title-size: clamp(2.4rem, 1.1vw + 1.7rem, 4.6rem);
@@ -1984,9 +2029,9 @@ body:has(.site-display-control) .site-nav {
   --home-hero-columns: minmax(16rem, 34rem) minmax(10rem, 1fr);
   --home-hero-gap: 0rem;
   --home-pad-top: clamp(4.5rem, 10vh, 7rem);
-  --home-pad-right: clamp(1.5rem, 4vw, 5rem);
+  --home-pad-right: var(--home-content-right, 60px);
   --home-pad-bottom: clamp(3rem, 8vh, 5rem);
-  --home-pad-left: clamp(9.6rem, 12vw, 13rem);
+  --home-pad-left: var(--home-rail-clearance);
   --home-field-top: -14%;
   --home-field-right: -10%;
   --home-field-bottom: -6%;
@@ -1999,12 +2044,12 @@ body:has(.site-display-control) .site-nav {
   --home-rail-node: 0.34rem;
   --home-overview-title: clamp(1.5rem, 0.5vw + 1.15rem, 2.4rem);
   --home-overview-copy: 34rem;
-  --home-overview-pad-right: clamp(1.5rem, 6vw, 7rem);
+  --home-overview-pad-right: var(--home-content-right, 60px);
   --home-section-heading-top: clamp(1.25rem, 3vh, 2.35rem);
   --hero-fade: 1;
   --rail-index: 0;
   --rail-travel: 0;
-  --rail-step: 14%;
+  --rail-step: min(14%, calc(96% / (var(--rail-span, 5) + 1)));
   --home-rail-start: calc((100% - var(--rail-span, 5) * var(--rail-step)) / 2);
   position: relative;
   background: #000000;
@@ -2012,12 +2057,18 @@ body:has(.site-display-control) .site-nav {
 }
 
 .home-rail {
+  --rail-span: 7;
+  --rail-index: 0;
+  --rail-travel: 0;
+  --rail-step: min(14%, calc(96% / (var(--rail-span) + 1)));
+  --home-rail-start: calc((100% - var(--rail-span) * var(--rail-step)) / 2);
+  --home-rail-hit: calc(0.28rem + 0.5px + (var(--home-rail-node) / 2) + 0.45rem);
   position: fixed;
-  z-index: 20;
+  z-index: 30;
   top: 0;
   bottom: 0;
   left: var(--home-rail-left);
-  width: var(--home-rail-width);
+  width: var(--home-rail-hit);
   height: 100dvh;
 }
 
@@ -2025,49 +2076,59 @@ body:has(.site-display-control) .site-nav {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0.28rem;
-  width: 1px;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 94%, transparent 100%);
+  left: calc(0.28rem + 0.5px);
+  width: 2px;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 7%, #000 93%, transparent 100%);
 }
 
 .home-rail-line {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .home-rail-energy {
   position: absolute;
   left: 0;
-  width: 1px;
+  width: 100%;
   height: var(--rail-step);
   top: calc(var(--home-rail-start) + var(--rail-travel) * var(--rail-step) - (var(--rail-step) / 2));
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(15, 115, 119, 0.15) 18%,
-    #0f7377 42%,
-    rgba(255, 255, 255, 0.9) 56%,
-    #c77e5f 78%,
+    rgba(15, 115, 119, 0.35) 10%,
+    #0f7377 34%,
+    #49d7de 48%,
+    rgba(255, 255, 255, 0.72) 56%,
+    #c77e5f 74%,
+    rgba(199, 126, 95, 0.4) 90%,
     transparent
   );
-  opacity: 0.8;
+  box-shadow:
+    0 0 8px rgba(15, 115, 119, 0.95),
+    0 0 16px rgba(73, 215, 222, 0.55),
+    0 0 16px rgba(199, 126, 95, 0.75);
+  opacity: 1;
+  transition: top 0.45s ease;
 }
 
 .home-rail-indicator {
   position: absolute;
   top: calc(var(--home-rail-start) + var(--rail-index) * var(--rail-step));
-  left: 0.28rem;
+  left: calc(0.28rem + 0.5px);
   width: 0.38rem;
   height: 0.38rem;
   border-radius: 50%;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.82);
   box-shadow:
-    0 0 0 1px rgba(15, 115, 119, 0.9),
-    0 0 10px rgba(15, 115, 119, 0.7),
-    0 0 14px rgba(199, 126, 95, 0.35);
-  transform: translate(-40%, -50%);
+    0 0 0 1px #0f7377,
+    0 0 8px #0f7377,
+    0 0 16px rgba(73, 215, 222, 0.85),
+    0 0 18px rgba(199, 126, 95, 0.8);
+  transform: translate(-50%, -50%);
+  transition: top 0.45s ease;
 }
 
 .home-rail-link {
@@ -2077,17 +2138,41 @@ body:has(.site-display-control) .site-nav {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  width: var(--home-rail-hit);
   font-family: var(--font-site-text);
   font-size: var(--home-rail-label);
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: rgba(255, 255, 255, 0.32);
   transform: translateY(-50%);
+  padding-left: calc(0.28rem + 0.5px + (var(--home-rail-node) / 2) + 0.65rem);
+}
+
+.home-rail:hover .home-rail-link,
+.home-rail:has(:focus-visible) .home-rail-link {
+  width: max-content;
+}
+
+.home-rail-text {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+.home-rail:hover .home-rail-text,
+.home-rail:has(:focus-visible) .home-rail-text {
+  opacity: 1;
 }
 
 .home-rail-link.is-current {
   color: rgba(255, 255, 255, 0.82);
+}
+
+.home-rail-link:hover,
+.home-rail-link:focus-visible {
+  color: #ffffff;
 }
 
 .home-rail-link.is-current .home-rail-node {
@@ -2096,20 +2181,53 @@ body:has(.site-display-control) .site-nav {
 }
 
 .home-rail-node {
+  position: absolute;
+  top: 50%;
+  left: calc(0.28rem + 0.5px);
   width: var(--home-rail-node);
   height: var(--home-rail-node);
-  flex: 0 0 auto;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 50%;
-  background: #000000;
+  background: rgba(255, 255, 255, 0.72);
+  transform: translate(-50%, -50%);
 }
 
 .home-rail-lab {
   color: rgba(255, 255, 255, 0.62);
 }
 
-.home-rail-lab:hover {
-  color: #ffffff;
+.home-rail-link:hover .home-rail-node,
+.home-rail-link:focus-visible .home-rail-node,
+.home-rail-lab:hover .home-rail-node {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.home-rail[data-placed="off"] .home-rail-indicator,
+.home-rail[data-placed="off"] .home-rail-energy {
+  opacity: 0;
+}
+
+.home-hero,
+.home-overview {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / calc(1 - var(--seam))) 0%,
+    #000 calc(var(--seam) * 12%),
+    #000 calc(100% - var(--seam) * 12%),
+    rgb(0 0 0 / calc(1 - var(--seam))) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / calc(1 - var(--seam))) 0%,
+    #000 calc(var(--seam) * 12%),
+    #000 calc(100% - var(--seam) * 12%),
+    rgb(0 0 0 / calc(1 - var(--seam))) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
 .home-hero {
@@ -2128,18 +2246,10 @@ body:has(.site-display-control) .site-nav {
   overflow: hidden;
 }
 
-.home-hero-field {
+.home-hero-live {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: auto;
-  width: auto;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  object-fit: cover;
-  object-position: right center;
+  inset: 0;
+  overflow: hidden;
   opacity: var(--hero-fade);
   pointer-events: none;
   -webkit-mask-image: linear-gradient(
@@ -2166,6 +2276,23 @@ body:has(.site-display-control) .site-nav {
   mask-size: 100% 100%;
 }
 
+.home-hero-field {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: auto;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  object-position: right center;
+  pointer-events: none;
+  transform-origin: center center;
+  animation: hero-zoom 22s ease-in-out infinite alternate, hero-bright 5.5s ease-in-out infinite alternate;
+}
+
 .home-hero-field-classroom {
   display: none;
 }
@@ -2176,6 +2303,34 @@ body:has(.site-display-control) .site-nav {
 
 .site-shell[data-site-display="classroom"] .home-hero-field-classroom {
   display: block;
+}
+
+@keyframes hero-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes hero-bright {
+  from {
+    filter: brightness(0.42);
+  }
+  to {
+    filter: brightness(1.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-field {
+    animation: none;
+  }
+
+  .home-hero-field {
+    filter: none;
+  }
 }
 
 .home-hero-copy {
@@ -2467,8 +2622,8 @@ body:has(.site-display-control) .site-nav {
 @media (min-width: 1800px) {
   .home-page {
     --home-hero-columns: minmax(18rem, 32vw) minmax(16rem, 1fr);
-    --home-pad-right: 6vw;
-    --home-overview-pad-right: 8vw;
+    --home-pad-right: var(--home-content-right, 60px);
+    --home-overview-pad-right: var(--home-content-right, 60px);
   }
 }
 

@@ -278,7 +278,7 @@ export function WorkflowBands() {
       </section>
       <section className="wf-rel-source is-child is-rule" data-tone="white" style={{ left: "76.1%", top: "19.4%", width: "7.6%", height: "4.6%" }}>
         <span className="wf-rel-title">Waterfront</span>
-        <p className="wf-rel-anno">West edge on the coastline.</p>
+        <p className="wf-rel-anno">Bay to the east.</p>
       </section>
       <section className="wf-rel-source is-op is-assembly" data-tone="white" style={{ left: "87.9%", top: "5.3%", width: "9.1%", height: "6.6%" }}>
         <span className="wf-rel-title">Assembly Refinement</span>
@@ -299,7 +299,7 @@ export function WorkflowBands() {
           <span>Spatial + Atmospheric</span><span>3</span>
           <span className="is-wide">Formal + Spatial + Atmospheric</span><span>6</span>
           <span className="is-total">24 runs per archetype</span>
-        </div>
+              </div>
       </section>
       <section className="wf-rel-source is-child is-step" data-tone="teal" style={{ left: "51.25%", top: "25.2%", width: "9.6%", height: "5.4%" }}>
         <span className="wf-rel-index">01</span>

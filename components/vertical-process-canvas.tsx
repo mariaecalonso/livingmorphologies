@@ -135,9 +135,12 @@ async function readMesh(url: string, signal: AbortSignal) {
 export function ProcessCanvas({
   initial = null,
   resolved = null,
+  embedded = false,
 }: {
   initial?: NaturalContinuationSet | null;
   resolved?: ResolvedProcessSource | null;
+  /** Presentation embed. The canvas stays on the page and does not open the lab. */
+  embedded?: boolean;
 }) {
   const [archetypeId, setArchetypeId] = useState(initial?.archetypeId ?? resolved?.selection.archetypeId ?? CARVED_MASS_SOURCES[0].archetypeId);
   const [sequence, setSequence] = useState<Sequence>(IDLE_SEQUENCE);
@@ -548,6 +551,8 @@ export function ProcessCanvas({
                   frames={sampleFrames}
                   playIteration={playIteration}
                   onSeek={seek}
+                  fit={embedded}
+                  columns={embedded ? 0 : 4}
                 />
                 <aside className="process-sample-legend">
                   <ul>
@@ -788,7 +793,7 @@ export function ProcessCanvas({
                 </figcaption>
               </figure>
             </div>
-            <Link href={paretoHref} className="vertical-process-catalogue process-catalogue-open">Open catalogue</Link>
+            {embedded ? null : <Link href={paretoHref} className="vertical-process-catalogue process-catalogue-open">Open catalogue</Link>}
             <TechnicalDetails>
               <p>{archetypeName}. {selectedGroup ? `${selectedGroup.focus}. ` : extendedId ? "Extended continuation. " : ""}Readiness {verdictLabel(catalogueVerdict)}. {choices.length} stored continuations, one selected.</p>
             </TechnicalDetails>
@@ -877,10 +882,12 @@ export function ProcessCanvas({
               </dl>
               <p>Selected module, then Skill 3 final, then Skill 4 input.</p>
             </TechnicalDetails>
-            <div className="process-handoff-links">
-              <Link href={finalHref} className="vertical-process-catalogue process-catalogue-open">View finals</Link>
-              <Link href={skill4Href} className="vertical-process-catalogue process-skill4">Skill 4</Link>
-            </div>
+            {embedded ? null : (
+              <div className="process-handoff-links">
+                <Link href={finalHref} className="vertical-process-catalogue process-catalogue-open">View finals</Link>
+                <Link href={skill4Href} className="vertical-process-catalogue process-skill4">Skill 4</Link>
+              </div>
+            )}
           </section>
         </div>
       </div>

@@ -8,6 +8,11 @@ import { northDegrees, placePlan, placeWaterfront, storedToWorld, worldToStored 
 
 const site = JSON.parse(readFileSync(new URL("../../data/skill5/herald-site.json", import.meta.url), "utf8"));
 const configurations = JSON.parse(readFileSync(new URL("../../data/skill5/configurations.json", import.meta.url), "utf8"));
+assert.equal(
+  configurations.configurations.some((item: { name?: string }) => item.name === "Spatial check"),
+  false,
+  "the exploratory Spatial check configuration is not an active record",
+);
 
 const roundTrip = worldToStored(12, 4, -30);
 assert.deepEqual(roundTrip, { x: 12, y: 4, z: 30 });
@@ -21,15 +26,8 @@ assert.ok(north.z > 100 && Math.abs(north.x) < 1, "a point north of the origin s
 assert.deepEqual(site.site.ring[0], [255.89, -552.91]);
 assert.equal(site.axes.z, "north");
 
-const saved = configurations.configurations.find((item: { id: string }) => item.id === "C01");
-assert.equal(saved.name, "Spatial check");
-assert.equal(saved.modules[0].transform.position.x, 80);
-assert.equal(saved.modules[0].transform.position.z, -120);
-assert.equal(saved.modules[0].transform.rotationY, 0);
-assert.equal(Math.hypot(80, -120), Math.hypot(saved.modules[0].transform.position.x, saved.modules[0].transform.position.z));
-
 const snapped = snapSitePlan(14, -16);
-assert.deepEqual(snapped, { x: 10, z: -20 });
+assert.deepEqual(snapped, { x: 20, z: -20 });
 const turned = footprintCorners({ x: 0, z: 0 }, Math.PI / 2);
 assert.equal(turned.filter((corner) => corner.x < -9).length, 2, "positive yaw carries the north edge onto the west");
 

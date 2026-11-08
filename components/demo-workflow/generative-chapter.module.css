@@ -1,0 +1,1014 @@
+/* Formal, Spatial, and Atmospheric keep the tones of the Physarum Logic translation. */
+:is(.meterGroup, .markRow)[data-branch="formal"] {
+  --branch: #c77e5f;
+}
+
+:is(.meterGroup, .markRow)[data-branch="spatial"] {
+  --branch: #f4f1ec;
+}
+
+:is(.meterGroup, .markRow)[data-branch="atmospheric"] {
+  --branch: #49d7de;
+}
+
+.kicker,
+.groupName {
+  margin: 0;
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.groupName {
+  color: var(--branch);
+}
+
+.caption {
+  margin: 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.caption b {
+  font-weight: 400;
+  color: #49d7de;
+}
+
+.unavailable {
+  margin: auto;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.plate {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: #000000;
+}
+
+.plate.chosen {
+  border: 1.5px solid transparent;
+  background-image:
+    linear-gradient(#000000, #000000),
+    linear-gradient(90deg, #49d7de, rgba(255, 255, 255, 0.92) 50%, #c77e5f);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow:
+    -8px 0 12px -6px rgba(73, 215, 222, 0.75),
+    8px 0 12px -6px rgba(199, 126, 95, 0.75);
+}
+
+/* Shared layouts */
+
+.stack,
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.gif {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+/* Ratings */
+
+.meters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.meterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: 6.2rem minmax(0, 1fr) 3rem;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.meter span:last-child {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.meter i {
+  position: relative;
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.meter i::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--share);
+  border-radius: 2px;
+  background: var(--branch);
+  box-shadow: 0 0 6px var(--branch);
+}
+
+.meters:not([data-variant="full"]) .meter {
+  display: block;
+}
+
+.meters[data-variant="brief"] .meterGroup {
+  gap: 0.28rem;
+}
+
+.input {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  height: 100%;
+}
+
+/* The Physarum reference in white: same morphology, without the photograph's yellow. */
+.mono {
+  filter: grayscale(1) brightness(1.3) contrast(1.15);
+}
+
+.colony {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.behavior {
+  margin: 0.2rem 0 0;
+  font-size: 0.6rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* Rule translation */
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rules p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.rules[data-inline] {
+  flex-direction: row;
+  gap: 2rem;
+}
+
+.rules[data-inline] p {
+  justify-content: flex-start;
+}
+
+.rulesBay {
+  gap: 0.6rem;
+}
+
+.rulesBay .markRows {
+  flex: 0 0 auto;
+}
+
+.rules i {
+  position: relative;
+  width: 1.6rem;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.rules i::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.6);
+  transform: rotate(45deg);
+}
+
+.markRows {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.3rem;
+  min-height: 0;
+}
+
+.markRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--branch);
+}
+
+.markSet {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.4rem;
+}
+
+.markRow :global(svg) {
+  height: 2.5rem;
+}
+
+/* Side by side, each glyph column is at least as wide as its longest caption word, so captions never meet. */
+.markRows[data-across] .markSet {
+  grid-auto-columns: minmax(min-content, 1fr);
+  gap: 0.45rem;
+}
+
+.markRows[data-across] .markRow :global(svg) {
+  width: 2.6rem;
+  height: 1.9rem;
+  margin: 0 auto;
+}
+
+.markRows[data-across] .groupName {
+  line-height: 1.35;
+}
+
+.column .markRows {
+  justify-content: flex-start;
+  gap: 0.25rem;
+}
+
+.column .markRow {
+  gap: 0.1rem;
+}
+
+.column .markRow :global(svg) {
+  height: 1.55rem;
+}
+
+.column .markRow figcaption {
+  line-height: 1.2;
+}
+
+.markRow figcaption {
+  margin-top: 0.15rem;
+  font-size: 0.5rem;
+}
+
+/* Growth */
+
+.growth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  height: 100%;
+  margin: 0;
+}
+
+.growth > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.growthBay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.6rem;
+  gap: 1.6rem;
+  align-items: start;
+}
+
+.growthBay > .column {
+  gap: 0.4rem;
+}
+
+.runs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+/* One run: replay stills, a dashed gap for the remaining iterations, then the saved plate. */
+.sequence {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) 1.4rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: start;
+}
+
+.sequence[data-still="replay"] {
+  grid-template-columns: minmax(0, 1fr) 1.4rem minmax(0, 1fr);
+  max-width: 50%;
+}
+
+.sequence figure {
+  margin: 0;
+}
+
+.sequence figcaption {
+  margin-top: 0.3rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.sequence[data-still="pending"] canvas {
+  visibility: hidden;
+}
+
+.sequenceGap {
+  align-self: center;
+  margin-bottom: 0.9rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.5);
+}
+
+.savedPlate {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* Optimization */
+
+.scatter {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.axis {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+}
+
+.axisFormal,
+.axisSpatial {
+  font-family: var(--font-site-text);
+  font-size: calc(8.5px * var(--text, 1));
+  letter-spacing: calc(1.2px * var(--text, 1));
+  text-transform: uppercase;
+}
+
+.axisFormal {
+  fill: #c77e5f;
+}
+
+.axisSpatial {
+  fill: rgba(255, 255, 255, 0.75);
+}
+
+.dot {
+  fill: rgba(255, 255, 255, calc(0.18 + var(--g) * 0.06));
+}
+
+.frontDot {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.85));
+}
+
+.pickRing {
+  fill: none;
+  stroke: #c77e5f;
+  stroke-width: 1.4;
+}
+
+.pickHalo {
+  fill: none;
+  stroke: #49d7de;
+  stroke-width: 0.8;
+  opacity: 0.7;
+}
+
+.generations {
+  display: grid;
+  flex: 0 0 7.4rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  min-height: 0;
+}
+
+.together {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) 9.4rem;
+  gap: 0.9rem;
+  min-height: 0;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.note .caption {
+  text-align: left;
+}
+
+/* Selection */
+
+.selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  height: 100%;
+  margin: 0;
+}
+
+.pickLarge {
+  width: auto;
+  height: 46%;
+}
+
+.picks {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 0.28rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.front {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.chosenRow {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.chosenRow .caption {
+  text-align: left;
+}
+
+.pickDetail {
+  width: 6rem;
+}
+
+.allPicks {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+/* Physarum logic: input, translation, then the generation-1 catalog. */
+.logic,
+.optimize {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  column-gap: 1.2rem;
+}
+
+.logic {
+  grid-template-columns: 20rem minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.logic > section {
+  height: 100%;
+}
+
+.logic > section[data-light="current"] {
+  transform: none;
+  box-shadow: none;
+}
+
+.logic .labPanel {
+  height: 100%;
+  justify-content: stretch;
+  gap: 0.55rem;
+}
+
+.logic .criteriaGroup {
+  flex: 1 1 0;
+  justify-content: space-evenly;
+  gap: 0.38rem;
+  padding: 0.45rem 0.5rem;
+}
+
+.logic .hud {
+  gap: 0.28rem;
+}
+
+.logic .hud i {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(242, 242, 238, 0.92) var(--share), rgba(242, 242, 238, 0.16) var(--share));
+  box-shadow: 0 0 8px rgba(242, 242, 238, 0.45), 0 0 16px rgba(242, 242, 238, 0.18);
+}
+
+.logic .hud i::after {
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+.labPanel .groupName {
+  margin-bottom: 0.12rem;
+  font-size: 0.5rem;
+  color: #f2f2ee;
+}
+
+.labPanel .groupSub,
+.labPanel .scale,
+.labPanel .descriptor,
+.labPanel .setting,
+.labPanel .hud span {
+  font-size: 0.42rem;
+}
+
+.open {
+  display: block;
+  height: 100%;
+}
+
+.open > section,
+.open > section[data-light="lit"] {
+  height: 100%;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.open > section[data-light="current"] {
+  transform: none;
+  box-shadow: none;
+}
+
+.open > section > :last-child {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.logic .meters {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-height: 0;
+}
+
+.translation {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.translationRow {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.22rem;
+  min-height: 0;
+}
+
+.translationRow strong {
+  font-size: 0.58rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--branch, #ffffff);
+}
+
+.carry {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.carry i {
+  position: relative;
+  flex: 1 1 auto;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.carry i::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(73, 215, 222, 0.9);
+  animation: carry 1s ease forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.translationRow .markSet,
+.translationRow strong {
+  opacity: 0;
+  animation: arrive 0.6s ease forwards;
+  animation-delay: calc(var(--delay, 0s) + 0.72s);
+}
+
+.translationRow figure {
+  margin: 0;
+}
+
+.translationRow :global(svg) {
+  width: 1.7rem;
+  height: 1.35rem;
+}
+
+.labBay {
+  height: 100%;
+  min-height: 0;
+}
+
+.skillCatalog {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.9rem 1.15rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+}
+
+.labReference {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 0.45rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.labPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.labTitle {
+  margin: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f2f2ee;
+}
+
+.criteriaGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-height: 0;
+  padding: 0.28rem 0.35rem 0.32rem;
+  border: 1px solid rgba(242, 242, 238, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.groupSub,
+.scale,
+.descriptor span,
+.setting span:first-child {
+  color: rgba(242, 242, 238, 0.48);
+}
+
+.groupSub,
+.scale,
+.descriptor,
+.setting,
+.hud span {
+  margin: 0;
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scale,
+.setting,
+.descriptor {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.descriptor {
+  padding-top: 0.16rem;
+  border-top: 1px solid rgba(242, 242, 238, 0.12);
+  color: #d5eef6;
+}
+
+.hud {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0;
+}
+
+.hud span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: rgba(242, 242, 238, 0.82);
+}
+
+.hud b {
+  font-weight: 400;
+  color: #c77e5f;
+}
+
+.hud i {
+  position: relative;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(242, 242, 238, 0.85) var(--share), rgba(242, 242, 238, 0.16) var(--share));
+}
+
+.hud i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: var(--share);
+  width: 2px;
+  height: 10px;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.75);
+  transform: translate(-50%, -50%);
+}
+
+.catalogColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.catalogHead {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+
+.catalogIdentity {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.catalogIdentity span {
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.catalogTabs {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem 0.85rem;
+}
+
+.catalogTabs button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.42);
+  font: inherit;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.catalogTabs button[aria-pressed="true"] {
+  color: #ffffff;
+}
+
+.iterationSheet {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 3px;
+  min-height: 0;
+  align-content: stretch;
+}
+
+.iterationCell {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 2px;
+  background: #000000;
+}
+
+.iterationCell img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
+@keyframes carry {
+  from { left: 0; opacity: 0; }
+  20% { opacity: 1; }
+  to { left: calc(100% - 5px); opacity: 1; }
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.optimize {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.38fr) minmax(0, 0.95fr);
+}
+
+.frontStack {
+  display: grid;
+  flex: 1 1 auto;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 0.28rem;
+  min-height: 0;
+}
+
+.frontStack .plate {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  justify-self: center;
+}
+
+.population {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.32rem;
+  align-content: start;
+  min-height: 0;
+}
+
+.population .plate[data-pareto] {
+  border-color: #49d7de;
+}
+
+.catalog {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.32rem;
+  min-height: 0;
+}
+
+.catalog .plate {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.catalog + .caption {
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+/* Focused composition: Translation sits above Generation; Optimization takes the widest bay. */
+.composed {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 16fr) minmax(0, 35fr) minmax(0, 33.4fr) minmax(0, 17.4fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.95fr);
+  grid-template-areas:
+    "input rules optimization selection"
+    "input growth optimization selection";
+  column-gap: 1.2rem;
+  row-gap: 0.7rem;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.composed > section:nth-of-type(1) {
+  grid-area: input;
+}
+
+.composed > section:nth-of-type(2) {
+  grid-area: rules;
+}
+
+.composed > section:nth-of-type(3) {
+  grid-area: growth;
+}
+
+.composed > section:nth-of-type(4) {
+  grid-area: optimization;
+}
+
+.composed > section:nth-of-type(5) {
+  grid-area: selection;
+}
+
+.band {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 3.4rem;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.markRows[data-across] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(min-content, 1fr));
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.optPage {
+  display: block;
+  height: 100%;
+}
+
+.optPage > section,
+.optPage > section[data-light="lit"],
+.optPage > section[data-light="current"] {
+  height: 100%;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.optPage > section > :last-child {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}

@@ -1,0 +1,16 @@
+---
+description: Website content frame. Information stays inset; supporting graphics may bleed.
+alwaysApply: true
+---
+
+# Content frame
+
+On the website, important information and supporting graphics do not share an edge.
+
+Titles, text, controls, and the frames that carry the work sit inside one content frame. On the 1920 × 560 classroom sheet that frame ends 60px from the right edge (`--home-content-right` in `app/globals.css`). The left edge is the rail clearance, so the open menu names stay clear of the information.
+
+Supporting graphics may bleed past the frame to the sheet edge, including under the left rail. Home and Studio are the model: the field runs to the edge, and the text, plates, and frames stay inside the 60px line.
+
+Do not give a new page its own right inset. Use `--home-content-right`. A graphic that should bleed opts into the sheet edge. It does not move the information frame.
+
+This is the website frame. It does not restyle the internal lab panels.

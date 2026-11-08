@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Orbitron, Rajdhani } from "next/font/google";
 import { DevOverlayPassThrough } from "@/components/dev-overlay-pass-through";
 import { SiteNav } from "@/components/site-nav";
+import { SiteRail } from "@/components/site-rail";
 import { SiteDisplayControl } from "@/components/site-display-control";
 import "./globals.css";
 const neuropol = localFont({
@@ -46,6 +47,7 @@ export default function RootLayout({
         <div className="site-frame">
           <div className="site-shell">
             <div className="site-edit-canvas">
+              <SiteRail />
               <SiteNav />
               <main className="site-main">{children}</main>
             </div>

@@ -12,7 +12,7 @@ import { CRITERION_TARGETS } from "@/lib/skill1/translate";
 
 const ARCHETYPE = "vertical-void";
 /** Six saved Vertical Void runs, chosen because their plates read differently: open crescent, wide bowl, closed ring, ring with a separate island, solid mass, radial field. */
-const VOID_ITERATIONS = [
+export const VOID_ITERATIONS = [
   "/demo/skill1/vertical-void/vertical-void-360802-1790449934138-4.webp",
   "/demo/skill1/vertical-void/vertical-void-264709-1790449934138-7.webp",
   "/demo/skill1/vertical-void/vertical-void-53992-1790449934138-38.webp",
@@ -20,7 +20,7 @@ const VOID_ITERATIONS = [
   "/demo/skill1/vertical-void/vertical-void-863512-1790449934138-54.webp",
   "/demo/skill1/vertical-void/vertical-void-1031240-1790449934138-70.webp",
 ];
-const VOID_MOTION = [
+export const VOID_MOTION = [
   "/assets/skill0/void-panel-1.gif",
   "/assets/skill0/void-panel-2.gif",
   "/assets/skill0/void-panel-3.gif",
@@ -32,7 +32,7 @@ const CATALOG_ROWS = 4;
 const CATALOG_COLS = 20;
 const CATALOG_SHOWN = CATALOG_ROWS * CATALOG_COLS;
 const EXAMPLE = findArchetype(findTypology("lobby"), ARCHETYPE);
-const LEVELS = ["Low", "Medium", "High"] as const;
+export const LEVELS = ["Low", "Medium", "High"] as const;
 const TONES = ["#ffffff", "var(--cyan-hot)", "var(--orange-hot)"] as const;
 const DOT = 4;
 const LOOP_FRAME = 4;
@@ -51,7 +51,7 @@ type Layout = {
   slots: Slot[];
 };
 
-const GROUPS = groupsForArchetype("lobby", EXAMPLE, EXAMPLE.ratings);
+export const GROUPS = groupsForArchetype("lobby", EXAMPLE, EXAMPLE.ratings);
 const PHYSARUM_STEPS = SKILL_WORKFLOW_STEPS["skill-1"];
 
 function PlateShot({ plate }: { plate: Plate }) {
@@ -480,7 +480,7 @@ function meterShare(rating: number) {
   return 0.18;
 }
 
-const FIELD_READING: Record<string, { together: string; marks: { caption: string; kind: string }[] }> = {
+export const FIELD_READING: Record<string, { together: string; marks: { caption: string; kind: string }[] }> = {
   formal: {
     together: "One ring. Variation, size, and center act together.",
     marks: [
@@ -507,7 +507,7 @@ const FIELD_READING: Record<string, { together: string; marks: { caption: string
   },
 };
 
-function FieldMark({ kind }: { kind: string }) {
+export function FieldMark({ kind }: { kind: string }) {
   const frame = <rect className="frame" x="3" y="3" width="74" height="58" rx="6" />;
   if (kind === "vary") {
     return <svg viewBox="0 0 80 64" aria-hidden="true">{frame}<ellipse className="ink wf-phy-mark-vary" cx="40" cy="30" rx="16" ry="11" /></svg>;
