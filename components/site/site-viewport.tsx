@@ -49,6 +49,8 @@ import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { SITE_GRID_FEET } from "@/lib/skill5/grid";
 import { northDegrees, placeAxon, placePerspective, placePlan, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
+import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import { SiteNetworkLayer } from "./site-network-layer";
 
 export type SiteViewMode = "perspective" | "plan" | "axon";
 export type SiteFit = "site" | "context";
@@ -263,11 +265,15 @@ function SiteContent({
   showGrid,
   showAerial,
   ground,
+  linework,
+  showContext,
 }: {
   context: SiteContext;
   showGrid: boolean;
   showAerial: boolean;
   ground?: ReturnType<typeof useModulePointer>["ground"];
+  linework: boolean;
+  showContext: boolean;
 }) {
   const [aerialMap, setAerialMap] = useState<Texture | null>(null);
   useEffect(() => {
@@ -376,9 +382,11 @@ function SiteContent({
         <meshBasicMaterial color="#070707" side={DoubleSide} />
       </mesh>
       <mesh geometry={geometries.water} raycast={skipRaycast}>
-        <meshBasicMaterial color="#30383c" />
+        <meshBasicMaterial color={linework ? "#071c1e" : "#30383c"} />
       </mesh>
-      <lineSegments geometry={geometries.coast} material={COAST_LINE} raycast={skipRaycast} />
+      {showContext ? <lineSegments geometry={geometries.coast} raycast={skipRaycast}>
+        <lineBasicMaterial color={linework ? "#1f6d72" : "#4a4a4a"} transparent opacity={linework ? 0.85 : 0.55} />
+      </lineSegments> : null}
       {showAerial && aerialMap ? <mesh
         position={[(HERALD_AERIAL.minX + HERALD_AERIAL.maxX) / 2, 0.12, (HERALD_AERIAL.minZ + HERALD_AERIAL.maxZ) / 2]}
         rotation={[Math.PI / 2, 0, 0]}
@@ -387,20 +395,22 @@ function SiteContent({
         <planeGeometry args={[HERALD_AERIAL.maxX - HERALD_AERIAL.minX, HERALD_AERIAL.maxZ - HERALD_AERIAL.minZ]} />
         <meshBasicMaterial map={aerialMap} side={DoubleSide} />
       </mesh> : null}
-      {roadMesh ? <mesh geometry={roadMesh} raycast={skipRaycast}>
+      {showContext && linework ? <RoadCenterlines roads={geometries.groundRoads} /> : showContext && roadMesh ? <mesh geometry={roadMesh} raycast={skipRaycast}>
         <meshLambertMaterial color="#767676" side={DoubleSide} />
       </mesh> : null}
-      <mesh geometry={geometries.elevated} raycast={skipRaycast}>
-        <meshLambertMaterial color="#767676" side={DoubleSide} />
-      </mesh>
-      <mesh geometry={geometries.guideway} raycast={skipRaycast}>
-        <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />
-      </mesh>
+      {showContext ? <mesh geometry={geometries.elevated} raycast={skipRaycast}>
+        <meshLambertMaterial color={linework ? "#3c4144" : "#767676"} side={DoubleSide} />
+      </mesh> : null}
+      {showContext ? <mesh geometry={geometries.guideway} raycast={skipRaycast}>
+        <meshLambertMaterial color={linework ? "#5c6366" : "#8a8a8a"} side={DoubleSide} />
+      </mesh> : null}
       <mesh geometry={geometries.siteEdge} material={SITE_EDGE} raycast={skipRaycast} />
       {showGrid ? <mesh geometry={geometries.grid} material={GRID_SHEET} raycast={skipRaycast} /> : null}
-      <lineSegments geometry={geometries.flatEdges} material={FLAT_LINE} raycast={skipRaycast} />
-      {buildingMesh ? <mesh geometry={buildingMesh} raycast={skipRaycast}>
-        <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />
+      {showContext ? <lineSegments geometry={geometries.flatEdges} raycast={skipRaycast}>
+        <lineBasicMaterial color={linework ? "#8d9294" : "#2e2e2e"} transparent opacity={linework ? 0.7 : 0.9} />
+      </lineSegments> : null}
+      {showContext && buildingMesh ? <mesh geometry={buildingMesh} position={[0, 0.8, 0]} raycast={skipRaycast}>
+        <meshBasicMaterial color={linework ? "#a7adb1" : "#2e2e2e"} side={DoubleSide} />
       </mesh> : null}
       {ground ? <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.66, 0]} {...ground}>
         <planeGeometry args={[12000, 12000]} />
@@ -641,6 +651,26 @@ export type SiteOverlay = {
   leaders: readonly { id: string; ax: number; az: number; bx: number; bz: number }[];
 };
 
+function RoadCenterlines({ roads }: { roads: readonly { path: readonly XZ[] }[] }) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    for (const road of roads) {
+      for (let index = 1; index < road.path.length; index += 1) {
+        positions.push(road.path[index - 1][0], 1.02, road.path[index - 1][1], road.path[index][0], 1.02, road.path[index][1]);
+      }
+    }
+    const next = new BufferGeometry();
+    next.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    return next;
+  }, [roads]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <lineSegments geometry={geometry} raycast={skipRaycast}>
+      <lineBasicMaterial color="#8a9094" transparent opacity={0.55} />
+    </lineSegments>
+  );
+}
+
 function OverlayLines({ paths, y, color, opacity }: { paths: readonly (readonly XZ[])[]; y: number; color: string; opacity: number }) {
   const geometry = useMemo(() => {
     const positions: number[] = [];
@@ -673,6 +703,7 @@ export function SiteViewport({
   frameToken,
   placement = null,
   overlay = null,
+  network = null,
   onReadout,
 }: {
   context: SiteContext;
@@ -685,6 +716,7 @@ export function SiteViewport({
   frameToken: number;
   placement?: SitePlacementModel | null;
   overlay?: SiteOverlay | null;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
   onReadout: (readout: SiteReadout) => void;
 }) {
   const bounds = useMemo(() => boundsOf(context), [context]);
@@ -708,7 +740,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} placement={placement} overlay={overlay} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} placement={placement} overlay={overlay} network={network} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} />
     </Canvas>
   );
@@ -720,23 +752,26 @@ function PlacementScene({
   showAerial,
   placement,
   overlay,
+  network,
 }: {
   context: SiteContext;
   showGrid: boolean;
   showAerial: boolean;
   placement: SitePlacementModel | null;
   overlay: SiteOverlay | null;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
 }) {
   const pointer = useModulePointer(placement);
   return (
     <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} ground={placement ? pointer.ground : undefined} />
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} ground={placement ? pointer.ground : undefined} linework={network !== null} showContext={!network || network.showContext} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
       {overlay?.highway ? <OverlayLines paths={overlay.highwayPaths.flatMap((path) => clipPath(path))} y={1.15} color="#c77e5f" opacity={0.7} /> : null}
       {overlay?.streets ? <OverlayLines paths={overlay.streetPaths.flatMap((path) => clipPath(path))} y={1.05} color="#8a8680" opacity={0.4} /> : null}
       {overlay?.distances ? <OverlayLines paths={overlay.leaders.flatMap((leader) => clipPath([[leader.ax, leader.az], [leader.bx, leader.bz]]))} y={1.4} color="#c8c4bc" opacity={0.75} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} /> : null}
     </group>
   );
 }

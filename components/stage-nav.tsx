@@ -7,6 +7,7 @@ import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
 import { LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
+import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
 type NavItem = { href: string; label: string };
 
@@ -17,6 +18,11 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: readonly
     active: (pathname: string) => pathname === workspace.href || pathname.startsWith(`${workspace.href}/`),
     sub: workspace.tabs,
   })),
+  {
+    href: TEMP_PHYSARUM_VIDEO.href,
+    label: TEMP_PHYSARUM_VIDEO.label,
+    active: (pathname: string) => pathname === TEMP_PHYSARUM_VIDEO.href,
+  },
 ];
 
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {

@@ -80,6 +80,11 @@ export function pointInRing(x: number, z: number, ring: readonly XZ[]) {
   return inside;
 }
 
+/** A plan point is accepted when it lies on any placement surface. */
+export function pointOnSurfaces(x: number, z: number, surfaces: readonly (readonly XZ[])[]) {
+  return surfaces.some((ring) => ring.length >= 3 && pointInRing(x, z, ring));
+}
+
 /**
  * Corners of the nominal 20 × 20 ft footprint.
  * Yaw is the stored contract angle: positive turns north toward west.
@@ -322,7 +327,11 @@ function separated(first: PlanPoint[], second: PlanPoint[]) {
   return false;
 }
 
-export function placementWarnings(instances: readonly PlacedModule[], ring: readonly XZ[]) {
+export function placementWarnings(
+  instances: readonly PlacedModule[],
+  ring: readonly XZ[],
+  surfaces: readonly (readonly XZ[])[] = [ring],
+) {
   const corners = new Map<string, PlanPoint[]>();
   for (const instance of instances) {
     corners.set(instance.instanceId, footprintCorners(instance.transform.position, instance.transform.rotationY));
@@ -330,7 +339,7 @@ export function placementWarnings(instances: readonly PlacedModule[], ring: read
   const warnings: Record<string, ModuleWarning> = {};
   for (const instance of instances) {
     const own = corners.get(instance.instanceId) ?? [];
-    const outside = own.some((point) => !pointInRing(point.x, point.z, ring));
+    const outside = own.some((point) => !pointOnSurfaces(point.x, point.z, surfaces));
     let overlap = false;
     for (const other of instances) {
       if (other.instanceId === instance.instanceId) continue;

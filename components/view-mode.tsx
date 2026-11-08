@@ -68,6 +68,7 @@ export function PresentationFrame() {
         src={src}
         title="Living Morphologies presentation canvas"
         className="presentation-canvas"
+        allow="clipboard-write"
       />
     </div>
   );

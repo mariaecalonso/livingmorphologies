@@ -51,7 +51,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   const selectedFinal = useSyncExternalStore(subscribeSelectedFinal, readSelectedFinal, selectedFinalServerSnapshot);
   const [filter, setFilter] = useState<CatalogFilter>(catalogBucket(tiles.length));
   const [scope, setScope] = useState<"iterations" | "selected" | "rerun">("iterations");
-  const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11" | "TEST_12">("all");
+  const [batch, setBatch] = useState<"all" | "TEST_1" | "TEST_2" | "TEST_3" | "TEST_4" | "TEST_5" | "TEST_6" | "TEST_7" | "TEST_8" | "TEST_9" | "TEST_10" | "TEST_11" | "TEST_12" | "TEST_13">("all");
   const [error, setError] = useState<string | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [published, setPublished] = useState<CatalogEntry[]>([]);
@@ -60,7 +60,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
   useEffect(() => {
     if (final) return;
     let cancel = false;
-    const files = Array.from({ length: 12 }, (_, index) => {
+    const files = Array.from({ length: 13 }, (_, index) => {
       const number = String(index + 1).padStart(2, "0");
       return { batchId: `TEST_${index + 1}`, file: `/skill4/SKILL04-STRESS-TEST-${number}-catalog.json` };
     });
@@ -182,6 +182,7 @@ export function HybridCatalog({ final = false }: { final?: boolean }) {
         <button type="button" data-active={batch === "TEST_10" || undefined} onClick={() => setBatch("TEST_10")}>Test 10</button>
         <button type="button" data-active={batch === "TEST_11" || undefined} onClick={() => setBatch("TEST_11")}>Test 11</button>
         <button type="button" data-active={batch === "TEST_12" || undefined} onClick={() => setBatch("TEST_12")}>Test 12</button>
+        <button type="button" data-active={batch === "TEST_13" || undefined} onClick={() => setBatch("TEST_13")}>Test 13</button>
       </aside>}
       <div className="hybrid-catalog-main">
       <div className="hybrid-catalog-bar">
@@ -299,7 +300,7 @@ function CatalogCard({ entry, onOpen, onInspect, onDelete, onSelect, onSaveFinal
   return (
     <article ref={cardRef} className="hybrid-slot hybrid-catalog-card">
       <div className="hybrid-preview hybrid-catalog-preview" onClick={onInspect}>
-        {shown && preview.length > 0 ? <MeshPreview placed={frameCatalog(preview)} contain turn fitScale={1.6} /> : shown ? <p className="hybrid-missing">{entry.testData && !syntheticLoaded ? "TEST DATA · synthetic modules are off" : "Geometry unavailable"}</p> : null}
+        {shown && preview.length > 0 ? <MeshPreview placed={frameCatalog(preview)} contain turn fitScale={1.12} /> : shown ? <p className="hybrid-missing">{entry.testData && !syntheticLoaded ? "TEST DATA · synthetic modules are off" : "Geometry unavailable"}</p> : null}
       </div>
       {onSaveFinal ? (
         <div className="hybrid-final-save-anchor">

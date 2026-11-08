@@ -149,8 +149,9 @@
   align-items: stretch;
   overflow: hidden;
   grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr);
-  grid-template-rows: minmax(0, 1.25fr) minmax(620px, 0.78fr);
-  gap: 28px;
+  grid-template-rows: minmax(0, 1.05fr) minmax(0, 0.72fr);
+  gap: 22px;
+  padding-bottom: 72px;
 }
 
 [data-view-mode="desktop"] .hybrid-assembly,
@@ -722,6 +723,28 @@
   background: #000000;
 }
 
+.hybrid-stage-save {
+  position: absolute;
+  top: 0.6em;
+  right: 0.6em;
+  z-index: 2;
+  justify-content: flex-end;
+  max-width: calc(100% - 1.2em);
+}
+
+.hybrid-stage-save .hybrid-generate,
+.hybrid-stage-save .hybrid-units {
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  background: rgba(8, 8, 8, 0.82);
+  color: #ffffff;
+}
+
+.hybrid-stage-save .hybrid-units {
+  margin: 0;
+  align-self: center;
+  padding: 0.45em 0.7em;
+}
+
 .hybrid-stage-canvas {
   cursor: grab;
 }
@@ -939,6 +962,10 @@
   min-width: 0;
 }
 
+.hybrid-process-row[data-part="all"] {
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.86fr) minmax(0, 1.5fr) minmax(0, 1.96fr);
+}
+
 .hybrid-process-card {
   display: flex;
   flex-direction: column;
@@ -956,9 +983,9 @@
 
 .hybrid-process-join {
   display: grid;
-  grid-template-columns: 1.15fr 0.95fr;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.42fr);
   flex: 1 1 auto;
-  gap: 1.1em;
+  gap: 0.7em;
   min-width: 0;
   min-height: 0;
 }
@@ -1000,13 +1027,17 @@
   flex: 1 1 0;
 }
 
+.hybrid-process-join-side:first-child .hybrid-process-pair {
+  gap: 0.12em;
+}
+
 .hybrid-process-profiles {
   display: flex;
   flex: 1 1 auto;
   flex-direction: row;
   align-items: stretch;
   justify-content: space-between;
-  gap: 0.55em;
+  gap: 0.28em;
   min-width: 0;
   min-height: 0;
 }
@@ -1069,7 +1100,8 @@
   min-height: 0;
 }
 
-.hybrid-process-preview {
+.hybrid-process-preview,
+.hybrid-process-evolution {
   cursor: grab;
   touch-action: none;
 }
@@ -1127,6 +1159,351 @@
   fill: none;
   stroke-width: 1.6px;
   vector-effect: non-scaling-stroke;
+}
+
+.hybrid-dna-side {
+  height: 100%;
+  min-height: 0;
+}
+
+.hybrid-profile-dna {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  flex: 1 1 0;
+  align-self: stretch;
+  gap: 0.2em 0.55em;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-dna-cell {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-dna-cell .hybrid-process-figure {
+  flex: 1 1 0;
+}
+
+.hybrid-dna-spine {
+  position: relative;
+  height: 0.35em;
+  margin: -0.15em 0 0;
+  min-height: 0;
+  z-index: 1;
+}
+
+.hybrid-dna-line {
+  position: absolute;
+  top: 50%;
+  right: 2%;
+  left: 2%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(255, 236, 214, 0.72) 0 1.5px, transparent 1.5px 6px);
+  box-shadow: 0 0 6px rgba(255, 214, 170, 0.55), 0 0 14px rgba(255, 186, 120, 0.28);
+}
+
+.hybrid-dna-node {
+  position: absolute;
+  top: 50%;
+  width: 0.28em;
+  height: 0.28em;
+  border-radius: 50%;
+  background: #fff8ee;
+  box-shadow: 0 0 0.2em rgba(255, 244, 230, 1), 0 0 0.55em rgba(255, 196, 140, 0.95), 0 0 1.1em rgba(255, 170, 90, 0.45);
+  transform: translate(-50%, -50%);
+}
+
+.hybrid-profile-dna .hybrid-process-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-profile-dna svg polygon {
+  stroke-width: 2.4px;
+}
+
+.hybrid-dna-cell[data-tone="a"] svg polygon {
+  filter: drop-shadow(0 0 2px rgba(255, 220, 190, 0.95)) drop-shadow(0 0 7px rgba(231, 150, 100, 0.85)) drop-shadow(0 0 16px rgba(199, 126, 95, 0.4));
+}
+
+.hybrid-dna-cell[data-tone="b"] svg polygon {
+  filter: drop-shadow(0 0 2px rgba(220, 255, 255, 0.95)) drop-shadow(0 0 7px rgba(110, 220, 224, 0.85)) drop-shadow(0 0 16px rgba(73, 215, 222, 0.38));
+}
+
+.hybrid-profile-dna [data-featured] .hybrid-dna-shell {
+  fill: var(--dna-fill);
+  stroke-width: 2.8px;
+}
+
+.hybrid-dna-cell[data-tone="a"] [data-featured] svg polygon {
+  filter: drop-shadow(0 0 3px rgba(255, 236, 214, 1)) drop-shadow(0 0 10px rgba(255, 176, 110, 0.95)) drop-shadow(0 0 22px rgba(232, 140, 70, 0.55));
+}
+
+.hybrid-dna-cell[data-tone="b"] [data-featured] svg polygon {
+  filter: drop-shadow(0 0 3px rgba(230, 255, 255, 1)) drop-shadow(0 0 10px rgba(140, 240, 244, 0.95)) drop-shadow(0 0 22px rgba(73, 215, 222, 0.5));
+}
+
+.hybrid-profile-dna .hybrid-process-figure figcaption {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin-bottom: -0.85em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(248, 244, 236, 0.78);
+  font-size: 0.56em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
+}
+
+.hybrid-morph {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-morph-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hybrid-morph-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-morph-play {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65em;
+  margin: 0;
+  padding: 0 0.2em 0.05em;
+}
+
+.hybrid-morph-toggle {
+  display: grid;
+  width: 1.8em;
+  height: 1.8em;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(242, 242, 238, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.hybrid-morph-mark[data-state="play"] {
+  width: 0;
+  height: 0;
+  margin-left: 0.14em;
+  border-top: 0.28em solid transparent;
+  border-bottom: 0.28em solid transparent;
+  border-left: 0.46em solid #f2f2ee;
+}
+
+.hybrid-morph-mark[data-state="pause"] {
+  width: 0.42em;
+  height: 0.48em;
+  border-right: 0.14em solid #f2f2ee;
+  border-left: 0.14em solid #f2f2ee;
+}
+
+.hybrid-morph-range {
+  width: 100%;
+  margin: 0;
+  accent-color: #f2f2ee;
+}
+
+.hybrid-morph-legend {
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.62em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hybrid-validate {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(14em, 1fr);
+  flex: 1 1 auto;
+  gap: 0.85em;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hybrid-validate-aside {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.hybrid-validate-phases {
+  display: flex;
+  gap: 0.28em;
+}
+
+.hybrid-validate-phases span {
+  padding: 0.28em 0.55em;
+  border: 1px solid rgba(242, 242, 238, 0.22);
+  border-radius: 999px;
+  color: rgba(242, 242, 238, 0.42);
+  font-size: 0.48em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hybrid-validate-phases span[data-on] {
+  border-color: rgba(199, 126, 95, 0.85);
+  color: #f4efe8;
+  box-shadow: 0 0 12px rgba(199, 126, 95, 0.35);
+}
+
+.hybrid-validate-run {
+  border: 1px solid rgba(242, 242, 238, 0.7);
+  border-radius: 999px;
+  background: transparent;
+  color: #f4efe8;
+  font-size: 0.78em;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 0.72em 1.15em;
+  cursor: pointer;
+}
+
+.hybrid-validate-run:disabled {
+  color: rgba(242, 242, 238, 0.38);
+  border-color: rgba(242, 242, 238, 0.18);
+  cursor: default;
+}
+
+.hybrid-validate-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.hybrid-validate-stage:active {
+  cursor: grabbing;
+}
+
+.hybrid-validate-stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-validate-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55em;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.hybrid-validate-status {
+  margin: 0;
+  color: rgba(242, 242, 238, 0.86);
+  font-size: 0.78em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hybrid-validate-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hybrid-validate-metrics li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.28em 0.55em;
+  color: rgba(242, 242, 238, 0.78);
+  font-size: 0.68em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hybrid-validate-metrics b {
+  color: #f7f4ee;
+  font-size: 1.05em;
+  font-weight: 500;
+}
+
+.hybrid-validate-metrics i {
+  grid-column: 1 / -1;
+  display: block;
+  height: 2px;
+  background: rgba(126, 224, 228, 0.9);
+  box-shadow: 0 0 8px rgba(73, 215, 222, 0.45);
+}
+
+.hybrid-validate-metrics li[data-tone="a"] i {
+  background: rgba(199, 126, 95, 0.95);
+  box-shadow: 0 0 8px rgba(199, 126, 95, 0.4);
+}
+
+.hybrid-validate-note,
+.hybrid-validate-badge {
+  margin: auto 0 0;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.64em;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+[data-view-mode="presentation"] .hybrid-process-row .hybrid-morph-toggle {
+  width: 2.4em;
+  height: 2.4em;
+}
+
+[data-view-mode="presentation"] .hybrid-process-row .hybrid-morph-legend,
+[data-view-mode="presentation"] .hybrid-process-row .hybrid-profile-dna .hybrid-process-figure figcaption {
+  font-size: 0.72em;
+}
+
+[data-view-mode="presentation"] .hybrid-process-row .hybrid-morph-play {
+  padding-bottom: 0.35em;
+}
+
+.hybrid-validate-badge {
+  border: 1px solid rgba(126, 224, 228, 0.7);
+  border-radius: 999px;
+  color: #e9fffe;
+  text-align: center;
+  letter-spacing: 0.14em;
+  box-shadow: inset 0 0 12px rgba(73, 215, 222, 0.18), 0 0 16px rgba(73, 215, 222, 0.18);
+}
+
+.hybrid-validate-badge[data-state="clear"] {
+  border-color: rgba(244, 247, 246, 0.42);
+  color: #f4f7f6;
+  box-shadow: none;
+}
+
+.hybrid-validate-badge[data-state="unresolved"] {
+  border-color: rgba(199, 126, 95, 0.85);
+  color: #ffd8c9;
+  box-shadow: inset 0 0 12px rgba(199, 126, 95, 0.2), 0 0 16px rgba(199, 126, 95, 0.16);
 }
 
 .hybrid-som-facts {
@@ -1489,7 +1866,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.45em;
-  --catalog-band: 14.45em;
+  --catalog-band: 22em;
 }
 
 .hybrid-catalog-preview {
@@ -1503,9 +1880,6 @@
   min-height: 0;
 }
 
-.hybrid-catalog-preview .hybrid-preview-canvas {
-  transform: translateX(10%);
-}
 
 .hybrid-catalog-copy {
   position: relative;
@@ -1658,7 +2032,7 @@
 }
 
 [data-view-mode="presentation"] .hybrid-catalog-card {
-  --catalog-band: 11.45em;
+  --catalog-band: 24em;
 }
 
 .hybrid-slot,

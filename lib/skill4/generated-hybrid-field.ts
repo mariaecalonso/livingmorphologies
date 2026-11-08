@@ -13,7 +13,7 @@ import {
   sectionReach,
   type HybridGeneratorStatus,
 } from "./hybrid-generator";
-import { generateSectionalCandidates, SECTIONAL_GENERATOR_ACTIVE } from "./section-hybrid";
+import { generateSectionalCandidate, generateSectionalCandidates, SECTIONAL_GENERATOR_ACTIVE } from "./section-hybrid";
 
 /**
  * One real connector for every candidate on a single connection.
@@ -236,14 +236,43 @@ function generateOne(request: GeneratedHybridFieldRequest, candidate: HybridCand
   };
 }
 
+const REVEAL_BUDGET_MS = 30000;
+
+function pause(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** Same candidates as generateHybridField, published after each one so the matrix can fill. */
 export async function revealHybridField(
   request: GeneratedHybridFieldRequest,
   onField: (field: GeneratedHybridField) => void | Promise<void>,
   cancelled: () => boolean,
+  onSections?: (candidateId: string, rings: { x: number; y: number; z: number }[][], shown: number) => void | Promise<void>,
+  watchId = "H13",
 ) {
   if (SECTIONAL_GENERATOR_ACTIVE) {
-    if (!cancelled()) await onField(generateHybridField(request));
+    const list = request.candidateField.candidates;
+    const built: GeneratedHybridCandidate[] = [];
+    const started = Date.now();
+    await pause(16);
+    if (onSections) {
+      const watchedCandidate = list.find((candidate) => candidate.id === watchId);
+      if (watchedCandidate) {
+        const preview = generateSectionalCandidate(request, watchedCandidate);
+        const rings = preview.loftRings ?? [];
+        if (rings.length > 1) await onSections(preview.candidateId, rings, 0);
+      }
+    }
+    for (let index = 0; index < list.length; index += 1) {
+      if (cancelled()) return;
+      const one = generateSectionalCandidate(request, list[index]);
+      built.push(one);
+      if (cancelled()) return;
+      await onField(assemble(request.candidateField.signature, built));
+      const target = (REVEAL_BUDGET_MS * (index + 1)) / list.length;
+      const wait = target - (Date.now() - started);
+      if (wait > 40) await pause(wait);
+    }
     return;
   }
   const prepared = prepareCandidates(request.candidateField, request);

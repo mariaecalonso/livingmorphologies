@@ -342,7 +342,7 @@ async function joinEdge(
   });
   const chosen = field.candidates.find((candidate) => candidate.candidateId === hybridId);
   const report = chosen?.sectionReport ?? null;
-  if (!report || report.sectionsA < 5 || report.sectionsB < 5) {
+  if (!report || report.sectionsA < SECTIONAL_GENERATOR_SETTINGS.sections || report.sectionsB < SECTIONAL_GENERATOR_SETTINGS.sections) {
     return blank(chosen?.reason || "section extraction failed", ["SECTION EXTRACTION FAILURE"]);
   }
   if (!chosen?.geometry || chosen.status !== "ready") return blank(chosen?.reason || field.status, ["H## GENERATION FAILURE"]);
@@ -400,7 +400,7 @@ async function joinEdge(
     mergeParentB: join.sideB.parentToMerge,
     coreIntact: join.coreIntact ? "yes" : "no",
     componentCount: join.componentCount,
-    pass: join.pass && manifold && correspondence === "PASS" && spun.twist === "PASS" && openingTracking === "PASS" && report.sectionsA === 5 && report.sectionsB === 5,
+    pass: join.pass && manifold && correspondence === "PASS" && spun.twist === "PASS" && openingTracking === "PASS" && report.sectionsA === SECTIONAL_GENERATOR_SETTINGS.sections && report.sectionsB === SECTIONAL_GENERATOR_SETTINGS.sections,
     categories,
     reason: join.reason,
     poseB: join.parentBPose,

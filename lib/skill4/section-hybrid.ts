@@ -8,7 +8,7 @@ import type { GeneratedHybridCandidate } from "./generated-hybrid-field";
 import { loftSectionRings } from "./hybrid-spine";
 
 /**
- * Active Skill 04 generator. Five real cuts run through each parent, from the
+ * Active Skill 04 generator. Eight real cuts run through each parent, from the
  * back of the tile to the selected face. Each hybrid section continues that
  * whole sequence past the face, then negotiates the two continued outlines.
  * Section size follows the gray faces. A cut that only nicks the solid cannot
@@ -18,8 +18,8 @@ import { loftSectionRings } from "./hybrid-spine";
 export const SECTIONAL_GENERATOR_ACTIVE = true;
 
 export const SECTIONAL_GENERATOR_SETTINGS = {
-  version: "skill4-sectional-generator-v13",
-  sections: 5,
+  version: "skill4-sectional-generator-v14",
+  sections: 8,
   nearFraction: 0,
   farFraction: 1,
   samples: 36,
@@ -109,11 +109,22 @@ export function generateSectionalCandidates(request: {
   faceB: FaceId;
   candidateField: { signature: string; candidates: HybridCandidate[] };
 }): GeneratedHybridCandidate[] {
+  return request.candidateField.candidates.map((candidate) => generateSectionalCandidate(request, candidate));
+}
+
+/** One candidate. The parent study is reused, so later candidates stay cheap. */
+export function generateSectionalCandidate(
+  request: {
+    moduleA: ReadyModule;
+    moduleB: ReadyModule;
+    faceA: FaceId;
+    faceB: FaceId;
+  },
+  candidate: HybridCandidate,
+): GeneratedHybridCandidate {
   const study = studyFor(request.moduleA, request.faceA, request.moduleB, request.faceB);
-  if (!study) {
-    return request.candidateField.candidates.map((candidate) => failed(candidate, "The sectional cuts did not produce an outer loop on both selected faces."));
-  }
-  return request.candidateField.candidates.map((candidate) => buildCandidate(study, candidate));
+  if (!study) return failed(candidate, "The sectional cuts did not produce an outer loop on both selected faces.");
+  return buildCandidate(study, candidate);
 }
 
 export function parentSectionGuides(module: ReadyModule, face: FaceId, label: string): SectionGuide[] {
@@ -186,7 +197,7 @@ export type SectionProfile = {
   openings: { u: number; v: number }[][];
 };
 
-/** Planar cuts already used by the generator. Display order is A5→A1 and B1→B5. */
+/** Planar cuts already used by the generator. Display order is A8→A1 and B1→B8. */
 export function connectionSectionProfiles(
   moduleA: ReadyModule,
   faceA: FaceId,
@@ -298,7 +309,7 @@ export function connectionProcess(
 
 /** 2D profiles of the loft rings. Each profile is the projection of that ring's own points. */
 export function loftSectionViews(rings: readonly (readonly Vec3[])[]): { label: string; outer: Vec3[]; profile: { u: number; v: number }[] }[] {
-  if (rings.length < 2 || rings.some((ring) => ring.length < 3)) return [];
+  if (rings.length < 1 || rings.some((ring) => ring.length < 3)) return [];
   const start = average(rings[0]);
   const end = average(rings[rings.length - 1]);
   let normal = sub(end, start);
@@ -392,9 +403,14 @@ function publishSections(dna: ParentDna, moduleId: string, face: FaceId, letter:
 }
 
 function projectOnFrame(frame: FaceFrame, samples: Sample[]) {
+  // Vertical faces store height on frame.u. The catalog reads u across and v up,
+  // so a vertical cut is turned onto its side unless height is written to v.
+  // Looking in from outside the face, -frame.v points to the right and frame.u points up.
+  const vertical = Math.abs(frame.normal.y) < 0.72;
   return samples.map((sample) => {
     const delta = sub(sample.position, frame.origin);
-    return { u: dot(delta, frame.u), v: dot(delta, frame.v) };
+    if (!vertical) return { u: dot(delta, frame.u), v: dot(delta, frame.v) };
+    return { u: -dot(delta, frame.v), v: dot(delta, frame.u) };
   });
 }
 
@@ -425,7 +441,7 @@ export type SectionContour = {
   openings: Vec3[][];
 };
 
-/** Parent cuts in module space. A is far-to-face (A5→A1). B is face-to-far (B1→B5). */
+/** Parent cuts in module space. A is far-to-face (A8→A1). B is face-to-far (B1→B8). */
 export function connectionSectionContours(
   moduleA: ReadyModule,
   faceA: FaceId,
@@ -638,7 +654,7 @@ function equalDepths(near: number, far: number) {
   return Array.from({ length: last + 1 }, (_, index) => near + (far - near) * (index / last));
 }
 
-/** Five cuts through each parent, face included. Seven hybrid stations run from gray face to gray face. */
+/** Eight equally spaced cuts through each parent, face included. Seven hybrid stations run from gray face to gray face. */
 function equalPlates(depthA: number, depthB: number) {
   const spacing = 1;
   const through = (far: number) => {

@@ -35,10 +35,20 @@ import { loadArchetypeMesh } from "@/lib/skill5/load-module";
 import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, footprintCorners, placementWarnings, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
+import { clipPolygon } from "./site-geometry";
+import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
+import { clearNetworkIterations, loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
+import { analyzeNetwork, networkFigures, type NetworkAnalysisMode } from "./site-network-analysis";
+import { SiteNetworkAnalysisPanel } from "./site-network-analysis-panel";
+import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
+import { createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
+import { SiteStrategyAnalysis, SiteStrategyPanel, SiteSheetTabs, STRATEGY_MODES, type SiteSheet, type StrategyMode } from "./site-strategy";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
 
 const site = context as SiteContext;
 const designSite = designSiteFromParcel(site.site.ring);
+/** Same polygon the viewport draws. The stored bay ring is left unchanged. */
+const visibleWater = clipPolygon(site.water.ring);
 
 function occupiedBounds(instances: readonly PlacedModule[]) {
   return instances.map((instance) => boundsOf(extentCorners(
@@ -67,6 +77,11 @@ const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "plan", label: "Plan" },
   { id: "axon", label: "Axonometric" },
 ];
+
+/** Site Network opens in plan. Assembly Network opens in perspective. Axonometric stays available from the camera control. */
+function strategyCamera(mode: StrategyMode): SiteViewMode {
+  return mode === "assemblies-network" ? "perspective" : "plan";
+}
 
 const ORTHO_VIEWS = [
   { id: "top", label: "Top" },
@@ -791,7 +806,39 @@ function AssemblyRerun({ assembly, records, onKeep, onSend }: { assembly: SiteAs
 }
 
 export function SiteWorkspace() {
+  const [sheet, setSheet] = useState<SiteSheet>("assembly");
+  const [strategyMode, setStrategyMode] = useState<StrategyMode>("site-network");
+  const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(null);
+  const [networkRunning, setNetworkRunning] = useState(false);
+  const [networkTool, setNetworkTool] = useState<NetworkNodeKind>("source");
+  const [iterations, setIterations] = useState<NetworkIteration[]>([]);
+  const [iterationView, setIterationView] = useState<string | null>(null);
+  const [iterationCompare, setIterationCompare] = useState<string[]>([]);
+  const [iterationBatch, setIterationBatch] = useState<IterationBatch | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<NetworkAnalysisMode>("density");
+  const [analysisOn, setAnalysisOn] = useState(false);
+  const [showField, setShowField] = useState(true);
+  const networkView = useRef<HTMLElement>(null);
+  const [showTrails, setShowTrails] = useState(true);
+  const [showContext, setShowContext] = useState(true);
+  const iterationToken = useRef(0);
+  const iterationsRef = useRef(iterations);
+  iterationsRef.current = iterations;
+  useEffect(() => {
+    let cancel = false;
+    loadNetworkIterations().then((rows) => {
+      if (!cancel) setIterations(rows);
+    }).catch(() => {});
+    return () => {
+      cancel = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (sheet !== "strategy" || networkStudy) return;
+    setNetworkStudy(createSiteNetworkStudy(site.site.ring, site.water.ring, { buildings: site.buildings }));
+  }, [sheet, networkStudy]);
   const [mode, setMode] = useState<SiteViewMode>("perspective");
+  const assemblyView = useRef<SiteViewMode>("perspective");
   const [planHeading, setPlanHeading] = useState<"north" | "east">("north");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
@@ -929,7 +976,10 @@ export function SiteWorkspace() {
   const selected = instances.find((entry) => entry.instanceId === selectedId) ?? null;
   const visibleAssemblies = useMemo(() => assemblies.flatMap((assembly) => assemblyWorldModules(assembly)), [assemblies]);
   const sceneInstances = useMemo(() => [...instances, ...visibleAssemblies], [instances, visibleAssemblies]);
-  const warnings = useMemo(() => placementWarnings(sceneInstances, site.site.ring), [sceneInstances]);
+  const warnings = useMemo(
+    () => placementWarnings(sceneInstances, site.site.ring, [site.site.ring, visibleWater]),
+    [sceneInstances],
+  );
   const displayShift = useMemo(() => {
     if (!exploded) return {};
     return Object.assign({}, ...assemblies.map((assembly) => explodeShifts(assembly, 14)));
@@ -1499,12 +1549,185 @@ export function SiteWorkspace() {
   const chooseMode = (next: SiteViewMode) => {
     setMode(next);
   };
+  const chooseSheet = (next: SiteSheet) => {
+    if (next === sheet) return;
+    if (next === "strategy") {
+      assemblyView.current = mode;
+      setMode(strategyCamera(strategyMode));
+    } else {
+      setMode(assemblyView.current);
+      setNetworkRunning(false);
+    }
+    setSheet(next);
+  };
+  const chooseStrategyMode = (next: StrategyMode) => {
+    if (next !== "site-network") setNetworkRunning(false);
+    setStrategyMode(next);
+    setMode(strategyCamera(next));
+  };
+  const runNetwork = () => {
+    const study = networkStudy;
+    if (!study || !study.canRun) return;
+    study.resume();
+    setNetworkRunning(true);
+  };
+  const pauseNetwork = () => setNetworkRunning(false);
+  const resetNetwork = () => {
+    networkStudy?.reset();
+    setNetworkRunning(false);
+  };
+  const clearNetworkNodes = () => networkStudy?.clearNodes();
+  const deleteNetworkNode = () => {
+    const selected = networkStudy?.edit.selectedId;
+    if (selected) networkStudy?.remove(selected);
+  };
+  const selectNetworkNode = (id: string) => networkStudy?.select(id);
+  const rememberIteration = (iteration: NetworkIteration) => {
+    setIterations((current) => {
+      const next = current.some((item) => item.id === iteration.id)
+        ? current.map((item) => item.id === iteration.id ? iteration : item)
+        : [...current, iteration];
+      return next.sort((a, b) => a.index - b.index);
+    });
+    saveNetworkIteration(iteration).catch(() => {});
+  };
+  const generateIterations = async (count: 10 | 20 | 30) => {
+    const study = networkStudy;
+    if (!study || !study.canRun || iterationBatch) return;
+    const token = iterationToken.current + 1;
+    iterationToken.current = token;
+    const nodes = study.edit.nodes.map((node) => ({ ...node }));
+    const start = iterationsRef.current.reduce((max, item) => Math.max(max, item.index), 0);
+    setIterationBatch({ done: 0, total: count, step: 0 });
+    for (let n = 0; n < count; n += 1) {
+      if (iterationToken.current !== token) return;
+      const seed = (20261105 + (start + n + 1) * 104729) >>> 0;
+      const iteration = await runNetworkIteration(site.site.ring, site.water.ring, nodes, seed, (step) => {
+        if (iterationToken.current === token) setIterationBatch({ done: n, total: count, step });
+      }, site.buildings);
+      if (iterationToken.current !== token) return;
+      iteration.index = start + n + 1;
+      iteration.id = `i${iteration.index}-${seed}`;
+      rememberIteration(iteration);
+      setIterationBatch({ done: n + 1, total: count, step: iteration.step });
+    }
+    if (iterationToken.current === token) setIterationBatch(null);
+  };
+  const regenerateIteration = async (id: string) => {
+    const current = iterations.find((item) => item.id === id);
+    if (!current || iterationBatch) return;
+    const token = iterationToken.current + 1;
+    iterationToken.current = token;
+    const used = new Set(iterations.map((item) => item.seed));
+    let seed = (current.seed + 104729) >>> 0;
+    while (used.has(seed)) seed = (seed + 104729) >>> 0;
+    setIterationBatch({ done: 0, total: 1, step: 0 });
+    const iteration = await runNetworkIteration(site.site.ring, site.water.ring, current.nodes, seed, (step) => {
+      if (iterationToken.current === token) setIterationBatch({ done: 0, total: 1, step });
+    }, site.buildings);
+    if (iterationToken.current !== token) return;
+    iteration.id = current.id;
+    iteration.index = current.index;
+    rememberIteration(iteration);
+    setIterationBatch(null);
+  };
+  const toggleIterationCompare = (id: string) => {
+    setIterationCompare((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+  const clearIterations = () => {
+    iterationToken.current += 1;
+    setIterations([]);
+    setIterationView(null);
+    setIterationCompare([]);
+    setIterationBatch(null);
+    clearNetworkIterations().catch(() => {});
+  };
   void duplicateModule;
   void duplicateConfiguration;
 
+  const networkAnalysis = useMemo(() => {
+    if (!analysisOn || !networkStudy) return null;
+    if (analysisMode === "overlay") {
+      const selected = iterations.filter((item) => iterationCompare.includes(item.id));
+      return analyzeNetwork("overlay", selected, networkStudy.frame);
+    }
+    const viewed = iterations.find((item) => item.id === iterationView) ?? null;
+    if (!viewed) return null;
+    return analyzeNetwork(analysisMode, [viewed], networkStudy.frame);
+  }, [analysisOn, analysisMode, networkStudy, iterations, iterationView, iterationCompare]);
+  const networkFiguresView = useMemo(() => {
+    if (!networkStudy) return null;
+    const viewed = iterations.find((item) => item.id === iterationView) ?? iterations[0];
+    if (!viewed) return null;
+    return networkFigures(viewed, networkStudy.frame);
+  }, [networkStudy, iterations, iterationView]);
+  useEffect(() => {
+    const view = networkView.current;
+    if (!view || sheet !== "strategy" || strategyMode !== "site-network") {
+      view?.style.removeProperty("--network-overlap");
+      view?.style.removeProperty("--network-panel-scale");
+      return;
+    }
+    // The marked line is 77.8% across the frame. The panel grows left to that line
+    // and covers the view; the center column, and the site in it, stay put.
+    const panelLeft = 0.778;
+    const measure = () => {
+      const panel = view.querySelector(".site-panel-analysis");
+      if (!(panel instanceof HTMLElement) || view.clientWidth < 2) return;
+      const viewRect = view.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      const scale = viewRect.width / Math.max(1, view.offsetWidth);
+      const applied = Number.parseFloat(view.style.getPropertyValue("--network-overlap")) || 0;
+      const cellLeft = panelRect.left + applied * scale;
+      const overlap = Math.max(0, (cellLeft - (viewRect.left + viewRect.width * panelLeft)) / scale);
+      const next = `${Math.round(overlap)}px`;
+      if (view.style.getPropertyValue("--network-overlap") !== next) view.style.setProperty("--network-overlap", next);
+      view.style.removeProperty("--network-panel-scale");
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(view);
+    return () => observer.disconnect();
+  }, [sheet, strategyMode]);
+
+  const analysisNotice = !analysisOn
+    ? null
+    : networkAnalysis
+      ? null
+      : analysisMode === "overlay"
+        ? "Compare two iterations."
+        : "Select an iteration.";
+
   return (
-    <main className="site-view">
-      <aside className="site-panel site-panel-library" aria-label="Library and project">
+    <main
+      ref={networkView}
+      className="site-view"
+      data-sheet={sheet === "strategy" && strategyMode === "site-network" ? "network" : undefined}
+    >
+      <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : "Library and project"}>
+            <SiteSheetTabs sheet={sheet} onChange={chooseSheet} />
+            {sheet === "strategy" ? (
+              <div className={strategyMode === "site-network" ? "site-strategy-body" : "site-sim"}>
+              <SiteStrategyPanel
+                mode={strategyMode}
+                onMode={chooseStrategyMode}
+                assemblies={assemblies.length}
+                modules={placed.length}
+                network={{
+                  study: networkStudy,
+                  running: networkRunning,
+                  tool: networkTool,
+                  onTool: setNetworkTool,
+                  onRun: runNetwork,
+                  onPause: pauseNetwork,
+                  onReset: resetNetwork,
+                  onClear: clearNetworkNodes,
+                  onDelete: deleteNetworkNode,
+                  onSelect: selectNetworkNode,
+                }}
+              />
+              </div>
+            ) : (
             <section className="site-block">
               <h2 className="site-subtitle">Geometry Library</h2>
               <h3 className="site-subtitle">Assemblies</h3>
@@ -1561,11 +1784,18 @@ export function SiteWorkspace() {
                 <p className="site-note site-alert">This mesh is not stored. Another archetype is not substituted.</p>
               ) : null}
             </section>
+            )}
 
       </aside>
       <section className="site-stage" aria-label="Current configuration">
         <div className="site-frame">
           <header className="site-frame-bar">
+            {sheet === "strategy" ? (
+              <div className="site-frame-name site-sim">
+                <h2 className="site-subtitle">{strategyMode === "site-network" ? "Site network" : STRATEGY_MODES.find((item) => item.id === strategyMode)?.title}</h2>
+              </div>
+            ) : (
+            <>
             <div className="site-frame-name">
               <h2 className="site-subtitle">Current configuration</h2>
               <input aria-label="Configuration name" value={configName} onChange={(event) => setConfigName(event.target.value)} />
@@ -1580,6 +1810,8 @@ export function SiteWorkspace() {
               <button type="button" disabled={history.undo.length === 0} onClick={undo}>Undo</button>
               <button type="button" disabled={history.redo.length === 0} onClick={redo}>Redo</button>
             </div>
+            </>
+            )}
           </header>
           <div className="site-viewport">
             <SiteViewport
@@ -1604,8 +1836,24 @@ export function SiteWorkspace() {
                 streetPaths: spatial.streetPaths,
                 leaders,
               }}
+              network={
+                sheet === "strategy" && strategyMode === "site-network" && networkStudy
+                  ? {
+                    study: networkStudy,
+                    running: networkRunning && iterationView === null,
+                    tool: networkTool,
+                    onSettle: pauseNetwork,
+                    preview: networkAnalysis ? null : iterations.find((item) => item.id === iterationView)?.trails ?? null,
+                    colored: networkAnalysis?.rgba ?? null,
+                    showField,
+                    showTrails,
+                    showContext,
+                  }
+                  : null
+              }
               placement={{
                 ring: designSite.ring,
+                waterRing: visibleWater,
                 armedModuleId: armed ? armed.moduleId : armedAssembly ? "assembly" : null,
                 canPlace: Boolean(armed || armedAssembly),
                 meshes: loadedMeshes,
@@ -1620,6 +1868,7 @@ export function SiteWorkspace() {
                 previewBridge,
                 demonstration,
                 tool,
+                editable: sheet === "assembly",
                 warnings,
                 annotations: drawnNotes,
                 onPlace: placeModule,
@@ -1654,6 +1903,13 @@ export function SiteWorkspace() {
                 <p>{readout.scaleFeet.toLocaleString("en-US")} ft</p>
               </div>
             </div>
+            {sheet === "strategy" && strategyMode === "site-network" ? (
+              <div className="site-modes site-network-layers" role="group" aria-label="Layers">
+                <button type="button" title={SOURCE_CONTOUR_NOTE} data-active={showField || undefined} onClick={() => setShowField((value) => !value)}>Field</button>
+                <button type="button" data-active={showTrails || undefined} onClick={() => setShowTrails((value) => !value)}>Network</button>
+                <button type="button" data-active={showContext || undefined} onClick={() => setShowContext((value) => !value)}>Context</button>
+              </div>
+            ) : null}
             <div className="site-modes site-frame-views" role="group" aria-label="Camera">
               {MODES.map((item) => (
                 <button key={item.id} type="button" data-active={mode === item.id || undefined} onClick={() => chooseMode(item.id)}>
@@ -1663,18 +1919,57 @@ export function SiteWorkspace() {
             </div>
           </div>
         </div>
-        <p className="site-help">
+        {sheet === "strategy" && strategyMode === "site-network" ? null : (
+        <p className={sheet === "strategy" ? "site-help site-sim" : "site-help"}>
           {mode === "plan"
             ? "Plan starts north-up. Click the north arrow to switch between north-up and east-up. Right-drag pans. Ctrl+Shift+right turns the plan. Ctrl+right or the wheel zooms."
             : mode === "axon"
               ? "Parallel view. Right-drag pans. Ctrl+Shift+right turns it. Ctrl+right or the wheel zooms."
               : "Right-drag orbits. Shift+right pans. Ctrl+right or the wheel zooms."}
           {" "}
-          Click a module in the library to add it to the site. Left-click selects a placed module. Left-drag {tool === "rotate" ? "turns the selection about vertical." : "moves the selection on the site."}
+          {sheet === "strategy"
+            ? "The canvas is the Miami site from Site Assembly, with the assemblies placed there. A network study will run on this canvas."
+            : <>Click a module in the library to add it to the site. Left-click selects a placed module. Left-drag {tool === "rotate" ? "turns the selection about vertical." : "moves the selection on the site."}</>}
         </p>
+        )}
       </section>
     
       <aside className="site-panel site-panel-analysis">
+            {sheet === "strategy" ? (
+              <div className={strategyMode === "site-network" ? "site-network-side" : "site-sim"}>
+                {strategyMode === "site-network" && networkStudy ? (
+                  <>
+                  <SiteNetworkIterations
+                    study={networkStudy}
+                    iterations={iterations}
+                    viewId={iterationView}
+                    compareIds={iterationCompare}
+                    batch={iterationBatch}
+                    onGenerate={(count) => { void generateIterations(count); }}
+                    onView={setIterationView}
+                    onToggleCompare={toggleIterationCompare}
+                    onRegenerate={(id) => { void regenerateIteration(id); }}
+                    onClear={clearIterations}
+                  />
+                  <SiteNetworkAnalysisPanel
+                    mode={analysisMode}
+                    active={analysisOn}
+                    metrics={networkAnalysis?.metrics ?? []}
+                    notice={analysisNotice}
+                    figures={networkFiguresView}
+                    onMode={(next) => {
+                      setAnalysisMode(next);
+                      setAnalysisOn(true);
+                    }}
+                    onActive={setAnalysisOn}
+                  />
+                  </>
+                ) : (
+                  <SiteStrategyAnalysis mode={strategyMode} />
+                )}
+              </div>
+            ) : (
+            <>
             <section className="site-block site-specs">
               <h2 className="site-subtitle">Live Analysis</h2>
               <h3 className="site-subtitle">Module count</h3>
@@ -1849,6 +2144,8 @@ export function SiteWorkspace() {
                 </div>
               </div>
             </section>
+            </>
+            )}
       </aside>
     </main>
   );
