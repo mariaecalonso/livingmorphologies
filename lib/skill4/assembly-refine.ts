@@ -497,7 +497,7 @@ export function settleRemainingCreases(positions: Float32Array, indices: Uint32A
   for (let split = 0; split < 10 && score >= 0.72; split += 1) {
     const opened = splitWorstFold(next, faces);
     if (!opened) break;
-    next = opened.positions;
+    next = new Float32Array(opened.positions);
     faces = opened.indices;
     rest = opened.rest;
     score = foldScore(next, faces);

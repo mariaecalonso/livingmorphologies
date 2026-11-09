@@ -293,7 +293,7 @@ export function PhysarumVideoStage() {
     if (exporting) return;
     exportMode.current = "file";
     fileSink.current = null;
-    saveChoice.current = requestSaveFile("physarum-video.mp4", { "video/mp4": [".mp4"] }).then(async (handle) => {
+    saveChoice.current = requestSaveFile("physarum-video.mp4", { "video/mp4": [".mp4"] }).then(async (handle: FileSystemFileHandle | null) => {
       if (!handle || saveCancelled.current) return null;
       try {
         fileSink.current = await handle.createWritable();
@@ -747,12 +747,19 @@ function applyIntro(root: HTMLDivElement | null, time: number) {
   });
 }
 
-function requestSaveFile(name: string, accept: Record<string, string[]>) {
+type SavePickerWindow = Window & {
+  showSaveFilePicker?: (options: {
+    suggestedName?: string;
+    types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+  }) => Promise<FileSystemFileHandle>;
+};
+
+function requestSaveFile(name: string, accept: Record<string, string[]>): Promise<FileSystemFileHandle | null> {
   const options = {
     suggestedName: name,
     types: [{ description: "Video", accept }],
   };
-  const views: Window[] = [window];
+  const views: SavePickerWindow[] = [window];
   if (window.top && window.top !== window) views.push(window.top);
   for (const view of views) {
     const openPicker = view.showSaveFilePicker;

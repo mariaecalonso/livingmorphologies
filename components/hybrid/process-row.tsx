@@ -399,23 +399,23 @@ function SectionalDna({ sectionsA, sectionsB }: { sectionsA: ProcessSection[]; s
 function largestProfile(sections: ProcessSection[]) {
   let best: ProcessSection | null = null;
   let area = -1;
-  sections.forEach((section) => {
+  for (const section of sections) {
     let minU = Infinity;
     let maxU = -Infinity;
     let minV = Infinity;
     let maxV = -Infinity;
-    section.profile.forEach((point) => {
+    for (const point of section.profile) {
       minU = Math.min(minU, point.u);
       maxU = Math.max(maxU, point.u);
       minV = Math.min(minV, point.v);
       maxV = Math.max(maxV, point.v);
-    });
+    }
     const next = Math.max(0, maxU - minU) * Math.max(0, maxV - minV);
     if (next > area) {
       area = next;
       best = section;
     }
-  });
+  }
   return best;
 }
 

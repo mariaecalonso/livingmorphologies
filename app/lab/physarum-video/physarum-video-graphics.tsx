@@ -2058,10 +2058,19 @@ let colonyPlate: HTMLCanvasElement | null = null;
 let colonyCache: HTMLCanvasElement | null = null;
 let colonyCacheKey = "";
 let plateHeld = false;
+function sourceSize(source: CanvasImageSource): { width: number; height: number } {
+  if ("videoWidth" in source) return { width: source.videoWidth, height: source.videoHeight };
+  if ("displayWidth" in source) return { width: source.displayWidth, height: source.displayHeight };
+  const width = source.width;
+  const height = source.height;
+  if (typeof width === "number" && typeof height === "number") return { width, height };
+  if (typeof width !== "number" && typeof height !== "number") return { width: width.baseVal.value, height: height.baseVal.value };
+  return { width: 0, height: 0 };
+}
+
 function drawColony(plate: CanvasRenderingContext2D, source: CanvasImageSource, width: number, height: number, edge: "top" | "bottom", reach: number, fade = 1, drop = 0, strength = 1) {
   if (edge !== "top" || fade <= 0.01 || reach <= 0.01 || strength <= 0.01) return;
-  const sourceWidth = "videoWidth" in source ? source.videoWidth : source.width;
-  const sourceHeight = "videoHeight" in source ? source.videoHeight : source.height;
+  const { width: sourceWidth, height: sourceHeight } = sourceSize(source);
   if (sourceWidth < 2 || sourceHeight < 2) return;
   const stretch = 3.658 / (width / height);
   const aspect = (sourceWidth / sourceHeight) / stretch;
@@ -2199,8 +2208,7 @@ function drawStepOrganism(plate: CanvasRenderingContext2D, source: CanvasImageSo
   const leave = smoothstep(openAmount(time, STEPS_END - 0.85, VIDEOS_AT + 0.4));
   const presence = pose * (1 - leave);
   if (presence < 0.02) return;
-  const sourceWidth = "videoWidth" in source ? source.videoWidth : source.width;
-  const sourceHeight = "videoHeight" in source ? source.videoHeight : source.height;
+  const { width: sourceWidth, height: sourceHeight } = sourceSize(source);
   const stage = time < STEPS_START ? 0 : Math.min(5, Math.floor((time - STEPS_START) / STEP_SPAN));
   const local = Math.max(0, time - (STEPS_START + stage * STEP_SPAN));
   if (diagramFrame) {

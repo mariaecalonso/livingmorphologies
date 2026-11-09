@@ -196,7 +196,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
     if (refined) {
       const refinedDefects = readDefects(refined.positions, refined.positions.length / 3, frame, refined.indices);
       if (refinementHelps(refinedDefects, currentDefects) && refinedDefects.edge < beforeEdge - 0.012) {
-        next = refined.positions;
+        next = new Float32Array(refined.positions);
         indices = refined.indices;
         rest = {
           positions: refined.rest,
@@ -216,7 +216,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
       const settledDefects = readDefects(settled.positions, settled.positions.length / 3, frame, settled.indices);
       const heldNow = readDefects(next, next.length / 3, frame, indices);
       if (refinementHelps(settledDefects, heldNow)) {
-        next = settled.positions;
+        next = new Float32Array(settled.positions);
         indices = settled.indices;
         if (settled.rest) {
           rest = {
@@ -232,7 +232,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
     if (ridged) {
       const ridgeDefects = readDefects(ridged, ridged.length / 3, frame, indices);
       const heldRidge = readDefects(next, next.length / 3, frame, indices);
-      if (refinementHelps(ridgeDefects, heldRidge) && ridgeDefects.edge < heldRidge.edge - 0.012) next = ridged;
+      if (refinementHelps(ridgeDefects, heldRidge) && ridgeDefects.edge < heldRidge.edge - 0.012) next = new Float32Array(ridged);
     }
     const afterEdge = readDefects(next, next.length / 3, frame, indices).edge;
     if (afterEdge > beforeEdge - 0.012) break;
@@ -255,7 +255,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
     if (issue === "edge") {
       const settled = settleRemainingCreases(next, indices);
       if (settled) {
-        next = settled.positions;
+        next = new Float32Array(settled.positions);
         indices = settled.indices;
         if (settled.rest) {
           rest = {
@@ -267,7 +267,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
         }
       }
       const ridged = easeRidges(next, indices);
-      if (ridged) next = ridged;
+      if (ridged) next = new Float32Array(ridged);
     } else if (issue === "gap") closeGap(next, next.length / 3, frame);
     else if (issue === "kink") applyKinks(next, next.length / 3, frame);
     else if (issue === "twist") applyTwist(next, next.length / 3, frame);
@@ -290,7 +290,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
       const openedDefects = readDefects(opened, opened.length / 3, frame, mesh.indices);
       const held = readDefects(next, next.length / 3, frame, indices);
       if (openedDefects.edge < 0.72 && keepsCleared(openedDefects, held)) {
-        next = opened;
+        next = new Float32Array(opened);
         indices = mesh.indices;
         rest = undefined;
       }

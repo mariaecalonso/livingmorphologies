@@ -43,7 +43,7 @@ function grow(studySeed: number) {
   return study;
 }
 
-function assert(condition: boolean, message: string) {
+function assert(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
@@ -189,7 +189,7 @@ for (let index = 0; index < drawn.connectivity.length; index += 1) {
 assert(plateMatch, "The same raw trail produced a different connectivity plate.");
 const firstMetrics = analyzeNetwork("connectivity", [chart], chartFrame)?.metrics.map((item) => `${item.label}:${item.value}`).join("|");
 const secondMetrics = analyzeNetwork("connectivity", [chart], chartFrame)?.metrics.map((item) => `${item.label}:${item.value}`).join("|");
-assert(firstMetrics === secondMetrics && firstMetrics?.includes("Components"), "Connectivity metrics were not reproducible.");
+assert(firstMetrics === secondMetrics && Boolean(firstMetrics?.includes("Components")), "Connectivity metrics were not reproducible.");
 
 const tolerance = reachFeet(1.867);
 const visit = nextArrival(0, 80, 4, true, tolerance, false);

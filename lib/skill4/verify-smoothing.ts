@@ -1,9 +1,9 @@
 import { revealSmooth, validateMeshes } from "./assembly-validation";
 import type { IsoMesh } from "../scan/isomesh";
 
-const assert = (condition: boolean, message: string) => {
+function assert(condition: boolean, message: string): asserts condition {
   if (!condition) throw new Error(message);
-};
+}
 
 const STATIONS = 24;
 const SAMPLES = 36;
@@ -145,14 +145,16 @@ function untouched(mesh: IsoMesh, original: Float32Array) {
 
 const smoothOriginal = new Float32Array(smooth.positions);
 const smoothResult = validateMeshes([smooth]);
-assert(smoothResult?.verdict === "clear", `smooth tube: ${smoothResult?.verdict} ${smoothResult?.note}`);
+assert(smoothResult != null, `smooth tube: ${smoothResult?.verdict} ${smoothResult?.note}`);
+assert(smoothResult.verdict === "clear", `smooth tube: ${smoothResult.verdict} ${smoothResult.note}`);
 assert(smoothResult.meshes[0].smoothed.positions.length === smooth.positions.length, "smooth tube was refined");
 assert(smoothResult.displacement === 0, "smooth tube moved");
 untouched(smooth, smoothOriginal);
 
 const twistOriginal = new Float32Array(twisted.positions);
 const twistResult = validateMeshes([twisted]);
-assert(twistResult?.verdict === "corrected", `twisted: ${twistResult?.verdict} ${twistResult?.note}`);
+assert(twistResult != null, `twisted: ${twistResult?.verdict} ${twistResult?.note}`);
+assert(twistResult.verdict === "corrected", `twisted: ${twistResult.verdict} ${twistResult.note}`);
 assert(twistResult.meshes[0].smoothed.positions.length === twisted.positions.length, "twist was refined");
 assert(endDrift(twistOriginal, twistResult.meshes[0].smoothed.positions) < 1e-3, "twist moved an end");
 untouched(twisted, twistOriginal);
@@ -160,7 +162,8 @@ manifold(twistResult.meshes[0].smoothed.indices);
 
 const pinchOriginal = new Float32Array(pinched.positions);
 const pinchResult = validateMeshes([pinched]);
-assert(pinchResult?.verdict === "corrected", `pinched: ${pinchResult?.verdict} ${pinchResult?.note}`);
+assert(pinchResult != null, `pinched: ${pinchResult?.verdict} ${pinchResult?.note}`);
+assert(pinchResult.verdict === "corrected", `pinched: ${pinchResult.verdict} ${pinchResult.note}`);
 assert(middleRadius(pinchResult.meshes[0].smoothed) > middleRadius(pinched) + 0.4, "pinch was not opened");
 assert(pinchResult.meshes[0].smoothed.positions.length === pinched.positions.length, "pinch was refined");
 untouched(pinched, pinchOriginal);
