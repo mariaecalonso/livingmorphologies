@@ -62,6 +62,8 @@ import type { WalkSegment } from "@/lib/skill5/pedestrian";
 import type { UseSegment } from "@/lib/skill5/urban";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
 import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
+import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import { SiteNetworkLayer } from "./site-network-layer";
 
 export type SiteViewMode = "perspective" | "plan" | "axon";
 export type SiteFit = "site" | "context";
@@ -626,6 +628,8 @@ function SiteContent({
   presentation = "model",
   sheetsRef,
   sun,
+  linework,
+  showContext,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -636,6 +640,8 @@ function SiteContent({
   presentation?: "model" | "analysis";
   sheetsRef: { current: SheetSet };
   sun: SunSample | null;
+  linework: boolean;
+  showContext: boolean;
 }) {
   const [aerialMap, setAerialMap] = useState<Texture | null>(null);
   useEffect(() => {
@@ -766,6 +772,53 @@ function SiteContent({
       setRoadMesh(null);
     };
   }, [geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits]);
+
+  if (linework) {
+    return (
+      <>
+        <ambientLight intensity={0.42} color="#ffffff" />
+        <hemisphereLight args={["#a3a3a3", "#0a0a0a", 0.22]} />
+        <directionalLight position={[820, 1460, -520]} intensity={0.62} color="#ffffff" />
+        <directionalLight position={[-380, 720, 640]} intensity={0.16} color="#ffffff" />
+        <mesh geometry={geometries.land} raycast={skipRaycast}>
+          <meshBasicMaterial color="#070707" side={DoubleSide} />
+        </mesh>
+        <mesh geometry={geometries.water} raycast={skipRaycast}>
+          <meshBasicMaterial color="#071c1e" />
+        </mesh>
+        {showContext ? <lineSegments geometry={geometries.coast} raycast={skipRaycast}>
+          <lineBasicMaterial color="#1f6d72" transparent opacity={0.85} />
+        </lineSegments> : null}
+        {showAerial && aerialMap ? <mesh
+          position={[(HERALD_AERIAL.minX + HERALD_AERIAL.maxX) / 2, 0.12, (HERALD_AERIAL.minZ + HERALD_AERIAL.maxZ) / 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+          raycast={skipRaycast}
+        >
+          <planeGeometry args={[HERALD_AERIAL.maxX - HERALD_AERIAL.minX, HERALD_AERIAL.maxZ - HERALD_AERIAL.minZ]} />
+          <meshBasicMaterial map={aerialMap} side={DoubleSide} />
+        </mesh> : null}
+        {showContext ? <RoadCenterlines roads={geometries.groundRoads} /> : null}
+        {showContext ? <mesh geometry={geometries.elevated} raycast={skipRaycast}>
+          <meshLambertMaterial color="#3c4144" side={DoubleSide} />
+        </mesh> : null}
+        {showContext ? <mesh geometry={geometries.guideway} raycast={skipRaycast}>
+          <meshLambertMaterial color="#5c6366" side={DoubleSide} />
+        </mesh> : null}
+        <mesh geometry={geometries.siteEdge} material={SITE_EDGE} raycast={skipRaycast} />
+        {showGrid ? <mesh geometry={geometries.grid} material={GRID_SHEET} raycast={skipRaycast} /> : null}
+        {showContext ? <lineSegments geometry={geometries.flatEdges} raycast={skipRaycast}>
+          <lineBasicMaterial color="#8d9294" transparent opacity={0.7} />
+        </lineSegments> : null}
+        {showContext && buildingMesh ? <mesh geometry={buildingMesh} position={[0, 0.8, 0]} raycast={skipRaycast}>
+          <meshBasicMaterial color="#a7adb1" side={DoubleSide} />
+        </mesh> : null}
+        {ground ? <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.66, 0]} {...ground}>
+          <planeGeometry args={[12000, 12000]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} side={DoubleSide} />
+        </mesh> : null}
+      </>
+    );
+  }
 
   return (
     <>
@@ -1078,6 +1131,26 @@ export type SiteOverlay = {
   leaders: readonly { id: string; ax: number; az: number; bx: number; bz: number }[];
 };
 
+function RoadCenterlines({ roads }: { roads: readonly { path: readonly XZ[] }[] }) {
+  const geometry = useMemo(() => {
+    const positions: number[] = [];
+    for (const road of roads) {
+      for (let index = 1; index < road.path.length; index += 1) {
+        positions.push(road.path[index - 1][0], 1.02, road.path[index - 1][1], road.path[index][0], 1.02, road.path[index][1]);
+      }
+    }
+    const next = new BufferGeometry();
+    next.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    return next;
+  }, [roads]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return (
+    <lineSegments geometry={geometry} raycast={skipRaycast}>
+      <lineBasicMaterial color="#8a9094" transparent opacity={0.55} />
+    </lineSegments>
+  );
+}
+
 function OverlayLines({ paths, y, color, opacity }: { paths: readonly (readonly XZ[])[]; y: number; color: string; opacity: number }) {
   const geometry = useMemo(() => {
     const positions: number[] = [];
@@ -1123,6 +1196,7 @@ export function SiteViewport({
   walk = null,
   uses = null,
   onShadowTexel,
+  network = null,
   onReadout,
 }: {
   context: SiteContext;
@@ -1148,6 +1222,7 @@ export function SiteViewport({
   walk?: readonly WalkSegment[] | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
   onReadout: (readout: SiteReadout) => void;
 }) {
   const bounds = useMemo(() => boundsOf(context), [context]);
@@ -1173,7 +1248,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} />
     </Canvas>
   );
@@ -1197,6 +1272,7 @@ function PlacementScene({
   walk,
   uses,
   onShadowTexel,
+  network,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1215,6 +1291,7 @@ function PlacementScene({
   walk: readonly WalkSegment[] | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
 }) {
   const pointer = useModulePointer(placement);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
@@ -1222,7 +1299,7 @@ function PlacementScene({
     <>
       {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
       <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={placement ? pointer.ground : undefined} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} />
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={placement ? pointer.ground : undefined} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={network !== null} showContext={!network || network.showContext} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
@@ -1234,6 +1311,7 @@ function PlacementScene({
       {sight && sight.length > 0 ? <SightLines segments={sight} /> : null}
       {walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} /> : null}
       </group>
     </>
   );

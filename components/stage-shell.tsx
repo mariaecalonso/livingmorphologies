@@ -1,13 +1,35 @@
 "use client";
 
+import { usePathname, useSearchParams } from "next/navigation";
 import { useLayoutEffect, type ReactNode } from "react";
 import { reconcileLabDisplay } from "@/components/display-sync";
 import { StageNav } from "@/components/stage-nav";
 import { PresentationFrame, useFramed, useViewMode } from "@/components/view-mode";
 
+/** The presentation canvas lives in an iframe. Keep the address bar on that route so a refresh stays there. */
+function useRememberFramedRoute() {
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const query = search.toString();
+
+  useLayoutEffect(() => {
+    const top = window.top;
+    if (!top || top === window.self) return;
+    const params = new URLSearchParams(query);
+    params.delete("wall");
+    params.delete("frame");
+    const nextQuery = params.toString();
+    const next = `${pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    const current = `${top.location.pathname}${top.location.search}${top.location.hash}`;
+    if (current === next) return;
+    top.history.replaceState(top.history.state, "", next);
+  }, [pathname, query]);
+}
+
 export function StageShell({ children }: { children: ReactNode }) {
   const mode = useViewMode();
   const frame = useFramed();
+  useRememberFramedRoute();
 
   useLayoutEffect(() => {
     reconcileLabDisplay();

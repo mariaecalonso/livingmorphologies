@@ -54,6 +54,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
     focusConnection,
     selectMock,
     growth,
+    sectionPlay,
     generateInputs,
     generateHybridFieldForConnection,
     catalogNotice,
@@ -123,6 +124,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
   const showBoolean = CONNECTION_DEBUG_STAGE >= 5 && execution?.status === "ready";
   const joinedMesh = showBoolean && execution?.status === "ready" ? execution.assembly.mesh : null;
   const joinedTiles = new Set(showBoolean && execution?.status === "ready" ? execution.tiles.filter((tile) => tile.status === "ready").map((tile) => tile.tileId) : []);
+  const grownCache = useRef(new Map<string, { mesh: IsoMesh; parents: [string, IsoMesh, string, IsoMesh]; connector: IsoMesh }>());
   const liveHybrids = connections.map((connection) => {
     const preview = growth && growth.connectionId === connection.id && growth.candidateId === connection.selectedMockId ? growth : null;
     return { connection, preview, hybrid: resolveAssemblyHybrid(connection, tiles, loaded, preview?.mesh) };
@@ -130,14 +132,27 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
   const grownParents = new Map<string, IsoMesh>();
   const grownConnectors = new Map<string, IsoMesh>();
   for (const item of liveHybrids) {
+    if (item.connection.generationStatus === "generating") continue;
     if (!item.hybrid.geometry || item.hybrid.source === "mock") continue;
     const tileA = tiles.find((tile) => tile.instanceId === item.connection.tileAId);
     const tileB = tiles.find((tile) => tile.instanceId === item.connection.tileBId);
     const moduleA = tileA ? loaded.get(tileA.archetypeId) : undefined;
     const moduleB = tileB ? loaded.get(tileB.archetypeId) : undefined;
     if (!tileA || !tileB || moduleA?.status !== "ready" || moduleB?.status !== "ready") continue;
+    const cached = grownCache.current.get(item.connection.id);
+    if (cached && cached.mesh === item.hybrid.geometry) {
+      grownParents.set(cached.parents[0], cached.parents[1]);
+      grownParents.set(cached.parents[2], cached.parents[3]);
+      grownConnectors.set(item.connection.id, cached.connector);
+      continue;
+    }
     const grown = growConnectionPair(item.hybrid.geometry, tileA, tileB, moduleA, moduleB, item.connection.faceA, item.connection.faceB);
     if (!grown) continue;
+    grownCache.current.set(item.connection.id, {
+      mesh: item.hybrid.geometry,
+      parents: [tileA.instanceId, grown.parentA, tileB.instanceId, grown.parentB],
+      connector: grown.connector,
+    });
     grownParents.set(tileA.instanceId, grown.parentA);
     grownParents.set(tileB.instanceId, grown.parentB);
     grownConnectors.set(item.connection.id, grown.connector);
@@ -337,6 +352,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
             onSelectConnection={focusConnection}
             span={span}
           />
+          {presentation ? null : <SaveCurrentAssembly />}
           <div className="hybrid-stage-keys">
             {tiles.map((tile) => {
               const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -353,7 +369,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
         </div>
       </Panel> : null}
       {!frame || frame === "som" ? <Panel className="hybrid-som major-section-frame">
-        <PanelHeader mark="03" title="Hybrid SOM Matrices" aside={presentation ? undefined : <SaveCurrentAssembly />} />
+        <PanelHeader mark="03" title="Hybrid SOM Matrices" />
         <div className="hybrid-som-board">
           {connections.length === 0 ? <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p> : null}
           {connections.map((connection) => {
@@ -373,9 +389,17 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
                   onSelect={(id) => selectMock(connection.id, id)}
                   colorA={colorA}
                   colorB={colorB}
-                  previewId={growth?.connectionId === connection.id ? growth.candidateId : null}
+                  previewId={
+                    growth?.connectionId === connection.id
+                      ? growth.candidateId
+                      : sectionPlay?.connectionId === connection.id
+                        ? sectionPlay.candidateId
+                        : connection.generationStatus === "generating"
+                          ? connection.generatedHybridField.candidates[connection.generatedHybridField.candidates.length - 1]?.candidateId ?? null
+                          : null
+                  }
                   previewMesh={growth?.connectionId === connection.id ? growth.mesh : null}
-                /> : <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p>}
+                /> : <p className="hybrid-missing">{connection.generationStatus === "generating" ? "The SOM is generating." : "Select two geometries and connection faces to generate SOM"}</p>}
                 {presentation ? null : <div className="hybrid-layout-controls">
                   <button type="button" className="hybrid-generate" onClick={() => setGenerationNotice(generateInputs(connection.id))}>
                     Generate candidate inputs
@@ -410,7 +434,9 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
         loaded={loaded}
         syntheticMode={syntheticMode}
         growth={growth}
+        sectionPlay={sectionPlay}
         part={frame === "descendant" ? "descendant" : frame === "clipping" ? "clipping" : "all"}
+        assembly={placed}
       /> : null}
     </main>
   );
@@ -434,9 +460,9 @@ function SaveCurrentAssembly() {
     }
   };
   return (
-    <div className="hybrid-layout-controls" data-save-assembly="">
+    <div className="hybrid-layout-controls hybrid-stage-save" data-save-assembly="">
       <button type="button" className="hybrid-generate" onClick={save}>
-        Save current assembly
+        Save assembly
       </button>
       {notice ? (
         <>

@@ -657,10 +657,10 @@ function rebuildSide(mesh: IsoMesh, face: FaceFrame, rings: Vec3[][], terminalIn
   const capped = loops.filter((loop) => loop !== outer);
   const toward = towardCore(rings, terminalIndex, depthOf);
   const aligned = alignLoops(boundary, rings[terminalIndex], rings[toward]);
-  const target = aligned.primary.map((point, index) => lerp(point, aligned.secondary[index], 0.3));
+  const target = aligned.secondary.map((point) => ({ x: point.x, y: point.y, z: point.z }));
   const start = leaveDirections(mesh, outer, removed, face);
   const behind = behindPoints(mesh, outer, removed, start);
-  const end = target.map((point, index) => sub(aligned.secondary[index], point));
+  const end = aligned.primary.map((point, index) => sub(aligned.secondary[index], point));
   const ringCount = transitionCount(boundary, target, start, end);
   if (anchor && opened) {
     const grid = openSheetSurface(opened.frame, anchor.center, anchor.radius, anchor.area, rings[terminalIndex]);
@@ -919,7 +919,10 @@ function leaveDirections(mesh: IsoMesh, loop: number[], removed: Set<number>, fa
     if (dot(leave, face.normal) < 0) leave = scale(leave, -1);
     return normalize(leave);
   });
-  return raw.map((direction, index) => normalize(add(add(raw[(index + raw.length - 1) % raw.length], scale(direction, 2)), raw[(index + 1) % raw.length])));
+  return raw.map((direction, index) => {
+    const at = (offset: number) => raw[(index + offset + raw.length) % raw.length];
+    return normalize(add(add(add(scale(at(-2), 0.5), at(-1)), scale(direction, 2)), add(at(1), scale(at(2), 0.5))));
+  });
 }
 
 function hermiteRings(from: Vec3[], to: Vec3[], start: Vec3[], end: Vec3[], count: number) {
@@ -1493,7 +1496,7 @@ function openSheetSurface(
   const hybridAt = (u: number, v: number) => add(center, add(scale(across, u * radius), scale(along, v * radius * 0.9)));
   const columns: number = 9;
   const rowCount = 18;
-  const hold = 0.28;
+  const hold = 0.46;
   const land = 0.22;
   const rows = Array.from({ length: rowCount }, (_, row) => {
     const t = row / (rowCount - 1);
@@ -1502,7 +1505,7 @@ function openSheetSurface(
       if (t <= hold) return parentAt(u, -1 + 2 * (t / hold));
       if (t >= 1 - land) return hybridAt(u, 1 - 2 * ((t - (1 - land)) / land));
       const w = (t - hold) / (1 - hold - land);
-      const eased = w * w * (3 - 2 * w);
+      const eased = w * w * w * (w * (w * 6 - 15) + 10);
       const from = parentAt(u, 1);
       const to = hybridAt(u, 1);
       const span = Math.max(0.4, length(sub(to, from)));
@@ -1672,30 +1675,10 @@ function plateSheetRings(
     const summed = neighbors.reduce((sum, item) => add(sum, item), { x: 0, y: 0, z: 0 });
     return length(summed) > 0.4 ? normalize(summed) : own;
   });
-  const hold = Math.max(3, Math.min(count - 3, Math.round(count * 0.3)));
-  const coord = (point: Vec3) => ({
-    u: dot(sub(point, origin), U),
-    v: dot(sub(point, origin), V),
-    n: dot(sub(point, origin), N),
+  const rings = Array.from({ length: count }, (_, station) => {
+    const t = station / Math.max(1, count - 1);
+    return from.map((point, index) => growToward(point, to[index], coupled[index], behind[index], sub(to[index], point), t));
   });
-  const place = (u: number, v: number, n: number) => add(origin, add(scale(U, u), add(scale(V, v), scale(N, n))));
-  const rings = Array.from({ length: count }, (_, station) => from.map((point, index) => {
-    if (station === 0) return { ...point };
-    const measured = length(sub(point, behind[index]));
-    const spacing = Math.min(0.28, Math.max(0.08, measured));
-    const marched = add(point, scale(coupled[index], spacing * Math.min(station, hold)));
-    const locked = place(dot(sub(marched, origin), U), dot(sub(marched, origin), V), height[index]);
-    if (station <= hold) return locked;
-    const w = (station - hold) / Math.max(1, count - 1 - hold);
-    const eased = w * w * (3 - 2 * w);
-    const fromCoord = coord(locked);
-    const toCoord = coord(to[index]);
-    return place(
-      fromCoord.u + (toCoord.u - fromCoord.u) * eased,
-      fromCoord.v + (toCoord.v - fromCoord.v) * eased,
-      fromCoord.n + (toCoord.n - fromCoord.n) * eased,
-    );
-  }));
   for (let station = 1; station < rings.length; station += 1) {
     const previous = rings[station - 1];
     const ring = rings[station];
@@ -1705,7 +1688,7 @@ function plateSheetRings(
       if (span > 1e-4) continue;
       const edge = sub(previous[ahead], previous[index]);
       const push = cross(length(edge) > 1e-8 ? normalize(edge) : U, N);
-      ring[index] = add(ring[index], scale(length(push) > 1e-5 ? normalize(push) : V, 0.05));
+      ring[index] = add(ring[index], scale(length(push) > 1e-5 ? normalize(push) : V, 0.02));
     }
   }
   return { rings, partner };
@@ -2545,22 +2528,24 @@ function rulingCross(a0: Vec3, a1: Vec3, b0: Vec3, b1: Vec3) {
   return length(sub(add(a0, scale(u, s)), add(b0, scale(v, t)))) < 0.08;
 }
 
-function continueThenTurn(from: Vec3[], to: Vec3[], start: Vec3[], end: Vec3[], behind: Vec3[], count: number, kind: PatchQuality["character"]) {
-  const hold = kind === "plate" || kind === "rib"
-    ? Math.max(5, Math.min(count - 4, Math.round(count * 0.5)))
-    : Math.max(3, Math.min(5, Math.round(count * 0.28)));
-  const rings = Array.from({ length: count }, (_, station) => from.map((point, index) => {
-    const measured = length(sub(point, behind[index]));
-    const spacing = kind === "plate" ? Math.min(0.32, Math.max(0.1, measured)) : kind === "rib" ? Math.min(0.28, Math.max(0.1, measured)) : Math.min(0.85, Math.max(0.18, measured));
-    const direction = start[index];
-    const bridge = add(point, scale(direction, spacing * hold));
-    if (station <= hold) return add(point, scale(direction, spacing * station));
-    const span = Math.max(1, count - 1 - hold);
-    const u = (station - hold) / span;
-    const eased = u * u * (3 - 2 * u);
-    const chord = Math.max(spacing, length(sub(to[index], bridge)));
-    return hermite(bridge, to[index], scale(direction, chord * (kind === "mass" ? 0.9 : 0.7)), scale(normalize(end[index]), chord * 0.22 * eased), eased);
-  }));
+function growToward(point: Vec3, destination: Vec3, direction: Vec3, behind: Vec3, end: Vec3, t: number) {
+  const delta = length(end) > 1e-5 ? end : sub(destination, point);
+  const travel = Math.max(length(delta), length(sub(point, behind)), 1e-4);
+  const want = normalize(length(delta) > 1e-5 ? delta : direction);
+  const facing = Math.max(-1, Math.min(1, dot(direction, want)));
+  const reach = travel * (facing > 0 ? 0.32 + 0.28 * facing : 0.16);
+  const control = add(point, scale(direction, reach));
+  const stay = (1 - t) * (1 - t);
+  const turn = 2 * (1 - t) * t;
+  const land = t * t;
+  return add(add(scale(point, stay), scale(control, turn)), scale(destination, land));
+}
+
+function continueThenTurn(from: Vec3[], to: Vec3[], start: Vec3[], end: Vec3[], behind: Vec3[], count: number, _kind: PatchQuality["character"]) {
+  const rings = Array.from({ length: count }, (_, station) => {
+    const t = station / Math.max(1, count - 1);
+    return from.map((point, index) => growToward(point, to[index], start[index], behind[index], end[index], t));
+  });
   for (let station = 1; station < rings.length; station += 1) rings[station] = reinforce(rings[station - 1], rings[station]);
   return rings;
 }
@@ -2584,7 +2569,7 @@ function reinforce(previous: Vec3[], ring: Vec3[]) {
       const back = previous[behind];
       const here = next[index];
       if (span(a, b, here) > 1e-4 && span(back, a, here) > 1e-4 && span(a, here, next[ahead]) > 1e-4) continue;
-      next[index] = add(here, scale(perpendicular(sub(b, a)), 0.08 * (pass + 1)));
+      next[index] = add(here, scale(perpendicular(sub(b, a)), 0.02 * (pass + 1)));
       moved = true;
     }
     if (!moved) break;
@@ -2634,7 +2619,7 @@ function transitionCount(from: Vec3[], to: Vec3[], start: Vec3[], end: Vec3[]) {
   });
   const meanDistance = distance / Math.max(1, from.length);
   const meanTurn = turn / Math.max(1, from.length);
-  return Math.min(22, Math.max(12, Math.round(meanDistance / 0.32 + meanTurn / 22)));
+  return Math.min(28, Math.max(16, Math.round(meanDistance / 0.22 + meanTurn / 16)));
 }
 
 function stitch(

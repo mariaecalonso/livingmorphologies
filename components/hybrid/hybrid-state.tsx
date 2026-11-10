@@ -49,6 +49,8 @@ type HybridStateValue = {
   selectMock: (connectionId: string, mockId: string) => void;
   /** Transient network preview. Null means draw the stored final mesh. */
   growth: { connectionId: string; candidateId: string; mesh: IsoMesh; opacity: number } | null;
+  /** Selected hybrid's section stack while that hybrid is being revealed. */
+  sectionPlay: { connectionId: string; candidateId: string; rings: { x: number; y: number; z: number }[][]; shown: number } | null;
   restoreAssembly: (entry: CatalogEntry) => void;
   catalogNotice: string | null;
   syntheticMode: boolean;
@@ -251,6 +253,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
   const [growth, setGrowth] = useState<HybridStateValue["growth"]>(null);
+  const [sectionPlay, setSectionPlay] = useState<HybridStateValue["sectionPlay"]>(null);
   const playback = useRef(0);
   const generationTokens = useRef(new Map<string, number>());
 
@@ -369,6 +372,20 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
     const token = (generationTokens.current.get(connectionId) ?? 0) + 1;
     generationTokens.current.set(connectionId, token);
     const live = () => generationTokens.current.get(connectionId) === token;
+    const watchId = connection.selectedMockId || "H13";
+    setSectionPlay(null);
+    setBoard((current) => ({
+      ...current,
+      connections: current.connections.map((item) => (
+        item.id === connectionId ? {
+          ...item,
+          candidateField: connection.candidateField,
+          inputsChanged: false,
+          generatedHybridField: null,
+          generationStatus: "generating" as const,
+        } : item
+      )),
+    }));
     void revealHybridField({
       moduleA,
       moduleB,
@@ -378,31 +395,32 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
       settings: HYBRID_GENERATOR_SETTINGS,
     }, async (field) => {
       if (!live()) return;
+      const expected = connection.candidateField?.candidates.length ?? field.candidates.length;
       setBoard((current) => {
         let seat = false;
         const connections = current.connections.map((item) => {
           if (item.id !== connectionId) return item;
           const withInputs = connection.candidateField ? { ...item, candidateField: connection.candidateField, inputsChanged: false } : item;
           const assigned = assignGeneratedHybridField(withInputs, field);
-          const chosen = assigned.generatedHybridField?.candidates.find((candidate) => candidate.candidateId === assigned.selectedMockId);
+          const publishing = field.candidates.length < expected;
+          const next = publishing ? { ...assigned, generationStatus: "generating" as const } : assigned;
+          const chosen = next.generatedHybridField?.candidates.find((candidate) => candidate.candidateId === next.selectedMockId);
           const previous = item.generatedHybridField?.candidates.find((candidate) => candidate.candidateId === item.selectedMockId);
-          if (chosen?.status === "ready" && chosen.geometry && (assigned.selectedMockId !== item.selectedMockId || chosen.geometry !== previous?.geometry)) {
+          if (!publishing && chosen?.status === "ready" && chosen.geometry && (next.selectedMockId !== item.selectedMockId || chosen.geometry !== previous?.geometry)) {
             seat = true;
           }
-          return assigned;
+          return next;
         });
         if (!seat) return { ...current, connections };
         return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
       });
-      const latest = field.candidates[field.candidates.length - 1];
-      const frames = latest?.growth ?? [];
-      for (let index = 0; index < frames.length; index += 1) {
-        if (!live()) return;
-        setGrowth({ connectionId, candidateId: latest.candidateId, mesh: frames[index], opacity: 0.36 + (index / frames.length) * 0.5 });
-        await new Promise((resolve) => window.setTimeout(resolve, 55));
-      }
-    }, () => !live()).then(() => {
-      if (live()) setGrowth((current) => (current?.connectionId === connectionId ? null : current));
+    }, () => !live(), async (candidateId, rings, shown) => {
+      if (!live()) return;
+      setSectionPlay({ connectionId, candidateId, rings, shown });
+    }, watchId).then(() => {
+      if (!live()) return;
+      setSectionPlay(null);
+      setGrowth((current) => (current?.connectionId === connectionId ? null : current));
     });
     return "Sensing";
   };
@@ -546,6 +564,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         translateSelected,
         selectMock,
         growth,
+        sectionPlay,
         restoreAssembly,
         catalogNotice,
         syntheticMode,

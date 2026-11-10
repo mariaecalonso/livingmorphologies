@@ -26,7 +26,9 @@
   --frame-primary-width: 1.5px;
   --frame-primary-gradient: linear-gradient(90deg, #49d7de 0%, #9af6f8 34%, rgba(255, 255, 255, 0.92) 50%, #f0b08a 76%, #c77e5f 100%);
   --frame-glow-primary: -10px 0 12px -6px rgba(73, 215, 222, 0.45), 10px 0 12px -6px rgba(199, 126, 95, 0.4);
-  --font-display: var(--font-orbitron), "Arial Narrow", Helvetica, Arial, sans-serif;
+  --font-orbitron: "Orbitron", "Arial Narrow", Helvetica, Arial, sans-serif;
+  --font-rajdhani: "Rajdhani", "Arial Narrow", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-orbitron);
   --font-ui: Helvetica, Arial, system-ui, sans-serif;
   --font-body: Helvetica, Arial, system-ui, sans-serif;
 }
@@ -4640,7 +4642,7 @@ body:has(.site-display-control) .site-nav {
 }
 
 .wf-hyb-lab .hybrid-frame .hybrid-process-row[data-part="descendant"] {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .wf-hyb-lab .hybrid-frame .hybrid-process-joined {

@@ -17,12 +17,14 @@ import {
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { BridgeCloud } from "@/lib/skill5/mock-bridge";
 import type { WorldAnnotation } from "@/lib/skill5/annotations";
-import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, pointInRing, settleMove, snapModuleOrigin, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
+import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, pointOnSurfaces, settleMove, snapModuleOrigin, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
 import { worldToStored } from "@/lib/skill5/render-frame";
 import type { XZ } from "@/lib/skill5/site-model";
 
 export type SitePlacementModel = {
   ring: readonly XZ[];
+  /** Drawn bay. Placement here is conceptual and uses the same controls as the parcel. */
+  waterRing?: readonly XZ[] | null;
   armedModuleId: string | null;
   canPlace: boolean;
   meshes: Record<string, IsoMesh>;
@@ -37,6 +39,8 @@ export type SitePlacementModel = {
   previewBridge: BridgeCloud | null;
   demonstration: { placementId: string; x: number; z: number; rotationY: number; cloud: BridgeCloud }[];
   tool: "move" | "rotate" | "entrance" | "circulation";
+  /** Site Strategy shows the same placement without moving it. */
+  editable?: boolean;
   warnings: Record<string, ModuleWarning>;
   annotations: WorldAnnotation[];
   onPlace: (x: number, z: number) => void;
@@ -118,11 +122,21 @@ function groundPoint(event: { ray: { origin: { x: number; y: number; z: number }
   return { x: hit.x, z: hit.z };
 }
 
-function placementPoint(event: { ray: { origin: { x: number; y: number; z: number }; direction: { x: number; y: number; z: number } } }, ring: readonly XZ[], snap: boolean) {
+function placementSurfaces(ring: readonly XZ[], waterRing?: readonly XZ[] | null) {
+  return waterRing && waterRing.length >= 3 ? [ring, waterRing] : [ring];
+}
+
+function placementPoint(
+  event: { ray: { origin: { x: number; y: number; z: number }; direction: { x: number; y: number; z: number } } },
+  ring: readonly XZ[],
+  snap: boolean,
+  waterRing?: readonly XZ[] | null,
+) {
   const hit = groundPoint(event);
-  if (!hit || !pointInRing(hit.x, hit.z, ring)) return null;
+  const surfaces = placementSurfaces(ring, waterRing);
+  if (!hit || !pointOnSurfaces(hit.x, hit.z, surfaces)) return null;
   const next = snap ? snapModuleOrigin(hit.x, hit.z) : hit;
-  if (!pointInRing(next.x, next.z, ring)) return null;
+  if (!pointOnSurfaces(next.x, next.z, surfaces)) return null;
   return next;
 }
 
@@ -281,11 +295,11 @@ export function useModulePointer(model: SitePlacementModel | null) {
     if (drag.current) return;
     const current = model;
     if (!current) return;
-    if (!current.armedModuleId && !current.previewParts) {
+    if (current.editable === false || (!current.armedModuleId && !current.previewParts)) {
       hidePreview();
       return;
     }
-    const next = placementPoint(event, current.ring, current.snap);
+    const next = placementPoint(event, current.ring, current.snap, current.waterRing);
     if (!next) {
       hidePreview();
       return;
@@ -295,13 +309,13 @@ export function useModulePointer(model: SitePlacementModel | null) {
 
   const onClick = (event: ThreeEvent<MouseEvent>) => {
     const current = model;
-    if (!current || event.button !== 0) return;
+    if (!current || event.button !== 0 || current.editable === false) return;
     if (moved.current) {
       moved.current = false;
       return;
     }
     event.stopPropagation();
-    const next = placementPoint(event, current.ring, current.snap);
+    const next = placementPoint(event, current.ring, current.snap, current.waterRing);
     if (!next) {
       if (!current.armedModuleId) current.onSelect(null);
       return;
@@ -318,6 +332,10 @@ export function useModulePointer(model: SitePlacementModel | null) {
     const current = model;
     if (!current || event.button !== 0) return;
     event.stopPropagation();
+    if (current.editable === false) {
+      current.onSelect(id);
+      return;
+    }
     const instance = current.instances.find((item) => item.instanceId === id);
     const hit = hitFromClient(event.nativeEvent.clientX, event.nativeEvent.clientY);
     if (!instance || !hit) return;
@@ -515,7 +533,7 @@ export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; po
         const highlight = model.display === "archetypes" || model.display === "both";
         const axonBox = selected && model.viewMode === "axon";
         const assemblyHandle = model.instances.find((item) => item.assemblyPlacementId === model.selectedId)?.instanceId;
-        const showHandle = instance.instanceId === model.selectedId || instance.instanceId === assemblyHandle;
+        const showHandle = model.editable !== false && (instance.instanceId === model.selectedId || instance.instanceId === assemblyHandle);
         const mark = alert ? marks.materials.copper : marks.materials.white;
         const shift = model.displayShift[instance.instanceId] ?? { x: 0, z: 0 };
         const mirror = instance.mirror;

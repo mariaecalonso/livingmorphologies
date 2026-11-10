@@ -1,27 +1,25 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Panel, PanelHeader } from "@/components/hud";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { ModuleHandoff } from "@/lib/skill4/adapt";
 import type { TileConnection } from "@/lib/skill4/connections";
 import type { Vec3 } from "@/lib/skill4/contract";
+import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import {
   connectionProcess,
   hybridSectionRings,
   loftSectionViews,
   sectionPlate,
   sectionRibbon,
-  separateLoftRings,
   type ProcessSection,
 } from "@/lib/skill4/section-hybrid";
 import { resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
 import { MeshPreview } from "./mesh-preview";
+import { ValidationPanel } from "./validation-panel";
 
 const PAPER: [number, number, number] = [0.93, 0.93, 0.91];
-const SOFT_A: [number, number, number] = [0.84, 0.62, 0.5];
-const SOFT_B: [number, number, number] = [0.58, 0.78, 0.76];
-const SOFT_MID: [number, number, number] = [0.9, 0.9, 0.91];
 const PLANE_A = { ink: "#e0a06a", glass: [0.99, 0.93, 0.88] as [number, number, number], edge: [0.90, 0.72, 0.56] as [number, number, number] };
 const PLANE_B = { ink: "#9ad8de", glass: [0.90, 0.97, 0.98] as [number, number, number], edge: [0.70, 0.90, 0.92] as [number, number, number] };
 const CONTOUR_A: [number, number, number] = [0.86, 0.42, 0.16];
@@ -33,15 +31,19 @@ export function ProcessRow({
   loaded,
   syntheticMode,
   growth,
+  sectionPlay = null,
   part = "all",
+  assembly = [],
 }: {
   connection: TileConnection | null;
   tiles: readonly TileInstance[];
   loaded: ReadonlyMap<string, ModuleHandoff>;
   syntheticMode: boolean;
   growth: { connectionId: string; candidateId: string; mesh: IsoMesh; opacity: number } | null;
+  sectionPlay?: { connectionId: string; candidateId: string; rings: { x: number; y: number; z: number }[][]; shown: number } | null;
   /** The lab page renders every process frame. A website panel asks for one group. */
   part?: "all" | "clipping" | "descendant";
+  assembly?: readonly PlacedMesh[];
 }) {
   const tileA = tiles.find((tile) => tile.instanceId === connection?.tileAId);
   const tileB = tiles.find((tile) => tile.instanceId === connection?.tileBId);
@@ -53,9 +55,67 @@ export function ProcessRow({
   const faceB = connection?.faceB;
   const process = readyA && readyB && faceA && faceB ? connectionProcess(readyA, faceA, readyB, faceB) : null;
   const generated = connection?.generatedHybridField?.candidates.find((item) => item.candidateId === connection.selectedMockId) ?? null;
-  const loft = generated?.loftRings?.length ? generated.loftRings : hybridSectionRings(generated?.geometry ?? null) ?? [];
-  const sequence = loftSectionViews(loft);
-  const plates = standPlates(densifyPlates(separateLoftRings(sequence.map((section) => section.outer))));
+  const playing = sectionPlay && sectionPlay.connectionId === connection?.id && (!connection.selectedMockId || sectionPlay.candidateId === connection.selectedMockId) ? sectionPlay : null;
+  const stored = generated?.loftRings?.length ? generated.loftRings : hybridSectionRings(generated?.geometry ?? null) ?? [];
+  const parentA = (process?.a ?? []).filter((section) => section.outer.length >= 3);
+  const parentB = (process?.b ?? []).filter((section) => section.outer.length >= 3);
+  const loft = playing?.rings.length ? playing.rings : stored;
+  const hybrid = loft.length > 2 ? loft.slice(1, -1) : [];
+  const hybridViews = loftSectionViews(hybrid);
+  const entries: { points: Vec3[]; role: "a" | "hybrid" | "b" }[] = [
+    ...parentA.map((section) => ({ points: section.outer, role: "a" as const })),
+    ...hybrid.map((points) => ({ points, role: "hybrid" as const })),
+    ...parentB.map((section) => ({ points: section.outer, role: "b" as const })),
+  ];
+  const sequence = [
+    ...parentA.map((section) => ({ label: section.label, profile: section.profile, role: "a" as const })),
+    ...hybridViews.map((view, index) => ({ label: `H${index + 1}`, profile: view.profile, role: "hybrid" as const })),
+    ...parentB.map((section) => ({ label: section.label, profile: section.profile, role: "b" as const })),
+  ];
+  const generating = connection?.generationStatus === "generating";
+  const stood = lineUp(entries.map((entry) => entry.points));
+  const grownMax = Math.floor(Math.max(0, stood.length - 1) / 2);
+  const growing = (generating || !!playing) && entries.length > 2;
+  const trailKey = `${connection?.id ?? ""}:${parentA.length}:${hybrid.length}:${parentB.length}`;
+  const [grown, setGrown] = useState(0);
+  const grownRef = useRef(0);
+  const [scrub, setScrub] = useState<number | null>(null);
+  const [scrubPlay, setScrubPlay] = useState(false);
+  useEffect(() => {
+    const max = Math.floor(Math.max(0, stood.length - 1) / 2);
+    if (!growing || stood.length < 4) {
+      grownRef.current = max;
+      setGrown(max);
+      return;
+    }
+    grownRef.current = 0;
+    setGrown(0);
+    const timer = window.setInterval(() => {
+      const next = Math.min(max, grownRef.current + 1);
+      grownRef.current = next;
+      setGrown(next);
+      if (next >= max) window.clearInterval(timer);
+    }, 480);
+    return () => window.clearInterval(timer);
+  }, [trailKey, growing, stood.length]);
+  useEffect(() => {
+    setScrub(null);
+    setScrubPlay(false);
+  }, [trailKey]);
+  useEffect(() => {
+    if (!scrubPlay) return;
+    const last = Math.max(0, sequence.length - 1);
+    const timer = window.setInterval(() => {
+      setScrub((current) => {
+        const next = Math.min(last, (current ?? 0) + 1);
+        if (next >= last) setScrubPlay(false);
+        return next;
+      });
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [scrubPlay, sequence.length]);
+  const sourceReach = Math.floor(Math.max(0, sequence.length - 1) / 2);
+  const sourceShown = grownMax === 0 ? sourceReach : Math.round((grown / grownMax) * sourceReach);
   const selectedId = connection?.selectedMockId || "H—";
   const nameA = moduleA.identity?.name ?? tileA?.archetypeId ?? "Parent A";
   const nameB = moduleB.identity?.name ?? tileB?.archetypeId ?? "Parent B";
@@ -108,12 +168,9 @@ export function ProcessRow({
               />
             </div>
           </div>
-          <div className="hybrid-process-join-side">
-            <PanelHeader mark="05" title="Extracted Section Profiles" />
-            <div className="hybrid-process-pair hybrid-process-profiles-stack">
-              <ProfileStrip sections={process?.a ?? []} color="#d29a7c" empty="Parent A sections appear after the faces are selected." />
-              <ProfileStrip sections={process?.b ?? []} color="#8cc4c2" empty="Parent B sections appear after the faces are selected." />
-            </div>
+          <div className="hybrid-process-join-side hybrid-dna-side">
+            <PanelHeader mark="05" title="Sectional DNA — Extracted Profiles" />
+            <SectionalDna sectionsA={process?.a ?? []} sectionsB={process?.b ?? []} />
           </div>
         </div>
       </Panel>
@@ -122,45 +179,30 @@ export function ProcessRow({
       <Panel className="hybrid-process-card major-section-frame">
         <PanelHeader mark="06" title={`Generate Intermediate Hybrid Sections (${selectedId})`} />
         {sequence.length > 0 ? (
-          <div className="hybrid-process-sequence">
-            {sequence.map((section, index) => (
-              <ProfileFigure
-                key={section.label}
-                label={section.label}
-                outer={section.profile}
-                openings={[]}
-                color={sequenceColor(index, sequence.length)}
-                active={section.label.startsWith("H")}
-              />
-            ))}
-          </div>
+          <MorphSequence
+            plates={stood.map((points, index) => ({ points, role: entries[index].role, label: sequence[index]?.label ?? "" }))}
+            shown={scrub}
+            reveal={(index) => !growing || Math.min(index, stood.length - 1 - index) <= sourceShown}
+            yaw={0.46}
+            pitch={0.18}
+            playing={scrubPlay}
+            onToggle={() => {
+              setScrub((current) => (current === null || current >= sequence.length - 1 ? 0 : current));
+              setScrubPlay((value) => !value);
+            }}
+            onScrub={(index) => {
+              setScrubPlay(false);
+              setScrub(index);
+            }}
+          />
         ) : (
-          <p className="hybrid-missing">Generate the selected hybrid to see A1 through the intermediate sections to B1.</p>
+          <p className="hybrid-missing">{connection?.generationStatus === "generating" ? "The selected hybrid is generating." : "Generate the selected hybrid to see A1 through the intermediate sections to B1."}</p>
         )}
       </Panel>
   );
-  const evolution = (
-      <Panel className="hybrid-process-card major-section-frame">
-        <PanelHeader mark="07" title={`Sectional Evolution of Selected Hybrid (${selectedId})`} />
-        <div className="hybrid-process-evolution">
-          {plates.length > 0 ? (
-            <MeshPreview
-              contain
-              fill
-              yaw={0.96}
-              pitch={0.4}
-              guides={evolutionGuides(plates)}
-              mesh={null}
-            />
-          ) : (
-            <p className="hybrid-missing">Select both faces to see the section stack.</p>
-          )}
-        </div>
-      </Panel>
-  );
   if (part === "clipping") return <div className="hybrid-process-row" data-part="clipping">{clipping}</div>;
-  if (part === "descendant") return <div className="hybrid-process-row" data-part="descendant">{sections}{evolution}</div>;
-  return <div className="hybrid-process-row">{clipping}{sections}{evolution}</div>;
+  if (part === "descendant") return <div className="hybrid-process-row" data-part="descendant">{sections}</div>;
+  return <div className="hybrid-process-row" data-part="all">{clipping}{sections}<ValidationPanel assembly={assembly} /></div>;
 }
 
 function ParentSample({
@@ -317,22 +359,295 @@ function unit(value: Vec3): Vec3 {
   return times(value, 1 / span);
 }
 
-function ProfileStrip({ sections, color, empty }: { sections: ProcessSection[]; color: string; empty: string }) {
-  if (sections.length === 0) return <p className="hybrid-missing">{empty}</p>;
+function SectionalDna({ sectionsA, sectionsB }: { sectionsA: ProcessSection[]; sectionsB: ProcessSection[] }) {
+  const columns = Math.max(sectionsA.length, sectionsB.length, 1);
+  const featuredA = largestProfile(sectionsA)?.label;
+  const featuredB = largestProfile(sectionsB)?.label;
   return (
-    <div className="hybrid-process-profiles">
-      {sections.map((section) => (
-        <ProfileFigure
-          key={section.label}
-          label={section.label}
-          outer={section.profile}
-          openings={section.openingProfiles}
-          color={color}
-          copied={section.copied}
-        />
+    <div className="hybrid-profile-dna" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+      {sectionsA.map((section, index) => (
+        <div key={section.label} className="hybrid-dna-cell" data-tone="a" style={{ gridColumn: index + 1, gridRow: 1 }}>
+          <ProfileFigure
+            label={section.label}
+            outer={section.profile}
+            openings={section.openingProfiles}
+            color="#e7b08a"
+            copied={section.copied}
+            featured={section.label === featuredA}
+          />
+        </div>
       ))}
+      {sectionsA.length === 0 ? <p className="hybrid-missing" style={{ gridColumn: "1 / -1", gridRow: 1 }}>Parent A sections appear after the faces are selected.</p> : null}
+      <DnaSpine count={columns} />
+      {sectionsB.map((section, index) => (
+        <div key={section.label} className="hybrid-dna-cell" data-tone="b" style={{ gridColumn: index + 1, gridRow: 3 }}>
+          <ProfileFigure
+            label={section.label}
+            outer={section.profile}
+            openings={section.openingProfiles}
+            color="#7ee0e4"
+            copied={section.copied}
+            featured={section.label === featuredB}
+          />
+        </div>
+      ))}
+      {sectionsB.length === 0 ? <p className="hybrid-missing" style={{ gridColumn: "1 / -1", gridRow: 3 }}>Parent B sections appear after the faces are selected.</p> : null}
     </div>
   );
+}
+
+function largestProfile(sections: ProcessSection[]) {
+  let best: ProcessSection | null = null;
+  let area = -1;
+  for (const section of sections) {
+    let minU = Infinity;
+    let maxU = -Infinity;
+    let minV = Infinity;
+    let maxV = -Infinity;
+    for (const point of section.profile) {
+      minU = Math.min(minU, point.u);
+      maxU = Math.max(maxU, point.u);
+      minV = Math.min(minV, point.v);
+      maxV = Math.max(maxV, point.v);
+    }
+    const next = Math.max(0, maxU - minU) * Math.max(0, maxV - minV);
+    if (next > area) {
+      area = next;
+      best = section;
+    }
+  }
+  return best;
+}
+
+function DnaSpine({ count }: { count: number }) {
+  if (count < 1) return <div className="hybrid-dna-spine" style={{ gridColumn: "1 / -1", gridRow: 2 }} />;
+  const dots = Array.from({ length: count }, (_, index) => ((index + 0.5) / count) * 100);
+  return (
+    <div className="hybrid-dna-spine" style={{ gridColumn: "1 / -1", gridRow: 2 }} aria-hidden="true">
+      <span className="hybrid-dna-line" />
+      {dots.map((at) => <span key={at} className="hybrid-dna-node" style={{ left: `${at}%` }} />)}
+    </div>
+  );
+}
+
+function MorphSequence({
+  plates,
+  shown,
+  reveal,
+  yaw,
+  pitch,
+  playing,
+  onToggle,
+  onScrub,
+}: {
+  plates: { points: Vec3[]; role: "a" | "hybrid" | "b"; label: string }[];
+  shown: number | null;
+  reveal: (index: number) => boolean;
+  yaw: number;
+  pitch: number;
+  playing: boolean;
+  onToggle: () => void;
+  onScrub: (index: number) => void;
+}) {
+  const visible = plates.filter((plate, index) => (shown === null ? reveal(index) : index <= shown));
+  const staged = stageSequence(visible);
+  const head = shown === null ? Math.max(0, visible.length - 1) : shown;
+  const marked = new Set<number>();
+  staged.forEach((plate, index) => {
+    const previous = staged[index - 1]?.role;
+    if (index === 0 || index === staged.length - 1 || plate.role !== previous) marked.add(index);
+  });
+  if (shown !== null) marked.add(Math.min(shown, staged.length - 1));
+  const notes = staged.flatMap((plate, index) => {
+    if (!marked.has(index)) return [];
+    let crown = plate.points[0];
+    plate.points.forEach((point) => {
+      if (point.y > crown.y) crown = point;
+    });
+    return [{
+      at: crown,
+      label: plate.label,
+      color: plate.role === "a" ? "#e7b08a" : plate.role === "b" ? "#7ee0e4" : "#f7f7f4",
+    }];
+  });
+  return (
+    <div className="hybrid-morph">
+      <div className="hybrid-morph-stage">
+        {staged.length > 0 ? (
+          <MeshPreview
+            contain
+            fitScale={5.05}
+            yaw={yaw}
+            pitch={pitch}
+            mesh={null}
+            guides={[...morphLook(staged), ...projectionGuides(staged.map((plate) => plate.points)), ...sectionCage(staged.map((plate) => plate.points))]}
+            notes={notes}
+          />
+        ) : null}
+      </div>
+      <div className="hybrid-morph-play">
+        <button type="button" className="hybrid-morph-toggle" aria-label={playing ? "Pause sections" : "Play sections"} aria-pressed={playing} onClick={onToggle}>
+          <span className="hybrid-morph-mark" data-state={playing ? "pause" : "play"} />
+        </button>
+        <input
+          className="hybrid-morph-range"
+          type="range"
+          min={0}
+          max={Math.max(0, plates.length - 1)}
+          value={Math.min(head, Math.max(0, plates.length - 1))}
+          aria-label="Section sequence"
+          onChange={(event) => onScrub(Number(event.target.value))}
+        />
+        <span className="hybrid-morph-legend">A → H → B</span>
+      </div>
+    </div>
+  );
+}
+
+function stageSequence(plates: { points: Vec3[]; role: "a" | "hybrid" | "b"; label: string }[]) {
+  if (plates.length === 0) return plates;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  plates.forEach((plate) => plate.points.forEach((point) => {
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+    minZ = Math.min(minZ, point.z);
+    maxZ = Math.max(maxZ, point.z);
+  }));
+  const height = Math.max(0.001, maxY - minY);
+  const midZ = (minZ + maxZ) / 2;
+  const count = plates.length;
+  const length = height * 2.7;
+  const mid = (count - 1) / 2;
+  return plates.map((plate, index) => {
+    const along = mid === 0 ? 0 : (index - mid) / mid;
+    const x = mid === 0 ? 0 : (index - mid) * (length / (count - 1));
+    const bow = (1 - along * along) * height * 0.34;
+    return {
+      ...plate,
+      points: plate.points.map((point) => ({
+        x,
+        y: point.y,
+        z: (point.z - midZ) * 0.22 - bow,
+      })),
+    };
+  });
+}
+
+function projectionGuides(plates: Vec3[][]) {
+  if (plates.length === 0) return [];
+  let minY = Infinity;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  plates.flat().forEach((point) => {
+    minY = Math.min(minY, point.y);
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+  });
+  const height = Math.max(0.001, plates.flat().reduce((span, point) => Math.max(span, point.y), -Infinity) - minY);
+  const floor = minY - height * 0.07;
+  const color: [number, number, number] = [0.78, 0.76, 0.72];
+  const guides: { mesh: IsoMesh; color: [number, number, number]; opacity: number }[] = [];
+  plates.forEach((points) => {
+    let foot = points[0];
+    points.forEach((point) => {
+      if (point.y < foot.y) foot = point;
+    });
+    if (!foot) return;
+    dash(foot, { x: foot.x, y: floor, z: foot.z }, height * 0.004).forEach((mesh) => {
+      guides.push({ mesh, color, opacity: 0.34 });
+    });
+    guides.push({
+      mesh: strut({ x: foot.x, y: floor, z: foot.z }, { x: foot.x, y: floor, z: foot.z + height * 0.012 }, height * 0.0035),
+      color,
+      opacity: 0.5,
+    });
+  });
+  dash({ x: minX, y: floor, z: 0 }, { x: maxX, y: floor, z: 0 }, height * 0.003).forEach((mesh) => {
+    guides.push({ mesh, color, opacity: 0.28 });
+  });
+  return guides;
+}
+
+function morphLook(plates: { points: Vec3[]; role: "a" | "hybrid" | "b" }[]) {
+  const guides: { mesh: IsoMesh; color: [number, number, number]; opacity: number }[] = [];
+  plates.forEach((plate) => {
+    const color: [number, number, number] = plate.role === "hybrid" ? [0.98, 0.98, 0.97] : plate.role === "a" ? [0.86, 0.5, 0.34] : [0.28, 0.78, 0.82];
+    guides.push({ mesh: thickPlate(plate.points, plateDepth(plate.points) * 0.72), color, opacity: plate.role === "hybrid" ? 0.62 : 0.4 });
+    if (plate.points.length >= 3) guides.push({ mesh: outlineHair(plate.points), color, opacity: 0.95 });
+  });
+  return guides;
+}
+
+function sectionCage(plates: Vec3[][]) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  plates.flat().forEach((point) => {
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    minZ = Math.min(minZ, point.z);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+    maxZ = Math.max(maxZ, point.z);
+  });
+  if (!Number.isFinite(minX)) return [];
+  const pad = Math.max(maxX - minX, maxY - minY, maxZ - minZ) * 0.035;
+  minX -= pad;
+  minY -= pad;
+  minZ -= pad;
+  maxX += pad;
+  maxY += pad;
+  maxZ += pad;
+  const corner = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
+  const corners = [
+    corner(minX, minY, minZ), corner(maxX, minY, minZ), corner(maxX, maxY, minZ), corner(minX, maxY, minZ),
+    corner(minX, minY, maxZ), corner(maxX, minY, maxZ), corner(maxX, maxY, maxZ), corner(minX, maxY, maxZ),
+  ];
+  const edges: [number, number][] = [
+    [0, 1], [1, 2], [2, 3], [3, 0],
+    [4, 5], [5, 6], [6, 7], [7, 4],
+    [0, 4], [1, 5], [2, 6], [3, 7],
+  ];
+  const span = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+  return edges.flatMap(([from, to]) => dash(corners[from], corners[to], span * 0.0035).map((mesh) => ({
+    mesh,
+    color: [0.72, 0.74, 0.73] as [number, number, number],
+    opacity: 0.4,
+  })));
+}
+
+function dash(from: Vec3, to: Vec3, width: number): IsoMesh[] {
+  const parts: IsoMesh[] = [];
+  const steps = 7;
+  for (let step = 0; step < steps; step += 2) {
+    const start = step / steps;
+    const end = (step + 1) / steps;
+    const a = mixPoint(from, to, start);
+    const b = mixPoint(from, to, end);
+    parts.push(strut(a, b, width));
+  }
+  return parts;
+}
+
+function mixPoint(from: Vec3, to: Vec3, t: number): Vec3 {
+  return {
+    x: from.x + (to.x - from.x) * t,
+    y: from.y + (to.y - from.y) * t,
+    z: from.z + (to.z - from.z) * t,
+  };
+}
+
+function strut(a: Vec3, b: Vec3, width: number): IsoMesh {
+  const dir = unit(minus(b, a));
+  const hint = Math.abs(dir.y) > 0.85 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 };
+  const side = times(unit(cross(dir, hint)), width);
+  return quadMesh([plus(a, side), plus(b, side), minus(b, side), minus(a, side)]);
 }
 
 function ProfileFigure({
@@ -342,6 +657,7 @@ function ProfileFigure({
   color,
   active = false,
   copied = false,
+  featured = false,
 }: {
   label: string;
   outer: { u: number; v: number }[];
@@ -349,6 +665,7 @@ function ProfileFigure({
   color: string;
   active?: boolean;
   copied?: boolean;
+  featured?: boolean;
 }) {
   const points = [outer, ...openings];
   let minU = Infinity;
@@ -361,15 +678,26 @@ function ProfileFigure({
     minV = Math.min(minV, point.v);
     maxV = Math.max(maxV, point.v);
   });
-  const pad = Math.max(maxU - minU, maxV - minV, 1e-4) * 0.12;
+  const pad = Math.max(maxU - minU, maxV - minV, 1e-4) * 0.04;
+  const path = outer.map((point) => `${point.u},${point.v}`).join(" ");
+  const grad = `dna-glow-${label.replace(/[^a-z0-9]+/gi, "")}`;
   const view = `${minU - pad} ${-(maxV + pad)} ${Math.max(maxU - minU, 1e-4) + pad * 2} ${Math.max(maxV - minV, 1e-4) + pad * 2}`;
   return (
-    <figure className="hybrid-process-figure" data-active={active || undefined} data-copied={copied || undefined}>
+    <figure className="hybrid-process-figure" data-active={active || undefined} data-copied={copied || undefined} data-featured={featured || undefined} style={featured ? { ["--dna-fill" as string]: `url(#${grad})` } : undefined}>
       <svg viewBox={view} role="img" aria-label={label}>
+        {featured ? (
+          <defs>
+            <radialGradient id={grad} cx="50%" cy="50%" r="58%">
+              <stop offset="0%" stopColor={color} stopOpacity="0.78" />
+              <stop offset="62%" stopColor={color} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={color} stopOpacity="0.04" />
+            </radialGradient>
+          </defs>
+        ) : null}
         <g transform="scale(1,-1)">
-          <polygon points={outer.map((point) => `${point.u},${point.v}`).join(" ")} fill="none" stroke={color} strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+          <polygon className="hybrid-dna-shell" points={path} fill="none" stroke={color} strokeWidth={featured ? 2.2 : 1.35} vectorEffect="non-scaling-stroke" />
           {openings.map((opening, index) => (
-            <polygon key={index} points={opening.map((point) => `${point.u},${point.v}`).join(" ")} fill="none" stroke={color} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />
+            <polygon key={index} points={opening.map((point) => `${point.u},${point.v}`).join(" ")} fill="none" stroke={color} strokeWidth={1.15} vectorEffect="non-scaling-stroke" />
           ))}
         </g>
       </svg>
@@ -378,63 +706,49 @@ function ProfileFigure({
   );
 }
 
-function evolutionGuides(plates: Vec3[][]) {
-  const guides: { mesh: IsoMesh; color: [number, number, number]; opacity: number }[] = plates.map((points, index) => ({
-    mesh: thickPlate(points, plateDepth(plates, index)),
-    color: plateColor(index, plates.length),
-    opacity: 0.42,
-  }));
-  plates.forEach((points) => {
-    if (points.length < 3) return;
-    guides.push({ mesh: outlineHair(points), color: [0.78, 0.79, 0.77], opacity: 0.48 });
+function lineUp(plates: Vec3[][]): Vec3[][] {
+  if (plates.length === 0) return plates;
+  const frames = plates.map((points) => {
+    const origin = mean(points);
+    const normal = ringNormal(points);
+    const upright = inPlane(normal, { x: 0, y: 1, z: 0 });
+    const width = unit(cross(normal, upright));
+    const height = unit(cross(width, normal));
+    return { origin, width, height, points };
   });
-  return guides;
-}
-
-function densifyPlates(plates: Vec3[][]): Vec3[][] {
-  if (plates.length < 2) return plates;
-  const inserts = 2;
-  const dense: Vec3[][] = [];
-  for (let index = 0; index < plates.length - 1; index += 1) {
-    const from = plates[index];
-    const to = matchRing(plates[index + 1], from.length);
-    dense.push(from);
-    for (let step = 1; step <= inserts; step += 1) {
-      const t = step / (inserts + 1);
-      dense.push(from.map((point, sample) => ({
-        x: point.x + (to[sample].x - point.x) * t,
-        y: point.y + (to[sample].y - point.y) * t,
-        z: point.z + (to[sample].z - point.z) * t,
-      })));
-    }
+  for (let index = 1; index < frames.length; index += 1) {
+    if (dot(frames[index].width, frames[index - 1].width) < 0) frames[index].width = times(frames[index].width, -1);
+    if (dot(frames[index].height, frames[index - 1].height) < 0) frames[index].height = times(frames[index].height, -1);
   }
-  dense.push(plates[plates.length - 1]);
-  return dense;
-}
-
-function matchRing(points: Vec3[], count: number): Vec3[] {
-  if (points.length === count) return points;
-  const closed = [...points, points[0]];
-  const lengths = [0];
-  for (let index = 1; index < closed.length; index += 1) {
-    const delta = minus(closed[index], closed[index - 1]);
-    lengths.push(lengths[index - 1] + Math.hypot(delta.x, delta.y, delta.z));
-  }
-  const total = lengths[lengths.length - 1] || 1;
-  return Array.from({ length: count }, (_, index) => {
-    const target = (index / count) * total;
-    let segment = 1;
-    while (segment < lengths.length - 1 && lengths[segment] < target) segment += 1;
-    const span = lengths[segment] - lengths[segment - 1] || 1;
-    const amount = (target - lengths[segment - 1]) / span;
-    const start = closed[segment - 1];
-    const end = closed[segment];
+  let reach = 0;
+  let samples = 0;
+  frames.forEach((frame) => {
+    frame.points.forEach((point) => {
+      const delta = minus(point, frame.origin);
+      reach += Math.hypot(dot(delta, frame.width), dot(delta, frame.height));
+      samples += 1;
+    });
+  });
+  const step = Math.max((samples > 0 ? reach / samples : 1) * 1.2, 0.08);
+  const mid = (frames.length - 1) / 2;
+  return frames.map((frame, index) => frame.points.map((point) => {
+    const delta = minus(point, frame.origin);
     return {
-      x: start.x + (end.x - start.x) * amount,
-      y: start.y + (end.y - start.y) * amount,
-      z: start.z + (end.z - start.z) * amount,
+      x: (index - mid) * step,
+      y: dot(delta, frame.height),
+      z: dot(delta, frame.width),
     };
-  });
+  }));
+}
+
+function inPlane(normal: Vec3, hint: Vec3): Vec3 {
+  const rejected = minus(hint, times(normal, dot(hint, normal)));
+  const span = Math.hypot(rejected.x, rejected.y, rejected.z);
+  if (span < 1e-5) {
+    const fallback = Math.abs(normal.x) < 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 0, z: 1 };
+    return inPlane(normal, fallback);
+  }
+  return times(rejected, 1 / span);
 }
 
 function outlineHair(points: Vec3[]): IsoMesh {
@@ -456,41 +770,6 @@ function outlineHair(points: Vec3[]): IsoMesh {
   return sectionRibbon(outside, stroke * 0.22);
 }
 
-function standPlates(plates: Vec3[][]): Vec3[][] {
-  if (plates.length === 0) return plates;
-  const frames = plates.map((points) => {
-    const origin = mean(points);
-    const normal = ringNormal(points);
-    const upright = Math.abs(normal.y) > 0.72 ? horizontalLongest(points, origin, normal) : inPlane(normal, { x: 0, y: 1, z: 0 });
-    const width = unit(cross(normal, upright));
-    const height = unit(cross(width, normal));
-    return { origin, width, height, points };
-  });
-  for (let index = 1; index < frames.length; index += 1) {
-    if (dot(frames[index].width, frames[index - 1].width) < 0) frames[index].width = times(frames[index].width, -1);
-    if (dot(frames[index].height, frames[index - 1].height) < 0) frames[index].height = times(frames[index].height, -1);
-  }
-  let reach = 0;
-  let count = 0;
-  frames.forEach((frame) => {
-    frame.points.forEach((point) => {
-      const delta = minus(point, frame.origin);
-      reach += Math.hypot(delta.x, delta.y, delta.z);
-      count += 1;
-    });
-  });
-  const step = Math.max((count > 0 ? reach / count : 1) * 0.82, 0.08);
-  const mid = (frames.length - 1) / 2;
-  return frames.map((frame, index) => frame.points.map((point) => {
-    const delta = minus(point, frame.origin);
-    return {
-      x: (index - mid) * step,
-      y: dot(delta, frame.height),
-      z: dot(delta, frame.width),
-    };
-  }));
-}
-
 function ringNormal(points: Vec3[]): Vec3 {
   const normal = { x: 0, y: 0, z: 0 };
   points.forEach((point, index) => {
@@ -502,49 +781,14 @@ function ringNormal(points: Vec3[]): Vec3 {
   return unit(normal);
 }
 
-function inPlane(normal: Vec3, hint: Vec3): Vec3 {
-  const rejected = minus(hint, times(normal, dot(hint, normal)));
-  const span = Math.hypot(rejected.x, rejected.y, rejected.z);
-  if (span < 1e-5) {
-    const fallback = Math.abs(normal.x) < 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 0, z: 1 };
-    return inPlane(normal, fallback);
-  }
-  return times(rejected, 1 / span);
-}
-
-function horizontalLongest(points: Vec3[], origin: Vec3, normal: Vec3): Vec3 {
-  const across = inPlane(normal, { x: 1, y: 0, z: 0 });
-  const along = unit(cross(normal, across));
-  let uu = 0;
-  let vv = 0;
-  let uv = 0;
+function plateDepth(points: Vec3[]) {
+  const center = mean(points);
+  let reach = 0;
   points.forEach((point) => {
-    const delta = minus(point, origin);
-    const x = dot(delta, across);
-    const y = dot(delta, along);
-    uu += x * x;
-    vv += y * y;
-    uv += x * y;
+    reach += Math.hypot(point.x - center.x, point.y - center.y, point.z - center.z);
   });
-  const trace = uu + vv;
-  const disc = Math.max(0, trace * trace / 4 - (uu * vv - uv * uv));
-  const lambda = trace / 2 + Math.sqrt(disc);
-  const x = Math.abs(uv) > 1e-8 ? uv : (uu >= vv ? 1 : 0);
-  const y = Math.abs(uv) > 1e-8 ? lambda - uu : (uu >= vv ? 0 : 1);
-  const span = Math.hypot(x, y) || 1;
-  return unit(plus(times(across, x / span), times(along, y / span)));
-}
-
-function plateDepth(plates: Vec3[][], index: number) {
-  if (plates.length < 2) return 0.08;
-  const centers = plates.map((points) => mean(points));
-  const gap = (from: number, to: number) => Math.hypot(
-    centers[to].x - centers[from].x,
-    centers[to].y - centers[from].y,
-    centers[to].z - centers[from].z,
-  );
-  const neighbor = index < plates.length - 1 ? gap(index, index + 1) : gap(index - 1, index);
-  return Math.max(neighbor * 0.46, 0.02);
+  reach /= Math.max(1, points.length);
+  return Math.max(reach * 0.1, 0.02);
 }
 
 function thickPlate(points: Vec3[], depth: number): IsoMesh {
@@ -616,25 +860,3 @@ function mean(points: Vec3[]): Vec3 {
   return times(origin, 1 / Math.max(1, points.length));
 }
 
-function plateColor(index: number, count: number): [number, number, number] {
-  const t = count <= 1 ? 0 : index / (count - 1);
-  return t < 0.5 ? mixTuple(SOFT_A, SOFT_MID, t * 2) : mixTuple(SOFT_MID, SOFT_B, (t - 0.5) * 2);
-}
-
-function mixTuple(from: [number, number, number], to: [number, number, number], amount: number): [number, number, number] {
-  return [
-    from[0] + (to[0] - from[0]) * amount,
-    from[1] + (to[1] - from[1]) * amount,
-    from[2] + (to[2] - from[2]) * amount,
-  ];
-}
-
-function sequenceColor(index: number, count: number) {
-  const t = count <= 1 ? 0 : index / (count - 1);
-  const mix = (from: number[], to: number[], amount: number) => from.map((value, channel) => Math.round(value + (to[channel] - value) * amount));
-  const orange = [214, 158, 128];
-  const paper = [232, 232, 230];
-  const teal = [140, 196, 194];
-  const rgb = t < 0.5 ? mix(orange, paper, t * 2) : mix(paper, teal, (t - 0.5) * 2);
-  return `rgb(${rgb.join(",")})`;
-}

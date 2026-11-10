@@ -47,9 +47,12 @@ uniform vec3 uRampDir;
 out vec3 vNormal;
 out vec3 vObjectN;
 out vec3 vLocal;
+out vec3 vBary;
 out float vDepth;
 out float vRamp;
 void main() {
+  int corner = gl_VertexID - (gl_VertexID / 3) * 3;
+  vBary = corner == 0 ? vec3(1.0, 0.0, 0.0) : corner == 1 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
   float cy = cos(uYaw);
   float sy = sin(uYaw);
   float cp = cos(uPitch);
@@ -101,6 +104,7 @@ precision highp float;
 in vec3 vNormal;
 in vec3 vObjectN;
 in vec3 vLocal;
+in vec3 vBary;
 in float vDepth;
 in float vRamp;
 uniform vec3 uColor;
@@ -109,52 +113,43 @@ uniform float uPalette;
 uniform float uStyle;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
-float surfaceLine(float coord) {
-  float dist = 0.5 - abs(fract(coord) - 0.5);
-  float width = min(max(fwidth(coord) * 0.55, 0.0018), 0.07);
-  return 1.0 - smoothstep(width, width * 2.1, dist);
-}
 void main() {
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
-  if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.35, 0.82, 0.45));
-  vec3 fill = normalize(vec3(-0.55, 0.2, 0.4));
+  float facing = dot(n, viewDir);
+  if (facing < 0.0) n = -n;
+  vec3 key = normalize(vec3(0.42, 0.74, 0.52));
   float lambert = clamp(dot(n, key), 0.0, 1.0);
-  float bounce = clamp(dot(n, fill), 0.0, 1.0);
-  float shade = 0.9 + lambert * 0.08 + bounce * 0.02;
+  float shade = 0.94 + lambert * 0.06;
   vec3 green = vec3(0.058824, 0.450980, 0.466667);
   vec3 orange = vec3(0.780392, 0.494118, 0.372549);
   vec3 tint = mix(green, orange, clamp(vRamp, 0.0, 1.0));
   vec3 col = uPalette > 0.5 ? tint : uColor * shade;
-  if (uStyle > 1.5) {
-    vec3 surfaceN = normalize(vObjectN);
-    vec3 tangent = abs(surfaceN.y) > 0.85 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-    tangent = normalize(cross(surfaceN, tangent));
-    vec3 bitangent = cross(surfaceN, tangent);
-    vec2 uv = vec2(dot(vLocal, tangent), dot(vLocal, bitangent));
-    float spacing = 0.52;
-    vec2 id = floor(uv / spacing);
-    float objDist = length(uv - (id + 0.5) * spacing);
-    float pixel = max(length(fwidth(uv)), 0.0012);
-    float point = 1.0 - smoothstep(pixel * 1.05, pixel * 2.15, objDist);
-    float halo = (1.0 - smoothstep(pixel * 2.0, pixel * 3.6, objDist)) * 0.34;
-    vec3 body = tint * (0.26 + lambert * 0.16);
-    vec3 glow = min(vec3(0.9), tint * (1.08 + lambert * 0.28) + vec3(0.03));
-    col = mix(body, glow, clamp(point + halo, 0.0, 1.0));
-  } else if (uStyle > 0.5) {
-    vec3 surfaceN = normalize(vObjectN);
-    vec3 tangent = abs(surfaceN.y) > 0.85 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-    tangent = normalize(cross(surfaceN, tangent));
-    vec3 bitangent = cross(surfaceN, tangent);
-    float along = dot(vLocal, tangent);
-    float across = dot(vLocal, bitangent);
-    float rim = pow(1.0 - abs(dot(n, viewDir)), 2.1);
-    float crease = smoothstep(0.05, 0.42, length(fwidth(n)));
-    float flow = max(surfaceLine(along * 1.8), surfaceLine(across * 1.8));
-    float contour = surfaceLine((along + across) * 1.25);
-    float ink = clamp(max(rim, crease * 0.7) * 0.5 + max(flow, contour * 0.65) * 0.36, 0.0, 0.52);
-    col = mix(col, vec3(0.15, 0.16, 0.17), ink);
+  if (uStyle > 0.5) {
+    float rim = pow(1.0 - abs(facing), 2.6);
+    float bend = length(fwidth(n));
+    float crease = smoothstep(0.2, 0.46, bend) * (1.0 - smoothstep(0.46, 1.2, bend));
+    float edgeDist = min(vBary.x, min(vBary.y, vBary.z));
+    float fw = fwidth(edgeDist);
+    float meshEdge = fw > 0.003 && fw < 0.055 ? (1.0 - smoothstep(fw * 0.15, fw * 0.7, edgeDist)) : 0.0;
+    vec3 body;
+    vec3 line;
+    if (uStyle > 1.5) {
+      float heart = 1.0 - abs(clamp(vRamp, 0.0, 1.0) * 2.0 - 1.0);
+      vec3 hue = mix(vec3(0.55, 0.96, 0.98), vec3(0.98, 0.7, 0.54), clamp(vRamp, 0.0, 1.0));
+      hue = mix(hue, vec3(1.0), heart * 0.84);
+      body = hue;
+      line = mix(hue, vec3(1.0), 0.4);
+    } else {
+      body = mix(uColor, vec3(1.0), 0.88);
+      line = vec3(1.0);
+    }
+    float shell = facing < 0.0 ? 0.66 : 1.0;
+    float alpha = 0.22 * shell * uAlpha;
+    vec3 glow = line * (rim * 0.55 + crease * 0.28 + meshEdge * 0.22);
+    oColor = vec4(body * alpha + glow, alpha);
+    oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+    return;
   }
   oColor = vec4(col, uAlpha);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
@@ -178,25 +173,59 @@ out vec4 oColor;
 void main() {
   vec3 col = texture(uColor, vUv).rgb;
   float z = texture(uDepth, vUv).r;
-  if (z <= 0.001) {
-    oColor = vec4(0.0, 0.0, 0.0, 1.0);
-    return;
+  float contour = 0.0;
+  float support = 0.0;
+  vec2 axes[4];
+  axes[0] = vec2(1.0, 0.0);
+  axes[1] = vec2(0.0, 1.0);
+  axes[2] = vec2(0.7071, 0.7071);
+  axes[3] = vec2(-0.7071, 0.7071);
+  for (int i = 0; i < 4; i++) {
+    vec2 stepUv = axes[i] * uTexel * 1.75;
+    float left = texture(uDepth, vUv - stepUv).r;
+    float right = texture(uDepth, vUv + stepUv).r;
+    support += step(0.002, left) + step(0.002, right);
+    float jump = abs(z - (left + right) * 0.5);
+    float breakEdge = max(abs(step(0.002, z) - step(0.002, left)), abs(step(0.002, z) - step(0.002, right)));
+    contour = max(contour, max(smoothstep(0.012, 0.045, jump), breakEdge));
   }
-  float ao = 0.0;
-  float radius = 14.0;
-  for (int i = 0; i < 16; i++) {
-    float a = float(i) * 2.399963;
-    float r = radius * (0.25 + 0.75 * float(i) / 15.0);
-    vec2 off = vec2(cos(a), sin(a)) * r * uTexel;
-    float sz = texture(uDepth, vUv + off).r;
-    float diff = z - sz;
-    ao += step(0.012, diff) * smoothstep(0.55, 0.03, diff);
+  contour *= step(3.0, support);
+  vec3 bloom = vec3(0.0);
+  for (int i = 0; i < 10; i++) {
+    float a = float(i) * 0.62831853;
+    bloom += texture(uColor, vUv + vec2(cos(a), sin(a)) * (9.0 + float(i) * 1.8) * uTexel).rgb;
   }
-  ao = clamp(1.0 - ao / 28.0, 0.92, 1.0);
-  oColor = vec4(col * ao, 1.0);
+  float inside = step(0.002, z);
+  float strength = max(col.r, max(col.g, col.b));
+  vec3 hue = strength > 0.05 ? col / strength : vec3(0.95, 0.96, 0.95);
+  vec3 lit = col + bloom * mix(0.16, 0.04, inside) + hue * contour * 0.55;
+  oColor = vec4(min(lit, vec3(1.0)), 1.0);
 }`;
 
-const SHADER_VERSION = 14;
+const SHADER_VERSION = 30;
+
+const expandedMeshes = new WeakMap<IsoMesh, { positions: Float32Array; normals: Float32Array }>();
+
+function expandMesh(mesh: IsoMesh) {
+  const cached = expandedMeshes.get(mesh);
+  if (cached) return cached;
+  const count = mesh.indices.length;
+  const positions = new Float32Array(count * 3);
+  const normals = new Float32Array(count * 3);
+  for (let index = 0; index < count; index += 1) {
+    const source = mesh.indices[index] * 3;
+    const target = index * 3;
+    positions[target] = mesh.positions[source] ?? 0;
+    positions[target + 1] = mesh.positions[source + 1] ?? 0;
+    positions[target + 2] = mesh.positions[source + 2] ?? 0;
+    normals[target] = mesh.normals[source] ?? 0;
+    normals[target + 1] = mesh.normals[source + 1] ?? 1;
+    normals[target + 2] = mesh.normals[source + 2] ?? 0;
+  }
+  const flat = { positions, normals };
+  expandedMeshes.set(mesh, flat);
+  return flat;
+}
 
 type Gpu = {
   gl: WebGL2RenderingContext;
@@ -651,7 +680,7 @@ function meshRamp(mesh: IsoMesh, translate: Vec3) {
 }
 
 /** Largest view that keeps every vertex inside the frame. */
-function frameFit(instances: readonly PlacedMesh[], aspect: number, eye: number) {
+function frameFit(instances: readonly PlacedMesh[], aspect: number, eye: number, locked?: { yaw: number; pitch: number }) {
   const focal = 1.55;
   const limit = 0.99;
   const points: Vec3[] = [];
@@ -661,10 +690,14 @@ function frameFit(instances: readonly PlacedMesh[], aspect: number, eye: number)
       points.push(placeVertex(instance, positions[index], positions[index + 1], positions[index + 2]));
     }
   }
-  if (points.length === 0) return { fit: 1, center: { x: 0, y: 0, z: 0 }, yaw: 0.42, pitch: 0.14 };
-  let best = { fit: 0, center: { x: 0, y: 0, z: 0 }, yaw: 0.42, pitch: 0.14, cover: -1 };
-  for (let yaw = 0; yaw < Math.PI; yaw += 0.22) {
-    for (let pitch = -0.5; pitch <= 0.7; pitch += 0.16) {
+  if (points.length === 0) return { fit: 1, center: { x: 0, y: 0, z: 0 }, yaw: locked?.yaw ?? 0.42, pitch: locked?.pitch ?? 0.14 };
+  let best = { fit: 0, center: { x: 0, y: 0, z: 0 }, yaw: locked?.yaw ?? 0.42, pitch: locked?.pitch ?? 0.14, cover: -1 };
+  const yawStart = locked ? locked.yaw : 0;
+  const yawStop = locked ? locked.yaw : Math.PI - 0.001;
+  const pitchStart = locked ? locked.pitch : -0.5;
+  const pitchStop = locked ? locked.pitch : 0.7;
+  for (let yaw = yawStart; yaw <= yawStop + 1e-6; yaw += locked ? 1 : 0.22) {
+    for (let pitch = pitchStart; pitch <= pitchStop + 1e-6; pitch += locked ? 1 : 0.16) {
       const cy = Math.cos(yaw);
       const sy = Math.sin(yaw);
       const cp = Math.cos(pitch);
@@ -736,6 +769,7 @@ export function drawPlacedMeshes(
   fitScale = 1,
   lookAt?: Vec3,
   fill = false,
+  steer = false,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
@@ -763,16 +797,23 @@ export function drawPlacedMeshes(
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
   const aspect = width / Math.max(1, height);
-  const framed = fill ? frameFit(instances, aspect, eye) : null;
+  const framed = fill ? frameFit(instances, aspect, eye, steer ? { yaw, pitch } : undefined) : null;
   const center = framed?.center ?? lookAt ?? placementCenter(instances);
   const fit = framed?.fit ?? (contain ? containedFit(instances, aspect) : placementFit(span, aspect)) * fitScale;
+  const viewYaw = framed?.yaw ?? yaw;
+  const viewPitch = framed?.pitch ?? pitch;
   gl.useProgram(gpu.program);
-  gl.uniform1f(gpu.uYaw, framed?.yaw ?? yaw);
-  gl.uniform1f(gpu.uPitch, framed?.pitch ?? pitch);
+  gl.uniform1f(gpu.uYaw, viewYaw);
+  gl.uniform1f(gpu.uPitch, viewPitch);
   gl.uniform1f(gpu.uAspect, aspect);
   gl.uniform1f(gpu.uFit, fit);
   gl.uniform1f(gpu.uDistance, eye);
   gl.uniform3f(gpu.uCenter, center.x, center.y, center.z);
+  if (ground) drawGroundGrid(gpu, instances);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
   const drawInstance = (instance: PlacedMesh) => {
     if (instance.mesh.triangles < 1) return;
     const opacity = instance.opacity ?? 1;
@@ -802,32 +843,38 @@ export function drawPlacedMeshes(
     const color = instance.color ?? [1.0, 1.0, 1.0];
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
     gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
-    const whiteParent = !instance.palette
-      && !instance.id.startsWith("guide:")
-      && instance.id !== "joined-assembly"
-      && (instance.id === "preview" || !instance.id.includes(":"))
-      && color[0] > 0.96 && color[1] > 0.96 && color[2] > 0.96;
-    gl.uniform1f(gpu.uStyle, instance.palette ? 2 : whiteParent ? 1 : 0);
+    const ghost = !instance.id.startsWith("guide:");
+    gl.uniform1f(gpu.uStyle, instance.palette ? 2 : ghost ? 1 : 0);
     const ramp = instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
     gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
     gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
-    const count = instance.mesh.indices.length;
-    if (!instance.palette) {
-      gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
+    if (ghost) {
+      const flat = expandMesh(instance.mesh);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
+      gl.bufferData(gl.ARRAY_BUFFER, flat.positions, gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gpu.normal);
+      gl.bufferData(gl.ARRAY_BUFFER, flat.normals, gl.DYNAMIC_DRAW);
+      gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LESS);
+      gl.depthMask(true);
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.FRONT);
+      gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+      gl.cullFace(gl.BACK);
+      gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+      gl.depthFunc(gl.LEQUAL);
+      gl.disable(gl.CULL_FACE);
+      gl.disable(gl.BLEND);
+      gl.depthMask(true);
       return;
     }
-    gl.enable(gl.DEPTH_TEST);
-    gl.colorMask(false, false, false, false);
-    gl.depthMask(true);
-    gl.disable(gl.BLEND);
-    gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
-    gl.colorMask(true, true, true, true);
-    gl.depthFunc(gl.EQUAL);
-    gl.depthMask(false);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.drawElements(gl.TRIANGLES, count, gl.UNSIGNED_INT, 0);
-    gl.depthFunc(gl.LEQUAL);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
+    gl.drawElements(gl.TRIANGLES, instance.mesh.indices.length, gl.UNSIGNED_INT, 0);
   };
   for (const instance of instances) {
     if ((instance.opacity ?? 1) >= 1) drawInstance(instance);
@@ -851,7 +898,6 @@ export function drawPlacedMeshes(
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
   gl.depthMask(true);
-  if (ground) drawGroundGrid(gpu, instances);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.disable(gl.DEPTH_TEST);
   gl.useProgram(gpu.aoProgram);
@@ -866,7 +912,7 @@ export function drawPlacedMeshes(
   gl.uniform1i(gl.getUniformLocation(gpu.aoProgram, "uDepth"), 1);
   gl.uniform2f(gpu.uTexel, 1 / pixelsW, 1 / pixelsH);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  return { fit, center, width, height };
+  return { fit, center, width, height, yaw: viewYaw, pitch: viewPitch };
 }
 
 /** Display-only XZ lines on the registration ground. Not a placed instance, so it cannot be picked. */
