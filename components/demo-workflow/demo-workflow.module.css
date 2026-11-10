@@ -210,6 +210,8 @@
 .videoPage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  background: #000000;
 }
 
 .stage {
@@ -352,10 +354,10 @@
   inset: 0;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
   margin: 0;
-  padding: calc(var(--home-view) * 0.214 - 44px) 0 0;
+  padding: 0 3cqw;
   border: 0;
   background: transparent;
   color: inherit;
@@ -368,17 +370,72 @@
 }
 
 .coverTitle {
-  max-width: 34%;
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+  max-width: 100%;
   font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
-  font-size: calc(var(--home-view) * 0.048);
+  font-size: min(4.6cqh, calc(90cqw / (var(--cover-chars, 36) * 0.72)));
   font-weight: 400;
   line-height: 1;
-  letter-spacing: 0.06em;
-  text-align: left;
+  letter-spacing: 0.14em;
+  text-align: center;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.title[data-cover] {
+.coverInk,
+.coverLight {
+  display: block;
+}
+
+.coverInk {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+}
+
+/* A white glow crosses the letters from left to right, then leaves them plain. */
+.coverLight {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  color: transparent;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.25) 44%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.25) 56%,
+    transparent 62%,
+    transparent 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 240% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.55));
+  animation: cover-light 11s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cover-light {
+  0% { background-position: 100% 0; }
+  82% { background-position: 0% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coverLight {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.title[data-cover],
+.title[data-video] {
   visibility: hidden;
 }
 

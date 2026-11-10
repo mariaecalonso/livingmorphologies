@@ -507,9 +507,24 @@
 }
 
 .logic {
-  grid-template-columns: 20rem minmax(0, 1fr);
+  grid-template-columns: 20rem 13.2rem minmax(0, 0.8fr) minmax(0, 1.11fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
+  column-gap: 0.65rem;
+}
+
+.logic > section:nth-child(1) {
+  grid-column: 1;
+  margin-right: 0.55rem;
+}
+
+.logic > section:nth-child(2) {
+  grid-column: 2 / 4;
+  padding-right: 0.15rem;
+}
+
+.logic > section:nth-child(3) {
+  grid-column: 4;
 }
 
 .logic > section {
@@ -670,7 +685,8 @@
   height: 1.35rem;
 }
 
-.labBay {
+.labBay,
+.analysisSlot {
   height: 100%;
   min-height: 0;
 }

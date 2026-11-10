@@ -1,0 +1,325 @@
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.5rem 0.7rem 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+  color: #f2f2ee;
+}
+
+.frame header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.frame header h3,
+.group h4,
+.row figcaption b,
+.plates figcaption b {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.frame header p,
+.row figcaption em,
+.plates figcaption em {
+  margin: 0;
+  font-size: 0.4rem;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.66);
+}
+
+.row figcaption em,
+.plates figcaption em {
+  font-size: 0.46rem;
+  letter-spacing: 0.035em;
+  line-height: 1.32;
+  color: #d7fbff;
+}
+
+
+.group {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-columns: 6.4rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.group h4 {
+  align-self: center;
+}
+
+.plates {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.28rem;
+  min-height: 0;
+}
+
+.plates figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  background: #000000;
+}
+
+.open {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.back {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #49d7de;
+  font: inherit;
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.row figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  background: #000000;
+}
+
+.pager {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.plate,
+.missing {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.plate img,
+.plate svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.plate img {
+  display: block;
+  object-fit: contain;
+  filter: brightness(0.62);
+}
+
+.plate svg {
+  z-index: 1;
+  object-fit: contain;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.plate svg[data-detail="brief"] .glow {
+  display: none;
+}
+
+.plate svg[data-detail="brief"][data-mode="edge-void"] .primary,
+.plate svg[data-detail="brief"][data-mode="spine"] .primary {
+  stroke-width: 1.85;
+}
+
+.plate svg[data-detail="brief"][data-mode="separator"] .ribbon {
+  stroke: #d8feff;
+  stroke-width: 1.7;
+}
+
+.glow,
+.primary,
+.guide,
+.fill,
+.core,
+.bay,
+.ribbon,
+.dashed,
+.dotted,
+.thick,
+.ink,
+.inkDash,
+.arrow {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glow {
+  fill: none;
+  stroke: rgba(73, 215, 222, 0.22);
+  stroke-width: 1.85;
+}
+
+.primary {
+  fill: none;
+  stroke: #d8feff;
+  stroke-width: 1.35;
+}
+
+.fill {
+  fill: rgba(73, 215, 222, 0.28);
+  stroke: none;
+}
+
+.guide,
+.tick {
+  fill: none;
+  stroke: rgba(122, 244, 248, 0.72);
+  stroke-width: 0.7;
+}
+
+.tick {
+  stroke: #7ef4f8;
+  stroke-width: 0.75;
+}
+
+.core {
+  fill: rgba(73, 215, 222, 0.2);
+  stroke: #9af7fb;
+  stroke-width: 0.9;
+}
+
+.bay {
+  fill: rgba(73, 215, 222, 0.24);
+  stroke: #d8feff;
+  stroke-width: 1.15;
+}
+
+.ribbon {
+  fill: rgba(73, 215, 222, 0.28);
+  stroke: #d8feff;
+  stroke-width: 1.05;
+}
+
+.dashed {
+  fill: none;
+  stroke: #d8feff;
+  stroke-width: 1.2;
+  stroke-dasharray: 3.2 2;
+}
+
+.dotted {
+  fill: none;
+  stroke: rgba(154, 247, 251, 0.9);
+  stroke-width: 0.7;
+  stroke-dasharray: 1.4 1.2;
+}
+
+.ink,
+.inkDash {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.88);
+  stroke-width: 1.9;
+}
+
+.inkDash {
+  stroke-width: 1.75;
+  stroke-dasharray: 3.2 2;
+}
+
+.arrow {
+  fill: none;
+  stroke: #d8feff;
+  stroke-width: 1.05;
+}
+
+.haze {
+  fill: rgba(73, 215, 222, 0.1);
+  stroke: none;
+}
+
+.thick {
+  fill: none;
+  stroke: #9af7fb;
+  stroke-width: 1.35;
+}
+
+.node {
+  fill: none;
+  stroke: #9af7fb;
+  stroke-width: 0.9;
+}
+
+.spanLabel {
+  fill: #9af7fb;
+  font-size: 4.4px;
+  letter-spacing: 0.18em;
+}
+
+.missing {
+  display: grid;
+  place-items: center;
+  color: rgba(242, 242, 238, 0.45);
+  font-size: 0.4rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.row figcaption,
+.plates figcaption {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.14rem 0.28rem 0.18rem;
+}
+
+.plates figcaption b {
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+}

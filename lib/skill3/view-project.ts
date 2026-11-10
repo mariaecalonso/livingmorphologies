@@ -106,7 +106,7 @@ export function meshBounds(positions: ArrayLike<number>): MeshBounds | null {
  * Orthographic fit of the vertices actually on screen.
  * Scale is uniform. Center and pan are presentation offsets. Vertex positions stay where they are.
  */
-export function surfaceFrame(positions: ArrayLike<number>, yaw: number, pitch: number, aspect: number, margin = 0.93) {
+export function surfaceFrame(positions: ArrayLike<number>, yaw: number, pitch: number, aspect: number, margin = 0.93, containTurn = false) {
   const bounds = meshBounds(positions);
   if (!bounds) return { center: [0, 0, 0] as [number, number, number], pan: [0, 0] as [number, number], fit: 1 };
   const center: [number, number, number] = [
@@ -122,10 +122,19 @@ export function surfaceFrame(positions: ArrayLike<number>, yaw: number, pitch: n
   let maxU = -Infinity;
   let minV = Infinity;
   let maxV = -Infinity;
+  let maxRadius = 0;
   for (let index = 0; index < positions.length; index += 3) {
     const x = positions[index] - center[0];
     const y = positions[index + 1] - center[1];
     const z = positions[index + 2] - center[2];
+    if (containTurn) {
+      const radius = Math.hypot(x, z);
+      maxRadius = Math.max(maxRadius, radius);
+      const reach = radius * Math.abs(sp);
+      minV = Math.min(minV, y * cp - reach);
+      maxV = Math.max(maxV, y * cp + reach);
+      continue;
+    }
     const x1 = x * cy + z * sy;
     const z1 = -x * sy + z * cy;
     const y2 = y * cp - z1 * sp;
@@ -134,11 +143,11 @@ export function surfaceFrame(positions: ArrayLike<number>, yaw: number, pitch: n
     minV = Math.min(minV, y2);
     maxV = Math.max(maxV, y2);
   }
-  const halfW = Math.max(0.001, (maxU - minU) / 2);
+  const halfW = containTurn ? Math.max(0.001, maxRadius) : Math.max(0.001, (maxU - minU) / 2);
   const halfH = Math.max(0.001, (maxV - minV) / 2);
   return {
     center,
-    pan: [-(minU + maxU) / 2, -(minV + maxV) / 2] as [number, number],
+    pan: [containTurn ? 0 : -(minU + maxU) / 2, -(minV + maxV) / 2] as [number, number],
     fit: Math.min((margin * aspect) / halfW, margin / halfH),
   };
 }

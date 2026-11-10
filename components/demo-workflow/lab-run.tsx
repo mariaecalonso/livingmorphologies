@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { ANALYSIS_TABS, OCCUPANCY_THRESHOLD_RATIO, fieldToDisplayRow } from "@/lib/skill1/analysis";
 import { LAB_RUN_FILE, type LabRunData, type LabRunMark } from "@/lib/demo-workflow/lab-run";
 import styles from "@/components/demo-workflow/lab-run.module.css";
@@ -286,7 +287,7 @@ function DnaRadar({ data }: { data: LabRunData }) {
     return drawn.length === points.length ? `${path} Z` : path;
   };
   return (
-    <svg className={styles.diagram} viewBox="-150 -140 300 290" role="img" aria-label="Architectural target and generated network">
+    <svg className={styles.diagram} viewBox="-200 -150 400 300" role="img" aria-label="Architectural target and generated network">
       {[0.2, 0.4, 0.6, 0.8, 1].map((ring) => (
         <circle key={ring} r={radius * ring} className={ring === 1 ? styles.ringOuter : styles.ring} />
       ))}
@@ -326,7 +327,7 @@ function GrowthChart({ data }: { data: LabRunData }) {
   const samples = data.growth;
   const x = (index: number) => left + (samples.length > 1 ? index / (samples.length - 1) : 0.5) * plotW;
   return (
-    <svg className={styles.diagram} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Recorded growth metrics by iteration">
+    <svg className={`${styles.diagram} ${styles.growthChart}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Recorded growth metrics by iteration">
       {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
         const y = top + (1 - tick) * plotH;
         return (
@@ -490,16 +491,21 @@ function DirectionField({ data }: { data: LabRunData }) {
   return <canvas ref={ref} className={styles.diagram} role="img" aria-label="Accumulated movement direction in each field cell" />;
 }
 
-function Legend({ items }: { items: Array<[string, string]> }) {
+function Legend({ items, splitAfter }: { items: Array<[string, string]>; splitAfter?: number }) {
+  const lines = splitAfter == null ? [items] : [items.slice(0, splitAfter), items.slice(splitAfter)];
   return (
-    <p className={styles.legend}>
-      {items.map(([color, label]) => (
-        <span key={label}>
-          <i style={{ background: color }} />
-          {label}
-        </span>
+    <div className={styles.legend}>
+      {lines.map((line) => (
+        <p key={line[0]?.[1] ?? "legend"}>
+          {line.map(([color, label]) => (
+            <span key={label}>
+              <i style={{ background: color }} />
+              {label}
+            </span>
+          ))}
+        </p>
       ))}
-    </p>
+    </div>
   );
 }
 
@@ -566,7 +572,7 @@ function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
               ["Regime", last.regime],
             ]}
           />
-          <Legend items={GROWTH_SERIES.map((series): [string, string] => [series.color, series.label])} />
+          <Legend splitAfter={2} items={GROWTH_SERIES.map((series): [string, string] => [series.color, series.label])} />
         </div>
       </>
     );
@@ -695,6 +701,10 @@ export function LabRun({ recorder = false, stage = false, watch = false }: { rec
   const cursor = useRef<HTMLSpanElement>(null);
   const runButton = useRef<HTMLButtonElement>(null);
   const tabButtons = useRef<Array<HTMLButtonElement | null>>([]);
+  const [analysisSlot, setAnalysisSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setAnalysisSlot(document.querySelector<HTMLElement>("[data-analysis-slot]"));
+  }, []);
 
   useEffect(() => {
     if (!ready || manual != null || index >= beats.length - 1) return;
@@ -707,22 +717,23 @@ export function LabRun({ recorder = false, stage = false, watch = false }: { rec
     const node = cursor.current;
     const frameNode = root.current;
     if (!node || !frameNode) return;
-    const sliderRow = typeof beat.aim === "string" ? frameNode.querySelector<HTMLElement>(`[data-aim="${beat.aim}"]`) : null;
+    const space = analysisSlot ? frameNode.closest<HTMLElement>("[class*='detailColumns']") ?? frameNode : frameNode;
+    const sliderRow = typeof beat.aim === "string" ? space.querySelector<HTMLElement>(`[data-aim="${beat.aim}"]`) : null;
     const track = sliderRow?.querySelector("i") ?? null;
     const target = beat.aim === "run" ? runButton.current : typeof beat.aim === "number" ? tabButtons.current[beat.aim] : track ?? sliderRow;
     node.dataset.hidden = manual != null || !ready ? "true" : "false";
     node.dataset.idle = target ? "false" : "true";
     node.style.transitionDuration = beat.drag ? "0ms" : "";
     if (!target) return;
-    const box = frameNode.getBoundingClientRect();
-    const scale = box.width / frameNode.offsetWidth || 1;
+    const box = space.getBoundingClientRect();
+    const scale = box.width / space.offsetWidth || 1;
     const rect = target.getBoundingClientRect();
     const share = sliderRow ? Number.parseFloat(getComputedStyle(sliderRow).getPropertyValue("--share")) / 100 : 0.5;
     const along = sliderRow ? Math.max(0, Math.min(1, Number.isFinite(share) ? share : 0)) : 0.5;
     const x = (rect.left - box.left + rect.width * (sliderRow ? along : 0.5)) / scale;
     const y = (rect.top - box.top + rect.height * (sliderRow ? 0.5 : 0.55)) / scale;
     node.style.transform = `translate(${x}px, ${y}px)`;
-  }, [beat, manual, ready, drag]);
+  }, [beat, manual, ready, drag, analysisSlot]);
 
   if (!data) {
     return <p className={styles.unavailable}>{load.status === "loading" ? "Loading the run" : "The run analysis could not be loaded"}</p>;
@@ -739,6 +750,46 @@ export function LabRun({ recorder = false, stage = false, watch = false }: { rec
   const running = !saved && beat.aim === null && typeof frame === "number";
   const frameCount = decoded?.frames.length ?? RECORDED_FRAMES;
   const shownFrames = typeof frame === "number" ? frame + 1 : frameCount;
+  const analysis = (
+    <section className={analysisSlot ? `${styles.area} ${styles.placed}` : styles.area} aria-label="Analysis">
+      <header className={styles.areaHead}>
+        <p className={styles.title}>Analysis · Physarum logic</p>
+        <span className={styles.badge}>{saved ? `Held · iteration ${data.iterations}` : "Idle"}</span>
+      </header>
+      <div className={styles.tabs} role="tablist" aria-label="Simulation analysis">
+        {ANALYSIS_TABS.map((item, position) => (
+          <button
+            key={item.id}
+            ref={(node) => {
+              tabButtons.current[position] = node;
+            }}
+            type="button"
+            role="tab"
+            aria-selected={tab === position}
+            data-pressed={(beat.aim === position && beat.press && manual == null) || undefined}
+            className={styles.tab}
+            onClick={() => dispatch({ type: "tab", tab: position })}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div className={styles.view} role="tabpanel">
+        {tab == null || !saved ? (
+          <p className={styles.waiting}>The Lab&apos;s analysis of this run appears when the field reaches iteration {data.iterations}.</p>
+        ) : (
+          <AnalysisView key={tab} data={data} tab={tab} />
+        )}
+      </div>
+    </section>
+  );
+  const pointer = (
+    <span ref={cursor} className={styles.cursor} aria-hidden="true">
+      <svg viewBox="0 0 18 22">
+        <path d="M1 1v17l4.6-4.2 3.2 7 3-1.4-3.2-6.8 6.4-.2z" />
+      </svg>
+    </span>
+  );
 
   return (
     <div ref={root} className={watch ? styles.watch : stage ? styles.stage : recorder ? styles.recorder : styles.lab}>
@@ -799,45 +850,9 @@ export function LabRun({ recorder = false, stage = false, watch = false }: { rec
         </div>
       </section>
 
-      {recorder ? null : <section className={styles.area} aria-label="Analysis">
-        <header className={styles.areaHead}>
-          <p className={styles.title}>Analysis · Physarum logic</p>
-          <span className={styles.badge}>{saved ? `Held · iteration ${data.iterations}` : "Idle"}</span>
-        </header>
-        <div className={styles.tabs} role="tablist" aria-label="Simulation analysis">
-          {ANALYSIS_TABS.map((item, position) => (
-            <button
-              key={item.id}
-              ref={(node) => {
-                tabButtons.current[position] = node;
-              }}
-              type="button"
-              role="tab"
-              aria-selected={tab === position}
-              data-pressed={(beat.aim === position && beat.press && manual == null) || undefined}
-              className={styles.tab}
-              onClick={() => dispatch({ type: "tab", tab: position })}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <div className={styles.view} role="tabpanel">
-          {tab == null || !saved ? (
-            <p className={styles.waiting}>The Lab&apos;s analysis of this run appears when the field reaches iteration {data.iterations}.</p>
-          ) : (
-            <AnalysisView key={tab} data={data} tab={tab} />
-          )}
-        </div>
-      </section>}
+      {recorder ? null : analysisSlot ? createPortal(analysis, analysisSlot) : analysis}
 
-      {recorder ? null : (
-      <span ref={cursor} className={styles.cursor} aria-hidden="true">
-        <svg viewBox="0 0 18 22">
-          <path d="M1 1v17l4.6-4.2 3.2 7 3-1.4-3.2-6.8 6.4-.2z" />
-        </svg>
-      </span>
-      )}
+      {recorder ? null : analysisSlot ? createPortal(pointer, analysisSlot.closest("[class*='detailColumns']") ?? analysisSlot) : pointer}
     </div>
   );
 }

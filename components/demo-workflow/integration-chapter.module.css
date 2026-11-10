@@ -729,3 +729,420 @@
   height: 100%;
   min-height: 0;
 }
+
+.sheet {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.sheet > section,
+.sheet > section[data-light="lit"],
+.sheet > section[data-light="current"] {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sheet > section > :last-child {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.lab,
+.catalog,
+.place {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.lab {
+  display: flex;
+  min-width: 0;
+}
+
+.lab :global(.hybrid-view) {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0;
+  gap: 0.35rem;
+  overflow: hidden;
+  font-size: 10px;
+}
+
+.lab :global(.hybrid-assembly) {
+  display: grid !important;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: unset !important;
+  grid-template-columns: minmax(8rem, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr) !important;
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.85fr) !important;
+  gap: 0.7rem;
+}
+
+.lab :global(.panel),
+.lab :global(.major-section-frame),
+.lab :global(.hybrid-process-card) {
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  border-radius: var(--frame-radius) !important;
+  background: #000000 !important;
+  box-shadow: var(--frame-glow) !important;
+  padding: 0.35rem;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.lab :global(.panel)::before,
+.lab :global(.panel)::after {
+  content: none;
+}
+
+.lab :global(.panel-header),
+.lab :global(.hud-panel-header) {
+  margin: 0 0 0.35rem;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.lab :global(.panel-title),
+.lab :global(.hud-panel-title) {
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+}
+
+.lab :global(.hybrid-process-row) {
+  gap: 0.7rem;
+}
+
+.lab :global(.hybrid-som) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+.lab :global(.hybrid-som-board) {
+  display: grid !important;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr);
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.lab :global(.hybrid-som-mini) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0.15rem 0.45rem;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0 !important;
+  padding: 0;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-som-mini > .hybrid-connection-label) {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.lab :global(.hybrid-som-mini > .hybrid-matrix) {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-som-mini > .hybrid-units) {
+  grid-column: 1;
+  grid-row: 3;
+  margin: 0;
+}
+
+.lab :global(.hybrid-som-facts) {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.7fr);
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-som-facts-preview) {
+  min-height: 0 !important;
+  height: auto;
+}
+
+.lab :global(.hybrid-som-facts-copy) {
+  min-height: 0;
+  gap: 0.12rem;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-som-facts-copy .hybrid-units),
+.lab :global(.hybrid-som-parents) {
+  margin: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: unset;
+}
+
+.lab :global(.hybrid-som-id) {
+  font-size: 1.15rem;
+}
+
+.lab :global(.hybrid-som-meter) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.lab :global(.hybrid-som-mini .hybrid-matrix-grid) {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: 100%;
+  aspect-ratio: auto;
+  align-self: stretch;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+}
+
+.lab :global(.hybrid-som-mini .hybrid-matrix-grid button) {
+  min-height: 0;
+}
+
+.lab :global(.hybrid-assembly > .hybrid-canvas),
+.lab :global(.hybrid-assembly > .hybrid-som),
+.lab :global(.hybrid-assembly > .hybrid-process-row) {
+  min-height: 0;
+}
+
+.lab :global(.hybrid-tile) {
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-slots) {
+  flex: 1 1 auto;
+  gap: 0.3rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-slot-board) {
+  display: grid !important;
+  flex: 1 1 0;
+  grid-template-columns: minmax(0, 1fr) 4.4rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.2rem 0.35rem;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.3rem 0.4rem;
+}
+
+.lab :global(.hybrid-tile-identity) {
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lab :global(.hybrid-tile-identity .hybrid-field),
+.lab :global(.hybrid-tile-identity .hybrid-units),
+.lab :global(.hybrid-tile-identity .hybrid-typology),
+.lab :global(.hybrid-tile-identity .hybrid-source),
+.lab :global(.hybrid-tile-identity .hybrid-status) {
+  display: none;
+}
+
+.lab :global(.hybrid-slot-board .hybrid-preview) {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.lab :global(.hybrid-face-diagram) {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  width: max-content;
+}
+
+.lab :global(.hybrid-criteria) {
+  display: none;
+}
+
+.lab :global(.hybrid-units),
+.lab :global(.hybrid-source),
+.lab :global(.hybrid-typology) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow: auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.card,
+.row {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+  color: #f2f2ee;
+  cursor: pointer;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  text-align: left;
+}
+
+.card canvas,
+.preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #000000;
+}
+
+.card b,
+.row b {
+  font-size: 0.53rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.card span,
+.row span,
+.note,
+.kicker {
+  color: rgba(242, 242, 238, 0.66);
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.card span,
+.row span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.card[data-active],
+.row[data-active] {
+  outline: 1px solid rgba(73, 215, 222, 0.85);
+  outline-offset: -1px;
+}
+
+.place {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 20%);
+  gap: 0.7rem;
+}
+
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+}
+
+.stage :global(.site-canvas),
+.stage :global(.site-canvas) canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+}
+
+.title {
+  margin: 0;
+  color: #f2f2ee;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.35rem 0.4rem;
+  text-align: left;
+}

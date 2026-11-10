@@ -77,6 +77,7 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [
           { label: "Criteria Configuration", mark: "01", locked: true },
           { label: "Agent / Simulation", mark: "02" },
+          { label: "Analysis", mark: "03" },
         ],
       },
       {
@@ -93,6 +94,11 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         name: "Selected Candidates",
         holdMs: 28000,
         sequence: [{ label: "Selected for vertical propagation", mark: "" }],
+      },
+      {
+        name: "Archetype Reading",
+        holdMs: 36000,
+        sequence: [{ label: "Archetype reading", mark: "" }],
       },
     ],
   },
@@ -152,23 +158,19 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
     ],
     pages: [
       {
-        name: "Hybrid Selection",
-        holdMs: 22000,
-        sequence: [{ label: "Hybrid Selection" }],
+        name: "Hybrid Connection",
+        holdMs: 80000,
+        sequence: [{ label: "Hybrid connection", mark: "" }],
       },
       {
-        name: "Hybrid SOM",
-        holdMs: 18000,
-        sequence: [{ label: "Hybrid SOM" }],
+        name: "Catalog",
+        holdMs: 42000,
+        sequence: [{ label: "Catalog", mark: "" }],
       },
       {
-        name: "Site Placement",
-        holdMs: 28000,
-        sequence: [{ label: "Catalog and Site" }],
-      },
-      {
-        name: "Comparative Evaluation",
-        sequence: [{ label: "Comparative Evaluation" }],
+        name: "Site",
+        holdMs: 48000,
+        sequence: [{ label: "Site", mark: "" }],
       },
     ],
   },
@@ -185,6 +187,8 @@ export const DEMO_TIMING = {
   chapterOverviewMs: 10000,
   /** A chapter's focused explanation. */
   chapterFocusedMs: 18000,
+  /** The Physarum video between chapters 01 and 02. */
+  videoMs: 40000,
   /** Overview-to-focused move and content reveal. */
   transitionMs: 700,
   /** An operation brightening and growing as the light reaches it, and settling after. */

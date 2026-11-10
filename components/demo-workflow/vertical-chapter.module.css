@@ -389,6 +389,14 @@
 }
 
 .process > section,
+.process > section[data-light="lit"],
+.process > section[data-light="current"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.process > section,
 .catalog > section,
 .process > section[data-light="current"],
 .catalog > section[data-light="current"],
@@ -705,23 +713,41 @@
   align-items: stretch;
   height: 100%;
   min-height: 0;
-  gap: 0.35rem;
+  gap: 0.7rem;
   overflow: hidden;
   background: #000000;
   font-size: 11px;
 }
 
 .labHost :global(.process-setup) {
-  display: none;
+  display: flex;
+  flex: 0 0 18%;
+  flex-direction: column;
+  width: 18%;
+  min-width: 0;
+  height: 100%;
+  gap: 0.45rem;
+}
+
+.labHost :global(.process-setup) :global(.process-start) {
+  flex: 1 1 0;
+}
+
+.labHost :global(.process-setup) :global(.process-descriptors) {
+  flex: 1.35 1 0;
+}
+
+.labHost :global(.process-setup) :global(.process-recipes) {
+  flex: 1.25 1 0;
 }
 
 .labHost :global(.process-work) {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr);
-  gap: 0.4rem;
-  width: 100%;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(0, 0.78fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0.7rem;
+  width: auto;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -729,8 +755,19 @@
 }
 
 .labHost :global(.process-down) {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
+
+.labHost :global(.process-down) :global(.process-cap) { flex: 1.25 1 0; }
+.labHost :global(.process-down) :global(.process-choose) { flex: 1.05 1 0; }
+.labHost :global(.process-down) :global(.process-solidify) { flex: 1.15 1 0; }
+.labHost :global(.process-down) :global(.process-handoff-end) { flex: 1.35 1 0; }
 
 .labHost :global(.process-step) {
   display: flex;
@@ -738,8 +775,10 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(15, 115, 119, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
   background: #000000;
+  box-shadow: var(--frame-glow);
   padding: 0.35rem;
 }
 
@@ -886,10 +925,17 @@
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-right"]) { left: 74%; }
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="back-right"]) { left: 88%; }
 
+.catalogue:global(.wf-vert-final) :global(.final-summary) :global(.display),
+.catalogue:global(.wf-vert-final) :global(.final-row-name),
+.catalogue:global(.wf-vert-final) :global(.final-detail) :global(.panel-title) {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+}
+
 .catalogue:global(.wf-vert-final) :global(.final-summary) :global(.display) {
-  font-size: 1.28em;
-  letter-spacing: 0.045em;
-  line-height: 0.98;
+  letter-spacing: 0.08em;
+  line-height: 1.15;
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-row-name) {
@@ -897,18 +943,87 @@
   top: 0.35em;
   width: max-content;
   max-width: 14em;
-  font-size: 1.35em;
-  letter-spacing: 0.12em;
   text-align: right;
   transform: translateX(calc(-100% - 1.4em));
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-row-name span) {
   max-width: 18em;
+  font-size: 0.42rem;
 }
 
-.catalogue:global(.wf-vert-final) :global(.final-detail) :global(.panel-title) {
-  font-size: 1.2em;
+.catalogue:global(.wf-vert-final) :global(.eyebrow),
+.catalogue:global(.wf-vert-final) :global(.final-summary-lead),
+.catalogue:global(.wf-vert-final) :global(.final-summary-state),
+.catalogue:global(.wf-vert-final) :global(.final-summary) li,
+.catalogue:global(.wf-vert-final) :global(.final-summary) li b,
+.catalogue:global(.wf-vert-final) :global(.final-drawing) figcaption,
+.catalogue:global(.wf-vert-final) :global(.final-detail-status),
+.catalogue:global(.wf-vert-final) :global(.final-detail) dt,
+.catalogue:global(.wf-vert-final) :global(.final-detail) dd {
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-summary-count) strong {
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-summary-count) span {
+  font-size: 0.42rem;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item-label),
+.catalogue:global(.wf-vert-final) :global(.final-item-label) b,
+.catalogue:global(.wf-vert-final) :global(.final-item-label) small {
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-item-label) {
+  top: 1.35rem;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-mesh),
+.catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-mark),
+.catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-placeholder) {
+  transform: translateY(0.85rem);
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]),
+.catalogue:global(.wf-vert-final) :global(.final-row[data-focused="true"]) :global(.final-item[data-place="front-center"]) {
+  --plinth-glow: 28;
+  --plinth-edge: 18;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-plinth)::before {
+  opacity: 0.42;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-plinth)::after {
+  border-color: color-mix(in srgb, var(--tone) 34%, #6e6e6a);
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    color-mix(in srgb, var(--tone) 7%, #101010) 0%,
+    color-mix(in srgb, var(--tone) 14%, #0a0a0a) 78%,
+    color-mix(in srgb, var(--tone) 24%, #141414) 100%
+  );
+  box-shadow:
+    0 0.16em 0 color-mix(in srgb, var(--tone) 18%, #121212),
+    0 0.28em 0 color-mix(in srgb, var(--tone) 10%, #0c0c0c),
+    0 0 0.32em color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-mesh),
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-mark),
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-placeholder) {
+  filter:
+    drop-shadow(0 0.3em 0.22em rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 0.22em color-mix(in srgb, var(--tone) 16%, transparent));
 }
 
 /* Focused composition. The worked example is one row. The fifteen validated modules are the row beneath it. */
@@ -1013,4 +1128,84 @@
   border-top-style: solid;
   border-color: #49d7de;
   background: rgba(73, 215, 222, 0.16);
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread) {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.8rem 0.55rem;
+  background: #000000;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-back) {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.47rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-row) {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.85rem;
+  min-height: 0;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread) article {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread) article[data-current="true"] :global(.final-spread-name) b {
+  color: #f2f2ee;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-name) {
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-name) small,
+.catalogue:global(.wf-vert-final) :global(.final-spread-name) b {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-name) small {
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.42rem;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-name) b {
+  color: rgba(242, 242, 238, 0.82);
+  font-size: 0.5rem;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-model) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-model) :global(.final-mesh) {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

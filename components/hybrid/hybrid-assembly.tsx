@@ -132,7 +132,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
   const grownParents = new Map<string, IsoMesh>();
   const grownConnectors = new Map<string, IsoMesh>();
   for (const item of liveHybrids) {
-    if (item.connection.generationStatus === "generating") continue;
+    if (presentation || item.connection.generationStatus === "generating") continue;
     if (!item.hybrid.geometry || item.hybrid.source === "mock") continue;
     const tileA = tiles.find((tile) => tile.instanceId === item.connection.tileAId);
     const tileB = tiles.find((tile) => tile.instanceId === item.connection.tileBId);

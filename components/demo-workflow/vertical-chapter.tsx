@@ -36,7 +36,7 @@ export function useVerticalContent(): ChapterContent {
         details: [
           <div key="catalogue" className={`${styles.catalogue} wf-vert-final`}>
             <Suspense fallback={null}>
-              <FinalMorphologyCatalogue fixture={false} handoff={FINAL_HANDOFF} />
+              <FinalMorphologyCatalogue fixture={false} handoff={FINAL_HANDOFF} wireframe wireBright={1.15} wireLift={0.73} spread />
             </Suspense>
           </div>,
         ],

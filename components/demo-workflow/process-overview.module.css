@@ -10,7 +10,7 @@
   background: #000000;
 }
 
-/* Edge filaments across the presentation sheet. The plate is the original 7407 × 2160 file. */
+/* Same field as the other Workflow pages: the shared membrane, held back so the diagrams read first. */
 .ground {
   position: absolute;
   top: -44px;
@@ -18,8 +18,10 @@
   width: calc(100% + var(--demo-pad-left) + var(--demo-pad-right));
   height: calc(100% + 44px + 16px);
   max-width: none;
-  object-fit: fill;
+  object-fit: cover;
   object-position: center center;
+  opacity: 0.7;
+  animation: ground-glow 5.5s ease-in-out infinite alternate;
   pointer-events: none;
   user-select: none;
   -webkit-mask-image: linear-gradient(
@@ -44,6 +46,18 @@
   mask-repeat: no-repeat;
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
+}
+
+@keyframes ground-glow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ground {
+    animation: none;
+    filter: brightness(1.15);
+  }
 }
 
 .at {
@@ -122,13 +136,7 @@
   font-size: 1.28rem;
   line-height: 0.8;
   letter-spacing: 0.04em;
-  color: var(--teal);
-  text-shadow: 0 0 10px rgba(73, 215, 222, 0.7);
-}
-
-.headCopper .index {
-  color: var(--copper);
-  text-shadow: 0 0 8px rgba(199, 126, 95, 0.65);
+  color: #ffffff;
 }
 
 .title {
@@ -150,42 +158,18 @@
   letter-spacing: 0.07em;
   line-height: 1.15;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: #ffffff;
 }
 
 .phaseList span::before {
   content: "";
   display: inline-block;
-  width: 0.28rem;
-  height: 0.28rem;
+  width: 0.38rem;
+  height: 0.38rem;
   margin-right: 0.38rem;
   border-radius: 50%;
-  background: var(--teal);
-  box-shadow: 0 0 6px var(--teal);
+  background: #ffffff;
   vertical-align: 0.05rem;
-}
-
-.phaseListCopper span::before {
-  background: var(--copper);
-  box-shadow: 0 0 6px var(--copper);
-}
-
-.phaseListCopperGlow span::before {
-  width: 0.38rem;
-  height: 0.38rem;
-  background: #e7a084;
-  box-shadow:
-    0 0 4px #c77e5f,
-    0 0 10px rgba(199, 126, 95, 0.95);
-}
-
-.phaseListGlow span::before {
-  width: 0.38rem;
-  height: 0.38rem;
-  background: #7ef4f8;
-  box-shadow:
-    0 0 4px #49d7de,
-    0 0 10px rgba(73, 215, 222, 0.95);
 }
 
 .mono img {
@@ -695,6 +679,13 @@
   width: calc(var(--w) * var(--u));
   height: calc(var(--h) * var(--v));
   overflow: visible;
+}
+
+.pareto line {
+  fill: none;
+  stroke: #7ef4f8;
+  stroke-width: 0.7;
+  stroke-opacity: 0.85;
 }
 
 .pareto path {

@@ -1,0 +1,16 @@
+.host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 7407px;
+  height: 2160px;
+  border: 0;
+  transform-origin: top left;
+}

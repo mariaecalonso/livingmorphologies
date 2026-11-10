@@ -13,6 +13,7 @@ function useRememberFramedRoute() {
   const query = search.toString();
 
   useLayoutEffect(() => {
+    if (new URLSearchParams(window.location.search).get("embed") === "1") return;
     const top = window.top;
     if (!top || top === window.self) return;
     const params = new URLSearchParams(query);

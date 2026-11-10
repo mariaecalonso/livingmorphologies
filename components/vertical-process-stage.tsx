@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { paintedBox } from "@/lib/canvas-frame";
@@ -1099,6 +1099,10 @@ export function ProcessMorphology({
   fitMargin,
   accent = null,
   isoExtent = null,
+  wire = false,
+  wireBands = 8,
+  wireBright = 1,
+  wireLift = 0,
 }: {
   field?: VerticalViewerField | null;
   /** Stored module. When present, the continuation field is not meshed. */
@@ -1129,6 +1133,14 @@ export function ProcessMorphology({
   accent?: IsoMesh | null;
   /** Shared projected extent. Both comparison views use it, so neither is fitted on its own. */
   isoExtent?: { minX: number; maxX: number; minY: number; maxY: number } | null;
+  /** Dark body with section lines, so the surface curvature stays readable. */
+  wire?: boolean;
+  /** Section lines per axis. The catalogue grid stays coarse. The enlarged model uses a finer set. */
+  wireBands?: number;
+  /** Line brightness. The grid stays quieter than the enlarged model. */
+  wireBright?: number;
+  /** 0 keeps the dark section body. 1 is the original clay white. */
+  wireLift?: number;
 }) {
   const external = storedMesh !== undefined;
   const [built, setBuilt] = useState<ReturnType<typeof cachedOpeningMesh> | null>(null);
@@ -1230,7 +1242,7 @@ export function ProcessMorphology({
           ? angle.current.yaw
           : external
             ? Math.PI / 4
-            : spinning ? ((now - started) / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
+            : spinning ? (now / (turnSeconds * 1000)) * Math.PI * 2 : float ? 0 : 0.62;
       const pitch = shared ? shared.pitch : held ? angle.current.pitch : external ? 0.62 : float || spinning ? 0.36 : 0.42;
       const spin = shared
         ? 0
@@ -1260,6 +1272,10 @@ export function ProcessMorphology({
         pan: viewPan,
         margin: fitMargin,
         accent,
+        wire,
+        wireBands,
+        wireBright,
+        wireLift,
       });
       const cage = boxRef.current;
       const cageParent = cage?.parentElement;
@@ -1291,7 +1307,7 @@ export function ProcessMorphology({
       if (frameId) window.cancelAnimationFrame(frameId);
       observer?.disconnect();
     };
-  }, [accent, column, external, float, frame, insideBox, isoCamera, isoExtent, isoTick, mesh, orbit, steered, turnSeconds, uniformFrame]);
+  }, [accent, column, external, float, frame, insideBox, isoCamera, isoExtent, isoTick, mesh, orbit, steered, turnSeconds, uniformFrame, wire, wireBands, wireBright, wireLift]);
   const meshCanvas = <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
   const boxCanvas = insideBox ? <canvas ref={boxRef} className="process-voxel-box" aria-hidden="true" /> : null;
   if (isoCamera || insideBox) {

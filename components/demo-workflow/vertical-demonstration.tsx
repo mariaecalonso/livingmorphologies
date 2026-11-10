@@ -2,7 +2,10 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { ContinueFamilyFan } from "@/components/continue-family-fan";
+import { InheritFamilySummary } from "@/components/inherit-criteria-profile";
 import { ProcessGeneration } from "@/components/process-generation-view";
+import { ProcessStartField } from "@/components/process-start-field";
 import type { DevelopPlate } from "@/components/process-develop-view";
 import { ProcessMorphology, SampleDecisionStack, type SampleFrame } from "@/components/vertical-process-stage";
 import { VerticalCatalogue } from "@/components/vertical-catalogue";
@@ -17,7 +20,8 @@ import {
   zoomProcessIso,
   type ProcessIsoCamera,
 } from "@/lib/skill3/process-iso-camera";
-import { capAddition } from "@/lib/skill3/cap-accent";
+import { architecturalIntentFor } from "@/lib/skill3/architectural-intent";
+import { capAddition, capProjectionExtent, solidClosure } from "@/lib/skill3/cap-accent";
 import { decodeSolidifiedMesh, type EncodedSolidifiedMesh } from "@/lib/skill3/solidified-mesh";
 import { DEMO_TIMING } from "@/lib/demo-workflow/chapters";
 import styles from "@/components/demo-workflow/vertical-chapter.module.css";
@@ -28,14 +32,14 @@ const CONTINUATIONS = Array.from({ length: 24 }, (_, index) => `N${String(index 
 const CHOOSE_ORDER = ["N01", "N09", "N12", "N20", "N24"] as const;
 const CATALOG_ORDER = ["N15", "N12", "N23", "N10"] as const;
 const STAGES = ["sample", "develop", "form", "cap", "choose", "solidify", "handoff", "catalog"] as const;
-const GROUPS: readonly { focus: string; start: number; end: number }[] = [
-  { focus: "Formal", start: 1, end: 3 },
-  { focus: "Spatial", start: 4, end: 6 },
-  { focus: "Atmospheric", start: 7, end: 9 },
-  { focus: "Formal + Spatial", start: 10, end: 12 },
-  { focus: "Formal + Atmospheric", start: 13, end: 15 },
-  { focus: "Spatial + Atmospheric", start: 16, end: 18 },
-  { focus: "Formal + Spatial + Atmospheric", start: 19, end: 24 },
+const GROUPS: readonly { focus: string; start: number; end: number; count: number }[] = [
+  { focus: "Formal", start: 1, end: 3, count: 3 },
+  { focus: "Spatial", start: 4, end: 6, count: 3 },
+  { focus: "Atmospheric", start: 7, end: 9, count: 3 },
+  { focus: "Formal + Spatial", start: 10, end: 12, count: 3 },
+  { focus: "Formal + Atmospheric", start: 13, end: 15, count: 3 },
+  { focus: "Spatial + Atmospheric", start: 16, end: 18, count: 3 },
+  { focus: "Formal + Spatial + Atmospheric", start: 19, end: 24, count: 6 },
 ];
 
 type Stage = (typeof STAGES)[number] | "selected";
@@ -152,29 +156,72 @@ function DemoCursor() {
   );
 }
 
-/** All retained plates, and about a tenth of the plates that were passed over. */
-function presentationSample(frames: readonly SampleFrame[], playIteration: number) {
-  const passed = frames.filter((frame) => !frame.reason);
-  const quota = Math.max(1, Math.round(passed.length * 0.1));
-  const picked = new Set<number>();
-  for (let index = 0; index < quota; index += 1) {
-    const at = Math.min(passed.length - 1, Math.round(((index + 0.5) * passed.length) / quota - 0.5));
-    const frame = passed[at];
-    if (frame) picked.add(frame.iteration);
-  }
-  return {
-    passed: passed.filter((frame) => picked.has(frame.iteration) && frame.iteration <= playIteration),
-    preserved: frames.filter((frame) => frame.reason && frame.iteration <= playIteration),
-  };
-}
-
 type ProcessFocus = "sample" | "develop" | "form" | "cap";
+
+function ProcessSetup() {
+  const intent = useMemo(() => {
+    try {
+      return architecturalIntentFor(ARCHETYPE);
+    } catch {
+      return null;
+    }
+  }, []);
+  const [plate, setPlate] = useState<{ size: number; values: Uint8Array } | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ archetype: ARCHETYPE, candidate: String(CANDIDATE) });
+    fetch(`/api/vertical/z0/field?${params}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => (response.ok ? response.json() as Promise<{ size?: number; plate?: string }> : null))
+      .then((body) => {
+        if (controller.signal.aborted || !body?.plate || !body.size) return;
+        const values = Uint8Array.from(atob(body.plate), (char) => char.charCodeAt(0));
+        if (values.length === body.size * body.size) setPlate({ size: body.size, values });
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  return (
+    <div className="process-setup">
+      <section className="process-step process-start" aria-label="Start">
+        <div className="process-start-source">
+          <header className="vertical-process-label">
+            <p className="eyebrow">01</p>
+            <h2 className="panel-title">Start</h2>
+          </header>
+          <p className="process-sentence">A verified Skill 2 state begins the sequence.</p>
+          <p className="process-cue">Vertical Void</p>
+        </div>
+        <ProcessStartField plate={plate} />
+      </section>
+      <section className="process-step process-descriptors" aria-label="Inherit">
+        <header className="vertical-process-label">
+          <p className="eyebrow">02</p>
+          <h2 className="panel-title">Inherit</h2>
+        </header>
+        <p className="process-sentence">Architectural criteria arrive as three families.</p>
+        <InheritFamilySummary profile={intent} glow={0.17} />
+      </section>
+      <section className="process-step process-recipes" aria-label="Continue">
+        <header className="vertical-process-label">
+          <p className="eyebrow">03</p>
+          <h2 className="panel-title">Continue</h2>
+        </header>
+        <p className="process-sentence">Twenty-four continuations grow from one verified state.</p>
+        <ContinueFamilyFan groups={GROUPS} activeFocus="Formal + Spatial + Atmospheric" selectedId="N24" stance="final" plate={plate} />
+      </section>
+    </div>
+  );
+}
 
 export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
   const host = useRef<HTMLDivElement>(null);
   const origin = useRef<Stage>("sample");
   const framesRef = useRef<SampleFrame[]>([]);
   const camera = useRef<ProcessIsoCamera>(createProcessIsoCamera());
+  const capCamera = useRef<ProcessIsoCamera>(createProcessIsoCamera());
+  const solidCamera = useRef<ProcessIsoCamera>(createProcessIsoCamera());
   const developDone = useRef<(() => void) | null>(null);
   const [frames, setFrames] = useState<SampleFrame[] | null>(null);
   const [sampleState, setSampleState] = useState<"loading" | "ready" | "missing">("loading");
@@ -185,7 +232,6 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
   const [cappedMesh, setCappedMesh] = useState<IsoMesh | null>(null);
   const [beforeMesh, setBeforeMesh] = useState<IsoMesh | null>(null);
   const [finalMesh, setFinalMesh] = useState<IsoMesh | null>(null);
-  const [checks, setChecks] = useState<{ manifold?: string; components?: number; preflight?: string } | null>(null);
   const [chooseId, setChooseId] = useState("N24");
   const [chooseMesh, setChooseMesh] = useState<IsoMesh | null>(null);
   const [solidShown, setSolidShown] = useState(false);
@@ -259,12 +305,11 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
       if (!controller.signal.aborted) setCappedMesh(mesh);
     }).catch(() => undefined);
     fetch(`/api/vertical/solidified?archetype=${ARCHETYPE}&candidate=${CANDIDATE}&continuation=N24`, { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => (response.ok ? response.json() as Promise<{ checks?: { manifold?: string; components?: number; preflight?: string }; geometry?: EncodedSolidifiedMesh; original?: EncodedSolidifiedMesh | null }> : null))
+      .then(async (response) => (response.ok ? response.json() as Promise<{ checks?: { manifold?: string; components?: number; boundaryEdges?: number; nonManifoldEdges?: number; preflight?: string }; geometry?: EncodedSolidifiedMesh; original?: EncodedSolidifiedMesh | null }> : null))
       .then((body) => {
         if (controller.signal.aborted || !body) return;
         setBeforeMesh(body.original ? decodeSolidifiedMesh(body.original) : null);
         setFinalMesh(body.geometry ? decodeSolidifiedMesh(body.geometry) : null);
-        setChecks(body.checks ?? null);
       })
       .catch(() => undefined);
     for (const id of CHOOSE_ORDER) void loadOpen(id);
@@ -501,29 +546,50 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
     }));
   })();
   const playIteration = frames && frames.length > 0 ? frames[Math.min(sampleStep, frames.length - 1)].iteration : 0;
-  const sampleShown = frames && frames.length > 1 ? presentationSample(frames, playIteration) : null;
+  const keptCount = frames?.filter((frame) => frame.reason).length ?? 0;
   const closing = useMemo(() => (openMesh && cappedMesh ? capAddition(openMesh, cappedMesh) : null), [openMesh, cappedMesh]);
+  const capExtent = useMemo(() => (cappedMesh ? capProjectionExtent(cappedMesh) : null), [cappedMesh]);
+  const solidExtent = useMemo(() => {
+    const before = beforeMesh ? capProjectionExtent(beforeMesh) : null;
+    const after = finalMesh ? capProjectionExtent(finalMesh) : null;
+    if (before && after) {
+      return {
+        minX: Math.min(before.minX, after.minX),
+        maxX: Math.max(before.maxX, after.maxX),
+        minY: Math.min(before.minY, after.minY),
+        maxY: Math.max(before.maxY, after.maxY),
+      };
+    }
+    return after ?? before;
+  }, [beforeMesh, finalMesh]);
+  const solidAccent = useMemo(() => (beforeMesh && finalMesh ? solidClosure(beforeMesh, finalMesh) : null), [beforeMesh, finalMesh]);
   const live = (stage: Stage) => demo.active === "catalog" || demo.active === "selected" ? stage === "handoff" : demo.active === stage;
   const group = groupFor(chooseId);
   return (
     <div ref={host} className={styles.stage}>
       <div className={`${styles.labHost} demo-vert-lab`} data-focus={focus}>
         <div className={`process-canvas demo-run ${styles.demoRun}`}>
+        <ProcessSetup />
         <div className="process-work">
-          <section className="process-step process-sample" aria-label="Sample" data-live={live("sample") || undefined}>
+          <section className="process-step process-live process-sample" aria-label="Sample" data-live={live("sample") || undefined}>
             <header className="vertical-process-label">
               <p className="eyebrow">04</p>
               <h2 className="panel-title">Sample</h2>
             </header>
+            <p className="process-sentence">Significant moments are retained from the evolving 2D system.</p>
+            <p className="process-cue">{frames && frames.length > 1 ? `N24 · ${keptCount} retained · ${playIteration}` : "N24"}</p>
             <div className="process-sample-stage">
-              {sampleShown ? (
-                <div className={styles.samplePair}>
-                  {sampleShown.passed.length > 1 ? (
-                    <SampleDecisionStack frames={sampleShown.passed} playIteration={playIteration} columns={1} labelSize={0} fit />
-                  ) : <span />}
-                  {sampleShown.preserved.length > 1 ? (
-                    <SampleDecisionStack frames={sampleShown.preserved} playIteration={playIteration} columns={1} labelSize={0} fit />
-                  ) : <span />}
+              {frames && frames.length > 1 ? (
+                <div className="process-sample-decision">
+                  <SampleDecisionStack frames={frames} playIteration={playIteration} columns={0} labelSize={0} fit />
+                  <aside className="process-sample-legend">
+                    <ul>
+                      <li data-reason="threshold"><span>Retained</span></li>
+                      <li data-reason="max-gap"><span>Gap</span></li>
+                      <li data-reason="skip"><span>Skipped</span></li>
+                      <li data-reason="active"><span>Current</span></li>
+                    </ul>
+                  </aside>
                 </div>
               ) : (
                 <p className="process-pending">{sampleState === "loading" ? "Reading" : "Sampling record unavailable."}</p>
@@ -538,12 +604,13 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
             </div>
           </section>
 
-          <section className="process-step process-xyt" aria-label="Develop" data-live={live("develop") || undefined}>
+          <section className="process-step process-live process-xyt" aria-label="Develop" data-live={live("develop") || undefined}>
             <header className="vertical-process-label">
               <p className="eyebrow">05</p>
               <h2 className="panel-title">Develop</h2>
             </header>
-            <p className={styles.sampleCue}>N24</p>
+            <p className="process-sentence">A retained pattern changes into the next, and that change becomes the surface.</p>
+            <p className="process-cue">N24</p>
             <div className={styles.developSlot} data-pressed={demo.pressed === "develop-play" || undefined}>
               <ProcessGeneration
                 plates={plates}
@@ -564,12 +631,13 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
             </div>
           </section>
 
-          <section className="process-step process-form" aria-label="Form" data-live={live("form") || undefined}>
+          <section className="process-step process-live process-form" aria-label="Form" data-live={live("form") || undefined}>
             <header className="vertical-process-label">
               <p className="eyebrow">06</p>
               <h2 className="panel-title">Form</h2>
             </header>
-            <p className={styles.sampleCue}>{openMesh ? "Open · N24" : "Reading"}</p>
+            <p className="process-sentence">The processed field produces the final Open morphology.</p>
+            <p className="process-cue">{openMesh ? "Open · N24" : "Reading"}</p>
             <div className="process-form-stage" data-cursor="form-view" data-pressed={demo.pressed === "form-view" || undefined}>
               <div className="process-form-layer">
                 {openMesh ? (
@@ -581,23 +649,21 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
             </div>
           </section>
 
+          <div className="process-down">
           <section className="process-step process-cap" aria-label="Cap" data-live={live("cap") || undefined} data-cursor="cap">
             <header className="vertical-process-label">
               <p className="eyebrow">07</p>
               <h2 className="panel-title">Cap</h2>
             </header>
-            <p className={styles.sampleCue}>The open form closes into a continuous mass.</p>
-            <div className={styles.capRow}>
+            <p className="process-sentence">The Open form closes into a continuous mass.</p>
+            <div className="process-cap-pair">
               <div className="process-cap-view">
-                <div className="process-cap-stage">{openMesh ? <ProcessMorphology mesh={openMesh} cacheIdentity="vertical-void:cap-open:N24" frame="module" /> : null}</div>
+                <div className="process-cap-stage">{openMesh ? <ProcessMorphology mesh={openMesh} cacheIdentity="vertical-void:cap-open:N24" frame="module" isoCamera={capCamera} isoExtent={capExtent} /> : null}</div>
                 <p className="process-cap-name">Open</p>
               </div>
+              <p className="process-cap-cue" aria-hidden="true">→</p>
               <div className="process-cap-view">
-                <div className="process-cap-stage">{closing ? <ProcessMorphology mesh={closing} cacheIdentity="vertical-void:cap-close:N24" frame="bounds" /> : null}</div>
-                <p className="process-cap-name">Closing</p>
-              </div>
-              <div className="process-cap-view">
-                <div className="process-cap-stage">{cappedMesh ? <ProcessMorphology mesh={cappedMesh} cacheIdentity="vertical-void:capped:N24" frame="module" accent={closing} /> : null}</div>
+                <div className="process-cap-stage">{cappedMesh ? <ProcessMorphology mesh={cappedMesh} cacheIdentity="vertical-void:capped:N24" frame="module" isoCamera={capCamera} isoExtent={capExtent} accent={closing} /> : null}</div>
                 <p className="process-cap-name">Capped</p>
               </div>
             </div>
@@ -608,10 +674,11 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
               <p className="eyebrow">08</p>
               <h2 className="panel-title">Choose</h2>
             </header>
+            <p className="process-sentence">One continuation is chosen from the field.</p>
             <div className="process-choose-board">
               <div className="process-choose-field" role="list" aria-label="Stored continuations">
                 {GROUPS.map((item) => (
-                  <div key={item.focus} className="process-choose-group">
+                  <div key={item.focus} className="process-choose-group" data-count={item.count}>
                     {CONTINUATIONS.filter((id) => {
                       const number = branchNumber(id);
                       return number >= item.start && number <= item.end;
@@ -651,18 +718,18 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
               <p className="eyebrow">09</p>
               <h2 className="panel-title">Solidify</h2>
             </header>
+            <p className="process-sentence">The selected mesh becomes a validated module.</p>
             <div className="process-solid-pair" data-compare={beforeMesh ? "true" : "false"}>
               <div className="process-solid-view">
-                <div className="process-solid-stage">{beforeMesh ? <ProcessMorphology mesh={beforeMesh} cacheIdentity="vertical-void:solid-before:N24" frame="module" /> : null}</div>
+                <div className="process-solid-stage">{beforeMesh ? <ProcessMorphology mesh={beforeMesh} cacheIdentity="vertical-void:solid-before:N24" frame="module" isoCamera={solidCamera} isoExtent={solidExtent} /> : null}</div>
                 <p className="process-cap-name">Before</p>
               </div>
               <p className="process-cap-cue" aria-hidden="true">→</p>
               <div className={`process-solid-view ${styles.solidAfter}`} data-shown={solidShown || undefined}>
-                <div className="process-solid-stage">{finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity="vertical-void:solid-after:N24" frame="module" /> : null}</div>
+                <div className="process-solid-stage">{finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity="vertical-void:solid-after:N24" frame="module" isoCamera={solidCamera} isoExtent={solidExtent} accent={solidAccent} /> : null}</div>
                 <p className="process-cap-name">After</p>
               </div>
             </div>
-            {checks ? <p className={styles.sampleCue}>N24 · manifold {checks.manifold ?? "—"} · components {checks.components ?? "—"}</p> : null}
           </section>
 
           <section className="process-step process-handoff-end" aria-label="Hand off" data-live={live("handoff") || undefined} data-transfer={demo.handoff || undefined} data-cursor="handoff">
@@ -670,13 +737,14 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
               <p className="eyebrow">10</p>
               <h2 className="panel-title">Hand off</h2>
             </header>
+            <p className="process-sentence">The validated module is ready for the next skill.</p>
             <div className="process-handoff-body">
               <div className="process-final-mesh">
                 {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity="vertical-void:handoff:N24" frame="module" /> : null}
               </div>
-              <p className={styles.sampleCue}>{checks?.preflight === "PASS" ? "Ready for Skill 4" : "N24"}</p>
             </div>
           </section>
+          </div>
         </div>
         </div>
       </div>
@@ -813,10 +881,10 @@ export function CatalogDemonstration() {
       });
       for (const id of CATALOG_ORDER) {
         if (!live()) return;
-        const module = moduleButton(id);
-        if (!(module instanceof HTMLElement)) continue;
-        await moveTo(module);
-        await press(module);
+        const target = moduleButton(id);
+        if (!(target instanceof HTMLElement)) continue;
+        await moveTo(target);
+        await press(target);
         await sleep(1500);
         if (!live()) return;
         await spin();

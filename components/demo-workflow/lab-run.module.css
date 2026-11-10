@@ -503,13 +503,20 @@
 
 .legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.8rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
   margin: 0.75rem 0 0;
   font-size: 0.47rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.6);
+}
+
+.legend p {
+  display: flex;
+  gap: 0.35rem 0.8rem;
+  margin: 0;
 }
 
 .legend i {
@@ -620,12 +627,12 @@
   overflow: hidden;
 }
 
-/* Chapter page: the recorded iteration and its analysis, beside the compact lab columns. */
+/* Chapter page: settings and the recording keep their columns. Analysis is placed in its own frame. */
 .watch {
   position: relative;
   display: grid;
-  grid-template-columns: 13.2rem minmax(0, 0.86fr) minmax(0, 1.05fr);
-  grid-template-areas: "settings field analysis";
+  grid-template-columns: 13.2rem minmax(0, 1fr);
+  grid-template-areas: "settings field";
   gap: 0.65rem;
   height: 100%;
   min-height: 0;
@@ -633,7 +640,6 @@
 
 .watch > .area:nth-child(1) { grid-area: settings; }
 .watch > .area:nth-child(2) { grid-area: field; }
-.watch > .area:nth-child(3) { grid-area: analysis; }
 
 .watch .settings {
   grid-template-columns: 1fr;
@@ -676,7 +682,12 @@
   transition-duration: 0.85s;
 }
 
-.watch .area {
+.watch .area,
+.placed {
+  height: 100%;
+}
+
+.watch > .area:nth-child(2) {
   height: 100%;
 }
 
@@ -691,9 +702,16 @@
 .watch .field {
   width: auto;
   height: auto;
+  max-width: 100%;
   max-height: 100%;
   aspect-ratio: 1;
-  justify-self: center;
+  align-self: end;
+  justify-self: end;
+  margin-right: 0.85rem;
+}
+
+.watch .run {
+  margin-right: 0.85rem;
 }
 
 .watch .fieldSide {
@@ -727,6 +745,57 @@
   height: 100%;
   min-height: 0;
 }
+/* The chapter analysis is portaled out of .watch, so its proportion lives on the placed frame. */
+.placed .view {
+  grid-template-columns: auto auto;
+  justify-content: center;
+  gap: 2rem;
+  align-items: center;
+  height: 100%;
+}
+
+.placed .view:has(> .waiting) {
+  grid-template-columns: 1fr;
+}
+
+.placed .view > :not(.diagram) {
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.placed .diagram {
+  width: auto;
+  height: calc(100% - 1rem);
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1;
+  align-self: center;
+  justify-self: start;
+}
+
+.placed canvas.diagram,
+.placed .growthChart {
+  width: 20.625rem;
+  height: 20.625rem;
+}
+
+.placed .metrics {
+  gap: 0.9rem;
+}
+
+.placed .metricBlock dl {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 1.75rem;
+  row-gap: 0.5rem;
+  justify-content: start;
+}
+
+.placed .metricBlock dl div {
+  display: contents;
+}
+
 
 .stage > .area:nth-child(1) { grid-area: settings; }
 .stage > .area:nth-child(2) { grid-area: field; }

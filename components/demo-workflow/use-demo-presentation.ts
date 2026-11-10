@@ -94,6 +94,7 @@ function reduce(state: DemoState, action: DemoAction): DemoState {
 
 export function stepDuration(position: DemoPosition) {
   if (position.chapter == null) return DEMO_TIMING.processOverviewMs;
+  if (DEMO_CHAPTERS[position.chapter]?.video) return DEMO_TIMING.videoMs;
   if (position.phase === "overview") return DEMO_TIMING.chapterOverviewMs;
   const page = DEMO_CHAPTERS[position.chapter]?.pages?.[position.sheet];
   if (page) return page.holdMs ?? DEMO_TIMING.chapterFocusedMs;

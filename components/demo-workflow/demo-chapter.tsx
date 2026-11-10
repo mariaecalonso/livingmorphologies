@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { DEMO_TIMING, type DemoChapter as Chapter } from "@/lib/demo-workflow/chapters";
 import { FeedbackLoop, type Loop } from "@/components/demo-workflow/feedback-loop";
 import { LightLinks, lightState, useLinks, type Light } from "@/components/demo-workflow/light-links";
@@ -247,6 +247,7 @@ export function DemoChapterView({
   content,
   feature,
   sheet = 0,
+  coverEpoch = 0,
   onPhase,
   onOperation,
   onFeature,
@@ -257,6 +258,8 @@ export function DemoChapterView({
   content?: ChapterContent;
   feature: boolean;
   sheet?: number;
+  /** Restarts the opening title light when playback restarts on the same chapter. */
+  coverEpoch?: number;
   onPhase: (phase: DemoPhase) => void;
   onOperation: (operation: number) => void;
   onFeature: (operation: number | null) => void;
@@ -310,11 +313,18 @@ export function DemoChapterView({
           <button
             type="button"
             className={styles.stepRow}
-            aria-label={chapter.title}
+            aria-label={`${chapter.index} ${chapter.title}`}
             tabIndex={focused ? -1 : 0}
             onClick={() => onPhase("focused")}
           >
-            <span className={styles.coverTitle}>{chapter.title}</span>
+            <span
+              key={coverEpoch}
+              className={styles.coverTitle}
+              style={{ "--cover-chars": `${chapter.index} — ${chapter.title}`.length } as CSSProperties}
+            >
+              <span className={styles.coverInk}>{chapter.index} — {chapter.title}</span>
+              <span className={styles.coverLight} aria-hidden="true">{chapter.index} — {chapter.title}</span>
+            </span>
           </button>
         </>
       ) : null}

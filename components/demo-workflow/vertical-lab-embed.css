@@ -1,5 +1,29 @@
-.demo-vert-lab.demo-vert-lab .process-setup {
-  display: none;
+.demo-vert-lab .process-setup {
+  display: flex;
+  flex: 0 0 18%;
+  flex-direction: column;
+  width: 18%;
+  min-width: 0;
+  height: 100%;
+  gap: 0.45rem;
+}
+
+.demo-vert-lab .process-setup .process-start {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-setup .process-descriptors {
+  flex: 1.35 1 0;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-setup .process-recipes {
+  flex: 1.25 1 0;
+  min-height: 0;
 }
 
 .demo-vert-lab[data-focus] .process-canvas {
@@ -85,30 +109,117 @@
 .demo-vert-lab.demo-vert-lab .process-canvas .process-work {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.9fr);
-  gap: 0.4rem;
-  width: 100%;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(0, 0.78fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0.7rem;
+  width: auto;
   min-width: 0;
   min-height: 0;
   height: 100%;
 }
 
-.demo-vert-lab.demo-vert-lab .process-sample,
-.demo-vert-lab.demo-vert-lab .process-xyt,
-.demo-vert-lab.demo-vert-lab .process-form,
-.demo-vert-lab.demo-vert-lab .process-cap {
-  grid-column: span 3;
-}
-
-.demo-vert-lab.demo-vert-lab .process-choose,
-.demo-vert-lab.demo-vert-lab .process-solidify,
-.demo-vert-lab.demo-vert-lab .process-handoff-end {
-  grid-column: span 4;
-}
-
 .demo-vert-lab.demo-vert-lab .process-down {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.demo-vert-lab .process-down .process-cap { flex: 1.25 1 0; }
+.demo-vert-lab .process-down .process-choose { flex: 1.05 1 0; overflow: hidden; }
+.demo-vert-lab .process-down .process-solidify { flex: 1.15 1 0; }
+.demo-vert-lab .process-down .process-handoff-end { flex: 1.35 1 0; overflow: hidden; }
+
+.demo-vert-lab .process-sentence,
+.demo-vert-lab .process-cue,
+.demo-vert-lab .process-handoff-ready {
+  flex: 0 0 auto;
+  margin: 0.08rem 0 0;
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+.demo-vert-lab .process-sentence {
+  color: rgba(242, 242, 238, 0.82);
+}
+
+.demo-vert-lab .process-cue,
+.demo-vert-lab .process-handoff-ready {
+  color: #9af6f8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-form {
+  background: linear-gradient(165deg, #0d3a3e 0%, #0c2629 26%, #0e100f 52%, #2c1e1a 80%, #4a332c 100%);
+}
+
+.demo-vert-lab .process-sample-legend ul {
+  display: grid;
+  gap: 0.16rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-sample-legend li::before {
+  content: "";
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.28rem;
+  border: 1px solid rgba(242, 242, 238, 0.45);
+}
+
+.demo-vert-lab .process-sample-legend li[data-reason="threshold"]::before { background: #7ec8c6; border-color: #7ec8c6; }
+.demo-vert-lab .process-sample-legend li[data-reason="max-gap"]::before { background: #e0a080; border-color: #e0a080; }
+.demo-vert-lab .process-sample-legend li[data-reason="active"]::before { background: transparent; border-color: #f2f2ee; }
+
+.demo-vert-lab .process-solid-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.45rem;
+  margin: 0.12rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-solid-marks li[data-mark="pass"] { color: #7ec8c6; }
+.demo-vert-lab .process-solid-marks li[data-mark="fail"] { color: #e0a080; }
+.demo-vert-lab .process-solid-marks li[data-mark="pending"] { color: rgba(242, 242, 238, 0.45); }
+
+.demo-vert-lab .process-choose-field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0.16rem 0.2rem;
+}
+
+.demo-vert-lab .process-choose-group[data-count="6"] {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.demo-vert-lab .process-choose-mark {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+  padding: 0;
+  font-size: 0.55rem;
+}
+
+.demo-vert-lab .process-choose-stage {
+  min-height: 0;
 }
 
 .demo-vert-lab .process-field-mode,
@@ -145,13 +256,12 @@
   height: 100%;
   overflow: hidden;
   padding: 0.28rem 0.35rem 0.3rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
   background: #000000;
-  box-shadow: 0 0 6px rgba(242, 242, 238, 0.05);
+  box-shadow: var(--frame-glow);
 }
 
-.demo-vert-lab .process-sentence,
 .demo-vert-lab .process-technical,
 .demo-vert-lab .process-phase {
   display: none;
@@ -256,7 +366,7 @@
 
 .demo-vert-lab .process-choose-board {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
   gap: 0.35rem;
 }
 
@@ -376,21 +486,50 @@
 
 .demo-vert-lab .process-final-mesh {
   flex: 1 1 0;
-  height: auto;
+  height: 100%;
+  min-height: 0;
 }
 
 .demo-vert-lab .process-handoff-panel {
-  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.demo-vert-lab .process-handoff-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.demo-vert-lab .process-handoff-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  color: #f2f2ee;
+  font-size: 5px;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
 .demo-vert-lab.demo-vert-lab .demo-run.process-canvas {
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
 }
 
 .demo-vert-lab.demo-vert-lab .demo-run.process-canvas .process-work {
   flex: 1 1 auto;
-  height: auto;
+  height: 100%;
   min-height: 0;
+  min-width: 0;
 }
 
 .demo-vert-lab .process-step[data-live="true"] {
@@ -477,24 +616,762 @@
   outline: 1px solid #49d7de;
 }
 
-/* One step fills the process frame. The others wait, so the plates and the form have room. */
-.demo-vert-lab.demo-vert-lab .demo-run.process-canvas .process-work {
+
+.demo-vert-lab .process-canvas .process-start {
   display: flex;
   flex-direction: column;
-  grid-template-columns: none;
-  grid-template-rows: none;
+  align-items: stretch;
+  overflow: hidden;
 }
 
-.demo-vert-lab.demo-vert-lab .demo-run .process-step {
-  display: none;
+.demo-vert-lab .process-canvas .process-start-source {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.demo-vert-lab .process-canvas .process-start .vertical-process-label .panel-title {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.demo-vert-lab .process-canvas .process-start .vertical-process-label .eyebrow,
+.demo-vert-lab .process-canvas .process-start .vertical-process-label .panel-title {
+  font-size: 12cqw;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .process-start-status {
+  margin: 0.55rem 0 0;
+  color: #0f7377;
+  font-size: 8.5cqw;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-canvas .process-start-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  margin: 0;
+  color: rgba(242, 242, 238, 0.48);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .process-start-note span {
+  font-size: 6.2cqw;
+}
+
+.demo-vert-lab .process-canvas .process-start-field {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .process-start .process-field-mode {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  width: auto;
+  max-width: none;
+  margin-left: 0;
+  gap: 0.28rem;
+}
+
+.demo-vert-lab .process-canvas .process-start .process-read {
+  margin: 0;
+  padding: 0.16rem 0.32rem;
+  border-color: rgba(242, 242, 238, 0.18);
+  color: rgba(242, 242, 238, 0.42);
+  font-size: 0.36vw;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-canvas .process-start .process-read[data-active="true"] {
+  border-color: #0f7377;
+  background: rgba(15, 115, 119, 0.16);
+  color: #7ec8c6;
+}
+
+.demo-vert-lab .process-canvas .process-start-view {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background: #000000;
+}
+
+.demo-vert-lab .process-canvas .process-start-view canvas {
+  display: block;
   width: 100%;
   height: 100%;
+}
+.demo-vert-lab .process-canvas .continue-fan {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
-  grid-column: auto;
-  grid-row: auto;
 }
 
-.demo-vert-lab.demo-vert-lab .demo-run .process-step[data-live="true"] {
-  display: flex;
+.demo-vert-lab .process-canvas .continue-fan-kicker {
+  flex: 0 0 auto;
+  margin: 0.15rem 0 0.35rem;
+  color: rgba(242, 242, 238, 0.55);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
+
+.demo-vert-lab .process-canvas .continue-flow {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 47%);
+  align-items: stretch;
+  column-gap: 0.7rem;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .continue-origin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.demo-vert-lab .process-canvas .continue-origin-frame {
+  width: 100%;
+  max-height: calc(100% - 2.2rem);
+  aspect-ratio: 1;
+  border: 1px solid rgba(242, 242, 238, 0.42);
+  background: #000000;
+}
+
+.demo-vert-lab .process-canvas .continue-origin-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.demo-vert-lab .process-canvas .continue-origin-label {
+  margin: 0;
+  color: rgba(242, 242, 238, 0.48);
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .continue-flows {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-path {
+  cursor: pointer;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-origin {
+  fill: #f2f2ee;
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-origin-ring {
+  fill: none;
+  stroke: rgba(242, 242, 238, 0.55);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .continue-flow[data-focus] .continue-flow-path:not([data-hot]) {
+  opacity: 0.22;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-rows {
+  display: grid;
+  grid-template-rows: repeat(7, minmax(0, 1fr));
+  min-width: 0;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-row::before {
+  content: "";
+  grid-column: 1 / -1;
+  grid-row: 1;
+  height: 1px;
+  background: rgba(242, 242, 238, 0.22);
+  align-self: center;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-name,
+.demo-vert-lab .process-canvas .continue-flow-count {
+  position: relative;
+  z-index: 1;
+  background: #000000;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-name {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.45rem;
+  padding-right: 0.4rem;
+  color: rgba(242, 242, 238, 0.78);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-ticks {
+  display: inline-flex;
+  gap: 0.18rem;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-ticks i {
+  width: 0.34rem;
+  height: 0.34rem;
+  border: 1px solid currentColor;
+  background: transparent;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-ticks i[data-selected] {
+  background: currentColor;
+}
+
+.demo-vert-lab .process-canvas .continue-selected,
+.demo-vert-lab .process-canvas .process-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.75rem;
+  margin: 0.4rem 0 0;
+}
+
+.demo-vert-lab .process-canvas .process-identity strong,
+.demo-vert-lab .process-canvas .continue-selected strong {
+  color: #9af6f8;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.demo-vert-lab .process-canvas .process-phase[data-phase="active"] { color: #7ec8c6; }
+.demo-vert-lab .process-canvas .process-phase[data-phase="waiting"] { color: rgba(242, 242, 238, 0.42); }
+.demo-vert-lab .process-canvas .process-phase[data-phase="complete"] { color: rgba(242, 242, 238, 0.78); }
+
+
+.demo-vert-lab .process-canvas .continue-flow-name[data-family="formal"] { color: #7ec8c6; }
+.demo-vert-lab .process-canvas .continue-flow-name[data-family="spatial"] { color: #e0a080; }
+.demo-vert-lab .process-canvas .continue-flow-name[data-family="atmospheric"] { color: #f2f2ee; }
+
+.demo-vert-lab .process-canvas .continue-flow-count {
+  justify-self: end;
+  padding-left: 0.4rem;
+  color: rgba(242, 242, 238, 0.88);
+  letter-spacing: 0.06em;
+}
+
+.demo-vert-lab .process-canvas .continue-flow[data-focus] .continue-flow-row:not([data-hot]) {
+  opacity: 0.32;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-tip {
+  display: none;
+  position: absolute;
+  right: calc(100% + 0.45rem);
+  top: 50%;
+  z-index: 3;
+  width: max-content;
+  max-width: 18rem;
+  margin: 0;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  background: #000000;
+  color: #f2f2ee;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-tip span {
+  display: block;
+}
+
+.demo-vert-lab .process-canvas .continue-flow-tip span:last-child {
+  color: rgba(242, 242, 238, 0.62);
+}
+
+.demo-vert-lab .process-canvas .continue-flow-row[data-hot] .continue-flow-tip {
+  display: block;
+}
+
+.demo-vert-lab .process-canvas .process-descriptors {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+.demo-vert-lab .process-canvas .process-inherit {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-summary-pill {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  border: 1px solid rgba(242, 242, 238, 0.38);
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 1.15cqw;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-canvas .inherit-summary-kicker {
+  margin: 0.2rem 0 0;
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 1.35cqw;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .inherit-summary {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr) 30%;
+  column-gap: 4.5rem;
+  min-height: 0;
+  margin-top: 0.4rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names span[data-family="formal"],
+.demo-vert-lab .process-canvas .inherit-lane[data-family="formal"],
+.demo-vert-lab .process-canvas .inherit-meter[data-family="formal"] {
+  --trace: #7ec8c6;
+  --glow: rgba(15, 115, 119, 0.9);
+  --bloom: rgba(126, 200, 198, 0.95);
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names span[data-family="spatial"],
+.demo-vert-lab .process-canvas .inherit-lane[data-family="spatial"],
+.demo-vert-lab .process-canvas .inherit-meter[data-family="spatial"] {
+  --trace: #e0a080;
+  --glow: rgba(199, 126, 95, 0.9);
+  --bloom: rgba(224, 160, 128, 0.95);
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names span[data-family="atmospheric"],
+.demo-vert-lab .process-canvas .inherit-lane[data-family="atmospheric"],
+.demo-vert-lab .process-canvas .inherit-meter[data-family="atmospheric"] {
+  --trace: #f2f2ee;
+  --glow: rgba(242, 242, 238, 0.55);
+  --bloom: rgba(255, 255, 255, 0.9);
+}
+
+.demo-vert-lab .process-canvas .inherit-chart {
+  display: grid;
+  grid-template-columns: 27% minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  padding-top: 1.5rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names span {
+  color: var(--trace);
+  font-size: 1.65cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-plot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-scale {
+  position: relative;
+  flex: 0 0 1.5rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-scale span {
+  position: absolute;
+  top: 0;
+  color: rgba(242, 242, 238, 0.62);
+  font-size: 1.15cqw;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.demo-vert-lab .process-canvas .inherit-lanes {
+  position: relative;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .inherit-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  border-left: 1px dashed rgba(242, 242, 238, 0.38);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .inherit-lane {
+  position: relative;
+  min-height: 0;
+}
+
+.demo-vert-lab .process-canvas .inherit-join {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .inherit-lane-line {
+  position: absolute;
+  top: 50%;
+  right: 8%;
+  left: 8%;
+  height: 1px;
+  background: rgba(242, 242, 238, 0.42);
+}
+
+.demo-vert-lab .process-canvas .inherit-lane-glow {
+  position: absolute;
+  top: 50%;
+  z-index: 0;
+  width: 46%;
+  height: 46%;
+  background: radial-gradient(ellipse 78% 58% at 50% 50%, var(--bloom) 0%, var(--glow) 32%, transparent 74%);
+  filter: blur(12px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.demo-vert-lab .process-canvas .inherit-lane-dot,
+.demo-vert-lab .process-canvas .inherit-lane-node {
+  position: absolute;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.demo-vert-lab .process-canvas .inherit-lane-dot {
+  z-index: 1;
+  width: 0.72cqw;
+  height: 0.72cqw;
+  background: rgba(242, 242, 238, 0.72);
+}
+
+.demo-vert-lab .process-canvas .inherit-lane-node {
+  z-index: 2;
+  width: 2.35cqw;
+  height: 2.35cqw;
+  background: radial-gradient(
+    circle,
+    #ffffff 0 24%,
+    color-mix(in srgb, var(--bloom) 18%, transparent) 32% 40%,
+    rgba(255, 255, 255, 0.55) 48% 54%,
+    transparent 60%
+  );
+}
+
+.demo-vert-lab .process-canvas .inherit-meters {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  min-width: 0;
+  border-left: 1px solid rgba(242, 242, 238, 0.22);
+  padding-left: 1.5rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--trace);
+  font-size: 1.2cqw;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-name i {
+  width: 0.8cqw;
+  height: 0.8cqw;
+  border-radius: 50%;
+  background: var(--trace);
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+  margin: 0.12rem 0 0.28rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-value span:first-child {
+  color: var(--trace);
+  font-size: 2.6cqw;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-value span:last-child {
+  color: rgba(242, 242, 238, 0.62);
+  font-size: 1.1cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-track {
+  position: relative;
+  display: block;
+  height: 2px;
+  background: rgba(242, 242, 238, 0.28);
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--trace);
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-track i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 0.7cqw;
+  height: 0.7cqw;
+  border-radius: 50%;
+  background: #f4f4f0;
+  box-shadow: 0 0 0.45cqw var(--glow);
+  transform: translate(50%, -50%);
+}
+
+.demo-vert-lab .process-canvas .inherit-summary {
+  column-gap: 6%;
+  grid-template-columns: minmax(0, 1fr) 30%;
+}
+
+.demo-vert-lab .process-canvas .inherit-meters {
+  padding-left: 0.4rem;
+}
+
+.demo-vert-lab .process-canvas .continue-fan-kicker {
+  display: none;
+}
+
+.demo-vert-lab .process-canvas .continue-selected,
+.demo-vert-lab .process-canvas .continue-flow-name,
+.demo-vert-lab .process-canvas .continue-flow-count,
+.demo-vert-lab .process-canvas .continue-origin-label {
+  font-size: 0.47rem;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.demo-vert-lab .process-canvas .continue-selected {
+  margin: 0;
+}
+
+.demo-vert-lab .process-canvas .continue-flow {
+  column-gap: 0.45rem;
+  grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 47%);
+}
+
+.demo-vert-lab .process-canvas .process-start .process-read {
+  font-size: 0.47rem;
+  letter-spacing: 0.08em;
+  padding: 0.08rem 0.28rem;
+}
+
+.demo-vert-lab .process-setup .vertical-process-label,
+.demo-vert-lab .process-down .vertical-process-label {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 0.45em;
+  min-width: 0;
+}
+
+.demo-vert-lab .process-setup .vertical-process-label .eyebrow,
+.demo-vert-lab .process-down .vertical-process-label .eyebrow,
+.demo-vert-lab .process-setup .vertical-process-label .panel-title,
+.demo-vert-lab .process-down .vertical-process-label .panel-title {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-canvas .continue-origin-frame {
+  max-height: calc(100% - 1.5em);
+}
+
+.demo-vert-lab .process-canvas .process-inherit {
+  gap: 0.15rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-summary {
+  margin-top: 0.15rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-scale {
+  flex-basis: 0.75rem;
+}
+
+.demo-vert-lab .process-canvas .inherit-chart-names {
+  padding-top: 0.75rem;
+}
+
+.demo-vert-lab .process-setup > .process-step,
+.demo-vert-lab .process-down > .process-step {
+  height: auto;
+  padding: 7px;
+}
+
+.demo-vert-lab .process-setup > .process-step :is(.eyebrow, .panel-title),
+.demo-vert-lab .process-down > .process-step :is(.eyebrow, .panel-title),
+.demo-vert-lab .process-canvas .process-start .vertical-process-label .eyebrow,
+.demo-vert-lab .process-canvas .process-start .vertical-process-label .panel-title {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+}
+
+.demo-vert-lab .process-setup > .process-step :is(.process-sentence, .process-cue),
+.demo-vert-lab .process-down > .process-step :is(.process-sentence, .process-cue),
+.demo-vert-lab .process-setup > .process-step :is(.process-cap-name, .process-handoff-ready, .process-cap-cue),
+.demo-vert-lab .process-down > .process-step :is(.process-cap-name, .process-handoff-ready, .process-cap-cue) {
+  font-size: 0.53rem;
+  margin: 0.12rem 0;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+}
+
+.demo-vert-lab .process-sample .vertical-process-label,
+.demo-vert-lab .process-xyt .vertical-process-label,
+.demo-vert-lab .process-form .vertical-process-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+}
+
+.demo-vert-lab .process-sample :is(.eyebrow, .panel-title),
+.demo-vert-lab .process-xyt :is(.eyebrow, .panel-title),
+.demo-vert-lab .process-form :is(.eyebrow, .panel-title) {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.demo-vert-lab .process-sample :is(.process-sentence, .process-cue),
+.demo-vert-lab .process-xyt :is(.process-sentence, .process-cue),
+.demo-vert-lab .process-form :is(.process-sentence, .process-cue) {
+  font-size: 0.53rem;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+}
+
+.demo-vert-lab .process-sample .process-transport :is(button, span),
+.demo-vert-lab .process-xyt .process-transport :is(button, span),
+.demo-vert-lab .process-form .process-transport :is(button, span) {
+  font-size: 0.53rem;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.demo-vert-lab .process-canvas .process-start-note span,
+.demo-vert-lab .process-canvas .process-start-status,
+.demo-vert-lab .process-choose-mark,
+.demo-vert-lab .process-solid-marks,
+.demo-vert-lab .process-solid-marks li,
+.demo-vert-lab .process-choose-preview figcaption,
+.demo-vert-lab .process-choose-preview figcaption strong,
+.demo-vert-lab .process-choose-preview figcaption span,
+.demo-vert-lab .process-handoff-links a,
+.demo-vert-lab .process-canvas .inherit-chart-names span,
+.demo-vert-lab .process-canvas .inherit-chart-scale span,
+.demo-vert-lab .process-canvas .inherit-meter-name,
+.demo-vert-lab .process-canvas .inherit-meter-value span:last-child {
+  font-size: 0.47rem;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
+.demo-vert-lab .process-canvas .inherit-meter-value span:first-child {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+

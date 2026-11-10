@@ -169,12 +169,34 @@ function Pareto({ x, y, w, h, points, pickId }: { x: number; y: number; w: numbe
   const X = (value: number) => pad + ((value - x0) / spanX) * (width - pad * 1.7);
   const Y = (value: number) => height - pad - ((value - y0) / spanY) * (height - pad * 1.8);
   const pick = points.find((item) => item.id === pickId);
-  const ordered = [...points.filter((item) => !item.pareto), ...points.filter((item) => item.pareto)];
+  const front = points.filter((item) => item.pareto);
+  const nearest = Math.min(2, Math.max(0, front.length - 1));
+  const links: [number, number][] = [];
+  const seen = new Set<string>();
+  front.forEach((item, index) => {
+    front
+      .map((other, otherIndex) => ({
+        otherIndex,
+        distance: index === otherIndex ? Infinity : (item.formal - other.formal) ** 2 + (item.spatial - other.spatial) ** 2,
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, nearest)
+      .forEach(({ otherIndex }) => {
+        const key = index < otherIndex ? `${index}-${otherIndex}` : `${otherIndex}-${index}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        links.push([index, otherIndex]);
+      });
+  });
+  const ordered = [...points.filter((item) => !item.pareto), ...front];
   return (
     <svg className={`${styles.at} ${styles.pareto}`} style={place(x, y, w, h)} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Vertical Void candidates by Formal and Spatial score">
       <path d={`M ${pad} 4 V ${height - pad} H ${width - 2}`} />
       <text x={width - 2} y={height - 4} textAnchor="end">Formal</text>
       <text x={pad + 3} y={11}>Spatial</text>
+      {links.map(([from, to]) => (
+        <line key={`${front[from].id}-${front[to].id}`} x1={X(front[from].formal).toFixed(1)} y1={Y(front[from].spatial).toFixed(1)} x2={X(front[to].formal).toFixed(1)} y2={Y(front[to].spatial).toFixed(1)} />
+      ))}
       {ordered.map((item) => (
         <circle key={item.id} cx={X(item.formal).toFixed(1)} cy={Y(item.spatial).toFixed(1)} r={item.pareto ? 3.1 : 2} data-pareto={item.pareto || undefined} />
       ))}
@@ -328,7 +350,7 @@ export function ProcessOverview({ label, onSelect }: { label: string; onSelect: 
   return (
     <div className={styles.overview} role="group" aria-label={label}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={styles.ground} src="/demo/overview/filament-ground-membrane.png" alt="" draggable={false} />
+      <img className={styles.ground} src="/demo/chapter-steps-membrane.png?v=3" alt="" draggable={false} />
       <ol className={styles.zones}>
         {DEMO_BOARD.map(({ chapter, index }, zoneIndex) => {
           const zone = ZONES[zoneIndex];
@@ -341,7 +363,7 @@ export function ProcessOverview({ label, onSelect }: { label: string; onSelect: 
                 onClick={() => onSelect(index)}
                 aria-label={chapter.title}
               >
-                <span className={zoneIndex >= 3 ? `${styles.head} ${styles.headCopper}` : styles.head}>
+                <span className={styles.head}>
                   <span className={styles.index}>{chapter.index}</span>
                   <span className={styles.title}>{chapter.title}</span>
                 </span>

@@ -5,7 +5,7 @@ import { SITE_ARCHETYPES, SITE_PROGRAMS, PROGRAM_LABEL } from "@/lib/skill5/cata
 import { ASSEMBLIES, CONFIGURATIONS, HYBRID, SITE } from "@/lib/demo-workflow/chapter-facts";
 import { MODULE_STILLS } from "@/lib/demo-workflow/overview";
 import { Caption, Chips, Img, Kicker, Missing } from "@/components/demo-workflow/chapter-kit";
-import { ComparativePage, HybridSelectionPage, HybridSomPage, SitePlacementPage } from "@/components/demo-workflow/integration-play";
+import { HybridCatalogPage, HybridLabPage, HybridSitePage } from "@/components/demo-workflow/integration-run";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/integration-chapter.module.css";
@@ -230,10 +230,9 @@ export const INTEGRATION_CONTENT: ChapterContent = {
   ],
   layout: styles.composed,
   boards: [
-    { layout: styles.fill, details: [<HybridSelectionPage key="selection" />] },
-    { layout: styles.fill, details: [<HybridSomPage key="som" />] },
-    { layout: styles.fill, details: [<SitePlacementPage key="site" />] },
-    { layout: styles.fill, details: [<ComparativePage key="evaluation" />] },
+    { layout: styles.sheet, details: [<HybridLabPage key="lab" />] },
+    { layout: styles.sheet, details: [<HybridCatalogPage key="catalog" />] },
+    { layout: styles.sheet, details: [<HybridSitePage key="site" />] },
   ],
   loop: { from: 4, to: [1, 3], labels: ["Evaluation revises the hybrid", "Client and site set the next placement"] },
   feature: {

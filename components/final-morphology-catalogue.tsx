@@ -103,7 +103,7 @@ const ROW_SUBTITLE: Record<RowId, string> = {
 
 const TURN_SECONDS = 48;
 
-export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: boolean; handoff?: FinalArchiveHandoff[] }) {
+export function FinalMorphologyCatalogue({ fixture, handoff = [], wireframe = false, wireBright = 0.55, wireLift = 0, spread = false }: { fixture: boolean; handoff?: FinalArchiveHandoff[]; wireframe?: boolean; wireBright?: number; wireLift?: number; spread?: boolean }) {
   const search = useSearchParams();
   const preview = search.get("preview") === "1";
   const rows = ROWS.map((row) => ({ ...row, slots: slotsFor(row) }));
@@ -233,8 +233,9 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
   const enlargedField = enlargedSlot && enlargedSelection && !enlargedPick ? fields[enlargedSlot.id] ?? null : null;
 
   return (
-    <main className="final-catalogue" data-enlarged={enlarged ? "true" : undefined}>
+    <main className="final-catalogue" data-wireframe={wireframe ? "true" : undefined} data-enlarged={enlarged ? "true" : undefined}>
       <Summary rows={rows} occupied={(id) => Boolean(sourceFor(id))} indexes={indexes} selectedCount={selectedCount} preview={preview} />
+      {spread && enlarged ? null : (
       <div className="final-rows">
         {rows.map((row) => (
           <TypologyBand
@@ -247,6 +248,11 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
             collection={collection}
             handoff={tracked}
             skill2Selections={skill2Selections}
+            wireframe={wireframe}
+            wireBands={6}
+            wireBright={wireBright}
+            wireLift={wireLift}
+            spinAll={spread}
             fields={fields}
             picks={picks}
             onTriangles={reportTriangles}
@@ -254,7 +260,25 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
           />
         ))}
       </div>
-      {enlarged && enlargedSlot ? (
+      )}
+      {spread && enlarged && enlargedRow ? (
+        <TypologySpread
+          rowId={enlargedRow.id}
+          label={enlargedRow.label}
+          slots={enlargedRow.slots}
+          current={enlarged.index}
+          collection={collection}
+          handoff={tracked}
+          fields={fields}
+          picks={picks}
+          wireframe={wireframe}
+          wireBright={wireBright}
+          wireLift={wireLift}
+          onTriangles={reportTriangles}
+          onClose={() => setEnlarged(null)}
+        />
+      ) : null}
+      {!spread && enlarged && enlargedSlot ? (
         <button
           type="button"
           className="final-enlarge"
@@ -267,7 +291,11 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
               cacheIdentity={meshIdentity(enlargedSelection, enlargedHandoff) ?? enlargedSource.archetypeId}
               mesh={enlargedPick.mesh}
               orbit
-              fitMargin={0.96}
+              fitMargin={0.86}
+              wireframe={wireframe}
+              wireBands={24}
+              wireBright={wireBright}
+              wireLift={wireLift}
               onTriangles={reportTriangles}
             />
           ) : enlargedField && enlargedSelection ? (
@@ -276,7 +304,11 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [] }: { fixture: b
               cacheIdentity={meshIdentity(enlargedSelection, null) ?? enlargedSelection.archetypeId}
               field={enlargedField}
               orbit
-              fitMargin={0.96}
+              fitMargin={0.86}
+              wireframe={wireframe}
+              wireBands={24}
+              wireBright={wireBright}
+              wireLift={wireLift}
               onTriangles={reportTriangles}
             />
           ) : null}
@@ -367,6 +399,11 @@ function TypologyBand({
   skill2Selections,
   fields,
   picks,
+  wireframe,
+  wireBands,
+  wireBright,
+  wireLift,
+  spinAll = false,
   onTriangles,
   onChoose,
 }: {
@@ -380,6 +417,11 @@ function TypologyBand({
   skill2Selections: Skill2Selections;
   fields: Record<string, VerticalViewerField | null>;
   picks: Record<string, SolidifiedPick | null>;
+  wireframe: boolean;
+  wireBands: number;
+  wireBright: number;
+  wireLift: number;
+  spinAll?: boolean;
   onTriangles: (archetypeId: string, count: number | null) => void;
   onChoose: (index: number, enlarge: boolean) => void;
 }) {
@@ -425,7 +467,12 @@ function TypologyBand({
                   archetypeId={source.archetypeId}
                   cacheIdentity={meshIdentity(selection, tracked) ?? source.archetypeId}
                   mesh={pick.mesh}
-                  orbit={place === "front-center"}
+                  orbit={spinAll || place === "front-center"}
+                  fitMargin={0.86}
+                  wireframe={wireframe}
+                  wireBands={wireBands}
+                  wireBright={wireBright}
+                  wireLift={wireLift}
                   onTriangles={onTriangles}
                 />
               ) : field && selection ? (
@@ -433,12 +480,100 @@ function TypologyBand({
                   archetypeId={selection.archetypeId}
                   cacheIdentity={meshIdentity(selection, null) ?? selection.archetypeId}
                   field={field}
-                  orbit={place === "front-center"}
+                  orbit={spinAll || place === "front-center"}
+                  fitMargin={0.86}
+                  wireframe={wireframe}
+                  wireBands={wireBands}
+                  wireBright={wireBright}
+                  wireLift={wireLift}
                   onTriangles={onTriangles}
                 />
               ) : null}
               <span className="final-plinth" aria-hidden="true"><span className="final-plinth-top" /></span>
             </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function TypologySpread({
+  rowId,
+  label,
+  slots,
+  current,
+  collection,
+  handoff,
+  fields,
+  picks,
+  wireframe,
+  wireBright,
+  wireLift,
+  onTriangles,
+  onClose,
+}: {
+  rowId: RowId;
+  label: string;
+  slots: Slot[];
+  current: number;
+  collection: SelectedSkill3Collection;
+  handoff: FinalArchiveHandoff[];
+  fields: Record<string, VerticalViewerField | null>;
+  picks: Record<string, SolidifiedPick | null>;
+  wireframe: boolean;
+  wireBright: number;
+  wireLift: number;
+  onTriangles: (archetypeId: string, count: number | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <section className="final-spread" aria-label={label}>
+      <button type="button" className="final-spread-back" onClick={onClose}>Back</button>
+      <div className="final-spread-row">
+        {slots.map((slot, index) => {
+          const selection = collection[slot.id] ?? null;
+          const tracked = selection ? null : handoff.find((entry) => entry.archetypeId === slot.id) ?? null;
+          const source = selection ?? tracked;
+          const pick = pickFor(source, picks);
+          const field = selection && !pick ? fields[slot.id] ?? null : null;
+          const identity = meshIdentity(selection, tracked);
+          return (
+            <article key={slot.id} data-current={index === current ? "true" : undefined}>
+              <p className="final-spread-name">
+                <small>{archetypeCode(rowId, index)}</small>
+                <b>{slot.name}</b>
+              </p>
+              <div className="final-spread-model">
+                {pick && source ? (
+                  <SlotMesh
+                    archetypeId={source.archetypeId}
+                    cacheIdentity={identity ?? source.archetypeId}
+                    mesh={pick.mesh}
+                    orbit
+                    fitMargin={0.86}
+                    wireframe={wireframe}
+                    wireBands={24}
+                    wireBright={wireBright}
+                    wireLift={wireLift}
+                    onTriangles={onTriangles}
+                  />
+                ) : field && selection ? (
+                  <SlotMesh
+                    archetypeId={selection.archetypeId}
+                    cacheIdentity={identity ?? selection.archetypeId}
+                    field={field}
+                    orbit
+                    fitMargin={0.86}
+                    wireframe={wireframe}
+                    wireBands={24}
+                    wireBright={wireBright}
+                    wireLift={wireLift}
+                    onTriangles={onTriangles}
+                  />
+                ) : null}
+              </div>
+            </article>
           );
         })}
       </div>
@@ -517,6 +652,10 @@ function SlotMesh({
   mesh,
   orbit = false,
   fitMargin = 0.9,
+  wireframe = false,
+  wireBands = 8,
+  wireBright = 1,
+  wireLift = 0,
   onTriangles,
 }: {
   archetypeId: string;
@@ -525,6 +664,10 @@ function SlotMesh({
   mesh?: IsoMesh | null;
   orbit?: boolean;
   fitMargin?: number;
+  wireframe?: boolean;
+  wireBands?: number;
+  wireBright?: number;
+  wireLift?: number;
   onTriangles: (archetypeId: string, count: number | null) => void;
 }) {
   const report = useCallback((count: number | null) => {
@@ -539,6 +682,10 @@ function SlotMesh({
         orbit={orbit}
         frame="bounds"
         fitMargin={fitMargin}
+        wire={wireframe}
+        wireBands={wireBands}
+        wireBright={wireBright}
+        wireLift={wireLift}
         turnSeconds={TURN_SECONDS}
         cacheIdentity={`${cacheIdentity}:refined`}
         onTriangles={report}

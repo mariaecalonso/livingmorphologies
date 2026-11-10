@@ -5,16 +5,15 @@ import styles from "@/components/demo-workflow/optimization-stage.module.css";
 
 const ARCHETYPE = "vertical-void";
 const GENERATIONS = [1, 2, 3, 4] as const;
-const OPERATIONS = ["evaluate", "rank", "select", "generate"] as const;
+const OPERATIONS = ["evaluate", "rank", "select"] as const;
 const LAST_BEAT = 1 + GENERATIONS.length * OPERATIONS.length;
-const READ_MS = 2000;
+const TIMELINE_PLATES = 8;
+const READ_MS = 800;
 const SCORED = 6;
-const SETTLE_MS = 1100;
-const HOLD_MS = 4000;
-const BIRTH_MS = 1400;
+const SETTLE_MS = 400;
+const HOLD_MS = 1600;
+const BIRTH_MS = 500;
 const BIRTHS = 3;
-const VARY_MS = 1200;
-const ADD_MS = 1200;
 
 type Operation = (typeof OPERATIONS)[number];
 type Observed = Partial<Record<
@@ -47,14 +46,12 @@ const OPERATION_LABEL: Record<Operation, string> = {
   evaluate: "Evaluate",
   rank: "Rank",
   select: "Select",
-  generate: "Generate",
 };
 
 function beatDuration(operation: Operation) {
   if (operation === "evaluate") return SCORED * READ_MS;
-  if (operation === "rank") return SETTLE_MS + HOLD_MS + BIRTHS * BIRTH_MS + 700;
-  if (operation === "generate") return VARY_MS + ADD_MS + 1400;
-  return 3200;
+  if (operation === "rank") return SETTLE_MS + HOLD_MS + BIRTHS * BIRTH_MS + 300;
+  return 1400;
 }
 
 const STEP_MS = OPERATIONS.map((operation) => beatDuration(operation));
@@ -74,7 +71,7 @@ function elapsedAtBeat(beat: number) {
 
 function beatState(beat: number) {
   if (beat <= 0) return { focus: "input" as const, generation: 1, operation: "evaluate" as const, hold: false, revealed: 0 };
-  if (beat >= LAST_BEAT) return { focus: "pareto" as const, generation: 4, operation: "generate" as const, hold: true, revealed: 4 };
+  if (beat >= LAST_BEAT) return { focus: "pareto" as const, generation: 4, operation: "select" as const, hold: true, revealed: 4 };
   const step = beat - 1;
   const generation = Math.floor(step / OPERATIONS.length) + 1;
   const operation = OPERATIONS[step % OPERATIONS.length];
@@ -103,27 +100,141 @@ function project(formal: number, spatial: number, atmospheric: number, yaw: numb
   const sin = Math.sin(yaw);
   const xr = x * cos - z * sin;
   const zr = x * sin + z * cos;
-  return { left: 48 + xr * 42 + zr * 10, top: 68 - y * 46 - zr * 24, depth: zr + y };
+  return { left: 50 + xr * 42 + zr * 10, top: 70 - y * 44 - zr * 20, depth: zr + y };
 }
 
-function hull(points: { x: number; y: number }[]) {
-  const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
-  if (sorted.length < 3) return sorted;
-  const cross = (o: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-  const lower: { x: number; y: number }[] = [];
-  sorted.forEach((point) => {
-    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
-    lower.push(point);
+type FrontPoint = { f: number; s: number; a: number; x: number; y: number; depth: number };
+
+type PlaneSite = { index: number; x: number; y: number };
+type PlaneTri = { a: number; b: number; c: number };
+
+/** Circumcircle of a triangle in the trade-off plane. Collinear sites have none. */
+function circumcircle(a: PlaneSite, b: PlaneSite, c: PlaneSite) {
+  const d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+  if (Math.abs(d) < 1e-12) return null;
+  const aa = a.x * a.x + a.y * a.y;
+  const bb = b.x * b.x + b.y * b.y;
+  const cc = c.x * c.x + c.y * c.y;
+  const x = (aa * (b.y - c.y) + bb * (c.y - a.y) + cc * (a.y - b.y)) / d;
+  const y = (aa * (c.x - b.x) + bb * (a.x - c.x) + cc * (b.x - a.x)) / d;
+  return { x, y, r2: (x - a.x) ** 2 + (y - a.y) ** 2 };
+}
+
+/**
+ * The Pareto surface. Every nondominated point is projected onto the plane
+ * perpendicular to Formal + Spatial + Atmospheric and triangulated there,
+ * so the front is one field rather than a set of nearest-neighbor links.
+ */
+function paretoField(points: FrontPoint[], bounds: Bounds) {
+  const edges = new Set<string>();
+  const addEdge = (left: number, right: number) => {
+    if (left === right) return;
+    edges.add(left < right ? `${left}-${right}` : `${right}-${left}`);
+  };
+  if (points.length < 2) return { edges: [] as [number, number][], faces: [] as [number, number, number][] };
+
+  const span = (start: number, end: number) => (end === start ? 1 : end - start);
+  const df = span(bounds.f0, bounds.f1);
+  const ds = span(bounds.s0, bounds.s1);
+  const da = span(bounds.a0, bounds.a1);
+  const sites: PlaneSite[] = [];
+  points.forEach((point, index) => {
+    const formal = (point.f - bounds.f0) / df;
+    const spatial = (point.s - bounds.s0) / ds;
+    const atmospheric = (point.a - bounds.a0) / da;
+    const x = formal * 0.70710678118 + spatial * -0.70710678118;
+    const y = formal * 0.40824829046 + spatial * 0.40824829046 + atmospheric * -0.81649658092;
+    const twin = sites.find((site) => (site.x - x) ** 2 + (site.y - y) ** 2 < 1e-10);
+    if (twin) {
+      addEdge(index, twin.index);
+      return;
+    }
+    sites.push({ index, x, y });
   });
-  const upper: { x: number; y: number }[] = [];
-  for (let index = sorted.length - 1; index >= 0; index -= 1) {
-    const point = sorted[index];
-    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
-    upper.push(point);
+
+  const faces: [number, number, number][] = [];
+  if (sites.length >= 3) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    sites.forEach((site) => {
+      minX = Math.min(minX, site.x);
+      minY = Math.min(minY, site.y);
+      maxX = Math.max(maxX, site.x);
+      maxY = Math.max(maxY, site.y);
+    });
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+    const delta = Math.max(maxX - minX, maxY - minY, 1) * 20;
+    const all: PlaneSite[] = [
+      { index: -1, x: midX - delta * 2, y: midY - delta },
+      { index: -2, x: midX, y: midY + delta * 2 },
+      { index: -3, x: midX + delta * 2, y: midY - delta },
+      ...sites,
+    ];
+    let triangles: PlaneTri[] = [{ a: 0, b: 1, c: 2 }];
+    for (let index = 3; index < all.length; index += 1) {
+      const site = all[index];
+      const cavity = new Map<string, { count: number; edge: [number, number] }>();
+      const keep: PlaneTri[] = [];
+      triangles.forEach((tri) => {
+        const circle = circumcircle(all[tri.a], all[tri.b], all[tri.c]);
+        const dx = site.x - (circle?.x ?? 0);
+        const dy = site.y - (circle?.y ?? 0);
+        const inside = circle ? dx * dx + dy * dy <= circle.r2 * (1 + 1e-9) : false;
+        if (!inside) {
+          keep.push(tri);
+          return;
+        }
+        [[tri.a, tri.b], [tri.b, tri.c], [tri.c, tri.a]].forEach(([from, to]) => {
+          const key = from < to ? `${from}:${to}` : `${to}:${from}`;
+          const found = cavity.get(key);
+          if (found) found.count += 1;
+          else cavity.set(key, { count: 1, edge: [from, to] });
+        });
+      });
+      cavity.forEach(({ count, edge }) => {
+        if (count === 1) keep.push({ a: edge[0], b: edge[1], c: index });
+      });
+      triangles = keep;
+    }
+    triangles.forEach((tri) => {
+      if (tri.a < 3 || tri.b < 3 || tri.c < 3) return;
+      const face: [number, number, number] = [all[tri.a].index, all[tri.b].index, all[tri.c].index];
+      faces.push(face);
+      addEdge(face[0], face[1]);
+      addEdge(face[1], face[2]);
+      addEdge(face[2], face[0]);
+    });
   }
-  upper.pop();
-  lower.pop();
-  return lower.concat(upper);
+
+  const covered = new Set<number>();
+  edges.forEach((key) => key.split("-").forEach((index) => covered.add(Number(index))));
+  const loose = sites.filter((site) => !covered.has(site.index));
+  if (loose.length === sites.length) {
+    const ordered = [...sites].sort((left, right) => left.x - right.x || left.y - right.y);
+    ordered.slice(1).forEach((site, index) => addEdge(ordered[index].index, site.index));
+  } else {
+    loose.forEach((site) => {
+      let nearest = -1;
+      let nearestDistance = Infinity;
+      sites.forEach((other) => {
+        if (!covered.has(other.index)) return;
+        const distance = (other.x - site.x) ** 2 + (other.y - site.y) ** 2;
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearest = other.index;
+        }
+      });
+      if (nearest >= 0) addEdge(site.index, nearest);
+    });
+  }
+
+  return {
+    edges: [...edges].map((key) => key.split("-").map(Number) as [number, number]),
+    faces,
+  };
 }
 
 function Plate({ src }: { src: string }) {
@@ -289,7 +400,7 @@ export function OptimizationStage() {
     const wait = !current.hold && current.operation === "evaluate"
       ? SCORED * READ_MS
       : !current.hold && current.operation === "rank"
-        ? SETTLE_MS + HOLD_MS + BIRTHS * BIRTH_MS + 700
+        ? SETTLE_MS + HOLD_MS + BIRTHS * BIRTH_MS + 300
         : beatDuration(current.operation);
     const timer = window.setTimeout(() => {
       setBeat((value) => (value >= LAST_BEAT ? 1 : value + 1));
@@ -307,7 +418,6 @@ export function OptimizationStage() {
       <section className={styles.input} aria-label="Initial population">
         <header>
           <h3>Input</h3>
-          <p>Initial population</p>
         </header>
         <div className={styles.inputs}>
           {inputs.map((src) => <span key={src}><Plate src={src} /></span>)}
@@ -321,7 +431,6 @@ export function OptimizationStage() {
         </header>
         <Mechanism
           generation={generation}
-          all={record.candidates}
           generationNumber={story.generation}
           operation={story.operation}
           hold={story.hold}
@@ -351,24 +460,22 @@ export function OptimizationStage() {
           <i className={styles.playhead} aria-hidden="true" />
           {GENERATIONS.map((generationNumber) => {
             const plates = record.candidates.filter((item) => item.generation === generationNumber && item.image);
-            const shown = spread(plates, 4);
+            const shown = spread(plates, TIMELINE_PLATES);
             const state = generationNumber === story.generation && !story.hold ? "active" : generationNumber < story.generation || story.hold ? "done" : "waiting";
-            const visibleCount = state === "waiting" ? 0 : state === "done" ? shown.length : OPERATIONS.indexOf(story.operation) + 1;
-            const visible = shown.slice(0, visibleCount);
             return (
               <button
                 key={generationNumber}
                 type="button"
                 data-state={state}
                 aria-pressed={generationNumber === story.generation}
-                aria-label={visible.length ? `Generation ${generationNumber}, ${visible.length} ${visible.length === 1 ? "plate" : "plates"}` : `Generation ${generationNumber}`}
+                aria-label={`Generation ${generationNumber}, ${shown.length} plates`}
                 onClick={() => jump(generationNumber)}
               >
                 <span>G{String(generationNumber).padStart(2, "0")}</span>
                 <b className={styles.node} aria-hidden="true" />
                 <span className={styles.stationPlates}>
-                  {shown.map((item, index) => (
-                    index < visibleCount ? <Plate key={item.id} src={item.image as string} /> : <i key={item.id} />
+                  {shown.map((item) => (
+                    <Plate key={item.id} src={item.image as string} />
                   ))}
                 </span>
               </button>
@@ -381,38 +488,37 @@ export function OptimizationStage() {
 }
 
 type Spot = { x: number; y: number; opacity: number };
-type Anchor = { x: number; y: number };
-type Anchors = { evalY: number; groups: Anchor[]; columns: Anchor[] };
+type Anchor = { x: number; y: number; span: number };
+type Anchors = { evalY: number; evalLeft: number; evalSpan: number; groups: Anchor[] };
 
 const FALLBACK_ANCHORS: Anchors = {
-  evalY: 19.9,
+  evalY: 28,
+  evalLeft: 2,
+  evalSpan: 96,
   groups: [
-    { x: 17.01, y: 49.2 },
-    { x: 50, y: 49.2 },
-    { x: 82.99, y: 47.2 },
-  ],
-  columns: [
-    { x: 16.26, y: 87.8 },
-    { x: 48.93, y: 87.8 },
-    { x: 81.59, y: 87.8 },
+    { x: 16, y: 78, span: 30 },
+    { x: 48, y: 78, span: 30 },
+    { x: 80, y: 78, span: 30 },
   ],
 };
 
-function rowSpot(count: number, slot: number, anchor: Anchor, stepX: number, stepY = 0): Spot {
-  const columns = Math.min(3, Math.max(count, 1));
-  const column = slot % columns;
-  const row = Math.floor(slot / columns);
-  const rows = Math.max(1, Math.ceil(count / columns));
+/** Centers `count` frames on one line, with the same gap at both ends and between them. */
+function evenSpot(count: number, slot: number, anchor: Anchor, preferred: number): Spot {
+  const countSafe = Math.max(count, 1);
+  const left = anchor.x - anchor.span / 2;
+  const minGap = 1.4;
+  const maxSquare = Math.max(1, (anchor.span - (countSafe + 1) * minGap) / countSafe);
+  const size = Math.min(preferred, maxSquare);
+  const gap = (anchor.span - countSafe * size) / (countSafe + 1);
   return {
-    x: anchor.x + (column - (columns - 1) / 2) * stepX,
-    y: anchor.y + (row - (rows - 1) / 2) * stepY,
+    x: left + gap + size / 2 + slot * (size + gap),
+    y: anchor.y,
     opacity: 1,
   };
 }
 
 function Mechanism({
   generation,
-  all,
   generationNumber,
   operation,
   hold,
@@ -420,7 +526,6 @@ function Mechanism({
   status,
 }: {
   generation: Candidate[];
-  all: Candidate[];
   generationNumber: number;
   operation: Operation;
   hold: boolean;
@@ -429,7 +534,6 @@ function Mechanism({
 }) {
   const [cursor, setCursor] = useState(0);
   const [born, setBorn] = useState(0);
-  const [made, setMade] = useState(0);
   const circuitRef = useRef<HTMLDivElement>(null);
   const [anchors, setAnchors] = useState<Anchors | null>(null);
   const [placed, setPlaced] = useState(false);
@@ -439,12 +543,8 @@ function Mechanism({
     const diversity = spread(withImage.filter((item) => !item.pareto && item.diversity !== "none"), 3);
     const seen = new Set([...pareto, ...diversity].map((item) => item.id));
     const arrivals = spread(withImage.filter((item) => item.parentId == null && !seen.has(item.id)), 3);
-    const next = all.filter((item) => item.generation === generationNumber + 1 && item.image);
-    const parentIds = new Set(withImage.map((item) => item.id));
-    const children = spread(next.filter((item) => item.parentId != null && parentIds.has(item.parentId)), 3);
-    const fresh = spread(next.filter((item) => item.parentId == null), 3);
-    return { pareto, diversity, arrivals, children, fresh };
-  }, [all, generation, generationNumber]);
+    return { pareto, diversity, arrivals };
+  }, [generation]);
   useEffect(() => {
     if (hold || reduced || operation !== "evaluate") return;
     const reset = window.setTimeout(() => setCursor(0), 0);
@@ -482,24 +582,6 @@ function Mechanism({
       window.clearInterval(interval);
     };
   }, [hold, operation, reduced, generationNumber]);
-  useEffect(() => {
-    if (reduced || hold) {
-      const show = window.setTimeout(() => setMade(2), 0);
-      return () => window.clearTimeout(show);
-    }
-    if (operation !== "generate") {
-      const hide = window.setTimeout(() => setMade(0), 0);
-      return () => window.clearTimeout(hide);
-    }
-    const reset = window.setTimeout(() => setMade(0), 0);
-    const varied = window.setTimeout(() => setMade(1), VARY_MS);
-    const added = window.setTimeout(() => setMade(2), VARY_MS + ADD_MS);
-    return () => {
-      window.clearTimeout(reset);
-      window.clearTimeout(varied);
-      window.clearTimeout(added);
-    };
-  }, [hold, operation, reduced, generationNumber]);
   useLayoutEffect(() => {
     const circuit = circuitRef.current;
     if (!circuit) return;
@@ -514,21 +596,27 @@ function Mechanism({
       const bands = [...circuit.querySelectorAll("section")];
       const evalHeader = bands[0]?.querySelector("header")?.getBoundingClientRect();
       const evalBand = bands[0]?.getBoundingClientRect();
-      const groups = [...circuit.querySelectorAll<HTMLElement>("[data-group]")].map((node) => {
+      const groupNodes = [...circuit.querySelectorAll<HTMLElement>("[data-group]")];
+      const groupBoxes = groupNodes.map((node) => {
         const box = node.getBoundingClientRect();
         const label = node.querySelector("b")?.getBoundingClientRect();
-        return { x: centerX(node), y: percent((box.top + (label?.top ?? box.bottom)) / 2, bounds.height, bounds.top) };
+        return { node, box, labelTop: label?.top ?? box.bottom };
       });
-      const band = bands[2]?.getBoundingClientRect();
-      const columns = [...circuit.querySelectorAll<HTMLElement>("[data-column]")].map((node) => {
-        const word = node.getBoundingClientRect();
-        return { x: centerX(node), y: percent((word.bottom + (band?.bottom ?? bounds.bottom)) / 2, bounds.height, bounds.top) };
-      });
-      if (!evalHeader || !evalBand || groups.length < 3 || columns.length < 3) return;
+      const reference = groupBoxes.find((item) => item.node.dataset.role === "pareto") ?? groupBoxes[0];
+      const alignedY = reference
+        ? percent((reference.box.top + reference.labelTop) / 2, bounds.height, bounds.top)
+        : 70;
+      const groups = groupBoxes.map(({ node, box }) => ({
+        x: centerX(node),
+        y: alignedY,
+        span: percent(box.right, bounds.width, bounds.left) - percent(box.left, bounds.width, bounds.left),
+      }));
+      if (!evalHeader || !evalBand || groups.length < 3) return;
       setAnchors({
         evalY: percent((evalHeader.bottom + evalBand.bottom) / 2, bounds.height, bounds.top),
+        evalLeft: percent(evalBand.left, bounds.width, bounds.left),
+        evalSpan: percent(evalBand.right, bounds.width, bounds.left) - percent(evalBand.left, bounds.width, bounds.left),
         groups,
-        columns,
       });
     };
     measure();
@@ -540,18 +628,18 @@ function Mechanism({
     if (anchors) setPlaced(true);
   }, [anchors]);
   const hasNext = generationNumber < GENERATIONS.length;
+  const descending = !hold && operation === "rank";
+  const ascending = !hold && operation === "select" && hasNext;
   const frame = anchors ?? FALLBACK_ANCHORS;
   const spotFor = (role: "pareto" | "diversity", slot: number): Spot => {
     const kept = scene.pareto.length + scene.diversity.length;
     const index = role === "pareto" ? slot : scene.pareto.length + slot;
-    if (!hold && operation === "evaluate") return { x: ((index + 0.5) / Math.max(kept, 1)) * 100, y: frame.evalY, opacity: 1 };
-    if (!hold && (operation === "rank" || operation === "select")) {
-      const group = role === "pareto" ? 0 : 1;
-      const count = role === "pareto" ? scene.pareto.length : scene.diversity.length;
-      return rowSpot(count, slot, frame.groups[group], 9.3);
+    if (!hold && operation === "evaluate") {
+      return evenSpot(kept, index, { x: frame.evalLeft + frame.evalSpan / 2, y: frame.evalY, span: frame.evalSpan }, 14);
     }
-    if (!hasNext) return { x: ((index + 0.5) / Math.max(kept, 1)) * 100, y: frame.columns[1].y, opacity: 1 };
-    return rowSpot(kept, index, frame.columns[0], 7.4, 11);
+    const group = role === "pareto" ? 0 : 1;
+    const count = role === "pareto" ? scene.pareto.length : scene.diversity.length;
+    return evenSpot(count, slot, frame.groups[group], 9);
   };
   if (status !== "ready") {
     return <p className={styles.operationNote}>{status === "loading" ? "Loading the published search." : "The published search could not be loaded."}</p>;
@@ -568,6 +656,16 @@ function Mechanism({
             {reading ? <Reading plate={reading} /> : null}
           </header>
         </section>
+        <svg className={styles.exchange} viewBox="0 0 64 46" aria-hidden="true">
+          <g data-way="down" data-on={descending ? "" : undefined}>
+            <path className={styles.exchangeLine} d="M22 5 V34" />
+            <path className={styles.exchangeHead} d="M16 28 L22 36 L28 28" />
+          </g>
+          <g data-way="up" data-on={ascending ? "" : undefined}>
+            <path className={styles.exchangeLine} d="M42 41 V12" />
+            <path className={styles.exchangeHead} d="M36 18 L42 10 L48 18" />
+          </g>
+        </svg>
         <section className={styles.band} data-on={!hold && (operation === "rank" || operation === "select") ? "" : undefined}>
           <header>
             <h4>Ranking and selection</h4>
@@ -577,19 +675,6 @@ function Mechanism({
             <span data-group="" data-role="diversity"><b>Diversity</b></span>
             <span data-group="" data-role="exploration"><b>Exploration</b><small>New iterations</small></span>
           </div>
-        </section>
-        <section className={styles.band} data-on={hold || operation === "generate" ? "" : undefined}>
-          <header>
-            <h4>New generation</h4>
-          </header>
-          <div className={styles.regen} aria-hidden="true">
-            <span data-column=""><b>Kept</b><small>Selected</small></span>
-            <i data-link="varies" data-on={made >= 1 ? "" : undefined} />
-            <span data-column="" data-on={made >= 1 ? "" : undefined}><b>Varied</b><small>From kept</small></span>
-            <i data-link="joins" data-on={made >= 2 ? "" : undefined} />
-            <span data-column="" data-on={made >= 2 ? "" : undefined}><b>Next</b><small>Added</small></span>
-          </div>
-          <b className={styles.cycle} data-on={!hold && operation === "generate" && hasNext ? "" : undefined} />
         </section>
         {scene.pareto.map((item, slot) => {
           const spot = spotFor("pareto", slot);
@@ -608,28 +693,10 @@ function Mechanism({
           );
         })}
         {scene.arrivals.map((item, slot) => {
-          const generated = !hold && (operation === "select" || (operation === "rank" && slot < born));
-          const spot = { ...rowSpot(scene.arrivals.length, slot, frame.groups[2], 9.3), opacity: generated ? 1 : 0 };
+          const generated = hold || operation === "select" || (operation === "rank" && slot < born);
+          const spot = { ...evenSpot(scene.arrivals.length, slot, frame.groups[2], 9), opacity: generated ? 1 : 0 };
           return (
-            <figure key={`arrival-${slot}`} className={styles.mover} data-role="introduced" data-grouped="" data-new={generated ? "" : undefined} data-emerging={operation === "rank" && slot === born - 1 ? "" : undefined} style={{ left: `${spot.x}%`, top: `${spot.y}%`, opacity: spot.opacity, visibility: spot.opacity === 0 ? "hidden" : "visible" }}>
-              <Plate src={item.image!} />
-            </figure>
-          );
-        })}
-        {scene.children.map((item, slot) => {
-          const visible = hasNext && made >= 1 && (operation === "generate" || hold);
-          const spot = rowSpot(scene.children.length, slot, frame.columns[1], 7.4);
-          return (
-            <figure key={`child-${slot}`} className={styles.mover} data-role="child" style={{ left: `${spot.x}%`, top: `${spot.y}%`, opacity: visible ? 1 : 0, visibility: visible ? "visible" : "hidden" }}>
-              <Plate src={item.image!} />
-            </figure>
-          );
-        })}
-        {scene.fresh.map((item, slot) => {
-          const visible = hasNext && made >= 2 && (operation === "generate" || hold);
-          const spot = rowSpot(scene.fresh.length, slot, frame.columns[2], 6.6);
-          return (
-            <figure key={`fresh-${slot}`} className={styles.mover} data-role="introduced" style={{ left: `${spot.x}%`, top: `${spot.y}%`, opacity: visible ? 1 : 0, visibility: visible ? "visible" : "hidden" }}>
+            <figure key={`arrival-${slot}`} className={styles.mover} data-role="introduced" data-grouped={!hold && (operation === "rank" || operation === "select") ? "" : undefined} data-new={generated ? "" : undefined} data-emerging={operation === "rank" && slot === born - 1 ? "" : undefined} style={{ left: `${spot.x}%`, top: `${spot.y}%`, opacity: spot.opacity, visibility: spot.opacity === 0 ? "hidden" : "visible" }}>
               <Plate src={item.image!} />
             </figure>
           );
@@ -694,20 +761,21 @@ function ParetoSpace({
         const point = project(formal, spatial, atmospheric, yaw.current, bounds);
         return { x: (point.left / 100) * width, y: (point.top / 100) * height, depth: point.depth };
       };
-      const drawLine = (group: Element, from: { x: number; y: number }, to: { x: number; y: number }) => {
+      const drawLine = (group: Element, from: { x: number; y: number }, to: { x: number; y: number }, axis?: string) => {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("x1", from.x.toFixed(1));
         line.setAttribute("y1", from.y.toFixed(1));
         line.setAttribute("x2", to.x.toFixed(1));
         line.setAttribute("y2", to.y.toFixed(1));
+        if (axis) line.setAttribute("data-axis", axis);
         group.appendChild(line);
       };
       const grid = node.querySelector("[data-grid]");
-      const front = node.querySelector("[data-front]");
+      const mesh = node.querySelector("[data-mesh]");
       const axes = node.querySelector("[data-axes]");
       const leaders = node.querySelector("[data-leaders]");
       grid?.replaceChildren();
-      front?.replaceChildren();
+      mesh?.replaceChildren();
       axes?.replaceChildren();
       leaders?.replaceChildren();
       if (grid) {
@@ -718,16 +786,41 @@ function ParetoSpace({
           drawLine(grid, svgPoint(bounds.f0, spatial, bounds.a0), svgPoint(bounds.f1, spatial, bounds.a0));
         }
       }
-      const frontDots = [...node.querySelectorAll<HTMLElement>("[data-dot][data-pareto]")];
-      if (front && frontDots.length >= 3) {
-        const cloud = frontDots.flatMap((mark) => {
-          const formal = Number(mark.dataset.f);
-          const spatial = Number(mark.dataset.s);
-          return [svgPoint(formal, spatial, Number(mark.dataset.a)), svgPoint(formal, spatial, bounds.a0)];
+      const front: FrontPoint[] = [...node.querySelectorAll<HTMLElement>("[data-dot][data-pareto]")].map((mark) => {
+        const f = Number(mark.dataset.f);
+        const s = Number(mark.dataset.s);
+        const a = Number(mark.dataset.a);
+        return { f, s, a, ...svgPoint(f, s, a) };
+      });
+      if (mesh && front.length >= 2) {
+        const fieldMesh = paretoField(front, bounds);
+        const addLine = (from: FrontPoint, to: FrontPoint, glow: boolean) => {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", from.x.toFixed(1));
+          line.setAttribute("y1", from.y.toFixed(1));
+          line.setAttribute("x2", to.x.toFixed(1));
+          line.setAttribute("y2", to.y.toFixed(1));
+          if (glow) line.setAttribute("data-glow", "");
+          line.setAttribute("stroke", glow ? "#49d7de" : "#f4feff");
+          line.setAttribute("stroke-width", glow ? "3.6" : "1.15");
+          const lift = Math.max(0, Math.min(1, (from.depth + to.depth) / 2 + 0.35));
+          line.setAttribute("stroke-opacity", (glow ? 0.16 + lift * 0.2 : 0.42 + lift * 0.4).toFixed(2));
+          mesh.appendChild(line);
+        };
+        fieldMesh.faces.forEach(([a, b, c]) => {
+          const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+          polygon.setAttribute("points", [front[a], front[b], front[c]].map((item) => `${item.x.toFixed(1)},${item.y.toFixed(1)}`).join(" "));
+          const lift = Math.max(0, Math.min(1, (front[a].depth + front[b].depth + front[c].depth) / 3 + 0.35));
+          polygon.setAttribute("fill", "#49d7de");
+          polygon.setAttribute("fill-opacity", (0.08 + lift * 0.1).toFixed(2));
+          polygon.setAttribute("stroke", "#9af7ff");
+          polygon.setAttribute("stroke-width", "0.7");
+          mesh.appendChild(polygon);
         });
-        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        polygon.setAttribute("points", hull(cloud).map((item) => `${item.x.toFixed(1)},${item.y.toFixed(1)}`).join(" "));
-        front.appendChild(polygon);
+        fieldMesh.edges.forEach(([a, b]) => {
+          addLine(front[a], front[b], true);
+          addLine(front[a], front[b], false);
+        });
       }
       if (axes) {
         const origin = svgPoint(bounds.f0, bounds.s0, bounds.a0);
@@ -736,26 +829,29 @@ function ParetoSpace({
           svgPoint(bounds.f0, bounds.s1, bounds.a0),
           svgPoint(bounds.f0, bounds.s0, bounds.a1),
         ];
-        ends.forEach((tip) => {
-          drawLine(axes, origin, tip);
+        const axisNames = ["formal", "spatial", "atmospheric"] as const;
+        ends.forEach((tip, index) => {
+          const axis = axisNames[index];
+          drawLine(axes, origin, tip, axis);
           const angle = Math.atan2(tip.y - origin.y, tip.x - origin.x);
           const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
           const wing = (turn: number) => `${(tip.x - Math.cos(angle + turn) * 7).toFixed(1)},${(tip.y - Math.sin(angle + turn) * 7).toFixed(1)}`;
           head.setAttribute("points", `${tip.x.toFixed(1)},${tip.y.toFixed(1)} ${wing(-0.45)} ${wing(0.45)}`);
+          head.setAttribute("data-axis", axis);
           axes.appendChild(head);
         });
       }
       const slots = [
-        { x: 12, y: 32 },
-        { x: 30, y: 12 },
-        { x: 88, y: 16 },
-        { x: 74, y: 54 },
+        { x: 14, y: 16 },
+        { x: 86, y: 70 },
+        { x: 86, y: 16 },
+        { x: 14, y: 70 },
       ];
       node.querySelectorAll<HTMLElement>("[data-f]").forEach((mark) => {
         const point = svgPoint(Number(mark.dataset.f), Number(mark.dataset.s), Number(mark.dataset.a));
         if (mark.hasAttribute("data-axis")) {
           const dx = point.x - width * 0.5;
-          const dy = point.y - height * 0.58;
+          const dy = point.y - height * 0.5;
           const length = Math.hypot(dx, dy) || 1;
           const left = point.x + (dx / length) * 22;
           const top = point.y + (dy / length) * 18;
@@ -790,9 +886,9 @@ function ParetoSpace({
   }, [spin, bounds, candidates, thumbs]);
 
   const tips = [
-    { name: "Formal", f: bounds.f1, s: bounds.s0, a: bounds.a0 },
-    { name: "Spatial", f: bounds.f0, s: bounds.s1, a: bounds.a0 },
-    { name: "Atmospheric", f: bounds.f0, s: bounds.s0, a: bounds.a1 },
+    { name: "Formal", letter: "F", f: bounds.f1, s: bounds.s0, a: bounds.a0 },
+    { name: "Spatial", letter: "S", f: bounds.f0, s: bounds.s1, a: bounds.a0 },
+    { name: "Atmospheric", letter: "A", f: bounds.f0, s: bounds.s0, a: bounds.a1 },
   ];
 
   return (
@@ -803,11 +899,11 @@ function ParetoSpace({
       <div className={styles.field} ref={field}>
         <svg aria-hidden="true">
           <g data-grid="" />
-          <g data-front="" />
+          <g data-mesh="" />
           <g data-axes="" />
           <g data-leaders="" />
         </svg>
-        {tips.map((tip) => <span key={tip.name} className={styles.axisName} data-axis="" data-f={tip.f} data-s={tip.s} data-a={tip.a}>{tip.name}</span>)}
+        {tips.map((tip) => <span key={tip.name} className={styles.axisName} data-axis={tip.name.toLowerCase()} data-f={tip.f} data-s={tip.s} data-a={tip.a} title={tip.name}>{tip.letter}</span>)}
         {status === "ready" ? candidates.map((item) => (
           <button
             key={item.id}

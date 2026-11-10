@@ -217,6 +217,80 @@ void main() {
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
+/** Dark body under the section lines. The shading stays, so the volume still reads between them. */
+const WIRE_BODY_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+in float vDepth;
+uniform float uLift;
+layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 oDepth;
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
+  if (dot(n, viewDir) < 0.0) n = -n;
+  vec3 key = normalize(vec3(0.28, 0.86, 0.42));
+  float wrap = clamp((dot(n, key) + 0.35) / 1.35, 0.0, 1.0);
+  vec3 shadow = mix(vec3(0.07, 0.08, 0.09), vec3(0.58, 0.58, 0.56), uLift);
+  vec3 body = mix(vec3(0.34, 0.36, 0.38), vec3(0.97, 0.97, 0.96), uLift);
+  oColor = vec4(mix(shadow, body, wrap), 1.0);
+  oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+}`;
+
+const LINE_VERT = `#version 300 es
+layout(location = 0) in vec3 aPos;
+uniform float uYaw;
+uniform float uPitch;
+uniform float uSpin;
+uniform float uAspect;
+uniform float uFit;
+uniform float uOrtho;
+uniform vec3 uCenter;
+uniform vec2 uPan;
+out float vDepth;
+void main() {
+  float cy = cos(uYaw);
+  float sy = sin(uYaw);
+  float cp = cos(uPitch);
+  float sp = sin(uPitch);
+  float cs = cos(uSpin);
+  float ss = sin(uSpin);
+  vec3 p = aPos - uCenter;
+  p = vec3(p.x * cs + p.z * ss, p.y, -p.x * ss + p.z * cs);
+  float x1 = p.x * cy + p.z * sy;
+  float z1 = -p.x * sy + p.z * cy;
+  float y2 = p.y * cp - z1 * sp;
+  float z2 = p.y * sp + z1 * cp;
+  if (uOrtho > 0.5) {
+    vDepth = 4.2 + z2 * 0.02;
+    gl_Position = vec4((x1 + uPan.x) * uFit / uAspect, (y2 + uPan.y) * uFit, z2 * 0.0125, 1.0);
+  } else {
+    vec3 view = vec3(x1 * uFit, y2 * uFit * uAspect, -z2 * uFit - 3.4);
+    vDepth = -view.z;
+    float near = 0.35;
+    float far = 14.0;
+    float f = 1.55;
+    gl_Position = vec4(
+      view.x * f,
+      view.y * f,
+      (view.z * (far + near) + 2.0 * far * near) / (near - far),
+      -view.z
+    );
+  }
+}`;
+
+const WIRE_FRAG = `#version 300 es
+precision highp float;
+uniform float uBright;
+in float vDepth;
+layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 oDepth;
+void main() {
+  oColor = vec4(vec3(0.86, 0.91, 0.93) * uBright, 1.0);
+  oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+  gl_FragDepth = max(0.0, gl_FragCoord.z - 0.0012);
+}`;
+
 /** Tint for faces that differ from the comparison mesh. Copper unless a tint is set. */
 const ACCENT_FRAG = `#version 300 es
 precision highp float;
@@ -238,7 +312,7 @@ void main() {
 
 export type IsoMeshStyle = "field" | "shell" | "clay";
 
-const DRAW_MESH_GEN = 6;
+const DRAW_MESH_GEN = 10;
 
 type MeshGl = {
   gl: WebGL2RenderingContext;
@@ -254,6 +328,7 @@ type MeshGl = {
   position: WebGLBuffer;
   normal: WebGLBuffer;
   index: WebGLBuffer;
+  line: WebGLBuffer;
   quad: WebGLBuffer;
   fbo: WebGLFramebuffer;
   colorTex: WebGLTexture;
@@ -337,12 +412,15 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
   const aoProgram = program(gl, AO_VERT, AO_FRAG);
   const shellProgram = program(gl, VERT, SHELL_FRAG);
   const clayProgram = program(gl, VERT, CLAY_FRAG);
+  const wireBodyProgram = program(gl, VERT, WIRE_BODY_FRAG);
+  const wireProgram = program(gl, LINE_VERT, WIRE_FRAG);
   const shellAoProgram = program(gl, AO_VERT, SHELL_AO_FRAG);
   const floatAoProgram = program(gl, AO_VERT, FLOAT_AO_FRAG);
-  if (!meshProgram || !aoProgram || !shellProgram || !clayProgram || !shellAoProgram || !floatAoProgram) return null;
+  if (!meshProgram || !aoProgram || !shellProgram || !clayProgram || !wireBodyProgram || !wireProgram || !shellAoProgram || !floatAoProgram) return null;
   const position = gl.createBuffer();
   const normal = gl.createBuffer();
   const index = gl.createBuffer();
+  const line = gl.createBuffer();
   const quad = gl.createBuffer();
   const fbo = gl.createFramebuffer();
   const colorTex = tex(gl, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, 4, 4);
@@ -353,7 +431,7 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
   const uAspect = gl.getUniformLocation(meshProgram, "uAspect");
   const uFit = gl.getUniformLocation(meshProgram, "uFit");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
-  if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
+  if (!position || !normal || !index || !line || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
   if (!uYaw || !uPitch || !uAspect || !uFit || !uTexel) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -370,11 +448,14 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
     aoProgram,
     shellProgram,
     clayProgram,
+    wireBodyProgram,
+    wireProgram,
     shellAoProgram,
     floatAoProgram,
     position,
     normal,
     index,
+    line,
     quad,
     fbo,
     colorTex,
@@ -392,6 +473,83 @@ function setup(canvas: HTMLCanvasElement): MeshGl | null {
   return state;
 }
 
+const wireCache = new WeakMap<IsoMesh, Map<number, Float32Array>>();
+
+/** Section curves through the mesh, one family on each axis. Cached per density so the catalogue spin does not rebuild them. */
+function contourLines(mesh: IsoMesh, bands: number) {
+  let densities = wireCache.get(mesh);
+  if (!densities) {
+    densities = new Map();
+    wireCache.set(mesh, densities);
+  }
+  const cached = densities.get(bands);
+  if (cached) return cached;
+  const p = mesh.positions;
+  const index = mesh.indices;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (let i = 0; i < p.length; i += 3) {
+    const x = p[i];
+    const y = p[i + 1];
+    const z = p[i + 2];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  const lo = [minX, minY, minZ];
+  const hi = [maxX, maxY, maxZ];
+  const out: number[] = [];
+  for (let axis = 0; axis < 3; axis++) {
+    const span = hi[axis] - lo[axis];
+    if (span < 1e-5) continue;
+    for (let band = 1; band < bands; band += 1) {
+      const plane = lo[axis] + (span * band) / bands;
+      for (let triangle = 0; triangle < index.length; triangle += 3) {
+        const verts = [index[triangle] * 3, index[triangle + 1] * 3, index[triangle + 2] * 3, index[triangle] * 3];
+        let count = 0;
+        let x0 = 0;
+        let y0 = 0;
+        let z0 = 0;
+        let x1 = 0;
+        let y1 = 0;
+        let z1 = 0;
+        for (let edge = 0; edge < 3 && count < 2; edge += 1) {
+          const from = verts[edge];
+          const to = verts[edge + 1];
+          const delta = p[to + axis] - p[from + axis];
+          if (delta === 0) continue;
+          const along = (plane - p[from + axis]) / delta;
+          if (along < 0 || along > 1) continue;
+          const x = p[from] + (p[to] - p[from]) * along;
+          const y = p[from + 1] + (p[to + 1] - p[from + 1]) * along;
+          const z = p[from + 2] + (p[to + 2] - p[from + 2]) * along;
+          if (count === 0) {
+            x0 = x;
+            y0 = y;
+            z0 = z;
+          } else {
+            x1 = x;
+            y1 = y;
+            z1 = z;
+          }
+          count += 1;
+        }
+        if (count === 2) out.push(x0, y0, z0, x1, y1, z1);
+      }
+    }
+  }
+  const lines = new Float32Array(out);
+  densities.set(bands, lines);
+  return lines;
+}
+
 export function drawIsoMesh(
   canvas: HTMLCanvasElement,
   mesh: IsoMesh | null,
@@ -399,7 +557,7 @@ export function drawIsoMesh(
   pitch: number,
   column: number,
   style: IsoMeshStyle = "field",
-  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds"; spin?: number; margin?: number; zoom?: number; pan?: [number, number]; accent?: IsoMesh | null; accentTint?: [number, number, number] },
+  options?: { transparent?: boolean; uniform?: boolean; fit?: "module" | "bounds"; spin?: number; margin?: number; containTurn?: boolean; zoom?: number; pan?: [number, number]; accent?: IsoMesh | null; accentTint?: [number, number, number]; wire?: boolean; wireBands?: number; wireBright?: number; wireLift?: number },
 ) {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -428,7 +586,9 @@ export function drawIsoMesh(
   gl.depthFunc(gl.LEQUAL);
   gl.depthMask(true);
   gl.disable(gl.CULL_FACE);
-  const meshProgram = clay ? gpu.clayProgram : style === "shell" ? gpu.shellProgram : gpu.program;
+  const meshProgram = options?.wire
+    ? gpu.wireBodyProgram
+    : clay ? gpu.clayProgram : style === "shell" ? gpu.shellProgram : gpu.program;
   const compositeProgram = clear
     ? gpu.floatAoProgram
     : style === "shell" ? gpu.shellAoProgram : gpu.aoProgram;
@@ -448,7 +608,7 @@ export function drawIsoMesh(
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uSpin"), options?.spin ?? 0);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uPitch"), pitch);
     const aspect = width / Math.max(1, height);
-    const framed = options?.fit === "bounds" ? surfaceFrame(mesh.positions, yaw, pitch, aspect, options.margin) : null;
+    const framed = options?.fit === "bounds" ? surfaceFrame(mesh.positions, yaw, pitch, aspect, options.margin, options.containTurn) : null;
     const uniform = options?.uniform === true || framed != null;
     const fit = (framed ? framed.fit : uniform ? uniformModuleZoom(pitch, aspect) : moduleViewFit(column, aspect)) * (options?.zoom ?? 1);
     const center = framed?.center ?? [0, 0, 0];
@@ -458,7 +618,29 @@ export function drawIsoMesh(
     gl.uniform3f(gl.getUniformLocation(meshProgram, "uCenter"), center[0], center[1], center[2]);
     gl.uniform2f(gl.getUniformLocation(meshProgram, "uPan"), pan[0], pan[1]);
     gl.uniform1f(gl.getUniformLocation(meshProgram, "uOrtho"), uniform ? 1 : 0);
+    if (options?.wire) gl.uniform1f(gl.getUniformLocation(meshProgram, "uLift"), options.wireLift ?? 0);
     gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_INT, 0);
+    if (options?.wire) {
+      const lines = contourLines(mesh, Math.max(3, Math.round(options.wireBands ?? 8)));
+      if (lines.length > 0) {
+        gl.useProgram(gpu.wireProgram);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uBright"), options.wireBright ?? 1);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uYaw"), yaw);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uSpin"), options?.spin ?? 0);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uPitch"), pitch);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uAspect"), aspect);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uFit"), fit);
+        gl.uniform3f(gl.getUniformLocation(gpu.wireProgram, "uCenter"), center[0], center[1], center[2]);
+        gl.uniform2f(gl.getUniformLocation(gpu.wireProgram, "uPan"), pan[0], pan[1]);
+        gl.uniform1f(gl.getUniformLocation(gpu.wireProgram, "uOrtho"), uniform ? 1 : 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gpu.line);
+        gl.bufferData(gl.ARRAY_BUFFER, lines, gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+        gl.depthFunc(gl.LEQUAL);
+        gl.drawArrays(gl.LINES, 0, lines.length / 3);
+      }
+    }
     const accentMesh = options?.accent;
     if (accentMesh && accentMesh.triangles > 0) {
       if (gpu.accentGen !== 2) {

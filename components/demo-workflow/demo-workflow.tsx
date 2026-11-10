@@ -5,6 +5,7 @@ import { CONTEXT_CONTENT } from "@/components/demo-workflow/context-chapter";
 import { DemoChapterView } from "@/components/demo-workflow/demo-chapter";
 import { useGenerativeContent } from "@/components/demo-workflow/generative-chapter";
 import { INTEGRATION_CONTENT } from "@/components/demo-workflow/integration-chapter";
+import { PhysarumVideoPage } from "@/components/demo-workflow/physarum-video-page";
 import { ProcessOverview } from "@/components/demo-workflow/process-overview";
 import { RESEARCH_CONTENT } from "@/components/demo-workflow/research-chapter";
 import { useDemoPresentation, type DemoPhase } from "@/components/demo-workflow/use-demo-presentation";
@@ -12,7 +13,7 @@ import { useVerticalContent } from "@/components/demo-workflow/vertical-chapter"
 import { DEMO_CHAPTERS, DEMO_TIMING } from "@/lib/demo-workflow/chapters";
 import styles from "@/components/demo-workflow/demo-workflow.module.css";
 
-const PROCESS_OVERVIEW = "Process Overview";
+const PROCESS_OVERVIEW = "Workflow";
 
 type ChapterViewProps = Omit<ComponentProps<typeof DemoChapterView>, "content">;
 
@@ -87,6 +88,7 @@ function StageView({
   sheet,
   light,
   feature,
+  coverEpoch = 0,
   onPhase,
   onOperation,
   onFeature,
@@ -97,6 +99,7 @@ function StageView({
   sheet: number;
   light: StageLight;
   feature: boolean;
+  coverEpoch?: number;
   onPhase: (phase: DemoPhase) => void;
   onOperation: (operation: number) => void;
   onFeature: (operation: number | null) => void;
@@ -104,7 +107,13 @@ function StageView({
 }) {
   const chapter = chapterIndex == null ? null : DEMO_CHAPTERS[chapterIndex];
   if (!chapter) return <ProcessOverview label={PROCESS_OVERVIEW} onSelect={onSelect} />;
-  if (chapter.video) return <div className={styles.videoPage} aria-label={chapter.title} />;
+  if (chapter.video) {
+    return (
+      <div className={styles.videoPage} aria-label={chapter.title}>
+        <PhysarumVideoPage />
+      </div>
+    );
+  }
   const ChapterView = CHAPTER_VIEWS[chapter.id] ?? DemoChapterView;
   return (
     <ChapterView
@@ -113,6 +122,7 @@ function StageView({
       sheet={sheet}
       light={light}
       feature={feature}
+      coverEpoch={coverEpoch}
       onPhase={onPhase}
       onOperation={onOperation}
       onFeature={onFeature}
@@ -171,7 +181,7 @@ export function DemoWorkflow() {
       style={{ "--demo-transition": `${DEMO_TIMING.transitionMs}ms`, "--demo-lit": `${DEMO_TIMING.litMs}ms` } as CSSProperties}
     >
       <header className={styles.header}>
-        <h2 className={`${styles.title} home-overview-title`} data-cover={chapter && !focused && chapter.sequence.length > 0 && !chapter.video ? "" : undefined}>{title}</h2>
+        <h2 className={`${styles.title} home-overview-title`} data-cover={chapter && !focused && chapter.sequence.length > 0 && !chapter.video ? "" : undefined} data-video={chapter?.video ? "" : undefined}>{title}</h2>
         <p className={styles.announce} aria-live="polite">{title}</p>
         <div className={styles.tools}>
           {focused && chapter?.pages && state.sheet > 0 ? (
@@ -235,6 +245,7 @@ export function DemoWorkflow() {
               sheet={state.sheet}
               light={light}
               feature={state.feature}
+              coverEpoch={state.epoch}
               onPhase={setPhase}
               onOperation={selectOperation}
               onFeature={setFeature}

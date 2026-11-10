@@ -6,6 +6,7 @@ import { ratingLabel } from "@/lib/physarum";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import { LabRun } from "@/components/demo-workflow/lab-run";
 import { OptimizationStage } from "@/components/demo-workflow/optimization-stage";
+import { ArchetypeReading } from "@/components/demo-workflow/archetype-reading";
 import { SelectedCatalog } from "@/components/demo-workflow/selected-catalog";
 import styles from "@/components/demo-workflow/generative-chapter.module.css";
 
@@ -187,6 +188,7 @@ export function useGenerativeContent(): ChapterContent {
           <div key="lab" className={styles.labBay}>
             <LabRun watch />
           </div>,
+          <div key="analysis" className={styles.analysisSlot} data-analysis-slot="" />,
         ],
       },
       {
@@ -200,6 +202,10 @@ export function useGenerativeContent(): ChapterContent {
       {
         layout: styles.optPage,
         details: [<SelectedCatalog key="selected" />],
+      },
+      {
+        layout: styles.optPage,
+        details: [<ArchetypeReading key="reading" />],
       },
     ],
   }), []);
