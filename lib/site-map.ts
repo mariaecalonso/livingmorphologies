@@ -82,7 +82,7 @@ export const LAB_WORKSPACES = [
     resultId: null,
     tabs: [
       { href: "/lab/site/analysis", label: "Site Analysis" },
-      { href: "/lab/site", label: "Site Model" },
+      { href: "/lab/site?sheet=strategy", label: "Site Model" },
       { href: "/lab/site/configurations", label: "Configurations" },
     ],
   },

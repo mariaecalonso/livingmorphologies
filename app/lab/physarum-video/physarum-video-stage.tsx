@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BehaviorEvent, ClipFrame, SENTENCE_A, SENTENCE_B, STEPS_START, StepField, TITLE_EXIT, TITLE_REVEAL, VIDEOS_AT, bindPlayback, growthMediaReady, liveTime, pushPlayback, withSyncedFrame } from "./physarum-video-graphics";
+import { BEHAVIOR_ROWS, BehaviorEvent, ClipFrame, SENTENCE_A, SENTENCE_STEP, STEPS_START, StepField, TITLE_EXIT, TITLE_REVEAL, VIDEOS_AT, bindPlayback, growthMediaReady, liveTime, pushPlayback, withSyncedFrame } from "./physarum-video-graphics";
 
 type Transport = "idle" | "playing" | "paused";
 
@@ -677,8 +677,7 @@ function Intro() {
         <p className="pv-species" style={{ letterSpacing: "0.14em" }}>POLYCEPHALUM</p>
       </div>
       <div className="pv-sentences">
-        <WordLine start={SENTENCE_A} className="pv-line pv-line-a" rows={["A single-celled, bright yellow slime mold."]} />
-        <WordLine start={SENTENCE_B} className="pv-line pv-line-b" rows={["It moves by pushing its cytoplasm back and forth", "like currents through its tube network."]} />
+        <WordLine start={SENTENCE_A} step={SENTENCE_STEP} className="pv-line pv-line-a" rows={[...BEHAVIOR_ROWS]} />
       </div>
     </div>
   );
@@ -806,7 +805,7 @@ function sweepMask(amount: number) {
   return `linear-gradient(90deg, #000 0%, #000 ${solid}%, transparent ${Math.min(124, edge)}%)`;
 }
 
-function WordLine({ start, className, rows }: { start: number; className: string; rows: string[] }) {
+function WordLine({ start, step, className, rows }: { start: number; step: number; className: string; rows: string[] }) {
   let seen = 0;
   return (
     <p className={className} style={{ display: "none" }}>
@@ -817,7 +816,7 @@ function WordLine({ start, className, rows }: { start: number; className: string
         return (
           <span key={row} className="pv-word-row">
             {words.map((word, index) => (
-              <span key={`${word}-${index}`} className="pv-sweep" data-start={start + (offset + index) * 0.29}>{word}</span>
+              <span key={`${word}-${index}`} className="pv-sweep" data-start={start + (offset + index) * step}>{word}</span>
             ))}
           </span>
         );

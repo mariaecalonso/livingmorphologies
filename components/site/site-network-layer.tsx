@@ -7,6 +7,7 @@ import {
   NormalBlending,
   BufferAttribute,
   BufferGeometry,
+  Float32BufferAttribute,
   CanvasTexture,
   DataTexture,
   DoubleSide,
@@ -25,15 +26,17 @@ import {
 import { worldToStored } from "@/lib/skill5/render-frame";
 import { trailDisplayAlpha } from "./site-network-display";
 import { influenceContours } from "./site-network-contours";
-import type { NetworkNode, NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import type { NetworkCandidate, NetworkEdit, NetworkNode, NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import { FLOW_SURVIVE } from "./site-network-flow";
 
 const TRAIL_Y = 1.5;
 const MARK_Y = 2.4;
 const PLANE_Y = 0.95;
-const EMPTY = { nodes: [] as readonly NetworkNode[], selectedId: null as string | null };
+const EMPTY: NetworkEdit = { nodes: [], selectedId: null, candidates: [], selectedCandidateId: null };
 
 const SOURCE = "#c77e5f";
 const ATTRACTOR = "#49d7de";
+const CANDIDATE = "#f2f2ee";
 
 let nodeGlow: CanvasTexture | null = null;
 
@@ -108,12 +111,14 @@ function NodeMark({
   reached,
   visiting,
   onPointerDown,
+  interactive,
 }: {
   node: NetworkNode;
   selected: boolean;
   reached: boolean;
   visiting: boolean;
   onPointerDown: (node: NetworkNode, event: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
+  interactive: boolean;
 }) {
   const color = node.kind === "source" ? SOURCE : ATTRACTOR;
   const label = node.kind === "source" ? "Source" : "Attractor";
@@ -125,7 +130,7 @@ function NodeMark({
   }, [color]);
   const sprite = useMemo(() => labelMaterial(label, color), [label, color]);
   const glow = useMemo(() => {
-    const next = new SpriteMaterial({ map: nodeGlowMap() ?? undefined, color, transparent: true, depthWrite: false, blending: AdditiveBlending });
+    const next = new SpriteMaterial({ map: nodeGlowMap() ?? undefined, color, transparent: true, opacity: 0.9, depthWrite: false, blending: AdditiveBlending });
     next.toneMapped = false;
     return next;
   }, [color]);
@@ -138,15 +143,17 @@ function NodeMark({
   }, [ring, material, sprite, glow]);
   return (
     <group position={[node.x, MARK_Y, node.z]}>
-      <sprite material={glow} scale={[54, 54, 1]} raycast={skipRaycast} />
+      <sprite material={glow} scale={[selected ? 92 : 74, selected ? 92 : 74, 1]} raycast={skipRaycast} />
+      <sprite material={glow} scale={[selected ? 46 : 34, selected ? 46 : 34, 1]} raycast={skipRaycast} />
       <mesh
         geometry={ring}
         material={material}
         rotation={[-Math.PI / 2, 0, 0]}
-        onPointerDown={(event) => onPointerDown(node, event)}
+        raycast={interactive ? undefined : skipRaycast}
+        onPointerDown={interactive ? (event) => onPointerDown(node, event) : undefined}
       />
-      <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={skipRaycast}>
-        <circleGeometry args={[2.4, 24]} />
+      <mesh rotation={[-Math.PI / 2, 0, node.kind === "source" ? Math.PI / 4 : 0]} raycast={skipRaycast}>
+        {node.kind === "source" ? <circleGeometry args={[2.1, 4]} /> : <circleGeometry args={[2.2, 28]} />}
         <meshBasicMaterial color={color} depthWrite={false} toneMapped={false} side={DoubleSide} />
       </mesh>
       {reached ? (
@@ -160,7 +167,7 @@ function NodeMark({
           <meshBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} side={DoubleSide} toneMapped={false} />
         </mesh>
       ) : null}
-      <sprite material={sprite} position={[0, 14, 0]} scale={[52, 12, 1]} raycast={skipRaycast} />
+      <sprite material={sprite} position={[0, 12, 0]} scale={[40, 9, 1]} raycast={skipRaycast} />
     </group>
   );
 }
@@ -174,6 +181,8 @@ export function SiteNetworkLayer({
   colored,
   showField,
   showTrails,
+  branches = null,
+  interactive = true,
 }: {
   study: SiteNetworkStudy;
   running: boolean;
@@ -183,6 +192,10 @@ export function SiteNetworkLayer({
   colored?: Uint8Array | null;
   showField: boolean;
   showTrails: boolean;
+  /** Saved iteration branches. These replace the conductivity raster. */
+  branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null;
+  /** Node placement stays on Site Strategy. Other steps only draw the network. */
+  interactive?: boolean;
 }) {
   const told = useRef(false);
   const seen = useRef(-1);
@@ -289,9 +302,9 @@ export function SiteNetworkLayer({
           ring += tap(vec2(2.0, 2.0)) + tap(vec2(-2.0, 2.0)) + tap(vec2(2.0, -2.0)) + tap(vec2(-2.0, -2.0));
           float far = tap(vec2(6.0, 0.0)) + tap(vec2(-6.0, 0.0)) + tap(vec2(0.0, 6.0)) + tap(vec2(0.0, -6.0));
           float soft = center * 0.62 + near * 0.06 + ring * 0.018 + far * 0.008;
-          float core = smoothstep(0.34, 0.72, soft);
-          float film = smoothstep(0.04, 0.18, soft) * (1.0 - smoothstep(0.28, 0.55, soft));
-          float alpha = max(core, film * 0.5);
+          float core = smoothstep(0.42, 0.78, soft);
+          float film = smoothstep(0.08, 0.28, soft) * (1.0 - smoothstep(0.42, 0.7, soft));
+          float alpha = max(core, film * 0.35);
           if (alpha < 0.028) discard;
           gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
         }
@@ -359,7 +372,7 @@ export function SiteNetworkLayer({
         }
       } else {
         told.current = false;
-        study.step(3);
+        study.step(study.generator === "flow" ? (study.exploring ? 8 : 3) : 3);
       }
     }
     const arrived = study.status.reachedIds.join(",");
@@ -409,8 +422,9 @@ export function SiteNetworkLayer({
   return (
     <group>
       {showField ? <InfluenceField study={study} nodes={edit.nodes} /> : null}
+      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
       <mesh
-        visible={showTrails}
+        visible={showTrails && !(branches && branches.length > 0) && (study.generator !== "flow" || preview != null || colored != null)}
         position={[(minX + maxX) / 2, TRAIL_Y, (minZ + maxZ) / 2]}
         rotation={[Math.PI / 2, 0, 0]}
         material={ink}
@@ -422,7 +436,8 @@ export function SiteNetworkLayer({
       <mesh
         position={[(minX + maxX) / 2, PLANE_Y, (minZ + maxZ) / 2]}
         rotation={[Math.PI / 2, 0, 0]}
-        onPointerMove={(event) => {
+        raycast={interactive ? undefined : skipRaycast}
+        onPointerMove={interactive ? (event) => {
           if (dragging.current) return;
           const point = pointFromEvent(event);
           if (!point || !study.insideField(point.x, point.z)) {
@@ -430,26 +445,271 @@ export function SiteNetworkLayer({
             return;
           }
           setHover((current) => current && current.x === point.x && current.z === point.z ? current : point);
-        }}
-        onPointerOut={() => setHover(null)}
-        onClick={(event) => {
+        } : undefined}
+        onPointerOut={interactive ? () => setHover(null) : undefined}
+        onClick={interactive ? (event) => {
           if (event.button !== 0 || dragging.current) return;
           if (performance.now() - nodeGesture.current < 400) return;
           const point = pointFromEvent(event);
           if (!point) return;
           event.stopPropagation();
           study.place(tool, point.x, point.z);
-        }}
+        } : undefined}
       >
         <planeGeometry args={[maxX - minX, maxZ - minZ]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} side={DoubleSide} />
       </mesh>
-      {edit.nodes.map((node) => (
-        <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} />
-      ))}
-      {hover ? <HoverMark position={hover} kind={tool} /> : null}
+      {showTrails || interactive ? edit.nodes.map((node) => (
+        <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} interactive={interactive} />
+      )) : null}
+      {showTrails || interactive ? edit.candidates.map((candidate) => (
+        <CandidateMark
+          key={candidate.id}
+          candidate={candidate}
+          selected={candidate.id === edit.selectedCandidateId}
+          approved={edit.nodes.find((node) => node.id === candidate.id) ?? null}
+          interactive={interactive}
+          onPointerDown={(item, event) => {
+            if (!interactive) return;
+            event.stopPropagation();
+            nodeGesture.current = performance.now();
+            study.selectCandidate(item.id);
+          }}
+        />
+      )) : null}
+      {hover && (showTrails || interactive) ? <HoverMark position={hover} kind={tool} /> : null}
     </group>
   );
+}
+
+type TubePoint = { x: number; z: number; half: number };
+
+function smoothChain(points: TubePoint[]) {
+  let current = points;
+  for (let pass = 0; pass < 6; pass += 1) {
+    if (current.length < 3) break;
+    const next: TubePoint[] = [current[0]];
+    for (let index = 0; index < current.length - 1; index += 1) {
+      const start = current[index];
+      const end = current[index + 1];
+      next.push({
+        x: start.x * 0.75 + end.x * 0.25,
+        z: start.z * 0.75 + end.z * 0.25,
+        half: start.half * 0.75 + end.half * 0.25,
+      });
+      next.push({
+        x: start.x * 0.25 + end.x * 0.75,
+        z: start.z * 0.25 + end.z * 0.75,
+        half: start.half * 0.25 + end.half * 0.75,
+      });
+    }
+    next.push(current[current.length - 1]);
+    current = next;
+  }
+  return current;
+}
+
+const TUBE_VERTEX = `
+  varying float vEdge;
+  void main() {
+    vEdge = clamp(uv.x, 0.0, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const TUBE_BODY = `
+  varying float vEdge;
+  void main() {
+    float edge = clamp(vEdge, 0.0, 1.0);
+    float core = smoothstep(0.22, 0.0, edge);
+    float sheath = smoothstep(0.55, 0.05, edge);
+    float alpha = core * 0.92 + sheath * 0.2;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
+  }
+`;
+
+const TUBE_GLOW = `
+  varying float vEdge;
+  void main() {
+    float edge = clamp(vEdge, 0.0, 1.0);
+    float alpha = smoothstep(1.0, 0.0, edge) * 0.34;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
+  }
+`;
+
+function buildTube(edges: ReturnType<SiteNetworkStudy["flowAppearance"]>, widthScale: number, y: number) {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const push = (ax: number, az: number, as: number, bx: number, bz: number, bs: number, cx: number, cz: number, cs: number) => {
+    positions.push(ax, y, az, bx, y, bz, cx, y, cz);
+    uvs.push(as, 0, bs, 0, cs, 0);
+  };
+  const stroke = (from: TubePoint, to: TubePoint) => {
+    const dx = to.x - from.x;
+    const dz = to.z - from.z;
+    const length = Math.hypot(dx, dz) || 1;
+    const leftX = (-dz / length);
+    const leftZ = (dx / length);
+    const fromLeftX = from.x + leftX * from.half;
+    const fromLeftZ = from.z + leftZ * from.half;
+    const fromRightX = from.x - leftX * from.half;
+    const fromRightZ = from.z - leftZ * from.half;
+    const toLeftX = to.x + leftX * to.half;
+    const toLeftZ = to.z + leftZ * to.half;
+    const toRightX = to.x - leftX * to.half;
+    const toRightZ = to.z - leftZ * to.half;
+    push(fromLeftX, fromLeftZ, 1, from.x, from.z, 0, toLeftX, toLeftZ, 1);
+    push(from.x, from.z, 0, toLeftX, toLeftZ, 1, to.x, to.z, 0);
+    push(from.x, from.z, 0, fromRightX, fromRightZ, 1, to.x, to.z, 0);
+    push(fromRightX, fromRightZ, 1, toRightX, toRightZ, 1, to.x, to.z, 0);
+  };
+  const cap = (point: TubePoint, scale = 1) => {
+    const radius = point.half * scale;
+    const steps = 14;
+    for (let step = 0; step < steps; step += 1) {
+      const a0 = (step / steps) * Math.PI * 2;
+      const a1 = ((step + 1) / steps) * Math.PI * 2;
+      push(point.x, point.z, 0, point.x + Math.cos(a0) * radius, point.z + Math.sin(a0) * radius, 1, point.x + Math.cos(a1) * radius, point.z + Math.sin(a1) * radius, 1);
+    }
+  };
+  const keyOf = (x: number, z: number) => `${Math.round(x)}:${Math.round(z)}`;
+  const nodes = new Map<string, { x: number; z: number; links: { to: string; half: number }[] }>();
+  const ensure = (x: number, z: number) => {
+    const key = keyOf(x, z);
+    const found = nodes.get(key);
+    if (found) return key;
+    nodes.set(key, { x, z, links: [] });
+    return key;
+  };
+  for (const edge of edges) {
+    const tone = Math.min(1, Math.max(0, (edge.conductivity - FLOW_SURVIVE) / (1.25 - FLOW_SURVIVE)));
+    const half = (1.15 + tone ** 1.45 * 2.7) * widthScale;
+    const start = ensure(edge.x0, edge.z0);
+    const end = ensure(edge.x1, edge.z1);
+    nodes.get(start)?.links.push({ to: end, half });
+    nodes.get(end)?.links.push({ to: start, half });
+  }
+  for (let pass = 0; pass < 18; pass += 1) {
+    const shifted = new Map<string, { x: number; z: number }>();
+    for (const [key, node] of nodes) {
+      const neighbors = [...new Set(node.links.map((link) => link.to))];
+      if (neighbors.length < 2) {
+        shifted.set(key, { x: node.x, z: node.z });
+        continue;
+      }
+      let x = 0;
+      let z = 0;
+      for (const neighbor of neighbors) {
+        const other = nodes.get(neighbor);
+        if (!other) continue;
+        x += other.x;
+        z += other.z;
+      }
+      x /= neighbors.length;
+      z /= neighbors.length;
+      const keep = neighbors.length >= 3 ? 0.62 : 0.12;
+      shifted.set(key, { x: node.x * keep + x * (1 - keep), z: node.z * keep + z * (1 - keep) });
+    }
+    for (const [key, point] of shifted) {
+      const node = nodes.get(key);
+      if (!node) continue;
+      node.x = point.x;
+      node.z = point.z;
+    }
+  }
+  const used = new Set<string>();
+  const pair = (left: string, right: string) => left < right ? `${left}|${right}` : `${right}|${left}`;
+  const chains: TubePoint[][] = [];
+  const follow = (start: string, first: { to: string; half: number }) => {
+    const origin = nodes.get(start);
+    if (!origin) return;
+    const chain: TubePoint[] = [{ x: origin.x, z: origin.z, half: first.half }];
+    used.add(pair(start, first.to));
+    let previous = start;
+    let current = first.to;
+    let half = first.half;
+    while (nodes.has(current)) {
+      const node = nodes.get(current);
+      if (!node) break;
+      chain.push({ x: node.x, z: node.z, half });
+      if (node.links.length !== 2) break;
+      const next = node.links.find((link) => link.to !== previous);
+      if (!next) break;
+      const mark = pair(current, next.to);
+      if (used.has(mark)) break;
+      used.add(mark);
+      half = next.half;
+      previous = current;
+      current = next.to;
+    }
+    chains.push(chain);
+  };
+  for (const [key, node] of nodes) {
+    if (node.links.length === 2) continue;
+    for (const link of node.links) {
+      if (!used.has(pair(key, link.to))) follow(key, link);
+    }
+  }
+  for (const [key, node] of nodes) {
+    for (const link of node.links) {
+      if (!used.has(pair(key, link.to))) follow(key, link);
+    }
+  }
+  for (const chain of chains) {
+    const curved = smoothChain(chain);
+    for (let index = 0; index < curved.length - 1; index += 1) stroke(curved[index], curved[index + 1]);
+    cap(curved[0], chain.length > 2 ? 1.15 : 1);
+    cap(curved[curved.length - 1], chain.length > 2 ? 1.15 : 1);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
+  return geometry;
+}
+
+function TubeMeshes({ edges }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]> }) {
+  const glow = useMemo(() => buildTube(edges, 2.6, 1.52), [edges]);
+  const core = useMemo(() => buildTube(edges, 1, 1.7), [edges]);
+  const glowMaterial = useMemo(() => new ShaderMaterial({
+    vertexShader: TUBE_VERTEX,
+    fragmentShader: TUBE_GLOW,
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+    toneMapped: false,
+  }), []);
+  const coreMaterial = useMemo(() => new ShaderMaterial({
+    vertexShader: TUBE_VERTEX,
+    fragmentShader: TUBE_BODY,
+    transparent: true,
+    depthWrite: false,
+    blending: NormalBlending,
+    side: DoubleSide,
+    toneMapped: false,
+  }), []);
+  useEffect(() => () => {
+    glow.dispose();
+    core.dispose();
+    glowMaterial.dispose();
+    coreMaterial.dispose();
+  }, [glow, core, glowMaterial, coreMaterial]);
+  if (core.getAttribute("position").count === 0) return null;
+  return (
+    <group>
+      <mesh geometry={glow} material={glowMaterial} renderOrder={5} raycast={skipRaycast} />
+      <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />
+    </group>
+  );
+}
+
+function FlowTubes({ study }: { study: SiteNetworkStudy }) {
+  const [revision, setRevision] = useState(study.revision);
+  useFrame(() => {
+    if (study.revision !== revision) setRevision(study.revision);
+  });
+  const edges = useMemo(() => study.flowAppearance(), [revision, study]);
+  return <TubeMeshes edges={edges} />;
 }
 
 function ContourMesh({ positions, color }: { positions: Float32Array; color: string }) {
@@ -465,7 +725,7 @@ function ContourMesh({ positions, color }: { positions: Float32Array; color: str
     next.setAttribute("position", new BufferAttribute(coordinates, 3));
     return next;
   }, [positions]);
-  const material = useMemo(() => new LineBasicMaterial({ color, transparent: true, opacity: 0.62 }), [color]);
+  const material = useMemo(() => new LineBasicMaterial({ color, transparent: true, opacity: 0.28 }), [color]);
   useEffect(() => () => {
     geometry.dispose();
     material.dispose();
@@ -483,6 +743,93 @@ function InfluenceField({ study, nodes }: { study: SiteNetworkStudy; nodes: read
     <group>
       <ContourMesh positions={lines.attractor} color="#49d7de" />
       <ContourMesh positions={lines.source} color="#c77e5f" />
+    </group>
+  );
+}
+
+function segmentPositions(pairs: readonly [number, number, number, number][]) {
+  const coordinates = new Float32Array(pairs.length * 6);
+  pairs.forEach(([x0, z0, x1, z1], index) => {
+    const write = index * 6;
+    coordinates[write] = x0;
+    coordinates[write + 1] = 1.35;
+    coordinates[write + 2] = z0;
+    coordinates[write + 3] = x1;
+    coordinates[write + 4] = 1.35;
+    coordinates[write + 5] = z1;
+  });
+  return coordinates;
+}
+
+function CandidateLines({ positions }: { positions: Float32Array }) {
+  const geometry = useMemo(() => {
+    const next = new BufferGeometry();
+    next.setAttribute("position", new BufferAttribute(positions, 3));
+    return next;
+  }, [positions]);
+  const material = useMemo(() => new LineBasicMaterial({ color: CANDIDATE, transparent: true, opacity: 0.85 }), []);
+  useEffect(() => () => {
+    geometry.dispose();
+    material.dispose();
+  }, [geometry, material]);
+  if (positions.length < 6) return null;
+  return <lineSegments geometry={geometry} material={material} renderOrder={5} raycast={skipRaycast} />;
+}
+
+function CandidateMark({
+  candidate,
+  selected,
+  approved,
+  onPointerDown,
+  interactive,
+}: {
+  candidate: NetworkCandidate;
+  selected: boolean;
+  approved: NetworkNode | null;
+  onPointerDown: (candidate: NetworkCandidate, event: { stopPropagation: () => void }) => void;
+  interactive: boolean;
+}) {
+  const ring = useMemo(() => new RingGeometry(selected ? 3.4 : 4.6, selected ? 5.2 : 5.6, 28), [selected]);
+  const material = useMemo(() => {
+    const next = new MeshBasicMaterial({ color: CANDIDATE, side: DoubleSide, transparent: true, opacity: approved ? 0.45 : 0.9, depthWrite: false });
+    next.toneMapped = false;
+    return next;
+  }, [approved]);
+  const sprite = useMemo(() => labelMaterial(candidate.label, CANDIDATE), [candidate.label]);
+  const lines = useMemo(() => {
+    const pairs: [number, number, number, number][] = [];
+    if (candidate.sidewalkX != null && candidate.sidewalkZ != null) {
+      pairs.push([candidate.sidewalkX, candidate.sidewalkZ, candidate.measuredX, candidate.measuredZ]);
+    }
+    for (let index = 1; index < candidate.path.length; index += 1) {
+      const previous = candidate.path[index - 1];
+      const point = candidate.path[index];
+      pairs.push([previous.x, previous.z, point.x, point.z]);
+    }
+    if (approved && (Math.abs(approved.x - candidate.measuredX) > 0.05 || Math.abs(approved.z - candidate.measuredZ) > 0.05)) {
+      pairs.push([candidate.measuredX, candidate.measuredZ, approved.x, approved.z]);
+    }
+    return segmentPositions(pairs);
+  }, [approved, candidate]);
+  useEffect(() => () => {
+    ring.dispose();
+    material.dispose();
+    sprite.map?.dispose();
+    sprite.dispose();
+  }, [ring, material, sprite]);
+  return (
+    <group>
+      <CandidateLines positions={lines} />
+      <group position={[candidate.measuredX, MARK_Y, candidate.measuredZ]}>
+        <mesh
+          geometry={ring}
+          material={material}
+          rotation={[-Math.PI / 2, 0, 0]}
+          raycast={interactive ? undefined : skipRaycast}
+          onPointerDown={(event) => onPointerDown(candidate, event)}
+        />
+        <sprite material={sprite} position={[0, 12, 0]} scale={[64, 14, 1]} raycast={skipRaycast} />
+      </group>
     </group>
   );
 }

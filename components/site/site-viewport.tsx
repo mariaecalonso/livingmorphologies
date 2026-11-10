@@ -22,6 +22,7 @@ import {
   type Camera,
   type Texture,
 } from "three";
+import type { FaceHighlight } from "@/lib/skill5/face-match";
 import {
   clipPath,
   clipPolygon,
@@ -49,7 +50,7 @@ import { elevatedDeckRoads } from "@/lib/skill5/deck-surface";
 import { HERALD_AERIAL } from "@/lib/skill5/aerial";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { SITE_GRID_FEET } from "@/lib/skill5/grid";
-import { northDegrees, placeAxon, placeModelPerspective, placePerspective, placePlan, placeWholeSitePerspective, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
+import { northDegrees, placeAxon, placeModelPerspective, placePerspective, placePlan, placeSection, placeWholeSitePerspective, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
 import { analysisTowers, casterBox } from "@/lib/skill5/sun-analysis";
 import type { SunSample } from "@/lib/skill5/solar";
 import { studyDeckMaterial, studyMassMaterial, studyWaterMaterial, SunLight, SunShadow, sunlitLandMaterial, sunlitRoadMaterial, sunlitSiteMaterial, towerShaft } from "./sun-shadow";
@@ -64,8 +65,12 @@ import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./modul
 import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
 import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
 import { SiteNetworkLayer } from "./site-network-layer";
+import { SitePocketLayer } from "./site-pocket-layer";
+import { SiteZoneLayer, type ZoneTool } from "./site-zone-layer";
+import type { NetworkPocket } from "@/lib/skill5/pockets";
+import type { ZoneKind, ZonePoint, ZoningRegion } from "@/lib/skill5/zoning";
 
-export type SiteViewMode = "perspective" | "plan" | "axon";
+export type SiteViewMode = "perspective" | "plan" | "axon" | "section";
 export type SiteFit = "site" | "context";
 
 export type SiteReadout = {
@@ -943,13 +948,15 @@ function CameraRig({
       poseKey.current = key;
       const placed = mode === "plan"
         ? placePlan(ortho, view, frame, pad)
-        : mode === "axon"
-          ? placeAxon(ortho, view, frame, fit)
-          : frameWholeSite
-            ? placeWholeSitePerspective(persp, view, frame)
-            : framing === "model"
-              ? placeModelPerspective(persp, view, frame, fit)
-              : placePerspective(persp, view, frame, fit);
+        : mode === "section"
+          ? placeSection(ortho, view, frame, pad)
+          : mode === "axon"
+            ? placeAxon(ortho, view, frame, fit)
+            : frameWholeSite
+              ? placeWholeSitePerspective(persp, view, frame)
+              : framing === "model"
+                ? placeModelPerspective(persp, view, frame, fit)
+                : placePerspective(persp, view, frame, fit);
       target.current.copy(placed);
       if (mode === "plan") aimPlan();
     } else if (sized && mode === "perspective") {
@@ -1172,6 +1179,95 @@ function OverlayLines({ paths, y, color, opacity }: { paths: readonly (readonly 
   return <lineSegments geometry={geometry} material={material} />;
 }
 
+function JoinOverlay({
+  highlights,
+  passages,
+}: {
+  highlights: readonly FaceHighlight[];
+  passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[];
+}) {
+  const confirmed = useMemo(() => joinGeometry(passages.filter((item) => !item.preview)), [passages]);
+  const preview = useMemo(() => joinGeometry(passages.filter((item) => item.preview)), [passages]);
+  useEffect(() => () => {
+    confirmed.dispose();
+    preview.dispose();
+  }, [confirmed, preview]);
+  return (
+    <group>
+      {highlights.map((mark, index) => (
+        <mesh
+          key={`${mark.kind}-${index}`}
+          position={[mark.east, mark.up, mark.north]}
+          rotation={mark.axis === "x" ? [0, Math.PI / 2, 0] : mark.axis === "y" ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
+          renderOrder={8}
+          raycast={skipRaycast}
+        >
+          <planeGeometry args={[mark.width, mark.height]} />
+          <meshBasicMaterial color={mark.compatible ? "#49d7de" : "#c77e5f"} transparent opacity={mark.kind === "opening" ? 0.78 : 0.18} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+      {confirmed.getAttribute("position") ? (
+        <mesh geometry={confirmed} renderOrder={7} raycast={skipRaycast}>
+          <meshBasicMaterial color="#49d7de" transparent opacity={0.72} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ) : null}
+      {preview.getAttribute("position") ? (
+        <mesh geometry={preview} renderOrder={7} raycast={skipRaycast}>
+          <meshBasicMaterial color="#49d7de" transparent opacity={0.34} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
+function joinGeometry(passages: readonly { positions: number[]; indices: number[] }[]) {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (const passage of passages) {
+    const base = positions.length / 3;
+    positions.push(...passage.positions);
+    for (const index of passage.indices) indices.push(base + index);
+  }
+  const geometry = new BufferGeometry();
+  if (positions.length > 0) {
+    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+  }
+  return geometry;
+}
+
+function ConnectionMarks({ links }: { links: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] }) {
+  const direct = useMemo(() => new LineBasicMaterial({ color: "#49d7de", transparent: true, opacity: 0.9 }), []);
+  const hybrid = useMemo(() => new LineBasicMaterial({ color: "#c77e5f", transparent: true, opacity: 0.9 }), []);
+  const geometry = useMemo(() => {
+    const directPositions: number[] = [];
+    const hybridPositions: number[] = [];
+    for (const link of links) {
+      const target = link.mode === "hybrid" ? hybridPositions : directPositions;
+      target.push(link.ax, 3, link.az, link.bx, 3, link.bz);
+    }
+    const build = (positions: number[]) => {
+      const next = new BufferGeometry();
+      next.setAttribute("position", new Float32BufferAttribute(positions, 3));
+      return next;
+    };
+    return { direct: build(directPositions), hybrid: build(hybridPositions) };
+  }, [links]);
+  useEffect(() => () => {
+    geometry.direct.dispose();
+    geometry.hybrid.dispose();
+    direct.dispose();
+    hybrid.dispose();
+  }, [direct, geometry, hybrid]);
+  if (links.length === 0) return null;
+  return (
+    <group>
+      <lineSegments geometry={geometry.direct} material={direct} raycast={skipRaycast} />
+      <lineSegments geometry={geometry.hybrid} material={hybrid} raycast={skipRaycast} />
+    </group>
+  );
+}
+
 export function SiteViewport({
   context,
   mode,
@@ -1197,6 +1293,10 @@ export function SiteViewport({
   uses = null,
   onShadowTexel,
   network = null,
+  zones = null,
+  zoning = null,
+  connections = null,
+  joins = null,
   onReadout,
 }: {
   context: SiteContext;
@@ -1222,7 +1322,33 @@ export function SiteViewport({
   walk?: readonly WalkSegment[] | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean } | null;
+  zones?: readonly ZoningRegion[] | null;
+  zoning?: {
+    tool: ZoneTool;
+    mode: SiteViewMode;
+    active: boolean;
+    draft: readonly ZonePoint[];
+    selectedId: string | null;
+    onDraftPoint: (point: ZonePoint) => void;
+    onCloseDraft: () => void;
+    onSelect: (id: string | null) => void;
+    onCommitPoints: (id: string, points: ZonePoint[]) => boolean;
+    onCommitElevation: (id: string, baseFt: number, heightFt: number) => boolean;
+    onReject: (message: string) => void;
+    pockets?: {
+      items: readonly NetworkPocket[];
+      kinds: Readonly<Record<string, ZoneKind | null>>;
+      hoverId: string | null;
+      selectedIds: readonly string[];
+      onHover: (id: string | null) => void;
+      onPick: (id: string, shift: boolean) => void;
+      listen?: boolean;
+      opacity?: number | null;
+    } | null;
+  } | null;
+  connections?: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
+  joins?: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
   onReadout: (readout: SiteReadout) => void;
 }) {
   const bounds = useMemo(() => boundsOf(context), [context]);
@@ -1248,7 +1374,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} />
     </Canvas>
   );
@@ -1273,6 +1399,10 @@ function PlacementScene({
   uses,
   onShadowTexel,
   network,
+  zones,
+  zoning,
+  connections,
+  joins,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1291,7 +1421,33 @@ function PlacementScene({
   walk: readonly WalkSegment[] | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean } | null;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean } | null;
+  zones: readonly ZoningRegion[] | null;
+  zoning: {
+    tool: ZoneTool;
+    mode: SiteViewMode;
+    active: boolean;
+    draft: readonly ZonePoint[];
+    selectedId: string | null;
+    onDraftPoint: (point: ZonePoint) => void;
+    onCloseDraft: () => void;
+    onSelect: (id: string | null) => void;
+    onCommitPoints: (id: string, points: ZonePoint[]) => boolean;
+    onCommitElevation: (id: string, baseFt: number, heightFt: number) => boolean;
+    onReject: (message: string) => void;
+    pockets?: {
+      items: readonly NetworkPocket[];
+      kinds: Readonly<Record<string, ZoneKind | null>>;
+      hoverId: string | null;
+      selectedIds: readonly string[];
+      onHover: (id: string | null) => void;
+      onPick: (id: string, shift: boolean) => void;
+      listen?: boolean;
+      opacity?: number | null;
+    } | null;
+  } | null;
+  connections: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
+  joins: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
 }) {
   const pointer = useModulePointer(placement);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
@@ -1299,8 +1455,8 @@ function PlacementScene({
     <>
       {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
       <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={placement ? pointer.ground : undefined} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={network !== null} showContext={!network || network.showContext} />
-      {placement ? <ModuleMeshes model={placement} pointer={pointer} /> : null}
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={network?.studyTone !== false && network !== null} showContext={!network || network.showContext} />
+      {placement ? <ModuleMeshes model={placement} pointer={pointer} listen={!zoning?.active} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
       {overlay?.highway ? <OverlayLines paths={overlay.highwayPaths.flatMap((path) => clipPath(path))} y={1.15} color="#c77e5f" opacity={0.7} /> : null}
@@ -1311,7 +1467,37 @@ function PlacementScene({
       {sight && sight.length > 0 ? <SightLines segments={sight} /> : null}
       {walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
-      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} /> : null}
+      {zoning?.pockets && (zoning.tool !== "draw" || !zoning.active) ? (
+        <SitePocketLayer
+          pockets={zoning.pockets.items}
+          kinds={zoning.pockets.kinds}
+          hoverId={zoning.pockets.hoverId}
+          selectedIds={zoning.pockets.selectedIds}
+          onHover={zoning.pockets.onHover}
+          onPick={zoning.pockets.onPick}
+          listen={zoning.pockets.listen !== false}
+          opacity={zoning.pockets.opacity}
+        />
+      ) : null}
+      {zones ? (
+        <SiteZoneLayer
+          zones={zones}
+          draft={zoning?.draft ?? []}
+          tool={zoning?.tool ?? "select"}
+          mode={zoning?.mode ?? "plan"}
+          active={zoning?.active ?? false}
+          selectedId={zoning?.selectedId ?? null}
+          onDraftPoint={zoning?.onDraftPoint ?? (() => {})}
+          onCloseDraft={zoning?.onCloseDraft ?? (() => {})}
+          onSelect={zoning?.onSelect ?? (() => {})}
+          onCommitPoints={zoning?.onCommitPoints ?? (() => false)}
+          onCommitElevation={zoning?.onCommitElevation ?? (() => false)}
+          onReject={zoning?.onReject ?? (() => {})}
+        />
+      ) : null}
+      {connections ? <ConnectionMarks links={connections} /> : null}
+      {joins ? <JoinOverlay highlights={joins.highlights} passages={joins.passages} /> : null}
       </group>
     </>
   );

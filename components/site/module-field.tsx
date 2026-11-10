@@ -17,7 +17,8 @@ import {
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { BridgeCloud } from "@/lib/skill5/mock-bridge";
 import type { WorldAnnotation } from "@/lib/skill5/annotations";
-import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, pointOnSurfaces, settleMove, snapModuleOrigin, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
+import { matchTileFaces, type FaceHighlight, type FaceMatch, type TilePose } from "@/lib/skill5/face-match";
+import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, pointOnSurfaces, settleMove, snapModuleOrigin, verticalRangesOverlap, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
 import { worldToStored } from "@/lib/skill5/render-frame";
 import type { XZ } from "@/lib/skill5/site-model";
 
@@ -43,15 +44,24 @@ export type SitePlacementModel = {
   editable?: boolean;
   warnings: Record<string, ModuleWarning>;
   annotations: WorldAnnotation[];
-  onPlace: (x: number, z: number) => void;
+  onPlace: (x: number, z: number, pose?: { x: number; y: number; z: number; rotationY: number; mirror: "x" | "z" | null }) => void;
+  /** Feet above the stored origin. The preview and a new tile use this elevation. */
+  elevation?: number;
+  autoMatch?: boolean;
+  manualPose?: TilePose | null;
+  matchCycle?: number;
+  onMatch?: (match: FaceMatch | null) => void;
+  onEmpty?: (x: number, z: number) => void;
   onAnnotate: (x: number, z: number) => void;
+  /** Click the open site while placement editing is off. Used by Zoning. */
+  onGround?: (x: number, z: number) => void;
   onSelect: (id: string | null) => void;
   onTranslate: (id: string, x: number, z: number) => void;
   onRotate: (id: string, rotationY: number) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
   memberEditId: string | null;
-  viewMode: "perspective" | "plan" | "axon";
+  viewMode: "perspective" | "plan" | "axon" | "section";
 };
 
 export type DragPose = {
@@ -79,6 +89,7 @@ type Drag = {
   originX: number;
   originZ: number;
   x: number;
+  y: number;
   z: number;
   moved: boolean;
   pointerId: number;
@@ -149,7 +160,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
   const glRef = useRef(gl);
   const raycaster = useRef(new Raycaster());
   const pointer = useRef(new Vector2());
-  const [preview, setPreview] = useState<{ id: string; x: number; z: number } | null>(null);
+  const [preview, setPreview] = useState<{ id: string; x: number; z: number; y: number; rotationY: number; mirror: "x" | "z" | null; match: FaceMatch | null } | null>(null);
   const [pose, setPose] = useState<DragPose | null>(null);
   const finishRef = useRef<() => void>(() => {});
   useEffect(() => {
@@ -160,12 +171,36 @@ export function useModulePointer(model: SitePlacementModel | null) {
 
   const hidePreview = () => {
     setPreview((current) => current === null ? current : null);
+    modelRef.current?.onMatch?.(null);
   };
 
   const showPreview = (x: number, z: number) => {
-    const id = model?.armedModuleId ?? (model?.previewParts ? "assembly" : null);
-    if (!id) return;
-    setPreview((current) => current && current.id === id && current.x === x && current.z === z ? current : { id, x, z });
+    const current = modelRef.current;
+    const id = current?.armedModuleId ?? (current?.previewParts ? "assembly" : null);
+    if (!id || !current) return;
+    const mesh = current.meshes[id];
+    const positions = mesh && mesh !== "missing" ? mesh.positions : null;
+    const elevation = current.elevation ?? MODULE_GROUND_Y;
+    const match = current.previewParts ? null : matchTileFaces({
+      positions,
+      pointer: { x, y: elevation, z },
+      instances: current.instances,
+      meshes: current.meshes,
+      auto: current.autoMatch !== false,
+      manual: current.manualPose ?? null,
+      cycle: current.matchCycle ?? 0,
+    });
+    const next = {
+      id,
+      x: match?.x ?? x,
+      y: match?.y ?? elevation,
+      z: match?.z ?? z,
+      rotationY: match?.pose.rotationY ?? 0,
+      mirror: match?.pose.mirror ?? null,
+      match,
+    };
+    setPreview((shown) => shown && shown.id === next.id && shown.x === next.x && shown.y === next.y && shown.z === next.z && shown.rotationY === next.rotationY && shown.mirror === next.mirror && shown.match?.rank === next.match?.rank && shown.match?.warning === next.match?.warning ? shown : next);
+    current.onMatch?.(match);
   };
 
   const hitFromClient = (clientX: number, clientY: number) => {
@@ -186,7 +221,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
       originZ: active.originZ,
       x: active.x,
       z: active.z,
-      y: MODULE_GROUND_Y,
+      y: active.y,
       yaw: active.yaw,
     });
   };
@@ -236,7 +271,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
             movers.push(anchor);
           } else if (travels(instance)) {
             movers.push(boxAt(instance, instance.transform.position.x + shift.x + dragX, instance.transform.position.z + shift.z + dragZ));
-          } else {
+          } else if (verticalRangesOverlap(instance.transform.position.y, active.y)) {
             still.push(boxAt(instance, instance.transform.position.x + shift.x, instance.transform.position.z + shift.z));
           }
         }
@@ -309,7 +344,15 @@ export function useModulePointer(model: SitePlacementModel | null) {
 
   const onClick = (event: ThreeEvent<MouseEvent>) => {
     const current = model;
-    if (!current || event.button !== 0 || current.editable === false) return;
+    if (!current || event.button !== 0) return;
+    if (current.editable === false) {
+      if (!current.onGround) return;
+      const ground = placementPoint(event, current.ring, false, current.waterRing);
+      if (!ground) return;
+      event.stopPropagation();
+      current.onGround(ground.x, ground.z);
+      return;
+    }
     if (moved.current) {
       moved.current = false;
       return;
@@ -324,8 +367,23 @@ export function useModulePointer(model: SitePlacementModel | null) {
       current.onAnnotate(next.x, next.z);
       return;
     }
-    if (!current.canPlace) return;
-    current.onPlace(next.x, next.z);
+    if (!current.canPlace) {
+      current.onEmpty?.(next.x, next.z);
+      return;
+    }
+    const mesh = current.meshes[current.armedModuleId ?? ""];
+    const positions = mesh && mesh !== "missing" ? mesh.positions : null;
+    const elevation = current.elevation ?? MODULE_GROUND_Y;
+    const match = current.previewParts || !current.armedModuleId ? null : matchTileFaces({
+      positions,
+      pointer: { x: next.x, y: elevation, z: next.z },
+      instances: current.instances,
+      meshes: current.meshes,
+      auto: current.autoMatch !== false,
+      manual: current.manualPose ?? null,
+      cycle: current.matchCycle ?? 0,
+    });
+    current.onPlace(match?.x ?? next.x, match?.z ?? next.z, match ? { x: match.x, y: match.y, z: match.z, rotationY: match.pose.rotationY, mirror: match.pose.mirror } : undefined);
   };
 
   const onModulePointerDown = (id: string, event: ThreeEvent<PointerEvent>) => {
@@ -355,6 +413,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
       originX,
       originZ,
       x: originX,
+      y: instance.transform.position.y,
       z: originZ,
       moved: false,
       pointerId: event.nativeEvent.pointerId,
@@ -492,7 +551,26 @@ function DemonstrationJoin({ cloud, material }: { cloud: BridgeCloud; material: 
   return <mesh geometry={geometry} material={material} raycast={() => null} />;
 }
 
-export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; pointer: ModulePointer }) {
+function FaceGuides({ highlights }: { highlights: readonly FaceHighlight[] }) {
+  if (highlights.length === 0) return null;
+  return (
+    <group>
+      {highlights.map((mark, index) => (
+        <mesh
+          key={`${mark.kind}-${index}`}
+          position={[mark.east, mark.up, mark.north]}
+          rotation={mark.axis === "x" ? [0, Math.PI / 2, 0] : mark.axis === "y" ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
+          renderOrder={8}
+        >
+          <planeGeometry args={[mark.width, mark.height]} />
+          <meshBasicMaterial color={mark.compatible ? "#49d7de" : "#c77e5f"} transparent opacity={mark.kind === "opening" ? 0.78 : 0.18} side={DoubleSide} depthWrite={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePlacementModel; pointer: ModulePointer; listen?: boolean }) {
   const marks = useMarkGeometry();
   const materials = useMemo(() => ({
     body: new MeshLambertMaterial({ color: "#b7b2aa", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
@@ -528,7 +606,7 @@ export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; po
       {model.instances.map((instance) => {
         const geometry = instance.geometryState === "available" ? geometries.get(instance.provenance.moduleId) : undefined;
         const warning = model.warnings[instance.instanceId];
-        const alert = Boolean(warning?.outside || warning?.overlap);
+        const alert = Boolean(warning?.outside || warning?.overlap || warning?.zoneMismatch);
         const selected = instance.instanceId === model.selectedId || instance.assemblyPlacementId === model.selectedId;
         const highlight = model.display === "archetypes" || model.display === "both";
         const axonBox = selected && model.viewMode === "axon";
@@ -558,18 +636,18 @@ export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; po
                 material={selected ? materials.selected : highlight ? materials.teal : materials.body}
                 scale={[mirror === "x" ? -1 : 1, mirror === "y" ? -1 : 1, mirror === "z" ? -1 : 1]}
                 userData={{ instanceId: instance.instanceId, moduleId: instance.provenance.moduleId }}
-                onPointerDown={(event) => pointer.onModulePointerDown(instance.instanceId, event)}
-                onPointerMove={pointer.ground.onPointerMove}
-                onPointerOver={(event) => {
+                onPointerDown={listen ? (event) => pointer.onModulePointerDown(instance.instanceId, event) : undefined}
+                onPointerMove={listen ? pointer.ground.onPointerMove : undefined}
+                onPointerOver={listen ? (event) => {
                   const element = event.nativeEvent.currentTarget;
                   if (element instanceof HTMLElement) element.style.cursor = "grab";
-                }}
-                onPointerOut={(event) => {
+                } : undefined}
+                onPointerOut={listen ? (event) => {
                   if (pointer.pose) return;
                   const element = event.nativeEvent.currentTarget;
                   if (element instanceof HTMLElement) element.style.cursor = "";
-                }}
-                onClick={(event) => pointer.onModuleClick(instance.instanceId, event)}
+                } : undefined}
+                onClick={listen ? (event) => pointer.onModuleClick(instance.instanceId, event) : undefined}
               />
             ) : (
               <mesh
@@ -577,18 +655,18 @@ export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; po
                 material={instance.geometryState === "pending" ? materials.pending : materials.missing}
                 position={[0, 10, 0]}
                 userData={{ instanceId: instance.instanceId, moduleId: instance.provenance.moduleId }}
-                onPointerDown={(event) => pointer.onModulePointerDown(instance.instanceId, event)}
-                onPointerMove={pointer.ground.onPointerMove}
-                onPointerOver={(event) => {
+                onPointerDown={listen ? (event) => pointer.onModulePointerDown(instance.instanceId, event) : undefined}
+                onPointerMove={listen ? pointer.ground.onPointerMove : undefined}
+                onPointerOver={listen ? (event) => {
                   const element = event.nativeEvent.currentTarget;
                   if (element instanceof HTMLElement) element.style.cursor = "grab";
-                }}
-                onPointerOut={(event) => {
+                } : undefined}
+                onPointerOut={listen ? (event) => {
                   if (pointer.pose) return;
                   const element = event.nativeEvent.currentTarget;
                   if (element instanceof HTMLElement) element.style.cursor = "";
-                }}
-                onClick={(event) => pointer.onModuleClick(instance.instanceId, event)}
+                } : undefined}
+                onClick={listen ? (event) => pointer.onModuleClick(instance.instanceId, event) : undefined}
               />
             )}
             {(selected || alert) && !axonBox ? <Footprint geometry={marks.footprint} material={mark} /> : null}
@@ -645,17 +723,24 @@ export function ModuleMeshes({ model, pointer }: { model: SitePlacementModel; po
         );
       })}
       <AnnotationMarks notes={model.annotations} selectedId={model.selectedId} pose={pointer.pose} />
-      <group visible={pointer.preview !== null} position={[pointer.preview?.x ?? 0, MODULE_GROUND_Y, pointer.preview?.z ?? 0]}>
+      <group
+        visible={pointer.preview !== null}
+        position={[pointer.preview?.x ?? 0, pointer.preview?.y ?? model.elevation ?? MODULE_GROUND_Y, pointer.preview?.z ?? 0]}
+        rotation={[0, -(pointer.preview?.rotationY ?? 0), 0]}
+      >
         {model.previewParts ? model.previewParts.map((part, index) => {
           const geometry = geometries.get(part.moduleId);
           if (!geometry) return null;
           return (
             <mesh key={`${part.moduleId}-${index}`} geometry={geometry} material={materials.preview} position={[part.x, part.y, part.z]} rotation={[0, -part.rotationY, 0]} />
           );
-        }) : armedGeometry ? <mesh geometry={armedGeometry} material={materials.preview} /> : null}
+        }) : armedGeometry ? (
+          <mesh geometry={armedGeometry} material={materials.preview} scale={[pointer.preview?.mirror === "x" ? -1 : 1, 1, pointer.preview?.mirror === "z" ? -1 : 1]} />
+        ) : null}
         {model.previewBridge ? <DemonstrationJoin cloud={model.previewBridge} material={materials.preview} /> : null}
         <Footprint geometry={marks.footprint} material={marks.materials.white} />
       </group>
+      <FaceGuides highlights={pointer.preview?.match?.highlights ?? []} />
     </>
   );
 }

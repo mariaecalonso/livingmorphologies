@@ -3,6 +3,7 @@ import { pointInRing } from "@/lib/skill5/placement";
 import type { SiteContext, XZ } from "@/lib/skill5/site-model";
 import { STUDY_LIMIT } from "./site-geometry";
 import { analyzeNetwork, countTrailComponents, networkFigures, reinforcedCut } from "./site-network-analysis";
+import { FLOW_SURVIVE } from "./site-network-flow";
 import { trailDisplayAlpha } from "./site-network-display";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
 import { influenceAt, NETWORK_STEP_BUDGET, nextArrival, REACH_HOLDS, reachFeet, siteToField, strongTrailFeet, SiteNetworkStudy, type NetworkIteration, type NetworkNode } from "./site-network";
@@ -136,6 +137,14 @@ const peak = density?.metrics.find((item) => item.label === "Peak strength")?.va
 const coverage = density?.metrics.find((item) => item.label === "Trail coverage")?.value;
 assert(peak === "0.50", `Peak strength was ${peak}, expected the raw trail value 0.50.`);
 assert(coverage === "50%", `Trail coverage was ${coverage}, expected 50% of the traversable cells.`);
+const faintTrails = new Float32Array(4);
+faintTrails[0] = FLOW_SURVIVE * 0.5;
+faintTrails[1] = FLOW_SURVIVE;
+const faint: NetworkIteration = { ...iteration, id: "faint", generator: "flow", trails: faintTrails };
+const faintDensity = analyzeNetwork("density", [faint], frame);
+assert(faintDensity?.metrics.find((item) => item.label === "Tube coverage")?.value === "50%", "Conductivity below the survival value was counted as a tube.");
+assert(faintDensity?.metrics.some((item) => item.label === "Mean conductivity"), "Density still labels conductivity as strength.");
+assert(faintDensity?.legend.includes("conductivity") === true, "The density legend still describes agent trail.");
 
 const regions = new Float32Array(16);
 regions[0] = 0.05;
@@ -223,6 +232,7 @@ assert(again === closeGap, "The same trail field produced a different connection
 const pair = new SiteNetworkStudy(parcel, water, {
   persist: false,
   seed,
+  generator: "agents",
   nodes: [
     { id: "s", kind: "source", x: 100, z: 100 },
     { id: "a", kind: "attractor", x: 40, z: 100 },
@@ -244,6 +254,27 @@ assert(Math.abs(atA - atB) < 1e-6, "The attraction field peaks are not equal at 
 assert(SOURCE_CONTOUR_NOTE.includes("conceptual source influence"), "Source contours are not labeled as conceptual.");
 
 const miami = new SiteNetworkStudy(site.site.ring, site.water.ring, { buildings: site.buildings, persist: false });
+const access = miami.edit.candidates.filter((item) => item.role === "access");
+const baywalk = miami.edit.candidates.find((item) => item.id === "pedestrian:baywalk:named");
+assert(access.length === 2, "The handoff does not have two pedestrian access contacts.");
+assert(baywalk != null && baywalk.approvable === false && baywalk.path.length > 1, "The named Baywalk was turned into a traversable node.");
+const northeast = access.find((item) => item.id === "pedestrian:access:Potential Northeast Access");
+const citySide = access.find((item) => item.id === "pedestrian:access:Potential City-Side Access");
+if (!northeast || !citySide) throw new Error("A pedestrian access contact is missing.");
+assert(Math.abs(northeast.measuredX - 207.26446453046862) < 1e-9 && Math.abs(northeast.measuredZ - 235.00419299870347) < 1e-9, "The northeast contact moved off its measured coordinate.");
+assert(Math.abs(citySide.measuredX - 32.30052205108297) < 1e-9 && Math.abs(citySide.measuredZ - 225.95792350123355) < 1e-9, "The city-side contact moved off its measured coordinate.");
+for (const candidate of access) {
+  const resolvedX = candidate.resolvedX;
+  const resolvedZ = candidate.resolvedZ;
+  if (resolvedX == null || resolvedZ == null || !miami.insideField(resolvedX, resolvedZ)) throw new Error(`${candidate.id} did not resolve to an open cell.`);
+  assert(Math.hypot(resolvedX - candidate.measuredX, resolvedZ - candidate.measuredZ) <= 30, `${candidate.id} jumped more than 30 ft inside.`);
+}
+assert(miami.edit.nodes.length === 0, "An unapproved access contact entered the growth.");
+assert(miami.approveCandidate(northeast.id, "source"), "The northeast contact could not be approved.");
+assert(miami.edit.nodes.some((node) => node.id === northeast.id && node.kind === "source" && node.measuredX === northeast.measuredX), "Approval dropped the measured coordinate.");
+assert(miami.edit.nodes.length === 1, "Approval replaced the manual nodes.");
+miami.remove(northeast.id);
+assert(miami.edit.nodes.length === 0, "Removing an approved contact left it in the growth.");
 assert(miami.domain.valid, `The Miami parcel or water could not be used. ${miami.domain.gaps.join(" ")}`);
 assert(miami.frame.width === miami.frame.depth, "The simulation frame still stretches the parcel.");
 assert(Math.abs(miami.cellFeet - miami.frame.depth / miami.inkSize) < 1e-9, "Trail cells are not square in site feet.");
@@ -323,6 +354,8 @@ const savedNodes: NetworkNode[] = [
   { id: "n41", kind: "source", x: 83.08682446965467, z: -561.4380202212323 },
 ];
 const connectionReport: unknown[] = [];
+const routeBook: { seed: number; branches: number; routes: { id: string; length: number; points: { x: number; z: number }[] }[]; cloud: { x: number; z: number }[] }[] = [];
+const flowIterations: NetworkIteration[] = [];
 for (const connectionSeed of [20365834, 20470563, 20575292]) {
   const study = new SiteNetworkStudy(site.site.ring, site.water.ring, {
     seed: connectionSeed,
@@ -336,34 +369,159 @@ for (const connectionSeed of [20365834, 20470563, 20575292]) {
   const trails = study.snapshotTrails();
   study.finish();
   const after = study.snapshotTrails();
-  assert(trails.length === after.length && trails.every((value, index) => value === after[index]), "Connection measurement changed the raw trail.");
-  const limit = reachFeet(study.cellFeet);
+  assert(trails.length === after.length && trails.every((value, index) => value === after[index]), "Connection measurement changed the conductivity field.");
+  const report = study.flowReport();
+  assert(report.maskBreaks === 0, `${report.maskBreaks} surviving edges leave the open mask.`);
+  assert(study.generator === "flow", "The live generator is not adaptive flow.");
+  assert(report.branches >= 1, "The surviving network has no junction.");
+  assert(report.stable, "The surviving edges were still changing at the end of the run.");
+  assert(report.disconnected.length === 0, `Disconnected attractors: ${report.disconnected.join(", ") || "none"}.`);
   let covered = 0;
-  for (const value of trails) if (value >= 0.02 - 1e-5) covered += 1;
-  const coverage = covered / study.traversable;
-  assert(coverage < 0.4, `Trail coverage was ${Math.round(coverage * 100)}%. The narrow baseline is not in effect.`);
-  const gaps = study.edit.nodes.filter((node) => node.kind === "attractor").map((node) => {
-    const feet = strongTrailFeet(trails, study.inkSize, study.frame, node.x, node.z);
-    const connected = feet <= limit;
+  let closedInk = 0;
+  for (let index = 0; index < trails.length; index += 1) {
+    if (trails[index] >= FLOW_SURVIVE - 1e-5) covered += 1;
+    if (trails[index] > 0 && study.insideField(
+      study.frame.minX + ((index % study.inkSize) + 0.5) / study.inkSize * study.frame.width,
+      study.frame.minZ + (Math.floor(index / study.inkSize) + 0.5) / study.inkSize * study.frame.depth,
+    ) === false) closedInk += 1;
+  }
+  assert(closedInk === 0, `${closedInk} conductivity samples sit outside the open parcel.`);
+  const attractors = study.edit.nodes.filter((node) => node.kind === "attractor");
+  for (const node of attractors) {
+    const linked = report.connected.includes(node.id);
     const reported = study.status.connectedIds.includes(node.id);
-    assert(connected === reported, `${node.id} is ${feet.toFixed(1)} ft away and the status ${reported ? "connected" : "missed"} it.`);
-    return { id: node.id, feet: Math.round(feet * 10) / 10, connected, persistent: study.status.reachedIds.includes(node.id) };
-  });
-  for (const id of study.status.reachedIds) {
-    assert(study.status.connectedIds.includes(id), `${id} was persistent without a current connection.`);
+    assert(linked === reported, `${node.id} conductivity link and status disagree.`);
   }
-  for (const id of study.status.visitIds) {
-    assert(!study.status.connectedIds.includes(id), `${id} was both a visit and a connection.`);
+  const routes = study.flowRoutes();
+  for (const route of routes) {
+    assert(Number.isFinite(route.length) && route.points.length > 1, `${route.id} has no surviving route to a source.`);
   }
+  routeBook.push({ seed: connectionSeed, branches: report.branches, routes, cloud: study.flowPoints() });
+  const flowIteration: NetworkIteration = {
+    id: `flow-${connectionSeed}`,
+    index: 0,
+    seed: connectionSeed,
+    nodes: study.edit.nodes.map((node) => ({ ...node })),
+    step: study.status.step,
+    settled: study.status.settled,
+    reached: study.status.reached,
+    total: study.status.total,
+    reachedIds: [...study.status.reachedIds],
+    connectedIds: [...study.status.connectedIds],
+    note: study.status.note,
+    trails,
+    inkSize: study.inkSize,
+    traversable: study.traversable,
+    cellFeet: study.cellFeet,
+    generator: "flow",
+  };
+  flowIterations.push(flowIteration);
+  const agentWords = /trail ink|raw trail|mean strength|peak strength|trail samples|reinforced cells|separate light cells|persistent/i;
+  for (const mode of ["density", "connectivity", "branching", "direction"] as const) {
+    const analysis = analyzeNetwork(mode, [flowIteration], study.frame);
+    assert(analysis !== null, `${mode} did not read the conductivity field.`);
+    const text = `${analysis.legend} ${analysis.metrics.map((item) => item.label).join(" ")}`;
+    assert(!agentWords.test(text), `${mode} still describes conductivity as agent ink: ${text}`);
+  }
+  const tubes = analyzeNetwork("connectivity", [flowIteration], study.frame);
+  const onTube = tubes?.metrics.find((item) => item.label === "Attractors on a tube")?.value;
+  assert(onTube === `${report.connected.length} / ${attractors.length}`, `Attractors on a tube was ${onTube}.`);
+  const bearing = analyzeNetwork("direction", [flowIteration], study.frame)?.metrics.find((item) => item.label === "Tube samples")?.value;
+  assert(bearing !== "0" && bearing !== undefined, "Direction found no tube samples.");
   connectionReport.push({
     seed: connectionSeed,
     steps: study.status.step,
-    coverage: Math.round(coverage * 1000) / 10,
-    toleranceFt: Math.round(limit * 10) / 10,
-    gaps,
-    visits: study.status.visitIds,
+    settled: study.status.settled,
+    coverage: Math.round((covered / study.traversable) * 1000) / 10,
+    nodes: report.nodes,
+    edges: report.edges,
+    surviving: report.surviving,
+    branches: report.branches,
+    stable: report.stable,
+    connected: report.connected,
+    disconnected: report.disconnected,
+    maskBreaks: report.maskBreaks,
     note: study.status.note,
+    signature: report.signature,
   });
 }
-console.log(JSON.stringify(connectionReport, null, 2));
-console.log("narrow-trail connection checks passed");
+function edgeSet(signature: string) {
+  return new Set(signature ? signature.split(",") : []);
+}
+function jaccard(left: Set<string>, right: Set<string>) {
+  let shared = 0;
+  for (const item of left) if (right.has(item)) shared += 1;
+  const union = left.size + right.size - shared;
+  return union === 0 ? 1 : shared / union;
+}
+const overlap = [];
+for (let index = 1; index < connectionReport.length; index += 1) {
+  const previous = connectionReport[index - 1] as { seed: number; signature: string };
+  const current = connectionReport[index] as { seed: number; signature: string };
+  const score = jaccard(edgeSet(previous.signature), edgeSet(current.signature));
+  overlap.push({ seeds: [previous.seed, current.seed], jaccard: Math.round(score * 1000) / 1000, lowDiversity: score > 0.95 });
+}
+console.log(JSON.stringify(connectionReport.map((item) => {
+  const row = item as { signature?: string };
+  const { signature: _signature, ...rest } = row;
+  return rest;
+}), null, 2));
+function routeGap(left: { x: number; z: number }[], right: { x: number; z: number }[]) {
+  const directed = (from: { x: number; z: number }[], to: { x: number; z: number }[]) => {
+    let worst = 0;
+    for (const point of from) {
+      let best = Infinity;
+      for (const other of to) best = Math.min(best, Math.hypot(point.x - other.x, point.z - other.z));
+      worst = Math.max(worst, best);
+    }
+    return worst;
+  };
+  if (left.length === 0 || right.length === 0) return Infinity;
+  return Math.max(directed(left, right), directed(right, left));
+}
+function corridorShare(left: { x: number; z: number }[], right: { x: number; z: number }[], feet: number) {
+  if (left.length === 0) return 0;
+  let near = 0;
+  for (const point of left) {
+    let best = Infinity;
+    for (const other of right) best = Math.min(best, Math.hypot(point.x - other.x, point.z - other.z));
+    if (best <= feet) near += 1;
+  }
+  return near / left.length;
+}
+const geometry = [];
+for (let index = 0; index < routeBook.length; index += 1) {
+  for (let other = index + 1; other < routeBook.length; other += 1) {
+    const left = routeBook[index];
+    const right = routeBook[other];
+    const pairs = left.routes.map((route) => {
+      const match = right.routes.find((item) => item.id === route.id);
+      if (!match) return null;
+      const gap = routeGap(route.points, match.points);
+      const share = (corridorShare(route.points, match.points, 22) + corridorShare(match.points, route.points, 22)) / 2;
+      return {
+        id: route.id,
+        hausdorffFt: Math.round(gap),
+        withinOneSample: Math.round(share * 1000) / 1000,
+        lengthA: Math.round(route.length),
+        lengthB: Math.round(match.length),
+      };
+    }).filter((item) => item !== null);
+    const networkGap = routeGap(left.cloud, right.cloud);
+    const networkShare = (corridorShare(left.cloud, right.cloud, 22) + corridorShare(right.cloud, left.cloud, 22)) / 2;
+    geometry.push({
+      seeds: [left.seed, right.seed],
+      branches: [left.branches, right.branches],
+      networkHausdorffFt: Math.round(networkGap),
+      networkWithinOneSample: Math.round(networkShare * 1000) / 1000,
+      pairs,
+    });
+  }
+}
+const separated = geometry.filter((item) => item.pairs.some((pair) => pair.hausdorffFt > 45 && pair.withinOneSample < 0.75));
+assert(separated.length > 0, "Every seed pair stays within one lattice step of the same routes.");
+const compared = analyzeNetwork("overlay", flowIterations, miami.frame);
+assert(compared !== null && compared.legend.includes("conductivity"), "Iteration comparison does not describe conductivity.");
+assert(!/raw trail|trail ink/i.test(compared.legend), "Iteration comparison still calls conductivity agent ink.");
+console.log(JSON.stringify({ overlap, geometry }, null, 2));
+console.log("adaptive-flow connection checks passed");

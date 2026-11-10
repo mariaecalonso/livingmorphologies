@@ -57,6 +57,22 @@ export function placePlan(camera: OrthographicCamera, size: { width: number; hei
   return target;
 }
 
+/** Side elevation. Up is vertical, so stacked tiles keep their heights. */
+export function placeSection(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number) {
+  camera.left = -size.width / 2;
+  camera.right = size.width / 2;
+  camera.top = size.height / 2;
+  camera.bottom = -size.height / 2;
+  camera.zoom = Math.min(size.width / (frame.depth * pad), size.height / (frame.span * 0.45));
+  camera.up.set(0, 1, 0);
+  const eye = storedToWorld(frame.cx + frame.span, frame.span * 0.12, frame.cz);
+  camera.position.set(eye.x, eye.y, eye.z);
+  const target = lookAtStored(camera, frame, 30);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  return target;
+}
+
 export function placeAxon(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context") {
   camera.left = -size.width / 2;
   camera.right = size.width / 2;

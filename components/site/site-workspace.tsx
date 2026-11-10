@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import context from "@/data/skill5/herald-site.json";
 import { nextCatalogId, siteLibraryEntries, type CatalogEntry } from "@/lib/skill4/catalog";
 import {
@@ -25,14 +26,20 @@ import brief from "@/data/skill5/workplace-brief.json";
 import { PROGRAM_LABEL, SITE_ARCHETYPES, SITE_PROGRAMS, type SiteArchetype } from "@/lib/skill5/catalog";
 import { isSkill5MockAssembly } from "@/lib/skill5/mock-assemblies";
 import { localDemonstrationBridge, worldSourceBridge } from "@/lib/skill5/mock-bridge";
-import { CONFIGURATION_CONTRACT, nextConfigurationId, referenceForModule, type ComparisonPriority, type ConfigurationDocument, type SiteConfiguration } from "@/lib/skill5/configurations";
-import { nominalUnionSqFt, programDistribution, scenePlaced } from "@/lib/skill5/metrics";
+import { CONFIGURATION_CONTRACT, nextConfigurationId, referenceForModule, type ComparisonPriority, type ConfigurationDocument, type ConfigurationView, type SiteConfiguration } from "@/lib/skill5/configurations";
+import { iterationMetrics, keptJoins, nominalUnionSqFt, programDistribution, scenePlaced } from "@/lib/skill5/metrics";
 import { measureSite } from "@/lib/skill5/relations";
 import { SKILL5_MODULE_ENVELOPE_FEET, SKILL5_SITE_ID } from "@/lib/skill5/contract";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { adoptPresent, beginGesture, emptyEditHistory, endGesture, redoEdit, rememberEdit, undoEdit, type CompositionSnapshot } from "@/lib/skill5/history";
 import { loadArchetypeMesh } from "@/lib/skill5/load-module";
-import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, footprintCorners, placementWarnings, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
+import { joinSummary, proposeDirectJoin } from "@/lib/skill5/direct-join";
+import { SITE_FACES, buildHybridOffer, placeHybridCandidate, siteFaceLabel, suggestedSiteFaces, type HybridOffer, type HybridPlacement, type SiteFace } from "@/lib/skill5/hybrid-join";
+import type { Skill4ModuleRecord } from "@/lib/skill4/contract";
+import { loadModuleMap } from "@/lib/skill4/tiles";
+import type { FaceMatch, TilePose } from "@/lib/skill5/face-match";
+import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, footprintCorners, placementWarnings, pointInRing, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
+import { reportTiles } from "@/lib/skill5/tile-placement";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import { clipPolygon } from "./site-geometry";
@@ -41,10 +48,16 @@ import { clearNetworkIterations, loadNetworkIterations, saveNetworkIteration } f
 import { analyzeNetwork, networkFigures, type NetworkAnalysisMode } from "./site-network-analysis";
 import { SiteNetworkAnalysisPanel } from "./site-network-analysis-panel";
 import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
-import { createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
-import { SiteStrategyAnalysis, SiteStrategyPanel, SiteSheetTabs, STRATEGY_MODES, type SiteSheet, type StrategyMode } from "./site-strategy";
+import { captureNetworkIteration, createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
+import { SiteStrategyAnalysis, SiteStrategyPanel, STRATEGY_MODES, type StrategyMode } from "./site-strategy";
 import { SiteAnalysisWorkspace } from "./site-analysis-workspace";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
+import { readSiteWorkflowState, writeSiteWorkflowState, ZONE_KINDS, type SiteConnection, type SiteWorkflowId, type SiteZone, type SiteZoneKind } from "./site-workflow";
+import { SiteAssemblyStep, SiteWorkflowNav, SiteZoningInspector, SiteZoningPanel } from "./site-workflow-panels";
+import { detectPockets } from "@/lib/skill5/pockets";
+import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
+import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
+import { FLOW_SURVIVE } from "./site-network-flow";
 
 const site = context as SiteContext;
 const designSite = designSiteFromParcel(site.site.ring);
@@ -105,7 +118,7 @@ function placedVertex(item: PlacedModule, x: number, y: number, z: number) {
   return {
     east: item.transform.position.x + east * cos + north * sin,
     north: item.transform.position.z - east * sin + north * cos,
-    up: z,
+    up: item.transform.position.y + z,
   };
 }
 
@@ -172,7 +185,7 @@ export function OrthoCanvas({ modules, meshes, view, label, frame, bridges = [],
   }).join("|");
   const signature = `${frameKey}|${bridgeKey}|${modules.map((item) => {
     const mesh = meshes[item.provenance.moduleId];
-    return `${item.instanceId}:${item.transform.position.x}:${item.transform.position.z}:${item.transform.rotationY}:${item.mirror ?? ""}:${mesh?.triangles ?? 0}`;
+    return `${item.instanceId}:${item.transform.position.x}:${item.transform.position.y}:${item.transform.position.z}:${item.transform.rotationY}:${item.mirror ?? ""}:${mesh?.triangles ?? 0}`;
   }).join("|")}`;
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -771,6 +784,123 @@ export function PlacedGlassPreview({ modules, meshes, bridges = [], interactive 
   return <GlassThumb mesh={mesh} interactive={interactive} fitRadius={fitRadius} />;
 }
 
+function ComparisonPlan({
+  modules,
+  zones,
+  branches,
+  bounds,
+  showZones,
+  showNetwork,
+  label,
+}: {
+  modules: readonly PlacedModule[];
+  zones: readonly ZoningRegion[];
+  branches: readonly { x0: number; z0: number; x1: number; z1: number }[];
+  bounds: { minEast: number; maxEast: number; minNorth: number; maxNorth: number };
+  showZones: boolean;
+  showNetwork: boolean;
+  label: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const signature = `${showZones}|${showNetwork}|${bounds.minEast}:${bounds.maxEast}:${bounds.minNorth}:${bounds.maxNorth}|${modules.map((item) => item.instanceId).join(",")}|${zones.length}|${branches.length}`;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const width = 280;
+    const height = 160;
+    const dpr = 2;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, width, height);
+    const spanX = Math.max(bounds.maxEast - bounds.minEast, 1);
+    const spanZ = Math.max(bounds.maxNorth - bounds.minNorth, 1);
+    const scale = Math.min((width - 24) / spanX, (height - 24) / spanZ);
+    const originX = (width - spanX * scale) / 2;
+    const originY = (height - spanZ * scale) / 2;
+    const project = (east: number, north: number) => ({
+      x: originX + (east - bounds.minEast) * scale,
+      y: originY + (bounds.maxNorth - north) * scale,
+    });
+    if (showZones) {
+      for (const zone of zones) {
+        if (zone.points.length < 3) continue;
+        ctx.beginPath();
+        zone.points.forEach((point, index) => {
+          const projected = project(point.x, point.z);
+          if (index === 0) ctx.moveTo(projected.x, projected.y);
+          else ctx.lineTo(projected.x, projected.y);
+        });
+        ctx.closePath();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = ZONE_COLOR[zone.kind];
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (showNetwork) {
+      ctx.strokeStyle = "#49d7de";
+      ctx.lineWidth = 1;
+      for (const edge of branches) {
+        const start = project(edge.x0, edge.z0);
+        const end = project(edge.x1, edge.z1);
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = "#c77e5f";
+    ctx.lineWidth = 1;
+    for (const item of modules) {
+      const corners = footprintCorners(item.transform.position, item.transform.rotationY);
+      ctx.beginPath();
+      corners.forEach((point, index) => {
+        const projected = project(point.x, point.z);
+        if (index === 0) ctx.moveTo(projected.x, projected.y);
+        else ctx.lineTo(projected.x, projected.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }, [signature, bounds, branches, modules, showNetwork, showZones, zones]);
+  return <canvas ref={canvasRef} aria-label={label} />;
+}
+
+function planBounds(
+  entries: readonly SiteConfiguration[],
+  networks: readonly { branches?: { x0: number; z0: number; x1: number; z1: number }[] }[],
+) {
+  let minEast = Infinity;
+  let maxEast = -Infinity;
+  let minNorth = Infinity;
+  let maxNorth = -Infinity;
+  const add = (east: number, north: number) => {
+    minEast = Math.min(minEast, east);
+    maxEast = Math.max(maxEast, east);
+    minNorth = Math.min(minNorth, north);
+    maxNorth = Math.max(maxNorth, north);
+  };
+  for (const entry of entries) {
+    for (const item of entry.modules) {
+      for (const corner of footprintCorners(item.transform.position, item.transform.rotationY)) add(corner.x, corner.z);
+    }
+    for (const zone of entry.zones ?? []) {
+      for (const point of zone.points) add(point.x, point.z);
+    }
+  }
+  for (const network of networks) {
+    for (const edge of network.branches ?? []) {
+      add(edge.x0, edge.z0);
+      add(edge.x1, edge.z1);
+    }
+  }
+  if (!Number.isFinite(minEast)) return { minEast: -20, maxEast: 20, minNorth: -20, maxNorth: 20 };
+  return { minEast: minEast - 16, maxEast: maxEast + 16, minNorth: minNorth - 16, maxNorth: maxNorth + 16 };
+}
+
 function OrthoSet({ modules, meshes, bridges = [], caption }: { modules: PlacedModule[]; meshes: Record<string, IsoMesh>; bridges?: IsoMesh[]; caption: string }) {
   return (
     <div className="site-ortho">
@@ -806,19 +936,149 @@ function AssemblyRerun({ assembly, records, onKeep, onSend }: { assembly: SiteAs
   );
 }
 
+function trailsAgree(saved: Float32Array, fresh: Float32Array) {
+  if (saved.length !== fresh.length || saved.length === 0) return false;
+  let both = 0;
+  let either = 0;
+  for (let index = 0; index < saved.length; index += 1) {
+    const left = saved[index] >= 0.15;
+    const right = fresh[index] >= 0.15;
+    if (left || right) either += 1;
+    if (left && right) both += 1;
+  }
+  return either > 40 && both / either >= 0.75;
+}
+
+function distanceToBranches(point: ZonePoint, branches: readonly { x0: number; z0: number; x1: number; z1: number }[]) {
+  let best = Number.POSITIVE_INFINITY;
+  for (const edge of branches) {
+    const dx = edge.x1 - edge.x0;
+    const dz = edge.z1 - edge.z0;
+    const span = dx * dx + dz * dz;
+    const t = span === 0 ? 0 : Math.min(1, Math.max(0, ((point.x - edge.x0) * dx + (point.z - edge.z0) * dz) / span));
+    best = Math.min(best, Math.hypot(point.x - (edge.x0 + dx * t), point.z - (edge.z0 + dz * t)));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+function tilePositions(meshes: Record<string, IsoMesh | "missing">, instance: PlacedModule) {
+  const stored = meshes[instance.provenance.moduleId];
+  return stored && stored !== "missing" ? stored.positions : null;
+}
+
+function storedDirectJoins(connections: readonly SiteConnection[]) {
+  return connections.flatMap((link) => {
+    if (link.mode !== "direct" || !link.passage || !link.faceA || !link.faceB || (link.joinType !== "side" && link.joinType !== "stack")) return [];
+    return [{
+      id: link.id,
+      tileA: link.tileA,
+      tileB: link.tileB,
+      faceA: link.faceA,
+      faceB: link.faceB,
+      joinType: link.joinType,
+      alignment: link.alignment ?? 0,
+      floorDelta: link.floorDelta ?? 0,
+      integrity: "closed" as const,
+      passage: link.passage,
+    }];
+  });
+}
+
+function storedHybridJoins(connections: readonly SiteConnection[]) {
+  return connections.flatMap((link) => {
+    if (link.mode !== "hybrid" || !link.passage || !link.faceA || !link.faceB || !link.candidateId || (link.joinType !== "side" && link.joinType !== "stack")) return [];
+    return [{
+      id: link.id,
+      tileA: link.tileA,
+      tileB: link.tileB,
+      faceA: link.faceA,
+      faceB: link.faceB,
+      joinType: link.joinType,
+      alignment: link.alignment ?? 0,
+      floorDelta: link.floorDelta ?? 0,
+      integrity: link.integrity === "open" ? "open" as const : "closed" as const,
+      candidateId: link.candidateId,
+      note: link.note ?? "",
+      passage: link.passage,
+    }];
+  });
+}
+
+function branchJunctions(branches: readonly { x0: number; z0: number; x1: number; z1: number }[]) {
+  const marks = new Map<string, { x: number; z: number; count: number }>();
+  for (const edge of branches) {
+    for (const point of [{ x: edge.x0, z: edge.z0 }, { x: edge.x1, z: edge.z1 }]) {
+      const key = `${Math.round(point.x * 2) / 2}:${Math.round(point.z * 2) / 2}`;
+      const mark = marks.get(key) ?? { x: point.x, z: point.z, count: 0 };
+      mark.count += 1;
+      marks.set(key, mark);
+    }
+  }
+  return [...marks.values()].filter((mark) => mark.count >= 3);
+}
+
 export function SiteWorkspace({ panels = "model" }: { panels?: "model" | "analysis" }) {
   if (panels === "analysis") return <SiteAnalysisWorkspace />;
   return <SiteModelWorkspace />;
 }
 
+function sheetFromSearch(search: { get: (key: string) => string | null }): SiteWorkflowId {
+  const next = search.get("sheet");
+  return next === "zoning" || next === "placement" || next === "assembly" ? next : "strategy";
+}
+
 function SiteModelWorkspace() {
-  const [sheet, setSheet] = useState<SiteSheet>("assembly");
+  const search = useSearchParams();
+  const [sheet, setSheet] = useState<SiteWorkflowId>(() => sheetFromSearch(search));
+  useEffect(() => {
+    const next = search.get("sheet");
+    if (next === "zoning" || next === "placement" || next === "assembly") setSheet(next);
+  }, [search]);
+  const [zones, setZones] = useState<SiteZone[]>([]);
+  const [connections, setConnections] = useState<SiteConnection[]>([]);
+  const [zoneKind, setZoneKind] = useState<SiteZoneKind>("lobby");
+  const [zoneTool, setZoneTool] = useState<ZoneTool>("select");
+  const [zoneDraft, setZoneDraft] = useState<ZonePoint[]>([]);
+  const zoneDraftRef = useRef(zoneDraft);
+  zoneDraftRef.current = zoneDraft;
+  const [zoneNotice, setZoneNotice] = useState<string | null>(null);
+  const [zoneDeleteId, setZoneDeleteId] = useState<string | null>(null);
+  const [zoneSelection, setZoneSelection] = useState<string | null>(null);
+  const [pocketSelection, setPocketSelection] = useState<string[]>([]);
+  const [pocketHover, setPocketHover] = useState<string | null>(null);
+  const [branchNote, setBranchNote] = useState<string | null>(null);
+  const branchMiss = useRef(new Set<string>());
+  const [libraryAll, setLibraryAll] = useState(false);
+  const [zoneOpacity, setZoneOpacity] = useState(0.22);
+  const placementYRef = useRef(MODULE_GROUND_Y);
+  const tileReportRef = useRef<ReturnType<typeof reportTiles>>({});
+  const zoningKeys = useRef({ finish: () => {}, cancel: () => {} });
+  const [showZones, setShowZones] = useState(true);
+  const [showTiles, setShowTiles] = useState(true);
+  const [showConnections, setShowConnections] = useState(true);
+  const [linkA, setLinkA] = useState("");
+  const [linkB, setLinkB] = useState("");
+  const [selectedJoin, setSelectedJoin] = useState<string | null>(null);
+  const [joinMode, setJoinMode] = useState<"direct" | "hybrid">("direct");
+  const [hybridFaceA, setHybridFaceA] = useState<SiteFace>("E");
+  const [hybridFaceB, setHybridFaceB] = useState<SiteFace>("W");
+  const [hybridOffer, setHybridOffer] = useState<HybridOffer | null>(null);
+  const [hybridPlacement, setHybridPlacement] = useState<HybridPlacement | null>(null);
+  const [hybridCandidate, setHybridCandidate] = useState<string | null>(null);
+  const [hybridNote, setHybridNote] = useState("Choose the two faces, then find the Skill 04 hybrids.");
+  const [hybridBusy, setHybridBusy] = useState(false);
+  const hybridRecords = useRef(new Map<string, Skill4ModuleRecord>());
+  const [workflowReady, setWorkflowReady] = useState(false);
+  const zoneSerial = useRef(1);
+  const connectionSerial = useRef(1);
+  const joinPickAt = useRef(0);
   const [strategyMode, setStrategyMode] = useState<StrategyMode>("site-network");
   const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(null);
   const [networkRunning, setNetworkRunning] = useState(false);
   const [networkTool, setNetworkTool] = useState<NetworkNodeKind>("source");
   const [iterations, setIterations] = useState<NetworkIteration[]>([]);
   const [iterationView, setIterationView] = useState<string | null>(null);
+  const [massingId, setMassingId] = useState<string | null>(null);
   const [iterationCompare, setIterationCompare] = useState<string[]>([]);
   const [iterationBatch, setIterationBatch] = useState<IterationBatch | null>(null);
   const [analysisMode, setAnalysisMode] = useState<NetworkAnalysisMode>("density");
@@ -840,11 +1100,19 @@ function SiteModelWorkspace() {
     };
   }, []);
   useEffect(() => {
-    if (sheet !== "strategy" || networkStudy) return;
+    if (networkStudy) return;
     setNetworkStudy(createSiteNetworkStudy(site.site.ring, site.water.ring, { buildings: site.buildings }));
-  }, [sheet, networkStudy]);
-  const [mode, setMode] = useState<SiteViewMode>("perspective");
-  const assemblyView = useRef<SiteViewMode>("perspective");
+  }, [networkStudy]);
+  const workflowBoot = useRef(false);
+  useEffect(() => {
+    if (!workflowReady) return;
+    writeSiteWorkflowState({ zones, connections, massingNetworkId: massingId });
+  }, [connections, massingId, workflowReady, zones]);
+  const [mode, setMode] = useState<SiteViewMode>(() => (sheetFromSearch(search) === "strategy" ? "plan" : "perspective"));
+  const sheetQuery = search.get("sheet");
+  useEffect(() => {
+    if (sheetQuery === "zoning" || sheetQuery === "placement" || sheetQuery === "assembly") setMode("perspective");
+  }, [sheetQuery]);
   const [planHeading, setPlanHeading] = useState<"north" | "east">("north");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
@@ -853,6 +1121,10 @@ function SiteModelWorkspace() {
   const [frameToken] = useState(0);
   const [readout, setReadout] = useState<SiteReadout>({ northDeg: 0, scaleFeet: 100, scalePx: 96 });
   const [snap, setSnap] = useState(true);
+  const [autoMatch, setAutoMatch] = useState(true);
+  const [manualPose, setManualPose] = useState<TilePose | null>(null);
+  const [matchCycle, setMatchCycle] = useState(0);
+  const [faceMatch, setFaceMatch] = useState<FaceMatch | null>(null);
   const [showEnvelope] = useState(false);
   const [tool] = useState<"move" | "rotate" | "entrance" | "circulation">("move");
   const [armedId, setArmedId] = useState<string | null>(null);
@@ -895,8 +1167,16 @@ function SiteModelWorkspace() {
   const [configurations, setConfigurations] = useState<SiteConfiguration[]>([]);
   const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
   const [configName, setConfigName] = useState("Untitled");
+  const [configNotice, setConfigNotice] = useState<string | null>(null);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareNetwork, setCompareNetwork] = useState(false);
+  const [compareZones, setCompareZones] = useState(true);
+  const reportedMissing = useRef(new Set<string>());
   const [annotations, setAnnotations] = useState<SiteAnnotation[]>([]);
   const historyRef = useRef(emptyEditHistory());
+  const writeSerial = useRef(0);
+  const configurationsRef = useRef(configurations);
+  configurationsRef.current = configurations;
   const [history, setHistory] = useState(emptyEditHistory);
   const publish = useCallback((next: ReturnType<typeof emptyEditHistory>) => {
     const assemblies = reconcileSentAssemblies(next.present.assemblies, readCatalog());
@@ -906,6 +1186,7 @@ function SiteModelWorkspace() {
     setInstances(resolved.present.instances);
     setAssemblies(resolved.present.assemblies);
     setAnnotations(resolved.present.annotations);
+    setZones(resolved.present.zones ?? []);
   }, []);
   const commit = useCallback((recipe: (present: CompositionSnapshot) => CompositionSnapshot) => {
     publish(rememberEdit(historyRef.current, recipe(historyRef.current.present)));
@@ -915,6 +1196,23 @@ function SiteModelWorkspace() {
   }, [publish]);
   const finishGesture = useCallback(() => {
     publish(endGesture(historyRef.current));
+  }, [publish]);
+  useEffect(() => {
+    if (workflowBoot.current) return;
+    workflowBoot.current = true;
+    const stored = readSiteWorkflowState();
+    setConnections(stored.connections);
+    setMassingId(stored.massingNetworkId);
+    for (const zone of stored.zones) {
+      const match = /^z(\d+)$/.exec(zone.id);
+      if (match) zoneSerial.current = Math.max(zoneSerial.current, Number(match[1]) + 1);
+    }
+    for (const link of stored.connections) {
+      const match = /^c(\d+)$/.exec(link.id);
+      if (match) connectionSerial.current = Math.max(connectionSerial.current, Number(match[1]) + 1);
+    }
+    publish(adoptPresent(historyRef.current, { ...historyRef.current.present, zones: stored.zones }));
+    setWorkflowReady(true);
   }, [publish]);
   const [circulationStart, setCirculationStart] = useState<{ x: number; z: number; attachment: SiteAnnotation["attachment"]; assemblyPlacementId: string | null } | null>(null);
   const [attachToAssembly] = useState(false);
@@ -962,6 +1260,23 @@ function SiteModelWorkspace() {
         }
         return;
       }
+      if (sheet === "zoning" && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          zoningKeys.current.finish();
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          zoningKeys.current.cancel();
+          return;
+        }
+        if ((event.key === "Delete" || event.key === "Backspace") && zoneSelection) {
+          event.preventDefault();
+          setZoneDeleteId(zoneSelection);
+          return;
+        }
+      }
       if (event.altKey || event.key !== "Delete" && event.key !== "Backspace") return;
       event.preventDefault();
       deleteModule();
@@ -990,6 +1305,22 @@ function SiteModelWorkspace() {
     if (!exploded) return {};
     return Object.assign({}, ...assemblies.map((assembly) => explodeShifts(assembly, 14)));
   }, [assemblies, exploded]);
+  const connectionLines = useMemo(() => {
+    if (!showConnections) return [];
+    return connections.flatMap((link) => {
+      const a = sceneInstances.find((item) => item.instanceId === link.tileA);
+      const b = sceneInstances.find((item) => item.instanceId === link.tileB);
+      if (!a || !b) return [];
+      return [{
+        id: link.id,
+        mode: link.mode,
+        ax: a.transform.position.x,
+        az: a.transform.position.z,
+        bx: b.transform.position.x,
+        bz: b.transform.position.z,
+      }];
+    });
+  }, [connections, sceneInstances, showConnections]);
   const links = useMemo(() => assemblies.flatMap((assembly) => assembly.connectors.flatMap((connector) => {
     const a = assembly.members.find((member) => member.tileId === connector.tileAId);
     const b = assembly.members.find((member) => member.tileId === connector.tileBId);
@@ -1023,6 +1354,7 @@ function SiteModelWorkspace() {
         members: assembly.members.map((member) => member.provenance.moduleId === moduleId ? { ...member, geometryState: state } : member),
       })),
       annotations: present.annotations,
+      zones: present.zones,
     };
     publish(adoptPresent(historyRef.current, next));
   }, [publish]);
@@ -1068,7 +1400,7 @@ function SiteModelWorkspace() {
   useEffect(() => {
     for (const entry of SITE_ARCHETYPES) preloadMesh(entry);
   }, [preloadMesh]);
-  const placeModule = useCallback((x: number, z: number) => {
+    const placeModule = useCallback((x: number, z: number, pose?: { x: number; y: number; z: number; rotationY: number; mirror: "x" | "z" | null }) => {
     if (memberEditId && armedId && !armedAssemblyId) {
       const source = SITE_ARCHETYPES.find((entry) => entry.archetypeId === armedId);
       const host = assemblies.find((assembly) => assembly.placementId === memberEditId);
@@ -1143,9 +1475,10 @@ function SiteModelWorkspace() {
         candidateId: source.candidateId,
         continuationId: source.continuationId,
       },
+      mirror: pose?.mirror ?? null,
       transform: {
-        position: { x, y: MODULE_GROUND_Y, z },
-        rotationY: 0,
+        position: { x: pose?.x ?? x, y: pose?.y ?? placementYRef.current, z: pose?.z ?? z },
+        rotationY: pose?.rotationY ?? 0,
       },
     };
     commit((present) => ({ ...present, instances: [...present.instances, instance] }));
@@ -1204,7 +1537,7 @@ function SiteModelWorkspace() {
         ...present,
         instances: present.instances.map((instance) => instance.instanceId === id ? {
           ...instance,
-          transform: { ...instance.transform, position: { x, y: MODULE_GROUND_Y, z } },
+          transform: { ...instance.transform, position: { x, y: instance.transform.position.y, z } },
         } : instance),
       };
     });
@@ -1291,7 +1624,7 @@ function SiteModelWorkspace() {
         rotationY: selected.transform.rotationY,
         position: {
           x: parked.x,
-          y: MODULE_GROUND_Y,
+          y: selected.transform.position.y,
           z: parked.z,
         },
       },
@@ -1325,7 +1658,71 @@ function SiteModelWorkspace() {
       return;
     }
     commit((present) => ({ ...present, instances: present.instances.filter((instance) => instance.instanceId !== selectedId) }));
+    setConnections((current) => current.filter((link) => link.tileA !== selectedId && link.tileB !== selectedId));
+    if (linkA === selectedId || linkB === selectedId) {
+      setLinkA("");
+      setLinkB("");
+      setHybridOffer(null);
+      setHybridPlacement(null);
+      setHybridCandidate(null);
+    }
+    setSelectedJoin((current) => current && (current.tileA === selectedId || current.tileB === selectedId) ? null : current);
     setSelectedId(null);
+  };
+  const setTileTransform = (patch: { x?: number; y?: number; z?: number; rotationY?: number; mirror?: PlacedModule["mirror"] }) => {
+    if (!selected) return;
+    const current = selected;
+    commit((present) => ({
+      ...present,
+      instances: present.instances.map((instance) => instance.instanceId !== current.instanceId ? instance : {
+        ...instance,
+        mirror: patch.mirror === undefined ? instance.mirror : patch.mirror,
+        transform: {
+          rotationY: patch.rotationY ?? instance.transform.rotationY,
+          position: {
+            x: patch.x ?? instance.transform.position.x,
+            y: patch.y ?? instance.transform.position.y,
+            z: patch.z ?? instance.transform.position.z,
+          },
+        },
+      }),
+    }));
+  };
+  const stackSelected = (direction: 1 | -1) => {
+    if (!selected) return;
+    const source = armed ?? SITE_ARCHETYPES.find((entry) => entry.archetypeId === selected.provenance.archetypeId);
+    if (!source) return;
+    const stored = meshes[source.moduleId];
+    const instanceId = `m${serial.current}`;
+    serial.current += 1;
+    const instance: PlacedModule = {
+      instanceId,
+      kind: "archetype",
+      name: source.name,
+      status: source.status,
+      geometryState: stored && stored !== "missing" ? "available" : "pending",
+      program: source.program ?? "unassigned",
+      programSource: "suggested",
+      provenance: {
+        moduleId: source.moduleId,
+        archetypeId: source.archetypeId,
+        source: "skill3",
+        candidateId: source.candidateId,
+        continuationId: source.continuationId,
+      },
+      mirror: armed ? null : selected.mirror,
+      transform: {
+        rotationY: selected.transform.rotationY,
+        position: {
+          x: selected.transform.position.x,
+          y: selected.transform.position.y + direction * MODULE_HEIGHT_FT,
+          z: selected.transform.position.z,
+        },
+      },
+    };
+    commit((present) => ({ ...present, instances: [...present.instances, instance] }));
+    setSelectedId(instanceId);
+    if (!stored || stored === "missing") requestMesh(source);
   };
   const armModule = (entry: SiteArchetype) => {
     if (armedId === entry.archetypeId) {
@@ -1349,6 +1746,9 @@ function SiteModelWorkspace() {
     }
   };
   const writeConfigurations = async (next: SiteConfiguration[], nextPriorities = priorities) => {
+    const serial = writeSerial.current + 1;
+    writeSerial.current = serial;
+    configurationsRef.current = next;
     setConfigurations(next);
     setPriorities(nextPriorities);
     const response = await fetch("/api/site/configurations", {
@@ -1356,10 +1756,39 @@ function SiteModelWorkspace() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contract: CONFIGURATION_CONTRACT, siteId: SKILL5_SITE_ID, configurations: next, priorities: nextPriorities }),
     });
-    if (!response.ok) return;
+    if (!response.ok || serial !== writeSerial.current) return;
     const body = await response.json() as ConfigurationDocument;
+    if (serial !== writeSerial.current) return;
+    configurationsRef.current = body.configurations;
     setConfigurations(body.configurations);
     setPriorities(body.priorities ?? []);
+  };
+  const currentView = useMemo<ConfigurationView>(() => ({
+    showZones,
+    showTiles,
+    showConnections,
+    showNetwork: showTrails,
+  }), [showConnections, showTiles, showTrails, showZones]);
+  const configurationSnapshot = (id: string, name: string, parentConfigurationId: string | null, createdAt: string): SiteConfiguration => {
+    const now = new Date().toISOString();
+    return {
+      id,
+      name,
+      parentConfigurationId,
+      createdAt,
+      updatedAt: now,
+      modules: historyRef.current.present.instances.map((instance) => ({
+        ...structuredClone(instance),
+        zoneIds: tileReportRef.current[instance.instanceId]?.zoneIds ?? instance.zoneIds ?? [],
+      })),
+      assemblies: structuredClone(assemblies),
+      annotations: structuredClone(annotations),
+      zones: structuredClone(historyRef.current.present.zones),
+      networkId: massingId,
+      directJoins: storedDirectJoins(connections),
+      hybridJoins: storedHybridJoins(connections),
+      view: currentView,
+    };
   };
   const sendProposal = (assembly: SiteAssembly) => {
     const existing = findSentProposal(readCatalog(), assembly);
@@ -1377,39 +1806,56 @@ function SiteModelWorkspace() {
     }));
   };
   const saveConfiguration = (asNew: boolean) => {
-    const now = new Date().toISOString();
+    const list = configurationsRef.current;
     const name = configName.trim() || "Untitled";
     if (!asNew && currentConfigId) {
-      void writeConfigurations(configurations.map((entry) => entry.id === currentConfigId ? {
-        ...entry,
-        name,
-        updatedAt: now,
-        modules: structuredClone(instances),
-        assemblies: structuredClone(assemblies),
-        annotations: structuredClone(annotations),
-      } : entry));
+      const current = list.find((entry) => entry.id === currentConfigId);
+      const saved = configurationSnapshot(currentConfigId, name, current?.parentConfigurationId ?? null, current?.createdAt ?? new Date().toISOString());
+      void writeConfigurations(list.map((entry) => entry.id === currentConfigId ? saved : entry));
       return;
     }
-    const id = nextConfigurationId(configurations);
-    const created: SiteConfiguration = {
-      id,
-      name,
-      parentConfigurationId: currentConfigId,
-      createdAt: now,
-      updatedAt: now,
-      modules: structuredClone(instances),
-      assemblies: structuredClone(assemblies),
-      annotations: structuredClone(annotations),
-    };
+    const id = nextConfigurationId(list);
+    const created = configurationSnapshot(id, name, currentConfigId, new Date().toISOString());
     setCurrentConfigId(id);
     setConfigName(name);
-    void writeConfigurations([...configurations, created]);
+    void writeConfigurations([...list, created]);
   };
   const openConfiguration = (entry: SiteConfiguration) => {
     const nextModules = structuredClone(entry.modules);
     const nextAssemblies = structuredClone(entry.assemblies);
     const nextNotes = structuredClone(entry.annotations ?? []);
-    publish(emptyEditHistory({ instances: nextModules, assemblies: nextAssemblies, annotations: nextNotes }));
+    publish(emptyEditHistory({ instances: nextModules, assemblies: nextAssemblies, annotations: nextNotes, zones: structuredClone(entry.zones ?? []) }));
+    setZoneDraft([]);
+    setZoneSelection(null);
+    setMassingId(entry.networkId);
+    const direct = keptJoins(nextModules, entry.directJoins ?? []);
+    const hybrid = keptJoins(nextModules, entry.hybridJoins ?? []);
+    const restoredJoins = [
+      ...direct.kept.map((join) => ({ ...join, mode: "direct" as const })),
+      ...hybrid.kept.map((join) => ({ ...join, mode: "hybrid" as const })),
+    ];
+    setConnections(restoredJoins);
+    setSelectedJoin(null);
+    if (entry.view) {
+      setShowZones(entry.view.showZones);
+      setShowTiles(entry.view.showTiles);
+      setShowConnections(entry.view.showConnections);
+      setShowTrails(entry.view.showNetwork);
+    }
+    const absent = nextModules.filter((item) => !referenceForModule(item.provenance.moduleId, item.provenance.archetypeId, item.provenance.candidateId, item.provenance.continuationId));
+    const dropped = direct.missing.length + hybrid.missing.length;
+    const notes: string[] = [];
+    if (entry.zones?.some((zone) => zone.networkId && zone.networkId !== entry.networkId)) notes.push("This configuration was drawn on a different network iteration. The regions were restored and left unchanged.");
+    if ((entry.droppedModules ?? 0) > 0) notes.push(`${entry.droppedModules} module record${entry.droppedModules === 1 ? "" : "s"} could not be read and ${entry.droppedModules === 1 ? "was" : "were"} not replaced.`);
+    if (absent.length > 0) notes.push(`${absent.map((item) => item.name).join(", ")} is not in the catalog. Nothing was substituted.`);
+    if ((entry.droppedDirects ?? 0) + (entry.droppedHybrids ?? 0) > 0) notes.push(`${(entry.droppedDirects ?? 0) + (entry.droppedHybrids ?? 0)} connection record${(entry.droppedDirects ?? 0) + (entry.droppedHybrids ?? 0) === 1 ? "" : "s"} were incomplete and were not replaced.`);
+    if (dropped > 0) notes.push(`${dropped} connection${dropped === 1 ? "" : "s"} referenced a missing tile or mesh and ${dropped === 1 ? "was" : "were"} not restored.`);
+    if (entry.networkId && iterations.length > 0 && !iterations.some((item) => item.id === entry.networkId)) notes.push(`Network ${entry.networkId} is not in the saved studies. It was not replaced.`);
+    setConfigNotice(notes.length > 0 ? notes.join(" ") : null);
+    for (const link of restoredJoins) {
+      const match = /^c(\d+)$/.exec(link.id);
+      if (match) connectionSerial.current = Math.max(connectionSerial.current, Number(match[1]) + 1);
+    }
     setCirculationStart(null);
     setSelectedId(null);
     setMemberEditId(null);
@@ -1455,20 +1901,6 @@ function SiteModelWorkspace() {
       cancel = true;
     };
   }, []);
-  const duplicateConfiguration = (entry: SiteConfiguration) => {
-    const now = new Date().toISOString();
-    const id = nextConfigurationId(configurations);
-    const copy: SiteConfiguration = {
-      ...structuredClone(entry),
-      id,
-      name: `${entry.name} copy`,
-      parentConfigurationId: entry.id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    setConfigName(copy.name);
-    void writeConfigurations([...configurations, copy]);
-  };
   const armedAssembly = catalog.find((entry) => entry.id === armedAssemblyId) ?? null;
   const previewAssembly = armedAssembly ? importAssembly(armedAssembly, { x: 0, z: 0 }, "preview") : null;
   const previewParts = previewAssembly ? previewAssembly.members.flatMap((member) => member.meshModuleId ? [{
@@ -1491,12 +1923,82 @@ function SiteModelWorkspace() {
   const drawnNotes = useMemo(() => worldAnnotations(annotations, assemblies), [annotations, assemblies]);
   const savedConfiguration = configurations.find((entry) => entry.id === currentConfigId) ?? null;
   const unsavedChanges = useMemo(() => {
-    if (!savedConfiguration) return instances.length > 0 || assemblies.length > 0 || annotations.length > 0;
+    const joinsChanged = JSON.stringify(storedDirectJoins(connections)) !== JSON.stringify(savedConfiguration?.directJoins ?? [])
+      || JSON.stringify(storedHybridJoins(connections)) !== JSON.stringify(savedConfiguration?.hybridJoins ?? []);
+    if (!savedConfiguration) return instances.length > 0 || assemblies.length > 0 || annotations.length > 0 || zones.length > 0 || connections.length > 0;
+    const viewChanged = savedConfiguration.view ? JSON.stringify(currentView) !== JSON.stringify(savedConfiguration.view) : false;
     return configName !== savedConfiguration.name
       || JSON.stringify(instances) !== JSON.stringify(savedConfiguration.modules)
       || JSON.stringify(assemblies) !== JSON.stringify(savedConfiguration.assemblies)
-      || JSON.stringify(annotations) !== JSON.stringify(savedConfiguration.annotations ?? []);
-  }, [annotations, assemblies, configName, instances, savedConfiguration]);
+      || JSON.stringify(annotations) !== JSON.stringify(savedConfiguration.annotations ?? [])
+      || JSON.stringify(zones) !== JSON.stringify(savedConfiguration.zones ?? [])
+      || massingId !== (savedConfiguration.networkId ?? null)
+      || joinsChanged
+      || viewChanged;
+  }, [annotations, assemblies, configName, connections, currentView, instances, massingId, savedConfiguration, zones]);
+  useEffect(() => {
+    if (!massingId || iterations.length === 0) return;
+    if (iterations.some((item) => item.id === massingId)) return;
+    const sentence = `Network ${massingId} is not in the saved studies. It was not replaced.`;
+    setConfigNotice((current) => current?.includes(massingId) ? current : current ? `${current} ${sentence}` : sentence);
+  }, [iterations, massingId]);
+  useEffect(() => {
+    const names = instances.flatMap((item) => {
+      if (meshes[item.provenance.moduleId] !== "missing") return [];
+      if (reportedMissing.current.has(item.instanceId)) return [];
+      reportedMissing.current.add(item.instanceId);
+      return [item.name];
+    });
+    if (names.length === 0) return;
+    setConfigNotice((current) => `${names.join(", ")} is not stored. Nothing was substituted.${current ? ` ${current}` : ""}`);
+  }, [instances, meshes]);
+  useEffect(() => {
+    for (const id of compareIds) {
+      const entry = configurations.find((item) => item.id === id);
+      if (!entry) continue;
+      for (const item of entry.modules) {
+        const ref = referenceForModule(item.provenance.moduleId, item.provenance.archetypeId, item.provenance.candidateId, item.provenance.continuationId);
+        if (ref) requestMesh(ref);
+      }
+    }
+  }, [compareIds, configurations]);
+  const confirmLeave = () => {
+    if (!unsavedChanges) return true;
+    if (window.confirm("Save this massing before switching?")) {
+      saveConfiguration(false);
+      return true;
+    }
+    return window.confirm("Discard the unsaved changes and open the other iteration?");
+  };
+  const duplicateConfiguration = (entry?: SiteConfiguration) => {
+    const source = entry && entry.id !== currentConfigId ? entry : null;
+    if (source && !confirmLeave()) return;
+    const list = configurationsRef.current;
+    const now = new Date().toISOString();
+    const id = nextConfigurationId(list);
+    const copy: SiteConfiguration = source
+      ? { ...structuredClone(source), id, name: `${source.name} copy`, parentConfigurationId: source.id, createdAt: now, updatedAt: now }
+      : configurationSnapshot(id, `${(configName.trim() || "Untitled")} copy`, currentConfigId, now);
+    void writeConfigurations([...list, copy]);
+    if (source) openConfiguration(copy);
+    else {
+      setCurrentConfigId(id);
+      setConfigName(copy.name);
+    }
+  };
+  const deleteSavedConfiguration = (id: string) => {
+    const entry = configurationsRef.current.find((item) => item.id === id);
+    if (!entry) return;
+    if (!window.confirm(`Delete ${entry.name}? The other saved iterations stay.`)) return;
+    void writeConfigurations(configurationsRef.current.filter((item) => item.id !== id));
+    setCompareIds((current) => current.filter((item) => item !== id));
+    if (currentConfigId === id) setCurrentConfigId(null);
+  };
+  const requestOpen = (entry: SiteConfiguration) => {
+    if (entry.id === currentConfigId) return;
+    if (!confirmLeave()) return;
+    openConfiguration(entry);
+  };
   const placed = useMemo(() => scenePlaced(instances, assemblies), [instances, assemblies]);
   const distribution = useMemo(() => programDistribution(placed), [placed]);
   const occupiedSqFt = useMemo(() => nominalUnionSqFt(placed, site.site.ring), [placed]);
@@ -1555,16 +2057,249 @@ function SiteModelWorkspace() {
   const chooseMode = (next: SiteViewMode) => {
     setMode(next);
   };
-  const chooseSheet = (next: SiteSheet) => {
+  const chooseSheet = (next: SiteWorkflowId) => {
     if (next === sheet) return;
-    if (next === "strategy") {
-      assemblyView.current = mode;
-      setMode(strategyCamera(strategyMode));
-    } else {
-      setMode(assemblyView.current);
-      setNetworkRunning(false);
-    }
     setSheet(next);
+    setMode(next === "strategy" ? strategyCamera(strategyMode) : "perspective");
+  };
+  const replaceZones = (next: ZoningRegion[]) => {
+    commit((present) => ({ ...present, zones: next }));
+  };
+  const finishZoneDraft = (points: readonly ZonePoint[]) => {
+    const ring = cleanedRing(points);
+    const issue = polygonIssue(ring);
+    if (issue) {
+      setZoneNotice(issue);
+      return;
+    }
+    const id = `z${zoneSerial.current}`;
+    zoneSerial.current += 1;
+    const label = ZONE_KINDS.find((item) => item.id === zoneKind)?.label ?? "Zone";
+    const count = zones.filter((zone) => zone.kind === zoneKind).length + 1;
+    const region: ZoningRegion = {
+      id,
+      name: `${label} ${count}`,
+      kind: zoneKind,
+      points: ring,
+      baseFt: 0,
+      heightFt: 12,
+      visible: true,
+      networkId: massingId,
+      pocketId: null,
+    };
+    replaceZones([...zones, region]);
+    setZoneSelection(id);
+    zoneDraftRef.current = [];
+    setZoneDraft([]);
+    setZoneNotice(null);
+    setZoneTool("select");
+  };
+  const addZonePoint = (point: ZonePoint) => {
+    if (sheet !== "zoning" || zoneTool !== "draw" || mode !== "plan" || !massingId) return;
+    const current = zoneDraftRef.current;
+    if (current.length >= 3 && Math.hypot(point.x - current[0].x, point.z - current[0].z) < 12) {
+      finishZoneDraft(current);
+      return;
+    }
+    const last = current[current.length - 1];
+    if (last && Math.hypot(point.x - last.x, point.z - last.z) < 1.5) return;
+    const next = [...current, point];
+    zoneDraftRef.current = next;
+    setZoneNotice(null);
+    setZoneDraft(next);
+  };
+  const closeZoneDraft = () => {
+    const current = zoneDraftRef.current;
+    if (current.length === 0) return;
+    const last = current[current.length - 1];
+    const previous = current[current.length - 2];
+    const trimmed = last && previous && Math.hypot(last.x - previous.x, last.z - previous.z) < 18 ? current.slice(0, -1) : current;
+    finishZoneDraft(trimmed);
+  };
+  zoningKeys.current = {
+    finish: () => { if (zoneDraftRef.current.length > 0) finishZoneDraft(zoneDraftRef.current); },
+    cancel: () => { zoneDraftRef.current = []; setZoneDraft([]); setZoneNotice(null); setZoneDeleteId(null); },
+  };
+  const commitZonePoints = (id: string, points: ZonePoint[]) => {
+    const ring = cleanedRing(points);
+    if (polygonIssue(ring)) return false;
+    replaceZones(zones.map((zone) => zone.id === id ? { ...zone, points: ring } : zone));
+    setZoneNotice(null);
+    return true;
+  };
+  const commitZoneElevation = (id: string, baseFt: number, heightFt: number) => {
+    const issue = elevationIssue(baseFt, heightFt);
+    if (issue) {
+      setZoneNotice(issue);
+      return false;
+    }
+    replaceZones(zones.map((zone) => zone.id === id ? { ...zone, baseFt, heightFt } : zone));
+    setZoneNotice(null);
+    return true;
+  };
+  const duplicateZone = (id: string) => {
+    const zone = zones.find((item) => item.id === id);
+    if (!zone) return;
+    const copyId = `z${zoneSerial.current}`;
+    zoneSerial.current += 1;
+    const copy: ZoningRegion = {
+      ...zone,
+      id: copyId,
+      name: `${zone.name} copy`,
+      points: translatePolygon(zone.points, 18, 18),
+    };
+    replaceZones([...zones, copy]);
+    setZoneSelection(copyId);
+  };
+  const confirmJoin = () => {
+    const first = placed.find((item) => item.instanceId === linkA);
+    const second = placed.find((item) => item.instanceId === linkB);
+    if (!first || !second) return;
+    const proposal = proposeDirectJoin(first, second, tilePositions(meshes, first), tilePositions(meshes, second));
+    if (!proposal.valid || !proposal.passage || !proposal.faceA || !proposal.faceB || !proposal.type) return;
+    const duplicate = connections.some((link) => link.mode === "direct" && ((link.tileA === first.instanceId && link.tileB === second.instanceId) || (link.tileA === second.instanceId && link.tileB === first.instanceId)));
+    if (duplicate) return;
+    const id = `c${connectionSerial.current}`;
+    connectionSerial.current += 1;
+    setConnections((current) => [...current, {
+      id,
+      tileA: first.instanceId,
+      tileB: second.instanceId,
+      mode: "direct",
+      faceA: proposal.faceA ?? undefined,
+      faceB: proposal.faceB ?? undefined,
+      joinType: proposal.type ?? undefined,
+      alignment: proposal.alignment,
+      floorDelta: proposal.floorDelta,
+      integrity: "closed",
+      passage: proposal.passage,
+    }]);
+    setSelectedJoin(id);
+  };
+  const cancelJoin = () => {
+    setLinkA("");
+    setLinkB("");
+    setSelectedJoin(null);
+    setHybridOffer(null);
+    setHybridPlacement(null);
+    setHybridCandidate(null);
+    setHybridNote("Choose the two faces, then find the Skill 04 hybrids.");
+  };
+  const rememberFaces = (firstId: string, secondId: string) => {
+    const first = placed.find((item) => item.instanceId === firstId);
+    const second = placed.find((item) => item.instanceId === secondId);
+    if (!first || !second) return;
+    const [faceA, faceB] = suggestedSiteFaces(first, second);
+    setHybridFaceA(faceA);
+    setHybridFaceB(faceB);
+    setHybridOffer(null);
+    setHybridPlacement(null);
+    setHybridCandidate(null);
+  };
+  const loadHybridModule = async (archetypeId: string) => {
+    const cached = hybridRecords.current.get(archetypeId);
+    if (cached) return cached;
+    const response = await fetch(`/api/skill4/handoff?archetype=${encodeURIComponent(archetypeId)}`);
+    if (!response.ok) throw new Error("Skill 04 has no module for this tile.");
+    const record = await response.json() as Skill4ModuleRecord;
+    hybridRecords.current.set(archetypeId, record);
+    return record;
+  };
+  const findHybrids = async () => {
+    const first = placed.find((item) => item.instanceId === linkA);
+    const second = placed.find((item) => item.instanceId === linkB);
+    if (!first || !second) {
+      setHybridNote("Select two tiles.");
+      return;
+    }
+    setHybridBusy(true);
+    setHybridPlacement(null);
+    setHybridCandidate(null);
+    setHybridNote("Reading the Skill 04 modules.");
+    try {
+      const [recordA, recordB] = await Promise.all([
+        loadHybridModule(first.provenance.archetypeId),
+        loadHybridModule(second.provenance.archetypeId),
+      ]);
+      await new Promise((resolve) => window.setTimeout(resolve, 40));
+      setHybridNote("Skill 04 is building the hybrid candidates.");
+      const result = buildHybridOffer({
+        tileA: first,
+        tileB: second,
+        faceA: hybridFaceA,
+        faceB: hybridFaceB,
+        rawA: tilePositions(meshes, first),
+        rawB: tilePositions(meshes, second),
+        loaded: loadModuleMap([recordA, recordB]),
+      });
+      if (!result.ok) {
+        setHybridOffer(null);
+        setHybridNote(result.reason);
+        return;
+      }
+      setHybridOffer(result.offer);
+      const ready = result.offer.candidates.filter((candidate) => candidate.status === "ready");
+      setHybridNote(ready.length > 0 ? `${ready.length} hybrids are ready. Choose one to preview it.` : (result.offer.candidates.find((candidate) => candidate.reason)?.reason ?? "Skill 04 did not produce a hybrid for these faces."));
+    } catch (error) {
+      setHybridOffer(null);
+      setHybridNote(error instanceof Error ? error.message : "The hybrid could not be generated.");
+    } finally {
+      setHybridBusy(false);
+    }
+  };
+  const previewHybrid = (candidateId: string) => {
+    if (!hybridOffer) return;
+    const placedHybrid = placeHybridCandidate(hybridOffer, candidateId);
+    setHybridCandidate(candidateId);
+    if (!placedHybrid.ok) {
+      setHybridPlacement(null);
+      setHybridNote(placedHybrid.reason);
+      return;
+    }
+    setHybridPlacement(placedHybrid.placement);
+    setHybridNote(placedHybrid.placement.note);
+  };
+  const confirmHybrid = () => {
+    if (!hybridPlacement || !linkA || !linkB) return;
+    const id = `c${connectionSerial.current}`;
+    connectionSerial.current += 1;
+    setConnections((current) => [...current.filter((link) => !(link.mode === "hybrid" && link.tileA === linkA && link.tileB === linkB && link.faceA === hybridPlacement.faceA && link.faceB === hybridPlacement.faceB)), {
+      id,
+      tileA: linkA,
+      tileB: linkB,
+      mode: "hybrid",
+      faceA: hybridPlacement.faceA,
+      faceB: hybridPlacement.faceB,
+      joinType: hybridPlacement.joinType,
+      alignment: hybridPlacement.alignment,
+      floorDelta: hybridPlacement.floorDelta,
+      integrity: hybridPlacement.integrity,
+      candidateId: hybridPlacement.candidateId,
+      note: hybridPlacement.note,
+      passage: hybridPlacement.passage,
+    }]);
+    setSelectedJoin(id);
+    setHybridPlacement(null);
+  };
+  const pickJoinTile = (id: string | null) => {
+    if (!id) {
+      cancelJoin();
+      return;
+    }
+    const now = performance.now();
+    if (id === (linkB || linkA) && now - joinPickAt.current < 800) return;
+    joinPickAt.current = now;
+    if (!linkA || linkB) {
+      setLinkA(id);
+      setLinkB("");
+    } else if (linkA === id) setLinkA("");
+    else {
+      setLinkB(id);
+      rememberFaces(linkA, id);
+    }
+    setSelectedJoin(null);
+    setHybridOffer(null);
+    setHybridPlacement(null);
   };
   const chooseStrategyMode = (next: StrategyMode) => {
     if (next !== "site-network") setNetworkRunning(false);
@@ -1597,6 +2332,36 @@ function SiteModelWorkspace() {
     });
     saveNetworkIteration(iteration).catch(() => {});
   };
+  useEffect(() => {
+    const iteration = iterations.find((item) => item.id === massingId);
+    if (!iteration || iteration.generator === "agents" || (iteration.branches && iteration.branches.length > 0)) {
+      if (iteration?.branches && iteration.branches.length > 0) setBranchNote(null);
+      return;
+    }
+    if (branchMiss.current.has(iteration.id)) {
+      setBranchNote("This saved iteration has no branch record, and running it again does not reproduce the same network. No pockets were invented from the grid.");
+      return;
+    }
+    let cancel = false;
+    setBranchNote("Reading this iteration's branches so Zoning uses the same network.");
+    runNetworkIteration(site.site.ring, site.water.ring, iteration.nodes, iteration.seed, undefined, site.buildings).then((fresh) => {
+      if (cancel) return;
+      if (!fresh.branches || fresh.branches.length === 0 || !trailsAgree(iteration.trails, fresh.trails)) {
+        branchMiss.current.add(iteration.id);
+        setBranchNote("This saved iteration has no branch record, and running it again does not reproduce the same network. No pockets were invented from the grid.");
+        return;
+      }
+      rememberIteration({ ...iteration, branches: fresh.branches });
+      setBranchNote(null);
+    }).catch(() => {
+      if (!cancel) setBranchNote("The selected network's branches could not be read.");
+    });
+    return () => { cancel = true; };
+  }, [massingId, iterations]);
+  useEffect(() => {
+    setPocketSelection([]);
+    setPocketHover(null);
+  }, [massingId]);
   const generateIterations = async (count: 10 | 20 | 30) => {
     const study = networkStudy;
     if (!study || !study.canRun || iterationBatch) return;
@@ -1616,6 +2381,7 @@ function SiteModelWorkspace() {
       iteration.id = `i${iteration.index}-${seed}`;
       rememberIteration(iteration);
       setIterationBatch({ done: n + 1, total: count, step: iteration.step });
+      if (n === count - 1 && iterationToken.current === token) setIterationView(iteration.id);
     }
     if (iterationToken.current === token) setIterationBatch(null);
   };
@@ -1648,8 +2414,6 @@ function SiteModelWorkspace() {
     setIterationBatch(null);
     clearNetworkIterations().catch(() => {});
   };
-  void duplicateModule;
-  void duplicateConfiguration;
 
   const networkAnalysis = useMemo(() => {
     if (!analysisOn || !networkStudy) return null;
@@ -1703,22 +2467,245 @@ function SiteModelWorkspace() {
       : analysisMode === "overlay"
         ? "Compare two iterations."
         : "Select an iteration.";
+  const strategyIteration = iterations.find((item) => item.id === iterationView) ?? null;
+  const massingIteration = iterations.find((item) => item.id === massingId) ?? null;
+  const viewedIteration = massingIteration;
+  const canvasIteration = sheet === "strategy" ? strategyIteration : massingIteration;
+  const massingLabel = massingIteration ? `Iteration ${massingIteration.index} · ${massingIteration.id}` : massingId;
+  const liveReport = iterationView === null && networkStudy?.generator === "flow" ? networkStudy.flowReport() : null;
+  const liveReady = iterationView === null && ((liveReport?.surviving ?? 0) > 0 || (networkStudy?.generator === "agents" && networkStudy.status.step > 0));
+  const liveAlreadySent = Boolean(
+    liveReady && massingIteration && networkStudy
+    && massingIteration.seed === (networkStudy as unknown as { seed: number }).seed
+    && massingIteration.step === networkStudy.status.step
+    && (massingIteration.branches?.length ?? 0) === (liveReport?.surviving ?? 0),
+  );
+  const useNetworkForMassing = () => {
+    let iteration = strategyIteration;
+    let captured: NetworkIteration | null = null;
+    if (!iteration && networkStudy && iterationView === null) {
+      const snap = captureNetworkIteration(networkStudy);
+      const grown = (snap.branches?.length ?? 0) > 0 || (snap.generator === "agents" && snap.step > 0);
+      const existing = grown ? iterations.find((item) => item.seed === snap.seed && item.step === snap.step && (item.branches?.length ?? 0) === (snap.branches?.length ?? 0)) : null;
+      if (existing) iteration = existing;
+      else if (grown) {
+        const index = iterations.reduce((max, item) => Math.max(max, item.index), 0) + 1;
+        snap.index = index;
+        snap.id = `i${index}-${snap.seed}`;
+        captured = snap;
+        iteration = snap;
+      }
+    }
+    if (!iteration && iterationView === null && iterations.length > 0) {
+      iteration = iterations[iterations.length - 1];
+    }
+    if (!iteration || iteration.id === massingId) return;
+    const hasWork = zones.length > 0 || instances.length > 0 || assemblies.length > 0;
+    if (massingId && hasWork) {
+      const previous = iterations.find((item) => item.id === massingId);
+      const accepted = window.confirm(`Use iteration ${iteration.index} for massing? Zoning and tiles stay. Work stored on ${previous ? `iteration ${previous.index}` : "the previous network"} remains.`);
+      if (!accepted) return;
+    }
+    if (captured) rememberIteration(captured);
+    if (iterationView === null) setIterationView(iteration.id);
+    setMassingId(iteration.id);
+  };
+  const pocketReport = useMemo(() => detectPockets(viewedIteration?.branches ?? [], site.site.ring), [viewedIteration]);
+  const pocketKinds = useMemo(() => {
+    const kinds: Record<string, SiteZoneKind | null> = {};
+    for (const pocket of pocketReport.pockets) {
+      const level = zones.filter((zone) => zone.pocketId === pocket.id && zone.networkId === viewedIteration?.id).sort((a, b) => a.baseFt - b.baseFt)[0];
+      kinds[pocket.id] = level?.kind ?? null;
+    }
+    return kinds;
+  }, [pocketReport, viewedIteration, zones]);
+  const visibleZones = zones.filter((zone) => !zone.networkId || zone.networkId === massingId);
+  const placementZone = visibleZones.find((zone) => zone.id === zoneSelection)
+    ?? visibleZones.filter((zone) => zone.pocketId && pocketSelection.includes(zone.pocketId)).sort((a, b) => a.baseFt - b.baseFt)[0]
+    ?? null;
+  placementYRef.current = MODULE_GROUND_Y + (placementZone?.baseFt ?? 0);
+  const tileReports = useMemo(() => reportTiles(sceneInstances, visibleZones), [sceneInstances, visibleZones]);
+  tileReportRef.current = tileReports;
+  const shownWarnings = useMemo(() => {
+    const next: typeof warnings = { ...warnings };
+    for (const [id, report] of Object.entries(tileReports)) {
+      next[id] = { ...(next[id] ?? { outside: false, overlap: false }), zoneMismatch: report.mismatch, unsupported: report.unsupported };
+    }
+    return next;
+  }, [tileReports, warnings]);
+  const selectedZone = zones.find((zone) => zone.id === zoneSelection) ?? null;
+  const zoneGuide = useMemo(() => {
+    const empty = { branchFt: null as number | null, junctionFt: null as number | null, accessFt: null as number | null, waterFt: null as number | null, facing: null as ReturnType<typeof zoneFacing>, outsideParcel: false, inWater: false };
+    if (!selectedZone) return empty;
+    const flags = zoneSiteFlags(selectedZone.points, site.site.ring, site.water.ring);
+    const center = polygonCentroid(selectedZone.points);
+    const waterFt = distanceToRing(center, site.water.ring);
+    const facing = zoneFacing(center, site.site.ring, site.water.ring);
+    if (!viewedIteration || !networkStudy) return { ...empty, ...flags, waterFt, facing };
+    if (viewedIteration.branches && viewedIteration.branches.length > 0) {
+      return {
+        ...flags,
+        waterFt,
+        facing,
+        branchFt: distanceToBranches(center, viewedIteration.branches),
+        junctionFt: nearestDistance(center, branchJunctions(viewedIteration.branches)),
+        accessFt: nearestDistance(center, viewedIteration.nodes.filter((node) => node.id.includes("pedestrian")).map((node) => ({ x: node.x, z: node.z }))),
+      };
+    }
+    const floor = viewedIteration.generator === "agents" ? 0.02 : FLOW_SURVIVE;
+    const samples = networkSamples(viewedIteration.trails, viewedIteration.inkSize, networkStudy.frame, floor);
+    const access = viewedIteration.nodes.filter((node) => node.id.includes("pedestrian")).map((node) => ({ x: node.x, z: node.z }));
+    return {
+      ...flags,
+      waterFt,
+      facing,
+      branchFt: nearestDistance(center, samples),
+      junctionFt: nearestDistance(center, samples.filter((sample) => sample.junction)),
+      accessFt: nearestDistance(center, access),
+    };
+  }, [networkStudy, selectedZone, viewedIteration]);
+  const zoneTotals = useMemo(() => {
+    const totals: Record<SiteZoneKind, number> = { lobby: 0, gathering: 0, workspace: 0 };
+    const counts: Record<SiteZoneKind, number> = { lobby: 0, gathering: 0, workspace: 0 };
+    for (const zone of zones) {
+      if (zone.networkId && zone.networkId !== massingId) continue;
+      totals[zone.kind] += polygonAreaSqFt(zone.points);
+      counts[zone.kind] += 1;
+    }
+    return { totals, counts };
+  }, [zones, massingId]);
+  const pickPocket = (id: string) => {
+    setZoneTool("select");
+    const adding = !pocketSelection.includes(id);
+    setPocketSelection((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+    const level = zones.find((zone) => zone.pocketId === id && zone.networkId === massingId);
+    setZoneSelection(adding ? (level?.id ?? null) : null);
+  };
+  const saveZoning = () => {
+    if (pocketSelection.length > 0) assignPockets(zoneKind);
+    saveConfiguration(false);
+  };
+  const assignPockets = (kind: SiteZoneKind) => {
+    setZoneKind(kind);
+    if (pocketSelection.length === 0) return;
+    const label = ZONE_KINDS.find((item) => item.id === kind)?.label ?? "Zone";
+    let named = zones.filter((zone) => zone.kind === kind).length;
+    let next = zones.filter((zone) => !(zone.networkId === massingId && zone.pocketId && pocketSelection.includes(zone.pocketId)));
+    for (const id of pocketSelection) {
+      const pocket = pocketReport.pockets.find((item) => item.id === id);
+      if (!pocket) continue;
+      const existing = zones.filter((zone) => zone.networkId === massingId && zone.pocketId === id);
+      if (existing.length === 0) {
+        const regionId = `z${zoneSerial.current}`;
+        zoneSerial.current += 1;
+        named += 1;
+        next = [...next, {
+          id: regionId,
+          name: `${label} ${named}`,
+          kind,
+          points: pocket.points.map((point) => ({ ...point })),
+          baseFt: 0,
+          heightFt: 12,
+          visible: true,
+          networkId: massingId,
+          pocketId: id,
+        }];
+        setZoneSelection(regionId);
+      } else {
+        next = [...next, ...existing.map((zone) => ({
+          ...zone,
+          kind,
+          name: ZONE_KINDS.reduce((name, item) => name.startsWith(item.label) ? `${label}${name.slice(item.label.length)}` : name, zone.name),
+          points: pocket.points.map((point) => ({ ...point })),
+        }))];
+        setZoneSelection(existing[0].id);
+      }
+    }
+    replaceZones(next);
+  };
+  const clearPockets = () => {
+    replaceZones(zones.filter((zone) => !(zone.networkId === massingId && zone.pocketId && pocketSelection.includes(zone.pocketId))));
+    setZoneSelection(null);
+  };
+  const addPocketLevel = () => {
+    const kind = zoneKind;
+    const label = ZONE_KINDS.find((item) => item.id === kind)?.label ?? "Zone";
+    let next = [...zones];
+    for (const id of pocketSelection) {
+      const pocket = pocketReport.pockets.find((item) => item.id === id);
+      if (!pocket) continue;
+      const levels = zones.filter((zone) => zone.networkId === massingId && zone.pocketId === id);
+      const top = levels.reduce((highest, zone) => Math.max(highest, zone.baseFt + zone.heightFt), 0);
+      const regionId = `z${zoneSerial.current}`;
+      zoneSerial.current += 1;
+      next = [...next, {
+        id: regionId,
+        name: `${label} ${top}`,
+        kind,
+        points: pocket.points.map((point) => ({ ...point })),
+        baseFt: top,
+        heightFt: 12,
+        visible: true,
+        networkId: massingId,
+        pocketId: id,
+      }];
+      setZoneSelection(regionId);
+    }
+    replaceZones(next);
+  };
+  const zoneMismatch = !selectedZone ? null : selectedZone.networkId && selectedZone.networkId !== massingId
+    ? `This region was drawn on ${iterations.find((item) => item.id === selectedZone.networkId)?.index != null ? `iteration ${iterations.find((item) => item.id === selectedZone.networkId)?.index}` : "a network that is not in this list"}. It was not deleted or redrawn.`
+    : null;
+  const workflowTiles = placed.map((item) => ({ id: item.instanceId, name: item.name }));
+  const chosenA = workflowTiles.some((tile) => tile.id === linkA) ? linkA : "";
+  const chosenB = workflowTiles.some((tile) => tile.id === linkB) ? linkB : "";
+  const joinProposal = useMemo(() => {
+    const first = placed.find((item) => item.instanceId === chosenA);
+    const second = placed.find((item) => item.instanceId === chosenB);
+    if (!first || !second) return null;
+    return proposeDirectJoin(first, second, tilePositions(meshes, first), tilePositions(meshes, second));
+  }, [chosenA, chosenB, meshes, placed]);
+  const joinOverlay = useMemo(() => {
+    const highlights: ReturnType<typeof proposeDirectJoin>["highlights"] = [];
+    const passages: { id: string; positions: number[]; indices: number[]; preview: boolean }[] = [];
+    for (const link of connections) {
+      if (link.passage) passages.push({ id: link.id, positions: link.passage.positions, indices: link.passage.indices, preview: false });
+    }
+    if (joinMode === "hybrid" && hybridPlacement) passages.push({ id: "hybrid-preview", positions: hybridPlacement.passage.positions, indices: hybridPlacement.passage.indices, preview: true });
+    for (let index = 0; index < placed.length; index += 1) {
+      for (let other = index + 1; other < placed.length; other += 1) {
+        const first = placed[index];
+        const second = placed[other];
+        const selected = (first.instanceId === chosenA && second.instanceId === chosenB) || (first.instanceId === chosenB && second.instanceId === chosenA);
+        const stored = connections.some((link) => link.mode === "direct" && ((link.tileA === first.instanceId && link.tileB === second.instanceId) || (link.tileA === second.instanceId && link.tileB === first.instanceId)));
+        const result = proposeDirectJoin(first, second, tilePositions(meshes, first), tilePositions(meshes, second));
+        if (!result.faceA) continue;
+        if (selected) {
+          highlights.push(...result.highlights);
+          if (joinMode === "direct" && result.passage && !stored) passages.push({ id: "preview", positions: result.passage.positions, indices: result.passage.indices, preview: true });
+        } else {
+          const face = result.highlights.find((mark) => mark.kind === "face");
+          if (face) highlights.push({ ...face, compatible: stored && result.valid });
+        }
+      }
+    }
+    return { highlights, passages };
+  }, [chosenA, chosenB, connections, hybridPlacement, joinMode, meshes, placed]);
 
   return (
     <main
       ref={networkView}
       className="site-view"
-      data-sheet={sheet === "strategy" && strategyMode === "site-network" ? "network" : undefined}
+      data-panels="model"
+      data-sheet={sheet === "strategy" && strategyMode === "site-network" ? "network" : sheet}
     >
-      <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : "Library and project"}>
-            <SiteSheetTabs sheet={sheet} onChange={chooseSheet} />
+      <SiteWorkflowNav step={sheet} onChange={chooseSheet} />
+      <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : sheet === "zoning" ? "Zoning" : sheet === "assembly" ? "Assembly" : "Library and project"}>
             {sheet === "strategy" ? (
               <div className={strategyMode === "site-network" ? "site-strategy-body" : "site-sim"}>
               <SiteStrategyPanel
                 mode={strategyMode}
                 onMode={chooseStrategyMode}
-                assemblies={assemblies.length}
-                modules={placed.length}
                 network={{
                   study: networkStudy,
                   running: networkRunning,
@@ -1732,6 +2719,102 @@ function SiteModelWorkspace() {
                   onSelect: selectNetworkNode,
                 }}
               />
+              </div>
+            ) : sheet === "zoning" ? (
+              <div className="site-strategy-body">
+                <SiteZoningPanel
+                  kind={zoneKind}
+                  onKind={(kind) => { setZoneKind(kind); if (massingId) { setZoneTool("draw"); setMode("plan"); } }}
+                  tool={zoneTool}
+                  onTool={(tool) => { setZoneTool(tool); if (tool === "draw") setMode("plan"); }}
+                  zones={visibleZones}
+                  selectedId={zoneSelection}
+                  hasNetwork={massingId !== null}
+                  networkLabel={massingIteration ? `Iteration ${massingIteration.index} · ${massingIteration.id}` : "None"}
+                  plan={mode === "plan"}
+                  canFinish={zoneDraft.length >= 3}
+                  onFinish={() => finishZoneDraft(zoneDraft)}
+                  notice={zoneNotice}
+                  deleteId={zoneDeleteId}
+                  onSelect={(id) => {
+                    setZoneTool((current) => current === "draw" ? "select" : current);
+                    const zone = zones.find((item) => item.id === id);
+                    if (zone?.pocketId) {
+                      pickPocket(zone.pocketId);
+                      return;
+                    }
+                    setZoneSelection(id);
+                  }}
+                  onVisible={(id) => replaceZones(zones.map((zone) => zone.id === id ? { ...zone, visible: !zone.visible } : zone))}
+                  onDuplicate={duplicateZone}
+                  onAskDelete={setZoneDeleteId}
+                  onConfirmDelete={(id) => {
+                    replaceZones(zones.filter((zone) => zone.id !== id));
+                    setZoneSelection((current) => current === id ? null : current);
+                    setZoneDeleteId(null);
+                  }}
+                  onCancelDelete={() => setZoneDeleteId(null)}
+                  onStrategy={() => chooseSheet("strategy")}
+                  pockets={pocketReport.pockets.map((pocket) => {
+                    const levels = zones.filter((zone) => zone.pocketId === pocket.id && zone.networkId === massingId);
+                    return { id: pocket.id, area: polygonAreaSqFt(pocket.points), kind: pocketKinds[pocket.id] ?? null, levels: levels.length };
+                  })}
+                  pocketSelection={pocketSelection}
+                  openSegments={pocketReport.openSegments}
+                  branchNote={branchNote}
+                  onPickPocket={pickPocket}
+                  onChooseKind={setZoneKind}
+                  onAssign={saveZoning}
+                  onClearPockets={clearPockets}
+                  onAddLevel={addPocketLevel}
+                />
+              </div>
+            ) : sheet === "assembly" ? (
+              <div className="site-strategy-body">
+                <SiteAssemblyStep
+                  tiles={workflowTiles}
+                  tileA={chosenA}
+                  tileB={chosenB}
+                  mode={joinMode}
+                  proposal={joinProposal ? joinSummary(joinProposal) : "Select two tiles that share a face."}
+                  canJoin={joinProposal?.valid === true}
+                  faces={SITE_FACES.map((face) => ({ id: face, label: siteFaceLabel(face) }))}
+                  faceA={hybridFaceA}
+                  faceB={hybridFaceB}
+                  hybridNote={hybridNote}
+                  hybridBusy={hybridBusy}
+                  candidates={hybridOffer?.candidates ?? []}
+                  selectedCandidate={hybridCandidate}
+                  canAddHybrid={hybridPlacement !== null}
+                  connections={connections}
+                  selectedConnection={selectedJoin}
+                  onMode={(mode) => { setJoinMode(mode); setHybridPlacement(null); }}
+                  onTileA={(id) => { setLinkA(id); setSelectedJoin(null); rememberFaces(id, linkB); }}
+                  onTileB={(id) => { setLinkB(id); setSelectedJoin(null); rememberFaces(linkA, id); }}
+                  onFaceA={(id) => { if (SITE_FACES.includes(id as SiteFace)) { setHybridFaceA(id as SiteFace); setHybridOffer(null); setHybridPlacement(null); } }}
+                  onFaceB={(id) => { if (SITE_FACES.includes(id as SiteFace)) { setHybridFaceB(id as SiteFace); setHybridOffer(null); setHybridPlacement(null); } }}
+                  onJoin={confirmJoin}
+                  onFindHybrids={() => void findHybrids()}
+                  onCandidate={previewHybrid}
+                  onAddHybrid={confirmHybrid}
+                  onCancel={cancelJoin}
+                  onSelectConnection={(id) => {
+                    const link = connections.find((item) => item.id === id);
+                    setSelectedJoin(id);
+                    if (!link) return;
+                    setLinkA(link.tileA);
+                    setLinkB(link.tileB);
+                  }}
+                  onRemove={(id) => {
+                    setConnections((current) => current.filter((link) => link.id !== id));
+                    setSelectedJoin((current) => current === id ? null : current);
+                  }}
+                  showSiteLayers={showZones && showTrails}
+                  onShowSiteLayers={(visible) => {
+                    setShowZones(visible);
+                    setShowTrails(visible);
+                  }}
+                />
               </div>
             ) : (
             <section className="site-block">
@@ -1756,10 +2839,49 @@ function SiteModelWorkspace() {
                   ) : null}
                 </>
               )}
+              <h3 className="site-subtitle">Zones</h3>
+              {pocketReport.pockets.every((pocket) => !visibleZones.some((zone) => zone.pocketId === pocket.id)) ? (
+                <p className="site-note">No zone is selected. The full library stays open.</p>
+              ) : (
+                <ul className="site-strategy-nodes">
+                  {pocketReport.pockets.flatMap((pocket) => {
+                    const levels = visibleZones.filter((zone) => zone.pocketId === pocket.id);
+                    if (levels.length === 0) return [];
+                    const lowest = [...levels].sort((a, b) => a.baseFt - b.baseFt)[0];
+                    const top = levels.reduce((highest, zone) => Math.max(highest, zone.baseFt + zone.heightFt), 0);
+                    return [(
+                      <li key={pocket.id}>
+                        <button type="button" data-kind={lowest.kind} data-active={pocketSelection.includes(pocket.id) || undefined} onClick={() => pickPocket(pocket.id, false)}>
+                          <i />
+                          <b>{ZONE_KINDS.find((item) => item.id === lowest.kind)?.label}</b>
+                          <span>{Math.round(polygonAreaSqFt(pocket.points)).toLocaleString("en-US")} ft² · {lowest.baseFt}–{top} ft</span>
+                        </button>
+                      </li>
+                    )];
+                  })}
+                </ul>
+              )}
+              {placementZone ? (
+                <p className="site-note">
+                  {ZONE_KINDS.find((item) => item.id === placementZone.kind)?.label} · {Math.round(polygonAreaSqFt(placementZone.points)).toLocaleString("en-US")} ft² · {placementZone.baseFt}–{placementZone.baseFt + placementZone.heightFt} ft. The boundary stays on the plan.
+                </p>
+              ) : null}
+              <label className="site-connection-field">
+                Zone opacity
+                <input aria-label="Zone opacity" type="range" min={0} max={0.6} step={0.02} value={zoneOpacity} onChange={(event) => setZoneOpacity(Number(event.target.value))} />
+              </label>
               <h3 className="site-subtitle">Modules</h3>
+              {placementZone ? (
+                <button type="button" aria-pressed={libraryAll} data-active={libraryAll || undefined} onClick={() => setLibraryAll((value) => !value)}>
+                  {libraryAll ? "Showing every program" : `Filtered to ${ZONE_KINDS.find((item) => item.id === placementZone.kind)?.label}`}
+                </button>
+              ) : null}
+              {armed && placementZone && armed.program && armed.program !== placementZone.kind ? (
+                <p className="site-note site-alert">{PROGRAM_LABEL[armed.program]} does not match this {PROGRAM_LABEL[placementZone.kind]} zone. Placement stays available.</p>
+              ) : null}
               <div className="site-module-rows">
               {SITE_PROGRAMS.map((program) => {
-                const entries = SITE_ARCHETYPES.filter((entry) => entry.program === program);
+                const entries = SITE_ARCHETYPES.filter((entry) => entry.program === program && (libraryAll || !placementZone || program === placementZone.kind));
                 if (entries.length === 0) return null;
                 return (
                   <div key={program}>
@@ -1799,19 +2921,50 @@ function SiteModelWorkspace() {
             {sheet === "strategy" ? (
               <div className="site-frame-name site-sim">
                 <h2 className="site-subtitle">{strategyMode === "site-network" ? "Site network" : STRATEGY_MODES.find((item) => item.id === strategyMode)?.title}</h2>
+                {strategyMode === "site-network" ? (
+                  <div className="site-modes">
+                    <button type="button" disabled={!networkStudy && !strategyIteration} title={!networkStudy && !strategyIteration ? "Run the network, or select a saved iteration." : undefined} aria-pressed={strategyIteration?.id === massingId || liveAlreadySent} data-active={strategyIteration?.id === massingId || liveAlreadySent || undefined} onClick={useNetworkForMassing}>Use Network for Massing</button>
+                  </div>
+                ) : null}
+                {massingLabel ? <p className="site-note">Massing network {massingLabel}</p> : null}
+              </div>
+            ) : sheet === "zoning" ? (
+              <div className="site-frame-name site-sim">
+                <h2 className="site-subtitle">Zoning</h2>
+                <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
+                <div className="site-modes">
+                  <button type="button" disabled={history.undo.length === 0} onClick={undo}>Undo</button>
+                  <button type="button" disabled={history.redo.length === 0} onClick={redo}>Redo</button>
+                  <button type="button" onClick={saveZoning}>Save</button>
+                </div>
+              </div>
+            ) : sheet === "assembly" ? (
+              <div className="site-frame-name site-sim">
+                <h2 className="site-subtitle">Assembly</h2>
+                <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
               </div>
             ) : (
             <>
             <div className="site-frame-name">
               <h2 className="site-subtitle">Current configuration</h2>
+              <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
+              {armed && faceMatch?.valid ? <p className="site-note">{autoMatch ? "Auto-match" : "Manual"} {faceMatch.rank}/{faceMatch.total} · {faceMatch.pair} · {faceMatch.score >= 8 ? "Good" : "Partial"}{faceMatch.neighborName ? ` · ${faceMatch.neighborName}` : ""}</p> : null}
+              {armed && faceMatch && !faceMatch.valid && faceMatch.warning ? <p className="site-note site-alert">{faceMatch.warning}</p> : null}
               <input aria-label="Configuration name" value={configName} onChange={(event) => setConfigName(event.target.value)} />
               {unsavedChanges ? <span className="site-pending">Unsaved</span> : null}
               <div className="site-modes">
                 <button type="button" onClick={() => saveConfiguration(false)}>Save</button>
+                <button type="button" onClick={() => duplicateConfiguration()}>Duplicate</button>
+                <button type="button" disabled={!savedConfiguration} onClick={() => savedConfiguration && deleteSavedConfiguration(savedConfiguration.id)}>Delete</button>
               </div>
             </div>
             <div className="site-modes site-frame-tools">
               <button type="button" aria-pressed={snap} data-active={snap || undefined} onClick={() => setSnap((value) => !value)}>Snap</button>
+              <button type="button" aria-pressed={autoMatch} data-active={autoMatch || undefined} onClick={() => setAutoMatch((value) => { if (value) { setManualPose(faceMatch?.pose ?? manualPose ?? { rotationY: 0, mirror: null }); return false; } setManualPose(null); setMatchCycle(0); return true; })}>Auto-match</button>
+              <button type="button" disabled={!armed} onClick={() => { const shown = manualPose ?? faceMatch?.pose ?? { rotationY: 0, mirror: null }; setAutoMatch(false); setManualPose({ rotationY: shown.rotationY + Math.PI / 2, mirror: shown.mirror }); }}>90°</button>
+              <button type="button" aria-pressed={manualPose?.mirror === "x"} disabled={!armed} onClick={() => { const shown = manualPose ?? faceMatch?.pose ?? { rotationY: 0, mirror: null }; setAutoMatch(false); setManualPose({ rotationY: shown.rotationY, mirror: shown.mirror === "x" ? null : "x" }); }}>Mirror east</button>
+              <button type="button" aria-pressed={manualPose?.mirror === "z"} disabled={!armed} onClick={() => { const shown = manualPose ?? faceMatch?.pose ?? { rotationY: 0, mirror: null }; setAutoMatch(false); setManualPose({ rotationY: shown.rotationY, mirror: shown.mirror === "z" ? null : "z" }); }}>Mirror north</button>
+              <button type="button" disabled={!faceMatch || faceMatch.total < 2} onClick={() => { setAutoMatch(true); setManualPose(null); setMatchCycle((index) => index + 1); }}>Next match</button>
               <button type="button" aria-pressed={showGrid} data-active={showGrid || undefined} onClick={() => setShowGrid((value) => !value)}>Grid</button>
               <button type="button" disabled={history.undo.length === 0} onClick={undo}>Undo</button>
               <button type="button" disabled={history.redo.length === 0} onClick={redo}>Redo</button>
@@ -1825,6 +2978,9 @@ function SiteModelWorkspace() {
               mode={mode}
               planHeading={planHeading}
               fit={fit}
+              appearance="model"
+              framing="record"
+              presentation="analysis"
               rotateView={rotateView}
               showGrid={showGrid}
               showAerial={showAerial}
@@ -1842,18 +2998,52 @@ function SiteModelWorkspace() {
                 streetPaths: spatial.streetPaths,
                 leaders,
               }}
+              zones={showZones ? visibleZones : []}
+              zoning={sheet === "zoning" || sheet === "placement" || sheet === "assembly" ? {
+                tool: zoneTool,
+                mode,
+                active: sheet === "zoning",
+                draft: zoneDraft,
+                selectedId: zoneSelection,
+                onDraftPoint: addZonePoint,
+                onCloseDraft: closeZoneDraft,
+                onSelect: (id) => {
+                  setZoneSelection(id);
+                  const zone = zones.find((item) => item.id === id);
+                  if (zone?.pocketId) setPocketSelection([zone.pocketId]);
+                  if (!id) setPocketSelection([]);
+                },
+                onCommitPoints: commitZonePoints,
+                onCommitElevation: commitZoneElevation,
+                onReject: setZoneNotice,
+                pockets: {
+                  items: showZones ? pocketReport.pockets : [],
+                  kinds: pocketKinds,
+                  hoverId: pocketHover,
+                  selectedIds: pocketSelection,
+                  onHover: setPocketHover,
+                  onPick: pickPocket,
+                  listen: sheet !== "assembly" && !(sheet === "placement" && Boolean(armed || armedAssembly)),
+                  opacity: sheet === "placement" || sheet === "assembly" ? zoneOpacity : null,
+                },
+              } : null}
+              connections={connectionLines}
+              joins={sheet === "assembly" ? joinOverlay : null}
               network={
-                sheet === "strategy" && strategyMode === "site-network" && networkStudy
+                networkStudy
                   ? {
                     study: networkStudy,
-                    running: networkRunning && iterationView === null,
+                    running: sheet === "strategy" && networkRunning && iterationView === null,
                     tool: networkTool,
                     onSettle: pauseNetwork,
-                    preview: networkAnalysis ? null : iterations.find((item) => item.id === iterationView)?.trails ?? null,
-                    colored: networkAnalysis?.rgba ?? null,
-                    showField,
-                    showTrails,
-                    showContext,
+                    preview: canvasIteration?.branches?.length ? null : sheet === "strategy" && networkAnalysis ? null : canvasIteration?.trails ?? null,
+                    branches: canvasIteration?.branches ?? null,
+                    colored: sheet === "strategy" ? networkAnalysis?.rgba ?? null : null,
+                    showField: sheet === "strategy" && showField,
+                    showTrails: sheet !== "strategy" && !massingIteration ? false : showTrails,
+                    showContext: showContext && (sheet === "strategy" || sheet === "zoning" || sheet === "placement" || sheet === "assembly"),
+                    interactive: sheet === "strategy",
+                    studyTone: true,
                   }
                   : null
               }
@@ -1863,7 +3053,7 @@ function SiteModelWorkspace() {
                 armedModuleId: armed ? armed.moduleId : armedAssembly ? "assembly" : null,
                 canPlace: Boolean(armed || armedAssembly),
                 meshes: loadedMeshes,
-                instances: sceneInstances,
+                instances: showTiles ? sceneInstances : [],
                 selectedId,
                 snap,
                 showEnvelope,
@@ -1874,12 +3064,26 @@ function SiteModelWorkspace() {
                 previewBridge,
                 demonstration,
                 tool,
-                editable: sheet === "assembly",
-                warnings,
+                editable: sheet === "placement",
+                warnings: shownWarnings,
+                elevation: placementYRef.current,
+                autoMatch,
+                manualPose,
+                matchCycle,
+                onMatch: (match) => setFaceMatch((current) => current?.warning === match?.warning && current?.rank === match?.rank && current?.pair === match?.pair && current?.x === match?.x && current?.y === match?.y && current?.z === match?.z && current?.pose.rotationY === match?.pose.rotationY && current?.pose.mirror === match?.pose.mirror ? current : match),
+                onEmpty: (x, z) => {
+                  const pocket = pocketReport.pockets.find((item) => pointInRing(x, z, item.points.map((point) => [point.x, point.z])));
+                  if (!pocket) {
+                    setPocketSelection([]);
+                    setZoneSelection(null);
+                    return;
+                  }
+                  pickPocket(pocket.id, false);
+                },
                 annotations: drawnNotes,
                 onPlace: placeModule,
                 onAnnotate: annotate,
-                onSelect: chooseSelection,
+                onSelect: (id) => sheet === "assembly" ? pickJoinTile(id) : chooseSelection(id),
                 onTranslate: translateModule,
                 onRotate: rotateModule,
                 onGestureStart: startGesture,
@@ -1909,15 +3113,16 @@ function SiteModelWorkspace() {
                 <p>{readout.scaleFeet.toLocaleString("en-US")} ft</p>
               </div>
             </div>
-            {sheet === "strategy" && strategyMode === "site-network" ? (
-              <div className="site-modes site-network-layers" role="group" aria-label="Layers">
-                <button type="button" title={SOURCE_CONTOUR_NOTE} data-active={showField || undefined} onClick={() => setShowField((value) => !value)}>Field</button>
-                <button type="button" data-active={showTrails || undefined} onClick={() => setShowTrails((value) => !value)}>Network</button>
-                <button type="button" data-active={showContext || undefined} onClick={() => setShowContext((value) => !value)}>Context</button>
-              </div>
-            ) : null}
+            <div className="site-modes site-network-layers" role="group" aria-label="Layers">
+              {sheet === "strategy" ? <button type="button" title={SOURCE_CONTOUR_NOTE} data-active={showField || undefined} onClick={() => setShowField((value) => !value)}>Field</button> : null}
+              <button type="button" title={sheet === "strategy" ? "Selected iteration" : massingLabel ? `Massing network ${massingLabel}` : "No massing network"} data-active={showTrails || undefined} onClick={() => setShowTrails((value) => !value)}>Network</button>
+              <button type="button" data-active={showZones || undefined} onClick={() => setShowZones((value) => !value)}>Zones</button>
+              <button type="button" data-active={showTiles || undefined} onClick={() => setShowTiles((value) => !value)}>Tiles</button>
+              <button type="button" data-active={showConnections || undefined} onClick={() => setShowConnections((value) => !value)}>Connections</button>
+              {sheet === "strategy" || sheet === "zoning" ? <button type="button" data-active={showContext || undefined} onClick={() => setShowContext((value) => !value)}>Context</button> : null}
+            </div>
             <div className="site-modes site-frame-views" role="group" aria-label="Camera">
-              {MODES.map((item) => (
+              {(sheet === "placement" ? [...MODES, { id: "section" as const, label: "Section" }] : MODES).map((item) => (
                 <button key={item.id} type="button" data-active={mode === item.id || undefined} onClick={() => chooseMode(item.id)}>
                   {item.label}
                 </button>
@@ -1925,19 +3130,17 @@ function SiteModelWorkspace() {
             </div>
           </div>
         </div>
-        {sheet === "strategy" && strategyMode === "site-network" ? null : (
-        <p className={sheet === "strategy" ? "site-help site-sim" : "site-help"}>
+        {sheet === "placement" ? (
+        <p className="site-help">
           {mode === "plan"
             ? "Plan starts north-up. Click the north arrow to switch between north-up and east-up. Right-drag pans. Ctrl+Shift+right turns the plan. Ctrl+right or the wheel zooms."
             : mode === "axon"
               ? "Parallel view. Right-drag pans. Ctrl+Shift+right turns it. Ctrl+right or the wheel zooms."
               : "Right-drag orbits. Shift+right pans. Ctrl+right or the wheel zooms."}
           {" "}
-          {sheet === "strategy"
-            ? "The canvas is the Miami site from Site Assembly, with the assemblies placed there. A network study will run on this canvas."
-            : <>Click a module in the library to add it to the site. Left-click selects a placed module. Left-drag {tool === "rotate" ? "turns the selection about vertical." : "moves the selection on the site."}</>}
+          <>Click a module in the library, then click the site. The ghost is the real mesh. Left-click selects a placed tile. Left-drag moves it. Stack above and stack below offset by 20 ft, and the upper tile can shift sideways.</>
         </p>
-        )}
+        ) : null}
       </section>
     
       <aside className="site-panel site-panel-analysis">
@@ -1961,6 +3164,7 @@ function SiteModelWorkspace() {
                     mode={analysisMode}
                     active={analysisOn}
                     metrics={networkAnalysis?.metrics ?? []}
+                    legend={networkAnalysis?.legend ?? null}
                     notice={analysisNotice}
                     figures={networkFiguresView}
                     onMode={(next) => {
@@ -1974,7 +3178,7 @@ function SiteModelWorkspace() {
                   <SiteStrategyAnalysis mode={strategyMode} />
                 )}
               </div>
-            ) : (
+            ) : sheet === "placement" ? (
             <>
             <section className="site-block site-specs">
               <h2 className="site-subtitle">Live Analysis</h2>
@@ -2045,12 +3249,42 @@ function SiteModelWorkspace() {
               {selected ? (
                 <div className="site-inspector">
                   <p className="site-identity">{selected.name}</p>
+                  <p className="site-note">{selected.program ? PROGRAM_LABEL[selected.program] : "Unassigned"} · {selected.provenance.archetypeId}</p>
                   <OrthoSet modules={[selected]} meshes={loadedMeshes} caption="Selected" />
-                  {warnings[selected.instanceId]?.outside ? (
+                  <div className="site-fields">
+                    <label>East, ft<input aria-label="East" type="number" value={Math.round(selected.transform.position.x * 10) / 10} onChange={(event) => setTileTransform({ x: Number(event.target.value) })} /></label>
+                    <label>Up, ft<input aria-label="Up" type="number" value={Math.round(selected.transform.position.y * 10) / 10} onChange={(event) => setTileTransform({ y: Number(event.target.value) })} /></label>
+                    <label>North, ft<input aria-label="North" type="number" value={Math.round(selected.transform.position.z * 10) / 10} onChange={(event) => setTileTransform({ z: Number(event.target.value) })} /></label>
+                    <label>Rotation, deg<input aria-label="Rotation" type="number" value={Math.round(selected.transform.rotationY * 180 / Math.PI * 10) / 10} onChange={(event) => setTileTransform({ rotationY: Number(event.target.value) * Math.PI / 180 })} /></label>
+                  </div>
+                  <div className="site-modes">
+                    <button type="button" onClick={() => setTileTransform({ rotationY: selected.transform.rotationY - Math.PI / 2 })}>−90°</button>
+                    <button type="button" onClick={() => setTileTransform({ rotationY: selected.transform.rotationY + Math.PI / 2 })}>+90°</button>
+                    <button type="button" aria-pressed={selected.mirror === "x"} onClick={() => setTileTransform({ mirror: selected.mirror === "x" ? null : "x" })}>Mirror east</button>
+                    <button type="button" aria-pressed={selected.mirror === "z"} onClick={() => setTileTransform({ mirror: selected.mirror === "z" ? null : "z" })}>Mirror north</button>
+                  </div>
+                  <div className="site-modes">
+                    <button type="button" onClick={() => stackSelected(1)}>Stack above</button>
+                    <button type="button" onClick={() => stackSelected(-1)}>Stack below</button>
+                    <button type="button" onClick={duplicateModule}>Duplicate</button>
+                    <button type="button" onClick={deleteModule}>Delete</button>
+                  </div>
+                  <p className="site-note">Level {tileReports[selected.instanceId]?.level ?? 0}. Stack height {Math.round(tileReports[selected.instanceId]?.stackHeightFt ?? MODULE_HEIGHT_FT)} ft. Alignment is not a structural or circulation connection.</p>
+                  <p className="site-note">{(tileReports[selected.instanceId]?.links.length ?? 0) === 0 ? "No zone shares this footprint and elevation." : tileReports[selected.instanceId]?.links.map((link) => `${zones.find((zone) => zone.id === link.zoneId)?.name ?? link.kind} · ${Math.round(link.overlapSqFt).toLocaleString("en-US")} ft²`).join(", ")}</p>
+                  {shownWarnings[selected.instanceId]?.outside ? (
                     <p className="site-note site-alert">The 20 ft footprint crosses the parcel boundary.</p>
                   ) : null}
-                  {warnings[selected.instanceId]?.overlap ? (
-                    <p className="site-note site-alert">The 20 ft footprint overlaps another module.</p>
+                  {shownWarnings[selected.instanceId]?.overlap ? (
+                    <p className="site-note site-alert">The 20 ft footprint overlaps another tile at this elevation. It was not moved.</p>
+                  ) : null}
+                  {shownWarnings[selected.instanceId]?.adjacent ? (
+                    <p className="site-note">This tile touches another. Touching is not a connection.</p>
+                  ) : null}
+                  {shownWarnings[selected.instanceId]?.zoneMismatch ? (
+                    <p className="site-note site-alert">The tile program does not match a zone it occupies.</p>
+                  ) : null}
+                  {shownWarnings[selected.instanceId]?.unsupported ? (
+                    <p className="site-note">Nothing below this elevation meets the footprint. The offset stays. It is not a verified support.</p>
                   ) : null}
                 </div>
               ) : selectedAssembly ? (
@@ -2095,6 +3329,87 @@ function SiteModelWorkspace() {
             <section className="site-block site-specs" aria-label="Configuration">
               <h2 className="site-subtitle">Configuration</h2>
               {placed.length === 0 ? <p className="site-note">No geometry is placed on the site.</p> : null}
+              {configNotice ? <p className="site-note site-alert">{configNotice}</p> : null}
+              {configurations.length > 0 ? (
+                <label className="site-connection-field">
+                  Restore
+                  <select aria-label="Restore configuration" value={currentConfigId ?? ""} onChange={(event) => {
+                    const entry = configurations.find((item) => item.id === event.target.value);
+                    if (entry) requestOpen(entry);
+                  }}>
+                    <option value="">Saved configurations</option>
+                    {configurations.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                  </select>
+                </label>
+              ) : <p className="site-note">Save names the current massing. Duplicate starts an independent copy.</p>}
+              {configurations.map((entry) => (
+                <div key={entry.id} className="site-modes">
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label={`Compare ${entry.name}`}
+                      checked={compareIds.includes(entry.id)}
+                      disabled={!compareIds.includes(entry.id) && compareIds.length >= 4}
+                      onChange={() => setCompareIds((current) => current.includes(entry.id) ? current.filter((item) => item !== entry.id) : current.length >= 4 ? current : [...current, entry.id])}
+                    />
+                    {entry.name}
+                  </label>
+                  <button type="button" onClick={() => requestOpen(entry)}>Open</button>
+                  <button type="button" onClick={() => duplicateConfiguration(entry)}>Duplicate</button>
+                  <button type="button" onClick={() => deleteSavedConfiguration(entry.id)}>Delete</button>
+                </div>
+              ))}
+              <div className="site-modes">
+                <button type="button" aria-pressed={compareZones} data-active={compareZones || undefined} onClick={() => setCompareZones((value) => !value)}>Zoning</button>
+                <button type="button" aria-pressed={compareNetwork} data-active={compareNetwork || undefined} onClick={() => setCompareNetwork((value) => !value)}>Network</button>
+              </div>
+              {compareIds.length < 2 ? <p className="site-note">Select two to four saved iterations to compare them.</p> : null}
+              {compareIds.length >= 2 ? (() => {
+                const compared = compareIds.flatMap((id) => {
+                  const entry = configurations.find((item) => item.id === id);
+                  return entry ? [entry] : [];
+                });
+                const frames = arrangementFrames(compared.flatMap((entry) => entry.modules));
+                const networks = compared.map((entry) => iterations.find((item) => item.id === entry.networkId) ?? null);
+                const bounds = planBounds(compared, compareNetwork ? networks.flatMap((item) => item ? [item] : []) : []);
+                return (
+                  <div className="site-ortho">
+                    {compared.map((entry, index) => {
+                      const metrics = iterationMetrics({
+                        modules: entry.modules,
+                        directJoins: entry.directJoins ?? [],
+                        hybridJoins: entry.hybridJoins ?? [],
+                      }, site.site.ring);
+                      const network = networks[index];
+                      const programs = (Object.keys(metrics.programs) as (keyof typeof metrics.programs)[]).flatMap((program) => metrics.programs[program] > 0 ? [`${PROGRAM_LABEL[program]} ${metrics.programs[program]}`] : []);
+                      return (
+                        <figure key={entry.id}>
+                          <OrthoCanvas modules={entry.modules} meshes={loadedMeshes} view="west" frame={frames.west} label={`${entry.name} west`} />
+                          <OrthoCanvas modules={entry.modules} meshes={loadedMeshes} view="top" frame={frames.top} label={`${entry.name} top`} />
+                          {compareZones || compareNetwork ? (
+                            <ComparisonPlan
+                              modules={entry.modules}
+                              zones={entry.zones ?? []}
+                              branches={compareNetwork ? network?.branches ?? [] : []}
+                              bounds={bounds}
+                              showZones={compareZones}
+                              showNetwork={compareNetwork}
+                              label={`${entry.name} plan`}
+                            />
+                          ) : null}
+                          <figcaption>{entry.name}</figcaption>
+                          <p className="site-note">{metrics.tiles} tiles · {programs.join(" · ") || "No program"} · Height {Math.round(metrics.heightFt)} ft · {Math.round(metrics.occupiedSqFt).toLocaleString("en-US")} ft²</p>
+                          <p className="site-note">{metrics.directJoins} direct · {metrics.hybridJoins} hybrid · {metrics.connectedTiles} connected · {metrics.tiles - metrics.connectedTiles} unconnected</p>
+                          <p className="site-note">{entry.networkId ? (network ? `Network ${entry.networkId}` : `Network ${entry.networkId} is not in the saved studies.`) : "No network"}</p>
+                          {(entry.zones ?? []).map((zone) => (
+                            <p key={zone.id} className="site-note">{zone.name} {zone.baseFt}–{zone.baseFt + zone.heightFt} ft</p>
+                          ))}
+                        </figure>
+                      );
+                    })}
+                  </div>
+                );
+              })() : null}
               <OrthoSet modules={placed} meshes={loadedMeshes} bridges={configurationBridges} caption="Configuration" />
             </section>
 
@@ -2151,6 +3466,36 @@ function SiteModelWorkspace() {
               </div>
             </section>
             </>
+            ) : (
+              <section className="site-block site-specs" aria-label={sheet === "zoning" ? "Zoning" : "Assembly"}>
+                {sheet === "zoning" ? (
+                  <SiteZoningInspector
+                    zone={selectedZone}
+                    networkLabel={massingLabel ?? "None"}
+                    mismatch={zoneMismatch}
+                    outsideParcel={zoneGuide.outsideParcel}
+                    inWater={zoneGuide.inWater}
+                    branchFt={zoneGuide.branchFt}
+                    junctionFt={zoneGuide.junctionFt}
+                    accessFt={zoneGuide.accessFt}
+                    waterFt={zoneGuide.waterFt}
+                    facing={zoneGuide.facing}
+                    totals={zoneTotals.totals}
+                    counts={zoneTotals.counts}
+                    onName={(name) => selectedZone && replaceZones(zones.map((zone) => zone.id === selectedZone.id ? { ...zone, name } : zone))}
+                    onKind={(kind) => selectedZone && replaceZones(zones.map((zone) => zone.id === selectedZone.id ? { ...zone, kind } : zone))}
+                    onBase={(baseFt) => selectedZone && commitZoneElevation(selectedZone.id, baseFt, selectedZone.heightFt)}
+                    onHeight={(heightFt) => selectedZone && commitZoneElevation(selectedZone.id, selectedZone.baseFt, heightFt)}
+                    emptyNote={pocketSelection.length > 0 && !selectedZone ? "This pocket is still open. Choose Lobby, Gathering, or Workspace." : null}
+                  />
+                ) : (
+                  <>
+                  <h2 className="site-subtitle">Assembly</h2>
+                  <p className="site-note">{workflowTiles.length} placed tile{workflowTiles.length === 1 ? "" : "s"}. {connections.length} connection{connections.length === 1 ? "" : "s"}. A hybrid is a separate mesh. Removing it leaves both tiles and the other connections unchanged.</p>
+                  {selectedJoin ? <p className="site-note">{joinProposal && connections.some((link) => link.id === selectedJoin) ? joinSummary(joinProposal) : "Connection selected."}</p> : null}
+                  </>
+                )}
+              </section>
             )}
       </aside>
     </main>

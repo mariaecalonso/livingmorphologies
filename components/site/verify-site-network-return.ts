@@ -43,6 +43,9 @@ const MODES: { name: string; tune?: ShuttleTune }[] = [
   { name: "retrace", tune: { retrace: true, repeat: true, steady: true } },
   { name: "crumbs", tune: { crumbs: true, steady: true } },
   { name: "collective", tune: { collective: true } },
+  { name: "relay", tune: { relay: true } },
+  { name: "relay-hold", tune: { relay: true, steady: true, preferForward: true } },
+  { name: "traffic", tune: { traffic: true } },
 ];
 
 type Core = {
@@ -100,6 +103,12 @@ function makeShuttle(agents: SimulationState["agents"], sources: readonly Point[
           forward: new Uint8Array(agents.length),
           laps: new Uint8Array(agents.length),
         }
+      : undefined,
+    relay: tune?.relay
+      ? { duty: Uint8Array.from({ length: agents.length }, (_, index) => index % Math.max(1, attractors.length)) }
+      : undefined,
+    traffic: tune?.traffic
+      ? { duty: Uint8Array.from({ length: agents.length }, (_, index) => index % Math.max(1, attractors.length)) }
       : undefined,
     collective: tune?.collective
       ? {
@@ -367,8 +376,10 @@ function run(seed: number, tune: ShuttleTune | undefined) {
   const trails = study.snapshotTrails();
   let covered = 0;
   let strong = 0;
+  let peak = 0;
   for (let index = 0; index < trails.length; index += 1) {
     if (core.open[index] !== 1) continue;
+    if (trails[index] > peak) peak = trails[index];
     if (trails[index] >= NETWORK_TRAIL - 1e-5) covered += 1;
     if (trails[index] >= REACH_TRAIL - 1e-5) strong += 1;
   }
@@ -391,6 +402,7 @@ function run(seed: number, tune: ShuttleTune | undefined) {
     persistent,
     coverage: covered / study.traversable,
     strongCoverage: strong / study.traversable,
+    peak: Math.round(peak * 100) / 100,
     branches: branchPoints(trails, study.inkSize),
     completed,
     returnSteps,

@@ -62,7 +62,26 @@ function readIteration(value: unknown): NetworkIteration | null {
     inkSize: record.inkSize,
     traversable: typeof record.traversable === "number" && Number.isFinite(record.traversable) ? record.traversable : undefined,
     cellFeet: record.cellFeet,
+    generator: record.generator === "flow" || record.generator === "agents" ? record.generator : undefined,
+    branches: readBranches(record.branches),
   };
+}
+
+function readBranches(value: unknown) {
+  if (!Array.isArray(value)) return undefined;
+  const branches: NonNullable<NetworkIteration["branches"]> = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const edge = item as { x0?: unknown; z0?: unknown; x1?: unknown; z1?: unknown; conductivity?: unknown };
+    const x0 = Number(edge.x0);
+    const z0 = Number(edge.z0);
+    const x1 = Number(edge.x1);
+    const z1 = Number(edge.z1);
+    const conductivity = Number(edge.conductivity);
+    if (![x0, z0, x1, z1, conductivity].every(Number.isFinite)) continue;
+    branches.push({ x0, z0, x1, z1, conductivity });
+  }
+  return branches.length > 0 ? branches : undefined;
 }
 
 export async function loadNetworkIterations(): Promise<NetworkIteration[]> {

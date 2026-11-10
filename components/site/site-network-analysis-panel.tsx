@@ -15,6 +15,7 @@ export function SiteNetworkAnalysisPanel({
   mode,
   active,
   metrics,
+  legend,
   notice,
   figures,
   onMode,
@@ -23,6 +24,7 @@ export function SiteNetworkAnalysisPanel({
   mode: NetworkAnalysisMode;
   active: boolean;
   metrics: readonly NetworkMetric[];
+  legend: string | null;
   notice: string | null;
   figures: NetworkFigures | null;
   onMode: (mode: NetworkAnalysisMode) => void;
@@ -50,6 +52,7 @@ export function SiteNetworkAnalysisPanel({
         <button type="button" data-active={active || undefined} onClick={() => onActive(true)}>Analysis</button>
       </div>
       {notice ? <p className="site-note">{notice}</p> : null}
+      {active && legend ? <p className="site-note">{legend}</p> : null}
       {active && metrics.length > 0 ? (
         <>
           <ul className="site-analysis-metrics">

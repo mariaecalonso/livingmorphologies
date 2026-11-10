@@ -57,6 +57,29 @@ export type ShuttleTune = {
   crumbs?: boolean;
   /** Share a discovered source-to-attractor walk with other agents of that pair. */
   collective?: boolean;
+  /**
+   * Each agent keeps a duty attractor, so the colony works toward every attractor
+   * for the whole run. Reaching one sends the agent back along its trail and
+   * then on toward whichever attractor still has the thinner approach.
+   */
+  relay?: boolean;
+  /**
+   * Prefer a trail segment that other agents have used recently.
+   * The bonus uses the existing trail value and a separate activity count.
+   * Deposit, diffusion, and decay are unchanged.
+   */
+  traffic?: boolean;
+};
+
+/** Recent passes on the trail grid. This is not ink and is not written into the trail. */
+const trafficFields = new WeakMap<SimulationState, Float32Array>();
+const TRAFFIC_FADE = 0.9;
+const TRAFFIC_TRAIL = 0.02;
+const TRAFFIC_PASSES = 1.2;
+
+/** Per-agent attractor duty. This does not change deposit or decay. */
+export type RelayBook = {
+  duty: Uint8Array;
 };
 
 const ROUTES_PER_PAIR = 3;
@@ -118,6 +141,9 @@ export type SiteShuttle = {
   lost?: Uint8Array;
   crumbs?: CrumbBook;
   collective?: CollectiveBook;
+  relay?: RelayBook;
+  /** Duty attractor while the traffic rule is on. Every attractor stays in the rotation. */
+  traffic?: RelayBook;
 };
 
 function trailBook(trails: number[]): TrailBook {
@@ -181,6 +207,8 @@ function sense(
   slime: SlimeControls | undefined,
   align: boolean,
   attractionScale = 1,
+  focus: Point | null = null,
+  trailScale = 1,
 ) {
   const look = {
     x: fieldPoint.x + Math.cos(heading) * distance,
@@ -193,7 +221,7 @@ function sense(
   const pull = 0.16 + params.attractionStrength * 0.5;
   let alignment = 0;
   if (align) {
-    const target = nearestAttractor(look, translation);
+    const target = focus ?? nearestAttractor(look, translation);
     const dx = target.x - look.x;
     const dy = target.y - look.y;
     const mag = Math.hypot(dx, dy) || 1;
@@ -201,7 +229,7 @@ function sense(
   }
   const influence = slime?.trailInfluence ?? 1;
   return {
-    score: trail * trailFollow * influence + attraction * pull * attractionScale + params.permeability * 0.03 + alignment * params.directionalBias,
+    score: trail * trailScale * trailFollow * influence + attraction * pull * attractionScale + params.permeability * 0.03 + alignment * params.directionalBias,
     trail,
   };
 }
@@ -416,7 +444,7 @@ function rememberCourse(shuttle: SiteShuttle, index: number, heading: number, at
   if (shuttle.lost) shuttle.lost[index] = 0;
 }
 
-function releaseNearHome(agent: SimAgent, shuttle: SiteShuttle, index: number) {
+function releaseNearHome(agent: SimAgent, shuttle: SiteShuttle, index: number, trails?: number[], trailSize?: number, rng?: () => number) {
   if (shuttle.tune?.crumbs || shuttle.outbound?.[index]) return;
   const home = Math.hypot(agent.x - shuttle.homeX[index], agent.y - shuttle.homeY[index]);
   if (home > shuttle.homeReach) return;
@@ -427,6 +455,132 @@ function releaseNearHome(agent: SimAgent, shuttle: SiteShuttle, index: number) {
     return;
   }
   shuttle.returning[index] = false;
+  if (shuttle.traffic && rng) cycleDuty(shuttle, index, rng);
+  if (shuttle.relay && rng) {
+    assignDuty(shuttle, index, trails, trailSize, rng, 0.72);
+    aimDuty(agent, shuttle, index);
+  }
+}
+
+/** Trail sampled outside the attractor pad, so a local mass does not count as a connection. */
+function approachTrail(point: Point, trails: number[], trailSize: number) {
+  const scale = trailSize / FIELD_SIZE;
+  let best = 0;
+  for (let step = 0; step < 8; step += 1) {
+    const angle = (step / 8) * TWO_PI;
+    const sample = sampleField(
+      trails,
+      { x: (point.x + Math.cos(angle) * 1.8) * scale, y: (point.y + Math.sin(angle) * 1.8) * scale },
+      trailSize,
+    );
+    if (sample > best) best = sample;
+  }
+  return best;
+}
+
+function dutyPoint(shuttle: SiteShuttle, index: number) {
+  const book = shuttle.traffic ?? shuttle.relay;
+  if (!book || shuttle.attractors.length === 0) return null;
+  return shuttle.attractors[book.duty[index] % shuttle.attractors.length] ?? null;
+}
+
+function cycleDuty(shuttle: SiteShuttle, index: number, rng: () => number) {
+  const book = shuttle.traffic;
+  if (!book || shuttle.attractors.length === 0) return;
+  const span = shuttle.attractors.length;
+  const hop = 1 + Math.floor(rng() * Math.max(1, span - 1));
+  book.duty[index] = (book.duty[index] + hop) % span;
+}
+
+function activityField(state: SimulationState) {
+  const length = state.trailSize * state.trailSize;
+  let field = trafficFields.get(state);
+  if (!field || field.length !== length) {
+    field = new Float32Array(length);
+    trafficFields.set(state, field);
+  }
+  return field;
+}
+
+function markActivity(state: SimulationState, x: number, y: number) {
+  const field = activityField(state);
+  const scale = state.trailSize / FIELD_SIZE;
+  const px = clamp(Math.floor(x * scale), 0, state.trailSize - 1);
+  const py = clamp(Math.floor(y * scale), 0, state.trailSize - 1);
+  field[py * state.trailSize + px] += 1;
+}
+
+function fadeActivity(state: SimulationState) {
+  const field = activityField(state);
+  for (let index = 0; index < field.length; index += 1) {
+    if (field[index] === 0) continue;
+    const next = field[index] * TRAFFIC_FADE;
+    field[index] = next < 0.05 ? 0 : next;
+  }
+}
+
+/** Extra sensor score for a trail cell other agents have crossed recently. Empty ground gets none. */
+function trafficScore(trail: number, activity: number) {
+  if (trail < TRAFFIC_TRAIL || activity < TRAFFIC_PASSES) return 0;
+  return trail * Math.min(activity, 6) * 0.22;
+}
+
+function activityAt(state: SimulationState, look: Point) {
+  return sampleField(activityField(state) as unknown as number[], toTrail(look, state.trailSize / FIELD_SIZE), state.trailSize);
+}
+
+function assignDuty(
+  shuttle: SiteShuttle,
+  index: number,
+  trails: number[] | undefined,
+  trailSize: number | undefined,
+  rng: () => number,
+  keepBias: number,
+) {
+  const book = shuttle.relay;
+  if (!book || shuttle.attractors.length === 0) return;
+  if (!trails || !trailSize) {
+    book.duty[index] = index % shuttle.attractors.length;
+    return;
+  }
+  let weakest = 0;
+  let weakestTrail = Infinity;
+  for (let attractor = 0; attractor < shuttle.attractors.length; attractor += 1) {
+    const value = approachTrail(shuttle.attractors[attractor], trails, trailSize);
+    if (value < weakestTrail) {
+      weakest = attractor;
+      weakestTrail = value;
+    }
+  }
+  const current = book.duty[index] % shuttle.attractors.length;
+  const currentTrail = approachTrail(shuttle.attractors[current], trails, trailSize);
+  if (currentTrail < 0.2 && rng() < keepBias) {
+    book.duty[index] = current;
+    return;
+  }
+  book.duty[index] = rng() < 0.22 ? Math.floor(rng() * shuttle.attractors.length) : weakest;
+}
+
+function aimDuty(agent: SimAgent, shuttle: SiteShuttle, index: number) {
+  const duty = dutyPoint(shuttle, index);
+  if (!duty) return;
+  agent.heading = Math.atan2(duty.y - agent.y, duty.x - agent.x);
+}
+
+/** True when a sample sits in another attractor's pad. The stored trail is not changed. */
+function foreignPad(look: Point, shuttle: SiteShuttle | null, duty: Point | null) {
+  if (!shuttle?.relay || !duty || shuttle.attractors.length === 0) return false;
+  let nearest = shuttle.attractors[0];
+  let best = Math.hypot(look.x - nearest.x, look.y - nearest.y);
+  for (const mark of shuttle.attractors) {
+    const distance = Math.hypot(look.x - mark.x, look.y - mark.y);
+    if (distance < best) {
+      nearest = mark;
+      best = distance;
+    }
+  }
+  if (Math.hypot(nearest.x - duty.x, nearest.y - duty.y) < 0.05) return false;
+  return best < 1.2;
 }
 
 function nearestPoint(x: number, y: number, points: readonly Point[]) {
@@ -609,7 +763,7 @@ function steerShared(agent: SimAgent, book: CollectiveBook, index: number, rng: 
   return "walk" as const;
 }
 
-function catchReturn(agent: SimAgent, fromX: number, fromY: number, shuttle: SiteShuttle, index: number, trails?: number[], trailSize?: number) {
+function catchReturn(agent: SimAgent, fromX: number, fromY: number, shuttle: SiteShuttle, index: number, trails?: number[], trailSize?: number, rng?: () => number) {
   if (shuttle.collective && shuttle.collective.adopted[index] >= 0) return;
   if (shuttle.returning[index]) {
     if (shuttle.outbound?.[index] && shuttle.caughtX && shuttle.caughtY) {
@@ -625,10 +779,14 @@ function catchReturn(agent: SimAgent, fromX: number, fromY: number, shuttle: Sit
         return;
       }
     }
-    releaseNearHome(agent, shuttle, index);
+    releaseNearHome(agent, shuttle, index, trails, trailSize, rng);
     return;
   }
   for (const attractor of shuttle.attractors) {
+    if (shuttle.relay || shuttle.traffic) {
+      const duty = dutyPoint(shuttle, index);
+      if (!duty || Math.hypot(attractor.x - duty.x, attractor.y - duty.y) > 0.05) continue;
+    }
     if (Math.hypot(agent.x - attractor.x, agent.y - attractor.y) > shuttle.reach) continue;
     const dx = fromX - agent.x;
     const dy = fromY - agent.y;
@@ -739,11 +897,27 @@ export function stepSiteNetwork(
         if (shuttle.outbound) shuttle.outbound[index] = false;
       }
     }
+    const duty = !returning && (shuttle?.relay || shuttle?.traffic) ? dutyPoint(shuttle, index) : null;
+    let onSharedTrail = false;
     if (!holdHeading && !locked && !retracing && !walkingCrumbs && !walkingShared) {
       const attractionScale = tune?.quiet ? 0 : 1;
-      const forward = sense(here, agent.heading, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, attractionScale);
-      const left = sense(here, agent.heading + sensorAngleHere, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, attractionScale);
-      const right = sense(here, agent.heading - sensorAngleHere, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, attractionScale);
+      const lookAt = (heading: number) => ({
+        x: here.x + Math.cos(heading) * sensorDistanceHere,
+        y: here.y + Math.sin(heading) * sensorDistanceHere,
+      });
+      const weight = (look: Point) => (foreignPad(look, shuttle, duty) ? 0.2 : 1);
+      const forwardLook = lookAt(agent.heading);
+      const leftLook = lookAt(agent.heading + sensorAngleHere);
+      const rightLook = lookAt(agent.heading - sensorAngleHere);
+      const forward = sense(here, agent.heading, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, weight(forwardLook) === 1 ? attractionScale : 0, duty, weight(forwardLook));
+      const left = sense(here, agent.heading + sensorAngleHere, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, weight(leftLook) === 1 ? attractionScale : 0, duty, weight(leftLook));
+      const right = sense(here, agent.heading - sensorAngleHere, sensorDistanceHere, state.trails, state.trailSize, translation, state, slime, !returning, weight(rightLook) === 1 ? attractionScale : 0, duty, weight(rightLook));
+      if (shuttle?.traffic) {
+        forward.score += trafficScore(forward.trail, activityAt(state, forwardLook));
+        left.score += trafficScore(left.trail, activityAt(state, leftLook));
+        right.score += trafficScore(right.trail, activityAt(state, rightLook));
+        onSharedTrail = trafficScore(forward.trail, activityAt(state, forwardLook)) > 0;
+      }
       const bestTrail = Math.max(forward.trail, left.trail, right.trail);
       if (returning && tune?.repeat && shuttle?.lost) {
         shuttle.lost[index] = bestTrail < 0.02 ? shuttle.lost[index] + 1 : 0;
@@ -784,10 +958,10 @@ export function stepSiteNetwork(
       if (bx !== 0 || by !== 0) agent.heading = wrapAngle(agent.heading * (1 - cohesion) + Math.atan2(by, bx) * cohesion);
     }
 
-    if (!returning && !walkingShared) {
+    if (!returning && !walkingShared && !onSharedTrail) {
       const dirPull = params.directionalBias * 0.28;
       if (dirPull > 0.01) {
-        const target = nearestAttractor(agent, translation);
+        const target = duty ?? nearestAttractor(agent, translation);
         const toward = Math.atan2(target.y - agent.y, target.x - agent.x);
         agent.heading = wrapAngle(agent.heading * (1 - dirPull) + toward * dirPull);
       }
@@ -811,6 +985,11 @@ export function stepSiteNetwork(
       agent.x = fresh.x;
       agent.y = fresh.y;
       agent.heading = fresh.heading;
+      if (shuttle?.relay) {
+        assignDuty(shuttle, index, state.trails, state.trailSize, rng, 0);
+        aimDuty(agent, shuttle, index);
+      }
+      if (shuttle?.traffic) cycleDuty(shuttle, index, rng);
     }
 
     const cell = clamp(Math.round(agent.y), 0, state.size - 1) * state.size + clamp(Math.round(agent.x), 0, state.size - 1);
@@ -832,6 +1011,15 @@ export function stepSiteNetwork(
       agent.x = fresh.x;
       agent.y = fresh.y;
       agent.heading = fresh.heading;
+      if (shuttle?.relay) {
+        assignDuty(shuttle, index, state.trails, state.trailSize, rng, 0);
+        aimDuty(agent, shuttle, index);
+      }
+      if (shuttle?.traffic) cycleDuty(shuttle, index, rng);
+    }
+    if (shuttle?.traffic && !hitWall) {
+      markActivity(state, fromX, fromY);
+      markActivity(state, agent.x, agent.y);
     }
 
     if (shuttle) {
@@ -840,12 +1028,14 @@ export function stepSiteNetwork(
         shuttle.returning[index] = false;
         if (shuttle.crumbs) shuttle.crumbs.count[index] = 0;
         if (shuttle.collective) shuttle.collective.adopted[index] = -1;
+        if (shuttle.relay) assignDuty(shuttle, index, state.trails, state.trailSize, rng, 0);
+        if (shuttle.traffic) cycleDuty(shuttle, index, rng);
       } else {
         const adopted = shuttle.collective?.adopted[index] ?? -1;
         if (shuttle.crumbs && adopted < 0 && !returning && (shuttle.tune?.crumbs || shuttle.tune?.collective)) {
           rememberCrumb(shuttle.crumbs, index, agent.x, agent.y);
         }
-        catchReturn(agent, fromX, fromY, shuttle, index, state.trails, state.trailSize);
+        catchReturn(agent, fromX, fromY, shuttle, index, state.trails, state.trailSize, rng);
       }
     }
   }
@@ -868,6 +1058,7 @@ export function stepSiteNetwork(
   }
   book.active.length = write;
   if ((slime?.diffusion ?? 0) > 0.001) diffuse(state.trails, slime?.diffusion ?? 0);
+  if (shuttle?.traffic) fadeActivity(state);
 
   state.iteration += 1;
   state.totalDelta = trailDelta / Math.max(1, state.agents.length);

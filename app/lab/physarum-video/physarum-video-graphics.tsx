@@ -29,6 +29,13 @@ const WORDS = ["EXPLORE", "SENSE", "MOVE", "REINFORCE", "ADAPT", "REPEAT"] as co
 
 export const SENTENCE_A = 2.2;
 export const SENTENCE_B = 3.94;
+export const SENTENCE_STEP = 0.24;
+export const BEHAVIOR_ROWS = [
+  "A single celled, bright yellow slime mold",
+  "that moves by pushing its cytoplasm back and forth",
+  "like currents through its tube network.",
+] as const;
+const SENTENCE_WORDS = BEHAVIOR_ROWS.reduce((count, row) => count + row.split(/\s+/).filter(Boolean).length, 0);
 export const TITLE_REVEAL = 4.65;
 export const TITLE_EXIT = 8.25;
 export const STEPS_START = 8.65;
@@ -2410,7 +2417,7 @@ function advanceMold(time: number) {
 }
 
 let detailClock = 0;
-const WRITING_END = SENTENCE_B + 14 * 0.29 + 0.2;
+const WRITING_END = SENTENCE_A + (SENTENCE_WORDS - 1) * SENTENCE_STEP + 0.2;
 
 function organismPresence(time: number) {
   const whisper = smoothstep(clamp01((time - 0.3) / (SENTENCE_A - 0.3)));
@@ -2486,15 +2493,6 @@ function paintPhysarum(plate: CanvasRenderingContext2D, width: number, height: n
   plate.filter = "none";
   plate.globalCompositeOperation = "source-over";
   if (textFocus > 0.04) {
-    plate.save();
-    plate.globalCompositeOperation = "destination-out";
-    const sentences = plate.createRadialGradient(width * 0.5, height * 0.5, height * 0.015, width * 0.5, height * 0.5, width * 0.055);
-    sentences.addColorStop(0, `rgba(0,0,0,${(0.5 * textFocus).toFixed(3)})`);
-    sentences.addColorStop(0.55, `rgba(0,0,0,${(0.16 * textFocus).toFixed(3)})`);
-    sentences.addColorStop(1, "rgba(0,0,0,0)");
-    plate.fillStyle = sentences;
-    plate.fillRect(0, 0, width, height);
-    plate.restore();
     const behind = (cx: number, cy: number, rx: number, ry: number, alpha: number) => {
       plate.save();
       plate.globalCompositeOperation = "destination-out";
@@ -2624,21 +2622,10 @@ function drawCoverField(context: CanvasRenderingContext2D, width: number, height
   }
 }
 
-function punchReadability(plate: CanvasRenderingContext2D, width: number, height: number, textFocus: number, titleFocus: number) {
+function punchReadability(plate: CanvasRenderingContext2D, width: number, height: number, titleFocus: number) {
   plate.setTransform(1, 0, 0, 1, 0, 0);
   plate.filter = "none";
   plate.globalCompositeOperation = "source-over";
-  if (textFocus > 0.04) {
-    plate.save();
-    plate.globalCompositeOperation = "destination-out";
-    const sentences = plate.createRadialGradient(width * 0.5, height * 0.5, height * 0.015, width * 0.5, height * 0.5, width * 0.055);
-    sentences.addColorStop(0, `rgba(0,0,0,${(0.5 * textFocus).toFixed(3)})`);
-    sentences.addColorStop(0.55, `rgba(0,0,0,${(0.16 * textFocus).toFixed(3)})`);
-    sentences.addColorStop(1, "rgba(0,0,0,0)");
-    plate.fillStyle = sentences;
-    plate.fillRect(0, 0, width, height);
-    plate.restore();
-  }
   if (titleFocus > 0.04) {
     const behindTitle = (cx: number, cy: number, rx: number, ry: number, alpha: number) => {
       plate.save();
@@ -2657,7 +2644,7 @@ function punchReadability(plate: CanvasRenderingContext2D, width: number, height
   }
 }
 
-function paintColonyBase(plate: CanvasRenderingContext2D, width: number, height: number, reach: number, showColony: boolean) {
+function paintColonyBase(plate: CanvasRenderingContext2D, width: number, height: number, reach: number, showColony: boolean, textFocus: number) {
   plate.setTransform(1, 0, 0, 1, 0, 0);
   plate.globalAlpha = 1;
   plate.globalCompositeOperation = "source-over";
@@ -2672,8 +2659,9 @@ function paintColonyBase(plate: CanvasRenderingContext2D, width: number, height:
     plate.drawImage(originFrame, 0, 0, width, height);
     plate.restore();
   }
-  drawColony(plate, video, width, height, "top", reach);
-  drawColony(plate, video, width, height, "top", reach, 1, 0.3, 0.42);
+  const through = textFocus * 0.16;
+  drawColony(plate, video, width, height, "top", reach, 1, through);
+  drawColony(plate, video, width, height, "top", reach, 1, 0.3 + through, 0.42);
   drawColony(plate, video, width, height, "bottom", reach);
 }
 
@@ -2770,7 +2758,7 @@ function drawPhysarumLayer(context: CanvasRenderingContext2D, width: number, hei
     colonyCache = scratchCanvas(colonyCache, width, height);
     const cached = colonyCache.getContext("2d", { alpha: false });
     if (!cached) return;
-    paintColonyBase(cached, width, height, reach, showColony);
+    paintColonyBase(cached, width, height, reach, showColony, textFocus);
     colonyCacheKey = colonyKey;
   }
   growthStamp = colonyKey;
@@ -2785,7 +2773,7 @@ function drawPhysarumLayer(context: CanvasRenderingContext2D, width: number, hei
   context.globalAlpha = 1 - pose;
   context.drawImage(colonyCache, 0, 0);
   context.globalAlpha = 1;
-  punchReadability(context, width, height, textFocus, titleFocus);
+  punchReadability(context, width, height, titleFocus);
 }
 
 function drawStepField(context: CanvasRenderingContext2D, width: number, height: number, time: number) {

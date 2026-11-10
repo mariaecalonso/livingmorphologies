@@ -1,11 +1,13 @@
 import type { SiteAnnotation } from "./annotations";
 import type { SiteAssembly } from "./assembly";
 import type { PlacedModule } from "./placement";
+import type { ZoningRegion } from "./zoning";
 
 export type CompositionSnapshot = {
   instances: PlacedModule[];
   assemblies: SiteAssembly[];
   annotations: SiteAnnotation[];
+  zones: ZoningRegion[];
 };
 
 export type EditHistory = {
@@ -20,7 +22,7 @@ function copy<T>(value: T): T {
 }
 
 export function emptyComposition(): CompositionSnapshot {
-  return { instances: [], assemblies: [], annotations: [] };
+  return { instances: [], assemblies: [], annotations: [], zones: [] };
 }
 
 export function emptyEditHistory(present: CompositionSnapshot = emptyComposition()): EditHistory {
@@ -30,7 +32,8 @@ export function emptyEditHistory(present: CompositionSnapshot = emptyComposition
 export function sameComposition(a: CompositionSnapshot, b: CompositionSnapshot) {
   return JSON.stringify(a.instances) === JSON.stringify(b.instances)
     && JSON.stringify(a.assemblies) === JSON.stringify(b.assemblies)
-    && JSON.stringify(a.annotations) === JSON.stringify(b.annotations);
+    && JSON.stringify(a.annotations) === JSON.stringify(b.annotations)
+    && JSON.stringify(a.zones) === JSON.stringify(b.zones);
 }
 
 /** Record `next` as the composition after one completed edit. A gesture only updates the live present. */

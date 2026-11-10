@@ -1,7 +1,7 @@
 import type { SiteAssembly } from "./assembly";
 import { assemblyWorldModules } from "./assembly";
 import { SKILL5_MODULE_ENVELOPE_FEET, type Skill5Program } from "./contract";
-import { footprintCorners, pointInRing, type PlacedModule } from "./placement";
+import { MODULE_GROUND_Y, footprintCorners, pointInRing, type PlacedModule } from "./placement";
 import type { XZ } from "./site-model";
 
 const HALF = SKILL5_MODULE_ENVELOPE_FEET / 2;
@@ -89,4 +89,43 @@ export function programDistribution(placed: readonly { program: Skill5Program }[
 
 export function scenePlaced(modules: readonly PlacedModule[], assemblies: readonly SiteAssembly[]) {
   return [...modules, ...assemblies.flatMap((assembly) => assemblyWorldModules(assembly))];
+}
+
+export type JoinRef = { tileA: string; tileB: string; passage?: { positions: number[] } | null };
+
+/** Joins whose tiles and stored mesh are both present. The others are reported and left out. */
+export function keptJoins<T extends JoinRef>(modules: readonly { instanceId: string }[], joins: readonly T[]) {
+  const ids = new Set(modules.map((item) => item.instanceId));
+  const kept: T[] = [];
+  const missing: T[] = [];
+  for (const join of joins) {
+    const passage = join.passage?.positions?.length ?? 0;
+    if (ids.has(join.tileA) && ids.has(join.tileB) && passage >= 9) kept.push(join);
+    else missing.push(join);
+  }
+  return { kept, missing };
+}
+
+export function iterationMetrics(input: {
+  modules: readonly PlacedModule[];
+  directJoins: readonly JoinRef[];
+  hybridJoins: readonly JoinRef[];
+}, ring: readonly XZ[]) {
+  const direct = keptJoins(input.modules, input.directJoins).kept;
+  const hybrid = keptJoins(input.modules, input.hybridJoins).kept;
+  const linked = new Set<string>();
+  for (const join of [...direct, ...hybrid]) {
+    linked.add(join.tileA);
+    linked.add(join.tileB);
+  }
+  const tops = input.modules.map((item) => item.transform.position.y + SKILL5_MODULE_ENVELOPE_FEET);
+  return {
+    tiles: input.modules.length,
+    programs: programDistribution(input.modules),
+    heightFt: tops.length === 0 ? 0 : Math.max(...tops) - MODULE_GROUND_Y,
+    occupiedSqFt: nominalUnionSqFt(input.modules, ring),
+    directJoins: direct.length,
+    hybridJoins: hybrid.length,
+    connectedTiles: input.modules.filter((item) => linked.has(item.instanceId)).length,
+  };
 }

@@ -4,8 +4,11 @@ import { SKILL5_SITE_ID, type Skill5Program, type Skill5ProgramSource } from "./
 import { boundsOfCorners, nominalEnvelopeSqFt, nominalUnionSqFt, placedCorners, programDistribution, scenePlaced } from "./metrics";
 import { measureSite, type MeasureSet } from "./relations";
 import type { SiteContext } from "./site-model";
+import { readStoredJoins, type StoredDirectJoin } from "./direct-join";
+import { readStoredHybrids, type StoredHybridJoin } from "./hybrid-join";
 import type { PlacedModule } from "./placement";
 import type { XZ } from "./site-model";
+import { readZoningList, type ZoningRegion } from "./zoning";
 
 export const CONFIGURATION_CONTRACT = "skill5-configurations-v2" as const;
 const PRIOR_CONTRACT = "skill5-configurations-v1";
@@ -61,6 +64,26 @@ export type SiteConfiguration = {
   modules: PlacedModule[];
   assemblies: SiteAssembly[];
   annotations: SiteAnnotation[];
+  zones: ZoningRegion[];
+  /** Site network iteration sent to Zoning, Tile Placement, and Assembly. */
+  networkId: string | null;
+  /** Confirmed direct joins. Each passage is stored apart from the tile meshes. */
+  directJoins?: StoredDirectJoin[];
+  /** Confirmed Skill 04 hybrids. The mesh is stored apart from both tiles. */
+  hybridJoins?: StoredHybridJoin[];
+  /** Layer visibility for this iteration. Absent on older records. */
+  view?: ConfigurationView;
+  /** Records that could not be read. They are reported and not replaced. */
+  droppedModules?: number;
+  droppedDirects?: number;
+  droppedHybrids?: number;
+};
+
+export type ConfigurationView = {
+  showZones: boolean;
+  showTiles: boolean;
+  showConnections: boolean;
+  showNetwork: boolean;
 };
 
 export type ConfigurationDocument = {
@@ -72,6 +95,18 @@ export type ConfigurationDocument = {
 
 export function emptyConfigurationDocument(): ConfigurationDocument {
   return { contract: CONFIGURATION_CONTRACT, siteId: SKILL5_SITE_ID, configurations: [], priorities: [] };
+}
+
+function readConfigurationView(value: unknown): ConfigurationView | undefined {
+  if (!isRecord(value)) return undefined;
+  const flag = (key: string) => typeof value[key] === "boolean";
+  if (!flag("showZones") && !flag("showTiles") && !flag("showConnections") && !flag("showNetwork")) return undefined;
+  return {
+    showZones: value.showZones !== false,
+    showTiles: value.showTiles !== false,
+    showConnections: value.showConnections !== false,
+    showNetwork: value.showNetwork !== false,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -146,6 +181,7 @@ function normalizeModule(value: unknown): PlacedModule | null {
     },
     assemblyPlacementId: typeof value.assemblyPlacementId === "string" ? value.assemblyPlacementId : undefined,
     mirror: value.mirror === "x" || value.mirror === "y" || value.mirror === "z" ? value.mirror : null,
+    zoneIds: Array.isArray(value.zoneIds) ? value.zoneIds.filter((id): id is string => typeof id === "string") : undefined,
   };
 }
 
@@ -277,16 +313,19 @@ export function parseConfigurationDocument(value: unknown): ConfigurationDocumen
   const configurations = value.configurations.flatMap((entry) => {
     if (!isRecord(entry) || typeof entry.id !== "string" || typeof entry.name !== "string") return [];
     if (!Array.isArray(entry.modules) || !Array.isArray(entry.assemblies)) return [];
+    const modules = entry.modules.flatMap((item) => {
+      const placed = normalizeModule(item);
+      return placed ? [placed] : [];
+    });
+    const directJoins = readStoredJoins(entry.directJoins);
+    const hybridJoins = readStoredHybrids(entry.hybridJoins);
     return [{
       id: entry.id,
       name: entry.name,
       parentConfigurationId: typeof entry.parentConfigurationId === "string" ? entry.parentConfigurationId : null,
       createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date(0).toISOString(),
       updatedAt: typeof entry.updatedAt === "string" ? entry.updatedAt : new Date(0).toISOString(),
-      modules: entry.modules.flatMap((item) => {
-        const placed = normalizeModule(item);
-        return placed ? [placed] : [];
-      }),
+      modules,
       assemblies: entry.assemblies.flatMap((item) => {
         const assembly = normalizeAssembly(item);
         return assembly ? [assembly] : [];
@@ -295,6 +334,14 @@ export function parseConfigurationDocument(value: unknown): ConfigurationDocumen
         const note = normalizeAnnotation(item);
         return note ? [note] : [];
       }) : [],
+      zones: readZoningList(entry.zones),
+      networkId: typeof entry.networkId === "string" ? entry.networkId : null,
+      directJoins,
+      hybridJoins,
+      view: readConfigurationView(entry.view),
+      droppedModules: entry.modules.length - modules.length,
+      droppedDirects: Array.isArray(entry.directJoins) ? entry.directJoins.length - directJoins.length : 0,
+      droppedHybrids: Array.isArray(entry.hybridJoins) ? entry.hybridJoins.length - hybridJoins.length : 0,
     }];
   });
   const priorities = Array.isArray(value.priorities) ? value.priorities.flatMap((item) => {

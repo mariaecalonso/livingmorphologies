@@ -33,14 +33,27 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
   const activeStage = STAGES.find((stage) => stage.active(pathname));
 
   const tabHref = (href: string) => {
-    if (!href.startsWith("/lab/vertical")) return `${href}${suffix}`;
-    const params = new URLSearchParams(search.toString());
-    const query = params.toString();
-    return query ? `${href}?${query}` : href;
+    if (href.startsWith("/lab/vertical")) {
+      const params = new URLSearchParams(search.toString());
+      const query = params.toString();
+      return query ? `${href}?${query}` : href;
+    }
+    const [path, query] = href.split("?");
+    const params = new URLSearchParams(query ?? "");
+    const extra = new URLSearchParams(suffix.startsWith("?") ? suffix.slice(1) : "");
+    extra.forEach((value, key) => params.set(key, value));
+    const next = params.toString();
+    return next ? `${path}?${next}` : path;
   };
   const tabCurrent = (href: string) => {
-    if (LAB_WORKSPACES.some((workspace) => workspace.href === href)) return pathname === href;
-    return pathname === href || pathname.startsWith(`${href}/`);
+    const [path, query] = href.split("?");
+    if (query) {
+      if (pathname !== path) return false;
+      const wanted = new URLSearchParams(query);
+      return [...wanted].every(([key, value]) => search.get(key) === value);
+    }
+    if (LAB_WORKSPACES.some((workspace) => workspace.href === path)) return pathname === path;
+    return pathname === path || pathname.startsWith(`${path}/`);
   };
 
   const changeMode = (next: DisplayMode) => {

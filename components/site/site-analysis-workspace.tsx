@@ -51,6 +51,7 @@ import { ExploreToggles, GridIcon, PathIcon, ShadowIcon, SunIcon, UrbanIcon, Vie
 import { SunExplore } from "./sun-explore";
 import { AnalysisColumnFrame, SiteInputReview, readStoredFindings, siteRecord, writeStoredFindings, type SiteFinding, type SiteObservation } from "./site-inputs";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
+import { SiteWorkflowNav } from "./site-workflow-panels";
 import { seasonalComparison, stationDistanceKm, windSummary, type WindCondition, type WindSummary } from "@/lib/skill5/wind";
 
 const site = context as SiteContext;
@@ -2121,6 +2122,7 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
 
   return (
     <main className="site-view" data-panels={panels}>
+      {panels === "analysis" ? <SiteWorkflowNav step="analysis" /> : null}
       {panels === "analysis" ? (
         <div className="site-analysis-toolbar">
           <button type="button" aria-expanded={reviewOpen} onClick={() => setReviewOpen(true)}>

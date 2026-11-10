@@ -4,8 +4,21 @@ import { FIELD_SIZE } from "@/lib/skill1/maps";
 import type { SlimeControls } from "@/lib/skill1/slime-controls";
 import type { BiologicalTranslation, Point, SimulationState } from "@/lib/skill1/types";
 import type { XZ } from "@/lib/skill5/site-model";
+import { pedestrianCandidates, resolveCandidate, type PedestrianCandidate } from "./site-network-candidates";
 import { assessNetworkDomain, rasterNetworkMask, type NetworkDomain, type NetworkFootprint } from "./site-network-domain";
 import { trailDisplayAlpha } from "./site-network-display";
+import {
+  adaptFlow,
+  attractorRoutes,
+  survivingPoints,
+  auditFlowMask,
+  createFlowGraph,
+  createFlowState,
+  FLOW_SURVIVE,
+  flowSettled,
+  rasterFlow,
+  type FlowState,
+} from "./site-network-flow";
 
 const AGENT_COUNT = 720;
 const SITE_TRAIL_SCALE = 32;
@@ -71,14 +84,28 @@ export type NetworkNode = {
   kind: NetworkNodeKind;
   x: number;
   z: number;
+  /** Handoff record id, when this node was approved from a pedestrian candidate. */
+  recordId?: string;
+  /** Original measured east. Growth uses `x`, which may be the interior cell. */
+  measuredX?: number;
+  /** Original measured north. */
+  measuredZ?: number;
+};
+
+export type NetworkCandidate = PedestrianCandidate & {
+  resolvedX: number | null;
+  resolvedZ: number | null;
+  approvable: boolean;
 };
 
 export type NetworkEdit = {
   nodes: readonly NetworkNode[];
   selectedId: string | null;
+  candidates: readonly NetworkCandidate[];
+  selectedCandidateId: string | null;
 };
 
-const EMPTY_EDIT: NetworkEdit = { nodes: [], selectedId: null };
+const EMPTY_EDIT: NetworkEdit = { nodes: [], selectedId: null, candidates: [], selectedCandidateId: null };
 
 export type NetworkStatus = {
   step: number;
@@ -92,6 +119,8 @@ export type NetworkStatus = {
   /** Attractors with an agent inside the tolerance and no current strong trail. */
   visitIds: readonly string[];
   note: string | null;
+  /** Flow conductivity is the live generator. Agents remain available for rollback. */
+  generator: "flow" | "agents";
 };
 
 const EMPTY_STATUS: NetworkStatus = {
@@ -104,6 +133,7 @@ const EMPTY_STATUS: NetworkStatus = {
   connectedIds: [],
   visitIds: [],
   note: null,
+  generator: "flow",
 };
 
 type AttractorWatch = {
@@ -149,6 +179,10 @@ export type NetworkIteration = {
   traversable?: number;
   /** Site feet on each side of a trail cell. Both axes use this length. */
   cellFeet: number;
+  /** `flow` stores conductivity. `agents` stores raw engine deposits. */
+  generator?: "flow" | "agents";
+  /** Surviving adaptive-flow branches, in site feet. Absent on older saved iterations. */
+  branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[];
 };
 
 type StudyInit = {
@@ -163,6 +197,8 @@ type StudyInit = {
   slime?: Partial<SlimeControls>;
   /** Field-unit spread of every attractor. The live study uses the distance rule instead. */
   attractorSpread?: number;
+  /** Adaptive flow is the live generator. `agents` keeps the previous stepper for rollback. */
+  generator?: "flow" | "agents";
 };
 
 /**
@@ -385,7 +421,13 @@ function readStored(inside: (x: number, z: number) => boolean): NetworkNode[] {
       if (record.kind !== "source" && record.kind !== "attractor") continue;
       if (typeof record.id !== "string" || typeof record.x !== "number" || typeof record.z !== "number") continue;
       if (!inside(record.x, record.z)) continue;
-      nodes.push({ id: record.id, kind: record.kind, x: record.x, z: record.z });
+      const node: NetworkNode = { id: record.id, kind: record.kind, x: record.x, z: record.z };
+      if (typeof record.recordId === "string") node.recordId = record.recordId;
+      if (typeof record.measuredX === "number" && typeof record.measuredZ === "number") {
+        node.measuredX = record.measuredX;
+        node.measuredZ = record.measuredZ;
+      }
+      nodes.push(node);
     }
     return nodes;
   } catch {
@@ -427,10 +469,14 @@ export class SiteNetworkStudy {
   private turnedAtBoundary = 0;
   private anchorX = new Float32Array(0);
   private anchorY = new Float32Array(0);
+  private flowRng: () => number = Math.random;
+  private flow: FlowState | null = null;
+  readonly generator: "flow" | "agents";
 
   constructor(parcel: readonly XZ[], water: readonly XZ[], init?: StudyInit) {
     this.persistEnabled = init?.persist !== false;
     this.seed = init?.seed ?? SEED;
+    this.generator = init?.generator ?? "flow";
     this.domain = assessNetworkDomain({
       parcel,
       water,
@@ -460,7 +506,7 @@ export class SiteNetworkStudy {
       if (match) serial = Math.max(serial, Number(match[1]) + 1);
     }
     this.serial = serial;
-    this.editState = { nodes: stored, selectedId: null };
+    this.editState = { nodes: stored, selectedId: null, candidates: this.settleCandidates(parcel), selectedCandidateId: null };
     this.translation = studyTranslation([], []);
     this.restart(false);
   }
@@ -469,6 +515,8 @@ export class SiteNetworkStudy {
   private restart(hold: boolean) {
     this.hold = hold;
     this.rng = mulberry32(this.seed ^ 0x51e7);
+    this.flowRng = mulberry32(this.seed ^ 0xF10C);
+    this.flow = null;
     this.watches.clear();
     this.settled = false;
     this.pixels.fill(0);
@@ -531,7 +579,7 @@ export class SiteNetworkStudy {
     if (!this.insideField(x, z)) return false;
     const node: NetworkNode = { id: `n${this.serial}`, kind, x, z };
     this.serial += 1;
-    this.replace([...this.editState.nodes, node], node.id);
+    this.replace([...this.editState.nodes, node], node.id, null);
     this.persist();
     this.applyTargets(this.iteration > 0);
     return true;
@@ -550,9 +598,41 @@ export class SiteNetworkStudy {
   }
 
   select(id: string | null) {
-    if (id === this.editState.selectedId) return;
+    if (id === this.editState.selectedId && this.editState.selectedCandidateId === null) return;
     if (id && !this.editState.nodes.some((node) => node.id === id)) return;
-    this.replace(this.editState.nodes, id);
+    const node = id ? this.editState.nodes.find((item) => item.id === id) : undefined;
+    this.replace(this.editState.nodes, id, node?.recordId ?? null);
+  }
+
+  selectCandidate(id: string | null) {
+    if (id && !this.editState.candidates.some((item) => item.id === id)) return;
+    const approved = id != null && this.editState.nodes.some((node) => node.id === id);
+    this.replace(this.editState.nodes, approved ? id : null, id);
+  }
+
+  /** Copies an approved candidate into the growth nodes. The measured coordinate stays on the record. */
+  approveCandidate(id: string, kind: NetworkNodeKind) {
+    const candidate = this.editState.candidates.find((item) => item.id === id);
+    if (!candidate?.approvable || candidate.resolvedX == null || candidate.resolvedZ == null) return false;
+    if (!this.insideField(candidate.resolvedX, candidate.resolvedZ)) return false;
+    const existing = this.editState.nodes.find((node) => node.id === id);
+    const node: NetworkNode = {
+      id,
+      kind,
+      x: existing?.x ?? candidate.resolvedX,
+      z: existing?.z ?? candidate.resolvedZ,
+      recordId: id,
+      measuredX: candidate.measuredX,
+      measuredZ: candidate.measuredZ,
+    };
+    if (!this.insideField(node.x, node.z)) return false;
+    const nodes = existing
+      ? this.editState.nodes.map((item) => item.id === id ? node : item)
+      : [...this.editState.nodes, node];
+    this.replace(nodes, id, id);
+    this.persist();
+    this.applyTargets(this.iteration > 0);
+    return true;
   }
 
   remove(id: string) {
@@ -570,7 +650,18 @@ export class SiteNetworkStudy {
     this.applyTargets(this.iteration > 0);
   }
 
+  /** True while the network is still growing or joining attractors. */
+  get exploring() {
+    return this.generator === "flow" && !this.flow?.feeding;
+  }
+
   step(times: number, paint = true) {
+    if (this.generator === "agents") this.stepAgents(times, paint);
+    else this.stepFlow(times, paint);
+  }
+
+  /** Previous agent stepper. Kept so a study can be constructed with generator: "agents". */
+  private stepAgents(times: number, paint: boolean) {
     if (this.hold || this.settled || this.sourceFields.length === 0 || this.attractorFields.length === 0) return;
     const before = this.state.iteration;
     for (let n = 0; n < times; n += 1) {
@@ -592,7 +683,138 @@ export class SiteNetworkStudy {
     this.revision += 1;
   }
 
+  private stepFlow(times: number, paint: boolean) {
+    if (this.hold || this.settled || this.sourceFields.length === 0 || this.attractorFields.length === 0) return;
+    const state = this.ensureFlow();
+    for (let n = 0; n < times; n += 1) {
+      if (flowSettled(state)) break;
+      adaptFlow(state);
+      this.state.iteration += 1;
+      this.measureFlow();
+      if (flowSettled(state)) break;
+    }
+    this.settled = flowSettled(state);
+    rasterFlow(state, this.state.trails, this.frame, this.inkSize, this.open);
+    auditFlowMask(state, this.frame, this.inkSize, this.open, this.cellFeet);
+    if (!paint) {
+      this.publishFlowStatus();
+      return;
+    }
+    this.writeInk();
+    this.publishFlowStatus();
+    this.revision += 1;
+  }
+
+  private ensureFlow() {
+    if (this.flow) return this.flow;
+    const terminals = this.editState.nodes
+      .filter((node) => this.insideField(node.x, node.z))
+      .map((node) => ({ id: node.id, kind: node.kind, x: node.x, z: node.z }));
+    const graph = createFlowGraph(terminals, 15, this.cellFeet, this.frame, this.inkSize, this.open, this.flowRng);
+    this.flow = createFlowState(graph);
+    return this.flow;
+  }
+
+  private measureFlow() {
+    const flow = this.flow;
+    if (!flow) return;
+    for (const node of this.editState.nodes) {
+      if (node.kind !== "attractor") continue;
+      const watch = this.watches.get(node.id) ?? { best: Infinity, still: 0, holds: 0, current: Infinity, connected: false, reached: false, visiting: false };
+      const connected = flow.connected.includes(node.id);
+      watch.connected = connected;
+      watch.visiting = false;
+      watch.holds = connected ? watch.holds + 1 : 0;
+      watch.reached = watch.holds >= REACH_HOLDS;
+      watch.current = connected ? 0 : Infinity;
+      this.watches.set(node.id, watch);
+    }
+  }
+
+  flowRoutes() {
+    return this.flow ? attractorRoutes(this.flow) : [];
+  }
+
+  flowPoints() {
+    return this.flow ? survivingPoints(this.flow) : [];
+  }
+
+  /** Surviving edges for the display tubes. The conductivity field used by analysis is unchanged. */
+  flowAppearance() {
+    const flow = this.flow;
+    if (!flow || this.generator !== "flow") return [];
+    const graph = flow.graph;
+    const edges: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] = [];
+    for (const edge of graph.edges) {
+      if (edge.conductivity < FLOW_SURVIVE) continue;
+      edges.push({
+        x0: graph.east[edge.a],
+        z0: graph.north[edge.a],
+        x1: graph.east[edge.b],
+        z1: graph.north[edge.b],
+        conductivity: edge.conductivity,
+      });
+    }
+    return edges;
+  }
+
+  flowReport() {
+    const flow = this.flow;
+    return {
+      connected: flow?.connected ?? [],
+      disconnected: flow?.disconnected ?? this.editState.nodes.filter((node) => node.kind === "attractor").map((node) => node.id),
+      branches: flow?.branches ?? 0,
+      surviving: flow?.surviving ?? 0,
+      maskBreaks: flow?.maskBreaks ?? 0,
+      stable: flow ? flow.stableFor >= 20 : false,
+      step: flow?.step ?? 0,
+      nodes: flow?.graph.east.length ?? 0,
+      edges: flow?.graph.edges.length ?? 0,
+      signature: flow?.signature ?? "",
+    };
+  }
+
+  private publishFlowStatus() {
+    const flow = this.flow;
+    const reachedIds: string[] = [];
+    const connectedIds = flow?.connected ?? [];
+    for (const id of connectedIds) {
+      if (this.watches.get(id)?.reached) reachedIds.push(id);
+    }
+    const total = this.editState.nodes.filter((node) => node.kind === "attractor").length;
+    let note = this.domainNote ?? this.mappingNote;
+    if (!note && flow && flow.step > 0 && flow.disconnected.length) {
+      const names = flow.disconnected.map((id) => {
+        const index = this.editState.nodes.filter((node) => node.kind === "attractor").findIndex((node) => node.id === id);
+        return index >= 0 ? `Attractor ${index + 1}` : id;
+      });
+      note = `${names.join(", ")} ${names.length === 1 ? "has" : "have"} no surviving conductivity to a source.`;
+    }
+    this.statusState = {
+      step: this.state.iteration,
+      settled: this.settled,
+      reached: reachedIds.length,
+      total,
+      reachedIds,
+      connected: connectedIds.length,
+      connectedIds,
+      visitIds: [],
+      note,
+      generator: "flow",
+    };
+  }
+
   finish() {
+    if (this.generator === "flow") {
+      if (this.flow) {
+        rasterFlow(this.flow, this.state.trails, this.frame, this.inkSize, this.open);
+        auditFlowMask(this.flow, this.frame, this.inkSize, this.open, this.cellFeet);
+      }
+      this.writeInk();
+      this.publishFlowStatus();
+      this.revision += 1;
+      return;
+    }
     this.measureAttractors(true);
     this.writeInk();
     this.publishStatus();
@@ -611,14 +833,48 @@ export class SiteNetworkStudy {
     this.restart(true);
   }
 
-  private replace(nodes: readonly NetworkNode[], selectedId: string | null) {
-    this.editState = { nodes, selectedId };
+  private settleCandidates(parcel: readonly XZ[]): NetworkCandidate[] {
+    let towardX = 0;
+    let towardZ = 0;
+    for (const [x, z] of parcel) {
+      towardX += x;
+      towardZ += z;
+    }
+    const count = Math.max(1, parcel.length);
+    towardX /= count;
+    towardZ /= count;
+    return pedestrianCandidates().map((candidate) => {
+      const resolved = resolveCandidate(candidate, (x, z) => this.insideField(x, z), this.cellFeet, towardX, towardZ);
+      return {
+        ...candidate,
+        resolvedX: resolved?.x ?? null,
+        resolvedZ: resolved?.z ?? null,
+        approvable: resolved !== null,
+      };
+    });
+  }
+
+  private replace(nodes: readonly NetworkNode[], selectedId: string | null, selectedCandidateId?: string | null) {
+    this.editState = {
+      nodes,
+      selectedId,
+      candidates: this.editState.candidates,
+      selectedCandidateId: selectedCandidateId === undefined ? this.editState.selectedCandidateId : selectedCandidateId,
+    };
     for (const listener of this.listeners) listener();
   }
 
   private persist() {
     if (!this.persistEnabled || typeof localStorage === "undefined") return;
-    const stored = this.editState.nodes.map((node) => ({ id: node.id, kind: node.kind, x: node.x, z: node.z }));
+    const stored = this.editState.nodes.map((node) => ({
+      id: node.id,
+      kind: node.kind,
+      x: node.x,
+      z: node.z,
+      recordId: node.recordId,
+      measuredX: node.measuredX,
+      measuredZ: node.measuredZ,
+    }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   }
 
@@ -647,10 +903,12 @@ export class SiteNetworkStudy {
       next.streak = previous.streak;
     }
     this.state = next;
+    this.flow = null;
     this.rememberAnchors();
     this.settled = false;
     if (!keepTrails) this.pixels.fill(0);
-    this.publishStatus();
+    if (this.generator === "flow") this.publishFlowStatus();
+    else this.publishStatus();
     this.revision += 1;
   }
 
@@ -910,6 +1168,7 @@ export class SiteNetworkStudy {
       connectedIds,
       visitIds,
       note,
+      generator: "agents",
     };
   }
 
@@ -943,6 +1202,31 @@ function yieldToPaint() {
   });
 }
 
+/** Copies the live study's current tubes and trail field. The solver is not run again. */
+export function captureNetworkIteration(study: SiteNetworkStudy): NetworkIteration {
+  const status = study.status;
+  const seed = (study as unknown as { seed: number }).seed;
+  return {
+    id: "",
+    index: 0,
+    seed,
+    nodes: study.edit.nodes.map((node) => ({ ...node })),
+    step: status.step,
+    settled: status.settled,
+    reached: status.reached,
+    total: status.total,
+    reachedIds: [...status.reachedIds],
+    connectedIds: [...status.connectedIds],
+    note: status.note,
+    trails: study.snapshotTrails(),
+    inkSize: study.inkSize,
+    traversable: study.traversable,
+    cellFeet: study.cellFeet,
+    generator: study.generator,
+    branches: study.generator === "flow" ? study.flowAppearance().map((edge) => ({ ...edge })) : undefined,
+  };
+}
+
 /** Runs one finished network from the given nodes and seed. The live study is not used. */
 export async function runNetworkIteration(
   parcel: readonly XZ[],
@@ -971,6 +1255,7 @@ export async function runNetworkIteration(
       inkSize: study.inkSize,
       traversable: study.traversable,
       cellFeet: study.cellFeet,
+      generator: study.generator,
     };
   }
   study.resume();
@@ -998,5 +1283,7 @@ export async function runNetworkIteration(
     inkSize: study.inkSize,
     traversable: study.traversable,
     cellFeet: study.cellFeet,
+    generator: study.generator,
+    branches: study.generator === "flow" ? study.flowAppearance().map((edge) => ({ ...edge })) : undefined,
   };
 }

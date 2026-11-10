@@ -59,12 +59,24 @@ export type PlacedModule = Skill5Instance & {
   programSource: Skill5ProgramSource;
   assemblyPlacementId?: string;
   mirror?: "x" | "y" | "z" | null;
+  /** Zones whose footprint and elevation range meet this tile. */
+  zoneIds?: string[];
 };
 
 export type ModuleWarning = {
   outside: boolean;
   overlap: boolean;
+  /** Edges meet. Touching is adjacency, not a connection. */
+  adjacent?: boolean;
+  zoneMismatch?: boolean;
+  unsupported?: boolean;
 };
+
+export const MODULE_HEIGHT_FT = SKILL5_MODULE_ENVELOPE_FEET;
+
+export function verticalRangesOverlap(baseA: number, baseB: number, height = MODULE_HEIGHT_FT) {
+  return baseA < baseB + height - 0.05 && baseA + height > baseB + 0.05;
+}
 
 type PlanPoint = { x: number; z: number };
 
@@ -341,15 +353,16 @@ export function placementWarnings(
     const own = corners.get(instance.instanceId) ?? [];
     const outside = own.some((point) => !pointOnSurfaces(point.x, point.z, surfaces));
     let overlap = false;
+    let adjacent = false;
+    const ownBox = boundsOf(own);
     for (const other of instances) {
       if (other.instanceId === instance.instanceId) continue;
+      if (!verticalRangesOverlap(instance.transform.position.y, other.transform.position.y)) continue;
       const theirs = corners.get(other.instanceId) ?? [];
-      if (!separated(own, theirs)) {
-        overlap = true;
-        break;
-      }
+      if (!separated(own, theirs)) overlap = true;
+      else if (spansMeet(ownBox, boundsOf(theirs), "x") || spansMeet(ownBox, boundsOf(theirs), "z")) adjacent = true;
     }
-    warnings[instance.instanceId] = { outside, overlap };
+    warnings[instance.instanceId] = { outside, overlap, adjacent };
   }
   return warnings;
 }
