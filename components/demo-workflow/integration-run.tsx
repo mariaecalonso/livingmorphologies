@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import contextJson from "@/data/skill5/herald-site.json";
 import { HybridPresentation } from "@/components/home-hybrid-lab-frames";
 import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
@@ -94,11 +95,54 @@ function useHybridCatalog() {
   };
 }
 
+type LabBeat =
+  | { kind: "aim" | "press"; selector: string; ms: number; act?: "generate" | "click" }
+  | { kind: "follow"; }
+  | { kind: "scrub"; ms: number };
+
+/** The same kind of pass chapter 02 makes through the lab: the cursor visits each control, then the run plays. */
+const LAB_BEATS: LabBeat[] = [
+  { kind: "aim", selector: '[aria-label="A face N"]', ms: 900 },
+  { kind: "press", selector: '[aria-label="A face N"]', ms: 360 },
+  { kind: "aim", selector: '[aria-label="B face S"]', ms: 900 },
+  { kind: "press", selector: '[aria-label="B face S"]', ms: 360 },
+  { kind: "aim", selector: ".hybrid-matrix", ms: 800 },
+  { kind: "press", selector: ".hybrid-matrix", ms: 420, act: "generate" },
+  { kind: "follow" },
+  { kind: "aim", selector: '[data-mock-id="H10"]', ms: 800 },
+  { kind: "press", selector: '[data-mock-id="H10"]', ms: 380, act: "click" },
+  { kind: "aim", selector: ".hybrid-morph-toggle", ms: 800 },
+  { kind: "press", selector: ".hybrid-morph-toggle", ms: 380, act: "click" },
+  { kind: "scrub", ms: 7000 },
+  { kind: "aim", selector: ".hybrid-validate-run", ms: 800 },
+  { kind: "press", selector: ".hybrid-validate-run", ms: 420, act: "click" },
+];
+
+function latestMatrixCell(root: ParentNode) {
+  const buttons = [...root.querySelectorAll<HTMLElement>(".hybrid-matrix-grid button")];
+  return buttons.filter((button) => button.querySelector("canvas")).at(-1) ?? buttons.at(-1) ?? root.querySelector<HTMLElement>(".hybrid-matrix");
+}
+
+function placeCursor(cursor: HTMLElement, host: HTMLElement, target: HTMLElement, along = 0.42) {
+  const box = host.getBoundingClientRect();
+  const scale = box.width / host.offsetWidth || 1;
+  const rect = target.getBoundingClientRect();
+  const x = (rect.left - box.left + rect.width * along) / scale;
+  const y = (rect.top - box.top + rect.height * 0.62) / scale;
+  cursor.style.transform = `translate(${x}px, ${y}px)`;
+  cursor.dataset.hidden = "false";
+}
+
 function HybridRun() {
   const { connections, loaded, generateHybridFieldForConnection } = useHybrid();
   const started = useRef(false);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const cursor = useRef<HTMLSpanElement>(null);
   const [note, setNote] = useState<string | null>(null);
-  useEffect(() => {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  const [beat, setBeat] = useState(0);
+  const reduced = useRef(false);
+  const begin = () => {
     if (started.current) return;
     const connection = connections[0];
     if (!connection) return;
@@ -106,11 +150,106 @@ function HybridRun() {
     if (result === "Geometry is unavailable for this connection." || result === "The connection tiles are missing.") return;
     started.current = true;
     if (result && result !== "Sensing") setNote(result);
+  };
+  const beginRef = useRef(begin);
+  beginRef.current = begin;
+  useEffect(() => {
+    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced.current) begin();
   }, [connections, generateHybridFieldForConnection, loaded]);
+  useEffect(() => {
+    setHost(anchor.current?.closest<HTMLElement>("[data-hybrid-lab]") ?? null);
+  }, []);
+  useEffect(() => {
+    if (reduced.current || !host || beat >= LAB_BEATS.length) return;
+    const step = LAB_BEATS[beat];
+    if (step.kind === "follow") {
+      let done = false;
+      const id = window.setInterval(() => {
+        const node = cursor.current;
+        const cell = latestMatrixCell(host);
+        if (node && cell) placeCursor(node, host, cell);
+        const status = host.querySelector(".hybrid-som-mini > .hybrid-units")?.textContent?.trim();
+        if (status === "Ready" && !done) {
+          done = true;
+          setBeat((current) => current + 1);
+        }
+      }, 280);
+      return () => window.clearInterval(id);
+    }
+    if (step.kind === "scrub") {
+      const startedAt = performance.now();
+      let frame = 0;
+      const tick = (now: number) => {
+        const node = cursor.current;
+        const range = host.querySelector<HTMLInputElement>(".hybrid-morph-range");
+        if (node && range) {
+          const max = Number(range.max) || 1;
+          placeCursor(node, host, range, Math.max(0, Math.min(1, Number(range.value) / max)));
+        }
+        if (now - startedAt < step.ms) frame = window.requestAnimationFrame(tick);
+        else setBeat((current) => current + 1);
+      };
+      frame = window.requestAnimationFrame(tick);
+      return () => window.cancelAnimationFrame(frame);
+    }
+    let cancel = false;
+    let timer = 0;
+    const attempt = () => {
+      if (cancel) return;
+      if (!host.querySelector(step.selector)) {
+        timer = window.setTimeout(attempt, 400);
+        return;
+      }
+      if (step.act === "generate") {
+        beginRef.current();
+        if (!started.current) {
+          timer = window.setTimeout(attempt, 400);
+          return;
+        }
+      }
+      if (step.act === "click") {
+        const control = host.querySelector<HTMLButtonElement>(step.selector);
+        if (!control || control.disabled) {
+          timer = window.setTimeout(attempt, 400);
+          return;
+        }
+        control.click();
+      }
+      setBeat((current) => current + 1);
+    };
+    timer = window.setTimeout(attempt, step.ms);
+    return () => {
+      cancel = true;
+      window.clearTimeout(timer);
+    };
+  }, [beat, host]);
+  useLayoutEffect(() => {
+    const node = cursor.current;
+    if (!node || !host || reduced.current) return;
+    const step = LAB_BEATS[beat];
+    if (!step || step.kind === "follow" || step.kind === "scrub") return;
+    const target = host.querySelector<HTMLElement>(step.selector);
+    if (!target) {
+      node.dataset.hidden = "true";
+      return;
+    }
+    node.dataset.press = step.kind === "press" ? "true" : "false";
+    placeCursor(node, host, target, 0.42);
+  }, [beat, host]);
   return (
     <>
+      <span ref={anchor} hidden />
       {note ? <p className={styles.note}>{note}</p> : null}
       <HybridAssembly presentation />
+      {host ? createPortal(
+        <span ref={cursor} className={styles.pointer} data-hidden="true" aria-hidden="true">
+          <svg viewBox="0 0 18 22">
+            <path d="M1 1v17l4.6-4.2 3.2 7 3-1.4-3.2-6.8 6.4-.2z" />
+          </svg>
+        </span>,
+        host,
+      ) : null}
     </>
   );
 }
@@ -118,7 +257,7 @@ function HybridRun() {
 /** The Hybrid Connection lab, restored from the stored example and run once. Nothing is written to the catalog. */
 export function HybridLabPage() {
   return (
-    <div className={styles.lab}>
+    <div className={styles.lab} data-hybrid-lab="">
       <HybridPresentation onReady={() => undefined}>
         <HybridRun />
       </HybridPresentation>
