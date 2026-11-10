@@ -1666,7 +1666,11 @@ function SiteModelWorkspace() {
       setHybridPlacement(null);
       setHybridCandidate(null);
     }
-    setSelectedJoin((current) => current && (current.tileA === selectedId || current.tileB === selectedId) ? null : current);
+    setSelectedJoin((current) => {
+      if (!current) return current;
+      const link = connections.find((item) => item.id === current);
+      return link && (link.tileA === selectedId || link.tileB === selectedId) ? null : current;
+    });
     setSelectedId(null);
   };
   const setTileTransform = (patch: { x?: number; y?: number; z?: number; rotationY?: number; mirror?: PlacedModule["mirror"] }) => {
@@ -2851,7 +2855,7 @@ function SiteModelWorkspace() {
                     const top = levels.reduce((highest, zone) => Math.max(highest, zone.baseFt + zone.heightFt), 0);
                     return [(
                       <li key={pocket.id}>
-                        <button type="button" data-kind={lowest.kind} data-active={pocketSelection.includes(pocket.id) || undefined} onClick={() => pickPocket(pocket.id, false)}>
+                        <button type="button" data-kind={lowest.kind} data-active={pocketSelection.includes(pocket.id) || undefined} onClick={() => pickPocket(pocket.id)}>
                           <i />
                           <b>{ZONE_KINDS.find((item) => item.id === lowest.kind)?.label}</b>
                           <span>{Math.round(polygonAreaSqFt(pocket.points)).toLocaleString("en-US")} ft² · {lowest.baseFt}–{top} ft</span>
@@ -3078,7 +3082,7 @@ function SiteModelWorkspace() {
                     setZoneSelection(null);
                     return;
                   }
-                  pickPocket(pocket.id, false);
+                  pickPocket(pocket.id);
                 },
                 annotations: drawnNotes,
                 onPlace: placeModule,

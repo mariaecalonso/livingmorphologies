@@ -148,18 +148,20 @@ export function SiteZoneLayer({
         setOverride(lifted);
         return;
       }
+      if (current.kind !== "vertex" && current.kind !== "edge" && current.kind !== "body") return;
       const point = readGround(event);
       if (!point) return;
-      const dx = point.x - current.origin.x;
-      const dz = point.z - current.origin.z;
+      const plan = current;
+      const dx = point.x - plan.origin.x;
+      const dz = point.z - plan.origin.z;
       if (Math.hypot(dx, dz) > 0.6) moved.current = true;
-      let points = current.points.map((item) => ({ ...item }));
-      if (current.kind === "body") points = points.map((item) => ({ x: item.x + dx, z: item.z + dz }));
-      if (current.kind === "vertex") points[current.index] = { x: current.points[current.index].x + dx, z: current.points[current.index].z + dz };
-      if (current.kind === "edge") {
-        const next = (current.index + 1) % points.length;
-        points[current.index] = { x: current.points[current.index].x + dx, z: current.points[current.index].z + dz };
-        points[next] = { x: current.points[next].x + dx, z: current.points[next].z + dz };
+      let points = plan.points.map((item) => ({ ...item }));
+      if (plan.kind === "body") points = points.map((item) => ({ x: item.x + dx, z: item.z + dz }));
+      if (plan.kind === "vertex") points[plan.index] = { x: plan.points[plan.index].x + dx, z: plan.points[plan.index].z + dz };
+      if (plan.kind === "edge") {
+        const next = (plan.index + 1) % points.length;
+        points[plan.index] = { x: plan.points[plan.index].x + dx, z: plan.points[plan.index].z + dz };
+        points[next] = { x: plan.points[next].x + dx, z: plan.points[next].z + dz };
       }
       const shaped = { ...zone, points };
       overrideRef.current = shaped;

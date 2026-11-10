@@ -321,6 +321,8 @@ type MeshGl = {
   aoProgram: WebGLProgram;
   shellProgram: WebGLProgram;
   clayProgram: WebGLProgram;
+  wireBodyProgram: WebGLProgram;
+  wireProgram: WebGLProgram;
   shellAoProgram: WebGLProgram;
   floatAoProgram: WebGLProgram;
   accentProgram?: WebGLProgram | null;

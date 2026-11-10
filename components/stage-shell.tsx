@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useLayoutEffect, type ReactNode } from "react";
+import { Suspense, useLayoutEffect, type ReactNode } from "react";
 import { reconcileLabDisplay } from "@/components/display-sync";
 import { StageNav } from "@/components/stage-nav";
 import { PresentationFrame, useFramed, useViewMode } from "@/components/view-mode";
@@ -27,7 +27,7 @@ function useRememberFramedRoute() {
   }, [pathname, query]);
 }
 
-export function StageShell({ children }: { children: ReactNode }) {
+function StageShellFrame({ children }: { children: ReactNode }) {
   const mode = useViewMode();
   const frame = useFramed();
   useRememberFramedRoute();
@@ -44,5 +44,13 @@ export function StageShell({ children }: { children: ReactNode }) {
       <StageNav mode={mode} presentationFrame={frame.presentationFrame} />
       <div className="stage-body">{children}</div>
     </div>
+  );
+}
+
+export function StageShell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="stage-shell" />}>
+      <StageShellFrame>{children}</StageShellFrame>
+    </Suspense>
   );
 }

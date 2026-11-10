@@ -272,7 +272,8 @@ for (const candidate of access) {
 assert(miami.edit.nodes.length === 0, "An unapproved access contact entered the growth.");
 assert(miami.approveCandidate(northeast.id, "source"), "The northeast contact could not be approved.");
 assert(miami.edit.nodes.some((node) => node.id === northeast.id && node.kind === "source" && node.measuredX === northeast.measuredX), "Approval dropped the measured coordinate.");
-assert(miami.edit.nodes.length === 1, "Approval replaced the manual nodes.");
+const approvedNodes = miami.edit.nodes.slice();
+assert(approvedNodes.length === 1, "Approval replaced the manual nodes.");
 miami.remove(northeast.id);
 assert(miami.edit.nodes.length === 0, "Removing an approved contact left it in the growth.");
 assert(miami.domain.valid, `The Miami parcel or water could not be used. ${miami.domain.gaps.join(" ")}`);

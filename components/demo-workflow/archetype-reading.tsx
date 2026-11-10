@@ -2127,8 +2127,8 @@ function CleanDiagram({ mode }: { mode: Mode }) {
     );
   }
   if (mode === "edge-spine") {
-    const gallery = [[12, 18], [18, 36], [22, 58], [30, 74], [48, 86], [70, 90]];
-    const offset = [[20, 14], [26, 34], [30, 54], [40, 70], [58, 80], [78, 82]];
+    const gallery: Array<[number, number]> = [[12, 18], [18, 36], [22, 58], [30, 74], [48, 86], [70, 90]];
+    const offset: Array<[number, number]> = [[20, 14], [26, 34], [30, 54], [40, 70], [58, 80], [78, 82]];
     return (
       <>
         <ellipse className={styles.fill} cx={48} cy={20} rx={16} ry={15} />

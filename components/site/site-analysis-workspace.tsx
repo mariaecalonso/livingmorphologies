@@ -1429,6 +1429,7 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
         members: assembly.members.map((member) => member.provenance.moduleId === moduleId ? { ...member, geometryState: state } : member),
       })),
       annotations: present.annotations,
+      zones: present.zones,
     };
     publish(adoptPresent(historyRef.current, next));
   }, [publish]);
@@ -1806,6 +1807,8 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
       modules: structuredClone(instances),
       assemblies: structuredClone(assemblies),
       annotations: structuredClone(annotations),
+      zones: [],
+      networkId: null,
     };
     setCurrentConfigId(id);
     setConfigName(name);
@@ -1815,7 +1818,7 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
     const nextModules = structuredClone(entry.modules);
     const nextAssemblies = structuredClone(entry.assemblies);
     const nextNotes = structuredClone(entry.annotations ?? []);
-    publish(emptyEditHistory({ instances: nextModules, assemblies: nextAssemblies, annotations: nextNotes }));
+    publish(emptyEditHistory({ instances: nextModules, assemblies: nextAssemblies, annotations: nextNotes, zones: structuredClone(entry.zones) }));
     setCirculationStart(null);
     setSelectedId(null);
     setMemberEditId(null);

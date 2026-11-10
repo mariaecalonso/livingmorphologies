@@ -179,7 +179,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
     const id = current?.armedModuleId ?? (current?.previewParts ? "assembly" : null);
     if (!id || !current) return;
     const mesh = current.meshes[id];
-    const positions = mesh && mesh !== "missing" ? mesh.positions : null;
+    const positions = mesh ? mesh.positions : null;
     const elevation = current.elevation ?? MODULE_GROUND_Y;
     const match = current.previewParts ? null : matchTileFaces({
       positions,
@@ -372,7 +372,7 @@ export function useModulePointer(model: SitePlacementModel | null) {
       return;
     }
     const mesh = current.meshes[current.armedModuleId ?? ""];
-    const positions = mesh && mesh !== "missing" ? mesh.positions : null;
+    const positions = mesh ? mesh.positions : null;
     const elevation = current.elevation ?? MODULE_GROUND_Y;
     const match = current.previewParts || !current.armedModuleId ? null : matchTileFaces({
       positions,

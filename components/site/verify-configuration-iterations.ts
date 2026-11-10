@@ -12,7 +12,7 @@ function tile(id: string, program: PlacedModule["program"], x: number, y: number
     status: "Validated",
     geometryState: "available",
     program,
-    programSource: "manual",
+    programSource: "assigned",
     provenance: { moduleId: `${program}-mesh`, archetypeId: program, source: "skill3", candidateId: 1, continuationId: "c" },
     transform: { position: { x, y, z }, rotationY: 0 },
     mirror: null,

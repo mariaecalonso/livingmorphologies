@@ -110,6 +110,12 @@ function excludedExcept(directory: string, keep: Set<string>) {
 
 const hybridKeep = new Set(hybridFiles);
 const keptOffSharedFunctions = [...generationFiles, ...formFiles, ...hybridFiles, ...openFiles];
+const presentationMedia = [
+  "app/lab/physarum-video/clips/**",
+  "public/physarum-forage.mp4",
+  "public/physarum-detail.mp4",
+];
+const keptOffTracedRoutes = [...keptOffSharedFunctions, ...presentationMedia];
 
 const nextConfig: NextConfig = {
   agentRules: false,
@@ -152,10 +158,13 @@ const nextConfig: NextConfig = {
       "data/skill3/published-lobby/**",
       ...excludedSolidified(),
     ],
-    "/lab/vertical": keptOffSharedFunctions,
-    "/api/vertical/[[...path]]": keptOffSharedFunctions,
-    "...path": keptOffSharedFunctions,
-    "/api/vertical/z0": keptOffSharedFunctions,
+    "/lab/vertical": keptOffTracedRoutes,
+    "/api/vertical/[[...path]]": keptOffTracedRoutes,
+    "...path": keptOffTracedRoutes,
+    "/api/vertical/z0": keptOffTracedRoutes,
+    "/api/vertical/z0/field": keptOffTracedRoutes,
+    "/api/evolution": keptOffTracedRoutes,
+    "/api/filament": keptOffTracedRoutes,
     "/api/vertical/catalogue-readiness": openFiles,
     "/api/skill4/handoff": openFiles,
     "/api/vertical/process-generation": openFiles,

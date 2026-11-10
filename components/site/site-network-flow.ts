@@ -771,7 +771,7 @@ function branchCount(graph: FlowGraph, surviving: readonly number[]) {
 /** Writes surviving conductivity into a trail-sized raster. Closed cells stay empty. Values are conductivity, capped for display. */
 export function rasterFlow(
   state: FlowState,
-  target: Float32Array,
+  target: Float32Array | number[],
   frame: { minX: number; minZ: number; width: number; depth: number },
   inkSize: number,
   open: Uint8Array,
@@ -801,7 +801,7 @@ export function rasterFlow(
 }
 
 function stampTube(
-  target: Float32Array,
+  target: Float32Array | number[],
   x0: number,
   z0: number,
   x1: number,
