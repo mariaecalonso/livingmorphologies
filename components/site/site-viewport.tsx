@@ -7,8 +7,10 @@ import {
   BufferGeometry,
   Color,
   DoubleSide,
+  EdgesGeometry,
   Float32BufferAttribute,
   LineBasicMaterial,
+  MeshBasicMaterial,
   OrthographicCamera,
   PerspectiveCamera,
   SRGBColorSpace,
@@ -47,8 +49,19 @@ import { elevatedDeckRoads } from "@/lib/skill5/deck-surface";
 import { HERALD_AERIAL } from "@/lib/skill5/aerial";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { SITE_GRID_FEET } from "@/lib/skill5/grid";
-import { northDegrees, placeAxon, placePerspective, placePlan, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
+import { northDegrees, placeAxon, placeModelPerspective, placePerspective, placePlan, placeWholeSitePerspective, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
+import { analysisTowers, casterBox } from "@/lib/skill5/sun-analysis";
+import type { SunSample } from "@/lib/skill5/solar";
+import { studyDeckMaterial, studyMassMaterial, studyWaterMaterial, SunLight, SunShadow, sunlitLandMaterial, sunlitRoadMaterial, sunlitSiteMaterial, towerShaft } from "./sun-shadow";
+import { WindField } from "./wind-field";
+import { SightLines } from "./sight-lines";
+import { WalkLines } from "./walk-lines";
+import { UseLines } from "./use-lines";
+import type { SightSegment } from "@/lib/skill5/views-noise";
+import type { WalkSegment } from "@/lib/skill5/pedestrian";
+import type { UseSegment } from "@/lib/skill5/urban";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
+import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
 
 export type SiteViewMode = "perspective" | "plan" | "axon";
 export type SiteFit = "site" | "context";
@@ -78,6 +91,8 @@ const SITE_EDGE = new ShaderMaterial({
     uMin: { value: new Vector2() },
     uMax: { value: new Vector2() },
     uPx: { value: 1.4 },
+    uColor: { value: new Vector3(1, 1, 1) },
+    uGlow: { value: 0.35 },
   },
   vertexShader: `
     varying vec2 vXZ;
@@ -90,6 +105,8 @@ const SITE_EDGE = new ShaderMaterial({
     uniform vec2 uMin;
     uniform vec2 uMax;
     uniform float uPx;
+    uniform vec3 uColor;
+    uniform float uGlow;
     varying vec2 vXZ;
     void main() {
       vec2 center = (uMin + uMax) * 0.5;
@@ -98,10 +115,10 @@ const SITE_EDGE = new ShaderMaterial({
       float dist = length(max(outside, 0.0)) + min(max(outside.x, outside.y), 0.0);
       float pixel = max(length(fwidth(vXZ)), 1e-4);
       float core = 1.0 - smoothstep(0.0, pixel * uPx, abs(dist));
-      float glow = (1.0 - smoothstep(0.0, pixel * uPx * 2.6, abs(dist))) * 0.35;
+      float glow = (1.0 - smoothstep(0.0, pixel * uPx * 2.6, abs(dist))) * uGlow;
       float line = max(core, glow);
       if (line < 0.03) discard;
-      gl_FragColor = vec4(1.0, 1.0, 1.0, line);
+      gl_FragColor = vec4(uColor, line);
     }
   `,
 });
@@ -120,6 +137,8 @@ const GRID_SHEET = new ShaderMaterial({
     uMajorOpacity: { value: 0.32 },
     uMinorPx: { value: 1 },
     uMajorPx: { value: 1.6 },
+    uMinorColor: { value: new Vector3(0.42, 0.41, 0.39) },
+    uMajorColor: { value: new Vector3(0.72, 0.70, 0.66) },
   },
   vertexShader: `
     varying vec2 vXZ;
@@ -133,6 +152,8 @@ const GRID_SHEET = new ShaderMaterial({
     uniform float uMajorOpacity;
     uniform float uMinorPx;
     uniform float uMajorPx;
+    uniform vec3 uMinorColor;
+    uniform vec3 uMajorColor;
     varying vec2 vXZ;
     float hairline(float stepSize, float px) {
       vec2 cell = vXZ / stepSize;
@@ -147,7 +168,7 @@ const GRID_SHEET = new ShaderMaterial({
       float major = hairline(${GRID_MAJOR_FEET}.0, uMajorPx);
       float alpha = max(minor * uMinorOpacity, major * uMajorOpacity);
       if (alpha < 0.015) discard;
-      vec3 color = mix(vec3(0.42, 0.41, 0.39), vec3(0.72, 0.70, 0.66), major);
+      vec3 color = mix(uMinorColor, uMajorColor, major);
       gl_FragColor = vec4(color, alpha);
     }
   `,
@@ -165,16 +186,32 @@ function displayedCanvasWidth(canvas: HTMLCanvasElement) {
 }
 
 /** Close in, a 20 ft cell spans many pixels and the lines stay faint. With the whole site in view, the 100 ft lines carry the reading. */
-function fadeSiteGrid(feetPerPixel: number, devicePixelsPerPixel: number) {
+function fadeSiteGrid(feetPerPixel: number, devicePixelsPerPixel: number, grid: ShaderMaterial = GRID_SHEET, edge: ShaderMaterial = SITE_EDGE, quiet = false, focus = false) {
   const cell = SITE_GRID_FEET / Math.max(1e-6, feetPerPixel);
   const far = Math.min(1, Math.max(0, Math.log2(36 / cell) / Math.log2(36 / 8)));
   const dense = cell < 8 ? Math.max(0.15, (cell - 3) / 5) : 1;
   const pixels = Math.max(1, devicePixelsPerPixel);
-  GRID_SHEET.uniforms.uMinorOpacity.value = (0.2 + 0.34 * far) * dense;
-  GRID_SHEET.uniforms.uMajorOpacity.value = 0.32 + 0.5 * far;
-  GRID_SHEET.uniforms.uMinorPx.value = (cell < 6 ? 0.55 : 0.9) * pixels;
-  GRID_SHEET.uniforms.uMajorPx.value = 1.55 * pixels;
-  SITE_EDGE.uniforms.uPx.value = 1.15 * pixels;
+  if (focus) {
+    grid.uniforms.uMinorOpacity.value = (0.025 + 0.01 * far) * dense;
+    grid.uniforms.uMajorOpacity.value = 0.055 + 0.02 * far;
+    grid.uniforms.uMinorPx.value = 0.35 * pixels;
+    grid.uniforms.uMajorPx.value = 0.55 * pixels;
+    edge.uniforms.uPx.value = 1.05 * pixels;
+    return;
+  }
+  if (quiet) {
+    grid.uniforms.uMinorOpacity.value = (0.045 + 0.02 * far) * dense;
+    grid.uniforms.uMajorOpacity.value = 0.2 + 0.08 * far;
+    grid.uniforms.uMinorPx.value = (cell < 6 ? 0.4 : 0.6) * pixels;
+    grid.uniforms.uMajorPx.value = 0.85 * pixels;
+    edge.uniforms.uPx.value = 1.35 * pixels;
+    return;
+  }
+  grid.uniforms.uMinorOpacity.value = (0.2 + 0.34 * far) * dense;
+  grid.uniforms.uMajorOpacity.value = 0.32 + 0.5 * far;
+  grid.uniforms.uMinorPx.value = (cell < 6 ? 0.55 : 0.9) * pixels;
+  grid.uniforms.uMajorPx.value = 1.55 * pixels;
+  edge.uniforms.uPx.value = 1.15 * pixels;
 }
 
 function sheetGeometry(ring: readonly XZ[], y: number, pad = 0) {
@@ -200,7 +237,7 @@ function gridSheet(ring: readonly XZ[]) {
   return sheetGeometry(ring, 1.08);
 }
 
-function siteEdgeSheet(ring: readonly XZ[]) {
+function siteEdgeSheet(ring: readonly XZ[], edge: ShaderMaterial = SITE_EDGE) {
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
@@ -211,9 +248,330 @@ function siteEdgeSheet(ring: readonly XZ[]) {
     minZ = Math.min(minZ, z);
     maxZ = Math.max(maxZ, z);
   }
-  SITE_EDGE.uniforms.uMin.value.set(minX, minZ);
-  SITE_EDGE.uniforms.uMax.value.set(maxX, maxZ);
+  edge.uniforms.uMin.value.set(minX, minZ);
+  edge.uniforms.uMax.value.set(maxX, maxZ);
   return sheetGeometry(ring, 1.2, 24);
+}
+
+type SheetSet = { grid: ShaderMaterial; edge: ShaderMaterial; quiet: boolean; focus?: boolean };
+
+function studySheets(): SheetSet {
+  const grid = GRID_SHEET.clone();
+  const edge = SITE_EDGE.clone();
+  (grid.uniforms.uMinorColor.value as Vector3).set(0.72, 0.72, 0.72);
+  (grid.uniforms.uMajorColor.value as Vector3).set(1, 1, 1);
+  (edge.uniforms.uColor.value as Vector3).set(1, 1, 1);
+  edge.uniforms.uGlow.value = 0;
+  return { grid, edge, quiet: true };
+}
+
+type StudyLook = {
+  sheets: SheetSet;
+  coast: LineBasicMaterial;
+  flat: LineBasicMaterial;
+};
+
+function studyLook(): StudyLook {
+  return {
+    sheets: studySheets(),
+    coast: new LineBasicMaterial({ color: "#5c5c5c", transparent: true, opacity: 0.5 }),
+    flat: new LineBasicMaterial({ color: "#707070", transparent: true, opacity: 0.68 }),
+  };
+}
+
+/** Analysis keeps the property rectangle quiet so the measured parcel line can lead. */
+function analysisSheets(): SheetSet {
+  const grid = GRID_SHEET.clone();
+  const edge = SITE_EDGE.clone();
+  (grid.uniforms.uMinorColor.value as Vector3).set(0.28, 0.28, 0.28);
+  (grid.uniforms.uMajorColor.value as Vector3).set(0.4, 0.4, 0.4);
+  (edge.uniforms.uColor.value as Vector3).set(0.55, 0.55, 0.55);
+  edge.uniforms.uGlow.value = 0;
+  return { grid, edge, quiet: true, focus: true };
+}
+
+function analysisLook(): StudyLook {
+  return {
+    sheets: analysisSheets(),
+    coast: new LineBasicMaterial({ color: "#3e3e3e", transparent: true, opacity: 0.32 }),
+    flat: new LineBasicMaterial({ color: "#555555", transparent: true, opacity: 0.4 }),
+  };
+}
+
+function releaseLook(look: StudyLook) {
+  look.sheets.grid.dispose();
+  look.sheets.edge.dispose();
+  look.coast.dispose();
+  look.flat.dispose();
+}
+
+/** Smoked glass on the existing prisms. One outward shell, a fine floor etching, no reflection. */
+const MODEL_MASS = new ShaderMaterial({
+  side: DoubleSide,
+  transparent: true,
+  depthWrite: true,
+  toneMapped: false,
+  vertexShader: `
+    varying vec3 vWorld;
+    varying vec3 vNormal;
+    void main() {
+      vec4 world = modelMatrix * vec4(position, 1.0);
+      vWorld = world.xyz;
+      vNormal = mat3(modelMatrix) * normal;
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vWorld;
+    varying vec3 vNormal;
+    float hairline(float coord, float stepSize) {
+      float cell = coord / stepSize;
+      float fw = max(fwidth(cell), 1e-4);
+      float dist = min(fract(cell), 1.0 - fract(cell));
+      return 1.0 - smoothstep(0.0, min(fw * 0.75, 0.07), dist);
+    }
+    void main() {
+      vec3 n = normalize(vNormal);
+      vec3 viewDir = normalize(cameraPosition - vWorld);
+      if (dot(n, viewDir) < 0.0) discard;
+      float up = abs(n.y);
+      float wall = 1.0 - smoothstep(0.62, 0.9, up);
+      float floors = hairline(vWorld.y, 18.0) * wall;
+      float shade = 0.9 + 0.1 * clamp(dot(n, normalize(vec3(0.42, 0.86, 0.28))), 0.0, 1.0);
+      vec3 color = mix(vec3(0.42), vec3(0.56), smoothstep(0.55, 0.92, up));
+      color = mix(color, vec3(0.84), floors * 0.5);
+      float alpha = mix(0.82, 0.92, smoothstep(0.55, 0.92, up));
+      gl_FragColor = vec4(color * shade, alpha);
+    }
+  `,
+});
+
+const MODEL_EDGE = new LineBasicMaterial({
+  color: "#b4b4b4",
+  transparent: true,
+  opacity: 1,
+  depthWrite: false,
+  toneMapped: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+/** Charcoal bay on the existing slab. Fine ripples move in the shade; the mesh stays put. */
+const WATER = new ShaderMaterial({
+  side: DoubleSide,
+  toneMapped: false,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    varying vec3 vWorld;
+    varying float vTop;
+    void main() {
+      vTop = step(0.49, position.y);
+      vec4 world = modelMatrix * vec4(position, 1.0);
+      vWorld = world.xyz;
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    varying vec3 vWorld;
+    varying float vTop;
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+    }
+    void main() {
+      if (vTop < 0.5) {
+        gl_FragColor = vec4(vec3(0.165), 1.0);
+        return;
+      }
+      vec2 p = vWorld.xz;
+      float pixel = max(length(fwidth(p)), 1e-3);
+      vec2 drift = vec2(uTime * 1.8, -uTime * 1.15);
+      vec2 bend = vec2(noise(p * 0.02 + drift * 0.08), noise(p * 0.017 + vec2(5.1, 2.4) - drift * 0.07));
+      vec2 q = p + (bend - 0.5) * 16.0 + drift;
+      float broad = noise(q * 0.09);
+      float detailWeight = smoothstep(12.0, 2.2, pixel);
+      float detail = noise(q * 0.22) * detailWeight;
+      float grainWeight = smoothstep(6.0, 1.4, pixel);
+      float grain = noise(q * 0.5) * grainWeight;
+      float crest = clamp(broad * 0.22 + detail * 0.46 + grain * 0.32, 0.0, 1.0);
+      float eps = 3.0;
+      float dx = noise((q + vec2(eps, 0.0)) * 0.15) - noise(q * 0.15);
+      float dz = noise((q + vec2(0.0, eps)) * 0.15) - noise(q * 0.15);
+      vec3 n = normalize(vec3(-dx * 0.55, 1.0, -dz * 0.55));
+      vec3 viewDir = normalize(cameraPosition - vWorld);
+      float fresnel = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.8);
+      vec3 color = mix(vec3(0.125), vec3(0.22), crest);
+      color = mix(color, vec3(0.32), fresnel * 0.28);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+});
+
+function WaterSurface({ geometry, receive, calm = false }: { geometry: BufferGeometry; receive: boolean; calm?: boolean }) {
+  const material = receive ? studyWaterMaterial : calm ? ANALYSIS_WATER : WATER;
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = clock.elapsedTime;
+  });
+  return <mesh geometry={geometry} material={material} receiveShadow={receive} raycast={skipRaycast} />;
+}
+
+/** Solid matte deck. Tops are a little lighter than the sides, and the slab stays opaque. */
+const MODEL_DECK = new ShaderMaterial({
+  side: DoubleSide,
+  toneMapped: false,
+  vertexShader: `
+    varying vec3 vWorld;
+    void main() {
+      vec4 world = modelMatrix * vec4(position, 1.0);
+      vWorld = world.xyz;
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vWorld;
+    void main() {
+      vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+      float up = abs(n.y);
+      vec3 color = mix(vec3(0.40), vec3(0.56), smoothstep(0.45, 0.85, up));
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+});
+
+/** Analysis glass. Fewer, fainter floor lines, so the façade stays quiet. */
+const ANALYSIS_MASS = new ShaderMaterial({
+  side: DoubleSide,
+  transparent: true,
+  depthWrite: true,
+  toneMapped: false,
+  vertexShader: MODEL_MASS.vertexShader,
+  fragmentShader: `
+    varying vec3 vWorld;
+    varying vec3 vNormal;
+    float hairline(float coord, float stepSize) {
+      float cell = coord / stepSize;
+      float fw = max(fwidth(cell), 1e-4);
+      float dist = min(fract(cell), 1.0 - fract(cell));
+      return 1.0 - smoothstep(0.0, min(fw * 0.55, 0.045), dist);
+    }
+    void main() {
+      vec3 n = normalize(vNormal);
+      vec3 viewDir = normalize(cameraPosition - vWorld);
+      if (dot(n, viewDir) < 0.0) discard;
+      float up = abs(n.y);
+      float wall = 1.0 - smoothstep(0.62, 0.9, up);
+      float floors = hairline(vWorld.y, 72.0) * wall;
+      vec3 color = mix(vec3(0.30), vec3(0.42), smoothstep(0.55, 0.92, up));
+      color = mix(color, vec3(0.48), floors * 0.16);
+      float alpha = mix(0.68, 0.82, smoothstep(0.55, 0.92, up));
+      gl_FragColor = vec4(color, alpha);
+    }
+  `,
+});
+
+const ANALYSIS_EDGE = new LineBasicMaterial({
+  color: "#8f8f8f",
+  transparent: true,
+  opacity: 0.72,
+  depthWrite: false,
+  toneMapped: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+});
+
+/** Opaque slab, lighter on top, so a deck does not read as smoked glass. */
+const ANALYSIS_DECK = new ShaderMaterial({
+  side: DoubleSide,
+  toneMapped: false,
+  vertexShader: MODEL_DECK.vertexShader,
+  fragmentShader: `
+    varying vec3 vWorld;
+    void main() {
+      vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+      float up = abs(n.y);
+      vec3 color = mix(vec3(0.24), vec3(0.58), smoothstep(0.45, 0.85, up));
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+});
+
+/** Bay with a slow, broad shade. The surface stays in place. */
+const ANALYSIS_WATER = new ShaderMaterial({
+  side: DoubleSide,
+  toneMapped: false,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: WATER.vertexShader,
+  fragmentShader: `
+    uniform float uTime;
+    varying vec3 vWorld;
+    varying float vTop;
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+    }
+    void main() {
+      if (vTop < 0.5) {
+        gl_FragColor = vec4(vec3(0.12), 1.0);
+        return;
+      }
+      vec2 p = vWorld.xz;
+      vec2 drift = vec2(uTime * 0.45, -uTime * 0.28);
+      float broad = noise(p * 0.012 + drift * 0.04);
+      vec3 color = mix(vec3(0.09), vec3(0.15), broad);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+});
+
+const PARCEL_LINE = new MeshBasicMaterial({
+  color: "#f4f4f0",
+  transparent: true,
+  opacity: 0.96,
+  depthWrite: false,
+  toneMapped: false,
+  side: DoubleSide,
+});
+
+function boundaryRibbon(ring: readonly XZ[], y: number, half: number) {
+  const closed = ring.length > 1 && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])
+    ? [...ring, ring[0]]
+    : ring;
+  const positions: number[] = [];
+  for (let index = 1; index < closed.length; index += 1) {
+    const ax = closed[index - 1][0];
+    const az = closed[index - 1][1];
+    const bx = closed[index][0];
+    const bz = closed[index][1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const length = Math.hypot(dx, dz);
+    if (length < 0.05) continue;
+    const px = (-dz / length) * half;
+    const pz = (dx / length) * half;
+    positions.push(ax + px, y, az + pz, bx + px, y, bz + pz, bx - px, y, bz - pz, ax + px, y, az + pz, bx - px, y, bz - pz, ax - px, y, az - pz);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  return geometry;
+}
+
+function MassEdges({ geometry, material = MODEL_EDGE, threshold = 28 }: { geometry: BufferGeometry; material?: LineBasicMaterial; threshold?: number }) {
+  const edges = useMemo(() => new EdgesGeometry(geometry, threshold), [geometry, threshold]);
+  useEffect(() => () => edges.dispose(), [edges]);
+  return <lineSegments geometry={edges} material={material} renderOrder={4} raycast={skipRaycast} />;
 }
 const FLAT_LINE = new LineBasicMaterial({ color: "#2e2e2e", transparent: true, opacity: 0.9 });
 const CONTEXT_MARGIN_FEET = 460;
@@ -262,12 +620,22 @@ function SiteContent({
   context,
   showGrid,
   showAerial,
+  showSunPath = true,
   ground,
+  appearance,
+  presentation = "model",
+  sheetsRef,
+  sun,
 }: {
   context: SiteContext;
   showGrid: boolean;
   showAerial: boolean;
+  showSunPath?: boolean;
   ground?: ReturnType<typeof useModulePointer>["ground"];
+  appearance: "record" | "model";
+  presentation?: "model" | "analysis";
+  sheetsRef: { current: SheetSet };
+  sun: SunSample | null;
 }) {
   const [aerialMap, setAerialMap] = useState<Texture | null>(null);
   useEffect(() => {
@@ -290,6 +658,27 @@ function SiteContent({
       setAerialMap(null);
     };
   }, [showAerial]);
+  const study = appearance === "model";
+  const focused = presentation === "analysis";
+  const [look, setLook] = useState<StudyLook | null>(() => (appearance === "model" ? (presentation === "analysis" ? analysisLook() : studyLook()) : null));
+  useEffect(() => {
+    if (appearance !== "model") {
+      setLook(null);
+      return;
+    }
+    const next = focused ? analysisLook() : studyLook();
+    setLook(next);
+    return () => releaseLook(next);
+  }, [appearance, focused]);
+  const sheets = look?.sheets ?? { grid: GRID_SHEET, edge: SITE_EDGE, quiet: false };
+  const coastLine = look?.coast ?? COAST_LINE;
+  const flatLine = look?.flat ?? FLAT_LINE;
+  sheetsRef.current = sheets;
+  const parcel = useMemo(() => (focused ? boundaryRibbon(context.site.ring, 1.55, 5) : null), [context.site.ring, focused]);
+  useEffect(() => () => parcel?.dispose(), [parcel]);
+  const sunOrigin = useMemo(() => ringCentroid(designSiteFromParcel(context.site.ring).ring), [context]);
+  const sunlit = Boolean(sun?.above);
+  const studyHeights = sun !== null;
   const geometries = useMemo(() => {
     const visible = context.buildings.filter((building) => {
       const [x, z] = ringCentroid(building.ring);
@@ -304,21 +693,24 @@ function SiteContent({
     return {
       land: flatGeometry(studyLandRing(context.water.ring), 0),
       water: slabGeometry(clipPolygon(context.water.ring), 0.5, 0),
-      siteEdge: siteEdgeSheet(design.ring),
+      siteEdge: siteEdgeSheet(design.ring, sheets.edge),
+      siteFill: study ? flatGeometry(design.ring, 0.86) : null,
       coast: lineGeometry(pathAttribute(clipPath(context.coastline.path), 0.2, false)),
       elevated: elevatedDeckGeometry(elevatedRoads),
       guideway: metromoverGeometry(context.origin),
       groundRoads,
       roadBlocks: groundRoadBlocks(visible, context.water.ring, design.ring),
+      roadLimits: [clipPolygon(context.water.ring), design.ring],
       flatEdges: lineGeometry(loopAttribute(flat.flatMap((building) => [clipPolygon(regularizeRing(building.ring)), ...(building.holes ?? []).map((hole) => clipPolygon(regularizeRing(hole)))].filter((ring) => ring.length >= 3)), 0.35)),
       grid: gridSheet(design.ring),
     };
-  }, [context]);
+  }, [context, sheets.edge, study]);
 
   useEffect(() => () => {
     geometries.land.dispose();
     geometries.water.dispose();
     geometries.siteEdge.dispose();
+    geometries.siteFill?.dispose();
     geometries.coast.dispose();
     geometries.elevated.dispose();
     geometries.guideway.dispose();
@@ -333,7 +725,7 @@ function SiteContent({
       const [x, z] = ringCentroid(building.ring);
       return inStudy(x, z);
     });
-    displayBuildingGeometry(visible, { roads: geometries.groundRoads, blocked: geometries.roadBlocks }).then((geometry) => {
+    displayBuildingGeometry(visible, { roads: geometries.groundRoads, blocked: geometries.roadBlocks, limits: geometries.roadLimits }, studyHeights).then((geometry) => {
       if (cancel) {
         geometry.dispose();
         return;
@@ -346,12 +738,21 @@ function SiteContent({
       installed?.dispose();
       setBuildingMesh(null);
     };
-  }, [context, geometries.groundRoads, geometries.roadBlocks]);
+  }, [context, geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits, studyHeights]);
+  const towerGeometries = useMemo(() => {
+    if (!studyHeights) return [];
+    return analysisTowers(context.buildings)
+      .filter((tower) => tower.heightFeet > tower.baseFeet + 1)
+      .map((tower) => ({ id: tower.id, geometry: towerShaft(tower.ring, tower.baseFeet, tower.heightFeet) }));
+  }, [context.buildings, studyHeights]);
+  useEffect(() => () => {
+    towerGeometries.forEach((tower) => tower.geometry.dispose());
+  }, [towerGeometries]);
   const [roadMesh, setRoadMesh] = useState<BufferGeometry | null>(null);
   useEffect(() => {
     let cancel = false;
     let installed: BufferGeometry | null = null;
-    groundRoadGeometry(geometries.groundRoads, geometries.roadBlocks).then((geometry) => {
+    groundRoadGeometry(geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits).then((geometry) => {
       if (cancel) {
         geometry.dispose();
         return;
@@ -364,21 +765,30 @@ function SiteContent({
       installed?.dispose();
       setRoadMesh(null);
     };
-  }, [geometries.groundRoads, geometries.roadBlocks]);
+  }, [geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits]);
 
   return (
     <>
-      <ambientLight intensity={0.42} color="#ffffff" />
-      <hemisphereLight args={["#a3a3a3", "#0a0a0a", 0.22]} />
-      <directionalLight position={[820, 1460, -520]} intensity={0.62} color="#ffffff" />
-      <directionalLight position={[-380, 720, 640]} intensity={0.16} color="#ffffff" />
-      <mesh geometry={geometries.land} raycast={skipRaycast}>
-        <meshBasicMaterial color="#070707" side={DoubleSide} />
+      {study ? (
+        <>
+          <ambientLight intensity={0.28} color="#ffffff" />
+          <hemisphereLight args={["#ffffff", "#0a0a0a", 0.16]} />
+          <directionalLight position={[980, 1680, -240]} intensity={0.95} color="#ffffff" />
+          <directionalLight position={[-520, 540, 780]} intensity={0.1} color="#ffffff" />
+        </>
+      ) : (
+        <>
+          <ambientLight intensity={0.42} color="#ffffff" />
+          <hemisphereLight args={["#a3a3a3", "#0a0a0a", 0.22]} />
+          <directionalLight position={[820, 1460, -520]} intensity={0.62} color="#ffffff" />
+          <directionalLight position={[-380, 720, 640]} intensity={0.16} color="#ffffff" />
+        </>
+      )}
+      <mesh geometry={geometries.land} receiveShadow={sunlit} raycast={skipRaycast}>
+        {sunlit ? <primitive object={sunlitLandMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color="#000000" side={DoubleSide} /> : <meshBasicMaterial color="#070707" side={DoubleSide} />}
       </mesh>
-      <mesh geometry={geometries.water} raycast={skipRaycast}>
-        <meshBasicMaterial color="#30383c" />
-      </mesh>
-      <lineSegments geometry={geometries.coast} material={COAST_LINE} raycast={skipRaycast} />
+      <WaterSurface geometry={geometries.water} receive={sunlit} calm={focused} />
+      <lineSegments geometry={geometries.coast} material={coastLine} raycast={skipRaycast} />
       {showAerial && aerialMap ? <mesh
         position={[(HERALD_AERIAL.minX + HERALD_AERIAL.maxX) / 2, 0.12, (HERALD_AERIAL.minZ + HERALD_AERIAL.maxZ) / 2]}
         rotation={[Math.PI / 2, 0, 0]}
@@ -387,21 +797,37 @@ function SiteContent({
         <planeGeometry args={[HERALD_AERIAL.maxX - HERALD_AERIAL.minX, HERALD_AERIAL.maxZ - HERALD_AERIAL.minZ]} />
         <meshBasicMaterial map={aerialMap} side={DoubleSide} />
       </mesh> : null}
-      {roadMesh ? <mesh geometry={roadMesh} raycast={skipRaycast}>
-        <meshLambertMaterial color="#767676" side={DoubleSide} />
+      {roadMesh ? <mesh geometry={roadMesh} receiveShadow={sunlit} raycast={skipRaycast}>
+        {sunlit ? <primitive object={sunlitRoadMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color={focused ? "#3c3c3c" : "#686868"} side={DoubleSide} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
       </mesh> : null}
-      <mesh geometry={geometries.elevated} raycast={skipRaycast}>
-        <meshLambertMaterial color="#767676" side={DoubleSide} />
+      <mesh geometry={geometries.elevated} receiveShadow={sunlit} raycast={skipRaycast}>
+        {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
       </mesh>
-      <mesh geometry={geometries.guideway} raycast={skipRaycast}>
-        <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />
+      <mesh geometry={geometries.guideway} receiveShadow={sunlit} raycast={skipRaycast}>
+        {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />}
       </mesh>
-      <mesh geometry={geometries.siteEdge} material={SITE_EDGE} raycast={skipRaycast} />
-      {showGrid ? <mesh geometry={geometries.grid} material={GRID_SHEET} raycast={skipRaycast} /> : null}
-      <lineSegments geometry={geometries.flatEdges} material={FLAT_LINE} raycast={skipRaycast} />
-      {buildingMesh ? <mesh geometry={buildingMesh} raycast={skipRaycast}>
-        <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />
+      {geometries.siteFill ? <mesh geometry={geometries.siteFill} receiveShadow={sunlit} raycast={skipRaycast}>
+        {sunlit ? <primitive object={sunlitSiteMaterial} attach="material" dispose={null} /> : <meshBasicMaterial color="#101010" side={DoubleSide} />}
       </mesh> : null}
+      <mesh geometry={geometries.siteEdge} material={sheets.edge} raycast={skipRaycast} />
+      {showGrid ? <mesh geometry={geometries.grid} material={sheets.grid} raycast={skipRaycast} /> : null}
+      {parcel ? <mesh geometry={parcel} material={PARCEL_LINE} renderOrder={5} raycast={skipRaycast} /> : null}
+      <lineSegments geometry={geometries.flatEdges} material={flatLine} raycast={skipRaycast} />
+      {buildingMesh ? (
+        <>
+          <mesh geometry={buildingMesh} renderOrder={study ? 2 : 0} castShadow={sunlit} receiveShadow={sunlit} raycast={skipRaycast}>
+            {studyHeights ? <primitive object={studyMassMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_MASS} attach="material" dispose={null} /> : study ? <primitive object={MODEL_MASS} attach="material" dispose={null} /> : <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />}
+          </mesh>
+          {study ? <MassEdges geometry={buildingMesh} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 46 : 28} /> : null}
+          {towerGeometries.map((tower) => (
+            <mesh key={tower.id} geometry={tower.geometry} renderOrder={2} castShadow={sunlit} receiveShadow={sunlit} raycast={skipRaycast}>
+              <primitive object={studyMassMaterial} attach="material" dispose={null} />
+            </mesh>
+          ))}
+          {study ? towerGeometries.map((tower) => <MassEdges key={`${tower.id}-edge`} geometry={tower.geometry} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 46 : 28} />) : null}
+          {sun && showSunPath ? <SunShadow sun={sun} origin={sunOrigin} /> : null}
+        </>
+      ) : null}
       {ground ? <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.66, 0]} {...ground}>
         <planeGeometry args={[12000, 12000]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} side={DoubleSide} />
@@ -418,6 +844,9 @@ function CameraRig({
   frameToken,
   bounds,
   onReadout,
+  framing,
+  frameWholeSite,
+  sheetsRef,
 }: {
   mode: SiteViewMode;
   planHeading: "north" | "east";
@@ -426,6 +855,9 @@ function CameraRig({
   frameToken: number;
   bounds: Bounds;
   onReadout: (readout: SiteReadout) => void;
+  framing: "record" | "model";
+  frameWholeSite: boolean;
+  sheetsRef: { current: SheetSet };
 }) {
   const { set, size, gl } = useThree();
   const cameras = useRef<{ persp: PerspectiveCamera; ortho: OrthographicCamera } | null>(null);
@@ -445,7 +877,7 @@ function CameraRig({
     const pad = fit === "site" ? 1.14 : 1.08;
     const camera = mode === "perspective" ? persp : ortho;
     const view = { width: size.width, height: size.height };
-    const key = `${mode}|${fit}|${frameToken}|${bounds.cx}|${bounds.cz}|${bounds.width}|${bounds.depth}`;
+    const key = `${mode}|${fit}|${framing}|${frameWholeSite ? "whole" : "near"}|${frameToken}|${bounds.cx}|${bounds.cz}|${bounds.width}|${bounds.depth}`;
     const sized = view.width > 1 && view.height > 1;
     const headingKey = `${mode}|${planHeading}`;
     const aimPlan = () => {
@@ -460,7 +892,11 @@ function CameraRig({
         ? placePlan(ortho, view, frame, pad)
         : mode === "axon"
           ? placeAxon(ortho, view, frame, fit)
-          : placePerspective(persp, view, frame, fit);
+          : frameWholeSite
+            ? placeWholeSitePerspective(persp, view, frame)
+            : framing === "model"
+              ? placeModelPerspective(persp, view, frame, fit)
+              : placePerspective(persp, view, frame, fit);
       target.current.copy(placed);
       if (mode === "plan") aimPlan();
     } else if (sized && mode === "perspective") {
@@ -469,7 +905,7 @@ function CameraRig({
     } else if (mode === "plan" && sized && appliedHeading.current !== headingKey) aimPlan();
     if (mode !== "plan") appliedHeading.current = "";
     set({ camera });
-  }, [bounds, fit, frameToken, gl, mode, planHeading, set, size.height, size.width]);
+  }, [bounds, fit, frameToken, frameWholeSite, framing, gl, mode, planHeading, set, size.height, size.width]);
 
   useEffect(() => {
     const element = gl.domElement;
@@ -597,7 +1033,8 @@ function CameraRig({
       : 2 * Math.tan((camera.fov * Math.PI) / 360) * camera.position.distanceTo(target.current) * camera.aspect;
     const canvas = gl.domElement;
     const screen = Math.max(1, displayedCanvasWidth(canvas));
-    fadeSiteGrid(visible / screen, canvas.width / screen);
+    const sheets = sheetsRef.current;
+    fadeSiteGrid(visible / screen, canvas.width / screen, sheets.grid, sheets.edge, sheets.quiet, sheets.focus);
     const scaleFeet = niceScale((visible / Math.max(1, size.width)) * 220);
     const scalePx = (scaleFeet / visible) * size.width;
     const previous = readout.current;
@@ -673,6 +1110,19 @@ export function SiteViewport({
   frameToken,
   placement = null,
   overlay = null,
+  analysis = null,
+  appearance = "record",
+  framing,
+  frameWholeSite = false,
+  presentation = "model",
+  showSunPath = true,
+  showShadows = true,
+  sun = null,
+  wind = null,
+  sight = null,
+  walk = null,
+  uses = null,
+  onShadowTexel,
   onReadout,
 }: {
   context: SiteContext;
@@ -685,9 +1135,24 @@ export function SiteViewport({
   frameToken: number;
   placement?: SitePlacementModel | null;
   overlay?: SiteOverlay | null;
+  analysis?: SiteAnalysisLayers | null;
+  appearance?: "record" | "model";
+  framing?: "record" | "model";
+  frameWholeSite?: boolean;
+  presentation?: "model" | "analysis";
+  showSunPath?: boolean;
+  showShadows?: boolean;
+  sun?: SunSample | null;
+  wind?: { fromDegrees: number; density: number; motion: number } | null;
+  sight?: readonly SightSegment[] | null;
+  walk?: readonly WalkSegment[] | null;
+  uses?: readonly UseSegment[] | null;
+  onShadowTexel?: (feet: number) => void;
   onReadout: (readout: SiteReadout) => void;
 }) {
   const bounds = useMemo(() => boundsOf(context), [context]);
+  const cameraFraming = framing ?? appearance;
+  const sheetsRef = useRef<SheetSet>({ grid: GRID_SHEET, edge: SITE_EDGE, quiet: false });
   return (
     <Canvas
       className="site-canvas"
@@ -708,8 +1173,8 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} placement={placement} overlay={overlay} />
-      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} />
+      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} />
     </Canvas>
   );
 }
@@ -718,25 +1183,58 @@ function PlacementScene({
   context,
   showGrid,
   showAerial,
+  showSunPath,
+  showShadows,
   placement,
   overlay,
+  analysis,
+  appearance,
+  presentation,
+  sheetsRef,
+  sun,
+  wind,
+  sight,
+  walk,
+  uses,
+  onShadowTexel,
 }: {
   context: SiteContext;
   showGrid: boolean;
   showAerial: boolean;
+  showSunPath: boolean;
+  showShadows: boolean;
   placement: SitePlacementModel | null;
   overlay: SiteOverlay | null;
+  analysis: SiteAnalysisLayers | null;
+  appearance: "record" | "model";
+  presentation: "model" | "analysis";
+  sheetsRef: { current: SheetSet };
+  sun: SunSample | null;
+  wind: { fromDegrees: number; density: number; motion: number } | null;
+  sight: readonly SightSegment[] | null;
+  walk: readonly WalkSegment[] | null;
+  uses: readonly UseSegment[] | null;
+  onShadowTexel?: (feet: number) => void;
 }) {
   const pointer = useModulePointer(placement);
+  const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
   return (
-    <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} ground={placement ? pointer.ground : undefined} />
+    <>
+      {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
+      <group scale={RENDER_GROUP_SCALE}>
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={placement ? pointer.ground : undefined} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
       {overlay?.highway ? <OverlayLines paths={overlay.highwayPaths.flatMap((path) => clipPath(path))} y={1.15} color="#c77e5f" opacity={0.7} /> : null}
       {overlay?.streets ? <OverlayLines paths={overlay.streetPaths.flatMap((path) => clipPath(path))} y={1.05} color="#8a8680" opacity={0.4} /> : null}
       {overlay?.distances ? <OverlayLines paths={overlay.leaders.flatMap((leader) => clipPath([[leader.ax, leader.az], [leader.bx, leader.bz]]))} y={1.4} color="#c8c4bc" opacity={0.75} /> : null}
-    </group>
+      {analysis ? <SiteAnalysisLayer context={context} layers={analysis} /> : null}
+      {wind ? <WindField fromDegrees={wind.fromDegrees} density={wind.density} motion={wind.motion} /> : null}
+      {sight && sight.length > 0 ? <SightLines segments={sight} /> : null}
+      {walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
+      {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
+      </group>
+    </>
   );
 }

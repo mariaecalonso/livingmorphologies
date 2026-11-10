@@ -35,9 +35,26 @@ import { loadArchetypeMesh } from "@/lib/skill5/load-module";
 import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, footprintCorners, placementWarnings, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
+import { inStudy } from "@/components/site/site-geometry";
+import { analysisTowers, heightAccount } from "@/lib/skill5/sun-analysis";
+import { SHADOW_TONE, SUNLIT_SITE, missingClockNote, monthlySolarNoon, resolveZonedClock, solarPosition, type SolarNoonSample, type SunSample, type ZonedClock } from "@/lib/skill5/solar";
+import { WindConfigure, WindResults } from "./wind-panels";
+import { ViewsConfigure, ViewsResults, type ViewsMode } from "./views-noise-panels";
+import { PedestrianConfigure, PedestrianResults } from "./pedestrian-panels";
+import { pedestrianSegments, pedestrianStudy, type PedestrianMode, type PedestrianStudy } from "@/lib/skill5/pedestrian";
+import { UrbanConfigure, UrbanResults } from "./urban-panels";
+import urbanContext from "@/data/skill5/urban-context.json";
+import { DEFAULT_GENERATOR_FILTERS, DEFAULT_URBAN_GROUPS, urbanReading, urbanSegments, type GeneratorFilter, type UrbanGroup, type UrbanMode, type UrbanRecord, type UrbanStudy } from "@/lib/skill5/urban";
+import { noiseReading, noiseSegments, observationPoints, viewReading, viewSegments, type NoiseReading, type ViewPointId, type ViewReading } from "@/lib/skill5/views-noise";
+import { AnalysisAccuracy } from "./analysis-record";
+import { ExploreToggles, GridIcon, PathIcon, ShadowIcon, SunIcon, UrbanIcon, ViewsIcon, WalkIcon, WindIcon } from "./explore-controls";
+import { SunExplore } from "./sun-explore";
+import { AnalysisColumnFrame, SiteInputReview, readStoredFindings, siteRecord, writeStoredFindings, type SiteFinding, type SiteObservation } from "./site-inputs";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
+import { seasonalComparison, stationDistanceKm, windSummary, type WindCondition, type WindSummary } from "@/lib/skill5/wind";
 
 const site = context as SiteContext;
+const urbanRecord = urbanContext as unknown as UrbanRecord;
 const designSite = designSiteFromParcel(site.site.ring);
 
 function occupiedBounds(instances: readonly PlacedModule[]) {
@@ -790,8 +807,452 @@ function AssemblyRerun({ assembly, records, onKeep, onSend }: { assembly: SiteAs
   );
 }
 
-export function SiteWorkspace() {
+const SUN_STUDY = "sun-shadows";
+const WIND_STUDY = "wind";
+const VIEWS_STUDY = "views-noise";
+const WALK_STUDY = "pedestrian-baywalk";
+const URBAN_STUDY = "urban-context";
+const PARCEL_RING = [...site.site.ring, site.site.ring[0]];
+
+function formatDate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function formatTime(time: string) {
+  const [hour, minute] = time.split(":").map(Number);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function formatDegrees(value: number) {
+  return `${value.toFixed(1)}°`;
+}
+
+function shortZone(name: string) {
+  if (name === "Eastern Standard Time") return "EST";
+  if (name === "Eastern Daylight Time") return "EDT";
+  return name;
+}
+
+function AnalysisColumn({
+  side,
+  studyId,
+  date,
+  time,
+  sun,
+  solarMonths,
+  clock,
+  occurrenceIndex,
+  account,
+  shadowTexel,
+  wind,
+  windYear,
+  windSeasons,
+  windSector,
+  windDensity,
+  windMotion,
+  windDistanceKm,
+  viewsMode,
+  viewPointId,
+  eyeHeight,
+  viewReadings,
+  noiseReadings,
+  view,
+  noise,
+  walkMode,
+  walkStudy,
+  urbanMode,
+  urbanGroups,
+  urbanFilters,
+  urbanStudy,
+  inputs,
+  showGrid,
+  showSunPath,
+  showShadows,
+  onSelect,
+  onDate,
+  onTime,
+  onOccurrence,
+  onWindSeason,
+  onWindMonth,
+  onWindCondition,
+  onWindSector,
+  onWindDensity,
+  onWindMotion,
+  onViewsMode,
+  onViewPoint,
+  onEyeHeight,
+  onWalkMode,
+  onUrbanMode,
+  onUrbanGroup,
+  onUrbanFilter,
+  onRetain,
+  onLive,
+  onShowGrid,
+  onShowSunPath,
+  onShowShadows,
+}: {
+  side: "library" | "analysis";
+  studyId: string | null;
+  date: string;
+  time: string;
+  sun: SunSample | null;
+  solarMonths: readonly SolarNoonSample[];
+  clock: ZonedClock | null;
+  occurrenceIndex: number;
+  account: { estimated: number; stories: number; tagged: number };
+  shadowTexel: number;
+  wind: WindSummary | null;
+  windYear: WindSummary | null;
+  windSeasons: ReadonlyArray<{ id: string; label: string; summary: WindSummary }>;
+  windSector: number | null;
+  windDensity: number;
+  windMotion: number;
+  windDistanceKm: number;
+  viewsMode: ViewsMode;
+  viewPointId: ViewPointId;
+  eyeHeight: number;
+  viewReadings: readonly ViewReading[];
+  noiseReadings: readonly NoiseReading[];
+  view: ViewReading | null;
+  noise: NoiseReading | null;
+  walkMode: PedestrianMode;
+  walkStudy: PedestrianStudy | null;
+  urbanMode: UrbanMode;
+  urbanGroups: readonly UrbanGroup[];
+  urbanFilters: readonly GeneratorFilter[];
+  urbanStudy: UrbanStudy | null;
+  inputs: readonly SiteObservation[];
+  showGrid: boolean;
+  showSunPath: boolean;
+  showShadows: boolean;
+  onSelect: (id: string | null) => void;
+  onDate: (value: string) => void;
+  onTime: (value: string) => void;
+  onOccurrence: (index: number) => void;
+  onWindSeason: (value: string) => void;
+  onWindMonth: (value: number) => void;
+  onWindCondition: (value: WindCondition) => void;
+  onWindSector: (index: number | null) => void;
+  onWindDensity: (value: number) => void;
+  onWindMotion: (value: number) => void;
+  onViewsMode: (mode: ViewsMode) => void;
+  onViewPoint: (id: ViewPointId) => void;
+  onEyeHeight: (value: number) => void;
+  onWalkMode: (mode: PedestrianMode) => void;
+  onUrbanMode: (mode: UrbanMode) => void;
+  onUrbanGroup: (group: UrbanGroup) => void;
+  onUrbanFilter: (filter: GeneratorFilter) => void;
+  onRetain: (finding: SiteFinding) => void;
+  onLive: (findings: readonly SiteFinding[]) => void;
+  onShowGrid: (value: boolean) => void;
+  onShowSunPath: (value: boolean) => void;
+  onShowShadows: (value: boolean) => void;
+}) {
+  const selected = studyId === SUN_STUDY;
+  const windSelected = studyId === WIND_STUDY;
+  const viewsSelected = studyId === VIEWS_STUDY;
+  const walkSelected = studyId === WALK_STUDY;
+  const urbanSelected = studyId === URBAN_STUDY;
+  if (side === "library") {
+    const studies = [
+      { id: SUN_STUDY, label: "Sun", title: "Sun + Shadows", icon: <SunIcon />, active: selected },
+      { id: WIND_STUDY, label: "Wind", title: "Wind", icon: <WindIcon />, active: windSelected },
+      { id: VIEWS_STUDY, label: "Views", title: "Views + Noise", icon: <ViewsIcon />, active: viewsSelected },
+      { id: WALK_STUDY, label: "Walk", title: "Pedestrian Mobility + Baywalk", icon: <WalkIcon />, active: walkSelected },
+      { id: URBAN_STUDY, label: "Urban", title: "Urban Context + Land Use", icon: <UrbanIcon />, active: urbanSelected },
+    ];
+    return (
+      <aside className="site-panel site-panel-library site-analysis-panel site-explore" aria-label="Analysis selection">
+        <header className="site-analysis-head">
+          <p><span>01</span> Explore</p>
+        </header>
+        <section className="site-block">
+          <h2 className="site-subtitle">Study</h2>
+          <div className="site-explore-studies" role="listbox" aria-label="Studies">
+            {studies.map((study) => (
+              <button
+                key={study.id}
+                type="button"
+                role="option"
+                aria-selected={study.active}
+                aria-label={study.title}
+                title={study.title}
+                data-active={study.active || undefined}
+                onClick={() => onSelect(study.id)}
+              >
+                {study.icon}
+                <span>{study.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="site-block">
+          <h2 className="site-subtitle">Configure</h2>
+          <div className="site-explore-stack">
+            {urbanSelected ? (
+              <UrbanConfigure mode={urbanMode} groups={urbanGroups} filters={urbanFilters} onMode={onUrbanMode} onGroup={onUrbanGroup} onFilter={onUrbanFilter} />
+            ) : walkSelected ? (
+              <PedestrianConfigure mode={walkMode} onMode={onWalkMode} />
+            ) : viewsSelected ? (
+              <ViewsConfigure
+                mode={viewsMode}
+                pointId={viewPointId}
+                eyeHeight={eyeHeight}
+                onMode={onViewsMode}
+                onPoint={onViewPoint}
+                onEyeHeight={onEyeHeight}
+              />
+            ) : windSelected && wind ? (
+              <WindConfigure
+                season={wind.season}
+                month={wind.month}
+                condition={wind.condition}
+                medianSpeed={wind.medianSpeed}
+                density={windDensity}
+                motion={windMotion}
+                onSeason={onWindSeason}
+                onMonth={onWindMonth}
+                onCondition={onWindCondition}
+                onDensity={onWindDensity}
+                onMotion={onWindMotion}
+              />
+            ) : selected ? (
+              <SunExplore
+                latitude={site.origin.lat}
+                longitude={site.origin.lon}
+                date={date}
+                time={time}
+                sun={sun}
+                clock={clock}
+                occurrenceIndex={occurrenceIndex}
+                onDate={onDate}
+                onTime={onTime}
+                onOccurrence={onOccurrence}
+              />
+            ) : <p className="site-note">Parameters appear with the selected study.</p>}
+          </div>
+        </section>
+        <section className="site-block">
+          <h2 className="site-subtitle">Display</h2>
+          <ExploreToggles
+            label="Display"
+            columns={3}
+            options={[
+              ...(selected ? [
+                { id: "path", label: "Path", title: "Sun path", icon: <PathIcon /> },
+                { id: "shadow", label: "Shadow", title: "Shadows", icon: <ShadowIcon /> },
+              ] : []),
+              { id: "grid", label: "Grid", title: "Reference grid", icon: <GridIcon /> },
+            ]}
+            selected={[
+              ...(selected && showSunPath ? ["path"] : []),
+              ...(selected && showShadows ? ["shadow"] : []),
+              ...(showGrid ? ["grid"] : []),
+            ]}
+            onToggle={(id) => {
+              if (id === "path") onShowSunPath(!showSunPath);
+              else if (id === "shadow") onShowShadows(!showShadows);
+              else onShowGrid(!showGrid);
+            }}
+          />
+        </section>
+      </aside>
+    );
+  }
+
+  if (urbanSelected && urbanStudy) {
+    return <UrbanResults mode={urbanMode} groups={urbanGroups} filters={urbanFilters} study={urbanStudy} inputs={inputs} onRetain={onRetain} onLive={onLive} />;
+  }
+
+  if (walkSelected && walkStudy) {
+    return <PedestrianResults mode={walkMode} study={walkStudy} inputs={inputs} onRetain={onRetain} onLive={onLive} />;
+  }
+
+  if (viewsSelected && view && noise) {
+    return <ViewsResults mode={viewsMode} readings={viewReadings} noises={noiseReadings} pointId={viewPointId} inputs={inputs} onPoint={onViewPoint} onRetain={onRetain} onLive={onLive} />;
+  }
+
+  if (windSelected && wind) {
+    return (
+      <WindResults
+        summary={wind}
+        year={windYear}
+        seasons={windSeasons}
+        sector={windSector}
+        distanceKm={windDistanceKm}
+        inputs={inputs}
+        onRetain={onRetain}
+        onLive={onLive}
+        onSeason={onWindSeason}
+        onSector={onWindSector}
+      />
+    );
+  }
+
+  const zone = clock?.status === "unique" ? clock.occurrence : clock?.status === "ambiguous" ? clock.occurrences[occurrenceIndex] ?? clock.occurrences[0] : null;
+  const sunSources = [
+    `${account.estimated} estimated heights`,
+    `${account.stories} story count, 10 ft per floor`,
+    `${account.tagged} tagged heights`,
+    "Hilton tower 299 ft, base 90 ft",
+    "Quantum towers 536 ft and 554 ft, base 130 ft",
+    "Flat ground. Full shadow length.",
+    ...(shadowTexel > 3 ? ["Shadow image is coarser than 3 ft while the sun is low."] : []),
+  ];
+  const monthMark = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const sunSource = {
+    name: "NOAA geometric solar position",
+    retrieved: null,
+    detail: sunSources.join(". "),
+  };
+  const sunGaps = ["No shaded edge of the parcel is stored. The shadow is a length ratio on flat ground. No hours of sun are stored."];
+  const noonFindings = solarMonths.map((row) => siteRecord({
+    id: `sun:noon:${row.date}`,
+    study: "Sun + Shadows",
+    kind: "sun",
+    title: `${formatDate(row.date)} solar noon`,
+    quantities: [
+      { id: "altitude", value: row.altitude, unit: "deg" },
+      { id: "azimuth", value: row.azimuth, unit: "deg" },
+      ...(row.above && row.shadowPerFoot !== null ? [{ id: "shadow", value: row.shadowPerFoot, unit: "ft/ft" as const }] : []),
+    ],
+    geometry: { type: "direction", fromDegrees: row.azimuth, from: "north" },
+    settings: [
+      { id: "date", value: row.date },
+      { id: "time", value: row.time },
+      { id: "zone", value: row.zone },
+      { id: "offsetMinutes", value: String(row.offsetMinutes) },
+      { id: "role", value: "solar noon" },
+    ],
+    source: sunSource,
+    reliability: "Calculated solar position at the highest altitude on this date. This is not hours of sun and not a shaded area.",
+    gaps: sunGaps,
+  }));
+  const instantFinding = sun && zone ? siteRecord({
+    id: `sun:${date}:${time}:${zone.name}:${zone.offsetMinutes}`,
+    study: "Sun + Shadows",
+    kind: "sun",
+    title: `${formatDate(date)}, ${formatTime(time)} ${shortZone(zone.name)}`,
+    quantities: [
+      { id: "altitude", value: sun.altitude, unit: "deg" },
+      { id: "azimuth", value: sun.azimuth, unit: "deg" },
+      ...(sun.above && sun.shadowPerFoot !== null ? [{ id: "shadow", value: sun.shadowPerFoot, unit: "ft/ft" as const }] : []),
+    ],
+    geometry: { type: "direction", fromDegrees: sun.azimuth, from: "north" },
+    settings: [
+      { id: "date", value: date },
+      { id: "time", value: time },
+      { id: "zone", value: zone.name },
+      { id: "offsetMinutes", value: String(zone.offsetMinutes) },
+      { id: "role", value: "selected time" },
+    ],
+    source: sunSource,
+    reliability: "Calculated solar position for the selected time. This is not hours of sun and not a shaded area.",
+    gaps: sunGaps,
+  }) : null;
+  const sunFindings = [...noonFindings, ...(instantFinding ? [instantFinding] : [])];
+  const sunGap = !selected
+    ? "Select a study to calculate a result."
+    : clock?.status === "missing"
+      ? missingClockNote(date)
+      : "Solar noon is the highest altitude on the 21st. The shadow ratio is on flat ground.";
+  return (
+    <AnalysisColumnFrame findings={selected ? sunFindings : []} gap={sunGap} inputs={inputs} onRetain={onRetain} onLive={onLive}>
+      <section className="site-block">
+        <h2 className="site-subtitle">Monthly solar noon</h2>
+        <div className="site-month-chart" role="group" aria-label="Monthly solar noon altitude">
+          {solarMonths.map((row) => (
+            <button
+              key={row.date}
+              type="button"
+              data-active={date === row.date || undefined}
+              aria-pressed={date === row.date}
+              title={`${formatDate(row.date)} ${formatTime(row.time)}, altitude ${row.altitude.toFixed(1)}°`}
+              onClick={() => {
+                onDate(row.date);
+                onTime(row.time);
+              }}
+            >
+              <i style={{ height: `${Math.max(8, (row.altitude / 90) * 100)}%` }} />
+              <span>{monthMark[row.month - 1]}</span>
+            </button>
+          ))}
+        </div>
+        <p className="site-note">Altitude on the 21st. This is not hours of sun.</p>
+        {clock?.status === "missing" ? <p className="site-note">{missingClockNote(date)}</p> : sun && zone ? (
+          <>
+            <h2 className="site-subtitle">{formatDate(date)}, {formatTime(time)} {shortZone(zone.name)}</h2>
+            <div className="site-sun-figures">
+              <div>
+                <span>Altitude</span>
+                <strong>{formatDegrees(sun.altitude)}</strong>
+              </div>
+              <div>
+                <span>Azimuth</span>
+                <strong>{formatDegrees(sun.azimuth)}</strong>
+                <em>from north</em>
+              </div>
+              <div>
+                <span>Shadow</span>
+                <strong>{sun.above && sun.shadowPerFoot !== null ? (sun.shadowPerFoot < 0.1 ? sun.shadowPerFoot.toFixed(2) : sun.shadowPerFoot.toFixed(1)) : "None"}</strong>
+                <em>{sun.above ? "ft / ft" : "Below the horizon"}</em>
+              </div>
+            </div>
+          </>
+        ) : <p className="site-note">Select a study to calculate a result.</p>}
+        {selected && clock?.status !== "missing" ? <AnalysisAccuracy limits={sunSources} /> : null}
+      </section>
+      <section className="site-block">
+        <h2 className="site-subtitle">Legend</h2>
+        {sun ? (
+          <ul className="site-analysis-legend">
+            {sun.above ? <li data-rank="support"><i style={{ background: SUNLIT_SITE }} /><span>Sunlit</span></li> : null}
+            {sun.above ? <li data-rank="primary"><i style={{ background: SHADOW_TONE }} /><span>Shadow</span></li> : null}
+            <li data-rank="quiet"><i style={{ background: "#575757" }} /><span>Estimated height</span></li>
+          </ul>
+        ) : <p className="site-note">A legend appears when a result is drawn on the model.</p>}
+      </section>
+    </AnalysisColumnFrame>
+  );
+}
+
+export function SiteWorkspace({ panels = "model" }: { panels?: "model" | "analysis" }) {
   const [mode, setMode] = useState<SiteViewMode>("perspective");
+  const [studyId, setStudyId] = useState<string | null>(panels === "analysis" ? SUN_STUDY : null);
+  const [sunDate, setSunDate] = useState("2026-11-05");
+  const [sunTime, setSunTime] = useState("15:00");
+  const [occurrenceIndex, setOccurrenceIndex] = useState(0);
+  const [shadowTexel, setShadowTexel] = useState(0);
+  const [windSeasonId, setWindSeasonId] = useState("year");
+  const [windMonth, setWindMonth] = useState(0);
+  const [windCondition, setWindCondition] = useState<WindCondition>("all");
+  const [windSector, setWindSector] = useState<number | null>(null);
+  const [windDensity, setWindDensity] = useState(3);
+  const [windMotion, setWindMotion] = useState(1);
+  const [viewsMode, setViewsMode] = useState<ViewsMode>("views");
+  const [viewPointId, setViewPointId] = useState<ViewPointId>("waterfront");
+  const [eyeHeight, setEyeHeight] = useState(5.5);
+  const [walkMode, setWalkMode] = useState<PedestrianMode>("network");
+  const [urbanMode, setUrbanMode] = useState<UrbanMode>("land-use");
+  const [urbanGroups, setUrbanGroups] = useState<UrbanGroup[]>(DEFAULT_URBAN_GROUPS);
+  const [urbanFilters, setUrbanFilters] = useState<GeneratorFilter[]>(DEFAULT_GENERATOR_FILTERS);
+  const [inputs, setInputs] = useState<SiteObservation[]>([]);
+  const [inputsReady, setInputsReady] = useState(false);
+  useEffect(() => {
+    if (panels !== "analysis") return;
+    setInputs(readStoredFindings());
+    setInputsReady(true);
+  }, [panels]);
+  useEffect(() => {
+    if (panels !== "analysis" || !inputsReady) return;
+    writeStoredFindings(inputs);
+  }, [inputs, inputsReady, panels]);
+  const [liveInput, setLiveInput] = useState<readonly SiteFinding[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [showSunPath, setShowSunPath] = useState(true);
+  const [showShadows, setShowShadows] = useState(true);
   const [planHeading, setPlanHeading] = useState<"north" | "east">("north");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
@@ -1501,10 +1962,173 @@ export function SiteWorkspace() {
   };
   void duplicateModule;
   void duplicateConfiguration;
+  const clock = useMemo(
+    () => (panels === "analysis" && studyId === SUN_STUDY ? resolveZonedClock(sunDate, sunTime) : null),
+    [panels, studyId, sunDate, sunTime],
+  );
+  const occurrence = clock?.status === "unique" ? clock.occurrence : clock?.status === "ambiguous" ? clock.occurrences[Math.min(occurrenceIndex, clock.occurrences.length - 1)] ?? null : null;
+  const sun = useMemo(
+    () => (occurrence ? solarPosition(site.origin.lat, site.origin.lon, occurrence.instant) : null),
+    [occurrence, site.origin.lat, site.origin.lon],
+  );
+  const account = useMemo(() => heightAccount(site.buildings), [site.buildings]);
+  const wind = useMemo(
+    () => (panels === "analysis" && studyId === WIND_STUDY ? windSummary(windSeasonId, windMonth, windCondition) : null),
+    [panels, studyId, windSeasonId, windMonth, windCondition],
+  );
+  const windSeasons = useMemo(
+    () => (wind ? seasonalComparison(windCondition) : []),
+    [wind, windCondition],
+  );
+  const windDistanceKm = useMemo(() => stationDistanceKm(site.origin.lat, site.origin.lon), [site.origin.lat, site.origin.lon]);
+  const drawnWind = wind ? (windSector === null ? wind.prevailing : wind.sectors[windSector] ?? null) : null;
+  const viewPoints = useMemo(() => observationPoints(site.site.ring, site.coastline.path, site.water.ring), []);
+  const viewPoint = viewPoints.find((point) => point.id === viewPointId) ?? viewPoints[0];
+  const viewTowers = useMemo(() => analysisTowers(site.buildings), []);
+  const viewReadings = useMemo(
+    () => (panels === "analysis" && studyId === VIEWS_STUDY ? viewPoints.map((point) => viewReading(point, eyeHeight, site.buildings, site.coastline.path, inStudy, viewTowers)) : []),
+    [panels, studyId, viewPoints, eyeHeight, viewTowers],
+  );
+  const noiseReadings = useMemo(
+    () => (panels === "analysis" && studyId === VIEWS_STUDY ? viewPoints.map((point) => noiseReading(point, site.roads)) : []),
+    [panels, studyId, viewPoints],
+  );
+  const view = viewReadings.find((item) => item.point.id === viewPoint.id) ?? null;
+  const noise = noiseReadings.find((item) => item.point.id === viewPoint.id) ?? null;
+  const solarYear = Number(sunDate.slice(0, 4));
+  const solarMonths = useMemo(
+    () => (panels === "analysis" && studyId === SUN_STUDY && Number.isInteger(solarYear) ? monthlySolarNoon(site.origin.lat, site.origin.lon, solarYear) : []),
+    [panels, studyId, solarYear, site.origin.lat, site.origin.lon],
+  );
+  const windYear = useMemo(
+    () => (panels === "analysis" && studyId === WIND_STUDY ? windSummary("year", 0, windCondition) : null),
+    [panels, studyId, windCondition],
+  );
+  const sight = useMemo(
+    () => (view && noise ? (viewsMode === "proximity" ? noiseSegments(noise) : viewSegments(view)) : null),
+    [view, noise, viewsMode],
+  );
+  const walkStudy = useMemo(
+    () => (panels === "analysis" && studyId === WALK_STUDY ? pedestrianStudy(PARCEL_RING, site.coastline.path) : null),
+    [panels, studyId],
+  );
+  const walk = useMemo(
+    () => (walkStudy ? pedestrianSegments(walkMode, PARCEL_RING, site.coastline.path) : null),
+    [walkStudy, walkMode],
+  );
+  const urbanStudy = useMemo(
+    () => (panels === "analysis" && studyId === URBAN_STUDY ? urbanReading(PARCEL_RING, site.buildings, urbanRecord) : null),
+    [panels, studyId],
+  );
+  const uses = useMemo(
+    () => (urbanStudy ? urbanSegments(urbanMode, urbanGroups, urbanFilters, urbanStudy) : null),
+    [urbanStudy, urbanMode, urbanGroups, urbanFilters],
+  );
+  const chooseDate = (value: string) => {
+    setOccurrenceIndex(0);
+    setSunDate(value);
+  };
+  const chooseTime = (value: string) => {
+    setOccurrenceIndex(0);
+    setSunTime(value);
+  };
+  const chooseWindSeason = (value: string) => {
+    setWindSeasonId(value);
+    setWindMonth(0);
+    setWindSector(null);
+  };
+  const chooseWindMonth = (value: number) => {
+    setWindMonth(value);
+    setWindSector(null);
+  };
+  const chooseWindCondition = (value: WindCondition) => {
+    setWindCondition(value);
+    setWindSector(null);
+  };
+  const retainInput = (finding: SiteFinding) => {
+    setInputs((current) => [...current.filter((item) => item.id !== finding.id), finding]);
+  };
+  const removeInput = (id: string) => {
+    setInputs((current) => current.filter((item) => item.id !== id));
+  };
+  const reportLive = useCallback((findings: readonly SiteFinding[]) => {
+    setLiveInput(findings);
+  }, []);
+  const closeReview = useCallback(() => setReviewOpen(false), []);
+  const toggleUrbanGroup = (group: UrbanGroup) => {
+    setUrbanGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group]);
+  };
+  const toggleUrbanFilter = (filter: GeneratorFilter) => {
+    setUrbanFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
+  };
+  const analysisProps = {
+    studyId: panels === "analysis" ? studyId : null,
+    date: sunDate,
+    time: sunTime,
+    sun,
+    solarMonths,
+    clock,
+    occurrenceIndex,
+    account,
+    shadowTexel,
+    wind,
+    windYear,
+    windSeasons,
+    windSector,
+    windDensity,
+    windMotion,
+    windDistanceKm,
+    inputs,
+    showGrid,
+    showSunPath,
+    showShadows,
+    onSelect: setStudyId,
+    onDate: chooseDate,
+    onTime: chooseTime,
+    onOccurrence: setOccurrenceIndex,
+    onWindSeason: chooseWindSeason,
+    onWindMonth: chooseWindMonth,
+    onWindCondition: chooseWindCondition,
+    onWindSector: setWindSector,
+    onWindDensity: setWindDensity,
+    onWindMotion: setWindMotion,
+    viewsMode,
+    viewPointId,
+    eyeHeight,
+    viewReadings,
+    noiseReadings,
+    view,
+    noise,
+    onViewsMode: setViewsMode,
+    onViewPoint: setViewPointId,
+    onEyeHeight: setEyeHeight,
+    walkMode,
+    walkStudy,
+    onWalkMode: setWalkMode,
+    urbanMode,
+    urbanGroups,
+    urbanFilters,
+    urbanStudy,
+    onUrbanMode: setUrbanMode,
+    onUrbanGroup: toggleUrbanGroup,
+    onUrbanFilter: toggleUrbanFilter,
+    onRetain: retainInput,
+    onLive: reportLive,
+    onShowGrid: setShowGrid,
+    onShowSunPath: setShowSunPath,
+    onShowShadows: setShowShadows,
+  };
 
   return (
-    <main className="site-view">
-      <aside className="site-panel site-panel-library" aria-label="Library and project">
+    <main className="site-view" data-panels={panels}>
+      {panels === "analysis" ? (
+        <div className="site-analysis-toolbar">
+          <button type="button" aria-expanded={reviewOpen} onClick={() => setReviewOpen(true)}>
+            Selected Site Inputs ({inputs.length})
+          </button>
+        </div>
+      ) : null}
+      {panels === "analysis" ? <AnalysisColumn side="library" {...analysisProps} /> : <aside className="site-panel site-panel-library" aria-label="Library and project">
             <section className="site-block">
               <h2 className="site-subtitle">Geometry Library</h2>
               <h3 className="site-subtitle">Assemblies</h3>
@@ -1562,9 +2186,17 @@ export function SiteWorkspace() {
               ) : null}
             </section>
 
-      </aside>
+      </aside>}
       <section className="site-stage" aria-label="Current configuration">
-        <div className="site-frame">
+        <div className={panels === "analysis" ? "site-frame site-frame-glass" : "site-frame"}>
+          {panels === "analysis" ? (
+            <header className="site-frame-bar site-analysis-visual-bar">
+              <div className="site-analysis-head">
+                <p><span>02</span> Visualize</p>
+                <h2>Site model + analysis overlay</h2>
+              </div>
+            </header>
+          ) : (
           <header className="site-frame-bar">
             <div className="site-frame-name">
               <h2 className="site-subtitle">Current configuration</h2>
@@ -1581,6 +2213,7 @@ export function SiteWorkspace() {
               <button type="button" disabled={history.redo.length === 0} onClick={redo}>Redo</button>
             </div>
           </header>
+          )}
           <div className="site-viewport">
             <SiteViewport
               context={site}
@@ -1591,6 +2224,18 @@ export function SiteWorkspace() {
               showGrid={showGrid}
               showAerial={showAerial}
               frameToken={frameToken}
+              appearance="model"
+              framing="record"
+              frameWholeSite={panels === "analysis"}
+              presentation={panels === "analysis" ? "analysis" : "model"}
+              showSunPath={showSunPath}
+              showShadows={showShadows}
+              sun={sun}
+              wind={drawnWind && drawnWind.hours > 0 ? { fromDegrees: drawnWind.meanFrom, density: windDensity, motion: windMotion } : null}
+              sight={sight}
+              walk={walk}
+              uses={uses}
+              onShadowTexel={setShadowTexel}
               onReadout={onReadout}
               overlay={{
                 shore: showShore,
@@ -1644,10 +2289,10 @@ export function SiteWorkspace() {
                   if (mode === "plan") setPlanHeading((heading) => heading === "north" ? "east" : "north");
                 }}
               >
-                <svg viewBox="0 0 48 64" aria-hidden="true">
-                  <path d="M24 2 L34 30 H27 V60 H21 V30 H14 Z" />
-                </svg>
                 <span>N</span>
+                <svg viewBox="0 0 36 64" aria-hidden="true">
+                  <path d="M18 6 V58 M18 6 L7 24 M18 6 L29 24" />
+                </svg>
               </button>
               <div className="site-scale" aria-label={`${readout.scaleFeet} foot scale`}>
                 <span style={{ width: `${Math.max(36, readout.scalePx)}px` }} />
@@ -1663,18 +2308,9 @@ export function SiteWorkspace() {
             </div>
           </div>
         </div>
-        <p className="site-help">
-          {mode === "plan"
-            ? "Plan starts north-up. Click the north arrow to switch between north-up and east-up. Right-drag pans. Ctrl+Shift+right turns the plan. Ctrl+right or the wheel zooms."
-            : mode === "axon"
-              ? "Parallel view. Right-drag pans. Ctrl+Shift+right turns it. Ctrl+right or the wheel zooms."
-              : "Right-drag orbits. Shift+right pans. Ctrl+right or the wheel zooms."}
-          {" "}
-          Click a module in the library to add it to the site. Left-click selects a placed module. Left-drag {tool === "rotate" ? "turns the selection about vertical." : "moves the selection on the site."}
-        </p>
       </section>
     
-      <aside className="site-panel site-panel-analysis">
+      {panels === "analysis" ? <AnalysisColumn side="analysis" {...analysisProps} /> : <aside className="site-panel site-panel-analysis">
             <section className="site-block site-specs">
               <h2 className="site-subtitle">Live Analysis</h2>
               <h3 className="site-subtitle">Module count</h3>
@@ -1849,7 +2485,17 @@ export function SiteWorkspace() {
                 </div>
               </div>
             </section>
-      </aside>
+      </aside>}
+      {panels === "analysis" ? (
+        <SiteInputReview
+          open={reviewOpen}
+          inputs={inputs}
+          live={liveInput}
+          onClose={closeReview}
+          onRemove={removeInput}
+          onReplace={retainInput}
+        />
+      ) : null}
     </main>
   );
 }

@@ -72,6 +72,49 @@ export function placeAxon(camera: OrthographicCamera, size: { width: number; hei
   return target;
 }
 
+/** Initial analysis view. Far enough that the whole parcel fits the short wide canvas. */
+export function placeWholeSitePerspective(camera: PerspectiveCamera, size: { width: number; height: number }, frame: SiteFrame) {
+  const aspect = size.width / Math.max(1, size.height);
+  camera.fov = 30;
+  camera.aspect = aspect;
+  camera.up.set(0, 1, 0);
+  const vertical = (camera.fov * Math.PI) / 180;
+  const horizontal = 2 * Math.atan(Math.tan(vertical / 2) * aspect);
+  const radius = 0.5 * Math.hypot(frame.width, frame.depth);
+  const distance = (radius / Math.sin(Math.min(vertical, horizontal) / 2)) * 1.18;
+  const heading = new Vector3(0.82, 0.46, -0.34).normalize();
+  const eye = storedToWorld(
+    frame.cx + heading.x * distance,
+    heading.y * distance,
+    frame.cz + heading.z * distance,
+  );
+  camera.position.set(eye.x, eye.y, eye.z);
+  const target = lookAtStored(camera, frame, 8);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  return target;
+}
+
+/** Homepage study view. The parcel stays large in frame, with city and water still visible. */
+export function placeModelPerspective(camera: PerspectiveCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context") {
+  const aspect = size.width / Math.max(1, size.height);
+  const wide = aspect > 2.2;
+  const reach = fit === "site" ? (wide ? 1.16 : 1.05) : wide ? 1.5 : 1.28;
+  camera.fov = wide ? 24 : 30;
+  camera.aspect = aspect;
+  camera.up.set(0, 1, 0);
+  const eye = storedToWorld(
+    frame.cx + frame.span * reach * 0.95,
+    frame.span * reach * 0.64,
+    frame.cz - frame.span * reach * 0.1,
+  );
+  camera.position.set(eye.x, eye.y, eye.z);
+  const target = lookAtStored(camera, frame, 16);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  return target;
+}
+
 export function placePerspective(camera: PerspectiveCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context") {
   const reach = fit === "site" ? 1.16 : 1.18;
   camera.fov = 32;

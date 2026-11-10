@@ -225,6 +225,8 @@ export function mergeGeometries(geometries: readonly BufferGeometry[]) {
   }
   const positions = new Float32Array(vertices * 3);
   const normals = new Float32Array(vertices * 3);
+  const stamped = geometries.every((geometry) => geometry.getAttribute("aEstimate"));
+  const estimates = stamped ? new Float32Array(vertices) : null;
   const index = new Uint32Array(indices);
   let vertexBase = 0;
   let indexBase = 0;
@@ -233,6 +235,7 @@ export function mergeGeometries(geometries: readonly BufferGeometry[]) {
     const normal = geometry.getAttribute("normal");
     positions.set(position.array as Float32Array, vertexBase * 3);
     if (normal) normals.set(normal.array as Float32Array, vertexBase * 3);
+    if (estimates) estimates.set(geometry.getAttribute("aEstimate").array as Float32Array, vertexBase);
     const source = geometry.getIndex();
     if (source) {
       for (let item = 0; item < source.count; item += 1) index[indexBase + item] = source.getX(item) + vertexBase;
@@ -246,6 +249,7 @@ export function mergeGeometries(geometries: readonly BufferGeometry[]) {
   }
   merged.setAttribute("position", new Float32BufferAttribute(positions, 3));
   merged.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+  if (estimates) merged.setAttribute("aEstimate", new Float32BufferAttribute(estimates, 1));
   merged.setIndex(new BufferAttribute(index, 1));
   return merged;
 }
@@ -496,11 +500,16 @@ function canJoinDecks(from: DeckSample, fromOut: [number, number], to: DeckSampl
   if (gap < 1) return fromOut[0] * toOut[0] + fromOut[1] * toOut[1] < -0.5;
   const ahead = (dx * fromOut[0] + dz * fromOut[1]) / gap;
   const back = (-dx * toOut[0] + -dz * toOut[1]) / gap;
-  if (ahead < 0.72 || back < 0.72) return false;
-  if (gap > 90 && (ahead < 0.9 || back < 0.9)) return false;
   const rise = Math.abs(from.top - to.top);
   if (rise > 14) return false;
-  if (gap > 1 && rise > DECK_LEVEL_FEET && rise / gap > 0.055) return false;
+  const sameLevel = gap <= 60 && rise <= DECK_LEVEL_FEET;
+  if (sameLevel) {
+    if (ahead < 0.55 || back < 0.55) return false;
+  } else {
+    if (ahead < 0.72 || back < 0.72) return false;
+    if (gap > 90 && (ahead < 0.9 || back < 0.9)) return false;
+    if (gap > 1 && rise > DECK_LEVEL_FEET && rise / gap > 0.055) return false;
+  }
   if (gap > 1 && !inStudy((from.x + to.x) / 2, (from.z + to.z) / 2)) return false;
   if (gap > 12 && !bridgeClears(from, to, runs, left, right)) return false;
   return true;
@@ -1574,7 +1583,7 @@ function approachJoin(point: XZ, outward: XZ, start: XZ, finish: XZ) {
   if (distance < 2) return null;
   const forward = gapx * outward[0] + gapz * outward[1];
   if (forward < distance * 0.5) return null;
-  if (Math.abs(outward[0] * gapz - outward[1] * gapx) > 24) return null;
+  if (Math.abs(outward[0] * gapz - outward[1] * gapx) > 36) return null;
   const parallel = Math.abs(outward[0] * rz - outward[1] * rx) < span * 0.35;
   return { distance, point: closest, parallel };
 }
@@ -1591,8 +1600,8 @@ function pavementBlocked(from: XZ, to: XZ, blocked: readonly (readonly XZ[])[]) 
   return false;
 }
 
-/** Display-only. Carries a ground end to the street it is already aimed at. A join that crosses a building, the bay, or the site is refused, and parallel carriageways stay apart. */
-function closeGroundEnds(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[]): SiteRoad[] {
+/** Display-only. Carries a ground end to the street it is already aimed at. A same-street continuation may cross a footprint that sits in the right of way. The bay, the parcel, and a long crossing of a building stay open, and parallel carriageways of different streets stay apart. */
+function closeGroundEnds(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[], limits: readonly (readonly XZ[])[] = blocked): SiteRoad[] {
   const paths = roads.map((road) => road.path.map((point) => [point[0], point[1]] as XZ));
   const joined = paths.map((path) => path.map((point) => [point[0], point[1]] as XZ));
   for (let index = 0; index < roads.length; index += 1) {
@@ -1611,10 +1620,12 @@ function closeGroundEnds(roads: readonly SiteRoad[], blocked: readonly (readonly
         for (let cursor = 0; cursor < otherPath.length - 1; cursor += 1) {
           const approach = approachJoin(point, outward, otherPath[cursor], otherPath[cursor + 1]);
           if (!approach || approach.distance >= best) continue;
-          const continuation = Boolean(roads[index].name) && roads[index].name === other.name && approach.parallel;
+          const continuation = Boolean(roads[index].name) && roads[index].name !== "Unnamed" && roads[index].name === other.name && approach.parallel;
+          if (continuation && approach.distance > 100) continue;
           const clear = approach.distance - ownHalf - other.displayHalfWidthFeet;
           if (!continuation && clear > 2 * (ownHalf + other.displayHalfWidthFeet)) continue;
-          if (pavementBlocked(point, approach.point, blocked)) continue;
+          const barrier = continuation || clear < 32 ? limits : blocked;
+          if (pavementBlocked(point, approach.point, barrier)) continue;
           best = approach.distance;
           hit = approach.point;
         }
@@ -1636,12 +1647,12 @@ function rayInside(point: XZ, ring: readonly XZ[]) {
   return inside;
 }
 
-function joinedGroundRoads(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[]) {
-  return closeGroundEnds(roads.filter((road) => !road.elevated && road.path.length >= 2), blocked);
+function joinedGroundRoads(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[], limits?: readonly (readonly XZ[])[]) {
+  return closeGroundEnds(roads.filter((road) => !road.elevated && road.path.length >= 2), blocked, limits);
 }
 
-function groundCorridorRings(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[]) {
-  return joinedGroundRoads(roads, blocked).flatMap((road) => {
+function groundCorridorRings(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[], limits?: readonly (readonly XZ[])[]) {
+  return joinedGroundRoads(roads, blocked, limits).flatMap((road) => {
     const ring = corridorRing(road.path, road.displayHalfWidthFeet);
     return ring.length >= 3 ? [orientRing(ring, true)] : [];
   });
@@ -1674,13 +1685,13 @@ export function groundRoadBlocks(buildings: readonly SiteBuilding[], water: read
 }
 
 /** Gaps narrower than twice this between ground streets read as pavement, not as a black seam. */
-const STREET_CLOSE_FEET = 10;
+const STREET_CLOSE_FEET = 16;
 /** An enclosed opening smaller than this inside the street surface is paved. A city block is far larger. */
 const STREET_NOOK_SQFT = 4000;
 
 /** Display-only. Ground streets as one surface. Outer rings are positive, block openings negative. */
-export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = []): Promise<XZ[][]> {
-  const rings = groundCorridorRings(roads, blocked);
+export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[]): Promise<XZ[][]> {
+  const rings = groundCorridorRings(roads, blocked, limits);
   if (rings.length === 0) return [];
   const wasm = await loadClipper();
   const section = new wasm.CrossSection(rings.map((ring) => ring.map((point) => [point[0], point[1]] as [number, number])));
@@ -1696,8 +1707,8 @@ export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: rea
   });
 }
 
-export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = []) {
-  const polygons = await groundRoadSurface(roads, blocked);
+export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[]) {
+  const polygons = await groundRoadSurface(roads, blocked, limits);
   if (polygons.length === 0) return mergeGeometries([]);
   const outers: XZ[][] = [];
   const holes: XZ[][] = [];
@@ -1871,8 +1882,17 @@ async function clearStreets(footprints: DisplayFootprint[], street: readonly XZ[
 }
 
 /** Display-only. Generic masses yield where a named or more specific footprint occupies the same plan. With streets, a mass that runs onto the pavement stops at its edge. */
-export async function displayBuildingGeometry(buildings: readonly SiteBuilding[], streets?: { roads: readonly SiteRoad[]; blocked: readonly (readonly XZ[])[] }) {
+export async function displayBuildingGeometry(buildings: readonly SiteBuilding[], streets?: { roads: readonly SiteRoad[]; blocked: readonly (readonly XZ[])[]; limits?: readonly (readonly XZ[])[] }, markEstimates = false) {
   const cut = await cutDisplayFootprints(buildings);
-  const footprints = streets ? await clearStreets(cut, await groundRoadSurface(streets.roads, streets.blocked)) : cut;
-  return mergeGeometries(footprints.map((footprint) => prismGeometry(footprint.ring, footprint.height, footprint.holes)));
+  const footprints = streets ? await clearStreets(cut, await groundRoadSurface(streets.roads, streets.blocked, streets.limits)) : cut;
+  return mergeGeometries(footprints.map((footprint) => {
+    const geometry = prismGeometry(footprint.ring, footprint.height, footprint.holes);
+    if (markEstimates) {
+      const provisional = footprint.source !== "osm-height" && footprint.source !== "county";
+      const values = new Float32Array(geometry.getAttribute("position").count);
+      values.fill(provisional ? 1 : 0);
+      geometry.setAttribute("aEstimate", new Float32BufferAttribute(values, 1));
+    }
+    return geometry;
+  }));
 }

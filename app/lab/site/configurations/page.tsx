@@ -2,7 +2,7 @@ import { ConfigurationCatalog } from "@/components/site/configuration-catalog";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("site");
-const tab = workspace.tabs[1];
+const tab = workspace.tabs[2];
 
 export const metadata = {
   title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,

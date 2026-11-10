@@ -2,7 +2,7 @@ import { SiteWorkspace } from "@/components/site/site-workspace";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("site");
-const tab = workspace.tabs[0];
+const tab = workspace.tabs[1];
 
 export const metadata = {
   title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,

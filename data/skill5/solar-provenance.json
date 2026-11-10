@@ -1,0 +1,53 @@
+{
+  "observer": {
+    "latitude": 25.78887982474338,
+    "longitude": -80.18621229910427,
+    "elevation": "Parcel origin, mean of the parcel vertices. Not a surveyed monument. Elevation treated as zero.",
+    "timeZone": "America/New_York"
+  },
+  "calculation": {
+    "method": "Geometric solar position from the NOAA Global Monitoring Laboratory spreadsheet equations, based on Jean Meeus, Astronomical Algorithms.",
+    "url": "https://gml.noaa.gov/grad/solcalc/calcdetails.html",
+    "implementation": "lib/skill5/solar.ts solarPosition",
+    "azimuth": "Degrees clockwise from north.",
+    "refraction": "Not applied. The NOAA solar-position page models atmospheric refraction separately. This study uses the airless geometric elevation.",
+    "not": "This calculation does not call NOAA or JPL, and it is not the low-accuracy fractional-year formula in https://gml.noaa.gov/grad/solcalc/solareqns.PDF."
+  },
+  "horizons": {
+    "role": "Independent check. Not an input to the study.",
+    "url": "https://ssd.jpl.nasa.gov/api/horizons.api",
+    "checked": "2026-11-07",
+    "target": "Sun (10)",
+    "ephemeris": "DE441",
+    "center": "Earth (399), geodetic site, altitude 0 km",
+    "quantities": "4, airless apparent azimuth and elevation",
+    "site": "-80.1862123, 25.7888798, 0",
+    "samples": [
+      {
+        "civil": "2026-11-05 15:00 Eastern Standard Time",
+        "utc": "2026-11-05 20:00",
+        "studyAltitude": 30.322072,
+        "studyAzimuth": 230.629038,
+        "horizonsAzimuth": 230.620242,
+        "horizonsElevation": 30.328264
+      },
+      {
+        "civil": "2026-11-05 07:00 Eastern Standard Time",
+        "utc": "2026-11-05 12:00",
+        "studyAltitude": 5.185805,
+        "studyAzimuth": 110.294129,
+        "horizonsAzimuth": 110.288455,
+        "horizonsElevation": 5.173663
+      },
+      {
+        "civil": "2026-06-21 13:30 Eastern Daylight Time",
+        "utc": "2026-06-21 17:30",
+        "studyAltitude": 87.111741,
+        "studyAzimuth": 215.896248,
+        "horizonsAzimuth": 215.91857,
+        "horizonsElevation": 87.110588
+      }
+    ],
+    "agreement": "The checked samples stay within about 0.02 degrees. The study numbers were not replaced with the Horizons numbers."
+  }
+}

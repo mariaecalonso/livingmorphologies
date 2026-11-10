@@ -81,6 +81,7 @@ export const LAB_WORKSPACES = [
     workflowStage: "skill-5",
     resultId: null,
     tabs: [
+      { href: "/lab/site/analysis", label: "Site Analysis" },
       { href: "/lab/site", label: "Site Model" },
       { href: "/lab/site/configurations", label: "Configurations" },
     ],
