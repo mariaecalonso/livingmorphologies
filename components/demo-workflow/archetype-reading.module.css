@@ -172,16 +172,6 @@
   display: none;
 }
 
-.plate svg[data-detail="brief"][data-mode="edge-void"] .primary,
-.plate svg[data-detail="brief"][data-mode="spine"] .primary {
-  stroke-width: 1.85;
-}
-
-.plate svg[data-detail="brief"][data-mode="separator"] .ribbon {
-  stroke: #d8feff;
-  stroke-width: 1.7;
-}
-
 .glow,
 .primary,
 .guide,
@@ -201,31 +191,52 @@
 
 .glow {
   fill: none;
-  stroke: rgba(73, 215, 222, 0.22);
-  stroke-width: 1.85;
+  stroke: rgba(73, 215, 222, 0.45);
+  stroke-width: 2.6;
+  filter: blur(0.8px);
+}
+
+.primary,
+.thick,
+.arrow,
+.guide,
+.tick,
+.dashed,
+.dotted {
+  stroke: #49d7de;
+}
+
+.primary,
+.arrow,
+.node,
+.guide,
+.tick {
+  filter: drop-shadow(0 0 1px rgba(73, 215, 222, 0.85));
 }
 
 .primary {
   fill: none;
-  stroke: #d8feff;
-  stroke-width: 1.35;
+  stroke-width: 1.45;
+}
+
+.thick {
+  fill: none;
+  stroke-width: 1.45;
 }
 
 .fill {
-  fill: rgba(73, 215, 222, 0.28);
+  fill: rgba(73, 215, 222, 0.2);
   stroke: none;
 }
 
 .guide,
 .tick {
   fill: none;
-  stroke: rgba(122, 244, 248, 0.72);
-  stroke-width: 0.7;
+  stroke-width: 1;
 }
 
 .tick {
-  stroke: #7ef4f8;
-  stroke-width: 0.75;
+  stroke-width: 1.05;
 }
 
 .core {
@@ -235,9 +246,9 @@
 }
 
 .bay {
-  fill: rgba(73, 215, 222, 0.24);
-  stroke: #d8feff;
-  stroke-width: 1.15;
+  fill: rgba(73, 215, 222, 0.2);
+  stroke: #49d7de;
+  stroke-width: 1.35;
 }
 
 .ribbon {
@@ -248,23 +259,20 @@
 
 .dashed {
   fill: none;
-  stroke: #d8feff;
-  stroke-width: 1.2;
-  stroke-dasharray: 3.2 2;
+  stroke-width: 1.15;
+  stroke-dasharray: 3.4 2.3;
 }
 
 .dotted {
   fill: none;
-  stroke: rgba(154, 247, 251, 0.9);
-  stroke-width: 0.7;
-  stroke-dasharray: 1.4 1.2;
+  stroke-width: 1.05;
+  stroke-dasharray: 0.2 2.5;
 }
 
 .ink,
 .inkDash {
   fill: none;
-  stroke: rgba(0, 0, 0, 0.88);
-  stroke-width: 1.9;
+  stroke: none;
 }
 
 .inkDash {
@@ -274,8 +282,7 @@
 
 .arrow {
   fill: none;
-  stroke: #d8feff;
-  stroke-width: 1.05;
+  stroke-width: 1.2;
 }
 
 .haze {
@@ -283,16 +290,10 @@
   stroke: none;
 }
 
-.thick {
-  fill: none;
-  stroke: #9af7fb;
-  stroke-width: 1.35;
-}
-
 .node {
   fill: none;
-  stroke: #9af7fb;
-  stroke-width: 0.9;
+  stroke: #49d7de;
+  stroke-width: 1.15;
 }
 
 .spanLabel {

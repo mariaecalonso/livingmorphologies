@@ -376,6 +376,104 @@
 }
 
 /* Focused composition. The site is the tall center. Strategy sits above the brief requirements. */
+.sheet > :global(section) {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000000;
+}
+
+.host > :global(.site-view) {
+  height: 100%;
+  min-height: 0;
+}
+
+/* The client webpage, laid out on the classroom sheet and scaled into the chapter. */
+.clientStage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 560px;
+  transform: translate(-50%, -50%) scale(0.8893);
+}
+
+.host[data-part="client"] :global([class*="board"]) {
+  opacity: 1;
+}
+
+/* Site Analysis and Site Integration, same labs, type and gaps brought down to the chapter. */
+.host[data-part="analysis"] :global(.site-view),
+.host[data-part="site"] :global(.site-view) {
+  gap: 0.4rem;
+  padding: 0.4rem 0.45rem;
+  font-size: 11px;
+}
+
+.host[data-part="analysis"] :global(.site-panel),
+.host[data-part="site"] :global(.site-panel) {
+  padding: 0.45rem 0.55rem 0.5rem;
+}
+
+.host[data-part="analysis"] :global(.site-block + .site-block),
+.host[data-part="site"] :global(.site-block + .site-block) {
+  margin-top: 0.4rem;
+  padding-top: 0.32rem;
+}
+
+.host[data-part="analysis"] :global(.site-title),
+.host[data-part="site"] :global(.site-title) {
+  margin: 0.12rem 0 0.28rem;
+  font-size: 0.78rem;
+}
+
+.host[data-part="analysis"] :global(.site-subtitle),
+.host[data-part="site"] :global(.site-subtitle),
+.host[data-part="analysis"] :global(.site-kicker),
+.host[data-part="site"] :global(.site-kicker) {
+  font-size: 0.58rem;
+}
+
+.host[data-part="analysis"] :global(.site-note),
+.host[data-part="site"] :global(.site-note),
+.host[data-part="analysis"] :global(.site-identity),
+.host[data-part="site"] :global(.site-identity) {
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.host[data-part="analysis"] :global(.site-workflow button),
+.host[data-part="site"] :global(.site-workflow button) {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.62rem;
+}
+
+.host[data-part="analysis"] :global(.site-explore-path) {
+  height: 4.2em;
+}
+
+.host[data-part="analysis"] :global(.site-analysis-toolbar button) {
+  font-size: 0.68rem;
+}
+
+.host[data-part="site"] :global(.site-sim) {
+  font-size: 12px;
+}
+
+.sheet {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
 .composed {
   display: grid;
   height: 100%;

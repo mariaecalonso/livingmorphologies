@@ -309,7 +309,7 @@
 }
 
 .systems figure {
-  width: calc(86 * var(--u));
+  width: calc(62 * var(--u));
   margin: 0;
 }
 
@@ -326,6 +326,73 @@
   width: 100%;
   height: calc(26 * var(--u));
   object-fit: contain;
+}
+
+/* Chapter 04 draws the Site Analysis page, scaled into the same frame as chapters 03 and 05. */
+.contextLab {
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--v));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.contextLab > [data-context-analysis] {
+  width: calc(100% / 0.36);
+  height: calc(100% / 0.36);
+  transform: scale(0.36);
+  transform-origin: top left;
+}
+
+.contextLab > [data-context-analysis] > * {
+  height: 100%;
+  min-height: 0;
+}
+
+.contextLab :global(.site-view) {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Panel widths follow this frame. The chapter page sizes them from the browser. */
+.contextLab :global([data-part="analysis"] .site-view[data-panels="analysis"]) {
+  --analysis-pad: 3%;
+  --analysis-left: 22%;
+  --analysis-right: 24%;
+  padding: 0;
+}
+
+/* Chapter 03 draws the live Process page, scaled into the overview column. */
+.verticalLab {
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--v));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.verticalLab > [data-vertical-process] {
+  width: calc(100% / 0.36);
+  height: calc(100% / 0.36);
+  transform: scale(0.36);
+  transform-origin: top left;
+}
+
+.verticalLab > [data-vertical-process] > * {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Chapter 05 draws the live Hybrid Connection lab, scaled into the overview column. */
+.integrationLab {
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--v));
+  overflow: hidden;
+}
+
+.integrationLab > :global([data-hybrid-lab]) {
+  width: calc(100% / 0.36);
+  height: calc(100% / 0.36);
+  transform: scale(0.36);
+  transform-origin: top left;
 }
 
 .systems figcaption {
@@ -371,15 +438,27 @@
 }
 
 .relation [data-kind="progression"] path,
-.relation [data-kind="handoff"] path {
+.relation [data-kind="handoff"] path,
+.relation [data-kind="step"] path {
   stroke: var(--teal);
   stroke-width: 1.35;
+}
+
+.relation [data-kind="step"] path,
+.relation [data-kind="step"][data-tone="copper"],
+.relation [data-kind="handoff"] path,
+.relation [data-kind="feedback"] path {
+  stroke-width: 0.7;
+  opacity: 0.62;
+}
+
+.relation [data-kind="step"][data-tone="copper"] {
+  stroke: var(--copper);
 }
 
 .relation [data-kind="context"],
 .relation [data-kind="feedback"] path {
   stroke: var(--copper);
-  stroke-width: 1.35;
 }
 
 .relation [data-kind="feedback"] path {
@@ -391,8 +470,14 @@
   stroke: none;
 }
 
-.relation marker[id="overview-copper"] path {
+.relation marker[id="overview-copper"] path,
+.relation marker[id="overview-step-copper"] path {
   fill: var(--copper);
+}
+
+.relation marker[id="overview-step-teal"] path,
+.relation marker[id="overview-step-copper"] path {
+  opacity: 0.62;
 }
 
 .relation text {
@@ -403,10 +488,12 @@
 
 .relation [data-kind="feedback"] text {
   fill: var(--copper);
+  font-size: 8px;
 }
 
 .relation [data-kind="handoff"] text {
   fill: var(--teal);
+  font-size: 8px;
 }
 
 /* Connections */

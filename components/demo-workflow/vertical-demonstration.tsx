@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { ContinueFamilyFan } from "@/components/continue-family-fan";
 import { InheritFamilySummary } from "@/components/inherit-criteria-profile";
@@ -237,6 +237,18 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
   const [solidShown, setSolidShown] = useState(false);
   const [isoTick, setIsoTick] = useState(0);
   const demo = useDemoStore();
+
+  useLayoutEffect(() => {
+    patch({
+      active: focus === "cap" ? "cap" : focus ?? "sample",
+      cursor: { x: 28, y: 36, visible: false },
+      pressed: null,
+      catalogId: null,
+      catalogOpen: false,
+      n24Final: false,
+      handoff: false,
+    });
+  }, [focus]);
 
   useEffect(() => {
     sampleStateRef.current = sampleState;

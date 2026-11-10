@@ -289,7 +289,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
   return (
     <main className={single ? "hybrid-view hybrid-frame" : "hybrid-view hybrid-assembly"}>
       {!single && catalogNotice ? <p className="hybrid-units">{catalogNotice}</p> : null}
-      {!single && generationNotice ? <p className="hybrid-pending">{generationNotice}</p> : null}
+      {!single && !presentation && generationNotice ? <p className="hybrid-pending">{generationNotice}</p> : null}
       {single ? null : <SyntheticTestToggle />}
       {!frame || frame === "tile" ? <Panel className="hybrid-tile major-section-frame">
         <PanelHeader mark="01" title="Tile Selection" />
@@ -327,6 +327,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
         <PanelHeader mark="02" title="Aggregation Canvas" />
         <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
           <AggregationView
+            initialPitch={presentation ? -1.15 : undefined}
             instances={placed}
             selectedId={canvasSelection ?? ""}
             onSelect={(id) => {
@@ -382,10 +383,19 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
                 <button type="button" className="hybrid-connection-label" onClick={() => focusConnection(connection.id)}>
                   {connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}
                 </button>
-                {connection.generatedHybridField ? <MockMatrix
+                {connection.generatedHybridField || connection.generationStatus === "generating" ? <MockMatrix
                   signature={connection.signature}
                   selectedId={connection.selectedMockId}
-                  generatedField={connection.generatedHybridField}
+                  generatedField={connection.generatedHybridField ?? {
+                    version: "skill4-generated-hybrid-field-v1",
+                    status: "partial",
+                    connectionSignature: connection.signature,
+                    candidates: [],
+                    readyCount: 0,
+                    blockedCount: 0,
+                    emptyCount: 0,
+                    invalidCount: 0,
+                  }}
                   onSelect={(id) => selectMock(connection.id, id)}
                   colorA={colorA}
                   colorB={colorB}
@@ -395,12 +405,16 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
                       : sectionPlay?.connectionId === connection.id
                         ? sectionPlay.candidateId
                         : connection.generationStatus === "generating"
-                          ? connection.generatedHybridField.candidates[connection.generatedHybridField.candidates.length - 1]?.candidateId ?? null
+                          ? connection.generatedHybridField?.candidates.at(-1)?.candidateId ?? null
                           : null
                   }
                   previewMesh={growth?.connectionId === connection.id ? growth.mesh : null}
-                /> : <p className="hybrid-missing">{connection.generationStatus === "generating" ? "The SOM is generating." : "Select two geometries and connection faces to generate SOM"}</p>}
-                {presentation ? null : <div className="hybrid-layout-controls">
+                /> : <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p>}
+                {presentation ? (
+                  <button type="button" className="hybrid-generate" onClick={() => generateHybridFieldForConnection(connection.id, true)}>
+                    Generate real hybrids
+                  </button>
+                ) : <div className="hybrid-layout-controls">
                   <button type="button" className="hybrid-generate" onClick={() => setGenerationNotice(generateInputs(connection.id))}>
                     Generate candidate inputs
                   </button>

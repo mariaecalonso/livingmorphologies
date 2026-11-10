@@ -17,6 +17,7 @@ import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { loadArchetypeMesh } from "@/lib/skill5/load-module";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
+import { TYPOLOGIES } from "@/lib/catalog";
 import styles from "@/components/demo-workflow/integration-chapter.module.css";
 
 const site = contextJson as SiteContext;
@@ -96,51 +97,123 @@ function useHybridCatalog() {
 }
 
 type LabBeat =
-  | { kind: "aim" | "press"; selector: string; ms: number; act?: "generate" | "click" }
+  | { kind: "aim" | "press"; selector: string; ms: number; act?: "click" }
+  | { kind: "ready"; tile: "A" | "B" | null }
+  | { kind: "orbit"; ms: number }
   | { kind: "follow"; }
   | { kind: "scrub"; ms: number };
 
-/** The same kind of pass chapter 02 makes through the lab: the cursor visits each control, then the run plays. */
+type OpenMenu = { tile: "A" | "B"; typologyId: string | null };
+
+const ROW = 520;
+const CLICK = 260;
+
+/** The cursor selects both models, their surfaces, turns the 3D view, then starts the SOM. */
 const LAB_BEATS: LabBeat[] = [
-  { kind: "aim", selector: '[aria-label="A face N"]', ms: 900 },
-  { kind: "press", selector: '[aria-label="A face N"]', ms: 360 },
-  { kind: "aim", selector: '[aria-label="B face S"]', ms: 900 },
-  { kind: "press", selector: '[aria-label="B face S"]', ms: 360 },
-  { kind: "aim", selector: ".hybrid-matrix", ms: 800 },
-  { kind: "press", selector: ".hybrid-matrix", ms: 420, act: "generate" },
+  { kind: "ready", tile: "A" },
+  { kind: "aim", selector: '[data-menu-trigger="A"]', ms: 640 },
+  { kind: "press", selector: '[data-menu-trigger="A"]', ms: CLICK, act: "click" },
+  { kind: "aim", selector: '[data-typology="lobby"]', ms: ROW },
+  { kind: "aim", selector: '[data-typology="workspace"]', ms: ROW },
+  { kind: "aim", selector: '[data-typology="gathering"]', ms: ROW },
+  { kind: "press", selector: '[data-typology="gathering"]', ms: CLICK, act: "click" },
+  { kind: "aim", selector: '[data-archetype="stepped-amphitheater"]', ms: ROW },
+  { kind: "aim", selector: '[data-archetype="void-field"]', ms: ROW },
+  { kind: "press", selector: '[data-archetype="void-field"]', ms: CLICK, act: "click" },
+  { kind: "ready", tile: "B" },
+  { kind: "aim", selector: '[data-menu-trigger="B"]', ms: 640 },
+  { kind: "press", selector: '[data-menu-trigger="B"]', ms: CLICK, act: "click" },
+  { kind: "aim", selector: '[data-typology="lobby"]', ms: ROW },
+  { kind: "aim", selector: '[data-typology="workspace"]', ms: ROW },
+  { kind: "aim", selector: '[data-typology="gathering"]', ms: ROW },
+  { kind: "press", selector: '[data-typology="gathering"]', ms: CLICK, act: "click" },
+  { kind: "aim", selector: '[data-archetype="stepped-amphitheater"]', ms: ROW },
+  { kind: "aim", selector: '[data-archetype="void-field"]', ms: ROW },
+  { kind: "aim", selector: '[data-archetype="inserted-horizontal-plate"]', ms: ROW },
+  { kind: "press", selector: '[data-archetype="inserted-horizontal-plate"]', ms: CLICK, act: "click" },
+  { kind: "ready", tile: null },
+  { kind: "aim", selector: '[aria-label="A face N"]', ms: 420 },
+  { kind: "press", selector: '[aria-label="A face N"]', ms: 220, act: "click" },
+  { kind: "aim", selector: '[aria-label="B face S"]', ms: 420 },
+  { kind: "press", selector: '[aria-label="B face S"]', ms: 220, act: "click" },
+  { kind: "orbit", ms: 2200 },
+  { kind: "aim", selector: ".hybrid-generate", ms: 560 },
+  { kind: "press", selector: ".hybrid-generate", ms: 320, act: "click" },
   { kind: "follow" },
-  { kind: "aim", selector: '[data-mock-id="H10"]', ms: 800 },
-  { kind: "press", selector: '[data-mock-id="H10"]', ms: 380, act: "click" },
-  { kind: "aim", selector: ".hybrid-morph-toggle", ms: 800 },
-  { kind: "press", selector: ".hybrid-morph-toggle", ms: 380, act: "click" },
-  { kind: "scrub", ms: 7000 },
-  { kind: "aim", selector: ".hybrid-validate-run", ms: 800 },
-  { kind: "press", selector: ".hybrid-validate-run", ms: 420, act: "click" },
+  { kind: "aim", selector: '[data-mock-id="H10"]', ms: 480 },
+  { kind: "press", selector: '[data-mock-id="H10"]', ms: 220, act: "click" },
+  { kind: "aim", selector: ".hybrid-morph-toggle", ms: 480 },
+  { kind: "press", selector: ".hybrid-morph-toggle", ms: 220, act: "click" },
+  { kind: "scrub", ms: 3200 },
+  { kind: "aim", selector: ".hybrid-validate-run", ms: 480 },
+  { kind: "press", selector: ".hybrid-validate-run", ms: 220, act: "click" },
 ];
 
-function latestMatrixCell(root: ParentNode) {
-  const buttons = [...root.querySelectorAll<HTMLElement>(".hybrid-matrix-grid button")];
-  return buttons.filter((button) => button.querySelector("canvas")).at(-1) ?? buttons.at(-1) ?? root.querySelector<HTMLElement>(".hybrid-matrix");
-}
-
-function placeCursor(cursor: HTMLElement, host: HTMLElement, target: HTMLElement, along = 0.42) {
+function placeCursor(cursor: HTMLElement, host: HTMLElement, target: HTMLElement, along = 0.42, down = 0.62) {
   const box = host.getBoundingClientRect();
   const scale = box.width / host.offsetWidth || 1;
   const rect = target.getBoundingClientRect();
   const x = (rect.left - box.left + rect.width * along) / scale;
-  const y = (rect.top - box.top + rect.height * 0.62) / scale;
+  const y = (rect.top - box.top + rect.height * down) / scale;
   cursor.style.transform = `translate(${x}px, ${y}px)`;
   cursor.dataset.hidden = "false";
 }
 
+function TileSelect({
+  tile,
+  menu,
+  onOpen,
+  onTypology,
+  onArchetype,
+}: {
+  tile: "A" | "B";
+  menu: OpenMenu | null;
+  onOpen: () => void;
+  onTypology: (id: string) => void;
+  onArchetype: (id: string) => void;
+}) {
+  const open = menu?.tile === tile;
+  const typology = open ? TYPOLOGIES.find((item) => item.id === menu.typologyId) ?? null : null;
+  return (
+    <div className={styles.select}>
+      <button type="button" className={styles.trigger} data-menu-trigger={tile} onClick={onOpen}>
+        {typology ? typology.label : "Select geometry"}
+      </button>
+      {open ? (
+        <ul className={styles.menu} data-archetype-menu="">
+          {typology
+            ? typology.archetypes.map((archetype) => (
+              <li key={archetype.id}>
+                <button type="button" data-archetype={archetype.id} onClick={() => onArchetype(archetype.id)}>
+                  {archetype.name}
+                </button>
+              </li>
+            ))
+            : TYPOLOGIES.map((item) => (
+              <li key={item.id}>
+                <button type="button" data-typology={item.id} onClick={() => onTypology(item.id)}>
+                  {item.label}
+                </button>
+              </li>
+            ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function HybridRun() {
-  const { connections, loaded, generateHybridFieldForConnection } = useHybrid();
+  const { connections, loaded, generateHybridFieldForConnection, chooseArchetype } = useHybrid();
   const started = useRef(false);
   const anchor = useRef<HTMLSpanElement>(null);
   const cursor = useRef<HTMLSpanElement>(null);
   const [note, setNote] = useState<string | null>(null);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [beat, setBeat] = useState(0);
+  const [menu, setMenu] = useState<OpenMenu | null>(null);
+  const [selecting, setSelecting] = useState<"A" | "B" | null>(null);
+  const chooseRef = useRef(chooseArchetype);
+  chooseRef.current = chooseArchetype;
   const reduced = useRef(false);
   const begin = () => {
     if (started.current) return;
@@ -151,8 +224,6 @@ function HybridRun() {
     started.current = true;
     if (result && result !== "Sensing") setNote(result);
   };
-  const beginRef = useRef(begin);
-  beginRef.current = begin;
   useEffect(() => {
     reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced.current) begin();
@@ -163,14 +234,102 @@ function HybridRun() {
   useEffect(() => {
     if (reduced.current || !host || beat >= LAB_BEATS.length) return;
     const step = LAB_BEATS[beat];
+    if (step.kind === "ready") {
+      if (step.tile === "A") {
+        chooseRef.current("A", "");
+        chooseRef.current("B", "");
+      }
+      setMenu(null);
+      setSelecting(step.tile);
+      setBeat((current) => current + 1);
+      return;
+    }
+    if (step.kind === "orbit") {
+      let cancel = false;
+      let timer = 0;
+      let frame = 0;
+      const start = () => {
+        if (cancel) return;
+        const canvas = host.querySelector<HTMLCanvasElement>(".hybrid-stage-canvas");
+        const node = cursor.current;
+        if (!canvas || !node) {
+          timer = window.setTimeout(start, 400);
+          return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const lift = 72;
+        const turn = 170;
+        const x0 = rect.left + rect.width * 0.46;
+        const y0 = rect.top + rect.height * 0.56;
+        const pointerId = 7;
+        const point = (type: string, x: number, y: number, buttons: number) => {
+          canvas.dispatchEvent(new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            pointerId,
+            clientX: x,
+            clientY: y,
+            pointerType: "mouse",
+            isPrimary: true,
+            buttons,
+          }));
+        };
+        const show = (x: number, y: number) => {
+          placeCursor(node, host, canvas, (x - rect.left) / rect.width, (y - rect.top) / rect.height);
+        };
+        show(x0, y0);
+        timer = window.setTimeout(() => {
+          if (cancel) return;
+          canvas.parentElement?.dispatchEvent(new WheelEvent("wheel", {
+            bubbles: true,
+            cancelable: true,
+            deltaY: 220,
+            clientX: x0,
+            clientY: y0,
+          }));
+          node.dataset.drag = "true";
+          node.dataset.press = "true";
+          point("pointerdown", x0, y0, 1);
+          const startedAt = performance.now();
+          const tick = (now: number) => {
+            if (cancel) return;
+            const t = Math.min(1, (now - startedAt) / step.ms);
+            const lower = Math.min(1, t / 0.34);
+            const turnT = t < 0.46 ? 0 : Math.min(1, (t - 0.46) / 0.54);
+            const x = x0 + turn * turnT;
+            const y = y0 - lift * lower;
+            point("pointermove", x, y, 1);
+            show(x, y);
+            if (t < 1) frame = window.requestAnimationFrame(tick);
+            else {
+              point("pointerup", x0 + turn, y0 - lift, 0);
+              node.dataset.press = "false";
+              node.dataset.drag = "false";
+              setBeat((current) => current + 1);
+            }
+          };
+          frame = window.requestAnimationFrame(tick);
+        }, 420);
+      };
+      start();
+      return () => {
+        cancel = true;
+        window.clearTimeout(timer);
+        window.cancelAnimationFrame(frame);
+        if (cursor.current) cursor.current.dataset.drag = "false";
+      };
+    }
     if (step.kind === "follow") {
       let done = false;
+      let sawGenerating = false;
+      const node = cursor.current;
+      if (node) node.dataset.press = "false";
       const id = window.setInterval(() => {
-        const node = cursor.current;
-        const cell = latestMatrixCell(host);
-        if (node && cell) placeCursor(node, host, cell);
+        const button = host.querySelector<HTMLElement>(".hybrid-generate");
+        if (node && button) placeCursor(node, host, button, 0.55, 0.55);
         const status = host.querySelector(".hybrid-som-mini > .hybrid-units")?.textContent?.trim();
-        if (status === "Ready" && !done) {
+        if (status === "Generating") sawGenerating = true;
+        if (sawGenerating && status === "Ready" && !done) {
           done = true;
           setBeat((current) => current + 1);
         }
@@ -201,13 +360,6 @@ function HybridRun() {
         timer = window.setTimeout(attempt, 400);
         return;
       }
-      if (step.act === "generate") {
-        beginRef.current();
-        if (!started.current) {
-          timer = window.setTimeout(attempt, 400);
-          return;
-        }
-      }
       if (step.act === "click") {
         const control = host.querySelector<HTMLButtonElement>(step.selector);
         if (!control || control.disabled) {
@@ -228,20 +380,37 @@ function HybridRun() {
     const node = cursor.current;
     if (!node || !host || reduced.current) return;
     const step = LAB_BEATS[beat];
-    if (!step || step.kind === "follow" || step.kind === "scrub") return;
+    if (!step || (step.kind !== "aim" && step.kind !== "press")) return;
     const target = host.querySelector<HTMLElement>(step.selector);
     if (!target) {
       node.dataset.hidden = "true";
       return;
     }
+    const menuRow = step.selector.includes("data-menu-trigger") || step.selector.includes("data-typology") || step.selector.includes("data-archetype");
+    host.querySelectorAll<HTMLElement>("[data-typology], [data-archetype]").forEach((item) => {
+      item.dataset.lit = item === target ? "true" : "false";
+    });
     node.dataset.press = step.kind === "press" ? "true" : "false";
-    placeCursor(node, host, target, 0.42);
+    placeCursor(node, host, target, menuRow ? 0.2 : 0.42, menuRow ? 0.55 : 0.62);
   }, [beat, host]);
   return (
     <>
       <span ref={anchor} hidden />
       {note ? <p className={styles.note}>{note}</p> : null}
       <HybridAssembly presentation />
+      {host && selecting ? createPortal(
+        <TileSelect
+          tile={selecting}
+          menu={menu}
+          onOpen={() => setMenu({ tile: selecting, typologyId: null })}
+          onTypology={(id) => setMenu({ tile: selecting, typologyId: id })}
+          onArchetype={(id) => {
+            chooseRef.current(selecting, id);
+            setMenu(null);
+          }}
+        />,
+        host.querySelector(`[data-tile="${selecting}"]`) ?? host,
+      ) : null}
       {host ? createPortal(
         <span ref={cursor} className={styles.pointer} data-hidden="true" aria-hidden="true">
           <svg viewBox="0 0 18 22">

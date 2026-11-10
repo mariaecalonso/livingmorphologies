@@ -27,7 +27,8 @@ export const OVERVIEW_STILLS = {
   z0Pick: 0,
   z0: `${STILL}/z0-vertical-void.webp`,
   stack: `${STILL}/vertical-stack.webp`,
-  form: `${STILL}/vertical-form.webp`,
+  /** Same Form model as `vertical-form.webp`, with the stage gradient removed. */
+  form: `${STILL}/vertical-form-plain.webp`,
   modules: numbered("module", 15),
   /**
    * One still per Vertical Void continuation, N01–N24, from the open criteria-hybrid meshes.

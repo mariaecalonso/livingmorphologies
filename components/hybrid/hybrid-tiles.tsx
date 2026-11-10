@@ -74,7 +74,7 @@ export function HybridTiles({ compact = false, only, faceNote, locked = false }:
                 if (!locked) chooseArchetype(tile.instanceId, archetypeId);
               }}
               onFace={(face) => {
-                if (!locked) chooseTileFace(tile.instanceId, face, connections, selectedConnectionId, chooseFace);
+                chooseTileFace(tile.instanceId, face, connections, selectedConnectionId, chooseFace);
               }}
             />
           );

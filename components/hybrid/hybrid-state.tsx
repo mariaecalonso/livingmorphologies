@@ -38,7 +38,7 @@ type HybridStateValue = {
   chooseArchetype: (instanceId: string, archetypeId: string) => void;
   chooseFace: (connectionId: string, side: "faceA" | "faceB", face: FaceId) => void;
   generateInputs: (connectionId: string) => string | null;
-  generateHybridFieldForConnection: (connectionId: string) => string | null;
+  generateHybridFieldForConnection: (connectionId: string, replay?: boolean) => string | null;
   focusConnection: (id: string) => void;
   count: AssemblyCount;
   arrangement: AssemblyArrangement;
@@ -327,7 +327,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
     step();
   };
 
-  const generateHybridFieldForConnection = (connectionId: string) => {
+  const generateHybridFieldForConnection = (connectionId: string, replay = false) => {
     const found = board.connections.find((item) => item.id === connectionId);
     if (!found) return "The connection is no longer adjacent.";
     let connection = found;
@@ -351,7 +351,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
       && expected > 0
       ? connection.generatedHybridField
       : null;
-    if (finished) {
+    if (finished && !replay) {
       const seated = assignGeneratedHybridField(connection, finished);
       const chosen = seated.generatedHybridField?.candidates.find((item) => item.candidateId === seated.selectedMockId);
       if (chosen?.growth?.length) playGrowth(connectionId, chosen.candidateId, chosen.growth, 280);

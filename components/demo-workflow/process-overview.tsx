@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import brief from "@/data/skill5/workplace-brief.json";
 import picks from "@/public/demo/skill2/picks.json";
 import { DEMO_BOARD } from "@/lib/demo-workflow/chapters";
-import { ASSEMBLIES, CONFIGURATIONS, CONTINUATION_COUNTS, GENERATIVE_SYSTEMS, HYBRID, STUDIO } from "@/lib/demo-workflow/chapter-facts";
-import { MODULE_STILLS, OVERVIEW_FACTS as FACTS, OVERVIEW_STILLS as STILLS, PROGRAM } from "@/lib/demo-workflow/overview";
-import { SITE_ARCHETYPES, SITE_PROGRAMS } from "@/lib/skill5/catalog";
+import { GENERATIVE_SYSTEMS } from "@/lib/demo-workflow/chapter-facts";
+import { ContextWorkflow } from "@/components/demo-workflow/context-chapter";
+import { HybridLabPage } from "@/components/demo-workflow/integration-run";
+import { ProcessDemonstration } from "@/components/demo-workflow/vertical-demonstration";
+import { OVERVIEW_FACTS as FACTS, OVERVIEW_STILLS as STILLS } from "@/lib/demo-workflow/overview";
+import "@/components/demo-workflow/vertical-lab-embed.css";
 import styles from "@/components/demo-workflow/process-overview.module.css";
 
 /**
@@ -17,8 +19,8 @@ import styles from "@/components/demo-workflow/process-overview.module.css";
 const ZONES = [
   { x: 0, w: 300, head: 12, y: 94 },
   { x: 300, w: 330, head: 8, y: 94 },
-  { x: 630, w: 400, head: 10, y: 94 },
-  { x: 1030, w: 292, head: 8, y: 94 },
+  { x: 630, w: 400, head: 38, y: 94 },
+  { x: 1030, w: 292, head: -20, y: 94 },
   { x: 1322, w: 300, head: 8, y: 94 },
 ] as const;
 
@@ -214,23 +216,11 @@ const REPRESENTATIVE_PICKS = PICK_TYPES.flatMap((typologyId) => {
   return [STILLS.picks[index]];
 });
 
-/** First validated module of each program. Same order as the Skill 3 handoff. */
-const REPRESENTATIVE_MODULES = SITE_PROGRAMS.flatMap((program) => {
-  const index = SITE_ARCHETYPES.findIndex((item) => item.program === program);
-  const still = MODULE_STILLS[index];
-  return still ? [still.src] : [];
-});
-
-function moduleStill(archetypeId: string) {
-  const index = SITE_ARCHETYPES.findIndex((item) => item.archetypeId === archetypeId);
-  return index >= 0 ? MODULE_STILLS[index] : undefined;
-}
-
 function Research() {
   return (
     <>
       <PhaseList x={12} y={128} names={["Typology Analysis", "Criteria + Descriptors", "Physarum Selection"]} tone="glow" />
-      <Plates srcs={STILLS.typologies} x={12} y={160} cols={3} cell={86} height={86} contain bare className={styles.mono} />
+      <Plates srcs={STILLS.typologies} x={12} y={160} cols={3} cell={76} height={76} contain bare className={styles.mono} />
       <At x={12} y={248} className={styles.chain} vars={{ "--w": 276 }}>
         <span><b>{FACTS.archetypes}</b> Archetypes</span>
         <em>→</em>
@@ -243,7 +233,7 @@ function Research() {
           <figure key={system.id} data-selected={"selected" in system && system.selected ? "" : undefined}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={system.src} alt="" />
-            <figcaption>{system.name}</figcaption>
+            <figcaption>{{ ca: "Cellular", wfc: "Wave", stigmergy: "Stigmergy" }[system.id]}</figcaption>
           </figure>
         ))}
       </At>
@@ -260,88 +250,52 @@ function Generative() {
         <p><span>Criteria</span><em>→</em><span>Growth instinct</span></p>
         <p><span>Descriptors</span><em>→</em><span>Spatial recipe</span></p>
       </div>
-      {board.generationOne ? <Still src={board.generationOne} x={312} y={208} w={148} h={54} contain bare /> : null}
-      <Pareto x={470} y={208} w={136} h={50} points={board.points} pickId={board.pickId} />
-      {board.status === "error" ? <Caption x={470} y={220} lines={["Catalog unavailable"]} /> : null}
-      <Plates srcs={REPRESENTATIVE_PICKS} x={312} y={260} cols={3} cell={46} height={46} contain bare />
-      <Caption x={460} y={266} width={140} value={FACTS.picks} lines={["selected", "2D candidates"]} />
+      {board.generationOne ? <Still src={board.generationOne} x={312} y={208} w={130} h={48} contain bare /> : null}
+      <Pareto x={452} y={208} w={120} h={44} points={board.points} pickId={board.pickId} />
+      {board.status === "error" ? <Caption x={452} y={220} lines={["Catalog unavailable"]} /> : null}
+      <Plates srcs={REPRESENTATIVE_PICKS} x={312} y={260} cols={3} cell={40} height={40} contain bare />
+      <Caption x={446} y={266} width={140} value={FACTS.picks} lines={["selected", "2D candidates"]} />
     </>
-  );
-}
-
-function FlowArrow({ x, y }: { x: number; y: number }) {
-  return (
-    <svg className={`${styles.at} ${styles.flowArrow}`} style={place(x, y, 16, 12)} viewBox="0 0 16 12" aria-hidden="true">
-      <path d="M0 6h12M9 2l5 4-5 4" />
-    </svg>
   );
 }
 
 function Vertical() {
   return (
     <>
-      <PhaseList x={642} y={128} names={steps(2)} tone="glow" width={280} />
-      <Still src={STILLS.z0} x={642} y={174} w={78} h={78} contain bare />
-      <FlowArrow x={726} y={204} />
-      <Still src={STILLS.stack} x={746} y={168} w={68} h={90} contain bare />
-      <FlowArrow x={822} y={204} />
-      <Still src={STILLS.form} x={842} y={164} w={148} h={96} contain bare />
-      <Plates srcs={REPRESENTATIVE_MODULES} x={642} y={258} cols={3} cell={46} height={46} contain bare />
-      <Caption x={792} y={262} width={160} value={FACTS.modules} lines={["validated modules", `${CONTINUATION_COUNTS.selectedOutsideCarvedMass} outside N01–N${CONTINUATION_COUNTS.carvedMass}`]} />
+      <PhaseList x={670} y={128} names={steps(2)} tone="glow" width={280} />
+      <div className={`${styles.at} ${styles.verticalLab}`} style={place(670, 176, 250, 108)}>
+        <div data-vertical-process="">
+          <ProcessDemonstration />
+        </div>
+      </div>
     </>
   );
 }
 
 function Context() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   return (
     <>
-      <PhaseList x={1042} y={128} names={steps(3)} tone="copperGlow" width={250} />
-      <Still src={STILLS.siteModel} x={1042} y={174} w={200} h={84} contain bare />
-      <Still src={STILLS.client[1]} x={1252} y={174} w={52} h={38} contain bare />
-      <Still src={STILLS.client[0]} x={1252} y={214} w={52} h={38} contain bare />
-      <At x={1042} y={258} className={styles.brief} vars={{ "--w": 260 }}>
-        <b>{STUDIO.name}</b>
-        <span>{brief.site} · north up · {PROGRAM.join(" · ")}</span>
-        <span>{brief.plan.widthFeet} × {brief.plan.depthFeet} ft · {brief.occupancy.daytimeWork} day · {brief.occupancy.eveningGathering} evening</span>
-      </At>
+      <PhaseList x={1014} y={128} names={steps(3)} tone="copperGlow" width={250} />
+      {ready ? (
+        <div className={`${styles.at} ${styles.contextLab}`} style={place(1014, 176, 250, 108)}>
+          <div data-context-analysis="">
+            <ContextWorkflow part="analysis" />
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
 
-/** The stored 5 × 5 field for the hybrid example. Columns move from parent A toward parent B. */
-function CandidateField({ x, y, w, h }: { x: number; y: number; w: number; h: number }) {
-  const { selected, parentAWeights, intensity } = HYBRID;
-  return (
-    <ol className={`${styles.at} ${styles.field}`} style={place(x, y, w, h)} aria-label={`Candidate field, ${selected.id} selected`}>
-      {intensity.map((_, row) =>
-        parentAWeights.map((__, column) => {
-          const id = `H${String(row * parentAWeights.length + column + 1).padStart(2, "0")}`;
-          return <li key={id} data-selected={id === selected.id || undefined} />;
-        }),
-      )}
-    </ol>
-  );
-}
-
 function Integration() {
-  const parentA = moduleStill("void-field");
-  const parentB = moduleStill("inserted-horizontal-plate");
   return (
     <>
       <PhaseList x={1334} y={128} names={steps(4)} tone="glow" width={270} />
-      {parentA ? <Still src={parentA.src} x={1334} y={176} w={52} h={46} contain bare /> : null}
-      <At x={1390} y={190} className={styles.plus}>+</At>
-      {parentB ? <Still src={parentB.src} x={1406} y={176} w={52} h={46} contain bare /> : null}
-      <FlowArrow x={1466} y={192} />
-      <Still src={HYBRID.stills[1]} x={1486} y={170} w={112} h={58} contain bare />
-      <Caption x={1334} y={228} width={250} lines={[`${HYBRID.parents[0]} + ${HYBRID.parents[1]}`]} />
-      <CandidateField x={1334} y={246} w={62} h={52} />
-      <At x={1406} y={246} className={styles.mix} vars={{ "--w": 108 }}>
-        <span><b>{ASSEMBLIES.total}</b>assemblies</span>
-        <span><b>{HYBRID.selected.id}</b>candidate field</span>
-        <span>{CONFIGURATIONS.saved.length === 0 ? "No configuration saved" : `${CONFIGURATIONS.saved.length} saved`}</span>
-      </At>
-      <Still src={STILLS.siteModel} x={1518} y={246} w={88} h={44} contain bare />
+      <div className={`${styles.at} ${styles.integrationLab}`} style={place(1334, 176, 250, 108)}>
+        <HybridLabPage />
+      </div>
     </>
   );
 }
@@ -357,20 +311,26 @@ function Relationship() {
         <marker id="overview-copper" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
           <path d="M0 0 L8 4 L0 8 Z" />
         </marker>
+        <marker id="overview-step-teal" markerWidth="6" markerHeight="6" refX="5.2" refY="3" orient="auto">
+          <path d="M0 0 L6 3 L0 6 Z" />
+        </marker>
+        <marker id="overview-step-copper" markerWidth="6" markerHeight="6" refX="5.2" refY="3" orient="auto">
+          <path d="M0 0 L6 3 L0 6 Z" />
+        </marker>
       </defs>
-      <g data-kind="progression" markerEnd="url(#overview-teal)">
-        <path d="M197 107 H296" />
-        <path d="M481 107 H628" />
-        <path d="M777 107 H1026" />
+      <g data-kind="step" markerEnd="url(#overview-step-teal)">
+        <path d="M226 107 H264" />
+        <path d="M552 107 H590" />
+        <path d="M885 107 H923" />
       </g>
-      <path data-kind="context" markerEnd="url(#overview-copper)" d="M1139 107 H1318" />
+      <path data-kind="step" data-tone="copper" markerEnd="url(#overview-step-copper)" d="M1198 107 H1236" />
       <g data-kind="feedback">
-        <path markerEnd="url(#overview-copper)" d="M1460 36 C1508 10 1248 8 1176 34" />
-        <text x="1320" y="14" textAnchor="middle">Human evaluation</text>
+        <path markerEnd="url(#overview-step-copper)" d="M1411 92 V80 H1057 V92" />
+        <text x="1234" y="74" textAnchor="middle">Human evaluation</text>
       </g>
       <g data-kind="handoff">
-        <path markerEnd="url(#overview-teal)" d="M830 360 V408 H1472 V348" />
-        <text x="1151" y="396" textAnchor="middle">Validated 3D modules</text>
+        <path markerEnd="url(#overview-step-teal)" d="M858 312 V330 H1472 V310" />
+        <text x="1165" y="322" textAnchor="middle">Validated 3D modules</text>
       </g>
     </svg>
   );

@@ -135,13 +135,28 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
     id: "context",
     index: "04",
     title: "Design Context",
-    stages: ["The Client", "Site Context"],
+    stages: ["The Client", "Site Analysis", "Site Integration"],
     sequence: [
-      { label: "Client Identity" },
-      { label: "Program / Occupancy" },
-      { label: "Site Conditions", feature: "Site study" },
-      { label: "Spatial Strategy" },
-      { label: "Design Requirements" },
+      { label: "Client" },
+      { label: "Site Analysis" },
+      { label: "Site Integration" },
+    ],
+    pages: [
+      {
+        name: "Client",
+        holdMs: 28000,
+        sequence: [{ label: "Client", mark: "" }],
+      },
+      {
+        name: "Site Analysis",
+        holdMs: 42000,
+        sequence: [{ label: "Site Analysis", mark: "" }],
+      },
+      {
+        name: "Site Integration",
+        holdMs: 52000,
+        sequence: [{ label: "Site Integration", mark: "" }],
+      },
     ],
   },
   {

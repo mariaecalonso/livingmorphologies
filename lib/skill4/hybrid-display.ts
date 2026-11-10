@@ -47,8 +47,20 @@ export function hybridDisplay(connection: Pick<TileConnection, "signature" | "se
     }));
     return { source: "mock", banner: MOCK_HYBRID_LABEL, slots, selected: pickSlot(slots, connection.selectedMockId) };
   }
-  const slots = generated.candidates.map(slotFromGenerated);
+  const slots = generated.candidates.length < 25
+    ? showcaseSlots(generated.candidates)
+    : generated.candidates.map(slotFromGenerated);
   return { source: "generated", banner: "Generated hybrids", slots, selected: pickSlot(slots, connection.selectedMockId) };
+}
+
+/** Keeps the 5×5 map in place while candidates are still being published. */
+function showcaseSlots(built: readonly GeneratedHybridCandidate[]): HybridDisplaySlot[] {
+  const byId = new Map(built.map((candidate) => [candidate.candidateId, candidate]));
+  return Array.from({ length: 25 }, (_, index) => {
+    const id = `H${String(index + 1).padStart(2, "0")}`;
+    const candidate = byId.get(id);
+    return candidate ? slotFromGenerated(candidate) : { id, source: "empty", mesh: null, label: "" };
+  });
 }
 
 function slotFromGenerated(candidate: GeneratedHybridCandidate): HybridDisplaySlot {

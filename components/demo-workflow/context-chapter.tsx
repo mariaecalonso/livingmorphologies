@@ -1,11 +1,35 @@
 "use client";
 
+import type { ReactNode } from "react";
+import "@/app/lab/site/site-interface.css";
 import brief from "@/data/skill5/workplace-brief.json";
 import { FLOOR_SHARES, SHARE_LEGEND, SITE, STUDIO } from "@/lib/demo-workflow/chapter-facts";
 import { Caption, Chips, Img, Kicker } from "@/components/demo-workflow/chapter-kit";
+import { HomeClient } from "@/components/home-client";
+import { SiteAnalysisWorkspace } from "@/components/site/site-analysis-workspace";
+import { SiteWorkspace } from "@/components/site/site-workspace";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/context-chapter.module.css";
+
+function WorkflowHost({ part, children }: { part: "client" | "analysis" | "site"; children: ReactNode }) {
+  return <div className={styles.host} data-part={part}>{children}</div>;
+}
+
+/** The client page, Site Analysis, and the Site Integration lab, fitted to the chapter frame. */
+export function ContextWorkflow({ part }: { part: "client" | "analysis" | "site" }) {
+  if (part === "client") {
+    return (
+      <WorkflowHost part="client">
+        <div className={styles.clientStage} data-client-stage="">
+          <HomeClient />
+        </div>
+      </WorkflowHost>
+    );
+  }
+  if (part === "analysis") return <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
+  return <WorkflowHost part="site"><SiteWorkspace /></WorkflowHost>;
+}
 
 const FLOORS = [5, 4, 3, 2, 1] as const;
 const plan = `${brief.plan.widthFeet} × ${brief.plan.depthFeet} ft`;
@@ -218,6 +242,11 @@ export const CONTEXT_CONTENT: ChapterContent = {
     </div>,
   ],
   layout: styles.composed,
+  boards: [
+    { layout: styles.sheet, details: [<ContextWorkflow key="client" part="client" />] },
+    { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" />] },
+    { layout: styles.sheet, details: [<ContextWorkflow key="site" part="site" />] },
+  ],
   feature: {
     operation: 2,
     action: "Watch the site",

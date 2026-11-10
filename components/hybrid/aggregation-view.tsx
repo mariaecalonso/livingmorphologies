@@ -21,6 +21,7 @@ export function AggregationView({
   onSelectConnection,
   span,
   anchorIds,
+  initialPitch = 0.35,
 }: {
   instances: readonly PlacedMesh[];
   selectedId: string;
@@ -30,12 +31,14 @@ export function AggregationView({
   span: number;
   /** Camera frames these instances. Other meshes, such as a swapped connector, do not move it. */
   anchorIds?: readonly string[];
+  /** Radians. Negative looks down from above the ground grid. */
+  initialPitch?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
   const movedRef = useRef(false);
   const [yaw, setYaw] = useState(0.7);
-  const [pitch, setPitch] = useState(0.35);
+  const [pitch, setPitch] = useState(initialPitch);
   const [eye, setEye] = useState(CANVAS_EYE);
   const [focus, setFocus] = useState<Vec3>({ x: 0, y: 0, z: 0 });
   const eyeRef = useRef(CANVAS_EYE);
@@ -189,7 +192,11 @@ export function AggregationView({
         onPointerDown={(event) => {
           movedRef.current = false;
           dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch };
-          event.currentTarget.setPointerCapture(event.pointerId);
+          try {
+            event.currentTarget.setPointerCapture(event.pointerId);
+          } catch {
+            // Playback drags have no live pointer to capture. Move events still turn the view.
+          }
         }}
         onPointerMove={(event) => {
           const drag = dragRef.current;

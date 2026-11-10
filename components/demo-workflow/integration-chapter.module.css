@@ -776,6 +776,86 @@
   min-width: 0;
 }
 
+.lab :global(.hybrid-tile),
+.lab :global(.hybrid-slot-board) {
+  position: relative;
+}
+
+.lab:has([data-menu-trigger]) :global(.hybrid-identity),
+.lab:has([data-menu-trigger]) :global(.hybrid-missing) {
+  display: none;
+}
+
+.select {
+  position: absolute;
+  z-index: 5;
+  top: 0.95rem;
+  right: 4.75rem;
+  left: 0.15rem;
+}
+
+.trigger {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.16rem 0.32rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  background: #000000;
+  color: #f2f2ee;
+  font: inherit;
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 0.12rem);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  margin: 0;
+  padding: 0.22rem 0.28rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  background: #000000;
+  list-style: none;
+}
+
+.menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 242, 238, 0.78);
+  font: inherit;
+  font-size: 0.42rem;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.menu button[data-lit="true"] {
+  color: #49d7de;
+}
+
+.menu button span {
+  color: rgba(242, 242, 238, 0.45);
+  font-size: 0.38rem;
+}
+
 .pointer {
   position: absolute;
   top: 0;
@@ -785,7 +865,7 @@
   height: 22px;
   pointer-events: none;
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
-  transition: transform 0.7s cubic-bezier(0.45, 0, 0.2, 1), opacity 0.35s ease;
+  transition: transform 0.32s cubic-bezier(0.45, 0, 0.2, 1), opacity 0.2s ease;
 }
 
 .pointer svg {
@@ -799,6 +879,10 @@
   fill: #ffffff;
   stroke: #000000;
   stroke-width: 1;
+}
+
+.pointer[data-drag="true"] {
+  transition: none;
 }
 
 .pointer[data-press] svg {
@@ -912,9 +996,19 @@
   overflow: hidden;
 }
 
+.lab :global(.hybrid-som-mini > .hybrid-generate) {
+  grid-column: 1;
+  grid-row: 3;
+  justify-self: start;
+  align-self: center;
+  margin: 0;
+  padding: 0.28em 0.55em;
+}
+
 .lab :global(.hybrid-som-mini > .hybrid-units) {
   grid-column: 1;
   grid-row: 3;
+  justify-self: end;
   margin: 0;
 }
 

@@ -86,10 +86,10 @@ const READINGS: Record<string, { mode: Mode; caption: string; note: string; mark
   "compressed-sequential": {
     mode: "sequence",
     caption: "Trace the compression opening into release.",
-    note: "The two lines are the edges where the white masses meet the black opening. The ticks show that opening wide, then narrow, then wide again.",
+    note: "A wave runs through the opening between the two masses. A node sits on the wave, and a double arrow under each node marks the width.",
     marks: [
-      { role: "Primary", text: "Edges of the black opening" },
-      { role: "Secondary", text: "Width of the opening where it compresses and releases" },
+      { role: "Primary", text: "Wave through the opening" },
+      { role: "Secondary", text: "Width arrows under each node" },
     ],
   },
   "continuous-hall": {
@@ -115,10 +115,10 @@ const READINGS: Record<string, { mode: Mode; caption: string; note: string; mark
   "linear-gallery": {
     mode: "spine",
     caption: "Mark the linear spine that organizes movement.",
-    note: "Each line follows a black strip between the white masses. The strips run in the same diagonal direction.",
+    note: "Three ribbons run with the diagonal galleries. Each has a dashed companion and an arrow in the direction of the run.",
     marks: [
-      { role: "Primary", text: "Direction of each black gallery strip" },
-      { role: "Secondary", text: "Narrow extent of the strip" },
+      { role: "Primary", text: "Ribbon along each gallery" },
+      { role: "Secondary", text: "Dashed companion and direction arrow" },
     ],
   },
   "open-hall": {
@@ -133,27 +133,27 @@ const READINGS: Record<string, { mode: Mode; caption: string; note: string; mark
   terraced: {
     mode: "steps",
     caption: "Trace the stepped progression across the figure.",
-    note: "Each line follows one white terrace, including the middle branch, and bends with that mass.",
+    note: "A line follows each terrace and ends in a node. A thinner line joins those nodes.",
     marks: [
-      { role: "Primary", text: "Contour of each terrace" },
+      { role: "Primary", text: "Line along each terrace" },
+      { role: "Secondary", text: "Node at the end, joined to the next" },
     ],
   },
   "flat-deep-plan": {
     mode: "plate",
     caption: "Show the deep plate across the figure.",
-    note: "The two contours follow the long white bands. The softer tint between them is the diffuse tissue that separates the bands.",
+    note: "Two waves cross the figure. The upper wave is continuous. The lower wave is broken.",
     marks: [
-      { role: "Primary", text: "Contour of each white band" },
-      { role: "Secondary", text: "Diffuse tissue between the bands" },
+      { role: "Primary", text: "Upper wave" },
+      { role: "Secondary", text: "Lower broken wave" },
     ],
   },
   "void-edge": {
     mode: "edge-void",
     caption: "Reveal the edge opening at the boundary.",
-    note: "The contour is the upper-right opening. The tint fades from that void toward the denser white mass.",
+    note: "A ring sits in the upper-right opening.",
     marks: [
-      { role: "Primary", text: "Boundary of the upper-right void" },
-      { role: "Secondary", text: "Transition toward the surrounding mass" },
+      { role: "Primary", text: "Ring in the upper-right void" },
     ],
   },
   undulated: {
@@ -188,28 +188,28 @@ const READINGS: Record<string, { mode: Mode; caption: string; note: string; mark
   "inserted-horizontal-plate": {
     mode: "separator",
     caption: "Show the plate that separates the masses.",
-    note: "The horizontal and vertical tints are the black strips between the four white masses. The arrows show those strips passing between the masses.",
+    note: "A cross with four arrows sits in the opening between the four masses.",
     marks: [
-      { role: "Primary", text: "Cross of black space between the masses" },
-      { role: "Secondary", text: "Direction of each strip" },
+      { role: "Primary", text: "Cross in the opening" },
+      { role: "Secondary", text: "Arrow at each end" },
     ],
   },
   "contained-room-within-volume": {
     mode: "inner-room",
     caption: "Identify the room inside the volume.",
-    note: "The lighter line is the outer edge of the white volume. The heavier line is the black room held inside it.",
+    note: "A dotted line follows the outer silhouette. A solid line follows the inner void.",
     marks: [
-      { role: "Primary", text: "Boundary of the inner void" },
-      { role: "Secondary", text: "Silhouette of the surrounding volume" },
+      { role: "Primary", text: "Solid line around the inner void" },
+      { role: "Secondary", text: "Dotted silhouette of the volume" },
     ],
   },
   "linear-edge-gallery": {
     mode: "edge-spine",
     caption: "Mark the edge spine and its side distribution.",
-    note: "Each tinted contour is a central black void. The lines beside them follow the linear spaces along those openings.",
+    note: "A ring marks each opening. A solid line and a dotted line follow the gallery along those openings, with arrows for direction.",
     marks: [
-      { role: "Primary", text: "Boundary of each central void" },
-      { role: "Secondary", text: "Linear space along the edge of the void" },
+      { role: "Primary", text: "Ring on each opening" },
+      { role: "Secondary", text: "Gallery lines and direction arrows" },
     ],
   },
 };
@@ -1008,10 +1008,10 @@ function centroid(points: Point[]) {
 
 function Head({ x, y, dx, dy }: { x: number; y: number; dx: number; dy: number }) {
   const length = Math.hypot(dx, dy) || 1;
-  const ux = (dx / length) * 1.7;
-  const uy = (dy / length) * 1.7;
-  const px = (-dy / length) * 0.85;
-  const py = (dx / length) * 0.85;
+  const ux = (dx / length) * 3.4;
+  const uy = (dy / length) * 3.4;
+  const px = (-dy / length) * 1.45;
+  const py = (dx / length) * 1.45;
   const tipX = x * 100;
   const tipY = y * 100;
   return <polyline className={styles.arrow} points={`${tipX - ux + px},${tipY - uy + py} ${tipX},${tipY} ${tipX - ux - px},${tipY - uy - py}`} />;
@@ -1663,16 +1663,15 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
   const steps = figure.bands.length >= 2 ? figure.bands : figure.shelves.length >= 2 ? figure.shelves : [];
 
   if (mode === "void-core" && opening) {
-    const points = opening.outline.length ? opening.outline : ellipse(opening);
+    const points = smoothClosed(opening.outline.length ? opening.outline : ellipse(opening));
     const origin = { x: opening.x, y: opening.y };
     const top = Math.min(...points.map((point) => point.y));
     return (
       <>
-        {detail ? <path className={styles.dotted} d={draw(pullIn(points, origin, 1.16))} /> : null}
+        {detail ? <path className={styles.dotted} d={draw(pullIn(points, origin, 1.55))} /> : null}
         <path className={styles.fill} d={draw(points)} />
         <path className={styles.primary} d={draw(points)} />
-        {detail ? <path className={styles.guide} d={draw(pullIn(points, origin, 0.72))} /> : null}
-        {detail ? <path className={styles.guide} d={draw(pullIn(points, origin, 0.46))} /> : null}
+        {detail ? <path className={styles.guide} d={draw(pullIn(points, origin, 0.38))} /> : null}
         {detail ? <line className={styles.guide} x1={origin.x * 100} y1={(top + 0.01) * 100} x2={origin.x * 100} y2={(top - 0.028) * 100} /> : null}
         {detail ? <Head x={origin.x} y={top - 0.028} dx={0} dy={-1} /> : null}
       </>
@@ -1683,8 +1682,8 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
     if (!marks.length) return null;
     return (
       <>
-        {marks.map((item) => <path key={`${item.x}-${item.y}`} className={styles.bay} d={draw(item.outline.length ? item.outline : ellipse(item))} />)}
-        {detail ? marks.map((item) => <circle key={`dot-${item.x}`} className={styles.node} cx={item.x * 100} cy={item.y * 100} r={1.15} />) : null}
+        {marks.map((item) => <path key={`${item.x}-${item.y}`} className={styles.bay} d={draw(smoothClosed(item.outline.length ? item.outline : ellipse(item)))} />)}
+        {detail ? marks.map((item) => <circle key={`dot-${item.x}`} className={styles.node} cx={item.x * 100} cy={item.y * 100} r={1.7} />) : null}
       </>
     );
   }
@@ -1717,15 +1716,14 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
     );
   }
   if (mode === "bowl" && figure.body.length) {
-    const origin = centroid(figure.body);
+    const body = smoothClosed(figure.body);
+    const origin = centroid(body);
     return (
       <>
-        {detail ? <path className={styles.fill} d={draw(figure.body)} /> : null}
-        <path className={styles.primary} d={draw(figure.body)} />
-        {detail ? <path className={styles.guide} d={draw(pullIn(figure.body, origin, 0.76))} /> : null}
-        {detail ? <path className={styles.guide} d={draw(pullIn(figure.body, origin, 0.52))} /> : null}
-        {detail ? <path className={styles.guide} d={draw(pullIn(figure.body, origin, 0.3))} /> : null}
-        {detail ? tissueChords(figure.mask, figure.maskSize, figure.body).map((span) => (
+        {detail ? <path className={styles.fill} d={draw(body)} /> : null}
+        <path className={styles.primary} d={draw(body)} />
+        {detail ? <path className={styles.guide} d={draw(pullIn(body, origin, 0.38))} /> : null}
+        {detail ? tissueChords(figure.mask, figure.maskSize, body).map((span) => (
           <line key={span.y} className={styles.guide} x1={span.x1 * 100} y1={span.y * 100} x2={span.x2 * 100} y2={span.y * 100} />
         )) : null}
       </>
@@ -1748,15 +1746,15 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
       <>
         {detail ? bonds.map((line) => <line key={`${line.x1}-${line.y1}`} className={styles.guide} x1={line.x1 * 100} y1={line.y1 * 100} x2={line.x2 * 100} y2={line.y2 * 100} />) : null}
         {pockets.map((core) => core.outline.length > 4
-          ? <path key={`fill-${core.x}`} className={styles.fill} d={draw(core.outline)} />
+          ? <path key={`fill-${core.x}`} className={styles.fill} d={draw(smoothClosed(core.outline))} />
           : <circle key={`fill-${core.x}`} className={styles.fill} cx={core.x * 100} cy={core.y * 100} r={Math.max(4.2, Math.min(6.4, core.r * 22))} />)}
         {pockets.map((core) => core.outline.length > 4
-          ? <path key={`island-${core.x}`} className={styles.primary} d={draw(core.outline)} />
+          ? <path key={`island-${core.x}`} className={styles.primary} d={draw(smoothClosed(core.outline))} />
           : <circle key={`island-${core.x}`} className={styles.primary} cx={core.x * 100} cy={core.y * 100} r={Math.max(4.2, Math.min(6.4, core.r * 22))} />)}
         {detail ? pockets.map((core) => core.outline.length > 4
-          ? <path key={`inner-${core.x}`} className={styles.guide} d={draw(pullIn(core.outline, core, 0.62))} />
+          ? <path key={`inner-${core.x}`} className={styles.guide} d={draw(pullIn(smoothClosed(core.outline), core, 0.55))} />
           : <circle key={`inner-${core.x}`} className={styles.guide} cx={core.x * 100} cy={core.y * 100} r={Math.max(2.4, Math.min(3.8, core.r * 12))} />) : null}
-        {detail ? pockets.map((core) => <circle key={`node-${core.x}`} className={styles.node} cx={core.x * 100} cy={core.y * 100} r={1.35} />) : null}
+        {detail ? pockets.map((core) => <circle key={`node-${core.x}`} className={styles.node} cx={core.x * 100} cy={core.y * 100} r={1.7} />) : null}
       </>
     );
   }
@@ -1846,7 +1844,7 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
       <>
         {detail ? <path className={styles.glow} d={draw(route, false)} /> : null}
         <path className={styles.primary} d={draw(route, false)} />
-        {detail ? marks.map((point) => <circle key={`${point.x}-${point.y}`} className={styles.node} cx={point.x * 100} cy={point.y * 100} r={1.55} />) : null}
+        {detail ? marks.map((point) => <circle key={`${point.x}-${point.y}`} className={styles.node} cx={point.x * 100} cy={point.y * 100} r={1.8} />) : null}
         {detail ? <Head x={end.x} y={end.y} dx={end.x - before.x} dy={end.y - before.y} /> : null}
       </>
     );
@@ -1938,7 +1936,7 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
       <>
         <path className={styles.inkDash} d={draw(ordered, false)} />
         <path className={styles.dashed} d={draw(ordered, false)} />
-        {detail ? (rings.length ? rings : along(ordered, 3)).map((point) => <circle key={`${point.x}-${point.y}`} className={styles.guide} cx={point.x * 100} cy={point.y * 100} r={2.2} />) : null}
+        {detail ? (rings.length ? rings : along(ordered, 3)).map((point) => <circle key={`${point.x}-${point.y}`} className={styles.guide} cx={point.x * 100} cy={point.y * 100} r={2.6} />) : null}
         {detail ? <Head x={end.x} y={end.y} dx={end.x - next.x} dy={end.y - next.y} /> : null}
       </>
     );
@@ -1970,6 +1968,183 @@ function ellipse(opening: Opening): Point[] {
   });
 }
 
+const CLEAN_MODES = new Set<Mode>(["sequence", "spine", "steps", "plate", "edge-void", "separator", "inner-room", "edge-spine"]);
+
+function soften(points: Array<[number, number]>, closed = false) {
+  let current = points.map((point) => [point[0], point[1]] as [number, number]);
+  for (let pass = 0; pass < 2; pass += 1) {
+    const next: Array<[number, number]> = [];
+    const count = current.length;
+    const limit = closed ? count : count - 1;
+    if (!closed) next.push(current[0]);
+    for (let index = 0; index < limit; index += 1) {
+      const start = current[index];
+      const end = current[(index + 1) % count];
+      next.push([start[0] * 0.75 + end[0] * 0.25, start[1] * 0.75 + end[1] * 0.25]);
+      next.push([start[0] * 0.25 + end[0] * 0.75, start[1] * 0.25 + end[1] * 0.75]);
+    }
+    if (!closed) next.push(current[count - 1]);
+    current = next;
+  }
+  return current;
+}
+
+function curve(points: Array<[number, number]>, closed = false) {
+  const drawn = soften(points, closed);
+  return `M ${drawn.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(" L ")}${closed ? " Z" : ""}`;
+}
+
+function Mark({ d, kind = "primary" }: { d: string; kind?: "primary" | "dashed" | "dotted" | "guide" }) {
+  return (
+    <>
+      {kind === "primary" ? <path className={styles.glow} d={d} /> : null}
+      <path className={styles[kind]} d={d} />
+    </>
+  );
+}
+
+function Tip({ x, y, dx, dy }: { x: number; y: number; dx: number; dy: number }) {
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = (dx / length) * 4.2;
+  const uy = (dy / length) * 4.2;
+  const px = (-dy / length) * 1.7;
+  const py = (dx / length) * 1.7;
+  return <polyline className={styles.arrow} points={`${(x - ux + px).toFixed(1)},${(y - uy + py).toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)} ${(x - ux - px).toFixed(1)},${(y - uy - py).toFixed(1)}`} />;
+}
+
+function Directed({ x1, y1, x2, y2, kind = "primary" }: { x1: number; y1: number; x2: number; y2: number; kind?: "primary" | "dashed" }) {
+  return (
+    <>
+      <Mark d={`M ${x1} ${y1} L ${x2} ${y2}`} kind={kind} />
+      <Tip x={x2} y={y2} dx={x2 - x1} dy={y2 - y1} />
+    </>
+  );
+}
+
+function WidthMark({ x, y, width }: { x: number; y: number; width: number }) {
+  return (
+    <>
+      <Mark d={`M ${x - width} ${y} L ${x + width} ${y}`} kind="guide" />
+      <Tip x={x - width} y={y} dx={-1} dy={0} />
+      <Tip x={x + width} y={y} dx={1} dy={0} />
+    </>
+  );
+}
+
+function CleanDiagram({ mode }: { mode: Mode }) {
+  if (mode === "sequence") {
+    const samples: Array<[number, number]> = [[18, 68], [26, 66], [34, 62], [42, 60], [50, 63], [58, 67], [66, 68]];
+    const nodes: Array<[number, number]> = [[26, 66], [42, 60], [58, 67]];
+    return (
+      <>
+        <Mark d={curve(samples)} />
+        {nodes.map(([x, y]) => <circle key={x} className={styles.node} cx={x} cy={y} r={2.1} />)}
+        {nodes.map(([x, y]) => <WidthMark key={`w-${x}`} x={x} y={y + 6} width={6} />)}
+      </>
+    );
+  }
+  if (mode === "spine") {
+    const ribbons: Array<[number, number, number, number]> = [[19, 42, 60, 92], [33, 39, 74, 92], [64, 47, 94, 85]];
+    return (
+      <>
+        {ribbons.map(([x1, y1, x2, y2]) => {
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const length = Math.hypot(dx, dy) || 1;
+          const ox = (-dy / length) * 4.2;
+          const oy = (dx / length) * 4.2;
+          return (
+            <g key={`${x1}-${y1}`}>
+              <Directed x1={x1} y1={y1} x2={x2} y2={y2} />
+              <Mark d={`M ${x1 + ox} ${y1 + oy} L ${x2 + ox} ${y2 + oy}`} kind="dashed" />
+            </g>
+          );
+        })}
+      </>
+    );
+  }
+  if (mode === "steps") {
+    const shelves: Array<Array<[number, number]>> = [
+      [[46, 14], [62, 10], [78, 16]],
+      [[16, 30], [30, 26], [44, 34]],
+      [[20, 48], [38, 46], [56, 54]],
+      [[34, 68], [56, 72], [80, 82]],
+    ];
+    const nodes = shelves.map((shelf) => shelf[shelf.length - 1]);
+    return (
+      <>
+        {shelves.map((shelf) => <Mark key={shelf[0].join("-")} d={curve(shelf)} />)}
+        <Mark d={curve(nodes)} kind="dashed" />
+        {nodes.map(([x, y]) => <circle key={`${x}-${y}`} className={styles.node} cx={x} cy={y} r={1.8} />)}
+      </>
+    );
+  }
+  if (mode === "plate") {
+    const band = (offset: number, phase: number) => Array.from({ length: 42 }, (_, index) => {
+      const t = index / 41;
+      return [3 + t * 94, offset + Math.sin(t * Math.PI * 2.2 + phase) * 5] as [number, number];
+    });
+    return (
+      <>
+        <Mark d={curve(band(34, 0.2))} />
+        <Mark d={curve(band(62, 1.1))} kind="dotted" />
+      </>
+    );
+  }
+  if (mode === "edge-void") {
+    return (
+      <>
+        <ellipse className={styles.fill} cx={76} cy={22} rx={14} ry={16} />
+        <ellipse className={styles.primary} cx={76} cy={22} rx={14} ry={16} />
+      </>
+    );
+  }
+  if (mode === "separator") {
+    const x1 = 14;
+    const y1 = 34;
+    const x2 = 50;
+    const y2 = 52;
+    return (
+      <>
+        <Mark d="M 44 10 L 44 90" />
+        <Mark d={`M ${x1} ${y1} L ${x2} ${y2}`} />
+        <Tip x={44} y={10} dx={0} dy={-1} />
+        <Tip x={44} y={90} dx={0} dy={1} />
+        <Tip x={x1} y={y1} dx={x1 - x2} dy={y1 - y2} />
+        <Tip x={x2} y={y2} dx={x2 - x1} dy={y2 - y1} />
+      </>
+    );
+  }
+  if (mode === "inner-room") {
+    const outer: Array<[number, number]> = [[18, 30], [28, 16], [48, 18], [62, 32], [84, 48], [78, 72], [52, 88], [24, 80], [12, 58], [14, 40]];
+    const inner: Array<[number, number]> = [[26, 40], [34, 30], [48, 34], [52, 48], [44, 62], [30, 60], [24, 48]];
+    return (
+      <>
+        <Mark d={curve(outer, true)} kind="dotted" />
+        <path className={styles.fill} d={curve(inner, true)} />
+        <Mark d={curve(inner, true)} />
+      </>
+    );
+  }
+  if (mode === "edge-spine") {
+    const gallery = [[12, 18], [18, 36], [22, 58], [30, 74], [48, 86], [70, 90]];
+    const offset = [[20, 14], [26, 34], [30, 54], [40, 70], [58, 80], [78, 82]];
+    return (
+      <>
+        <ellipse className={styles.fill} cx={48} cy={20} rx={16} ry={15} />
+        <ellipse className={styles.primary} cx={48} cy={20} rx={16} ry={15} />
+        <ellipse className={styles.fill} cx={74} cy={74} rx={12} ry={11} />
+        <ellipse className={styles.primary} cx={74} cy={74} rx={12} ry={11} />
+        <Mark d={curve(gallery)} />
+        <Mark d={curve(offset)} kind="dashed" />
+        <Tip x={12} y={18} dx={-0.3} dy={-1} />
+        <Tip x={70} y={90} dx={1} dy={0.35} />
+      </>
+    );
+  }
+  return null;
+}
+
 function ReadingPlate({ src, mode, detail = false }: { src: string; mode: Mode; detail?: boolean }) {
   const imageRef = useRef<HTMLImageElement>(null);
   const [figure, setFigure] = useState<Figure | null>(null);
@@ -1994,9 +2169,11 @@ function ReadingPlate({ src, mode, detail = false }: { src: string; mode: Mode; 
         alt=""
         decoding="async"
       />
-      {figure ? (
+      {CLEAN_MODES.has(mode) || figure ? (
         <svg viewBox="0 0 100 100" data-detail={detail ? "full" : "brief"} data-mode={mode} aria-hidden="true">
-          <Diagram mode={mode} figure={figure} detail={detail} />
+          {CLEAN_MODES.has(mode)
+            ? <CleanDiagram mode={mode} />
+            : figure ? <Diagram mode={mode} figure={figure} detail={detail} /> : null}
         </svg>
       ) : null}
     </span>
