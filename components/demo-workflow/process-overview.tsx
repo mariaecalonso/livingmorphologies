@@ -359,11 +359,11 @@ function Relationship() {
         </marker>
       </defs>
       <g data-kind="progression" markerEnd="url(#overview-teal)">
-        <path d="M250 40 H340" />
-        <path d="M560 40 H680" />
-        <path d="M960 40 H1080" />
+        <path d="M197 107 H296" />
+        <path d="M481 107 H628" />
+        <path d="M777 107 H1026" />
       </g>
-      <path data-kind="context" markerEnd="url(#overview-copper)" d="M1260 40 H1360" />
+      <path data-kind="context" markerEnd="url(#overview-copper)" d="M1139 107 H1318" />
       <g data-kind="feedback">
         <path markerEnd="url(#overview-copper)" d="M1460 36 C1508 10 1248 8 1176 34" />
         <text x="1320" y="14" textAnchor="middle">Human evaluation</text>
