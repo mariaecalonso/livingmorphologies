@@ -63,6 +63,7 @@ type Special = {
   voidMass: Point | null;
   crossH: Point[];
   crossV: Point[];
+  crossBars: Point[][];
   outerRoom: Point[];
   innerRoom: Point[];
   edgeVoids: Point[][];
@@ -1132,6 +1133,7 @@ const EMPTY_SPECIAL: Special = {
   voidMass: null,
   crossH: [],
   crossV: [],
+  crossBars: [],
   outerRoom: [],
   innerRoom: [],
   edgeVoids: [],
@@ -1451,79 +1453,63 @@ function traceUpperVoid(occupied: Uint8Array, firm: Uint8Array, size: number) {
   };
 }
 
-function traceCross(firm: Uint8Array, size: number) {
-  const horizontal = longestGap(firm, size, true);
-  const vertical = longestGap(firm, size, false);
-  return { horizontal, vertical };
+function splitMass(mask: Uint8Array, size: number, mass: Blob): Blob[] {
+  const height = mass.y1 - mass.y0;
+  const width = mass.x1 - mass.x0;
+  if (height < width * 1.25) return [mass];
+  const yStart = Math.round((mass.y0 + height * 0.28) * size);
+  const yEnd = Math.round((mass.y1 - height * 0.22) * size);
+  const xStart = Math.max(0, Math.round(mass.x0 * size));
+  const xEnd = Math.min(size - 1, Math.round(mass.x1 * size));
+  let narrow = yStart;
+  let narrowCount = size;
+  for (let y = yStart; y <= yEnd; y += 1) {
+    let count = 0;
+    for (let x = xStart; x <= xEnd; x += 1) if (mask[y * size + x]) count += 1;
+    if (count < narrowCount) {
+      narrowCount = count;
+      narrow = y;
+    }
+  }
+  if (narrowCount > Math.max(1, xEnd - xStart) * 0.55) return [mass];
+  const y = narrow / size;
+  return [
+    { ...mass, y1: y, y: (mass.y0 + y) / 2 },
+    { ...mass, y0: y, y: (y + mass.y1) / 2 },
+  ];
 }
 
-function longestGap(mask: Uint8Array, size: number, horizontal: boolean): Point[] {
-  const chains: Array<{ points: Array<{ a: number; b0: number; b1: number }>; b: number; open: boolean }> = [];
-  for (let a = 1; a < size - 1; a += 1) {
-    const runs: Array<[number, number]> = [];
-    let run = 0;
-    let start = 0;
-    for (let b = 0; b <= size; b += 1) {
-      const on = b < size && (horizontal ? mask[b * size + a] : mask[a * size + b]);
-      if (on) {
-        if (run === 0) start = b;
-        run += 1;
-      } else if (run) {
-        runs.push([start, start + run - 1]);
-        run = 0;
-      }
-    }
-    const gaps: Array<{ a: number; b0: number; b1: number }> = [];
-    for (let index = 0; index < runs.length - 1; index += 1) {
-      const gap = runs[index + 1][0] - runs[index][1] - 1;
-      if (gap < 3 || gap > size * 0.42) continue;
-      if (runs[index][1] - runs[index][0] < 4 || runs[index + 1][1] - runs[index + 1][0] < 4) continue;
-      gaps.push({ a, b0: runs[index][1], b1: runs[index + 1][0] });
-    }
-    const used = new Set<number>();
-    for (const chain of chains) {
-      if (!chain.open) continue;
-      let best = -1;
-      let distance = size * 0.08;
-      gaps.forEach((gap, index) => {
-        const delta = Math.abs((gap.b0 + gap.b1) / 2 - chain.b);
-        if (used.has(index) || delta >= distance) return;
-        distance = delta;
-        best = index;
-      });
-      if (best < 0) {
-        chain.open = false;
-        continue;
-      }
-      used.add(best);
-      chain.points.push(gaps[best]);
-      chain.b = (gaps[best].b0 + gaps[best].b1) / 2;
-    }
-    gaps.forEach((gap, index) => {
-      if (used.has(index)) return;
-      chains.push({ points: [gap], b: (gap.b0 + gap.b1) / 2, open: true });
-    });
+function traceCross(mask: Uint8Array, size: number) {
+  const masses = components(mask, size, 24).slice(0, 4).flatMap((mass) => splitMass(mask, size, mass));
+  if (masses.length < 3) return [] as Point[][];
+  const midX = masses.reduce((sum, mass) => sum + mass.x, 0) / masses.length;
+  const left = masses.filter((mass) => mass.x <= midX).sort((a, b) => a.y - b.y);
+  const right = masses.filter((mass) => mass.x > midX).sort((a, b) => a.y - b.y);
+  const bars: Point[][] = [];
+  if (left.length && right.length) {
+    const x0 = Math.max(...left.map((mass) => mass.x1));
+    const x1 = Math.min(...right.map((mass) => mass.x0));
+    const y0 = Math.max(Math.min(...left.map((mass) => mass.y0)), Math.min(...right.map((mass) => mass.y0)));
+    const y1 = Math.min(Math.max(...left.map((mass) => mass.y1)), Math.max(...right.map((mass) => mass.y1)));
+    const vertical = ribbonBetween(x0, x1, y0, y1, true);
+    if (vertical.length) bars.push(vertical);
   }
-  const ranked = chains
-    .filter((chain) => chain.points.length > size * 0.1)
-    .sort((a, b) => {
-      const span = (chain: { points: Array<{ b0: number; b1: number }> }) => chain.points.reduce((sum, point) => sum + (point.b1 - point.b0), 0);
-      return span(b) - span(a);
-    });
-  const best = ranked[0];
-  if (!best) return [];
-  const sample = best.points.filter((_, index) => index % 2 === 0);
-  const start = sample[0];
-  const end = sample[sample.length - 1];
-  const near = sample.reduce((sum, point) => sum + point.b0, 0) / sample.length;
-  const far = sample.reduce((sum, point) => sum + point.b1, 0) / sample.length;
-  if (horizontal) {
-    return ribbonBetween(start.a / size, end.a / size, near / size, far / size, false);
+  for (const side of [left, right]) {
+    if (side.length < 2) continue;
+    const upper = side[0];
+    const lower = side[side.length - 1];
+    const horizontal = ribbonBetween(Math.max(upper.x0, lower.x0), Math.min(upper.x1, lower.x1), upper.y1, lower.y0, false);
+    if (horizontal.length) bars.push(horizontal);
   }
-  return ribbonBetween(near / size, far / size, start.a / size, end.a / size, true);
+  return bars;
 }
 
 function ribbonBetween(x0: number, x1: number, y0: number, y1: number, vertical: boolean): Point[] {
+  if (!vertical && y1 - y0 < 0.02 && x1 - x0 > 0.05) {
+    const middle = (y0 + y1) / 2;
+    y0 = middle - 0.016;
+    y1 = middle + 0.016;
+  }
   if (vertical) {
     if (x1 - x0 < 0.015 || y1 - y0 < 0.04) return [];
     const inset = Math.min(0.012, (x1 - x0) * 0.2);
@@ -1646,7 +1632,9 @@ function readSpecial(img: HTMLImageElement): Special {
   const gap = traceCompression(field.firm, field.size);
   const deep = traceDeepBands(field.tone, field.size);
   const upper = traceUpperVoid(field.occupied, field.firm, field.size);
-  const cross = traceCross(field.occupied, field.size);
+  const mass = new Uint8Array(field.size * field.size);
+  for (let index = 0; index < mass.length; index += 1) if (field.tone[index] > 160) mass[index] = 1;
+  const crossBars = traceCross(mass, field.size);
   const room = traceRoomPair(field.occupied, field.firm, field.size);
   const edges = traceEdgeSpaces(field.occupied, field.size);
   return {
@@ -1660,8 +1648,9 @@ function readSpecial(img: HTMLImageElement): Special {
     upperVoid: upper.outline,
     voidSeed: upper.seed,
     voidMass: upper.mass,
-    crossH: cross.horizontal,
-    crossV: cross.vertical,
+    crossH: crossBars.find((bar) => bar.length > 3 && Math.abs(bar[0].y - bar[2].y) < Math.abs(bar[0].x - bar[2].x)) ?? [],
+    crossV: crossBars.find((bar) => bar.length > 3 && Math.abs(bar[0].x - bar[2].x) <= Math.abs(bar[0].y - bar[2].y)) ?? [],
+    crossBars,
     outerRoom: room.outer,
     innerRoom: room.inner,
     edgeVoids: edges.voids,
@@ -1824,28 +1813,23 @@ function Diagram({ mode, figure, detail }: { mode: Mode; figure: Figure; detail:
     }
   }
   if (mode === "separator") {
-    const horizontal = figure.special.crossH;
-    const vertical = figure.special.crossV;
-    if (horizontal.length > 3 || vertical.length > 3) {
-      const across = (points: Point[], axis: "x" | "y") => {
-        if (points.length < 4) return null;
-        const center = centroid(points);
-        const first = points[0];
-        const third = points[2];
-        const horizontal = axis === "x";
-        return (
-          <>
-            <Head x={horizontal ? first.x : center.x} y={horizontal ? center.y : first.y} dx={horizontal ? first.x - third.x : 0} dy={horizontal ? 0 : first.y - third.y} />
-            <Head x={horizontal ? third.x : center.x} y={horizontal ? center.y : third.y} dx={horizontal ? third.x - first.x : 0} dy={horizontal ? 0 : third.y - first.y} />
-          </>
-        );
-      };
+    const bars = figure.special.crossBars;
+    if (bars.length) {
       return (
         <>
-          {horizontal.length > 3 ? <path className={styles.ribbon} d={draw(horizontal)} /> : null}
-          {vertical.length > 3 ? <path className={styles.ribbon} d={draw(vertical)} /> : null}
-          {detail ? across(horizontal, "x") : null}
-          {detail ? across(vertical, "y") : null}
+          {bars.map((bar) => {
+            const center = centroid(bar);
+            const horizontal = Math.abs(bar[0].x - bar[2].x) >= Math.abs(bar[0].y - bar[2].y);
+            return (
+              <g key={`${bar[0].x}-${bar[0].y}`}>
+                <path className={styles.ribbon} d={draw(bar)} />
+                {detail && horizontal ? <Head x={bar[0].x} y={center.y} dx={bar[0].x - bar[2].x} dy={0} /> : null}
+                {detail && horizontal ? <Head x={bar[2].x} y={center.y} dx={bar[2].x - bar[0].x} dy={0} /> : null}
+                {detail && !horizontal ? <Head x={center.x} y={bar[0].y} dx={0} dy={bar[0].y - bar[2].y} /> : null}
+                {detail && !horizontal ? <Head x={center.x} y={bar[2].y} dx={0} dy={bar[2].y - bar[0].y} /> : null}
+              </g>
+            );
+          })}
         </>
       );
     }

@@ -11,7 +11,7 @@ import styles from "@/components/demo-workflow/process-overview.module.css";
 
 /**
  * Full Process Overview on a 1622 × 429 stage.
- * The travelling line, its path, and the human-evaluation loop are held until they are redrawn.
+ * The chain, the human-evaluation loop, and the validated-module handoff sit in the open bands.
  */
 /** Territories follow the reference board: five phases, titles on one line, graphics below. */
 const ZONES = [
@@ -346,11 +346,42 @@ function Integration() {
   );
 }
 
+/** The reference relationship: 01 → 05, human evaluation back to Context, validated modules into Integration. */
+function Relationship() {
+  return (
+    <svg className={styles.relation} viewBox="0 0 1622 429" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <marker id="overview-teal" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" />
+        </marker>
+        <marker id="overview-copper" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" />
+        </marker>
+      </defs>
+      <g data-kind="progression" markerEnd="url(#overview-teal)">
+        <path d="M250 40 H340" />
+        <path d="M560 40 H680" />
+        <path d="M960 40 H1080" />
+      </g>
+      <path data-kind="context" markerEnd="url(#overview-copper)" d="M1260 40 H1360" />
+      <g data-kind="feedback">
+        <path markerEnd="url(#overview-copper)" d="M1460 36 C1508 10 1248 8 1176 34" />
+        <text x="1320" y="14" textAnchor="middle">Human evaluation</text>
+      </g>
+      <g data-kind="handoff">
+        <path markerEnd="url(#overview-teal)" d="M830 360 V408 H1472 V348" />
+        <text x="1151" y="396" textAnchor="middle">Validated 3D modules</text>
+      </g>
+    </svg>
+  );
+}
+
 export function ProcessOverview({ label, onSelect }: { label: string; onSelect: (chapter: number) => void }) {
   return (
     <div className={styles.overview} role="group" aria-label={label}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className={styles.ground} src="/demo/chapter-steps-membrane.png?v=3" alt="" draggable={false} />
+      <Relationship />
       <ol className={styles.zones}>
         {DEMO_BOARD.map(({ chapter, index }, zoneIndex) => {
           const zone = ZONES[zoneIndex];

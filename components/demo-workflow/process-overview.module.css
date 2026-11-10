@@ -353,6 +353,62 @@
   color: var(--copper);
 }
 
+/* The chapter chain, the evaluation loop, and the module handoff. Stage units, same frame as the columns. */
+.relation {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.relation path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.relation [data-kind="progression"] path,
+.relation [data-kind="handoff"] path {
+  stroke: var(--teal);
+  stroke-width: 1.35;
+}
+
+.relation [data-kind="context"],
+.relation [data-kind="feedback"] path {
+  stroke: var(--copper);
+  stroke-width: 1.35;
+}
+
+.relation [data-kind="feedback"] path {
+  stroke-dasharray: 4 3.5;
+}
+
+.relation marker path {
+  fill: var(--teal);
+  stroke: none;
+}
+
+.relation marker[id="overview-copper"] path {
+  fill: var(--copper);
+}
+
+.relation text {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.relation [data-kind="feedback"] text {
+  fill: var(--copper);
+}
+
+.relation [data-kind="handoff"] text {
+  fill: var(--teal);
+}
+
 /* Connections */
 .links {
   position: absolute;
