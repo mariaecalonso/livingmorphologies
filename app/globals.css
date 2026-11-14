@@ -1574,6 +1574,13 @@ input[type="range"] {
   align-self: end;
 }
 
+.screen-record {
+  position: fixed;
+  z-index: 40;
+  right: 0.75rem;
+  bottom: 0.75rem;
+}
+
 .site-display-tools {
   position: fixed;
   z-index: 40;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import { DevOverlayPassThrough } from "@/components/dev-overlay-pass-through";
+import { ScreenRecord } from "@/components/screen-record";
 import { SiteNav } from "@/components/site-nav";
 import { SiteRail } from "@/components/site-rail";
 import { SiteDisplayControl } from "@/components/site-display-control";
@@ -36,6 +37,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <DevOverlayPassThrough />
+        <ScreenRecord />
         <SiteDisplayControl />
         <div className="site-frame">
           <div className="site-shell">
