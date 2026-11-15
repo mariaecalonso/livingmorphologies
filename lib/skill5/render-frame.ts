@@ -42,13 +42,16 @@ function lookAtStored(camera: Camera, frame: SiteFrame, y = 0) {
   return target;
 }
 
-export function placePlan(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number) {
+export function placePlan(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number, heading: "north" | "east" | "west" = "north") {
   camera.left = -size.width / 2;
   camera.right = size.width / 2;
   camera.top = size.height / 2;
   camera.bottom = -size.height / 2;
-  camera.zoom = Math.min(size.width / (frame.width * pad), size.height / (frame.depth * pad));
-  camera.up.set(0, 0, -1);
+  const turned = heading !== "north";
+  const across = (turned ? frame.depth : frame.width) * pad;
+  const along = (turned ? frame.width : frame.depth) * pad;
+  camera.zoom = Math.min(size.width / across, size.height / along);
+  camera.up.set(heading === "east" ? 1 : heading === "west" ? -1 : 0, 0, heading === "north" ? -1 : 0);
   const eye = storedToWorld(frame.cx, frame.span * 3, frame.cz);
   camera.position.set(eye.x, eye.y, eye.z);
   const target = lookAtStored(camera, frame);
@@ -58,27 +61,37 @@ export function placePlan(camera: OrthographicCamera, size: { width: number; hei
 }
 
 /** Side elevation. Up is vertical, so stacked tiles keep their heights. */
-export function placeSection(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number) {
+export function placeSection(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number, focus = false) {
   camera.left = -size.width / 2;
   camera.right = size.width / 2;
   camera.top = size.height / 2;
   camera.bottom = -size.height / 2;
-  camera.zoom = Math.min(size.width / (frame.depth * pad), size.height / (frame.span * 0.45));
+  const along = focus ? Math.max(frame.width, frame.depth) : frame.depth;
+  camera.zoom = Math.min(size.width / (along * (focus ? 1.05 : pad)), size.height / (focus ? along * 0.2 + 28 : frame.span * 0.45));
   camera.up.set(0, 1, 0);
-  const eye = storedToWorld(frame.cx + frame.span, frame.span * 0.12, frame.cz);
+  const longIsEast = frame.width >= frame.depth;
+  const eye = focus
+    ? (longIsEast
+      ? storedToWorld(frame.cx, along * 0.06, frame.cz + along)
+      : storedToWorld(frame.cx + along, along * 0.06, frame.cz))
+    : storedToWorld(frame.cx + frame.span, frame.span * 0.12, frame.cz);
   camera.position.set(eye.x, eye.y, eye.z);
-  const target = lookAtStored(camera, frame, 30);
+  const target = lookAtStored(camera, frame, focus ? 24 : 30);
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
   return target;
 }
 
-export function placeAxon(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context") {
+export function placeAxon(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, fit: "site" | "context", focus = false) {
   camera.left = -size.width / 2;
   camera.right = size.width / 2;
   camera.top = size.height / 2;
   camera.bottom = -size.height / 2;
-  camera.zoom = Math.min(size.width, size.height) / (frame.span * (fit === "site" ? 1.08 : 1.72));
+  const pad = fit === "site" ? 1.08 : 1.72;
+  const footprint = Math.hypot(frame.width, frame.depth);
+  const horizontal = focus ? footprint * 0.78 : frame.span * pad;
+  const vertical = focus ? frame.span * 0.34 + 36 : frame.span * pad;
+  camera.zoom = Math.min(size.width / horizontal, size.height / vertical);
   camera.up.set(0, 1, 0);
   const eye = storedToWorld(frame.cx + frame.span * 0.62, frame.span * 0.48, frame.cz - frame.span * 0.62);
   camera.position.set(eye.x, eye.y, eye.z);

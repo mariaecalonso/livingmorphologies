@@ -1,0 +1,1595 @@
+{
+  "contract": "skill5-architectural-dna-v1",
+  "profiles": [
+    {
+      "archetypeId": "vertical-void",
+      "moduleId": "carved-mass:vertical-void:351:N24",
+      "program": "lobby",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The body is tall and nearly square in plan, with the highest lobby surface folding (isoperimetric 9.5) and a strong change in section area (0.64). The void is wrapped by many shifts rather than one simple figure.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The body is tall and nearly square in plan, with the highest lobby surface folding (isoperimetric 9.5) and a strong change in section area (0.64). The void is wrapped by many shifts rather than one simple figure."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The overall box is balanced, about 20 by 20 by 17 ft, while the section area still changes. The contrast is noticeable and not a set of extreme scales.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The overall box is balanced, about 20 by 20 by 17 ft, while the section area still changes. The contrast is noticeable and not a set of extreme scales."
+          }
+        },
+        {
+          "criterionId": "centrality",
+          "value": 1,
+          "basis": "review",
+          "justification": "The solid covers 77% of its plan and the centroid sits 0.20 off the envelope center, so the mass reads as a central body with a shifted core. Its position among other rooms is not in this mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The solid covers 77% of its plan and the centroid sits 0.20 off the envelope center, so the mass reads as a central body with a shifted core. Its position among other rooms is not in this mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Only 27% of the envelope is solid, but 77% of the plan columns are occupied. The void is held inside a broad mass, which is a mixed open and enclosed condition.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Only 27% of the envelope is solid, but 77% of the plan columns are occupied. The void is held inside a broad mass, which is a mixed open and enclosed condition."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The mesh is one body around an internal void. Links to rooms outside this tile are not present, so the moderate reading is provisional.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The mesh is one body around an internal void. Links to rooms outside this tile are not present, so the moderate reading is provisional."
+          }
+        },
+        {
+          "criterionId": "directionality",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "Plan anisotropy is 1.08, the lowest in the set. Movement and view are not organized by one axis.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "Plan anisotropy is 1.08, the lowest in the set. Movement and view are not organized by one axis."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "basis": "review",
+          "justification": "The tall folded enclosure is the deepest lobby body in the set. Light, material, and sound are not in the mesh, so the atmospheric reading needs review.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The tall folded enclosure is the deepest lobby body in the set. Light, material, and sound are not in the mesh, so the atmospheric reading needs review."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "A broad occupied plan interrupts views across the tile. A vertical shaft may open one sightline, but that shaft was not separated from the solid.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A broad occupied plan interrupts views across the tile. A vertical shaft may open one sightline, but that shaft was not separated from the solid."
+          }
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The volume is open enough to enter and folded enough to feel controlled. Invitation is an interpretation of that mix, not a measured social condition.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The volume is open enough to enter and folded enough to feel controlled. Invitation is an interpretation of that mix, not a measured social condition."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "compressed-sequential",
+      "moduleId": "carved-mass:compressed-sequential:205:N03",
+      "program": "lobby",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Section area changes more here than in any other tile (0.74), along a body whose surface is still clearly folded. The sequence is a stack of distinct geometric states.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Section area changes more here than in any other tile (0.74), along a body whose surface is still clearly folded. The sequence is a stack of distinct geometric states."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The successive sections change size sharply inside one length. That is a strong contrast of spatial dimension, not a uniform tube.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The successive sections change size sharply inside one length. That is a strong contrast of spatial dimension, not a uniform tube."
+          }
+        },
+        {
+          "criterionId": "centrality",
+          "value": 0,
+          "basis": "review",
+          "justification": "The centroid is pulled 0.25 off the envelope center, along the sequence rather than held as a middle node. Surrounding rooms are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The centroid is pulled 0.25 off the envelope center, along the sequence rather than held as a middle node. Surrounding rooms are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 26% of the envelope and 65% of the plan is occupied. Open pockets and enclosed stretches sit in the same sequence.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 26% of the envelope and 65% of the plan is occupied. Open pockets and enclosed stretches sit in the same sequence."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The sequence is one continuous body. How many adjacent spaces it would serve cannot be read from the mesh alone.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The sequence is one continuous body. How many adjacent spaces it would serve cannot be read from the mesh alone."
+          }
+        },
+        {
+          "criterionId": "directionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Plan anisotropy is 2.49. One long axis organizes the sequence, with the section changes as the secondary event.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Plan anisotropy is 2.49. One long axis organizes the sequence, with the section changes as the secondary event."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "basis": "review",
+          "justification": "The compressed, strongly changing section wraps the path. Sensory qualities beyond that enclosure were not measured.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The compressed, strongly changing section wraps the path. Sensory qualities beyond that enclosure were not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "The long axis can carry a view, and the changing section interrupts it. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The long axis can carry a view, and the changing section interrupts it. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "Compression reads as controlled rather than openly welcoming. That social reading is provisional.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Compression reads as controlled rather than openly welcoming. That social reading is provisional."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "continuous-hall",
+      "moduleId": "carved-mass:continuous-hall:237:N15",
+      "program": "lobby",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "This is the simplest lobby solid: surface complexity 7.82 and a moderate section change of 0.43. The hall stays one recognizable figure.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "This is the simplest lobby solid: surface complexity 7.82 and a moderate section change of 0.43. The hall stays one recognizable figure."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The three axes are close, about 17 by 16 by 17 ft. Size relationships inside the body stay relatively uniform.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The three axes are close, about 17 by 16 by 17 ft. Size relationships inside the body stay relatively uniform."
+          }
+        },
+        {
+          "criterionId": "centrality",
+          "value": 1,
+          "basis": "review",
+          "justification": "The solid centroid is the most offset lobby mass, at 0.28, so it does not sit as a centered node. Its role in a larger plan is not in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The solid centroid is the most offset lobby mass, at 0.28, so it does not sit as a centered node. Its role in a larger plan is not in the mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The solid is only 19% of the envelope, the lowest in the set, and only 56% of the plan is occupied. The hall is predominantly open.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The solid is only 19% of the envelope, the lowest in the set, and only 56% of the plan is occupied. The hall is predominantly open."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "basis": "review",
+          "justification": "The open continuous body reads as one linked hall. Connections beyond the tile were not measured, so this stays under review.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The open continuous body reads as one linked hall. Connections beyond the tile were not measured, so this stays under review."
+          }
+        },
+        {
+          "criterionId": "directionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Plan anisotropy is 2.54. A primary direction organizes the hall.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Plan anisotropy is 2.54. A primary direction organizes the hall."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The low solid fraction leaves the hall open rather than deeply enveloping. Atmosphere beyond enclosure was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The low solid fraction leaves the hall open rather than deeply enveloping. Atmosphere beyond enclosure was not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "The open plan supports views along the hall, while the directional body limits the cross axis. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The open plan supports views along the hall, while the directional body limits the cross axis. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 2,
+          "basis": "review",
+          "justification": "The most open lobby body is the clearest invitation in the set. Whether that feels welcoming is still an interpretation.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The most open lobby body is the clearest invitation in the set. Whether that feels welcoming is still an interpretation."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "topographic-ground-field",
+      "moduleId": "carved-mass:topographic-ground-field:49:N09",
+      "program": "lobby",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Surface complexity is 8.86 and the section area changes by 0.58. The ground is built from many shifts rather than one plate.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Surface complexity is 8.86 and the section area changes by 0.58. The ground is built from many shifts rather than one plate."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The box is nearly equal, about 18 by 20 by 19 ft, while the ground section still varies. The contrast is noticeable and stays in balance.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The box is nearly equal, about 18 by 20 by 19 ft, while the ground section still varies. The contrast is noticeable and stays in balance."
+          }
+        },
+        {
+          "criterionId": "centrality",
+          "value": 1,
+          "basis": "review",
+          "justification": "The field covers the middle of its envelope, with the centroid 0.22 off center. It is not a side piece, and it is not a single access node. Surroundings are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The field covers the middle of its envelope, with the centroid 0.22 off center. It is not a side piece, and it is not a single access node. Surroundings are absent."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 25% of the envelope and 67% of the plan is occupied. Open ground and covered ground are mixed.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 25% of the envelope and 67% of the plan is occupied. Open ground and covered ground are mixed."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "basis": "review",
+          "justification": "The field is one distributed body, which can touch many edges. Those adjacent spaces are not in the mesh.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The field is one distributed body, which can touch many edges. Those adjacent spaces are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "directionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Plan anisotropy is 1.45. A mild primary direction is present, and other directions remain.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Plan anisotropy is 1.45. A mild primary direction is present, and other directions remain."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "basis": "review",
+          "justification": "The folded ground surrounds the occupant more than a flat plate. Light and material were not measured.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The folded ground surrounds the occupant more than a flat plate. Light and material were not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "Two thirds of the plan columns are occupied, so views across the field are partial. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Two thirds of the plan columns are occupied, so views across the field are partial. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The open ground is accessible, and the folds keep some control. Invitation remains interpretive.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The open ground is accessible, and the folds keep some control. Invitation remains interpretive."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "linear-gallery",
+      "moduleId": "carved-mass:linear-gallery:263:N19",
+      "program": "lobby",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Surface complexity is 7.98 and the section change is 0.52. The gallery has several events along one recognizable bar.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Surface complexity is 7.98 and the section change is 0.52. The gallery has several events along one recognizable bar."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The bar is longer than it is thick, and the section changes are moderate. The size relationships stay readable.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The bar is longer than it is thick, and the section changes are moderate. The size relationships stay readable."
+          }
+        },
+        {
+          "criterionId": "centrality",
+          "value": 2,
+          "basis": "review",
+          "justification": "The centroid offset is 0.17 and the bar holds the middle of its envelope, closer to a spine than a side room. Other spaces are not in the mesh.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The centroid offset is 0.17 and the bar holds the middle of its envelope, closer to a spine than a side room. Other spaces are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "This is the most solid lobby mass, at 31% of the envelope, with 66% of the plan occupied. Enclosure and opening are mixed.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "This is the most solid lobby mass, at 31% of the envelope, with 66% of the plan occupied. Enclosure and opening are mixed."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The bar is one piece. The number of rooms it would connect is not in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The bar is one piece. The number of rooms it would connect is not in the mesh."
+          }
+        },
+        {
+          "criterionId": "directionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Plan anisotropy is 1.46. The gallery has a direction, and it is milder than a strongly axial hall.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Plan anisotropy is 1.46. The gallery has a direction, and it is milder than a strongly axial hall."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The enclosure is moderate. Sensory conditions beyond the solid were not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The enclosure is moderate. Sensory conditions beyond the solid were not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "A linear figure can carry a view along its length and blocks the cross direction. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A linear figure can carry a view along its length and blocks the cross direction. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The gallery is legible and not compressed shut. The social tone of that legibility needs review.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The gallery is legible and not compressed shut. The social tone of that legibility needs review."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "open-hall",
+      "moduleId": "carved-mass:open-hall:333:N08",
+      "program": "workspace",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Surface complexity is 8.8 and the section change is 0.43. The hall is varied without becoming a stack of separate figures.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Surface complexity is 8.8 and the section change is 0.43. The hall is varied without becoming a stack of separate figures."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The plan is square, 20 by 20 ft, and the height is 15 ft. Proportions vary, and they stay in one family.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The plan is square, 20 by 20 ft, and the height is 15 ft. Proportions vary, and they stay in one family."
+          }
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The section area stays relatively steady and the plan is one directional hall. The plate is not broken into shifts, recesses, or rotated parts.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The section area stays relatively steady and the plan is one directional hall. The plate is not broken into shifts, recesses, or rotated parts."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The solid is 21% of the envelope and only half of the plan columns are occupied, the most open workspace footprint.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The solid is 21% of the envelope and only half of the plan columns are occupied, the most open workspace footprint."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The open hall is one linked volume. Relationships to neighboring tiles are not in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The open hall is one linked volume. Relationships to neighboring tiles are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "modularity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The stored module is one continuous manifold body. Repeated, interchangeable units are not present in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The stored module is one continuous manifold body. Repeated, interchangeable units are not present in the mesh."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The hall is open rather than deeply wrapped. Sensory immersion was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The hall is open rather than deeply wrapped. Sensory immersion was not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Half of the plan is unoccupied, so views can cross the tile with little solid in the way.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Half of the plan is unoccupied, so views can cross the tile with little solid in the way."
+          }
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 1,
+          "basis": "review",
+          "justification": "The open volume can be shared, and no separate individual rooms were found. That social reading needs review.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The open volume can be shared, and no separate individual rooms were found. That social reading needs review."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "terraced",
+      "moduleId": "carved-mass:terraced:46:N06",
+      "program": "workspace",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Surface complexity is 8.75, with the steadiest workspace section (0.32). The terraces add events without dissolving the figure.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Surface complexity is 8.75, with the steadiest workspace section (0.32). The terraces add events without dissolving the figure."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The axes stay close and each section has a similar area. The size relationships are relatively uniform.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The axes stay close and each section has a similar area. The size relationships are relatively uniform."
+          }
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The plan is broad, 78% occupied, and the surface is folded, while the section area barely changes. The plate is divided, not strongly shifted or recessed.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The plan is broad, 78% occupied, and the surface is folded, while the section area barely changes. The plate is divided, not strongly shifted or recessed."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 30% of the envelope and 78% of the plan is occupied. The terraces are more enclosed than the open hall.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 30% of the envelope and 78% of the plan is occupied. The terraces are more enclosed than the open hall."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "One body links the terraces. Links beyond the tile were not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "One body links the terraces. Links beyond the tile were not measured."
+          }
+        },
+        {
+          "criterionId": "modularity",
+          "value": 1,
+          "basis": "review",
+          "justification": "Similar section areas suggest repeated terraces, but the units were not segmented into interchangeable pieces.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Similar section areas suggest repeated terraces, but the units were not segmented into interchangeable pieces."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The terraces wrap more than a flat slab and less than a folded chamber. Sensory measures are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The terraces wrap more than a flat slab and less than a folded chamber. Sensory measures are absent."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "A filled plan limits cross views, and the steps may open a diagonal. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A filled plan limits cross views, and the steps may open a diagonal. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 1,
+          "basis": "review",
+          "justification": "Shared treads and more enclosed pockets are both plausible. The mesh does not show how people would occupy them.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Shared treads and more enclosed pockets are both plausible. The mesh does not show how people would occupy them."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "flat-deep-plan",
+      "moduleId": "carved-mass:flat-deep-plan:83:N16",
+      "program": "workspace",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "This is the simplest workspace surface (7.21) and a single thin plate, 8 ft on its short axis. The figure has few geometric events.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "This is the simplest workspace surface (7.21) and a single thin plate, 8 ft on its short axis. The figure has few geometric events."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The plate is about 20 ft in one direction and 8 ft in another. That is the strongest dimensional contrast in the set.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The plate is about 20 ft in one direction and 8 ft in another. That is the strongest dimensional contrast in the set."
+          }
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The mass is one continuous slab. It does not break into projections, recesses, or rotated parts.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The mass is one continuous slab. It does not break into projections, recesses, or rotated parts."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The solid fills 42% of the envelope, the highest in the set, and 73% of the plan is occupied. The plate is predominantly enclosed.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The solid fills 42% of the envelope, the highest in the set, and 73% of the plan is occupied. The plate is predominantly enclosed."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 0,
+          "basis": "review",
+          "justification": "A deep filled plate shows few internal separations that would link distinct areas. Outside relationships are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "A deep filled plate shows few internal separations that would link distinct areas. Outside relationships are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "modularity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The module is one fixed slab, with no repeated units in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The module is one fixed slab, with no repeated units in the mesh."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 0,
+          "basis": "review",
+          "justification": "The thin plate has little layering or surrounding depth. Sensory immersion was not measured, and the geometry does not support a deep reading.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The thin plate has little layering or surrounding depth. Sensory immersion was not measured, and the geometry does not support a deep reading."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The short 8 ft dimension and the filled plan leave little room for a long unobstructed view across the tile.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The short 8 ft dimension and the filled plan leave little room for a long unobstructed view across the tile."
+          }
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 0,
+          "basis": "review",
+          "justification": "No shared sub-space is separated from the deep plate. The individual reading is provisional.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "No shared sub-space is separated from the deep plate. The individual reading is provisional."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "void-edge",
+      "moduleId": "carved-mass:void-edge:86:N19",
+      "program": "workspace",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Surface complexity is 8.42 and the section change is 0.42. The edge cut is a clear event in an otherwise readable plate.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Surface complexity is 8.42 and the section change is 0.42. The edge cut is a clear event in an otherwise readable plate."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "One axis is about 20 ft and another is 9.4 ft. The edge void and the remaining plate are strongly different in scale.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "One axis is about 20 ft and another is 9.4 ft. The edge void and the remaining plate are strongly different in scale."
+          }
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Only 56% of the plan is occupied, so the plate is cut at the edge. The section area does not cascade through large shifts.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Only 56% of the plan is occupied, so the plate is cut at the edge. The section area does not cascade through large shifts."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The solid is 27% of the envelope and just over half the plan is occupied. The edge is predominantly open to the outside of the tile.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The solid is 27% of the envelope and just over half the plan is occupied. The edge is predominantly open to the outside of the tile."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The void touches the tile edge, which could meet another space. That neighbor is not in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The void touches the tile edge, which could meet another space. That neighbor is not in the mesh."
+          }
+        },
+        {
+          "criterionId": "modularity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The module is one body. The edge void does not produce repeated units.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The module is one body. The edge void does not produce repeated units."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The remaining plate gives some enclosure beside an open edge. Sensory depth was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The remaining plate gives some enclosure beside an open edge. Sensory depth was not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "basis": "review",
+          "justification": "The open edge clears a large part of the plan. Exact sightlines were not raycast.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The open edge clears a large part of the plan. Exact sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 1,
+          "basis": "review",
+          "justification": "The open edge can be shared and the remaining plate can be more private. Occupation was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The open edge can be shared and the remaining plate can be more private. Occupation was not measured."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "undulated",
+      "moduleId": "carved-mass:undulated:71:N06",
+      "program": "workspace",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The surface is the simplest in the set (7.14) and the section change is 0.38. The wave is one bend, not a field of intersections.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The surface is the simplest in the set (7.14) and the section change is 0.38. The wave is one bend, not a field of intersections."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The body runs about 20 ft against an 11 ft cross dimension. The long and short directions are strongly differentiated.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The body runs about 20 ft against an 11 ft cross dimension. The long and short directions are strongly differentiated."
+          }
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The plate bends, and the section area stays in a narrow range. The articulation is a continuous variation, not a set of recesses or rotations.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The plate bends, and the section area stays in a narrow range. The articulation is a continuous variation, not a set of recesses or rotations."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 36% of the envelope and 66% of the plan is occupied. The wave is more enclosed than the open hall.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 36% of the envelope and 66% of the plan is occupied. The wave is more enclosed than the open hall."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The undulation is one continuous body. Outside links were not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The undulation is one continuous body. Outside links were not measured."
+          }
+        },
+        {
+          "criterionId": "modularity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The wave is one piece. Repeated bays were not found in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The wave is one piece. Repeated bays were not found in the mesh."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The bend gives some enclosure without a deep surround. Sensory measures are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The bend gives some enclosure without a deep surround. Sensory measures are absent."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "The long direction may carry a view, and the occupied plan interrupts the cross view. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The long direction may carry a view, and the occupied plan interrupts the cross view. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 1,
+          "basis": "review",
+          "justification": "A single bending plate can be shared, and it does not separate individual rooms. The social reading needs review.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A single bending plate can be shared, and it does not separate individual rooms. The social reading needs review."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "stepped-amphitheater",
+      "moduleId": "carved-mass:stepped-amphitheater:374:N03",
+      "program": "gathering",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "Surface complexity is 8.66 and the section change is 0.53. The steps are a clear sequence, not a highly intersected mass.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "Surface complexity is 8.66 and the section change is 0.53. The steps are a clear sequence, not a highly intersected mass."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The bowl changes section moderately inside a 20 by 16 by 13 ft body. The steps differ, and they stay one family of sizes.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The bowl changes section moderately inside a 20 by 16 by 13 ft body. The steps differ, and they stay one family of sizes."
+          }
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 1,
+          "basis": "review",
+          "justification": "A step can be both a seat and a path. No circulation line is stored in the mesh, so embedding is not demonstrated.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A step can be both a seat and a path. No circulation line is stored in the mesh, so embedding is not demonstrated."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 28% of the envelope and 56% of the plan is occupied. The bowl is partly open, not a closed room.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 28% of the envelope and 56% of the plan is occupied. The bowl is partly open, not a closed room."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 0,
+          "basis": "review",
+          "justification": "The figure is one bowl. Links to surrounding spaces are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The figure is one bowl. Links to surrounding spaces are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 2,
+          "basis": "review",
+          "justification": "The bowl is a distinct gathering figure that movement would have to enter. Whether circulation actually constitutes that gathering was not measured.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The bowl is a distinct gathering figure that movement would have to enter. Whether circulation actually constitutes that gathering was not measured."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The steps give more enclosure than a flat field and less than a wrapped chamber. Sensory measures are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The steps give more enclosure than a flat field and less than a wrapped chamber. Sensory measures are absent."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "Half the plan is open toward the bowl. Long views were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Half the plan is open toward the bowl. Long views were not raycast."
+          }
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 1,
+          "basis": "review",
+          "justification": "One shared bowl brings people together without the compressed paths or separated identical rooms named in the definitions. The social reading needs review.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "One shared bowl brings people together without the compressed paths or separated identical rooms named in the definitions. The social reading needs review."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "void-field",
+      "moduleId": "carved-mass:void-field:270:N19",
+      "program": "gathering",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Surface complexity is 9.19, among the highest, while the section stays even at 0.31. The field carries many small geometric events on one level figure.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Surface complexity is 9.19, among the highest, while the section stays even at 0.31. The field carries many small geometric events on one level figure."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The plan is nearly square and the section area barely changes. Dimensional relationships stay uniform.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The plan is nearly square and the section area barely changes. Dimensional relationships stay uniform."
+          }
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 0,
+          "basis": "review",
+          "justification": "The mesh is one filled mat. A path around or through a separate gathering figure is not visible.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The mesh is one filled mat. A path around or through a separate gathering figure is not visible."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "91% of the plan columns are occupied and the solid is 38% of the envelope. At this sample the field is predominantly filled, not an open court. Holes smaller than the sample may remain.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "91% of the plan columns are occupied and the solid is 38% of the envelope. At this sample the field is predominantly filled, not an open court. Holes smaller than the sample may remain."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 0,
+          "basis": "review",
+          "justification": "The field does not resolve into linked rooms. Outside relationships are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The field does not resolve into linked rooms. Outside relationships are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 0,
+          "basis": "review",
+          "justification": "No gathering figure separates itself from the field. Isolation from a circulation path was not directly drawn.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "No gathering figure separates itself from the field. Isolation from a circulation path was not directly drawn."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The surface is busy and the body is shallow, about 13 ft against a 20 ft plan. Enclosure is moderate, and light was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The surface is busy and the body is shallow, about 13 ft against a 20 ft plan. Enclosure is moderate, and light was not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 0,
+          "basis": "review",
+          "justification": "Almost every plan column contains solid, so views across the tile are frequently interrupted. Exact sightlines were not raycast.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "Almost every plan column contains solid, so views across the tile are frequently interrupted. Exact sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 0,
+          "basis": "review",
+          "justification": "The broad even field matches a spread, low-pressure gathering more than a compressed room. Furniture and paths are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The broad even field matches a spread, low-pressure gathering more than a compressed room. Furniture and paths are not in the mesh."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "moduleId": "carved-mass:inserted-horizontal-plate:265:N47",
+      "program": "gathering",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "Surface complexity is 7.26 and the body is a compact 16 by 14 by 12 ft solid. The plate has few geometric events.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "Surface complexity is 7.26 and the body is a compact 16 by 14 by 12 ft solid. The plate has few geometric events."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "The three axes are the closest in the gathering set. Size relationships stay uniform.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "The three axes are the closest in the gathering set. Size relationships stay uniform."
+          }
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 1,
+          "basis": "review",
+          "justification": "A single inserted plate could sit beside or across a path. No path is stored in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A single inserted plate could sit beside or across a path. No path is stored in the mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "84% of the plan is occupied and the solid is 38% of the envelope. The plate reads as predominantly enclosed.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "84% of the plan is occupied and the solid is 38% of the envelope. The plate reads as predominantly enclosed."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 0,
+          "basis": "review",
+          "justification": "The compact solid does not branch into multiple linked spaces. Neighbors are not in the mesh.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The compact solid does not branch into multiple linked spaces. Neighbors are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 1,
+          "basis": "review",
+          "justification": "The plate is its own object, and whether a path runs beside it or through it cannot be seen.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The plate is its own object, and whether a path runs beside it or through it cannot be seen."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 0,
+          "basis": "review",
+          "justification": "The compact, lightly folded solid has little surrounding depth. Sensory immersion was not measured.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The compact, lightly folded solid has little surrounding depth. Sensory immersion was not measured."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 0,
+          "basis": "review",
+          "justification": "The filled plan leaves few open sightlines across the tile.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The filled plan leaves few open sightlines across the tile."
+          }
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 1,
+          "basis": "review",
+          "justification": "One close shared volume is nearer a single gathering than a field of separated paths. Stimulation was not measured.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "One close shared volume is nearer a single gathering than a field of separated paths. Stimulation was not measured."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "contained-room-within-volume",
+      "moduleId": "carved-mass:contained-room-within-volume:42:N04",
+      "program": "gathering",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 0,
+          "basis": "geometry",
+          "justification": "This mesh has the fewest triangles and a low surface complexity of 7.47, with an almost constant section (0.30). It is one simple volume.",
+          "analyzed": {
+            "value": 0,
+            "basis": "geometry",
+            "justification": "This mesh has the fewest triangles and a low surface complexity of 7.47, with an almost constant section (0.30). It is one simple volume."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The room runs about 18 ft against a 9.5 ft cross section. Length and width are strongly differentiated.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The room runs about 18 ft against a 9.5 ft cross section. Length and width are strongly differentiated."
+          }
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 0,
+          "basis": "review",
+          "justification": "The contained figure reads as a room apart from a path. A path inside the room was not found, and the research target of an embedded path is not visible.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The contained figure reads as a room apart from a path. A path inside the room was not found, and the research target of an embedded path is not visible."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "basis": "geometry",
+          "justification": "The solid is 33% of the envelope and 61% of the plan is occupied. The room combines a contained interior with open sides of the envelope.",
+          "analyzed": {
+            "value": 1,
+            "basis": "geometry",
+            "justification": "The solid is 33% of the envelope and 61% of the plan is occupied. The room combines a contained interior with open sides of the envelope."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 0,
+          "basis": "review",
+          "justification": "One contained body does not show multiple links. Adjacent spaces are absent.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "One contained body does not show multiple links. Adjacent spaces are absent."
+          }
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 0,
+          "basis": "review",
+          "justification": "The room reads as a figure on its own, which matches gathering isolated from circulation. That isolation is interpretive because no path is drawn.",
+          "analyzed": {
+            "value": 0,
+            "basis": "review",
+            "justification": "The room reads as a figure on its own, which matches gathering isolated from circulation. That isolation is interpretive because no path is drawn."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The contained section gives enclosure, and the simple surface does not layer it. Sensory measures are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The contained section gives enclosure, and the simple surface does not layer it. Sensory measures are absent."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "basis": "review",
+          "justification": "The long 18 ft dimension can carry a view, and the 9.5 ft width limits the cross view. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The long 18 ft dimension can carry a view, and the 9.5 ft width limits the cross view. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 2,
+          "basis": "review",
+          "justification": "The small cross section, about 9.5 ft, compresses a shared room. Paths, furniture, and crowding were not measured.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "The small cross section, about 9.5 ft, compresses a shared room. Paths, furniture, and crowding were not measured."
+          }
+        }
+      ]
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "moduleId": "carved-mass:linear-edge-gallery:121:N02",
+      "program": "gathering",
+      "ratings": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "Surface complexity is 10.1, the highest in the set, on a shallow body whose section area barely changes. The edge is densely folded.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "Surface complexity is 10.1, the highest in the set, on a shallow body whose section area barely changes. The edge is densely folded."
+          }
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The gallery is about 20 ft long and 9.7 ft thick. The long edge and the thin section are strongly different.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The gallery is about 20 ft long and 9.7 ft thick. The long edge and the thin section are strongly different."
+          }
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 1,
+          "basis": "review",
+          "justification": "A linear edge can act as a path beside gathering pockets. Those roles are not separated in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "A linear edge can act as a path beside gathering pockets. Those roles are not separated in the mesh."
+          }
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "basis": "geometry",
+          "justification": "The solid is 23% of the envelope and only 51% of the plan is occupied. The edge is predominantly open.",
+          "analyzed": {
+            "value": 2,
+            "basis": "geometry",
+            "justification": "The solid is 23% of the envelope and only 51% of the plan is occupied. The edge is predominantly open."
+          }
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The gallery is one linear body that could touch several neighbors. Those neighbors are not in the mesh.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The gallery is one linear body that could touch several neighbors. Those neighbors are not in the mesh."
+          }
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 1,
+          "basis": "review",
+          "justification": "Gathering pockets and the edge path are not distinguished as separate figures.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "Gathering pockets and the edge path are not distinguished as separate figures."
+          }
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "basis": "review",
+          "justification": "The folded edge surrounds locally, and the body is only about 10 ft deep. Sensory measures are absent.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The folded edge surrounds locally, and the body is only about 10 ft deep. Sensory measures are absent."
+          }
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "basis": "review",
+          "justification": "Half the plan is open along the long edge, which supports a long view. Sightlines were not raycast.",
+          "analyzed": {
+            "value": 2,
+            "basis": "review",
+            "justification": "Half the plan is open along the long edge, which supports a long view. Sightlines were not raycast."
+          }
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 1,
+          "basis": "review",
+          "justification": "The thin gallery keeps people along one line and also stretches them apart. The social intensity needs review.",
+          "analyzed": {
+            "value": 1,
+            "basis": "review",
+            "justification": "The thin gallery keeps people along one line and also stretches them apart. The social intensity needs review."
+          }
+        }
+      ]
+    }
+  ]
+}

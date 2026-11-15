@@ -1,0 +1,355 @@
+{
+  "tiles": [
+    {
+      "archetypeId": "vertical-void",
+      "program": "lobby",
+      "openings": {
+        "E": 0,
+        "W": 1,
+        "N": 1,
+        "S": 1,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "compressed-sequential",
+      "program": "lobby",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 1,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "continuous-hall",
+      "program": "lobby",
+      "openings": {
+        "E": 0,
+        "W": 1,
+        "N": 1,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "topographic-ground-field",
+      "program": "lobby",
+      "openings": {
+        "E": 0,
+        "W": 1,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "linear-gallery",
+      "program": "lobby",
+      "openings": {
+        "E": 1,
+        "W": 0,
+        "N": 2,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "open-hall",
+      "program": "workspace",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 1
+      }
+    },
+    {
+      "archetypeId": "terraced",
+      "program": "workspace",
+      "openings": {
+        "E": 0,
+        "W": 1,
+        "N": 1,
+        "S": 2,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "flat-deep-plan",
+      "program": "workspace",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "void-edge",
+      "program": "workspace",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 1
+      }
+    },
+    {
+      "archetypeId": "undulated",
+      "program": "workspace",
+      "openings": {
+        "E": 0,
+        "W": 2,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 1
+      }
+    },
+    {
+      "archetypeId": "stepped-amphitheater",
+      "program": "gathering",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "void-field",
+      "program": "gathering",
+      "openings": {
+        "E": 0,
+        "W": 14,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "inserted-horizontal-plate",
+      "program": "gathering",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 1,
+        "S": 0,
+        "T": 0,
+        "B": 2
+      }
+    },
+    {
+      "archetypeId": "contained-room-within-volume",
+      "program": "gathering",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 1,
+        "S": 0,
+        "T": 0,
+        "B": 0
+      }
+    },
+    {
+      "archetypeId": "linear-edge-gallery",
+      "program": "gathering",
+      "openings": {
+        "E": 0,
+        "W": 0,
+        "N": 0,
+        "S": 0,
+        "T": 0,
+        "B": 3
+      }
+    }
+  ],
+  "directAttempts": 4500,
+  "validDirect": 1,
+  "tally": {
+    "side:no-opening": 3584,
+    "stack:no-opening": 900,
+    "side:openings-miss": 13,
+    "side:obstructed": 2,
+    "side:valid": 1
+  },
+  "promising": 15,
+  "validExamples": [
+    {
+      "a": "void-field",
+      "b": "void-field",
+      "relation": "side",
+      "rotation": 180000,
+      "valid": true,
+      "traversable": true,
+      "integrity": "closed",
+      "faces": "W/W",
+      "alignment": 12,
+      "floorDelta": 0,
+      "issue": "valid"
+    }
+  ],
+  "hybrids": [
+    {
+      "a": "linear-gallery",
+      "b": "linear-gallery",
+      "relation": "side",
+      "rotation": 270090,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "N/N",
+      "alignment": 0,
+      "floorDelta": 0,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: corrected. Sharp edges rounded. Largest correction 3.41 cells. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "corrected",
+      "candidate": "H01"
+    },
+    {
+      "a": "linear-gallery",
+      "b": "terraced",
+      "relation": "side",
+      "rotation": 270270,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "N/S",
+      "alignment": 0,
+      "floorDelta": 0,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the start of the connection. Sharp folds remain after local refinement. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    },
+    {
+      "a": "linear-gallery",
+      "b": "undulated",
+      "relation": "side",
+      "rotation": 270000,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "N/W",
+      "alignment": 0,
+      "floorDelta": 1,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the end of the connection. Sharp folds remain after local refinement. A gap in the connection was left in place. Section correspondence is confirmed.",
+      "correspondence": true,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    },
+    {
+      "a": "linear-gallery",
+      "b": "void-field",
+      "relation": "side",
+      "rotation": 270000,
+      "valid": false,
+      "traversable": true,
+      "integrity": "closed",
+      "faces": "N/W",
+      "alignment": 2,
+      "floorDelta": 0,
+      "issue": "obstructed",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the start of the connection. Sharp folds remain after local refinement. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    },
+    {
+      "a": "terraced",
+      "b": "linear-gallery",
+      "relation": "side",
+      "rotation": 90090,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "S/N",
+      "alignment": 0,
+      "floorDelta": 0,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the end of the connection. Sharp folds remain after local refinement. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    },
+    {
+      "a": "terraced",
+      "b": "terraced",
+      "relation": "side",
+      "rotation": 90270,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "S/S",
+      "alignment": 0,
+      "floorDelta": 0,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: corrected. Sharp edges rounded. Largest correction 3.48 cells. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "corrected",
+      "candidate": "H01"
+    },
+    {
+      "a": "terraced",
+      "b": "undulated",
+      "relation": "side",
+      "rotation": 90000,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "S/W",
+      "alignment": 0,
+      "floorDelta": 1,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the start of the connection. Sharp folds remain after local refinement. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    },
+    {
+      "a": "terraced",
+      "b": "void-field",
+      "relation": "side",
+      "rotation": 90000,
+      "valid": false,
+      "traversable": false,
+      "integrity": "closed",
+      "faces": "S/W",
+      "alignment": 1,
+      "floorDelta": 0,
+      "issue": "openings-miss",
+      "hybrid": "seated",
+      "reason": "East to West. H01. The hybrid meets both faces. Mesh check: unresolved. Surface smoothness is still low near the end of the connection. Irregular surface regions remain. Section correspondence was not confirmed.",
+      "correspondence": false,
+      "mesh": "unresolved",
+      "candidate": "H01"
+    }
+  ]
+}

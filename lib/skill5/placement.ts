@@ -61,6 +61,17 @@ export type PlacedModule = Skill5Instance & {
   mirror?: "x" | "y" | "z" | null;
   /** Zones whose footprint and elevation range meet this tile. */
   zoneIds?: string[];
+  /**
+   * Extra pose for this copy only. The source mesh is not changed.
+   * Pitch and roll are radians. Scale is a multiplier on the original module.
+   */
+  axes?: {
+    rotationX: number;
+    rotationZ: number;
+    scaleX: number;
+    scaleY: number;
+    scaleZ: number;
+  };
 };
 
 export type ModuleWarning = {
@@ -70,6 +81,8 @@ export type ModuleWarning = {
   adjacent?: boolean;
   zoneMismatch?: boolean;
   unsupported?: boolean;
+  /** The three scale axes differ, so openings and circulation can distort. */
+  distorted?: boolean;
 };
 
 export const MODULE_HEIGHT_FT = SKILL5_MODULE_ENVELOPE_FEET;

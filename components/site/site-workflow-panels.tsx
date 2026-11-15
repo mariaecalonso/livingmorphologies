@@ -72,6 +72,8 @@ export function SiteZoningPanel({
   onAssign,
   onClearPockets,
   onAddLevel,
+  onConsolidate,
+  consolidateNote,
 }: {
   kind: SiteZoneKind;
   onKind: (kind: SiteZoneKind) => void;
@@ -102,6 +104,8 @@ export function SiteZoningPanel({
   onAssign: (kind: SiteZoneKind) => void;
   onClearPockets: () => void;
   onAddLevel: () => void;
+  onConsolidate: () => void;
+  consolidateNote: string | null;
 }) {
   const active = ZONE_KINDS.find((item) => item.id === kind) ?? ZONE_KINDS[0];
   return (
@@ -121,7 +125,11 @@ export function SiteZoningPanel({
         <p className="site-strategy-note">{active.note} Click pockets to select more than one. Save assigns {active.label} to the selection.</p>
         <p className="site-strategy-note">{pocketSelection.length} selected</p>
         {branchNote ? <p className="site-strategy-note">{branchNote}</p> : null}
-        {pockets.length > 0 ? <p className="site-strategy-note">{pockets.length} pockets from this network.{openSegments > 0 ? ` ${openSegments} open branches were left open.` : ""}</p> : null}
+        {pockets.length > 0 ? <p className="site-strategy-note">{pockets.length} pockets from this network. Pockets stay as the network faces.{openSegments > 0 ? ` ${openSegments} open branches were left open.` : ""}</p> : null}
+        {consolidateNote ? <p className="site-strategy-note">{consolidateNote}</p> : null}
+        <div className="site-zone-edit">
+          <button type="button" disabled={pockets.length === 0} onClick={onConsolidate}>Consolidate</button>
+        </div>
         <div className="site-zone-edit">
           <button type="button" disabled={pocketSelection.length === 0} onClick={onClearPockets}>Clear</button>
           <button type="button" disabled={pocketSelection.length === 0} onClick={onAddLevel}>Add level</button>
@@ -419,6 +427,7 @@ export function SiteAssemblyStep({
             <div><dt>Mesh integrity</dt><dd>{chosen.integrity === "closed" ? "Closed" : chosen.integrity ?? "Unread"}</dd></div>
             <div><dt>Connection</dt><dd>{chosen.mode === "hybrid" ? `Hybrid ${chosen.candidateId ?? ""}` : chosen.joinType === "stack" ? "Top to bottom" : "Side to side"}</dd></div>
             {chosen.note ? <div><dt>Check</dt><dd>{chosen.note}</dd></div> : null}
+            {chosen.review ? <div><dt>Review</dt><dd>{chosen.review}</dd></div> : null}
           </dl>
         ) : null}
         {chosen ? <button type="button" onClick={() => onRemove(chosen.id)}>Remove connection</button> : null}

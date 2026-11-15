@@ -3,6 +3,7 @@ import { createSimulation, stepSimulation } from "@/lib/skill1/engine";
 import { FIELD_SIZE } from "@/lib/skill1/maps";
 import type { SlimeControls } from "@/lib/skill1/slime-controls";
 import type { BiologicalTranslation, Point, SimulationState } from "@/lib/skill1/types";
+import { pointInRing } from "@/lib/skill5/placement";
 import type { XZ } from "@/lib/skill5/site-model";
 import { pedestrianCandidates, resolveCandidate, type PedestrianCandidate } from "./site-network-candidates";
 import { assessNetworkDomain, rasterNetworkMask, type NetworkDomain, type NetworkFootprint } from "./site-network-domain";
@@ -19,6 +20,13 @@ import {
   rasterFlow,
   type FlowState,
 } from "./site-network-flow";
+import {
+  GROWTH_WIDTH_DEFAULT,
+  clampGrowthWidth,
+  growthRing,
+  shoreLanding,
+  type WaterGrowth,
+} from "./site-water-growth";
 
 const AGENT_COUNT = 720;
 const SITE_TRAIL_SCALE = 32;
@@ -90,6 +98,10 @@ export type NetworkNode = {
   measuredX?: number;
   /** Original measured north. */
   measuredZ?: number;
+  /** Set when the attractor was placed on water. Land nodes leave this unset. */
+  surface?: "water";
+  /** Permitted growth region. Null means the zone was removed and the bay around this node stays closed. */
+  water?: WaterGrowth | null;
 };
 
 export type NetworkCandidate = PedestrianCandidate & {
@@ -409,7 +421,20 @@ export function strongTrailFeet(
   return best;
 }
 
-function readStored(inside: (x: number, z: number) => boolean): NetworkNode[] {
+function readWater(value: unknown): WaterGrowth | null | undefined {
+  if (value === null) return null;
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Partial<WaterGrowth>;
+  if (typeof record.widthFt !== "number" || typeof record.landX !== "number" || typeof record.landZ !== "number") return undefined;
+  if (!Number.isFinite(record.widthFt) || !Number.isFinite(record.landX) || !Number.isFinite(record.landZ)) return undefined;
+  return { widthFt: clampGrowthWidth(record.widthFt), landX: record.landX, landZ: record.landZ };
+}
+
+function copyNode(node: NetworkNode): NetworkNode {
+  return { ...node, water: node.water ? { ...node.water } : node.water };
+}
+
+function readStored(): NetworkNode[] {
   if (typeof localStorage === "undefined") return [];
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as unknown;
@@ -417,15 +442,20 @@ function readStored(inside: (x: number, z: number) => boolean): NetworkNode[] {
     const nodes: NetworkNode[] = [];
     for (const item of parsed) {
       if (!item || typeof item !== "object") continue;
-      const record = item as Partial<NetworkNode>;
+      const record = item as Partial<NetworkNode> & { water?: unknown };
       if (record.kind !== "source" && record.kind !== "attractor") continue;
       if (typeof record.id !== "string" || typeof record.x !== "number" || typeof record.z !== "number") continue;
-      if (!inside(record.x, record.z)) continue;
+      if (!Number.isFinite(record.x) || !Number.isFinite(record.z)) continue;
       const node: NetworkNode = { id: record.id, kind: record.kind, x: record.x, z: record.z };
       if (typeof record.recordId === "string") node.recordId = record.recordId;
       if (typeof record.measuredX === "number" && typeof record.measuredZ === "number") {
         node.measuredX = record.measuredX;
         node.measuredZ = record.measuredZ;
+      }
+      const water = readWater(record.water);
+      if (record.surface === "water" || water !== undefined) {
+        if (node.kind === "attractor") node.surface = "water";
+        if (water !== undefined) node.water = water;
       }
       nodes.push(node);
     }
@@ -437,18 +467,18 @@ function readStored(inside: (x: number, z: number) => boolean): NetworkNode[] {
 
 export class SiteNetworkStudy {
   readonly frame: Frame;
-  readonly domain: NetworkDomain;
+  domain!: NetworkDomain;
   readonly land: XZ[];
   readonly pixels: Uint8Array;
   readonly inkSize: number;
-  readonly traversable: number;
+  traversable!: number;
   revision = 0;
   settled = false;
   private statusState: NetworkStatus = EMPTY_STATUS;
   private editState: NetworkEdit = EMPTY_EDIT;
   private readonly listeners = new Set<() => void>();
-  private readonly open: Uint8Array;
-  private readonly closed: Uint32Array;
+  private open!: Uint8Array;
+  private closed!: Uint32Array;
   private rng: () => number;
   private translation: BiologicalTranslation;
   private state!: SimulationState;
@@ -462,7 +492,7 @@ export class SiteNetworkStudy {
   private readonly seed: number;
   private readonly persistEnabled: boolean;
   private mappingNote: string | null = null;
-  private readonly domainNote: string | null;
+  private domainNote: string | null = null;
   private readonly slime: SlimeControls;
   private readonly attractorSpread: number | undefined;
   private readonly watches = new Map<string, AttractorWatch>();
@@ -472,34 +502,35 @@ export class SiteNetworkStudy {
   private flowRng: () => number = Math.random;
   private flow: FlowState | null = null;
   readonly generator: "flow" | "agents";
+  private readonly parcelRing: readonly XZ[];
+  private readonly waterRing: readonly XZ[];
+  private readonly footprints: readonly NetworkFootprint[];
+  private readonly legacyOverWater: readonly XZ[] | null;
 
   constructor(parcel: readonly XZ[], water: readonly XZ[], init?: StudyInit) {
     this.persistEnabled = init?.persist !== false;
     this.seed = init?.seed ?? SEED;
     this.generator = init?.generator ?? "flow";
-    this.domain = assessNetworkDomain({
-      parcel,
-      water,
-      buildings: init?.buildings,
-      overWater: init?.overWater,
-    });
-    this.land = this.domain.boundary;
+    this.parcelRing = parcel;
+    this.waterRing = water;
+    this.footprints = init?.buildings ?? [];
+    this.legacyOverWater = init?.overWater ?? null;
     this.frame = frameAround(parcel);
     this.rng = mulberry32(this.seed ^ 0x51e7);
     this.inkSize = FIELD_SIZE * SITE_TRAIL_SCALE;
     this.pixels = new Uint8Array(this.inkSize * this.inkSize * 4);
-    const mask = rasterNetworkMask(this.frame, this.domain, this.inkSize);
-    this.open = mask.open;
-    this.closed = mask.closed;
-    this.traversable = mask.traversable;
-    this.domainNote = this.domain.valid ? null : this.domain.gaps.join(" ");
+    this.installDomain([]);
+    this.land = this.domain.boundary;
     this.slime = { ...SITE_SLIME, ...init?.slime };
     this.attractorSpread = init?.attractorSpread;
-    const stored = init?.nodes
-      ? init.nodes.filter((node) => this.insideField(node.x, node.z)).map((node) => ({ ...node }))
+    const incoming = init?.nodes
+      ? init.nodes.map((node) => copyNode(node))
       : this.persistEnabled
-        ? readStored((x, z) => this.insideField(x, z))
+        ? readStored()
         : [];
+    this.prepareIncoming(incoming);
+    this.installDomain(incoming);
+    const stored = incoming.filter((node) => this.keeps(node));
     let serial = 1;
     for (const node of stored) {
       const match = /^n(\d+)$/.exec(node.id);
@@ -575,8 +606,24 @@ export class SiteNetworkStudy {
     return px >= 0 && py >= 0 && px < size && py < size && this.open[py * size + px] === 1;
   }
 
+  /** True when the point sits in the water ring. The rest of that ring stays closed until a growth zone covers it. */
+  onWater(x: number, z: number) {
+    return this.domain.water ? pointInRing(x, z, this.domain.water) : false;
+  }
+
+  /** Open land. Water, including a growth zone, does not count. */
+  onOpenLand(x: number, z: number) {
+    return this.insideField(x, z) && !this.onWater(x, z);
+  }
+
+  canPlace(kind: NetworkNodeKind, x: number, z: number) {
+    if (kind === "source") return this.onOpenLand(x, z);
+    return this.onOpenLand(x, z) || (this.onWater(x, z) && this.inFrame(x, z));
+  }
+
   place(kind: NetworkNodeKind, x: number, z: number) {
-    if (!this.insideField(x, z)) return false;
+    if (kind === "attractor" && this.onWater(x, z)) return this.placeWater(x, z);
+    if (!this.onOpenLand(x, z)) return false;
     const node: NetworkNode = { id: `n${this.serial}`, kind, x, z };
     this.serial += 1;
     this.replace([...this.editState.nodes, node], node.id, null);
@@ -586,9 +633,59 @@ export class SiteNetworkStudy {
   }
 
   move(id: string, x: number, z: number) {
-    if (!this.insideField(x, z)) return false;
+    const current = this.editState.nodes.find((node) => node.id === id);
+    if (!current) return false;
+    if (current.surface === "water") return this.moveWater(current, x, z);
+    if (!this.onOpenLand(x, z)) return false;
     const nodes = this.editState.nodes.map((node) => node.id === id ? { ...node, x, z } : node);
     this.replace(nodes, id);
+    return true;
+  }
+
+  setGrowthWidth(id: string, widthFt: number) {
+    const current = this.editState.nodes.find((node) => node.id === id);
+    if (!current?.water) return false;
+    const nodes = this.editState.nodes.map((node) => node.id === id && node.water
+      ? { ...node, water: { ...node.water, widthFt: clampGrowthWidth(widthFt) } }
+      : node);
+    if (!this.commitDomain(nodes)) return false;
+    this.persist();
+    this.applyTargets(this.iteration > 0);
+    return true;
+  }
+
+  /** Moves the land contact of a water attractor's growth zone. The solve restarts on commit. */
+  setGrowthLanding(id: string, landX: number, landZ: number) {
+    const current = this.editState.nodes.find((node) => node.id === id);
+    if (!current?.water || !this.inFrame(landX, landZ)) return false;
+    const nodes = this.editState.nodes.map((node) => node.id === id && node.water
+      ? { ...node, water: { ...node.water, landX, landZ } }
+      : node);
+    return this.commitDomain(nodes);
+  }
+
+  clearGrowth(id: string) {
+    const current = this.editState.nodes.find((node) => node.id === id);
+    if (!current || current.surface !== "water" || current.water === null) return false;
+    const nodes = this.editState.nodes.map((node) => node.id === id ? { ...node, water: null } : node);
+    this.installDomain(nodes);
+    this.replace(nodes, this.editState.selectedId);
+    this.persist();
+    this.applyTargets(this.iteration > 0);
+    return true;
+  }
+
+  restoreGrowth(id: string) {
+    const current = this.editState.nodes.find((node) => node.id === id);
+    if (!current || current.surface !== "water") return false;
+    const landing = shoreLanding(current.x, current.z, this.land, this.domain.water);
+    if (!landing) return false;
+    const nodes = this.editState.nodes.map((node) => node.id === id
+      ? { ...node, water: { widthFt: current.water?.widthFt ?? GROWTH_WIDTH_DEFAULT, landX: landing.x, landZ: landing.z } }
+      : node);
+    if (!this.commitDomain(nodes)) return false;
+    this.persist();
+    this.applyTargets(this.iteration > 0);
     return true;
   }
 
@@ -614,7 +711,7 @@ export class SiteNetworkStudy {
   approveCandidate(id: string, kind: NetworkNodeKind) {
     const candidate = this.editState.candidates.find((item) => item.id === id);
     if (!candidate?.approvable || candidate.resolvedX == null || candidate.resolvedZ == null) return false;
-    if (!this.insideField(candidate.resolvedX, candidate.resolvedZ)) return false;
+    if (!this.onOpenLand(candidate.resolvedX, candidate.resolvedZ)) return false;
     const existing = this.editState.nodes.find((node) => node.id === id);
     const node: NetworkNode = {
       id,
@@ -625,7 +722,7 @@ export class SiteNetworkStudy {
       measuredX: candidate.measuredX,
       measuredZ: candidate.measuredZ,
     };
-    if (!this.insideField(node.x, node.z)) return false;
+    if (!this.onOpenLand(node.x, node.z)) return false;
     const nodes = existing
       ? this.editState.nodes.map((item) => item.id === id ? node : item)
       : [...this.editState.nodes, node];
@@ -638,6 +735,7 @@ export class SiteNetworkStudy {
   remove(id: string) {
     const nodes = this.editState.nodes.filter((node) => node.id !== id);
     if (nodes.length === this.editState.nodes.length) return;
+    this.installDomain(nodes);
     this.replace(nodes, this.editState.selectedId === id ? null : this.editState.selectedId);
     this.persist();
     this.applyTargets(this.iteration > 0);
@@ -645,6 +743,7 @@ export class SiteNetworkStudy {
 
   clearNodes() {
     if (this.editState.nodes.length === 0) return;
+    this.installDomain([]);
     this.replace([], null);
     this.persist();
     this.applyTargets(this.iteration > 0);
@@ -762,7 +861,7 @@ export class SiteNetworkStudy {
     const flow = this.flow;
     return {
       connected: flow?.connected ?? [],
-      disconnected: flow?.disconnected ?? this.editState.nodes.filter((node) => node.kind === "attractor").map((node) => node.id),
+      disconnected: this.attractorGaps(),
       branches: flow?.branches ?? 0,
       surviving: flow?.surviving ?? 0,
       maskBreaks: flow?.maskBreaks ?? 0,
@@ -782,13 +881,16 @@ export class SiteNetworkStudy {
       if (this.watches.get(id)?.reached) reachedIds.push(id);
     }
     const total = this.editState.nodes.filter((node) => node.kind === "attractor").length;
+    const gaps = this.attractorGaps();
     let note = this.domainNote ?? this.mappingNote;
-    if (!note && flow && flow.step > 0 && flow.disconnected.length) {
-      const names = flow.disconnected.map((id) => {
-        const index = this.editState.nodes.filter((node) => node.kind === "attractor").findIndex((node) => node.id === id);
-        return index >= 0 ? `Attractor ${index + 1}` : id;
-      });
-      note = `${names.join(", ")} ${names.length === 1 ? "has" : "have"} no surviving conductivity to a source.`;
+    if (flow && flow.step > 0 && gaps.length) {
+      const names = gaps.map((id) => this.attractorName(id));
+      const sentence = `${names.join(", ")} ${names.length === 1 ? "has" : "have"} no surviving conductivity to a source.`;
+      note = note ? `${note} ${sentence}` : sentence;
+    }
+    if (flow && flow.maskBreaks > 0) {
+      const sentence = `${flow.maskBreaks} surviving ${flow.maskBreaks === 1 ? "edge leaves" : "edges leave"} the open land and over-water zones.`;
+      note = note ? `${note} ${sentence}` : sentence;
     }
     this.statusState = {
       step: this.state.iteration,
@@ -854,6 +956,143 @@ export class SiteNetworkStudy {
     });
   }
 
+  private inFrame(x: number, z: number) {
+    return x >= this.frame.minX && z >= this.frame.minZ && x <= this.frame.maxX && z <= this.frame.maxZ;
+  }
+
+  private keeps(node: NetworkNode) {
+    if (!this.inFrame(node.x, node.z)) return false;
+    if (node.kind === "source") return this.onOpenLand(node.x, node.z);
+    if (node.surface === "water") return this.onWater(node.x, node.z) || this.insideField(node.x, node.z);
+    return this.onOpenLand(node.x, node.z);
+  }
+
+  private prepareIncoming(nodes: NetworkNode[]) {
+    for (const node of nodes) {
+      if (node.surface !== "water" || node.water !== undefined) continue;
+      const landing = shoreLanding(node.x, node.z, this.land, this.domain.water);
+      node.water = landing
+        ? { widthFt: GROWTH_WIDTH_DEFAULT, landX: landing.x, landZ: landing.z }
+        : null;
+    }
+  }
+
+  private installDomain(nodes: readonly NetworkNode[]) {
+    const zones: XZ[][] = [];
+    for (const node of nodes) {
+      if (!node.water) continue;
+      const ring = growthRing(node.x, node.z, node.water.landX, node.water.landZ, node.water.widthFt);
+      if (ring) zones.push(ring);
+    }
+    this.domain = assessNetworkDomain({
+      parcel: this.parcelRing,
+      water: this.waterRing,
+      buildings: this.footprints,
+      overWater: this.legacyOverWater,
+      overWaterZones: zones,
+    });
+    const mask = rasterNetworkMask(this.frame, this.domain, this.inkSize);
+    this.open = mask.open;
+    this.closed = mask.closed;
+    this.traversable = mask.traversable;
+    this.domainNote = this.domain.valid ? null : this.domain.gaps.join(" ");
+  }
+
+  /** Installs the mask for these nodes and keeps them only when every water attractor stays inside its zone. */
+  private commitDomain(nodes: readonly NetworkNode[]) {
+    this.installDomain(nodes);
+    const covered = nodes.every((node) => node.surface !== "water" || !node.water || this.insideField(node.x, node.z));
+    if (!covered) {
+      this.installDomain(this.editState.nodes);
+      return false;
+    }
+    this.replace(nodes, this.editState.selectedId);
+    return true;
+  }
+
+  private placeWater(x: number, z: number) {
+    if (!this.inFrame(x, z)) return false;
+    const landing = shoreLanding(x, z, this.land, this.domain.water);
+    if (!landing) return false;
+    const node: NetworkNode = {
+      id: `n${this.serial}`,
+      kind: "attractor",
+      x,
+      z,
+      surface: "water",
+      water: { widthFt: GROWTH_WIDTH_DEFAULT, landX: landing.x, landZ: landing.z },
+    };
+    const nodes = [...this.editState.nodes, node];
+    this.installDomain(nodes);
+    if (!this.insideField(x, z)) {
+      this.installDomain(this.editState.nodes);
+      return false;
+    }
+    this.serial += 1;
+    this.replace(nodes, node.id, null);
+    this.persist();
+    this.applyTargets(this.iteration > 0);
+    return true;
+  }
+
+  private moveWater(current: NetworkNode, x: number, z: number) {
+    if (this.onWater(x, z)) {
+      if (!this.inFrame(x, z)) return false;
+      const landing = shoreLanding(x, z, this.land, this.domain.water);
+      if (!landing) return false;
+      const nodes = this.editState.nodes.map((node) => node.id === current.id
+        ? {
+          ...node,
+          x,
+          z,
+          water: {
+            widthFt: current.water?.widthFt ?? GROWTH_WIDTH_DEFAULT,
+            landX: landing.x,
+            landZ: landing.z,
+          },
+        }
+        : node);
+      this.installDomain(nodes);
+      if (!this.insideField(x, z)) {
+        this.installDomain(this.editState.nodes);
+        return false;
+      }
+      this.replace(nodes, current.id);
+      return true;
+    }
+    if (!this.onOpenLand(x, z)) return false;
+    const nodes = this.editState.nodes.map((node) => node.id === current.id
+      ? { ...node, x, z, surface: undefined, water: undefined }
+      : node);
+    this.installDomain(nodes);
+    this.replace(nodes, current.id);
+    return true;
+  }
+
+  private attractorName(id: string) {
+    const attractors = this.editState.nodes.filter((node) => node.kind === "attractor");
+    const index = attractors.findIndex((node) => node.id === id);
+    const node = attractors[index];
+    const label = node?.surface === "water" ? "Water attractor" : "Attractor";
+    return index >= 0 ? `${label} ${index + 1}` : id;
+  }
+
+  /** Attractors with no surviving path, including water attractors the mask does not admit. */
+  private attractorGaps() {
+    const flow = this.flow;
+    const attractors = this.editState.nodes.filter((node) => node.kind === "attractor");
+    if (!flow) return attractors.map((node) => node.id);
+    const connected = new Set(flow.connected);
+    const listed = new Set(flow.disconnected);
+    const admitted = new Set(flow.graph.attractorIds);
+    const gaps: string[] = [];
+    for (const node of attractors) {
+      if (connected.has(node.id)) continue;
+      if (listed.has(node.id) || !admitted.has(node.id) || !this.insideField(node.x, node.z)) gaps.push(node.id);
+    }
+    return gaps;
+  }
+
   private replace(nodes: readonly NetworkNode[], selectedId: string | null, selectedCandidateId?: string | null) {
     this.editState = {
       nodes,
@@ -874,6 +1113,9 @@ export class SiteNetworkStudy {
       recordId: node.recordId,
       measuredX: node.measuredX,
       measuredZ: node.measuredZ,
+      ...(node.surface === "water"
+        ? { surface: "water" as const, water: node.water ? { ...node.water } : null }
+        : {}),
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   }
@@ -1210,7 +1452,7 @@ export function captureNetworkIteration(study: SiteNetworkStudy): NetworkIterati
     id: "",
     index: 0,
     seed,
-    nodes: study.edit.nodes.map((node) => ({ ...node })),
+    nodes: study.edit.nodes.map((node) => copyNode(node)),
     step: status.step,
     settled: status.settled,
     reached: status.reached,
@@ -1237,7 +1479,7 @@ export async function runNetworkIteration(
   buildings: readonly NetworkFootprint[] = [],
 ): Promise<NetworkIteration> {
   const study = new SiteNetworkStudy(parcel, water, { seed, nodes, persist: false, buildings });
-  const copy = nodes.map((node) => ({ ...node }));
+  const copy = nodes.map((node) => copyNode(node));
   if (!study.canRun) {
     return {
       id: `i${seed.toString(16)}`,
@@ -1250,7 +1492,7 @@ export async function runNetworkIteration(
       total: copy.filter((node) => node.kind === "attractor").length,
       reachedIds: [],
       connectedIds: [],
-      note: study.status.note ?? "Place at least one source and one attractor on the land before an iteration can grow.",
+      note: study.status.note ?? "Place at least one source and one attractor before an iteration can grow.",
       trails: new Float32Array(study.inkSize * study.inkSize),
       inkSize: study.inkSize,
       traversable: study.traversable,

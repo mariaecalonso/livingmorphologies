@@ -13,6 +13,8 @@ import {
   MeshBasicMaterial,
   OrthographicCamera,
   PerspectiveCamera,
+  Plane,
+  Raycaster,
   SRGBColorSpace,
   ShaderMaterial,
   TextureLoader,
@@ -65,6 +67,8 @@ import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./modul
 import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
 import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
 import { SiteNetworkLayer } from "./site-network-layer";
+import { TypologyAttractorLayer } from "./typology-attractor-layer";
+import type { TypologyAttractor, TypologyIntent } from "./typology-attractors";
 import { SitePocketLayer } from "./site-pocket-layer";
 import { SiteZoneLayer, type ZoneTool } from "./site-zone-layer";
 import type { NetworkPocket } from "@/lib/skill5/pockets";
@@ -181,13 +185,26 @@ const GRID_SHEET = new ShaderMaterial({
   `,
 });
 
+/** The presentation sheet is scaled inside the classroom window. Draw at that size, not the unscaled sheet. */
+function sheetScale(view: Window) {
+  const frame = view.frameElement;
+  if (!frame || view.innerWidth <= 0) return 1;
+  return frame.getBoundingClientRect().width / view.innerWidth;
+}
+
+function presentationPixelRatio() {
+  const view = typeof window === "undefined" ? null : window;
+  if (!view) return 1;
+  const dpr = Math.min(view.devicePixelRatio || 1, 2);
+  return Math.round(Math.min(2, Math.max(0.12, sheetScale(view) * dpr)) * 100) / 100;
+}
+
 /** The presentation sheet is scaled to the window. Line weight uses the width the window actually shows. */
 function displayedCanvasWidth(canvas: HTMLCanvasElement) {
   const view = canvas.ownerDocument.defaultView;
   const local = canvas.getBoundingClientRect().width;
-  const frame = view?.frameElement;
-  if (frame instanceof HTMLElement && view && view.innerWidth > 0) {
-    return local * (frame.getBoundingClientRect().width / view.innerWidth);
+  if (view && view.frameElement && view.innerWidth > 0) {
+    return local * sheetScale(view);
   }
   return local;
 }
@@ -855,23 +872,23 @@ function SiteContent({
         <planeGeometry args={[HERALD_AERIAL.maxX - HERALD_AERIAL.minX, HERALD_AERIAL.maxZ - HERALD_AERIAL.minZ]} />
         <meshBasicMaterial map={aerialMap} side={DoubleSide} />
       </mesh> : null}
-      {roadMesh ? <mesh geometry={roadMesh} receiveShadow={sunlit} raycast={skipRaycast}>
+      {showContext && roadMesh ? <mesh geometry={roadMesh} receiveShadow={sunlit} raycast={skipRaycast}>
         {sunlit ? <primitive object={sunlitRoadMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color={focused ? "#3c3c3c" : "#686868"} side={DoubleSide} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
       </mesh> : null}
-      <mesh geometry={geometries.elevated} receiveShadow={sunlit} raycast={skipRaycast}>
+      {showContext ? <mesh geometry={geometries.elevated} receiveShadow={sunlit} raycast={skipRaycast}>
         {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
-      </mesh>
-      <mesh geometry={geometries.guideway} receiveShadow={sunlit} raycast={skipRaycast}>
+      </mesh> : null}
+      {showContext ? <mesh geometry={geometries.guideway} receiveShadow={sunlit} raycast={skipRaycast}>
         {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />}
-      </mesh>
+      </mesh> : null}
       {geometries.siteFill ? <mesh geometry={geometries.siteFill} receiveShadow={sunlit} raycast={skipRaycast}>
         {sunlit ? <primitive object={sunlitSiteMaterial} attach="material" dispose={null} /> : <meshBasicMaterial color="#101010" side={DoubleSide} />}
       </mesh> : null}
       <mesh geometry={geometries.siteEdge} material={sheets.edge} raycast={skipRaycast} />
       {showGrid ? <mesh geometry={geometries.grid} material={sheets.grid} raycast={skipRaycast} /> : null}
       {parcel ? <mesh geometry={parcel} material={PARCEL_LINE} renderOrder={5} raycast={skipRaycast} /> : null}
-      <lineSegments geometry={geometries.flatEdges} material={flatLine} raycast={skipRaycast} />
-      {buildingMesh ? (
+      {showContext ? <lineSegments geometry={geometries.flatEdges} material={flatLine} raycast={skipRaycast} /> : null}
+      {showContext && buildingMesh ? (
         <>
           <mesh geometry={buildingMesh} renderOrder={study ? 2 : 0} castShadow={sunlit} receiveShadow={sunlit} raycast={skipRaycast}>
             {studyHeights ? <primitive object={studyMassMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_MASS} attach="material" dispose={null} /> : study ? <primitive object={MODEL_MASS} attach="material" dispose={null} /> : <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />}
@@ -905,9 +922,10 @@ function CameraRig({
   framing,
   frameWholeSite,
   sheetsRef,
+  focus = false,
 }: {
   mode: SiteViewMode;
-  planHeading: "north" | "east";
+  planHeading: "north" | "east" | "west";
   fit: SiteFit;
   rotateView: boolean;
   frameToken: number;
@@ -916,6 +934,7 @@ function CameraRig({
   framing: "record" | "model";
   frameWholeSite: boolean;
   sheetsRef: { current: SheetSet };
+  focus?: boolean;
 }) {
   const { set, size, gl } = useThree();
   const cameras = useRef<{ persp: PerspectiveCamera; ortho: OrthographicCamera } | null>(null);
@@ -935,11 +954,11 @@ function CameraRig({
     const pad = fit === "site" ? 1.14 : 1.08;
     const camera = mode === "perspective" ? persp : ortho;
     const view = { width: size.width, height: size.height };
-    const key = `${mode}|${fit}|${framing}|${frameWholeSite ? "whole" : "near"}|${frameToken}|${bounds.cx}|${bounds.cz}|${bounds.width}|${bounds.depth}`;
+    const key = `${mode}|${fit}|${framing}|${frameWholeSite ? "whole" : "near"}|${focus ? "focus" : "site"}|${planHeading}|${frameToken}|${bounds.cx}|${bounds.cz}|${bounds.width}|${bounds.depth}`;
     const sized = view.width > 1 && view.height > 1;
     const headingKey = `${mode}|${planHeading}`;
     const aimPlan = () => {
-      ortho.up.set(planHeading === "east" ? 1 : 0, 0, planHeading === "east" ? 0 : -1);
+      ortho.up.set(planHeading === "east" ? 1 : planHeading === "west" ? -1 : 0, 0, planHeading === "north" ? -1 : 0);
       ortho.lookAt(target.current);
       ortho.updateMatrixWorld();
       appliedHeading.current = headingKey;
@@ -947,11 +966,11 @@ function CameraRig({
     if (sized && poseKey.current !== key) {
       poseKey.current = key;
       const placed = mode === "plan"
-        ? placePlan(ortho, view, frame, pad)
+        ? placePlan(ortho, view, frame, pad, planHeading)
         : mode === "section"
-          ? placeSection(ortho, view, frame, pad)
+          ? placeSection(ortho, view, frame, pad, focus)
           : mode === "axon"
-            ? placeAxon(ortho, view, frame, fit)
+            ? placeAxon(ortho, view, frame, fit, focus)
             : frameWholeSite
               ? placeWholeSitePerspective(persp, view, frame)
               : framing === "model"
@@ -965,7 +984,7 @@ function CameraRig({
     } else if (mode === "plan" && sized && appliedHeading.current !== headingKey) aimPlan();
     if (mode !== "plan") appliedHeading.current = "";
     set({ camera });
-  }, [bounds, fit, frameToken, frameWholeSite, framing, gl, mode, planHeading, set, size.height, size.width]);
+  }, [bounds, fit, focus, frameToken, frameWholeSite, framing, gl, mode, planHeading, set, size.height, size.width]);
 
   useEffect(() => {
     const element = gl.domElement;
@@ -973,6 +992,11 @@ function CameraRig({
     const up = new Vector3();
     const offset = new Vector3();
     const pan = new Vector3();
+    const pointer = new Vector2();
+    const raycaster = new Raycaster();
+    const plane = new Plane();
+    const hit = new Vector3();
+    const held = new Vector3();
     const maxDistance = frameOf(bounds, "context").span * 6;
     let last: { x: number; y: number } | null = null;
 
@@ -1025,16 +1049,39 @@ function CameraRig({
       camera.up.set(x * cos - z * sin, 0, x * sin + z * cos).normalize();
       camera.lookAt(target.current);
     };
-    const zoomBy = (camera: Camera, delta: number) => {
+    const pointUnderCursor = (camera: Camera, clientX: number, clientY: number) => {
+      const rect = element.getBoundingClientRect();
+      pointer.set(
+        ((clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1,
+        -((clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1,
+      );
+      raycaster.setFromCamera(pointer, camera);
+      camera.getWorldDirection(offset);
+      plane.setFromNormalAndCoplanarPoint(offset, target.current);
+      return raycaster.ray.intersectPlane(plane, hit);
+    };
+    const zoomBy = (camera: Camera, delta: number, clientX: number, clientY: number) => {
+      const before = pointUnderCursor(camera, clientX, clientY);
+      if (before) held.copy(before);
       if (camera instanceof OrthographicCamera) {
-        camera.zoom = Math.min(80, Math.max(0.08, camera.zoom * Math.exp(-delta)));
+        const next = Math.min(80, Math.max(0.08, camera.zoom * Math.exp(-delta)));
+        if (next === camera.zoom) return;
+        camera.zoom = next;
         camera.updateProjectionMatrix();
-        return;
-      }
-      if (!(camera instanceof PerspectiveCamera)) return;
-      const next = Math.min(maxDistance, Math.max(30, camera.position.distanceTo(target.current) * Math.exp(delta)));
-      offset.copy(camera.position).sub(target.current).setLength(next);
-      camera.position.copy(target.current).add(offset);
+      } else if (camera instanceof PerspectiveCamera) {
+        const distance = camera.position.distanceTo(target.current);
+        const next = Math.min(maxDistance, Math.max(30, distance * Math.exp(delta)));
+        if (next === distance) return;
+        offset.copy(camera.position).sub(target.current).setLength(next);
+        camera.position.copy(target.current).add(offset);
+      } else return;
+      camera.updateMatrixWorld();
+      if (!before) return;
+      const after = pointUnderCursor(camera, clientX, clientY);
+      if (!after) return;
+      pan.copy(held).sub(after);
+      camera.position.add(pan);
+      target.current.add(pan);
     };
     const down = (event: PointerEvent) => {
       if (event.button !== 2) return;
@@ -1049,7 +1096,7 @@ function CameraRig({
       const dy = event.clientY - last.y;
       last = { x: event.clientX, y: event.clientY };
       const kind = gesture(event);
-      if (kind === "zoom") zoomBy(camera, dy * 0.004);
+      if (kind === "zoom") zoomBy(camera, dy * 0.004, event.clientX, event.clientY);
       else if (kind === "orbit") orbitBy(camera, dx, dy);
       else if (kind === "rotate" && mode === "plan") rotatePlan(camera, dx);
       else if (kind === "rotate") orbitBy(camera, dx, dy);
@@ -1063,7 +1110,7 @@ function CameraRig({
       const camera = activeCamera();
       if (!camera) return;
       event.preventDefault();
-      zoomBy(camera, event.deltaY * 0.0011);
+      zoomBy(camera, event.deltaY * 0.0011, event.clientX, event.clientY);
     };
     const menu = (event: Event) => event.preventDefault();
     element.addEventListener("pointerdown", down);
@@ -1179,6 +1226,10 @@ function OverlayLines({ paths, y, color, opacity }: { paths: readonly (readonly 
   return <lineSegments geometry={geometry} material={material} />;
 }
 
+const joinFaceOk = new MeshBasicMaterial({ color: "#49d7de", transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
+const joinFaceNo = new MeshBasicMaterial({ color: "#c77e5f", transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
+const joinOpening = new MeshBasicMaterial({ color: "#49d7de", transparent: true, opacity: 0.78, side: DoubleSide, depthWrite: false });
+
 function JoinOverlay({
   highlights,
   passages,
@@ -1201,9 +1252,9 @@ function JoinOverlay({
           rotation={mark.axis === "x" ? [0, Math.PI / 2, 0] : mark.axis === "y" ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
           renderOrder={8}
           raycast={skipRaycast}
+          material={mark.kind === "opening" ? joinOpening : mark.compatible ? joinFaceOk : joinFaceNo}
         >
           <planeGeometry args={[mark.width, mark.height]} />
-          <meshBasicMaterial color={mark.compatible ? "#49d7de" : "#c77e5f"} transparent opacity={mark.kind === "opening" ? 0.78 : 0.18} side={DoubleSide} depthWrite={false} />
         </mesh>
       ))}
       {confirmed.getAttribute("position") ? (
@@ -1297,11 +1348,13 @@ export function SiteViewport({
   zoning = null,
   connections = null,
   joins = null,
+  typology = null,
+  focusBounds = null,
   onReadout,
 }: {
   context: SiteContext;
   mode: SiteViewMode;
-  planHeading?: "north" | "east";
+  planHeading?: "north" | "east" | "west";
   fit: SiteFit;
   rotateView?: boolean;
   showGrid: boolean;
@@ -1322,7 +1375,7 @@ export function SiteViewport({
   walk?: readonly WalkSegment[] | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean } | null;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
   zones?: readonly ZoningRegion[] | null;
   zoning?: {
     tool: ZoneTool;
@@ -1349,15 +1402,42 @@ export function SiteViewport({
   } | null;
   connections?: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
   joins?: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
+  typology?: {
+    study: SiteNetworkStudy;
+    points: readonly TypologyAttractor[];
+    placing: TypologyIntent | null;
+    visible: boolean;
+    types: Record<TypologyIntent, boolean>;
+    selectedId: string | null;
+    onSelect: (id: string | null) => void;
+    onAdd: (x: number, z: number) => void;
+    onMove: (id: string, x: number, z: number) => void;
+  } | null;
   onReadout: (readout: SiteReadout) => void;
+  /** When set, the camera frames the building instead of the whole parcel. */
+  focusBounds?: Bounds | null;
 }) {
-  const bounds = useMemo(() => boundsOf(context), [context]);
+  const siteBounds = useMemo(() => boundsOf(context), [context]);
+  const bounds = focusBounds ?? siteBounds;
   const cameraFraming = framing ?? appearance;
   const sheetsRef = useRef<SheetSet>({ grid: GRID_SHEET, edge: SITE_EDGE, quiet: false });
+  const [dpr, setDpr] = useState(presentationPixelRatio);
+  useEffect(() => {
+    const apply = () => setDpr(presentationPixelRatio());
+    apply();
+    const frame = window.frameElement;
+    const observer = frame ? new ResizeObserver(apply) : null;
+    if (frame) observer.observe(frame);
+    window.addEventListener("resize", apply);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", apply);
+    };
+  }, []);
   return (
     <Canvas
       className="site-canvas"
-      dpr={[1, 1.5]}
+      dpr={dpr}
       gl={{ antialias: true, alpha: false }}
       onCreated={(state) => {
         state.gl.setClearColor(new Color("#000000"));
@@ -1374,8 +1454,8 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} />
-      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} typology={typology} />
+      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
     </Canvas>
   );
 }
@@ -1403,6 +1483,7 @@ function PlacementScene({
   zoning,
   connections,
   joins,
+  typology,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1421,7 +1502,7 @@ function PlacementScene({
   walk: readonly WalkSegment[] | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean } | null;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
   zones: readonly ZoningRegion[] | null;
   zoning: {
     tool: ZoneTool;
@@ -1448,6 +1529,17 @@ function PlacementScene({
   } | null;
   connections: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
   joins: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
+  typology: {
+    study: SiteNetworkStudy;
+    points: readonly TypologyAttractor[];
+    placing: TypologyIntent | null;
+    visible: boolean;
+    types: Record<TypologyIntent, boolean>;
+    selectedId: string | null;
+    onSelect: (id: string | null) => void;
+    onAdd: (x: number, z: number) => void;
+    onMove: (id: string, x: number, z: number) => void;
+  } | null;
 }) {
   const pointer = useModulePointer(placement);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
@@ -1455,7 +1547,7 @@ function PlacementScene({
     <>
       {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
       <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={network?.studyTone !== false && network !== null} showContext={!network || network.showContext} />
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={presentation !== "analysis" && network?.studyTone !== false && network !== null} showContext={!network || network.showContext} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} listen={!zoning?.active} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
@@ -1467,7 +1559,8 @@ function PlacementScene({
       {sight && sight.length > 0 ? <SightLines segments={sight} /> : null}
       {walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
-      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} quiet={network.quiet === true} /> : null}
+      {typology ? <TypologyAttractorLayer study={typology.study} points={typology.points} placing={typology.placing} visible={typology.visible} types={typology.types} selectedId={typology.selectedId} onSelect={typology.onSelect} onAdd={typology.onAdd} onMove={typology.onMove} /> : null}
       {zoning?.pockets && (zoning.tool !== "draw" || !zoning.active) ? (
         <SitePocketLayer
           pockets={zoning.pockets.items}

@@ -1,9 +1,7 @@
+import { tileAabb, tileFootprint } from "./gumball";
 import {
   MODULE_GROUND_Y,
-  MODULE_HEIGHT_FT,
-  NOMINAL_PLAN_EXTENT,
   boundsOf,
-  extentCorners,
   pointInRing,
   type PlacedModule,
 } from "./placement";
@@ -13,30 +11,39 @@ export type TileZoneLink = {
   zoneId: string;
   overlapSqFt: number;
   kind: ZoningRegion["kind"];
+  /** The tile sits in the stored volume. A footprint link is an upper floor over the same plan. */
+  aboveVolume: boolean;
 };
 
 export type TilePlacementReport = {
   zoneIds: string[];
   links: TileZoneLink[];
+  /** volume shares the stored height. footprint is an upper floor over that plan. none has no plan overlap. */
+  coverage: "volume" | "footprint" | "none";
   mismatch: boolean;
+  /** No tile below meets this footprint. This is a geometric check, not a structural one. */
   unsupported: boolean;
   level: number;
   stackHeightFt: number;
 };
 
-function inside(x: number, z: number, points: readonly { x: number; z: number }[]) {
-  return pointInRing(x, z, points.map((point) => [point.x, point.z] as [number, number]));
+function ringOf(points: readonly { x: number; z: number }[]) {
+  return points.map((point) => [point.x, point.z] as [number, number]);
 }
 
 /** Area of one polygon that sits inside another. The sample uses the actual corners. */
 export function footprintOverlapSqFt(corners: readonly { x: number; z: number }[], zone: readonly { x: number; z: number }[]) {
   if (corners.length < 3 || zone.length < 3) return 0;
   const box = boundsOf(corners);
+  const other = boundsOf(zone);
+  if (box.maxX <= other.minX || box.minX >= other.maxX || box.maxZ <= other.minZ || box.minZ >= other.maxZ) return 0;
+  const cornerRing = ringOf(corners);
+  const zoneRing = ringOf(zone);
   const step = 2;
   let area = 0;
   for (let x = box.minX + step / 2; x < box.maxX; x += step) {
     for (let z = box.minZ + step / 2; z < box.maxZ; z += step) {
-      if (!inside(x, z, corners) || !inside(x, z, zone)) continue;
+      if (!pointInRing(x, z, cornerRing) || !pointInRing(x, z, zoneRing)) continue;
       area += step * step;
     }
   }
@@ -44,13 +51,14 @@ export function footprintOverlapSqFt(corners: readonly { x: number; z: number }[
 }
 
 function tileCorners(instance: PlacedModule) {
-  return extentCorners(NOMINAL_PLAN_EXTENT, instance.transform.position, instance.transform.rotationY, instance.mirror);
+  return tileFootprint(instance);
 }
 
-function elevationsMeet(tileY: number, zone: ZoningRegion) {
+function elevationsMeet(instance: PlacedModule, zone: ZoningRegion) {
+  const box = tileAabb(instance);
   const zoneBase = MODULE_GROUND_Y + zone.baseFt;
   const zoneTop = zoneBase + zone.heightFt;
-  return tileY < zoneTop - 0.05 && tileY + MODULE_HEIGHT_FT > zoneBase + 0.05;
+  return box.minY < zoneTop - 0.05 && box.maxY > zoneBase + 0.05;
 }
 
 export function reportTiles(instances: readonly PlacedModule[], zones: readonly ZoningRegion[]): Record<string, TilePlacementReport> {
@@ -59,26 +67,34 @@ export function reportTiles(instances: readonly PlacedModule[], zones: readonly 
   for (const instance of instances) {
     const own = corners.get(instance.instanceId) ?? [];
     const links: TileZoneLink[] = [];
+    const footprintMatches: TileZoneLink[] = [];
     for (const zone of zones) {
       if (!zone.visible) continue;
       const overlapSqFt = footprintOverlapSqFt(own, zone.points);
-      if (overlapSqFt < 8 || !elevationsMeet(instance.transform.position.y, zone)) continue;
-      links.push({ zoneId: zone.id, overlapSqFt, kind: zone.kind });
+      if (overlapSqFt < 8) continue;
+      const zoneBase = MODULE_GROUND_Y + zone.baseFt;
+      const inVolume = elevationsMeet(instance, zone);
+      const overPlan = tileAabb(instance).minY >= zoneBase - 0.5;
+      if (inVolume) links.push({ zoneId: zone.id, overlapSqFt, kind: zone.kind, aboveVolume: false });
+      else if (overPlan) footprintMatches.push({ zoneId: zone.id, overlapSqFt, kind: zone.kind, aboveVolume: true });
     }
+    if (links.length === 0) links.push(...footprintMatches);
     const planNeighbors = instances.filter((other) => {
       if (other.instanceId === instance.instanceId) return false;
       return footprintOverlapSqFt(own, corners.get(other.instanceId) ?? []) > 8;
     });
-    const supporters = planNeighbors.filter((other) => Math.abs(instance.transform.position.y - (other.transform.position.y + MODULE_HEIGHT_FT)) <= 1.5);
-    const bases = [instance, ...planNeighbors].map((item) => item.transform.position.y);
+    const ownBox = tileAabb(instance);
+    const supporters = planNeighbors.filter((other) => Math.abs(ownBox.minY - tileAabb(other).maxY) <= 1.5);
+    const boxes = [instance, ...planNeighbors].map((item) => tileAabb(item));
     const program = instance.program;
     reports[instance.instanceId] = {
       zoneIds: links.map((link) => link.zoneId),
       links,
+      coverage: links.some((link) => !link.aboveVolume) ? "volume" : links.length > 0 ? "footprint" : "none",
       mismatch: links.some((link) => program == null || program === "unassigned" || link.kind !== program),
-      unsupported: instance.transform.position.y > MODULE_GROUND_Y + 1 && supporters.length === 0,
-      level: Math.round((instance.transform.position.y - MODULE_GROUND_Y) / MODULE_HEIGHT_FT),
-      stackHeightFt: Math.max(...bases) + MODULE_HEIGHT_FT - Math.min(...bases),
+      unsupported: ownBox.minY > MODULE_GROUND_Y + 1 && supporters.length === 0,
+      level: Math.round((ownBox.minY - MODULE_GROUND_Y) / 20),
+      stackHeightFt: Math.max(...boxes.map((box) => box.maxY)) - Math.min(...boxes.map((box) => box.minY)),
     };
   }
   return reports;

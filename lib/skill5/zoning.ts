@@ -16,6 +16,8 @@ export type ZoningRegion = {
   networkId: string | null;
   /** Set when this volume was assigned to a detected pocket. Manual outlines leave it empty. */
   pocketId?: string | null;
+  /** Pockets joined into this architectural zone. The pocket faces themselves stay unchanged. */
+  sourcePocketIds?: string[];
 };
 
 export const ZONE_KIND_ORDER: { id: ZoneKind; label: string; note: string }[] = [
@@ -261,6 +263,7 @@ export function readZoningRegion(value: unknown): ZoningRegion | null {
     visible?: unknown;
     networkId?: unknown;
     pocketId?: unknown;
+    sourcePocketIds?: unknown;
   };
   if (typeof zone.id !== "string" || !isZoneKind(zone.kind)) return null;
   let points = Array.isArray(zone.points) ? zone.points.flatMap((item) => {
@@ -290,6 +293,9 @@ export function readZoningRegion(value: unknown): ZoningRegion | null {
     visible: zone.visible !== false,
     networkId: typeof zone.networkId === "string" ? zone.networkId : null,
     pocketId: typeof zone.pocketId === "string" ? zone.pocketId : null,
+    sourcePocketIds: Array.isArray(zone.sourcePocketIds)
+      ? zone.sourcePocketIds.filter((item): item is string => typeof item === "string" && item.length > 0)
+      : undefined,
   };
 }
 

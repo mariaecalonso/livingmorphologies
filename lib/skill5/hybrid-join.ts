@@ -7,6 +7,7 @@ import { MODULE_SIZE, type FaceId, type Vec3 } from "@/lib/skill4/contract";
 import { rotateByBasis, type Mat3 } from "@/lib/skill4/tile-basis";
 import { resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
 import type { IsoMesh } from "@/lib/scan/isomesh";
+import { skillBasis } from "./gumball";
 import type { PlacedModule } from "./placement";
 
 /** Site faces use the rendered module: X east, Y up, Z north. */
@@ -75,6 +76,7 @@ export type StoredHybridJoin = {
   candidateId: string;
   note: string;
   passage: HybridPassage;
+  review?: string;
 };
 
 type Bounds = { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number };
@@ -120,11 +122,13 @@ function pose(vector: Vec3, mirror: "x" | "z" | null, rotationY: number): Vec3 {
   return { x: x * cosine - z * sine, y: vector.y, z: x * sine + z * cosine };
 }
 
-function basisFor(mirror: "x" | "z" | null, rotationY: number): Mat3 {
-  const east = pose({ x: 1, y: 0, z: 0 }, mirror, rotationY);
-  const north = pose({ x: 0, y: 0, z: 1 }, mirror, rotationY);
-  const up = pose({ x: 0, y: 1, z: 0 }, mirror, rotationY);
-  return [east.x, east.y, east.z, north.x, north.y, north.z, up.x, up.y, up.z];
+function basisStretched(rotation: Mat3 | undefined) {
+  if (!rotation) return false;
+  const length = (index: number) => Math.hypot(rotation[index], rotation[index + 1], rotation[index + 2]);
+  const east = length(0);
+  const north = length(3);
+  const up = length(6);
+  return Math.abs(east - north) > 0.02 || Math.abs(north - up) > 0.02 || Math.abs(east - up) > 0.02;
 }
 
 /** Skill 04 local point to the site frame, before the tile pose. */
@@ -154,7 +158,7 @@ export function siteTile(instance: PlacedModule, raw: ArrayLike<number> | null):
     },
     rotationQuarter: 0,
     mirror: null,
-    rotation: basisFor(mirror, rotationY),
+    rotation: skillBasis(instance) as Mat3,
   };
 }
 
@@ -282,6 +286,7 @@ export function placeHybridCandidate(offer: HybridOffer, candidateId: string): {
         "The hybrid meets both faces.",
         validation ? `Mesh check: ${validation.verdict}. ${validation.note}` : "Mesh check did not return a verdict.",
         candidate.sectionReport?.correspondence === "YES" ? "Section correspondence is confirmed." : "Section correspondence was not confirmed.",
+        basisStretched(offer.tiles[0].rotation) || basisStretched(offer.tiles[1].rotation) ? "A tile is scaled differently on each axis. Circulation and openings can be distorted." : "",
       ].filter(Boolean).join(" "),
     },
   };
@@ -396,6 +401,7 @@ export function readStoredHybrids(value: unknown): StoredHybridJoin[] {
       candidateId: link.candidateId,
       note: typeof link.note === "string" ? link.note : "",
       passage: { positions, indices },
+      review: typeof link.review === "string" ? link.review : undefined,
     }];
   });
 }

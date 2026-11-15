@@ -42,6 +42,7 @@ import {
 import {
   captureSnapshot,
   createSimulation,
+  fitAgentCount,
   stepMany,
 } from "@/lib/skill1/engine";
 import {
@@ -218,6 +219,20 @@ export function LivingInstrument() {
     if (attractorMarks?.length) return attractorMarks;
     return recipeAttractors(translation.recipe);
   }, [attractorMarks, translation.recipe]);
+  const fieldGraphic = useMemo(() => {
+    const span = (value: number, min: number, max: number) => Math.min(1, Math.max(0, (value - min) / (max - min)));
+    return {
+      density: span(viz.density, 1, 10),
+      sensor: span(slime?.sensorDistance ?? 0.93, 0.25, 2.2),
+      angle: span(slime?.sensorAngle ?? 0.68, 0.08, 1.35),
+      turn: span(slime?.turnAngle ?? 0.66, 0.05, 1.2),
+      move: span(slime?.stepSize ?? 0.24, 0.08, 0.5),
+      deposit: span(slime?.deposit ?? 0.059, 0.02, 0.22),
+      diffusion: span(slime?.diffusion ?? 0.09, 0, 0.42),
+      influence: span(slime?.trailInfluence ?? 1, 0, 2),
+      resistance: span(slime?.resistance ?? 0, 0, 1),
+    };
+  }, [viz.density, slime]);
   const rngRef = useRef<() => number>(() => 0.5);
   const translationRef = useRef(translation);
   const vizRef = useRef(viz);
@@ -292,8 +307,22 @@ export function LivingInstrument() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archetype.id, catalogStamp]);
   useEffect(() => {
-    translationRef.current = translation;
-  }, [translation]);
+    const marks = attractorMarksRef.current;
+    if (!marks?.length) {
+      translationRef.current = translation;
+      return;
+    }
+    const first = marks[0];
+    translationRef.current = {
+      ...translation,
+      recipe: {
+        ...translation.recipe,
+        attractorFixed: true,
+        attractor: { x: first.x, y: first.y },
+        attractors: marks,
+      },
+    };
+  }, [translation, attractorMarks]);
   useEffect(() => {
     vizRef.current = viz;
   }, [viz]);
@@ -328,7 +357,7 @@ export function LivingInstrument() {
   }, [state]);
   useEffect(() => () => {
     if (debounceRef.current != null) window.clearTimeout(debounceRef.current);
-    if (growthRef.current != null) window.clearTimeout(growthRef.current);
+    if (growthRef.current != null) window.cancelAnimationFrame(growthRef.current);
     generationRef.current += 1;
   }, []);
 
@@ -358,6 +387,7 @@ export function LivingInstrument() {
     const next = recordAnalysisSample(session, sim, analysisInputOf(current), {
       interval: analysisIntervalRef.current,
       force,
+      live: true,
     });
     if (next !== analysisRef.current) {
       analysisRef.current = next;
@@ -366,45 +396,54 @@ export function LivingInstrument() {
   };
 
   const publishFinalField = (sim: SimulationState, generation: number) => {
-    if (growthRef.current != null) window.clearTimeout(growthRef.current);
-    const slime = slimeRef.current ?? undefined;
-    const trailDecay = vizRef.current.trailDecay;
+    if (growthRef.current != null) window.cancelAnimationFrame(growthRef.current);
     simRef.current = sim;
     stateRef.current = sim;
     publishAnalysis(sim, generation, true);
     setState({ ...sim });
     const pump = () => {
+      growthRef.current = null;
       if (generationRef.current !== generation || !translationRef.current) return;
       const current = simRef.current;
-      if (!current || current.converged) {
+      if (!current) {
         setSimulating(false);
         return;
       }
+      current.maxIterations = targetIterationsRef.current;
+      if (current.converged || current.iteration >= current.maxIterations) {
+        setSimulating(false);
+        return;
+      }
+      const slime = slimeRef.current ?? undefined;
+      const trailDecay = vizRef.current.trailDecay;
+      fitAgentCount(current, translationRef.current, rngRef.current, vizRef.current.agentCount);
       const started = performance.now();
-      const batch = Math.max(1, Math.round(current.maxIterations / 180));
-      const next = stepMany(
-        current,
-        translationRef.current,
-        rngRef.current,
-        batch,
-        trailDecay,
-        slime,
+      let next = current;
+      let steps = 0;
+      do {
+        next = stepMany(next, translationRef.current, rngRef.current, 1, trailDecay, slime);
+        steps += 1;
+      } while (
+        steps < 4 &&
+        performance.now() - started < 14 &&
+        !next.converged &&
+        next.iteration < next.maxIterations
       );
       simRef.current = next;
       stateRef.current = next;
-      publishAnalysis(next, generation, next.converged || next.iteration >= next.maxIterations);
+      const done = next.converged || next.iteration >= next.maxIterations;
+      publishAnalysis(next, generation, done);
       setState({ ...next });
-      if (next.converged || next.iteration >= next.maxIterations) {
+      if (done) {
         const snapshot = captureSnapshot(next);
         snapshotsRef.current = { [snapshot.iteration]: snapshot };
         setSnapshots(snapshotsRef.current);
         setSimulating(false);
         return;
       }
-      const delay = Math.max(16, 48 - (performance.now() - started));
-      growthRef.current = window.setTimeout(pump, delay);
+      growthRef.current = window.requestAnimationFrame(pump);
     };
-    growthRef.current = window.setTimeout(pump, 32);
+    growthRef.current = window.requestAnimationFrame(pump);
   };
 
   const liveSnapshot = useMemo(
@@ -463,7 +502,7 @@ export function LivingInstrument() {
       debounceRef.current = null;
     }
     if (growthRef.current != null) {
-      window.clearTimeout(growthRef.current);
+      window.cancelAnimationFrame(growthRef.current);
       growthRef.current = null;
     }
     generationRef.current += 1;
@@ -473,6 +512,24 @@ export function LivingInstrument() {
     const copy = copyAttractors(next);
     attractorMarksRef.current = copy;
     setAttractorMarks(copy);
+    const current = translationRef.current;
+    if (current && copy[0]) {
+      translationRef.current = {
+        ...current,
+        recipe: {
+          ...current.recipe,
+          attractorFixed: true,
+          attractor: { x: copy[0].x, y: copy[0].y },
+          attractors: copy,
+        },
+      };
+    }
+    if (slimeRef.current && copy[0]) {
+      slimeRef.current = {
+        ...slimeRef.current,
+        foodPoints: [{ x: copy[0].x, y: copy[0].y }],
+      };
+    }
     try {
       window.localStorage.setItem(`lm-attractors:${archetype.id}`, JSON.stringify(copy));
     } catch {
@@ -552,6 +609,15 @@ export function LivingInstrument() {
     });
   };
 
+  const pauseField = () => {
+    if (growthRef.current != null) {
+      window.cancelAnimationFrame(growthRef.current);
+      growthRef.current = null;
+    }
+    generationRef.current += 1;
+    setSimulating(false);
+  };
+
   const clearField = () => {
     cancelPendingGeneration();
     setSimulating(false);
@@ -591,25 +657,6 @@ export function LivingInstrument() {
     clearField();
     setFocus("Physarum");
     pulse("Field cleared");
-  };
-
-  const regenerate = () => {
-    cancelPendingGeneration();
-    const next = run + 1;
-    setRun(next);
-    setIteration(next);
-    setFocus("Iteration");
-    const nextSeed = seedFor(archetype.id, next);
-    rngRef.current = mulberry32(nextSeed ^ 0x9e3779b9);
-    const placed = translationWithMarks();
-    translationRef.current = placed;
-    const sim = createSimulation(placed, nextSeed, vizRef.current.agentCount);
-    sim.maxIterations = targetIterationsRef.current;
-    const generation = generationRef.current + 1;
-    generationRef.current = generation;
-    setSimulating(true);
-    pulse("New iteration seeded from current criteria");
-    publishFinalField(sim, generation);
   };
 
   const catalog = useMemo(
@@ -895,29 +942,6 @@ export function LivingInstrument() {
               <div className="agent-compare agent-compare-field">
                 <div className="agent-compare-head">
                   <p className="eyebrow agent-zone-title">Physarum field</p>
-                  <div className="flex flex-wrap items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onClick={generate}
-                      className="border border-[var(--orange)] bg-[rgba(199,126,95,0.16)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--orange-hot)]"
-                    >
-                      Generate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetField}
-                      className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      type="button"
-                      onClick={regenerate}
-                      className="border border-[var(--cyan-dim)] px-2 py-1 text-[0.58rem] tracking-[0.14em] uppercase text-[var(--cyan)]"
-                    >
-                      Regenerate
-                    </button>
-                  </div>
                 </div>
                 <div className="agent-compare-head agent-carving" hidden>
                   <p className="eyebrow agent-zone-title">Carving</p>
@@ -936,6 +960,7 @@ export function LivingInstrument() {
                     <Skill1PlanView
                       snapshot={liveSnapshot}
                       density={viz.density}
+                      graphic={fieldGraphic}
                       showHud={false}
                       attractors={shownAttractors}
                       showAttractors={showAttractors}
@@ -952,6 +977,11 @@ export function LivingInstrument() {
                       }}
                       onAttractorsChange={rememberMarks}
                     />
+                    <div className="agent-field-controls" aria-label="Generation controls">
+                      <button type="button" onClick={generate}>Generate</button>
+                      <button type="button" onClick={pauseField} disabled={!simulating}>Pause</button>
+                      <button type="button" onClick={resetField}>Reset</button>
+                    </div>
                   </div>
                   <Skill1AnalysisDashboard
                     session={analysis}

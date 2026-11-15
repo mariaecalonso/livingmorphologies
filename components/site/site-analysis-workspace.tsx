@@ -82,7 +82,8 @@ function clearOfNeighbors(
 
 const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "perspective", label: "Perspective" },
-  { id: "plan", label: "Plan" },
+  { id: "plan", label: "Top" },
+  { id: "section", label: "Side" },
   { id: "axon", label: "Axonometric" },
 ];
 

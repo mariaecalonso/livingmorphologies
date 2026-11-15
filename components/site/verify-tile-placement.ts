@@ -71,6 +71,16 @@ assert.equal(warnings.g.overlap, false);
 assert.equal(warnings.s.overlap, false);
 assert.equal(warnings.g.adjacent, true);
 
+const shortZone: ZoningRegion = { ...zone, id: "z12", heightFt: 12 };
+const overShort = reportTiles([gathering, stacked], [shortZone]);
+assert.equal(overShort.g.coverage, "volume");
+assert.equal(overShort.s.coverage, "footprint");
+assert.equal(overShort.s.links[0]?.aboveVolume, true);
+assert.deepEqual(overShort.s.zoneIds, ["z12"]);
+assert.equal(overShort.s.unsupported, false);
+assert.equal(shortZone.heightFt, 12);
+assert.equal(shortZone.kind, "gathering");
+
 const collided = placementWarnings([gathering, tile("c", 30, 20, MODULE_GROUND_Y, "gathering")], [[-100, -100], [200, -100], [200, 200], [-100, 200]]);
 assert.equal(collided.g.overlap, true);
 

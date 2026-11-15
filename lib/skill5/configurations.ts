@@ -6,6 +6,7 @@ import { measureSite, type MeasureSet } from "./relations";
 import type { SiteContext } from "./site-model";
 import { readStoredJoins, type StoredDirectJoin } from "./direct-join";
 import { readStoredHybrids, type StoredHybridJoin } from "./hybrid-join";
+import { readAxes } from "./gumball";
 import type { PlacedModule } from "./placement";
 import type { XZ } from "./site-model";
 import { readZoningList, type ZoningRegion } from "./zoning";
@@ -182,6 +183,7 @@ function normalizeModule(value: unknown): PlacedModule | null {
     assemblyPlacementId: typeof value.assemblyPlacementId === "string" ? value.assemblyPlacementId : undefined,
     mirror: value.mirror === "x" || value.mirror === "y" || value.mirror === "z" ? value.mirror : null,
     zoneIds: Array.isArray(value.zoneIds) ? value.zoneIds.filter((id): id is string => typeof id === "string") : undefined,
+    axes: readAxes(value.axes),
   };
 }
 

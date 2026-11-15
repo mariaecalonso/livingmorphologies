@@ -1283,16 +1283,12 @@ function spawnAgent(
       heading = wrapAngle(Math.atan2(y2 - mark.y, x2 - mark.x) + (rng() - 0.5) * (inverted ? 0.8 : 0.35));
     }
   } else if (aroundAbsence(translation) && rng() > 0.05) {
-    x = 1.1 + rng() * (FIELD_SIZE - 2.2);
-    y = 1.1 + rng() * (FIELD_SIZE - 2.2);
-    const away = dist({ x, y }, attractor);
-    if (away < recipe.isolationRadius * 0.5) {
-      const angle = Math.atan2(y - attractor.y, x - attractor.x) || rng() * TWO_PI;
-      const radius = recipe.isolationRadius * (0.65 + rng() * 0.5);
-      x = clamp(attractor.x + Math.cos(angle) * radius, 0.2, FIELD_SIZE - 0.2);
-      y = clamp(attractor.y + Math.sin(angle) * radius, 0.2, FIELD_SIZE - 0.2);
-    }
-    heading = rng() * TWO_PI;
+    const angle = rng() * TWO_PI;
+    const wobble = 1 + 0.16 * Math.cos(angle * 2.15) + 0.09 * Math.cos(angle * 5.4 + 0.6);
+    const radius = recipe.isolationRadius * wobble * (0.78 + rng() * 0.46);
+    x = clamp(attractor.x + Math.cos(angle) * radius, 0.2, FIELD_SIZE - 0.2);
+    y = clamp(attractor.y + Math.sin(angle) * radius, 0.2, FIELD_SIZE - 0.2);
+    heading = wrapAngle(angle + (Math.PI / 2) * (rng() < 0.5 ? 1 : -1));
   } else if (translation.archetypeId === "contained-room-within-volume" && recipe.attractors?.length) {
     const field = recipe.attractors.filter((item) => item.kind === "point" && (item.strength ?? 1) > 0.05);
     const pool = field.length ? field : recipe.attractors.filter((item) => !item.hole);
@@ -1561,9 +1557,10 @@ export function stepSimulation(
 ): SimulationState {
   if (state.converged || state.iteration >= state.maxIterations) return state;
 
-  if (slime && aroundAbsence(translation)) {
-    state.attraction = buildAttractionField(state.size, state.attractor, translation, slime);
+  if (translation.recipe.attractorFixed) {
+    state.attractor = translation.recipe.attractor;
   }
+  state.attraction = buildAttractionField(state.size, state.attractor, translation, slime);
 
   const { params } = translation;
   const sensorAngle = slime?.sensorAngle ?? 0.32 + params.geometryVariation * 0.45;
@@ -1721,6 +1718,9 @@ export function stepSimulation(
         agent.x = clamp(state.attractor.x + Math.cos(angle) * radius, 0.18, state.size - 0.18);
         agent.y = clamp(state.attractor.y + Math.sin(angle) * radius, 0.18, state.size - 0.18);
         agent.heading = wrapAngle(angle + (rng() - 0.5) * 0.5);
+      } else if (coreDist > translation.recipe.isolationRadius * 1.55) {
+        const toward = Math.atan2(state.attractor.y - agent.y, state.attractor.x - agent.x);
+        agent.heading = wrapAngle(agent.heading * 0.62 + toward * 0.38);
       }
     }
 
@@ -1950,6 +1950,24 @@ export function stepSimulation(
   state.converged =
     state.streak >= CONVERGENCE_STREAK || state.iteration >= state.maxIterations;
   return state;
+}
+
+/** Adds or removes agents so a density change reaches the run that is already going. */
+export function fitAgentCount(
+  state: SimulationState,
+  translation: BiologicalTranslation,
+  rng: () => number,
+  agentCount: number,
+) {
+  const count = clamp(Math.round(agentCount), MIN_AGENT_COUNT, MAX_AGENT_COUNT);
+  if (state.agents.length > count) {
+    state.agents.length = count;
+    return;
+  }
+  const attractor = translation.recipe.attractorFixed ? translation.recipe.attractor : state.attractor;
+  while (state.agents.length < count) {
+    state.agents.push(spawnAgent(state.source, attractor, translation, rng));
+  }
 }
 
 export function stepMany(

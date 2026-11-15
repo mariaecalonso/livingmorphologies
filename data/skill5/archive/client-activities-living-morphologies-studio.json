@@ -1,0 +1,708 @@
+{
+  "contract": "skill5-client-compatibility-v1",
+  "client": "Living Morphologies Studio",
+  "occupancy": {
+    "daytime": "400–500",
+    "evening": "800",
+    "note": "Daytime work and evening gathering are project-wide figures from the studio brief. They are not the capacity of one tile."
+  },
+  "activities": [
+    {
+      "id": "bio-research",
+      "name": "Bio Research",
+      "spaces": "Physarum observation, controlled cultivation, sample preparation, and storage.",
+      "access": "Restricted",
+      "operations": "Focused research under the studio's Bio Research discipline. Interdisciplinary exchange happens in other rooms.",
+      "contexts": [
+        "workspace"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "A recognizable lab figure, with some equipment variation, rather than a simple box or a highly folded public form."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the lab should hold strongly contrasting scales, from the bench and the sample to the room. The client brief does not set this proportion. Priority is 2."
+        },
+        {
+          "criterionId": "openness",
+          "value": 0,
+          "weight": 3,
+          "source": "documented",
+          "reason": "The brief restricts this activity. The Openness definition for Low is a predominantly enclosed room with limited access to adjacent spaces."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the lab should have many direct relationships with adjacent studio spaces. Restricted access stays the access class and is not the same as low connectivity. The brief does not require this rating."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 0,
+          "weight": 2,
+          "source": "review",
+          "reason": "Observation is assumed to need a neutral, predictable atmosphere. Light was not measured on the tiles, so this remains a review."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: visual access in the lab should be moderate, with some open sightlines and some interruption. It is neither a closed room nor a public view through the work. The brief does not set this rating."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 2,
+          "weight": 3,
+          "source": "interpretation",
+          "reason": "Team-approved preference, and the highest formal priority: observation, preparation, and storage should be strongly articulated zones that organize the plate. The client brief does not specify plate geometry."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the lab should be organized as repeated, reconfigurable units rather than one fixed room. This desired rating is the team's preference. It is not a measured requirement in the client brief."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 2,
+          "weight": 3,
+          "source": "interpretation",
+          "reason": "Team-approved preference, weighted 3: the lab should be organized around shared occupation, proximity, and visual interaction. This replaces the earlier reading of restricted access as individual work. It is not an objective sentence in the client brief."
+        }
+      ]
+    },
+    {
+      "id": "computation",
+      "name": "Computation",
+      "spaces": "Simulation labs, workstations, and visualization review.",
+      "access": "Private and shared",
+      "operations": "Computational translation between biological research and design. Part of the daytime workplace.",
+      "contexts": [
+        "workspace"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved priority: computation should remain a recognizable room with moderate variation for screens and review. The rating stays Medium. The team raised the weight from 1 to 2. The brief does not specify formal complexity."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "Desks and review surfaces want balanced dimensions rather than strong scale contrast."
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Documented condition: private work and shared review remain Medium Openness, enclosed work with access to an adjacent review area. The team raised this priority to 3. The rating follows that access reading; the weight is the team's priority."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Review needs a moderate relationship to neighboring studios, not a sealed room and not a public thoroughfare."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 0,
+          "weight": 2,
+          "source": "review",
+          "reason": "Screen work is assumed to want a predictable atmosphere. This is not measured on the mesh."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "People need to see the work under review inside the room, without long public sightlines through it."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the computation plate should be strongly articulated, so simulation, individual work, and review become distinct zones. This replaces the earlier continuous plate. The brief does not specify plate geometry."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Repeated desk positions match Medium modularity. Full reconfiguration is not required."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 2,
+          "weight": 3,
+          "source": "interpretation",
+          "reason": "Team-approved preference, weighted 3: computation should be organized around shared review, proximity, and visual interaction. This replaces the earlier Medium reading of private-and-shared access. High collaboration is the team's preference, not a separate sentence in the brief."
+        }
+      ]
+    },
+    {
+      "id": "furniture-design",
+      "name": "Furniture Design",
+      "spaces": "Design studios, digital modeling, and a material library.",
+      "access": "Private and shared",
+      "operations": "Design realization for furniture, alongside the studio's other design disciplines.",
+      "contexts": [
+        "workspace"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Models and a material library add variation, while the studio should stay recognizable."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "Furniture studies compare object scale and room scale. This reading of High proportionality still needs the studio's approval."
+        },
+        {
+          "criterionId": "openness",
+          "value": 1,
+          "weight": 2,
+          "source": "documented",
+          "reason": "Private modeling and a shared library match Medium Openness."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "The library should relate to the studio without turning the room into a public route."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the furniture studio should be moderately immersive, so material and scale shape the room without fully absorbing it. The team raised the priority to 2. The brief does not record light or finish, so this is a preference rather than a documented requirement."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the furniture studio should have extensive sightlines and little visual interruption. This replaces the earlier moderate visibility between private desks. The brief does not specify sightlines."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Modeling and the material library are distinct zones, which is Medium plate articulation."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Repeated work positions support a studio. The room does not need to be fully reconfigurable."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the furniture studio should be organized around shared occupation and visual interaction. This replaces the earlier Medium reading of private desks plus a library. High collaboration is the team's preference, not an objective brief requirement."
+        }
+      ]
+    },
+    {
+      "id": "fashion-design",
+      "name": "Fashion Design",
+      "spaces": "Ateliers for garment development and sampling.",
+      "access": "Private and shared",
+      "operations": "Design realization for fashion, with sampling kept in the atelier rather than on a public floor.",
+      "contexts": [
+        "workspace"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "Garment development is read as a highly varied formal organization. This is an interpretation of the discipline, not a measured brief."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the atelier should have noticeable but balanced scale relationships, not a strong contrast between body and room. The brief does not set that proportion. Priority remains 2."
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the atelier should be predominantly open, with extensive access and limited enclosure. This replaces the earlier Medium reading of a private shared room. High openness is the team's preference, not a documented access class."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "Team-approved preference, kept at the lowest priority: the atelier should be highly interconnected with its related rooms. The weight stays 1, so it counts less than the other criteria. The brief does not require this rating."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "weight": 2,
+          "source": "review",
+          "reason": "An atelier may be moderately immersive. Sensory conditions were not measured."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Samples need to be seen inside the atelier, not along a public sightline."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Cutting, development, and sampling want noticeable zones on the plate."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 0,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "An atelier is read as a more fixed room than a bench lab."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: fashion work should be organized around shared sampling, proximity, and visual interaction. This replaces the earlier Medium reading of private-and-shared access. It is the team's spatial preference, not a separate brief requirement."
+        }
+      ]
+    },
+    {
+      "id": "prototyping",
+      "name": "Prototyping",
+      "spaces": "3D printing, model-making, garment sampling, and material testing.",
+      "access": "Shared, with operational separation",
+      "operations": "Physical prototyping for the studio. Shared by the disciplines, and separated from quiet research and public rooms.",
+      "contexts": [
+        "workspace"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Several making operations share one recognizable shop, rather than a simple office or a public installation."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "Machines and benches can stay in a balanced size range."
+        },
+        {
+          "criterionId": "openness",
+          "value": 0,
+          "weight": 2,
+          "source": "documented",
+          "reason": "Operational separation is read as a predominantly enclosed shop with limited access from quiet and public rooms."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 1,
+          "weight": 3,
+          "source": "documented",
+          "reason": "The shop must relate to the design studios, while separation keeps it from merging with them. That is Medium connectivity."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 0,
+          "weight": 1,
+          "source": "review",
+          "reason": "A making room is assumed to stay sensorially neutral. This was not measured."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 0,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Making is kept off long public sightlines."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 2,
+          "weight": 3,
+          "source": "interpretation",
+          "reason": "Printing, model-making, and testing need strongly articulated zones. This is the spatial reading of operational separation."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Some repeated or divisible positions help shared equipment. The shop is not a free plan."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 1,
+          "weight": 2,
+          "source": "documented",
+          "reason": "The shop is shared, with individual tasks and a common floor. That is Medium collaboration, not a quiet private office."
+        }
+      ]
+    },
+    {
+      "id": "lobby-arrival",
+      "name": "Lobby / Arrival",
+      "spaces": "Public entry, orientation, and the transition between access levels.",
+      "access": "Public",
+      "operations": "The brief gives the lobby a small share of the building and uses it to connect daytime work with public arrival.",
+      "contexts": [
+        "lobby"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "Arrival should stay legible. Moderate formal variation is enough."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: arrival should use strongly contrasting scales, a deliberate change from the street to the interior. This replaces the earlier balanced Medium. The brief does not specify that contrast. Priority remains 2."
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Public entry matches High Openness: extensive access and limited enclosure."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "The lobby is the transition between access levels, so it needs numerous direct relationships to the rooms it serves."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: the lobby should be deeply immersive, so scale, enclosure, and light absorb the person who arrives. The team raised the priority to 2. This replaces the earlier caution about wayfinding. It is not a measured condition in the brief."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Orientation needs long sightlines and few interruptions."
+        },
+        {
+          "criterionId": "centrality",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "The lobby is the primary node between public arrival and the more controlled rooms."
+        },
+        {
+          "criterionId": "directionality",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "A clear axis should lead from entry toward work or gathering."
+        },
+        {
+          "criterionId": "receptivity",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "A public entrance should feel inviting. High receptivity is the welcoming end of that definition."
+        }
+      ]
+    },
+    {
+      "id": "exhibition",
+      "name": "Exhibition",
+      "spaces": "Display, public interaction, and cultural events.",
+      "access": "Public",
+      "operations": "Public-facing work of the studio. Distinct from the restricted lab and from the evening gathering occupancy, which is project-wide.",
+      "contexts": [
+        "gathering"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "A cultural display may use a highly varied figure. This is a curatorial reading, not a brief requirement."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved preference: an exhibition should use strongly contrasting scales. The rating stays High, and the team raised its priority from 1 to 2. Scale contrast is a team preference, not a sentence in the client brief."
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Public interaction matches a predominantly open room."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Visitors arrive from the lobby and move through the display, so the room wants many direct relationships."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "weight": 3,
+          "source": "review",
+          "reason": "A cultural event is read as deeply immersive. The tiles do not record light, sound, or material."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Display needs extensive sightlines. The criterion describes views between spaces, not a case-by-case hanging plan."
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Visitors move inside the display, so circulation is embedded in the gathering area."
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "The High definition says gathering happens because circulation is within it. That fits a walk-through exhibition. It does not describe how long an exhibition stays."
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 1,
+          "weight": 2,
+          "source": "review",
+          "reason": "Medium keeps some separation between people. High is the overstimulating crowded condition. The evening figure of 800 is project-wide, so it is not used as a room load."
+        }
+      ]
+    },
+    {
+      "id": "collaborative-social",
+      "name": "Collaborative / Social",
+      "spaces": "Meetings, lounges, and creative exchange.",
+      "access": "Shared",
+      "operations": "The studio's collaborative and social working modes, and the shared research noted in its organization.",
+      "contexts": [
+        "workspace",
+        "gathering"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "A meeting room or lounge should stay recognizable, with moderate variation for different groups."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved priority: meetings and lounges should keep a balanced size range, with noticeable variation rather than strong contrast. The rating stays Medium. The team raised the weight from 1 to 2. The brief does not specify these proportions."
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "weight": 2,
+          "source": "documented",
+          "reason": "Collaborative and social modes want extensive access between people, which is High Openness."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Shared research and interdisciplinary development need many direct relationships between rooms."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 1,
+          "weight": 1,
+          "source": "review",
+          "reason": "Exchange should stay comfortable rather than fully absorbing. Sensory conditions were not measured."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "People need to see one another. High visibility is long sightlines with little interruption."
+        },
+        {
+          "criterionId": "plate-articulation",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "A meeting studio may have a few zones, not a shop floor."
+        },
+        {
+          "criterionId": "modularity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Medium modularity allows the room to be rearranged for different meetings."
+        },
+        {
+          "criterionId": "collaboration",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "The working mode is collaborative. High collaboration is a room organized around shared occupation."
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "A lounge can overlap a route without being only a corridor."
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 1,
+          "weight": 1,
+          "source": "interpretation",
+          "reason": "Meetings can sit beside circulation. They do not have to be produced by it."
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 1,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Medium social proximity is the criterion's private and open seats close together, which matches lounges. High is the crowded, overstimulating condition and is not assumed."
+        }
+      ]
+    },
+    {
+      "id": "waterfront-gathering",
+      "name": "Waterfront Gathering",
+      "spaces": "Public events, leisure, and gathering toward Biscayne Bay.",
+      "access": "Public",
+      "operations": "The brief asks for public waterfront gathering through the day and a larger evening gathering. The bay is east of the parcel. The evening count is project-wide.",
+      "contexts": [
+        "gathering"
+      ],
+      "desires": [
+        {
+          "criterionId": "complexity",
+          "value": 1,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Team-approved priority: a public waterfront room should stay recognizable, with moderate formal variation rather than a laboratory figure. The rating stays Medium. The team raised the weight from 1 to 2. Formal complexity is not specified in the brief."
+        },
+        {
+          "criterionId": "proportionality",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "The bay and the body are very different scales. High proportionality is proposed as that contrast, and it needs approval."
+        },
+        {
+          "criterionId": "openness",
+          "value": 2,
+          "weight": 3,
+          "source": "documented",
+          "reason": "Public leisure matches a predominantly open room."
+        },
+        {
+          "criterionId": "connectivity",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "The room should relate to arrival and to other public rooms. A tile rating describes relationships inside the mesh, not the bay edge itself."
+        },
+        {
+          "criterionId": "immersive",
+          "value": 2,
+          "weight": 3,
+          "source": "interpretation",
+          "reason": "Team-approved preference, now weighted 3: waterfront leisure should be deeply immersive. The rating was already High, and the team made it a top priority. Light and outlook are not in the brief, so this is a team preference rather than a documented requirement."
+        },
+        {
+          "criterionId": "visibility",
+          "value": 2,
+          "weight": 3,
+          "source": "review",
+          "reason": "Public gathering wants long sightlines. The criterion is visual access between spaces, not a measured view to the water."
+        },
+        {
+          "criterionId": "circulation-integration",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "Events and movement share the room, so circulation is embedded in the gathering."
+        },
+        {
+          "criterionId": "spatial-permanence",
+          "value": 2,
+          "weight": 2,
+          "source": "interpretation",
+          "reason": "High spatial permanence means gathering happens with circulation inside it, which fits a public event room."
+        },
+        {
+          "criterionId": "social-proximity",
+          "value": 2,
+          "weight": 2,
+          "source": "review",
+          "reason": "High is the definition in which many people in compressed or open paths make a strongly social room. The 800 evening occupants are not assigned to this tile."
+        }
+      ]
+    }
+  ]
+}

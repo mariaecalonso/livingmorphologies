@@ -27,6 +27,7 @@ import { PROGRAM_LABEL, SITE_ARCHETYPES, SITE_PROGRAMS, type SiteArchetype } fro
 import { isSkill5MockAssembly } from "@/lib/skill5/mock-assemblies";
 import { localDemonstrationBridge, worldSourceBridge } from "@/lib/skill5/mock-bridge";
 import { CONFIGURATION_CONTRACT, nextConfigurationId, referenceForModule, type ComparisonPriority, type ConfigurationDocument, type ConfigurationView, type SiteConfiguration } from "@/lib/skill5/configurations";
+import type { MassingCatalogDocument, MassingStudy } from "@/lib/skill5/massing-catalog";
 import { iterationMetrics, keptJoins, nominalUnionSqFt, programDistribution, scenePlaced } from "@/lib/skill5/metrics";
 import { measureSite } from "@/lib/skill5/relations";
 import { SKILL5_MODULE_ENVELOPE_FEET, SKILL5_SITE_ID } from "@/lib/skill5/contract";
@@ -38,10 +39,13 @@ import { SITE_FACES, buildHybridOffer, placeHybridCandidate, siteFaceLabel, sugg
 import type { Skill4ModuleRecord } from "@/lib/skill4/contract";
 import { loadModuleMap } from "@/lib/skill4/tiles";
 import type { FaceMatch, TilePose } from "@/lib/skill5/face-match";
-import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, footprintCorners, placementWarnings, pointInRing, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
+import { poseOf, reviewJoins, tileAabb, tileDistorted, tileFootprint, tilePoint, type AxisSpace, type GumballPose } from "@/lib/skill5/gumball";
+import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, boundsOf, placementWarnings, pointInRing, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
 import { reportTiles } from "@/lib/skill5/tile-placement";
+import { facesMeetingJoin, hasSideOpening } from "@/lib/skill5/connection-faces";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
+import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
 import { clipPolygon } from "./site-geometry";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
 import { clearNetworkIterations, loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
@@ -50,45 +54,51 @@ import { SiteNetworkAnalysisPanel } from "./site-network-analysis-panel";
 import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
 import { captureNetworkIteration, createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
 import { SiteStrategyAnalysis, SiteStrategyPanel, STRATEGY_MODES, type StrategyMode } from "./site-strategy";
+import { createTypologyAttractor, readTypologyOverlay, writeTypologyOverlay, type TypologyAttractor, type TypologyIntent } from "./typology-attractors";
 import { SiteAnalysisWorkspace } from "./site-analysis-workspace";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
 import { readSiteWorkflowState, writeSiteWorkflowState, ZONE_KINDS, type SiteConnection, type SiteWorkflowId, type SiteZone, type SiteZoneKind } from "./site-workflow";
 import { SiteAssemblyStep, SiteWorkflowNav, SiteZoningInspector, SiteZoningPanel } from "./site-workflow-panels";
+import { ArchitecturalDna } from "./architectural-dna";
+import { CompatibilityOverview } from "./client-compatibility-panel";
+import { CriteriaDefinitionsModal } from "./criteria-definitions";
 import { detectPockets } from "@/lib/skill5/pockets";
+import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
 import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SURVIVE } from "./site-network-flow";
 
 const site = context as SiteContext;
+/** The same afternoon light Site Analysis uses for the model, so the site reads the same way. */
+const MODEL_SUN = (() => {
+  const clock = resolveZonedClock("2026-11-05", "15:00");
+  const occurrence = clock.status === "unique" ? clock.occurrence : clock.status === "ambiguous" ? clock.occurrences[0] ?? null : null;
+  return occurrence ? solarPosition(site.origin.lat, site.origin.lon, occurrence.instant) : null;
+})();
 const designSite = designSiteFromParcel(site.site.ring);
 /** Same polygon the viewport draws. The stored bay ring is left unchanged. */
 const visibleWater = clipPolygon(site.water.ring);
 
 function occupiedBounds(instances: readonly PlacedModule[]) {
-  return instances.map((instance) => boundsOf(extentCorners(
-    NOMINAL_PLAN_EXTENT,
-    instance.transform.position,
-    instance.transform.rotationY,
-    instance.mirror,
-  )));
+  return instances.map((instance) => boundsOf(tileFootprint(instance)));
 }
 
 function clearOfNeighbors(
+  source: PlacedModule,
   x: number,
   z: number,
-  rotationY: number,
-  mirror: PlacedModule["mirror"],
   still: ReturnType<typeof occupiedBounds>,
 ) {
   const parked = snapModuleOrigin(x, z);
-  const box = boundsOf(extentCorners(NOMINAL_PLAN_EXTENT, parked, rotationY, mirror));
+  const box = boundsOf(tileFootprint(source, { ...poseOf(source), x: parked.x, z: parked.z }));
   const step = settleMove([box], box, still, { dx: 0, dz: 0 }, true);
   return { x: parked.x + step.dx, z: parked.z + step.dz };
 }
 
 const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "perspective", label: "Perspective" },
-  { id: "plan", label: "Plan" },
+  { id: "plan", label: "Top" },
+  { id: "section", label: "Side" },
   { id: "axon", label: "Axonometric" },
 ];
 
@@ -107,19 +117,13 @@ const ORTHO_VIEWS = [
 
 type OrthoView = (typeof ORTHO_VIEWS)[number]["id"];
 
-function placedVertex(item: PlacedModule, x: number, y: number, z: number) {
-  let east = x;
-  let north = y;
-  if (item.mirror === "x") east = -east;
-  if (item.mirror === "z") north = -north;
-  const ry = -item.transform.rotationY;
-  const cos = Math.cos(ry);
-  const sin = Math.sin(ry);
-  return {
-    east: item.transform.position.x + east * cos + north * sin,
-    north: item.transform.position.z - east * sin + north * cos,
-    up: item.transform.position.y + z,
-  };
+function placedVertex(item: PlacedModule, x: number, y: number, z: number, direction = false) {
+  const pose = poseOf(item);
+  const local = { x, y: z, z: y };
+  const point = direction
+    ? tilePoint(local, { ...pose, x: 0, y: 0, z: 0, scaleX: 1, scaleY: 1, scaleZ: 1 }, item.mirror)
+    : tilePoint(local, pose, item.mirror);
+  return { east: point.x, north: point.z, up: point.y };
 }
 
 function viewAxes(point: { east: number; north: number; up: number }, view: OrthoView) {
@@ -139,11 +143,12 @@ export function arrangementFrames(modules: readonly PlacedModule[], options?: { 
   let maxNorth = -Infinity;
   let maxUp = options?.minHeight ?? 32;
   for (const item of modules) {
-    minEast = Math.min(minEast, item.transform.position.x - 10);
-    maxEast = Math.max(maxEast, item.transform.position.x + 10);
-    minNorth = Math.min(minNorth, item.transform.position.z - 10);
-    maxNorth = Math.max(maxNorth, item.transform.position.z + 10);
-    maxUp = Math.max(maxUp, item.transform.position.y + SKILL5_MODULE_ENVELOPE_FEET);
+    const box = tileAabb(item);
+    minEast = Math.min(minEast, box.minX);
+    maxEast = Math.max(maxEast, box.maxX);
+    minNorth = Math.min(minNorth, box.minZ);
+    maxNorth = Math.max(maxNorth, box.maxZ);
+    maxUp = Math.max(maxUp, box.maxY);
   }
   const pad = options?.pad ?? 28;
   const box = {
@@ -264,6 +269,28 @@ void main() {
   tone += vec3(0.98, 0.98, 0.97) * bounce * 0.08;
   oColor = vec4(tone, 1.0);
 }`;
+const EMBER_FRAG = `#version 300 es
+precision highp float;
+in vec3 vNormal;
+out vec4 oColor;
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 viewDir = vec3(0.0, 0.0, 1.0);
+  if (dot(n, viewDir) < 0.0) n = -n;
+  vec3 key = normalize(vec3(0.28, 0.82, 0.48));
+  vec3 fill = normalize(vec3(-0.7, -0.1, 0.35));
+  float wrap = clamp((dot(n, key) + 0.45) / 1.45, 0.0, 1.0);
+  float bounce = clamp(dot(n, fill), 0.0, 1.0);
+  float rim = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.0);
+  vec3 shadow = vec3(0.45, 0.28, 0.18);
+  vec3 body = vec3(0.93, 0.78, 0.62);
+  vec3 hot = vec3(0.99, 0.95, 0.88);
+  vec3 tone = mix(shadow, body, wrap);
+  tone = mix(tone, hot, pow(wrap, 2.0) * 0.45);
+  tone += vec3(0.62, 0.40, 0.28) * bounce * 0.16;
+  tone += vec3(0.16, 0.45, 0.47) * rim * 0.08;
+  oColor = vec4(tone, 1.0);
+}`;
 const centeredPreviews = new WeakMap<IsoMesh, IsoMesh>();
 
 function centeredPreview(mesh: IsoMesh) {
@@ -326,13 +353,14 @@ function clayShader(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
-function clayGpu(canvas: HTMLCanvasElement) {
-  const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false, alpha: false, depth: true });
+function clayGpu(canvas: HTMLCanvasElement, tone: "clay" | "ember" = "clay") {
+  const gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true, antialias: false, alpha: true, depth: true, premultipliedAlpha: false });
   if (!gl) return null;
-  const existing = clayPrograms.get(gl);
+  const cache = tone === "ember" ? emberPrograms : clayPrograms;
+  const existing = cache.get(gl);
   if (existing && !gl.isContextLost()) return existing;
   const vert = clayShader(gl, gl.VERTEX_SHADER, CLAY_VERT);
-  const frag = clayShader(gl, gl.FRAGMENT_SHADER, CLAY_FRAG);
+  const frag = clayShader(gl, gl.FRAGMENT_SHADER, tone === "ember" ? EMBER_FRAG : CLAY_FRAG);
   if (!vert || !frag) return null;
   const program = gl.createProgram();
   const position = gl.createBuffer();
@@ -350,7 +378,7 @@ function clayGpu(canvas: HTMLCanvasElement) {
   const center = gl.getUniformLocation(program, "uCenter");
   if (!yaw || !pitch || !aspect || !zoom || !center) return null;
   const gpu: ClayGpu = { gl, program, position, normal, index, yaw, pitch, aspect, zoom, center };
-  clayPrograms.set(gl, gpu);
+  cache.set(gl, gpu);
   return gpu;
 }
 
@@ -373,20 +401,28 @@ function modulePreviewSource(width: number, height: number) {
     host.appendChild(document.createElement("canvas"));
     document.body.appendChild(host);
   }
-  const canvas = host.querySelector("canvas");
-  if (!canvas) return null;
+  let canvas = host.querySelector("canvas");
+  if (canvas && canvas.dataset.alpha !== "1") {
+    canvas.remove();
+    canvas = null;
+  }
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.dataset.alpha = "1";
+    host.appendChild(canvas);
+  }
   canvas.width = width;
   canvas.height = height;
   return canvas;
 }
 
-function paintClayPreview(canvas: HTMLCanvasElement, mesh: IsoMesh, yaw: number, fitRadius?: number) {
-  const gpu = clayGpu(canvas);
+function paintClayPreview(canvas: HTMLCanvasElement, mesh: IsoMesh, yaw: number, fitRadius?: number, tone: "clay" | "ember" = "clay", pitch = MODULE_PREVIEW_PITCH, zoomScale = 1) {
+  const gpu = clayGpu(canvas, tone);
   if (!gpu) return;
   const { gl } = gpu;
   const centered = centeredPreview(mesh);
   gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.clearColor(0, 0, 0, 1);
+  gl.clearColor(0, 0, 0, tone === "ember" ? 0 : 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
@@ -404,9 +440,9 @@ function paintClayPreview(canvas: HTMLCanvasElement, mesh: IsoMesh, yaw: number,
   const radius = fitRadius && fitRadius > 0 ? fitRadius : previewRadius(centered);
   const aspect = canvas.width / Math.max(1, canvas.height);
   gl.uniform1f(gpu.yaw, yaw);
-  gl.uniform1f(gpu.pitch, MODULE_PREVIEW_PITCH);
+  gl.uniform1f(gpu.pitch, pitch);
   gl.uniform1f(gpu.aspect, aspect);
-  gl.uniform1f(gpu.zoom, 0.82 * Math.min(aspect, 1) / radius);
+  gl.uniform1f(gpu.zoom, 0.82 * zoomScale * Math.min(aspect, 1) / radius);
   gl.uniform2f(gpu.center, 0, 0);
   gl.drawElements(gl.TRIANGLES, centered.indices.length, gl.UNSIGNED_INT, 0);
 }
@@ -422,7 +458,7 @@ function paintSelectionMass(canvas: HTMLCanvasElement, modules: readonly PlacedM
       positions[index] = point.x;
       positions[index + 1] = point.y;
       positions[index + 2] = point.z;
-      const normal = viewAxes(placedVertex({ ...item, transform: { ...item.transform, position: { x: 0, y: 0, z: 0 } } }, mesh.normals[index], mesh.normals[index + 1], mesh.normals[index + 2]), view);
+      const normal = viewAxes(placedVertex(item, mesh.normals[index], mesh.normals[index + 1], mesh.normals[index + 2], true), view);
       normals[index] = normal.x;
       normals[index + 1] = normal.y;
       normals[index + 2] = normal.z;
@@ -508,6 +544,7 @@ function paintSelectionMass(canvas: HTMLCanvasElement, modules: readonly PlacedM
 }
 
 const clayPrograms = new WeakMap<WebGL2RenderingContext, ClayGpu>();
+const emberPrograms = new WeakMap<WebGL2RenderingContext, ClayGpu>();
 
 type PreviewMesh = IsoMesh | "missing" | undefined;
 
@@ -617,10 +654,11 @@ export function composePlacedPreview(modules: readonly PlacedModule[], meshes: R
       positions[vertexWrite + index + 1] = point.north;
       positions[vertexWrite + index + 2] = point.up;
       const normal = placedVertex(
-        { ...part.item, transform: { ...part.item.transform, position: { x: 0, y: 0, z: 0 } } },
+        part.item,
         sourceNormals[index],
         sourceNormals[index + 1],
         sourceNormals[index + 2],
+        true,
       );
       normals[vertexWrite + index] = normal.east;
       normals[vertexWrite + index + 1] = normal.north;
@@ -646,7 +684,7 @@ export function clayPreviewRadius(mesh: IsoMesh) {
   return previewRadius(centeredPreview(mesh));
 }
 
-function GlassThumb({ mesh, interactive = true, fitRadius, spin = false }: { mesh: IsoMesh | null; interactive?: boolean; fitRadius?: number; spin?: boolean }) {
+function GlassThumb({ mesh, interactive = true, fitRadius, spin = false, tone = "clay", pitch = MODULE_PREVIEW_PITCH, zoomScale = 1 }: { mesh: IsoMesh | null; interactive?: boolean; fitRadius?: number; spin?: boolean; tone?: "clay" | "ember"; pitch?: number; zoomScale?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -666,12 +704,18 @@ function GlassThumb({ mesh, interactive = true, fitRadius, spin = false }: { mes
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context2d.setTransform(1, 0, 0, 1, 0, 0);
-      context2d.fillStyle = "#000000";
+      if (tone === "ember") {
+        const glow = context2d.createRadialGradient(canvas.width * 0.5, canvas.height * 0.58, canvas.height * 0.04, canvas.width * 0.5, canvas.height * 0.58, canvas.height * 0.62);
+        glow.addColorStop(0, "#4a2a1c");
+        glow.addColorStop(0.42, "#140e0c");
+        glow.addColorStop(1, "#050607");
+        context2d.fillStyle = glow;
+      } else context2d.fillStyle = "#000000";
       context2d.fillRect(0, 0, canvas.width, canvas.height);
       if (!mesh || mesh.triangles < 1) return;
       const source = modulePreviewSource(canvas.width, canvas.height);
       if (!source) return;
-      paintClayPreview(source, mesh, yaw.current, fitRadius);
+      paintClayPreview(source, mesh, yaw.current, fitRadius, tone, pitch, zoomScale);
       context2d.drawImage(source, 0, 0);
     };
     if (spin && !reduced) {
@@ -746,7 +790,7 @@ function GlassThumb({ mesh, interactive = true, fitRadius, spin = false }: { mes
       host.removeEventListener("blur", stop);
       observer.disconnect();
     };
-  }, [fitRadius, interactive, mesh, spin]);
+  }, [fitRadius, interactive, mesh, pitch, spin, tone, zoomScale]);
   return (
     <span className="site-module-glass" data-spin-host={interactive ? "" : undefined}>
       <canvas ref={canvasRef} aria-hidden="true" />
@@ -775,8 +819,8 @@ export function AssemblyGlassPreview({ entry, meshes, interactive = true, spin =
   return <GlassThumb mesh={mesh} interactive={interactive && !spin} spin={spin} fitRadius={fitRadius} />;
 }
 
-export function ModuleGlassPreview({ mesh, spin = false, fitRadius }: { mesh: IsoMesh | null; spin?: boolean; fitRadius?: number }) {
-  return <GlassThumb mesh={mesh} interactive={!spin} spin={spin} fitRadius={fitRadius} />;
+export function ModuleGlassPreview({ mesh, spin = false, fitRadius, tone = "clay", pitch = MODULE_PREVIEW_PITCH, zoomScale = 1 }: { mesh: IsoMesh | null; spin?: boolean; fitRadius?: number; tone?: "clay" | "ember"; pitch?: number; zoomScale?: number }) {
+  return <GlassThumb mesh={mesh} interactive={!spin} spin={spin} fitRadius={fitRadius} tone={tone} pitch={pitch} zoomScale={zoomScale} />;
 }
 
 export function PlacedGlassPreview({ modules, meshes, bridges = [], interactive = true, fitRadius }: { modules: readonly PlacedModule[]; meshes: Record<string, IsoMesh>; bridges?: readonly IsoMesh[]; interactive?: boolean; fitRadius?: number }) {
@@ -855,7 +899,7 @@ function ComparisonPlan({
     ctx.strokeStyle = "#c77e5f";
     ctx.lineWidth = 1;
     for (const item of modules) {
-      const corners = footprintCorners(item.transform.position, item.transform.rotationY);
+      const corners = tileFootprint(item);
       ctx.beginPath();
       corners.forEach((point, index) => {
         const projected = project(point.x, point.z);
@@ -885,7 +929,7 @@ function planBounds(
   };
   for (const entry of entries) {
     for (const item of entry.modules) {
-      for (const corner of footprintCorners(item.transform.position, item.transform.rotationY)) add(corner.x, corner.z);
+      for (const corner of tileFootprint(item)) add(corner.x, corner.z);
     }
     for (const zone of entry.zones ?? []) {
       for (const point of zone.points) add(point.x, point.z);
@@ -1076,6 +1120,12 @@ function SiteModelWorkspace() {
   const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(null);
   const [networkRunning, setNetworkRunning] = useState(false);
   const [networkTool, setNetworkTool] = useState<NetworkNodeKind>("source");
+  const [intentPoints, setIntentPoints] = useState<TypologyAttractor[]>([]);
+  const [intentVisible, setIntentVisible] = useState(true);
+  const [intentTypes, setIntentTypes] = useState<Record<TypologyIntent, boolean>>({ lobby: true, gathering: true, workspace: true });
+  const [intentPlacing, setIntentPlacing] = useState<TypologyIntent | null>(null);
+  const [intentSelected, setIntentSelected] = useState<string | null>(null);
+  const [intentHydrated, setIntentHydrated] = useState(false);
   const [iterations, setIterations] = useState<NetworkIteration[]>([]);
   const [iterationView, setIterationView] = useState<string | null>(null);
   const [massingId, setMassingId] = useState<string | null>(null);
@@ -1113,21 +1163,33 @@ function SiteModelWorkspace() {
   useEffect(() => {
     if (sheetQuery === "zoning" || sheetQuery === "placement" || sheetQuery === "assembly") setMode("perspective");
   }, [sheetQuery]);
-  const [planHeading, setPlanHeading] = useState<"north" | "east">("north");
+  const [planHeading, setPlanHeading] = useState<"north" | "east" | "west">("west");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
   const [fit] = useState<SiteFit>("site");
   const [rotateView] = useState(false);
-  const [frameToken] = useState(0);
-  const [readout, setReadout] = useState<SiteReadout>({ northDeg: 0, scaleFeet: 100, scalePx: 96 });
+  const [frameToken, setFrameToken] = useState(0);
+  const northMark = useRef<HTMLButtonElement>(null);
+  const scaleWrap = useRef<HTMLDivElement>(null);
+  const scaleBar = useRef<HTMLSpanElement>(null);
+  const scaleText = useRef<HTMLParagraphElement>(null);
   const [snap, setSnap] = useState(true);
+  const [axisSpace, setAxisSpace] = useState<AxisSpace>("local");
+  const [gumballLive, setGumballLive] = useState<(GumballPose & { id: string }) | null>(null);
   const [autoMatch, setAutoMatch] = useState(true);
   const [manualPose, setManualPose] = useState<TilePose | null>(null);
   const [matchCycle, setMatchCycle] = useState(0);
   const [faceMatch, setFaceMatch] = useState<FaceMatch | null>(null);
   const [showEnvelope] = useState(false);
+  const [showMassing, setShowMassing] = useState(false);
+  const [programColors, setProgramColors] = useState(true);
+  const [review, setReview] = useState(false);
   const [tool] = useState<"move" | "rotate" | "entrance" | "circulation">("move");
   const [armedId, setArmedId] = useState<string | null>(null);
+  const [dnaId, setDnaId] = useState<string | null>(null);
+  const [dnaActivity, setDnaActivity] = useState("public-lobby");
+  const [compatibilityOpen, setCompatibilityOpen] = useState(false);
+  const [definitionsOpen, setDefinitionsOpen] = useState(false);
   const [meshes, setMeshes] = useState<Record<string, IsoMesh | "missing">>({});
   const [, setLoadingId] = useState<string | null>(null);
   const [instances, setInstances] = useState<PlacedModule[]>([]);
@@ -1165,6 +1227,7 @@ function SiteModelWorkspace() {
   const display = "original" as const;
   const [exploded] = useState(false);
   const [configurations, setConfigurations] = useState<SiteConfiguration[]>([]);
+  const [massingStudies, setMassingStudies] = useState<MassingStudy[]>([]);
   const [currentConfigId, setCurrentConfigId] = useState<string | null>(null);
   const [configName, setConfigName] = useState("Untitled");
   const [configNotice, setConfigNotice] = useState<string | null>(null);
@@ -1214,6 +1277,17 @@ function SiteModelWorkspace() {
     publish(adoptPresent(historyRef.current, { ...historyRef.current.present, zones: stored.zones }));
     setWorkflowReady(true);
   }, [publish]);
+  useEffect(() => {
+    const stored = readTypologyOverlay();
+    setIntentPoints(stored.points);
+    setIntentVisible(stored.visible);
+    setIntentTypes(stored.types);
+    setIntentHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!intentHydrated) return;
+    writeTypologyOverlay({ points: intentPoints, visible: intentVisible, types: intentTypes });
+  }, [intentHydrated, intentPoints, intentVisible, intentTypes]);
   const [circulationStart, setCirculationStart] = useState<{ x: number; z: number; attachment: SiteAnnotation["attachment"]; assemblyPlacementId: string | null } | null>(null);
   const [attachToAssembly] = useState(false);
   const [priorities, setPriorities] = useState<ComparisonPriority[]>([]);
@@ -1288,8 +1362,20 @@ function SiteModelWorkspace() {
   const assemblySerial = useRef(1);
   const noteSerial = useRef(1);
   const loadAbort = useRef(new Map<string, AbortController>());
-  const onReadout = useCallback((next: SiteReadout) => setReadout(next), []);
+  const onReadout = useCallback((next: SiteReadout) => {
+    const north = northMark.current;
+    if (north) north.style.transform = `rotate(${next.northDeg}deg)`;
+    const bar = scaleBar.current;
+    if (bar) bar.style.width = `${Math.max(36, next.scalePx)}px`;
+    const label = scaleText.current;
+    if (label) label.textContent = `${next.scaleFeet.toLocaleString("en-US")} ft`;
+    const wrap = scaleWrap.current;
+    if (wrap) wrap.setAttribute("aria-label", `${next.scaleFeet} foot scale`);
+  }, []);
   const armed = SITE_ARCHETYPES.find((entry) => entry.archetypeId === armedId) ?? null;
+  const dnaEntry = SITE_ARCHETYPES.find((entry) => entry.archetypeId === dnaId) ?? null;
+  const dnaStored = dnaEntry ? meshes[dnaEntry.moduleId] : null;
+  const dnaMesh = dnaStored && dnaStored !== "missing" ? dnaStored : null;
   const selectedAssembly = assemblies.find((assembly) => assembly.placementId === selectedId) ?? null;
   const memberHost = assemblies.find((assembly) => assembly.members.some((member) => member.instanceId === selectedId)) ?? null;
   const selectedMember = memberHost?.members.find((member) => member.instanceId === selectedId) ?? null;
@@ -1297,6 +1383,56 @@ function SiteModelWorkspace() {
   const selected = instances.find((entry) => entry.instanceId === selectedId) ?? null;
   const visibleAssemblies = useMemo(() => assemblies.flatMap((assembly) => assemblyWorldModules(assembly)), [assemblies]);
   const sceneInstances = useMemo(() => [...instances, ...visibleAssemblies], [instances, visibleAssemblies]);
+  const massingFocus = useMemo(() => {
+    if ((sheet !== "placement" && sheet !== "assembly") || instances.length === 0) return null;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const item of instances) {
+      minX = Math.min(minX, item.transform.position.x - 10);
+      maxX = Math.max(maxX, item.transform.position.x + 10);
+      minZ = Math.min(minZ, item.transform.position.z - 10);
+      maxZ = Math.max(maxZ, item.transform.position.z + 10);
+    }
+    const tightWidth = (maxX - minX) * 1.08 + 28;
+    const tightDepth = (maxZ - minZ) * 1.08 + 28;
+    const axon = { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, width: tightWidth, depth: tightDepth, span: Math.max(tightWidth, tightDepth) };
+    let planMinX = minX;
+    let planMaxX = maxX;
+    let planMinZ = minZ;
+    let planMaxZ = maxZ;
+    const reach = 160;
+    const nearBuilding = (x: number, z: number) => {
+      const dx = x < minX ? minX - x : x > maxX ? x - maxX : 0;
+      const dz = z < minZ ? minZ - z : z > maxZ ? z - maxZ : 0;
+      return Math.hypot(dx, dz) <= reach;
+    };
+    for (const [x, z] of [...site.site.ring, ...site.water.ring]) {
+      if (!nearBuilding(x, z)) continue;
+      planMinX = Math.min(planMinX, x);
+      planMaxX = Math.max(planMaxX, x);
+      planMinZ = Math.min(planMinZ, z);
+      planMaxZ = Math.max(planMaxZ, z);
+    }
+    planMinX -= 24;
+    planMaxX += 24;
+    planMinZ -= 24;
+    planMaxZ += 24;
+    const cap = Math.max(maxX - minX, maxZ - minZ) * 2.6;
+    let planWidth = planMaxX - planMinX;
+    let planDepth = planMaxZ - planMinZ;
+    const planCx = (planMinX + planMaxX) / 2;
+    const planCz = (planMinZ + planMaxZ) / 2;
+    if (planWidth > cap) planWidth = cap;
+    if (planDepth > cap) planDepth = cap;
+    const buildingCx = (minX + maxX) / 2;
+    const buildingCz = (minZ + maxZ) / 2;
+    if (Math.abs(buildingCx - planCx) + (maxX - minX) / 2 > planWidth / 2) planWidth = Math.abs(buildingCx - planCx) * 2 + (maxX - minX) + 48;
+    if (Math.abs(buildingCz - planCz) + (maxZ - minZ) / 2 > planDepth / 2) planDepth = Math.abs(buildingCz - planCz) * 2 + (maxZ - minZ) + 48;
+    const plan = { cx: planCx, cz: planCz, width: planWidth, depth: planDepth, span: Math.max(planWidth, planDepth) };
+    return { axon, plan };
+  }, [instances, sheet]);
   const warnings = useMemo(
     () => placementWarnings(sceneInstances, site.site.ring, [site.site.ring, visibleWater]),
     [sceneInstances],
@@ -1541,6 +1677,7 @@ function SiteModelWorkspace() {
         } : instance),
       };
     });
+    setConnections((links) => reviewJoins(links, id));
   }, [commit, memberEditId]);
   const rotateModule = useCallback((id: string, rotationY: number) => {
     commit((present) => {
@@ -1574,6 +1711,7 @@ function SiteModelWorkspace() {
         } : instance),
       };
     });
+    setConnections((links) => reviewJoins(links, id));
   }, [commit, memberEditId]);
   const chooseSelection = useCallback((id: string | null) => {
     if (!id) {
@@ -1611,10 +1749,9 @@ function SiteModelWorkspace() {
     const instanceId = `m${serial.current}`;
     serial.current += 1;
     const parked = clearOfNeighbors(
-      selected.transform.position.x + SKILL5_MODULE_ENVELOPE_FEET,
+      selected,
+      selected.transform.position.x + SKILL5_MODULE_ENVELOPE_FEET * (poseOf(selected).scaleX),
       selected.transform.position.z,
-      selected.transform.rotationY,
-      selected.mirror,
       occupiedBounds(sceneInstances),
     );
     const copy = {
@@ -1673,24 +1810,48 @@ function SiteModelWorkspace() {
     });
     setSelectedId(null);
   };
-  const setTileTransform = (patch: { x?: number; y?: number; z?: number; rotationY?: number; mirror?: PlacedModule["mirror"] }) => {
+  const setTileTransform = (patch: {
+    x?: number;
+    y?: number;
+    z?: number;
+    rotationX?: number;
+    rotationY?: number;
+    rotationZ?: number;
+    scaleX?: number;
+    scaleY?: number;
+    scaleZ?: number;
+    mirror?: PlacedModule["mirror"];
+  }) => {
     if (!selected) return;
     const current = selected;
     commit((present) => ({
       ...present,
-      instances: present.instances.map((instance) => instance.instanceId !== current.instanceId ? instance : {
-        ...instance,
-        mirror: patch.mirror === undefined ? instance.mirror : patch.mirror,
-        transform: {
-          rotationY: patch.rotationY ?? instance.transform.rotationY,
-          position: {
-            x: patch.x ?? instance.transform.position.x,
-            y: patch.y ?? instance.transform.position.y,
-            z: patch.z ?? instance.transform.position.z,
+      instances: present.instances.map((instance) => {
+        if (instance.instanceId !== current.instanceId) return instance;
+        const pose = poseOf(instance);
+        const rotationX = patch.rotationX ?? pose.rotationX;
+        const rotationZ = patch.rotationZ ?? pose.rotationZ;
+        const scaleX = Math.max(0.05, patch.scaleX ?? pose.scaleX);
+        const scaleY = Math.max(0.05, patch.scaleY ?? pose.scaleY);
+        const scaleZ = Math.max(0.05, patch.scaleZ ?? pose.scaleZ);
+        const identity = rotationX === 0 && rotationZ === 0 && scaleX === 1 && scaleY === 1 && scaleZ === 1;
+        return {
+          ...instance,
+          mirror: patch.mirror === undefined ? instance.mirror : patch.mirror,
+          transform: {
+            rotationY: patch.rotationY ?? instance.transform.rotationY,
+            position: {
+              x: patch.x ?? instance.transform.position.x,
+              y: patch.y ?? instance.transform.position.y,
+              z: patch.z ?? instance.transform.position.z,
+            },
           },
-        },
+          axes: identity ? undefined : { rotationX, rotationZ, scaleX, scaleY, scaleZ },
+        };
       }),
     }));
+    setConnections((links) => reviewJoins(links, current.instanceId));
+    setGumballLive(null);
   };
   const stackSelected = (direction: 1 | -1) => {
     if (!selected) return;
@@ -1719,7 +1880,7 @@ function SiteModelWorkspace() {
         rotationY: selected.transform.rotationY,
         position: {
           x: selected.transform.position.x,
-          y: selected.transform.position.y + direction * MODULE_HEIGHT_FT,
+          y: selected.transform.position.y + direction * (direction > 0 ? tileAabb(selected).height : MODULE_HEIGHT_FT),
           z: selected.transform.position.z,
         },
       },
@@ -1885,6 +2046,7 @@ function SiteModelWorkspace() {
     }
   };
   const openLatest = useRef<(entry: SiteConfiguration) => void>(() => {});
+  const restoreLatest = useRef<(study: MassingStudy) => void>(() => {});
   useEffect(() => {
     openLatest.current = openConfiguration;
   });
@@ -1893,11 +2055,21 @@ function SiteModelWorkspace() {
     fetch("/api/site/configurations").then((response) => response.json()).then((body: ConfigurationDocument) => {
       if (cancel) return;
       const list = body.configurations ?? [];
+      configurationsRef.current = list;
       setConfigurations(list);
       setPriorities(body.priorities ?? []);
       const id = new URLSearchParams(window.location.search).get("open");
       const entry = id ? list.find((item) => item.id === id) : undefined;
-      if (entry) openLatest.current(entry);
+      fetch("/api/site/massing-catalog").then((response) => response.json()).then((catalog: MassingCatalogDocument) => {
+        if (cancel) return;
+        const studies = catalog.studies ?? [];
+        setMassingStudies(studies);
+        const study = entry ? studies.find((item) => item.configurationId === entry.id) : undefined;
+        if (study) restoreLatest.current(study);
+        else if (entry) openLatest.current(entry);
+      }).catch(() => {
+        if (entry) openLatest.current(entry);
+      });
     }).catch(() => {
       if (!cancel) setConfigurations([]);
     });
@@ -2061,8 +2233,40 @@ function SiteModelWorkspace() {
   const chooseMode = (next: SiteViewMode) => {
     setMode(next);
   };
+  const clearField = () => {
+    const present = historyRef.current.present;
+    const made = present.zones.length > 0 || present.instances.length > 0 || present.assemblies.length > 0 || present.annotations.length > 0 || connections.length > 0;
+    if (!made) return;
+    if (!window.confirm("Clear the zones, tiles, and connections on this site? The site strategy network stays.")) return;
+    publish(emptyEditHistory());
+    setConnections([]);
+    setZoneDraft([]);
+    setZoneSelection(null);
+    setPocketSelection([]);
+    setPocketHover(null);
+    setZoneNotice(null);
+    setSelectedId(null);
+    setMemberEditId(null);
+    setArmedId(null);
+    setManualPose(null);
+    setFaceMatch(null);
+    setLinkA("");
+    setLinkB("");
+    setSelectedJoin(null);
+    setHybridOffer(null);
+    setHybridPlacement(null);
+    setHybridCandidate(null);
+    setHybridNote("Choose the two faces, then find the Skill 04 hybrids.");
+    setCirculationStart(null);
+    setCurrentConfigId(null);
+    setConfigName("Untitled");
+    setConfigNotice(null);
+  };
   const chooseSheet = (next: SiteWorkflowId) => {
     if (next === sheet) return;
+    setDnaId(null);
+    setCompatibilityOpen(false);
+    setDefinitionsOpen(false);
     setSheet(next);
     setMode(next === "strategy" ? strategyCamera(strategyMode) : "perspective");
   };
@@ -2336,6 +2540,44 @@ function SiteModelWorkspace() {
     });
     saveNetworkIteration(iteration).catch(() => {});
   };
+  const openMassing = (study: MassingStudy) => {
+    const entry = configurationsRef.current.find((item) => item.id === study.configurationId);
+    rememberIteration({
+      id: study.iterationId,
+      index: 100,
+      seed: study.seed,
+      nodes: study.nodes,
+      step: study.step,
+      settled: true,
+      reached: study.reached,
+      total: study.total,
+      reachedIds: study.connectedIds,
+      connectedIds: study.connectedIds,
+      note: study.note,
+      trails: new Float32Array([0]),
+      inkSize: 1,
+      cellFeet: 20,
+      generator: "flow",
+      branches: study.branches,
+    });
+    setIterationView(study.iterationId);
+    setIntentPoints(study.markers);
+    setIntentVisible(true);
+    if (entry) openLatest.current({ ...entry, networkId: study.iterationId });
+    setReview(true);
+    setShowContext(false);
+    setShowTrails(false);
+    setShowTiles(true);
+    setShowMassing(false);
+    setProgramColors(true);
+    setShowZones(false);
+    setShowConnections(false);
+    setMode("axon");
+    setFrameToken((value) => value + 1);
+  };
+  useEffect(() => {
+    restoreLatest.current = openMassing;
+  });
   useEffect(() => {
     const iteration = iterations.find((item) => item.id === massingId);
     if (!iteration || iteration.generator === "agents" || (iteration.branches && iteration.branches.length > 0)) {
@@ -2518,12 +2760,15 @@ function SiteModelWorkspace() {
   const pocketKinds = useMemo(() => {
     const kinds: Record<string, SiteZoneKind | null> = {};
     for (const pocket of pocketReport.pockets) {
-      const level = zones.filter((zone) => zone.pocketId === pocket.id && zone.networkId === viewedIteration?.id).sort((a, b) => a.baseFt - b.baseFt)[0];
+      const level = zones.filter((zone) => zone.networkId === viewedIteration?.id && (zone.pocketId === pocket.id || zone.sourcePocketIds?.includes(pocket.id))).sort((a, b) => a.baseFt - b.baseFt)[0];
       kinds[pocket.id] = level?.kind ?? null;
     }
     return kinds;
   }, [pocketReport, viewedIteration, zones]);
-  const visibleZones = zones.filter((zone) => !zone.networkId || zone.networkId === massingId);
+  const visibleZones = useMemo(
+    () => zones.filter((zone) => !zone.networkId || zone.networkId === massingId),
+    [zones, massingId],
+  );
   const placementZone = visibleZones.find((zone) => zone.id === zoneSelection)
     ?? visibleZones.filter((zone) => zone.pocketId && pocketSelection.includes(zone.pocketId)).sort((a, b) => a.baseFt - b.baseFt)[0]
     ?? null;
@@ -2535,8 +2780,12 @@ function SiteModelWorkspace() {
     for (const [id, report] of Object.entries(tileReports)) {
       next[id] = { ...(next[id] ?? { outside: false, overlap: false }), zoneMismatch: report.mismatch, unsupported: report.unsupported };
     }
+    for (const instance of sceneInstances) {
+      if (!tileDistorted(instance)) continue;
+      next[instance.instanceId] = { ...(next[instance.instanceId] ?? { outside: false, overlap: false }), distorted: true };
+    }
     return next;
-  }, [tileReports, warnings]);
+  }, [sceneInstances, tileReports, warnings]);
   const selectedZone = zones.find((zone) => zone.id === zoneSelection) ?? null;
   const zoneGuide = useMemo(() => {
     const empty = { branchFt: null as number | null, junctionFt: null as number | null, accessFt: null as number | null, waterFt: null as number | null, facing: null as ReturnType<typeof zoneFacing>, outsideParcel: false, inWater: false };
@@ -2588,6 +2837,41 @@ function SiteModelWorkspace() {
   const saveZoning = () => {
     if (pocketSelection.length > 0) assignPockets(zoneKind);
     saveConfiguration(false);
+  };
+  const consolidateNetwork = () => {
+    if (pocketReport.pockets.length === 0 || !massingId) return;
+    const accepted = window.confirm("Replace the pocket zones on this network with consolidated zones? Drawn outlines stay. The pockets stay.");
+    if (!accepted) return;
+    const report = consolidatePockets(pocketReport.pockets, pocketReport.pockets.map((pocket) => ({
+      pocketId: pocket.id,
+      kind: pocketKinds[pocket.id] ?? null,
+    })));
+    let named: Record<string, number> = { lobby: 0, gathering: 0, workspace: 0 };
+    const kept = zones.filter((zone) => zone.networkId !== massingId || (!zone.pocketId && !(zone.sourcePocketIds && zone.sourcePocketIds.length > 0)));
+    const next = [...kept];
+    for (const region of report.zones) {
+      const label = ZONE_KINDS.find((item) => item.id === region.kind)?.label ?? "Zone";
+      named = { ...named, [region.kind]: named[region.kind] + 1 };
+      const regionId = `z${zoneSerial.current}`;
+      zoneSerial.current += 1;
+      next.push({
+        id: regionId,
+        name: `${label} ${named[region.kind]}`,
+        kind: region.kind,
+        points: region.points.map((point) => ({ ...point })),
+        baseFt: 0,
+        heightFt: 12,
+        visible: true,
+        networkId: massingId,
+        pocketId: null,
+        sourcePocketIds: [...region.pocketIds],
+      });
+    }
+    replaceZones(next);
+    setZoneSelection(next[next.length - 1]?.id ?? null);
+    setPocketSelection([]);
+    const undersized = report.fragments.filter((item) => item.reason === "under-two-tiles").length;
+    setZoneNotice(`${report.zones.length} zones from ${report.rawPocketCount} pockets. ${report.fragments.length} groups stayed out${undersized ? `, ${undersized} under two tiles` : ""}.`);
   };
   const assignPockets = (kind: SiteZoneKind) => {
     setZoneKind(kind);
@@ -2680,6 +2964,10 @@ function SiteModelWorkspace() {
       for (let other = index + 1; other < placed.length; other += 1) {
         const first = placed[index];
         const second = placed[other];
+        const gapX = Math.abs(first.transform.position.x - second.transform.position.x);
+        const gapY = Math.abs(first.transform.position.y - second.transform.position.y);
+        const gapZ = Math.abs(first.transform.position.z - second.transform.position.z);
+        if ((gapX > 22 && gapZ > 22) || gapY > 22) continue;
         const selected = (first.instanceId === chosenA && second.instanceId === chosenB) || (first.instanceId === chosenB && second.instanceId === chosenA);
         const stored = connections.some((link) => link.mode === "direct" && ((link.tileA === first.instanceId && link.tileB === second.instanceId) || (link.tileA === second.instanceId && link.tileB === first.instanceId)));
         const result = proposeDirectJoin(first, second, tilePositions(meshes, first), tilePositions(meshes, second));
@@ -2710,6 +2998,8 @@ function SiteModelWorkspace() {
               <SiteStrategyPanel
                 mode={strategyMode}
                 onMode={chooseStrategyMode}
+                canClear={zones.length > 0 || instances.length > 0 || assemblies.length > 0 || annotations.length > 0 || connections.length > 0}
+                onClearField={clearField}
                 network={{
                   study: networkStudy,
                   running: networkRunning,
@@ -2722,7 +3012,38 @@ function SiteModelWorkspace() {
                   onDelete: deleteNetworkNode,
                   onSelect: selectNetworkNode,
                 }}
+                typology={{
+                  points: intentPoints,
+                  placing: intentPlacing,
+                  visible: intentVisible,
+                  types: intentTypes,
+                  selectedId: intentSelected,
+                  onPlacing: setIntentPlacing,
+                  onVisible: setIntentVisible,
+                  onType: (kind, shown) => setIntentTypes((current) => ({ ...current, [kind]: shown })),
+                  onSelect: setIntentSelected,
+                  onDelete: (id) => {
+                    setIntentPoints((current) => current.filter((point) => point.id !== id));
+                    setIntentSelected((current) => current === id ? null : current);
+                  },
+                  onClear: () => {
+                    if (!window.confirm("Clear the architectural attractors on this site? The Physarum network stays.")) return;
+                    setIntentPoints([]);
+                    setIntentSelected(null);
+                    setIntentPlacing(null);
+                  },
+                }}
               />
+              {massingStudies.length > 0 ? (
+                <div className="site-sim">
+                  <p className="site-note">Massing catalog</p>
+                  {massingStudies.map((study) => (
+                    <button key={study.id} type="button" onClick={() => openMassing(study)}>
+                      {study.name} · {study.tiles} tiles · {study.levels} levels
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               </div>
             ) : sheet === "zoning" ? (
               <div className="site-strategy-body">
@@ -2760,7 +3081,7 @@ function SiteModelWorkspace() {
                   onCancelDelete={() => setZoneDeleteId(null)}
                   onStrategy={() => chooseSheet("strategy")}
                   pockets={pocketReport.pockets.map((pocket) => {
-                    const levels = zones.filter((zone) => zone.pocketId === pocket.id && zone.networkId === massingId);
+                    const levels = zones.filter((zone) => zone.networkId === massingId && (zone.pocketId === pocket.id || zone.sourcePocketIds?.includes(pocket.id)));
                     return { id: pocket.id, area: polygonAreaSqFt(pocket.points), kind: pocketKinds[pocket.id] ?? null, levels: levels.length };
                   })}
                   pocketSelection={pocketSelection}
@@ -2771,6 +3092,8 @@ function SiteModelWorkspace() {
                   onAssign={saveZoning}
                   onClearPockets={clearPockets}
                   onAddLevel={addPocketLevel}
+                  onConsolidate={consolidateNetwork}
+                  consolidateNote={zoneNotice}
                 />
               </div>
             ) : sheet === "assembly" ? (
@@ -2874,37 +3197,55 @@ function SiteModelWorkspace() {
                 Zone opacity
                 <input aria-label="Zone opacity" type="range" min={0} max={0.6} step={0.02} value={zoneOpacity} onChange={(event) => setZoneOpacity(Number(event.target.value))} />
               </label>
-              <h3 className="site-subtitle">Modules</h3>
+              <div className="site-library-head">
+                <h3 className="site-subtitle">Modules</h3>
+                <div>
+                  <button type="button" className="site-criteria-open" onClick={() => setDefinitionsOpen(true)}>Criteria Definitions</button>
+                  <button type="button" className="site-criteria-open" onClick={() => { setCompatibilityOpen(true); setDnaId(null); }}>Compatibility</button>
+                </div>
+              </div>
               {placementZone ? (
                 <button type="button" aria-pressed={libraryAll} data-active={libraryAll || undefined} onClick={() => setLibraryAll((value) => !value)}>
                   {libraryAll ? "Showing every program" : `Filtered to ${ZONE_KINDS.find((item) => item.id === placementZone.kind)?.label}`}
                 </button>
               ) : null}
+              <p className="site-note">Face counts are mesh openings, not the compatibility score. A direct join needs two opening cells on both facing sides.</p>
               {armed && placementZone && armed.program && armed.program !== placementZone.kind ? (
                 <p className="site-note site-alert">{PROGRAM_LABEL[armed.program]} does not match this {PROGRAM_LABEL[placementZone.kind]} zone. Placement stays available.</p>
               ) : null}
               <div className="site-module-rows">
               {SITE_PROGRAMS.map((program) => {
                 const entries = SITE_ARCHETYPES.filter((entry) => entry.program === program && (libraryAll || !placementZone || program === placementZone.kind));
-                if (entries.length === 0) return null;
+                const ordered = [...entries].sort((a, b) => {
+                  const rank = (item: typeof a) => {
+                    const mesh = meshes[item.moduleId];
+                    return mesh && mesh !== "missing" && hasSideOpening(mesh.positions) ? 0 : 1;
+                  };
+                  return rank(a) - rank(b);
+                });
+                if (ordered.length === 0) return null;
                 return (
                   <div key={program}>
                     <h4 className="site-gallery-label">{PROGRAM_LABEL[program]}</h4>
                     <div className="site-gallery site-gallery-modules">
-                      {entries.map((entry) => {
+                      {ordered.map((entry) => {
                         const stored = meshes[entry.moduleId];
                         const missing = stored === "missing";
+                        const openings = stored && stored !== "missing" ? facesMeetingJoin(stored.positions) : [];
                         return (
-                          <button
-                            key={entry.moduleId}
-                            type="button"
-                            data-active={armedId === entry.archetypeId || undefined}
-                            onClick={() => armModule(entry)}
-                          >
-                            <ModuleThumb mesh={stored} />
-                            <span>{entry.name}</span>
-                            {missing ? <em>Unavailable</em> : null}
-                          </button>
+                          <div key={entry.moduleId} className="site-module-card">
+                            <button
+                              type="button"
+                              data-active={armedId === entry.archetypeId || undefined}
+                              onClick={() => armModule(entry)}
+                            >
+                              <ModuleThumb mesh={stored} />
+                              <span>{entry.name}</span>
+                              {stored && stored !== "missing" ? <em>{openings.length > 0 ? openings.map((face) => `${face.id} ${face.openings}`).join(" ") : "No two-cell opening"}</em> : null}
+                              {missing ? <em>Unavailable</em> : null}
+                            </button>
+                            <button type="button" className="site-dna-open" aria-label={`Architectural DNA, ${entry.name}`} onClick={() => setDnaId(entry.archetypeId)}>+ / DNA</button>
+                          </div>
                         );
                       })}
                     </div>
@@ -2985,10 +3326,14 @@ function SiteModelWorkspace() {
               appearance="model"
               framing="record"
               presentation="analysis"
+              sun={MODEL_SUN}
+              showSunPath={false}
+              showShadows={false}
               rotateView={rotateView}
               showGrid={showGrid}
               showAerial={showAerial}
               frameToken={frameToken}
+              focusBounds={massingFocus ? (review || mode !== "plan" ? massingFocus.axon : massingFocus.plan) : null}
               onReadout={onReadout}
               overlay={{
                 shore: showShore,
@@ -3048,9 +3393,28 @@ function SiteModelWorkspace() {
                     showContext: showContext && (sheet === "strategy" || sheet === "zoning" || sheet === "placement" || sheet === "assembly"),
                     interactive: sheet === "strategy",
                     studyTone: true,
+                    quiet: sheet === "placement" || sheet === "assembly",
                   }
                   : null
               }
+              typology={sheet === "strategy" && networkStudy ? {
+                study: networkStudy,
+                points: intentPoints,
+                placing: intentPlacing,
+                visible: intentVisible,
+                types: intentTypes,
+                selectedId: intentSelected,
+                onSelect: setIntentSelected,
+                onAdd: (x, z) => {
+                  if (!intentPlacing) return;
+                  const point = createTypologyAttractor(intentPlacing, x, z);
+                  setIntentPoints((current) => [...current, point]);
+                  setIntentSelected(point.id);
+                  setIntentVisible(true);
+                  setIntentTypes((current) => current[intentPlacing] ? current : { ...current, [intentPlacing]: true });
+                },
+                onMove: (id, x, z) => setIntentPoints((current) => current.map((point) => point.id === id ? { ...point, x, z } : point)),
+              } : null}
               placement={{
                 ring: designSite.ring,
                 waterRing: visibleWater,
@@ -3061,6 +3425,8 @@ function SiteModelWorkspace() {
                 selectedId,
                 snap,
                 showEnvelope,
+                massing: showMassing ? sceneInstances : [],
+                programColors,
                 display,
                 displayShift,
                 links,
@@ -3090,6 +3456,29 @@ function SiteModelWorkspace() {
                 onSelect: (id) => sheet === "assembly" ? pickJoinTile(id) : chooseSelection(id),
                 onTranslate: translateModule,
                 onRotate: rotateModule,
+                gumballLive,
+                axisSpace,
+                onGumball: (pose, commitChange) => {
+                  if (!commitChange) {
+                    setGumballLive(pose);
+                    return;
+                  }
+                  const current = instances.find((instance) => instance.instanceId === pose.id);
+                  const before = current ? poseOf(current) : null;
+                  const changed = !before || before.x !== pose.x || before.y !== pose.y || before.z !== pose.z || before.rotationX !== pose.rotationX || before.rotationY !== pose.rotationY || before.rotationZ !== pose.rotationZ || before.scaleX !== pose.scaleX || before.scaleY !== pose.scaleY || before.scaleZ !== pose.scaleZ;
+                  setGumballLive(null);
+                  if (!changed) return;
+                  const identity = pose.rotationX === 0 && pose.rotationZ === 0 && Math.abs(pose.scaleX - 1) < 1e-6 && Math.abs(pose.scaleY - 1) < 1e-6 && Math.abs(pose.scaleZ - 1) < 1e-6;
+                  commit((present) => ({
+                    ...present,
+                    instances: present.instances.map((instance) => instance.instanceId !== pose.id ? instance : {
+                      ...instance,
+                      transform: { rotationY: pose.rotationY, position: { x: pose.x, y: pose.y, z: pose.z } },
+                      axes: identity ? undefined : { rotationX: pose.rotationX, rotationZ: pose.rotationZ, scaleX: pose.scaleX, scaleY: pose.scaleY, scaleZ: pose.scaleZ },
+                    }),
+                  }));
+                  setConnections((links) => reviewJoins(links, pose.id));
+                },
                 onGestureStart: startGesture,
                 onGestureEnd: finishGesture,
                 memberEditId,
@@ -3098,13 +3487,14 @@ function SiteModelWorkspace() {
             />
             <div className="site-orient">
               <button
+                ref={northMark}
                 type="button"
                 className="site-north"
                 data-active={mode === "plan" || undefined}
-                style={{ transform: `rotate(${readout.northDeg}deg)` }}
-                aria-label={mode === "plan" ? (planHeading === "north" ? "North up. Click for east up." : "East up. Click for north up.") : "Geographic north, marked N"}
+                style={{ transform: "rotate(0deg)" }}
+                aria-label={mode === "plan" ? (planHeading === "west" ? "West up. Click for north up." : planHeading === "north" ? "North up. Click for east up." : "East up. Click for west up.") : "Geographic north, marked N"}
                 onClick={() => {
-                  if (mode === "plan") setPlanHeading((heading) => heading === "north" ? "east" : "north");
+                  if (mode === "plan") setPlanHeading((heading) => heading === "west" ? "north" : heading === "north" ? "east" : "west");
                 }}
               >
                 <svg viewBox="0 0 48 64" aria-hidden="true">
@@ -3112,21 +3502,48 @@ function SiteModelWorkspace() {
                 </svg>
                 <span>N</span>
               </button>
-              <div className="site-scale" aria-label={`${readout.scaleFeet} foot scale`}>
-                <span style={{ width: `${Math.max(36, readout.scalePx)}px` }} />
-                <p>{readout.scaleFeet.toLocaleString("en-US")} ft</p>
+              <div ref={scaleWrap} className="site-scale" aria-label="100 foot scale">
+                <span ref={scaleBar} style={{ width: "96px" }} />
+                <p ref={scaleText}>100 ft</p>
               </div>
             </div>
             <div className="site-modes site-network-layers" role="group" aria-label="Layers">
+              {sheet === "assembly" ? <button type="button" data-active={review || undefined} onClick={() => {
+                if (review) {
+                  setReview(false);
+                  setShowContext(true);
+                  setShowTrails(true);
+                  return;
+                }
+                setReview(true);
+                setShowContext(false);
+                setShowTrails(false);
+                setShowTiles(true);
+                setShowMassing(false);
+                setProgramColors(true);
+                setShowZones(false);
+                setShowConnections(false);
+                setMode("axon");
+                setFrameToken((value) => value + 1);
+              }}>Review</button> : null}
               {sheet === "strategy" ? <button type="button" title={SOURCE_CONTOUR_NOTE} data-active={showField || undefined} onClick={() => setShowField((value) => !value)}>Field</button> : null}
-              <button type="button" title={sheet === "strategy" ? "Selected iteration" : massingLabel ? `Massing network ${massingLabel}` : "No massing network"} data-active={showTrails || undefined} onClick={() => setShowTrails((value) => !value)}>Network</button>
+              <button type="button" title="Physarum network" data-active={showTrails || undefined} onClick={() => setShowTrails((value) => !value)}>Network</button>
               <button type="button" data-active={showZones || undefined} onClick={() => setShowZones((value) => !value)}>Zones</button>
-              <button type="button" data-active={showTiles || undefined} onClick={() => setShowTiles((value) => !value)}>Tiles</button>
+              <button type="button" title="Original tile meshes" data-active={showTiles || undefined} onClick={() => setShowTiles((value) => !value)}>Tiles</button>
+              {sheet === "placement" || sheet === "assembly" ? <button type="button" title="Massing envelopes" data-active={showMassing || undefined} onClick={() => setShowMassing((value) => !value)}>Envelopes</button> : null}
+              {sheet === "assembly" ? <button type="button" title="Lobby, workspace, and gathering colors" data-active={programColors || undefined} onClick={() => setProgramColors((value) => !value)}>Colors</button> : null}
               <button type="button" data-active={showConnections || undefined} onClick={() => setShowConnections((value) => !value)}>Connections</button>
-              {sheet === "strategy" || sheet === "zoning" ? <button type="button" data-active={showContext || undefined} onClick={() => setShowContext((value) => !value)}>Context</button> : null}
+              <button type="button" title="Neighboring buildings and streets" data-active={showContext || undefined} onClick={() => setShowContext((value) => !value)}>Context</button>
             </div>
             <div className="site-modes site-frame-views" role="group" aria-label="Camera">
-              {(sheet === "placement" ? [...MODES, { id: "section" as const, label: "Section" }] : MODES).map((item) => (
+              {review ? (
+                <>
+                  <button type="button" data-active={mode === "axon" || undefined} onClick={() => { setPlanHeading("west"); setMode("axon"); setFrameToken((value) => value + 1); }}>Overall</button>
+                  <button type="button" data-active={mode === "plan" || undefined} onClick={() => { setPlanHeading("north"); setMode("plan"); setFrameToken((value) => value + 1); }}>Plan</button>
+                  <button type="button" data-active={mode === "section" || undefined} onClick={() => { setPlanHeading("west"); setMode("section"); setFrameToken((value) => value + 1); }}>Section</button>
+                </>
+              ) : null}
+              {MODES.map((item) => (
                 <button key={item.id} type="button" data-active={mode === item.id || undefined} onClick={() => chooseMode(item.id)}>
                   {item.label}
                 </button>
@@ -3137,7 +3554,7 @@ function SiteModelWorkspace() {
         {sheet === "placement" ? (
         <p className="site-help">
           {mode === "plan"
-            ? "Plan starts north-up. Click the north arrow to switch between north-up and east-up. Right-drag pans. Ctrl+Shift+right turns the plan. Ctrl+right or the wheel zooms."
+            ? "Plan starts west-up, with east down. Click the north arrow to switch among west-up, north-up, and east-up. Right-drag pans. Ctrl+Shift+right turns the plan. Ctrl+right or the wheel zooms."
             : mode === "axon"
               ? "Parallel view. Right-drag pans. Ctrl+Shift+right turns it. Ctrl+right or the wheel zooms."
               : "Right-drag orbits. Shift+right pans. Ctrl+right or the wheel zooms."}
@@ -3259,7 +3676,17 @@ function SiteModelWorkspace() {
                     <label>East, ft<input aria-label="East" type="number" value={Math.round(selected.transform.position.x * 10) / 10} onChange={(event) => setTileTransform({ x: Number(event.target.value) })} /></label>
                     <label>Up, ft<input aria-label="Up" type="number" value={Math.round(selected.transform.position.y * 10) / 10} onChange={(event) => setTileTransform({ y: Number(event.target.value) })} /></label>
                     <label>North, ft<input aria-label="North" type="number" value={Math.round(selected.transform.position.z * 10) / 10} onChange={(event) => setTileTransform({ z: Number(event.target.value) })} /></label>
-                    <label>Rotation, deg<input aria-label="Rotation" type="number" value={Math.round(selected.transform.rotationY * 180 / Math.PI * 10) / 10} onChange={(event) => setTileTransform({ rotationY: Number(event.target.value) * Math.PI / 180 })} /></label>
+                    <label>Rotate X, deg<input aria-label="Rotate X" type="number" value={Math.round(poseOf(selected).rotationX * 180 / Math.PI * 10) / 10} onChange={(event) => setTileTransform({ rotationX: Number(event.target.value) * Math.PI / 180 })} /></label>
+                    <label>Rotate Y, deg<input aria-label="Rotate Y" type="number" value={Math.round(selected.transform.rotationY * 180 / Math.PI * 10) / 10} onChange={(event) => setTileTransform({ rotationY: Number(event.target.value) * Math.PI / 180 })} /></label>
+                    <label>Rotate Z, deg<input aria-label="Rotate Z" type="number" value={Math.round(poseOf(selected).rotationZ * 180 / Math.PI * 10) / 10} onChange={(event) => setTileTransform({ rotationZ: Number(event.target.value) * Math.PI / 180 })} /></label>
+                    <label>Scale X<input aria-label="Scale X" type="number" step="0.1" min="0.05" value={Math.round(poseOf(selected).scaleX * 100) / 100} onChange={(event) => setTileTransform({ scaleX: Number(event.target.value) })} /></label>
+                    <label>Scale Y<input aria-label="Scale Y" type="number" step="0.1" min="0.05" value={Math.round(poseOf(selected).scaleY * 100) / 100} onChange={(event) => setTileTransform({ scaleY: Number(event.target.value) })} /></label>
+                    <label>Scale Z<input aria-label="Scale Z" type="number" step="0.1" min="0.05" value={Math.round(poseOf(selected).scaleZ * 100) / 100} onChange={(event) => setTileTransform({ scaleZ: Number(event.target.value) })} /></label>
+                  </div>
+                  <div className="site-modes">
+                    <button type="button" aria-pressed={axisSpace === "local"} onClick={() => setAxisSpace("local")}>Local axes</button>
+                    <button type="button" aria-pressed={axisSpace === "world"} onClick={() => setAxisSpace("world")}>World axes</button>
+                    <button type="button" onClick={() => setTileTransform({ rotationX: 0, rotationY: 0, rotationZ: 0, scaleX: 1, scaleY: 1, scaleZ: 1 })}>Reset Transform</button>
                   </div>
                   <div className="site-modes">
                     <button type="button" onClick={() => setTileTransform({ rotationY: selected.transform.rotationY - Math.PI / 2 })}>−90°</button>
@@ -3274,7 +3701,7 @@ function SiteModelWorkspace() {
                     <button type="button" onClick={deleteModule}>Delete</button>
                   </div>
                   <p className="site-note">Level {tileReports[selected.instanceId]?.level ?? 0}. Stack height {Math.round(tileReports[selected.instanceId]?.stackHeightFt ?? MODULE_HEIGHT_FT)} ft. Alignment is not a structural or circulation connection.</p>
-                  <p className="site-note">{(tileReports[selected.instanceId]?.links.length ?? 0) === 0 ? "No zone shares this footprint and elevation." : tileReports[selected.instanceId]?.links.map((link) => `${zones.find((zone) => zone.id === link.zoneId)?.name ?? link.kind} · ${Math.round(link.overlapSqFt).toLocaleString("en-US")} ft²`).join(", ")}</p>
+                  <p className="site-note">{(tileReports[selected.instanceId]?.links.length ?? 0) === 0 ? "No zone shares this footprint." : tileReports[selected.instanceId]?.links.map((link) => `${zones.find((zone) => zone.id === link.zoneId)?.name ?? link.kind} · ${Math.round(link.overlapSqFt).toLocaleString("en-US")} ft²${link.aboveVolume ? " · above the stored volume" : ""}`).join(", ")}</p>
                   {shownWarnings[selected.instanceId]?.outside ? (
                     <p className="site-note site-alert">The 20 ft footprint crosses the parcel boundary.</p>
                   ) : null}
@@ -3289,6 +3716,9 @@ function SiteModelWorkspace() {
                   ) : null}
                   {shownWarnings[selected.instanceId]?.unsupported ? (
                     <p className="site-note">Nothing below this elevation meets the footprint. The offset stays. It is not a verified support.</p>
+                  ) : null}
+                  {shownWarnings[selected.instanceId]?.distorted ? (
+                    <p className="site-note site-alert">Nonuniform scale can distort circulation and openings. Revalidate any connection that uses this tile.</p>
                   ) : null}
                 </div>
               ) : selectedAssembly ? (
@@ -3502,6 +3932,36 @@ function SiteModelWorkspace() {
               </section>
             )}
       </aside>
+      {sheet === "placement" && definitionsOpen ? <CriteriaDefinitionsModal onClose={() => setDefinitionsOpen(false)} /> : null}
+      {sheet === "placement" && compatibilityOpen ? (
+        <CompatibilityOverview
+          entry={dnaEntry}
+          onClose={() => { setCompatibilityOpen(false); setDnaId(null); }}
+          onInspect={(archetypeId, activityId) => {
+            setDnaActivity(activityId);
+            setDnaId(archetypeId);
+            setCompatibilityOpen(false);
+          }}
+        />
+      ) : null}
+      {sheet === "placement" && dnaEntry && !compatibilityOpen ? (
+        <ArchitecturalDna
+          entry={dnaEntry}
+          preview={<ModuleGlassPreview mesh={dnaMesh} spin tone="ember" zoomScale={1.12} />}
+          studies={(
+            <>
+              <figure><ModuleGlassPreview mesh={dnaMesh} tone="ember" pitch={0.15} /><figcaption>Front</figcaption></figure>
+              <figure><ModuleGlassPreview mesh={dnaMesh} tone="ember" pitch={1.15} /><figcaption>Side</figcaption></figure>
+              <figure><ModuleGlassPreview mesh={dnaMesh} tone="ember" pitch={0.02} zoomScale={1.35} /><figcaption>Top</figcaption></figure>
+            </>
+          )}
+          thumb={<ModuleGlassPreview mesh={dnaMesh} tone="ember" pitch={0.72} />}
+          activityId={dnaActivity}
+          onActivity={setDnaActivity}
+          onClose={() => setDnaId(null)}
+          onOpenOverview={() => setCompatibilityOpen(true)}
+        />
+      ) : null}
     </main>
   );
 }

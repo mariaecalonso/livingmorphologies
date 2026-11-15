@@ -10,16 +10,20 @@ import {
   BoxGeometry,
   Line,
   LineBasicMaterial,
+  Mesh,
   MeshLambertMaterial,
   Raycaster,
   Vector2,
+  type Intersection,
 } from "three";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { BridgeCloud } from "@/lib/skill5/mock-bridge";
 import type { WorldAnnotation } from "@/lib/skill5/annotations";
 import { matchTileFaces, type FaceHighlight, type FaceMatch, type TilePose } from "@/lib/skill5/face-match";
-import { MODULE_GROUND_Y, NOMINAL_PLAN_EXTENT, boundsOf, extentCorners, pointOnSurfaces, settleMove, snapModuleOrigin, verticalRangesOverlap, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
+import { poseOf, tileAabb, tileFootprint, type GumballPose } from "@/lib/skill5/gumball";
+import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, boundsOf, pointOnSurfaces, settleMove, snapModuleOrigin, type ModuleWarning, type PlanExtent, type PlacedModule } from "@/lib/skill5/placement";
 import { worldToStored } from "@/lib/skill5/render-frame";
+import { TileGumball } from "./tile-gumball";
 import type { XZ } from "@/lib/skill5/site-model";
 
 export type SitePlacementModel = {
@@ -33,6 +37,10 @@ export type SitePlacementModel = {
   selectedId: string | null;
   snap: boolean;
   showEnvelope: boolean;
+  /** Translucent aggregate around each program group. The tile meshes stay unchanged. */
+  massing?: readonly PlacedModule[];
+  /** When false, tiles use one neutral material so the mesh can be read without program color. */
+  programColors?: boolean;
   display: "original" | "archetypes" | "connectors" | "both" | "boxes";
   displayShift: Record<string, { x: number; z: number }>;
   links: { id: string; ax: number; az: number; bx: number; bz: number }[];
@@ -58,6 +66,9 @@ export type SitePlacementModel = {
   onSelect: (id: string | null) => void;
   onTranslate: (id: string, x: number, z: number) => void;
   onRotate: (id: string, rotationY: number) => void;
+  gumballLive?: (GumballPose & { id: string }) | null;
+  axisSpace?: "local" | "world";
+  onGumball?: (pose: GumballPose & { id: string }, commit: boolean) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
   memberEditId: string | null;
@@ -259,8 +270,10 @@ export function useModulePointer(model: SitePlacementModel | null) {
         const travels = (instance: PlacedModule) => instance.instanceId === active.id
           || (!active.isolate && active.assemblyId !== null && instance.assemblyPlacementId === active.assemblyId);
         const boxAt = (instance: PlacedModule, x: number, z: number) => boundsOf(
-          extentCorners(NOMINAL_PLAN_EXTENT, { x, z }, instance.transform.rotationY, instance.mirror),
+          tileFootprint(instance, { ...poseOf(instance), x, z }),
         );
+        const dragged = current.instances.find((instance) => instance.instanceId === active.id);
+        const dragHeight = dragged ? tileAabb(dragged).height : MODULE_HEIGHT_FT;
         const movers: PlanExtent[] = [];
         const still: PlanExtent[] = [];
         let anchor: PlanExtent | null = null;
@@ -271,8 +284,11 @@ export function useModulePointer(model: SitePlacementModel | null) {
             movers.push(anchor);
           } else if (travels(instance)) {
             movers.push(boxAt(instance, instance.transform.position.x + shift.x + dragX, instance.transform.position.z + shift.z + dragZ));
-          } else if (verticalRangesOverlap(instance.transform.position.y, active.y)) {
-            still.push(boxAt(instance, instance.transform.position.x + shift.x, instance.transform.position.z + shift.z));
+          } else {
+            const box = tileAabb(instance);
+            if (box.minY < active.y + dragHeight && active.y < box.maxY) {
+              still.push(boxAt(instance, instance.transform.position.x + shift.x, instance.transform.position.z + shift.z));
+            }
           }
         }
         const grid = current.snap ? snapModuleOrigin(active.x, active.z) : null;
@@ -515,6 +531,89 @@ function AnnotationMarks({ notes, selectedId, pose }: { notes: WorldAnnotation[]
   return <lineSegments geometry={geometry} material={material} userData={{ selectedId }} />;
 }
 
+const MASSING_TINT = { lobby: "#a07a68", workspace: "#7f96a8", gathering: "#5d7c79" } as const;
+function ignoreMassingRay() {}
+
+/** Picking uses the 20 ft cell. The organic mesh stays on screen and stays out of the ray test. */
+const tileHit = new Mesh(new BoxGeometry(20, 20, 20));
+tileHit.geometry.translate(0, 10, 0);
+const tileHits: Intersection[] = [];
+function tileRaycast(this: Mesh, raycaster: Raycaster, intersects: Intersection[]) {
+  tileHit.matrixWorld.copy(this.matrixWorld);
+  tileHits.length = 0;
+  tileHit.raycast(raycaster, tileHits);
+  for (const hit of tileHits) {
+    hit.object = this;
+    intersects.push(hit);
+  }
+}
+
+function MassingSilhouette({ instances }: { instances: readonly PlacedModule[] }) {
+  const bars = useMemo(() => {
+    const rows = new Map<string, PlacedModule[]>();
+    for (const item of instances) {
+      const level = Math.round((item.transform.position.y - MODULE_GROUND_Y) / MODULE_HEIGHT_FT);
+      const row = Math.round(item.transform.position.z / 20);
+      const key = `${item.zoneIds[0] ?? item.program ?? "mass"}|${item.program ?? "gathering"}|${level}|${row}`;
+      const list = rows.get(key);
+      if (list) list.push(item);
+      else rows.set(key, [item]);
+    }
+    const boxes: { key: string; x: number; y: number; z: number; w: number; d: number; color: string; edges: EdgesGeometry }[] = [];
+    for (const [key, tiles] of rows) {
+      const program = tiles[0].program ?? "gathering";
+      const sorted = [...tiles].sort((a, b) => a.transform.position.x - b.transform.position.x);
+      let run = [sorted[0]];
+      const flush = () => {
+        const xs = run.map((item) => item.transform.position.x);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const width = maxX - minX + 20;
+        const edges = new EdgesGeometry(new BoxGeometry(width, MODULE_HEIGHT_FT, 20));
+        boxes.push({
+          key: `${key}:${minX}`,
+          x: (minX + maxX) / 2,
+          y: run[0].transform.position.y + MODULE_HEIGHT_FT / 2,
+          z: run[0].transform.position.z,
+          w: width,
+          d: 20,
+          color: MASSING_TINT[program] ?? MASSING_TINT.gathering,
+          edges,
+        });
+      };
+      for (let index = 1; index < sorted.length; index += 1) {
+        const previous = sorted[index - 1].transform.position.x;
+        if (sorted[index].transform.position.x - previous <= 21) run.push(sorted[index]);
+        else {
+          flush();
+          run = [sorted[index]];
+        }
+      }
+      flush();
+    }
+    return boxes;
+  }, [instances]);
+  useEffect(() => () => {
+    bars.forEach((bar) => bar.edges.dispose());
+  }, [bars]);
+  if (bars.length === 0) return null;
+  return (
+    <group>
+      {bars.map((bar) => (
+        <group key={bar.key} position={[bar.x, bar.y, bar.z]}>
+          <mesh raycast={ignoreMassingRay}>
+            <boxGeometry args={[bar.w, MODULE_HEIGHT_FT, bar.d]} />
+            <meshLambertMaterial color={bar.color} transparent opacity={0.08} depthWrite={false} side={DoubleSide} />
+          </mesh>
+          <lineSegments geometry={bar.edges} raycast={ignoreMassingRay}>
+            <lineBasicMaterial color={bar.color} transparent opacity={0.45} />
+          </lineSegments>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function Adjacency({ links }: { links: SitePlacementModel["links"] }) {
   const geometry = useMemo(() => {
     const positions = new Float32Array(links.length * 6);
@@ -574,6 +673,9 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
   const marks = useMarkGeometry();
   const materials = useMemo(() => ({
     body: new MeshLambertMaterial({ color: "#b7b2aa", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    lobby: new MeshLambertMaterial({ color: "#a07a68", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    workspace: new MeshLambertMaterial({ color: "#7f96a8", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    gathering: new MeshLambertMaterial({ color: "#5d7c79", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
     selected: new MeshLambertMaterial({ color: "#f7f4ee", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
     teal: new MeshLambertMaterial({ color: "#8fb8b4", side: DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
     preview: new MeshLambertMaterial({ color: "#f4f1ea", transparent: true, opacity: 0.42, depthWrite: false, side: DoubleSide }),
@@ -592,6 +694,9 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
 
   useEffect(() => () => {
     materials.body.dispose();
+    materials.lobby.dispose();
+    materials.workspace.dispose();
+    materials.gathering.dispose();
     materials.selected.dispose();
     materials.teal.dispose();
     materials.preview.dispose();
@@ -606,7 +711,7 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
       {model.instances.map((instance) => {
         const geometry = instance.geometryState === "available" ? geometries.get(instance.provenance.moduleId) : undefined;
         const warning = model.warnings[instance.instanceId];
-        const alert = Boolean(warning?.outside || warning?.overlap || warning?.zoneMismatch);
+        const alert = Boolean(warning?.outside);
         const selected = instance.instanceId === model.selectedId || instance.assemblyPlacementId === model.selectedId;
         const highlight = model.display === "archetypes" || model.display === "both";
         const axonBox = selected && model.viewMode === "axon";
@@ -620,21 +725,29 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
         const carried = Boolean(live && !live.isolate && live.assemblyId && instance.assemblyPlacementId === live.assemblyId);
         const slideX = carried && live ? live.x - live.originX : 0;
         const slideZ = carried && live ? live.z - live.originZ : 0;
+        const axes = model.gumballLive?.id === instance.instanceId ? model.gumballLive : poseOf(instance);
+        const yaw = grabbed && live ? live.yaw : axes.rotationY;
+        const bodyRotation: [number, number, number] = [axes.rotationX, -yaw, axes.rotationZ];
+        const bodyScale: [number, number, number] = [
+          (mirror === "x" ? -1 : 1) * axes.scaleX,
+          (mirror === "y" ? -1 : 1) * axes.scaleY,
+          (mirror === "z" ? -1 : 1) * axes.scaleZ,
+        ];
         return (
           <group
             key={instance.instanceId}
             position={[
-              grabbed && live ? live.x : instance.transform.position.x + shift.x + slideX,
-              grabbed && live ? live.y : instance.transform.position.y,
-              grabbed && live ? live.z : instance.transform.position.z + shift.z + slideZ,
+              grabbed && live ? live.x : axes.x + shift.x + slideX,
+              grabbed && live ? live.y : axes.y,
+              grabbed && live ? live.z : axes.z + shift.z + slideZ,
             ]}
-            rotation={[0, -(grabbed && live ? live.yaw : instance.transform.rotationY), 0]}
           >
+            <group rotation={bodyRotation} scale={bodyScale}>
             {geometry ? (
               <mesh
                 geometry={geometry}
-                material={selected ? materials.selected : highlight ? materials.teal : materials.body}
-                scale={[mirror === "x" ? -1 : 1, mirror === "y" ? -1 : 1, mirror === "z" ? -1 : 1]}
+                raycast={tileRaycast}
+                material={selected ? materials.selected : highlight ? materials.teal : model.programColors === false ? materials.body : instance.program === "lobby" ? materials.lobby : instance.program === "workspace" ? materials.workspace : instance.program === "gathering" ? materials.gathering : materials.body}
                 userData={{ instanceId: instance.instanceId, moduleId: instance.provenance.moduleId }}
                 onPointerDown={listen ? (event) => pointer.onModulePointerDown(instance.instanceId, event) : undefined}
                 onPointerMove={listen ? pointer.ground.onPointerMove : undefined}
@@ -677,7 +790,19 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
                 position={[0, 10, 0]}
               />
             ) : null}
-            {showHandle ? (
+            </group>
+            {showHandle && model.onGumball ? (
+              <group rotation={model.axisSpace === "world" ? [0, 0, 0] : bodyRotation}>
+                <TileGumball
+                  pose={axes}
+                  snap={model.snap}
+                  view={model.viewMode}
+                  onChange={(pose) => model.onGumball?.({ ...pose, id: instance.instanceId }, false)}
+                  onCommit={(pose) => model.onGumball?.({ ...pose, id: instance.instanceId }, true)}
+                />
+              </group>
+            ) : null}
+            {showHandle && !model.onGumball ? (
               <mesh
                 position={[13.2, 1.6, 13.2]}
                 rotation={[-Math.PI / 2, 0, 0]}
@@ -708,6 +833,7 @@ export function ModuleMeshes({ model, pointer, listen = true }: { model: SitePla
           </group>
         );
       })}
+      <MassingSilhouette instances={model.massing ?? []} />
       <Adjacency links={model.display === "connectors" || model.display === "both" ? model.links : []} />
       {model.demonstration.map((item) => {
         const live = pointer.pose;

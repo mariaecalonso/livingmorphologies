@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import { TYPOLOGY_INTENTS, type TypologyAttractor, type TypologyIntent } from "./typology-attractors";
+import { TYPOLOGY_COLOR } from "./typology-attractor-layer";
 
 export type StrategyMode = "site-network" | "assemblies-network";
 
@@ -10,11 +12,43 @@ export const STRATEGY_MODES: { id: StrategyMode; label: string; title: string; b
     id: "site-network",
     label: "Method 01",
     title: "Site → Network",
-    body: "Sources and attractors on the open land shape one branching network.",
+    body: "Sources stay on land. Attractors may sit on land or in a limited bay zone, and one branching network grows through the open region.",
   },
 ];
 
 const EMPTY_EDIT = { nodes: [], selectedId: null, candidates: [], selectedCandidateId: null };
+
+function WaterGrowthControls({ study, selectedId }: { study: SiteNetworkStudy; selectedId: string | null }) {
+  const selected = study.edit.nodes.find((node) => node.id === selectedId);
+  if (selected?.surface !== "water") return null;
+  return (
+    <div className="site-growth-zone">
+      <h3>Over-water growth</h3>
+      {selected.water ? (
+        <>
+          <label>
+            Width, ft
+            <input
+              type="number"
+              min={36}
+              max={160}
+              step={2}
+              value={selected.water.widthFt}
+              onChange={(event) => study.setGrowthWidth(selected.id, Number(event.target.value))}
+            />
+          </label>
+          <button type="button" onClick={() => study.clearGrowth(selected.id)}>Remove growth zone</button>
+          <p className="site-strategy-note">The bay stays closed outside this zone. The network finds its own path.</p>
+        </>
+      ) : (
+        <>
+          <p className="site-strategy-note">This water attractor has no growth zone, so it stays disconnected from the land.</p>
+          <button type="button" onClick={() => study.restoreGrowth(selected.id)}>Open growth zone</button>
+        </>
+      )}
+    </div>
+  );
+}
 
 function feet(value: number) {
   return `${value.toFixed(1)} ft`;
@@ -32,9 +66,14 @@ export function SiteStrategyPanel({
   mode,
   onMode: _onMode,
   network,
+  canClear,
+  onClearField,
+  typology,
 }: {
   mode: StrategyMode;
   onMode: (mode: StrategyMode) => void;
+  canClear: boolean;
+  onClearField: () => void;
   network: {
     study: SiteNetworkStudy | null;
     running: boolean;
@@ -47,6 +86,19 @@ export function SiteStrategyPanel({
     onDelete: () => void;
     onSelect: (id: string) => void;
   } | null;
+  typology: {
+    points: readonly TypologyAttractor[];
+    placing: TypologyIntent | null;
+    visible: boolean;
+    types: Record<TypologyIntent, boolean>;
+    selectedId: string | null;
+    onPlacing: (kind: TypologyIntent | null) => void;
+    onVisible: (visible: boolean) => void;
+    onType: (kind: TypologyIntent, visible: boolean) => void;
+    onSelect: (id: string | null) => void;
+    onDelete: (id: string) => void;
+    onClear: () => void;
+  };
 }) {
   const active = STRATEGY_MODES.find((item) => item.id === mode) ?? STRATEGY_MODES[0];
   const siteNetwork = mode === "site-network" ? network : null;
@@ -73,27 +125,29 @@ export function SiteStrategyPanel({
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M9 8V6h6v2M8 8l1 12h6l1-12" /></svg>
             </button>
           </div>
-          {siteNetwork.study && !ready ? <p className="site-strategy-note">Place a source and an attractor.</p> : null}
+          {siteNetwork.study && !ready ? <p className="site-strategy-note">Place a source and an attractor. Attractors can sit in the bay.</p> : null}
           {siteNetwork.study ? (
             <ul className="site-strategy-nodes">
               {edit.nodes.map((node) => {
                 const number = edit.nodes.filter((item) => item.kind === node.kind && edit.nodes.indexOf(item) <= edit.nodes.indexOf(node)).length;
+                const water = node.surface === "water";
                 return (
                   <li key={node.id}>
                     <button
                       type="button"
-                      data-kind={node.kind}
+                      data-kind={water ? "water" : node.kind}
                       data-active={node.id === edit.selectedId || undefined}
                       onClick={() => siteNetwork.onSelect(node.id)}
                     >
                       <i />
-                      <b>{node.kind === "source" ? "Source" : "Attractor"} {number}</b>
+                      <b>{node.kind === "source" ? "Source" : water ? "Water attractor" : "Attractor"} {number}</b>
                     </button>
                   </li>
                 );
               })}
             </ul>
           ) : <p className="site-strategy-note">Preparing the land.</p>}
+          {siteNetwork.study ? <WaterGrowthControls study={siteNetwork.study} selectedId={edit.selectedId} /> : null}
         </section>
       ) : <p className="site-strategy-note">{active.title} uses the assemblies on this site.</p>}
       {siteNetwork?.study ? <PedestrianCandidates study={siteNetwork.study} edit={edit} /> : null}
@@ -116,7 +170,85 @@ export function SiteStrategyPanel({
           </div>
         </section>
       ) : null}
+      <ArchitecturalAttractors typology={typology} />
+      <section className="site-strategy-section" aria-label="Clear the site">
+        <button type="button" className="site-clear-field" disabled={!canClear} onClick={onClearField}>Clear all</button>
+      </section>
     </div>
+  );
+}
+
+function ArchitecturalAttractors({
+  typology,
+}: {
+  typology: {
+    points: readonly TypologyAttractor[];
+    placing: TypologyIntent | null;
+    visible: boolean;
+    types: Record<TypologyIntent, boolean>;
+    selectedId: string | null;
+    onPlacing: (kind: TypologyIntent | null) => void;
+    onVisible: (visible: boolean) => void;
+    onType: (kind: TypologyIntent, visible: boolean) => void;
+    onSelect: (id: string | null) => void;
+    onDelete: (id: string) => void;
+    onClear: () => void;
+  };
+}) {
+  const label: Record<TypologyIntent, string> = { lobby: "Lobby", gathering: "Gathering", workspace: "Workspace" };
+  return (
+    <section className="site-strategy-section site-arch-attractors" aria-label="Architectural attractors">
+      <details open>
+        <summary>Architectural attractors</summary>
+        <p className="site-strategy-note">Planning markers only. They do not feed the Physarum network.</p>
+        <div className="site-arch-types" role="group" aria-label="Typology to place">
+          {TYPOLOGY_INTENTS.map((kind) => {
+            const count = typology.points.filter((point) => point.typology === kind).length;
+            return (
+              <button
+                key={kind}
+                type="button"
+                data-typology={kind}
+                aria-pressed={typology.placing === kind}
+                data-active={typology.placing === kind || undefined}
+                onClick={() => typology.onPlacing(typology.placing === kind ? null : kind)}
+              >
+                <i style={{ background: TYPOLOGY_COLOR[kind], color: TYPOLOGY_COLOR[kind] }} />
+                <b>{label[kind]}</b>
+                <span>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="site-arch-visibility">
+          <label>
+            <input type="checkbox" checked={typology.visible} onChange={(event) => typology.onVisible(event.target.checked)} />
+            Show layer
+          </label>
+          {TYPOLOGY_INTENTS.map((kind) => (
+            <label key={kind}>
+              <input type="checkbox" checked={typology.types[kind]} onChange={(event) => typology.onType(kind, event.target.checked)} />
+              {label[kind]}
+            </label>
+          ))}
+        </div>
+        {typology.placing ? <button type="button" onClick={() => typology.onPlacing(null)}>Navigate</button> : null}
+        {typology.points.length > 0 ? (
+          <ul className="site-strategy-nodes">
+            {typology.points.map((point, index) => (
+              <li key={point.id}>
+                <button type="button" data-typology={point.typology} data-active={point.id === typology.selectedId || undefined} onClick={() => typology.onSelect(point.id)}>
+                  <i style={{ background: TYPOLOGY_COLOR[point.typology] }} />
+                  <b>{label[point.typology]} {typology.points.filter((item) => item.typology === point.typology).indexOf(point) + 1 || index + 1}</b>
+                </button>
+                <button type="button" aria-label={`Delete ${label[point.typology]}`} onClick={() => typology.onDelete(point.id)}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="site-strategy-note">No markers yet. Choose a typology, then click the site.</p>}
+        <button type="button" disabled={typology.points.length === 0} onClick={typology.onClear}>Clear architectural attractors</button>
+      </details>
+    </section>
   );
 }
 

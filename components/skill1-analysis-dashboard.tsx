@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelHeader } from "@/components/hud";
 import {
   ANALYSIS_DEFINITIONS,
@@ -18,7 +18,7 @@ import {
   type GrowthSample,
 } from "@/lib/skill1/analysis";
 
-const INTERVALS = [4, 8, 16, 32];
+const ANALYSIS_TAB_ITEMS = ANALYSIS_TABS.filter((item) => item.id !== "growth");
 
 type DensityMode = "trail" | "occupancy" | "intensity";
 type TopologyMode = "overview" | "metrics" | "hierarchy" | "circulation" | "export";
@@ -240,46 +240,6 @@ function RadarChart({ axes }: { axes: DnaAxis[] }) {
   );
 }
 
-function SeriesChart({
-  samples,
-  read,
-  label,
-  color,
-}: {
-  samples: GrowthSample[];
-  read: (sample: GrowthSample) => number | null;
-  label: string;
-  color: string;
-}) {
-  const values = samples.map(read);
-  const numbers = values.filter((value): value is number => value != null);
-  const max = numbers.length ? Math.max(...numbers) : 0;
-  const min = numbers.length ? Math.min(...numbers) : 0;
-  const span = max - min || 1;
-  const width = 320;
-  const height = 92;
-  let path = "";
-  values.forEach((value, index) => {
-    if (value == null) return;
-    const x = samples.length === 1 ? width / 2 : (index / (samples.length - 1)) * width;
-    const y = height - ((value - min) / span) * (height - 8) - 4;
-    path += `${path ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)} `;
-  });
-  return (
-    <figure className="s1a-chart">
-      <figcaption>
-        <span>{label}</span>
-        <span>
-          {numbers.length ? `${min.toFixed(3)} – ${max.toFixed(3)}` : "Not yet computed"}
-        </span>
-      </figcaption>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
-        <path d={path.trim()} fill="none" stroke={color} strokeWidth="1.6" />
-      </svg>
-    </figure>
-  );
-}
-
 function MiniField({ grid, size }: { grid: number[]; size: number }) {
   const ref = useFieldCanvas((ctx, width, height) => {
     const max = grid.reduce((peak, value) => Math.max(peak, value), 0);
@@ -351,13 +311,11 @@ function usePresentationSurface() {
 export function Skill1AnalysisDashboard({
   session,
   simulating,
-  sampleInterval,
-  onSampleInterval,
 }: {
   session: AnalysisSession | null;
   simulating: boolean;
-  sampleInterval: number;
-  onSampleInterval: (value: number) => void;
+  sampleInterval?: number;
+  onSampleInterval?: (value: number) => void;
 }) {
   const { ref: surfaceRef, presentation } = usePresentationSurface();
   const [tab, setTab] = useState<AnalysisTabId>("dna");
@@ -365,10 +323,15 @@ export function Skill1AnalysisDashboard({
   const [topologyMode, setTopologyMode] = useState<TopologyMode>("overview");
   const [directionMode, setDirectionMode] = useState<DirectionMode>("accumulated");
   const frame = frameForTab(session, tab);
-  const shownSnapshots = useMemo(
-    () => evenSamples(session?.samples.filter((sample) => sample.meanGrid.some((value) => value > 0)) ?? [], 8),
-    [session],
-  );
+  const shownSnapshots = useMemo(() => {
+    const recorded = session?.samples.filter((sample) => sample.meanGrid.some((value) => value > 0)) ?? [];
+    const live = session?.latest?.growth;
+    const series =
+      live && live.meanGrid.some((value) => value > 0) && recorded.every((sample) => sample.iteration !== live.iteration)
+        ? recorded.concat(live)
+        : recorded;
+    return evenSamples(series, 8);
+  }, [session]);
 
   const download = () => {
     const payload = exportAnalysisPayload(session);
@@ -396,7 +359,7 @@ export function Skill1AnalysisDashboard({
           />
         </div>
         <div className="s1a-tabs px-3" role="tablist" aria-label="Simulation analysis">
-          {ANALYSIS_TABS.map((item) => (
+          {ANALYSIS_TAB_ITEMS.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -420,15 +383,11 @@ export function Skill1AnalysisDashboard({
           {!frame || !session ? (
             <p className="s1a-empty">Generate a field to compute analysis from the simulation.</p>
           ) : tab === "dna" ? (
-            <DnaTab axes={frame.dna} presentation={presentation} />
-          ) : tab === "growth" ? (
-            <GrowthTab
-              session={session}
+            <DnaTab
+              axes={frame.dna}
               snapshots={shownSnapshots}
-              sampleInterval={sampleInterval}
-              onSampleInterval={onSampleInterval}
+              fieldSize={frame.density.size}
               presentation={presentation}
-              simulating={simulating}
             />
           ) : tab === "topology" ? (
             <TopologyTab session={session} mode={topologyMode} onMode={setTopologyMode} onExport={download} presentation={presentation} />
@@ -538,17 +497,6 @@ function PresentationRadar({ axes }: { axes: DnaAxis[] }) {
   );
 }
 
-function MetricGlyph() {
-  return (
-    <svg className="s1a-p-glyph" viewBox="-12 -12 24 24" aria-hidden="true">
-      <circle r="10" fill="none" stroke="rgba(242,242,238,0.28)" strokeWidth="0.6" />
-      <circle r="6" fill="none" stroke="rgba(242,242,238,0.16)" strokeWidth="0.5" />
-      <path d="M0,-9.2 L8,4.6 L-8,4.6 Z" fill="rgba(199,126,95,0.12)" stroke="#c77e5f" strokeWidth="0.7" />
-      <path d="M0,-4.2 L4.6,3.2 L-3.4,2.4 Z" fill="rgba(15,115,119,0.16)" stroke="#0f7377" strokeWidth="0.7" />
-    </svg>
-  );
-}
-
 function ComparisonBar({ target, generated }: { target: number | null; generated: number | null }) {
   const mark = (value: number | null, tone: "target" | "generated") => {
     if (value == null) return null;
@@ -563,7 +511,35 @@ function ComparisonBar({ target, generated }: { target: number | null; generated
   );
 }
 
-function PresentationDna({ axes }: { axes: DnaAxis[] }) {
+function GenerationProgression({ snapshots, fieldSize }: { snapshots: GrowthSample[]; fieldSize: number }) {
+  return (
+    <section className="s1a-dna-progress" aria-label="Generation progression">
+      <h3>Generation progression</h3>
+      {snapshots.length ? (
+        <div className="s1a-g-morph">
+          {snapshots.map((sample) => (
+            <figure key={sample.iteration} className="s1a-g-snap">
+              <MiniField grid={sample.meanGrid} size={fieldSize} />
+              <span>{sample.iteration}</span>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <p className="s1a-note">Not yet computed. Snapshots are stored from analysis samples of the trail field.</p>
+      )}
+    </section>
+  );
+}
+
+function PresentationDna({
+  axes,
+  snapshots,
+  fieldSize,
+}: {
+  axes: DnaAxis[];
+  snapshots: GrowthSample[];
+  fieldSize: number;
+}) {
   return (
     <div className="s1a-dna-present">
       <div className="s1a-p-radar">
@@ -589,7 +565,6 @@ function PresentationDna({ axes }: { axes: DnaAxis[] }) {
             return (
               <div key={axis.id} className="s1a-p-row">
                 <div className="s1a-p-metric">
-                  <MetricGlyph />
                   <p>
                     <span>{axis.label}</span>
                     {caption ? <small>{caption}</small> : null}
@@ -604,12 +579,23 @@ function PresentationDna({ axes }: { axes: DnaAxis[] }) {
           })}
         </div>
       </section>
+      <GenerationProgression snapshots={snapshots} fieldSize={fieldSize} />
     </div>
   );
 }
 
-function DnaTab({ axes, presentation = false }: { axes: DnaAxis[]; presentation?: boolean }) {
-  if (presentation) return <PresentationDna axes={axes} />;
+function DnaTab({
+  axes,
+  snapshots,
+  fieldSize,
+  presentation = false,
+}: {
+  axes: DnaAxis[];
+  snapshots: GrowthSample[];
+  fieldSize: number;
+  presentation?: boolean;
+}) {
+  if (presentation) return <PresentationDna axes={axes} snapshots={snapshots} fieldSize={fieldSize} />;
   const mid = Math.ceil(axes.length / 2);
   const columns = [axes.slice(0, mid), axes.slice(mid)];
   return (
@@ -650,424 +636,7 @@ function DnaTab({ axes, presentation = false }: { axes: DnaAxis[]; presentation?
           ))}
         </div>
       </section>
-    </div>
-  );
-}
-
-const GROWTH_PLOT = { width: 1000, height: 460, left: 72, right: 28, top: 20, bottom: 46 };
-
-const GROWTH_SERIES = [
-  {
-    id: "occupied",
-    label: "Occupied area",
-    unit: "fraction of field cells",
-    color: "#0F7377",
-    dash: undefined,
-    absolute: true,
-    read: (sample: GrowthSample) => sample.occupiedFraction,
-    format: (value: number) => value.toFixed(3),
-  },
-  {
-    id: "branch",
-    label: "Branch count",
-    unit: "skeleton pixels",
-    color: "#C77E5F",
-    dash: undefined,
-    absolute: false,
-    read: (sample: GrowthSample) => sample.branchCount,
-    format: (value: number) => String(Math.round(value)),
-  },
-  {
-    id: "trail",
-    label: "Mean trail density",
-    unit: "mean of the trail grid",
-    color: "#f2f2ee",
-    dash: undefined,
-    absolute: false,
-    read: (sample: GrowthSample) => sample.meanTrail,
-    format: (value: number) => value.toFixed(3),
-  },
-  {
-    id: "stable",
-    label: "Network stabilization",
-    unit: "0–1 change score",
-    color: "#b7b7b2",
-    dash: "6 4",
-    absolute: true,
-    read: (sample: GrowthSample) => sample.stabilization,
-    format: (value: number) => value.toFixed(3),
-  },
-] as const;
-
-function growthExtent(samples: GrowthSample[], read: (sample: GrowthSample) => number | null) {
-  const values = samples.map(read).filter((value): value is number => value != null);
-  if (!values.length) return null;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return { min, max, span: max - min };
-}
-
-function growthNorm(value: number, extent: { min: number; span: number } | null, absolute: boolean) {
-  if (absolute) return Math.max(0, Math.min(1, value));
-  if (!extent || extent.span === 0) return 0;
-  return (value - extent.min) / extent.span;
-}
-
-function growthPath(
-  samples: GrowthSample[],
-  read: (sample: GrowthSample) => number | null,
-  extent: { min: number; span: number } | null,
-  absolute: boolean,
-) {
-  const { width, height, left, right, top, bottom } = GROWTH_PLOT;
-  const plotW = width - left - right;
-  const plotH = height - top - bottom;
-  const paths: string[] = [];
-  let run = "";
-  const flush = () => {
-    if (run) paths.push(run.trim());
-    run = "";
-  };
-  samples.forEach((sample, index) => {
-    const value = read(sample);
-    if (value == null) {
-      flush();
-      return;
-    }
-    const x = samples.length === 1 ? left + plotW / 2 : left + (index / (samples.length - 1)) * plotW;
-    const y = top + (1 - growthNorm(value, extent, absolute)) * plotH;
-    run += `${run ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)} `;
-  });
-  flush();
-  return paths;
-}
-
-function growthX(index: number, count: number) {
-  const { width, left, right } = GROWTH_PLOT;
-  const plotW = width - left - right;
-  if (count <= 1) return left + plotW / 2;
-  return left + (index / (count - 1)) * plotW;
-}
-
-function regimeTone(regime: string) {
-  if (regime === "Exploration") return "#0F7377";
-  if (regime === "Reinforcement") return "#C77E5F";
-  if (regime === "Convergence") return "#f2f2ee";
-  return "rgba(242,242,238,0.28)";
-}
-
-function regimeRuns(samples: GrowthSample[]) {
-  const runs: { regime: string; rule: string; start: number; count: number }[] = [];
-  samples.forEach((sample, index) => {
-    const last = runs[runs.length - 1];
-    if (last && last.regime === sample.regime) last.count += 1;
-    else runs.push({ regime: sample.regime, rule: sample.regimeRule, start: index, count: 1 });
-  });
-  return runs;
-}
-
-function PresentationGrowth({
-  session,
-  snapshots,
-  sampleInterval,
-  onSampleInterval,
-  simulating,
-}: {
-  session: AnalysisSession;
-  snapshots: GrowthSample[];
-  sampleInterval: number;
-  onSampleInterval: (value: number) => void;
-  simulating: boolean;
-}) {
-  const samples = session.samples;
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({
-    occupied: true,
-    branch: true,
-    trail: true,
-    stable: true,
-  });
-  const [selectedIteration, setSelectedIteration] = useState<number | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const inspected =
-    (selectedIteration == null ? null : samples.find((sample) => sample.iteration === selectedIteration)) ??
-    samples[samples.length - 1] ??
-    null;
-  const selectedIndex = inspected ? samples.findIndex((sample) => sample.iteration === inspected.iteration) : -1;
-  const extents = GROWTH_SERIES.map((series) => growthExtent(samples, series.read));
-  const runs = regimeRuns(samples);
-  const hover = hoverIndex == null ? null : samples[hoverIndex] ?? null;
-  const simulator = session.latest?.converged ? "Simulator converged" : simulating ? "Simulator running" : "Simulator held";
-
-  const inspectPlot = (event: MouseEvent<SVGRectElement>, commit: boolean) => {
-    if (samples.length === 0) return;
-    const svg = event.currentTarget.ownerSVGElement;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const view = svg.viewBox.baseVal;
-    const scale = Math.min(rect.width / view.width, rect.height / view.height);
-    const offsetX = (rect.width - view.width * scale) / 2;
-    const x = (event.clientX - rect.left - offsetX) / scale;
-    const { width, left, right } = GROWTH_PLOT;
-    const plotW = width - left - right;
-    const ratio = plotW === 0 ? 0 : (x - left) / plotW;
-    const index = samples.length === 1 ? 0 : Math.round(Math.max(0, Math.min(1, ratio)) * (samples.length - 1));
-    setHoverIndex(index);
-    if (commit) setSelectedIteration(samples[index]?.iteration ?? null);
-  };
-
-  return (
-    <div className="s1a-growth-present">
-      <div className="s1a-g-metrics">
-        {GROWTH_SERIES.map((series) => {
-          const value = inspected ? series.read(inspected) : null;
-          const extent = extents[GROWTH_SERIES.indexOf(series)];
-          return (
-            <article key={series.id} className="s1a-g-metric" style={{ borderTopColor: series.color }}>
-              <span>{series.label}</span>
-              <strong title={ANALYSIS_DEFINITIONS[series.id === "occupied" ? "occupiedArea" : series.id === "branch" ? "branchCount" : series.id === "trail" ? "meanTrail" : "stabilization"]}>
-                {value == null ? "—" : series.format(value)}
-              </strong>
-              <small>{series.unit}</small>
-              <svg viewBox={`0 0 ${GROWTH_PLOT.width} ${GROWTH_PLOT.height}`} className="s1a-g-spark" aria-hidden="true">
-                {growthPath(samples, series.read, extent, false).map((path) => (
-                  <path key={path} d={path} fill="none" stroke={series.color} strokeWidth="8" strokeDasharray={series.dash} />
-                ))}
-              </svg>
-            </article>
-          );
-        })}
-      </div>
-      <section className="s1a-g-graph" aria-label="Growth evolution">
-        <div className="s1a-g-legend">
-          {GROWTH_SERIES.map((series) => (
-            <button
-              key={series.id}
-              type="button"
-              aria-pressed={enabled[series.id]}
-              onClick={() => setEnabled((current) => ({ ...current, [series.id]: !current[series.id] }))}
-            >
-              <i style={series.dash ? { background: `repeating-linear-gradient(90deg, ${series.color} 0 5px, transparent 5px 8px)` } : { background: series.color }} />
-              {series.label}
-            </button>
-          ))}
-          <p>Occupied area and stabilization use 0–1. Branch count and mean trail are scaled to their recorded range. Lines join recorded samples.</p>
-        </div>
-        <div className="s1a-g-plot">
-          <svg viewBox={`0 0 ${GROWTH_PLOT.width} ${GROWTH_PLOT.height}`} role="img" aria-label="Recorded growth metrics by iteration" preserveAspectRatio="xMidYMid meet">
-            {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
-              const y = GROWTH_PLOT.top + (1 - tick) * (GROWTH_PLOT.height - GROWTH_PLOT.top - GROWTH_PLOT.bottom);
-              return (
-                <g key={tick}>
-                  <line x1={GROWTH_PLOT.left} x2={GROWTH_PLOT.width - GROWTH_PLOT.right} y1={y} y2={y} stroke="rgba(242,242,238,0.14)" strokeWidth="1" />
-                  <text x={GROWTH_PLOT.left - 10} y={y + 5} textAnchor="end" className="s1a-g-axis" fontSize="16">
-                    {tick.toFixed(2)}
-                  </text>
-                </g>
-              );
-            })}
-            {samples.length > 1
-              ? [0, Math.floor((samples.length - 1) / 2), samples.length - 1].filter((index, place, all) => all.indexOf(index) === place).map((index) => {
-                  const x = growthX(index, samples.length);
-                  return (
-                    <g key={samples[index].iteration}>
-                      <line x1={x} x2={x} y1={GROWTH_PLOT.top} y2={GROWTH_PLOT.height - GROWTH_PLOT.bottom} stroke="rgba(242,242,238,0.08)" strokeWidth="1" />
-                      <text x={x} y={GROWTH_PLOT.height - 16} textAnchor="middle" className="s1a-g-axis" fontSize="16">
-                        {samples[index].iteration}
-                      </text>
-                    </g>
-                  );
-                })
-              : null}
-            {selectedIndex >= 0 ? (
-              <line
-                x1={growthX(selectedIndex, samples.length)}
-                x2={growthX(selectedIndex, samples.length)}
-                y1={GROWTH_PLOT.top}
-                y2={GROWTH_PLOT.height - GROWTH_PLOT.bottom}
-                stroke="rgba(242,242,238,0.55)"
-                strokeWidth="1.4"
-              />
-            ) : null}
-            {GROWTH_SERIES.map((series, seriesIndex) =>
-              enabled[series.id]
-                ? growthPath(samples, series.read, extents[seriesIndex], series.absolute).map((path) => (
-                    <path key={`${series.id}-${path}`} d={path} fill="none" stroke={series.color} strokeWidth="2.4" strokeDasharray={series.dash} strokeLinejoin="round" strokeLinecap="round" />
-                  ))
-                : null,
-            )}
-            {GROWTH_SERIES.map((series, seriesIndex) =>
-              enabled[series.id]
-                ? samples.map((sample, index) => {
-                    const value = series.read(sample);
-                    if (value == null) return null;
-                    const y =
-                      GROWTH_PLOT.top +
-                      (1 - growthNorm(value, extents[seriesIndex], series.absolute)) * (GROWTH_PLOT.height - GROWTH_PLOT.top - GROWTH_PLOT.bottom);
-                    return <circle key={`${series.id}-${sample.iteration}`} cx={growthX(index, samples.length)} cy={y} r="3.2" fill="#000" stroke={series.color} strokeWidth="1.5" />;
-                  })
-                : null,
-            )}
-            <rect
-              x={GROWTH_PLOT.left}
-              y={GROWTH_PLOT.top}
-              width={GROWTH_PLOT.width - GROWTH_PLOT.left - GROWTH_PLOT.right}
-              height={GROWTH_PLOT.height - GROWTH_PLOT.top - GROWTH_PLOT.bottom}
-              fill="transparent"
-              onMouseMove={(event) => inspectPlot(event, false)}
-              onMouseLeave={() => setHoverIndex(null)}
-              onClick={(event) => inspectPlot(event, true)}
-            />
-            <text x={GROWTH_PLOT.left} y={GROWTH_PLOT.height - 2} className="s1a-g-axis" fontSize="14">
-              Iteration
-            </text>
-          </svg>
-          {hover ? (
-            <div className="s1a-g-tip" style={{ left: `${(growthX(hoverIndex ?? 0, samples.length) / GROWTH_PLOT.width) * 100}%` }}>
-              <p>Iteration {hover.iteration}</p>
-              {GROWTH_SERIES.map((series) => {
-                const value = series.read(hover);
-                return (
-                  <span key={series.id}>
-                    <i style={{ background: series.color }} />
-                    {series.label} {value == null ? "—" : series.format(value)}
-                  </span>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
-      </section>
-      <section className="s1a-g-stage" aria-label="Measured growth stage">
-        <div>
-          <p>
-            {inspected ? inspected.regime : "Unlabeled"}
-            <small>{inspected?.regimeRule || "Not yet computed. A regime needs two samples with deposited trail."}</small>
-          </p>
-          <span>{simulator}. Stabilization is measured from trail change and is separate from simulator convergence.</span>
-        </div>
-        <div className="s1a-g-runs" aria-hidden={samples.length === 0}>
-          {runs.map((run) => (
-            <button
-              key={`${run.regime}-${run.start}`}
-              type="button"
-              style={{ flexGrow: run.count, background: regimeTone(run.regime) }}
-              title={`${run.regime}. ${run.rule}`}
-              onClick={() => setSelectedIteration(samples[run.start + run.count - 1]?.iteration ?? null)}
-            >
-              {run.count > samples.length / 5 ? run.regime : ""}
-            </button>
-          ))}
-        </div>
-        <label className="s1a-g-interval">
-          Sample every
-          <select value={sampleInterval} onChange={(event) => onSampleInterval(Number(event.target.value))} aria-label="Analysis sample interval">
-            {INTERVALS.map((value) => (
-              <option key={value} value={value}>
-                {value} iterations
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-      <section className="s1a-g-morph" aria-label="Morphology snapshots">
-        {snapshots.length ? (
-          snapshots.map((sample) => {
-            const size = session.latest?.density.size ?? sample.meanGrid.length ** 0.5;
-            const selected = inspected?.iteration === sample.iteration;
-            return (
-              <button
-                key={sample.iteration}
-                type="button"
-                className="s1a-g-snap"
-                aria-pressed={selected}
-                onClick={() => setSelectedIteration(sample.iteration)}
-              >
-                <MiniField grid={sample.meanGrid} size={size} />
-                <span>{sample.iteration}</span>
-              </button>
-            );
-          })
-        ) : (
-          <p>Not yet computed. Snapshots are stored from analysis samples of the trail field.</p>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function GrowthTab({
-  session,
-  snapshots,
-  sampleInterval,
-  onSampleInterval,
-  presentation = false,
-  simulating = false,
-}: {
-  session: AnalysisSession;
-  snapshots: GrowthSample[];
-  sampleInterval: number;
-  onSampleInterval: (value: number) => void;
-  presentation?: boolean;
-  simulating?: boolean;
-}) {
-  if (presentation) {
-    return (
-      <PresentationGrowth
-        session={session}
-        snapshots={snapshots}
-        sampleInterval={sampleInterval}
-        onSampleInterval={onSampleInterval}
-        simulating={simulating}
-      />
-    );
-  }
-  const latest = session.latest?.growth;
-  return (
-    <div className="s1a-stack">
-      {session.latest ? <MetaLine session={session} frameIteration={session.latest.iteration} /> : null}
-      <label className="s1a-control">
-        <span>Sample every</span>
-        <select
-          value={sampleInterval}
-          onChange={(event) => onSampleInterval(Number(event.target.value))}
-          aria-label="Analysis sample interval"
-        >
-          {INTERVALS.map((value) => (
-            <option key={value} value={value}>
-              {value} iterations
-            </option>
-          ))}
-        </select>
-      </label>
-      <SeriesChart samples={session.samples} read={(sample) => sample.occupiedFraction} label="Occupied area" color="#7fd0cf" />
-      <SeriesChart samples={session.samples} read={(sample) => sample.branchCount} label="Branch count" color="#c77e5f" />
-      <SeriesChart samples={session.samples} read={(sample) => sample.meanTrail} label="Mean trail density" color="#f2f2ee" />
-      <SeriesChart samples={session.samples} read={(sample) => sample.stabilization} label="Stabilization" color="#8faaa8" />
-      <p className="s1a-note">
-        {latest ? (
-          <>
-            <strong>{latest.regime}.</strong> {latest.regimeRule}
-          </>
-        ) : (
-          "Not yet computed"
-        )}
-      </p>
-      <div>
-        <p className="s1a-kicker">Morphology snapshots</p>
-        {snapshots.length ? (
-          <div className="s1a-snaps">
-            {snapshots.map((sample) => (
-              <figure key={sample.iteration}>
-                <MiniField grid={sample.meanGrid} size={session.latest?.density.size ?? sample.meanGrid.length ** 0.5} />
-                <figcaption>{sample.iteration}</figcaption>
-              </figure>
-            ))}
-          </div>
-        ) : (
-          <p className="s1a-note">Not yet computed. Snapshots are stored from analysis samples of the trail field.</p>
-        )}
-      </div>
-      <p className="s1a-note">{ANALYSIS_DEFINITIONS.occupiedArea} {ANALYSIS_DEFINITIONS.stabilization}</p>
+      <GenerationProgression snapshots={snapshots} fieldSize={fieldSize} />
     </div>
   );
 }
@@ -1107,6 +676,369 @@ function paintMutedGrid(
       ctx.fillRect(x * cellW, fieldToDisplayRow(y, size) * cellH, cellW + 0.5, cellH + 0.5);
     }
   }
+}
+
+const CHART_CYAN = "#49d7de";
+const CHART_COPPER = "#c77e5f";
+
+function drawPolarFrame(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) * 0.46;
+  const hair = Math.max(1, Math.min(width, height) * 0.0014);
+  ctx.save();
+  ctx.strokeStyle = "rgba(73, 215, 222, 0.11)";
+  ctx.lineWidth = hair;
+  for (let ring = 1; ring <= 4; ring += 1) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, (radius * ring) / 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  for (let spoke = 0; spoke < 8; spoke += 1) {
+    const angle = (spoke / 8) * Math.PI * 2;
+    ctx.moveTo(cx + Math.cos(angle) * radius * 0.08, cy + Math.sin(angle) * radius * 0.08);
+    ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(242, 242, 238, 0.16)";
+  ctx.beginPath();
+  ctx.moveTo(cx - 7, cy);
+  ctx.lineTo(cx + 7, cy);
+  ctx.moveTo(cx, cy - 7);
+  ctx.lineTo(cx, cy + 7);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function sampleGrid(values: ArrayLike<number>, size: number, x: number, y: number) {
+  const cx = Math.min(size - 1.0001, Math.max(0, x));
+  const cy = Math.min(size - 1.0001, Math.max(0, y));
+  const x0 = Math.floor(cx);
+  const y0 = Math.floor(cy);
+  const x1 = Math.min(size - 1, x0 + 1);
+  const y1 = Math.min(size - 1, y0 + 1);
+  const tx = cx - x0;
+  const ty = cy - y0;
+  const at = (px: number, py: number) => values[py * size + px] ?? 0;
+  const top = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
+  const bottom = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
+  return top * (1 - ty) + bottom * ty;
+}
+
+function fieldInk(t: number): [number, number, number, number] {
+  if (t <= 0.015) return [0, 0, 0, 0];
+  const teal: [number, number, number] = [14, 78, 84];
+  const pale: [number, number, number] = [198, 214, 212];
+  const white: [number, number, number] = [242, 242, 238];
+  const mix = (a: [number, number, number], b: [number, number, number], u: number): [number, number, number] => [
+    Math.round(a[0] + (b[0] - a[0]) * u),
+    Math.round(a[1] + (b[1] - a[1]) * u),
+    Math.round(a[2] + (b[2] - a[2]) * u),
+  ];
+  const rgb = t < 0.62 ? mix(teal, pale, t / 0.62) : mix(pale, white, (t - 0.62) / 0.38);
+  return [rgb[0], rgb[1], rgb[2], Math.round(Math.min(168, 18 + t * 150))];
+}
+
+function paintSoftField(
+  ctx: CanvasRenderingContext2D,
+  values: ArrayLike<number>,
+  size: number,
+  left: number,
+  top: number,
+  plotW: number,
+  plotH: number,
+  max: number,
+) {
+  const resolution = size * 8;
+  const field = document.createElement("canvas");
+  field.width = resolution;
+  field.height = resolution;
+  const pen = field.getContext("2d");
+  if (!pen || max <= 0) return;
+  const image = pen.createImageData(resolution, resolution);
+  const span = Math.max(1, resolution - 1);
+  for (let py = 0; py < resolution; py += 1) {
+    const fieldY = ((size - 1) * (span - py)) / span;
+    for (let px = 0; px < resolution; px += 1) {
+      const fieldX = ((size - 1) * px) / span;
+      const t = sampleGrid(values, size, fieldX, fieldY) / max;
+      const [red, green, blue, alpha] = fieldInk(t);
+      const index = (py * resolution + px) * 4;
+      image.data[index] = red;
+      image.data[index + 1] = green;
+      image.data[index + 2] = blue;
+      image.data[index + 3] = alpha;
+    }
+  }
+  pen.putImageData(image, 0, 0);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(field, left, top, plotW, plotH);
+  ctx.restore();
+}
+
+function paintContours(
+  ctx: CanvasRenderingContext2D,
+  values: ArrayLike<number>,
+  size: number,
+  left: number,
+  top: number,
+  plotW: number,
+  plotH: number,
+  max: number,
+) {
+  if (max <= 0) return;
+  const steps = size * 4;
+  const levels = [0.3, 0.55, 0.8];
+  const cellW = plotW / (steps - 1);
+  const cellH = plotH / (steps - 1);
+  const at = (ix: number, iy: number) => {
+    const fieldX = (ix / (steps - 1)) * (size - 1);
+    const fieldY = ((steps - 1 - iy) / (steps - 1)) * (size - 1);
+    return sampleGrid(values, size, fieldX, fieldY) / max;
+  };
+  const cell = Math.min(plotW, plotH) / size;
+  ctx.save();
+  ctx.lineWidth = Math.max(0.8, cell * 0.028);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  for (const level of levels) {
+    ctx.strokeStyle = level >= 0.8 ? "rgba(199, 126, 95, 0.7)" : "rgba(73, 215, 222, 0.42)";
+    ctx.beginPath();
+    for (let iy = 0; iy < steps - 1; iy += 1) {
+      for (let ix = 0; ix < steps - 1; ix += 1) {
+        const corners = [at(ix, iy), at(ix + 1, iy), at(ix + 1, iy + 1), at(ix, iy + 1)];
+        const x = left + ix * cellW;
+        const y = top + iy * cellH;
+        const points = [
+          [x, y, x + cellW, y],
+          [x + cellW, y, x + cellW, y + cellH],
+          [x + cellW, y + cellH, x, y + cellH],
+          [x, y + cellH, x, y],
+        ];
+        const pairs = [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 0],
+        ];
+        const hits: Array<[number, number]> = [];
+        for (const [a, b] of pairs) {
+          const v0 = corners[a];
+          const v1 = corners[b];
+          if ((v0 < level && v1 >= level) || (v1 < level && v0 >= level)) {
+            const u = (level - v0) / (v1 - v0 || 1);
+            const [x0, y0, x1, y1] = points[a];
+            hits.push([x0 + (x1 - x0) * u, y0 + (y1 - y0) * u]);
+          }
+        }
+        if (hits.length >= 2) {
+          ctx.moveTo(hits[0][0], hits[0][1]);
+          ctx.lineTo(hits[1][0], hits[1][1]);
+        }
+      }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function skeletonSegments(skeleton: number[], size: number) {
+  const on = (x: number, y: number) => x >= 0 && y >= 0 && x < size && y < size && skeleton[y * size + x] > 0;
+  const segments: Array<[number, number, number, number]> = [];
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (!on(x, y)) continue;
+      for (const [ox, oy] of [
+        [1, 0],
+        [0, 1],
+      ] as const) {
+        if (on(x + ox, y + oy)) segments.push([x, y, x + ox, y + oy]);
+      }
+      for (const [ox, oy] of [
+        [1, 1],
+        [1, -1],
+      ] as const) {
+        if (!on(x + ox, y + oy)) continue;
+        if (on(x + ox, y) || on(x, y + oy)) continue;
+        segments.push([x, y, x + ox, y + oy]);
+      }
+    }
+  }
+  return segments;
+}
+
+function paintOccupancyField(ctx: CanvasRenderingContext2D, mask: ArrayLike<number>, size: number, width: number, height: number) {
+  const cell = Math.min(width, height) / size;
+  const field = document.createElement("canvas");
+  field.width = Math.max(1, Math.ceil(width));
+  field.height = Math.max(1, Math.ceil(height));
+  const pen = field.getContext("2d");
+  if (!pen) return;
+  const cellW = width / size;
+  const cellH = height / size;
+  pen.fillStyle = "rgba(16, 104, 110, 1)";
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (!mask[y * size + x]) continue;
+      pen.fillRect(x * cellW, fieldToDisplayRow(y, size) * cellH, cellW, cellH);
+    }
+  }
+  ctx.save();
+  ctx.filter = `blur(${Math.max(2, cell * 0.55)}px)`;
+  ctx.globalAlpha = 0.42;
+  ctx.drawImage(field, 0, 0, width, height);
+  ctx.filter = `blur(${Math.max(1, cell * 0.16)}px)`;
+  ctx.globalAlpha = 0.28;
+  ctx.drawImage(field, 0, 0, width, height);
+  ctx.restore();
+}
+
+function paintTopologyNetwork(ctx: CanvasRenderingContext2D, width: number, height: number, mask: number[], skeleton: number[], endpoints: number[], branches: number[], size: number) {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, width, height);
+  paintOccupancyField(ctx, mask, size, width, height);
+  drawPolarFrame(ctx, width, height);
+  const cellW = width / size;
+  const cellH = height / size;
+  const cell = Math.min(cellW, cellH);
+  const point = (x: number, y: number) => ({
+    x: (x + 0.5) * cellW,
+    y: (fieldToDisplayRow(y, size) + 0.5) * cellH,
+  });
+  ctx.save();
+  ctx.shadowColor = "rgba(73, 215, 222, 0.55)";
+  ctx.shadowBlur = cell * 0.12;
+  ctx.strokeStyle = "rgba(226, 242, 240, 0.94)";
+  ctx.lineWidth = Math.max(1.2, cell * 0.07);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  for (const [x0, y0, x1, y1] of skeletonSegments(skeleton, size)) {
+    const start = point(x0, y0);
+    const end = point(x1, y1);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+  }
+  ctx.stroke();
+  ctx.restore();
+  const branchSet = new Set(branches);
+  for (const index of endpoints) {
+    if (branchSet.has(index)) continue;
+    const x = index % size;
+    const y = (index - x) / size;
+    const center = point(x, y);
+    ctx.strokeStyle = CHART_COPPER;
+    ctx.lineWidth = Math.max(1, cell * 0.028);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, cell * 0.13, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (const index of branches) {
+    const x = index % size;
+    const y = (index - x) / size;
+    const center = point(x, y);
+    ctx.strokeStyle = "rgba(186, 236, 236, 0.85)";
+    ctx.lineWidth = Math.max(1, cell * 0.02);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, cell * 0.2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#f2f2ee";
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, cell * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function paintCellQuilt(
+  ctx: CanvasRenderingContext2D,
+  values: ArrayLike<number>,
+  size: number,
+  left: number,
+  top: number,
+  plotW: number,
+  plotH: number,
+  max: number,
+) {
+  const cellW = plotW / size;
+  const cellH = plotH / size;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const value = values[y * size + x] ?? 0;
+      if (value <= 0 || max <= 0) continue;
+      const t = value / max;
+      ctx.fillStyle = `rgba(15, 115, 119, ${0.05 + t * 0.16})`;
+      ctx.fillRect(left + x * cellW, top + fieldToDisplayRow(y, size) * cellH, cellW, cellH);
+    }
+  }
+}
+
+function paintPeak(ctx: CanvasRenderingContext2D, values: ArrayLike<number>, size: number, left: number, top: number, plotW: number, plotH: number) {
+  let peak = 0;
+  let index = 0;
+  for (let i = 0; i < values.length; i += 1) {
+    if (values[i] > peak) {
+      peak = values[i];
+      index = i;
+    }
+  }
+  if (peak <= 0) return;
+  const x = index % size;
+  const y = (index - x) / size;
+  const cell = Math.min(plotW, plotH) / size;
+  const cx = left + (x + 0.5) * (plotW / size);
+  const cy = top + (fieldToDisplayRow(y, size) + 0.5) * (plotH / size);
+  ctx.save();
+  ctx.strokeStyle = "rgba(199, 126, 95, 0.8)";
+  ctx.lineWidth = Math.max(1, cell * 0.035);
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell * 0.72, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(242, 242, 238, 0.55)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, cell * 0.38, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "#f2f2ee";
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.max(1.5, cell * 0.07), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function paintPlotGrid(ctx: CanvasRenderingContext2D, left: number, top: number, plotW: number, plotH: number, size: number) {
+  const cellW = plotW / size;
+  const cellH = plotH / size;
+  const cell = Math.min(plotW, plotH) / size;
+  ctx.save();
+  ctx.lineWidth = Math.max(0.6, cell * 0.012);
+  ctx.strokeStyle = "rgba(73, 215, 222, 0.14)";
+  ctx.beginPath();
+  for (let i = 0; i <= size; i += 1) {
+    ctx.moveTo(left + i * cellW, top);
+    ctx.lineTo(left + i * cellW, top + plotH);
+    ctx.moveTo(left, top + i * cellH);
+    ctx.lineTo(left + plotW, top + i * cellH);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function paintDensityChart(
+  ctx: CanvasRenderingContext2D,
+  values: ArrayLike<number>,
+  size: number,
+  left: number,
+  top: number,
+  plotW: number,
+  plotH: number,
+  max: number,
+) {
+  paintCellQuilt(ctx, values, size, left, top, plotW, plotH, max);
+  paintSoftField(ctx, values, size, left, top, plotW, plotH, max);
+  paintContours(ctx, values, size, left, top, plotW, plotH, max);
+  paintPlotGrid(ctx, left, top, plotW, plotH, size);
+  paintPeak(ctx, values, size, left, top, plotW, plotH);
 }
 
 function topoText(value: number | null, reason: string) {
@@ -1208,45 +1140,18 @@ function PresentationTopology({
                 ctx.fillStyle = "#000";
                 ctx.fillRect(0, 0, width, height);
                 if (mode === "overview") {
-                  const cx = width / 2;
-                  const cy = height / 2;
-                  const radius = Math.min(width, height) * 0.46;
-                  ctx.strokeStyle = "rgba(242,242,238,0.08)";
-                  ctx.lineWidth = 1;
-                  for (const ring of [0.34, 0.67, 1]) {
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, radius * ring, 0, Math.PI * 2);
-                    ctx.stroke();
-                  }
+                  paintTopologyNetwork(ctx, width, height, topology.mask, topology.skeleton, topology.endpoints, topology.branches, size);
+                  return;
                 }
-                const cellW = width / size;
-                const cellH = height / size;
                 if (mode === "circulation" && frame.flow) {
                   paintMutedGrid(ctx, width, height, frame.flow, size);
+                  drawPolarFrame(ctx, width, height);
                   return;
                 }
                 if (mode === "hierarchy") {
                   paintMutedGrid(ctx, width, height, topology.hierarchy.map((value) => (value < 0 ? 0 : value + 1)), size, topology.skeleton);
-                  return;
+                  drawPolarFrame(ctx, width, height);
                 }
-                for (let y = 0; y < size; y += 1) {
-                  for (let x = 0; x < size; x += 1) {
-                    const index = y * size + x;
-                    if (!topology.mask[index] && !topology.skeleton[index]) continue;
-                    ctx.fillStyle = topology.skeleton[index] ? "#0F7377" : "rgba(242,242,238,0.16)";
-                    ctx.fillRect(x * cellW, fieldToDisplayRow(y, size) * cellH, cellW + 0.5, cellH + 0.5);
-                  }
-                }
-                const mark = (indices: number[], color: string) => {
-                  ctx.fillStyle = color;
-                  for (const index of indices) {
-                    const x = index % size;
-                    const y = (index - x) / size;
-                    ctx.fillRect(x * cellW, fieldToDisplayRow(y, size) * cellH, Math.max(2, cellW), Math.max(2, cellH));
-                  }
-                };
-                mark(topology.endpoints, "#C77E5F");
-                mark(topology.branches, "#f2f2ee");
               }}
             />
           )}
@@ -1274,10 +1179,10 @@ function PresentationTopology({
           </>
         ) : (
           <>
-            <span><i className="s1a-topo-swatch s1a-topo-occupied" /> Occupied</span>
-            <span><i className="s1a-topo-swatch s1a-topo-skeleton" /> Skeleton</span>
-            <span><i className="s1a-topo-swatch s1a-topo-endpoint" /> Endpoints</span>
-            <span><i className="s1a-topo-swatch s1a-topo-branch" /> Branch pixels</span>
+            <span><i className="s1a-topo-swatch s1a-topo-occupied" /> Occupancy (field)</span>
+            <span><i className="s1a-topo-swatch s1a-topo-skeleton" /> Skeleton (centerline)</span>
+            <span><i className="s1a-topo-swatch s1a-topo-branch" /> Branch node</span>
+            <span><i className="s1a-topo-swatch s1a-topo-endpoint" /> Endpoint</span>
           </>
         )}
         <p>
@@ -1409,30 +1314,6 @@ function MetricList({ rows }: { rows: Array<[string, number | null, string]> }) 
   );
 }
 
-const DENSITY_STOPS: Array<[number, [number, number, number]]> = [
-  [0, [0, 0, 0]],
-  [0.42, [15, 115, 119]],
-  [0.74, [199, 126, 95]],
-  [1, [242, 242, 238]],
-];
-
-function densityRamp(t: number) {
-  const clamped = Math.max(0, Math.min(1, t));
-  let lower = DENSITY_STOPS[0];
-  let upper = DENSITY_STOPS[DENSITY_STOPS.length - 1];
-  for (let i = 0; i < DENSITY_STOPS.length - 1; i += 1) {
-    if (clamped >= DENSITY_STOPS[i][0] && clamped <= DENSITY_STOPS[i + 1][0]) {
-      lower = DENSITY_STOPS[i];
-      upper = DENSITY_STOPS[i + 1];
-      break;
-    }
-  }
-  const span = upper[0] - lower[0];
-  const u = span === 0 ? 0 : (clamped - lower[0]) / span;
-  const rgb = lower[1].map((channel, index) => Math.round(channel + (upper[1][index] - channel) * u));
-  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-}
-
 function PresentationDensity({
   session,
   mode,
@@ -1508,39 +1389,21 @@ function PresentationDensity({
                 const cellW = plotW / size;
                 const cellH = plotH / size;
                 const max = stats.max;
-                for (let y = 0; y < size; y += 1) {
-                  for (let x = 0; x < size; x += 1) {
-                    const index = y * size + x;
-                    const value = values[index] ?? 0;
-                    const dx = left + x * cellW;
-                    const dy = top + fieldToDisplayRow(y, size) * cellH;
-                    if (mode === "occupancy") {
-                      ctx.fillStyle = max > 0 && value >= stats.threshold ? "#C77E5F" : "#000";
-                      ctx.fillRect(dx, dy, cellW, cellH);
-                    } else if (mode === "intensity") {
-                      const t = max > 0 ? value / max : 0;
-                      if (t <= 0) continue;
-                      const mark = Math.max(1.5, t * Math.min(cellW, cellH));
-                      ctx.fillStyle = densityRamp(t);
-                      ctx.fillRect(dx + (cellW - mark) / 2, dy + (cellH - mark) / 2, mark, mark);
-                    } else {
-                      ctx.fillStyle = max > 0 ? densityRamp(value / max) : "#000";
-                      ctx.fillRect(dx, dy, cellW, cellH);
-                    }
+                paintDensityChart(ctx, values, size, left, top, plotW, plotH, max);
+                if (mode === "trail") {
+                  ctx.save();
+                  ctx.strokeStyle = "rgba(242, 242, 238, 0.82)";
+                  ctx.lineWidth = Math.max(1, Math.min(cellW, cellH) * 0.045);
+                  ctx.lineCap = "round";
+                  ctx.lineJoin = "round";
+                  ctx.beginPath();
+                  for (const [x0, y0, x1, y1] of skeletonSegments(frame.topology.skeleton, size)) {
+                    ctx.moveTo(left + (x0 + 0.5) * cellW, top + (fieldToDisplayRow(y0, size) + 0.5) * cellH);
+                    ctx.lineTo(left + (x1 + 0.5) * cellW, top + (fieldToDisplayRow(y1, size) + 0.5) * cellH);
                   }
+                  ctx.stroke();
+                  ctx.restore();
                 }
-                ctx.strokeStyle = "rgba(242,242,238,0.28)";
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                for (let i = 0; i <= size; i += 1) {
-                  const gx = left + i * cellW;
-                  const gy = top + i * cellH;
-                  ctx.moveTo(gx, top);
-                  ctx.lineTo(gx, top + plotH);
-                  ctx.moveTo(left, gy);
-                  ctx.lineTo(left + plotW, gy);
-                }
-                ctx.stroke();
                 ctx.fillStyle = "rgba(242,242,238,0.78)";
                 const font = Math.max(13, Math.round(height * 0.028));
                 ctx.font = `${font}px sans-serif`;
@@ -1600,12 +1463,17 @@ function PresentationDensity({
             </dl>
             <div className="s1a-dens-hist" aria-label="Distribution across this grid’s own maximum">
               {histogram.counts.map((count, index) => (
-                <span key={index} style={{ height: `${Math.max(count > 0 ? 6 : 0, (count / maxCount) * 100)}%` }} title={`${count} cells`} />
+                <span
+                  key={index}
+                  className={index === histogram.counts.length - 1 ? "s1a-hist-peak" : index === histogram.counts.length - 2 ? "s1a-hist-mid" : undefined}
+                  style={{ height: `${Math.max(count > 0 ? 4 : 0, (count / maxCount) * 100)}%` }}
+                  title={`${count} cells`}
+                />
               ))}
             </div>
             <p className="s1a-dens-note">
               {mode === "intensity"
-                ? "Each cell is the maximum trail sample in that 20×20 block. Marker size and color both follow that value, linearly, and do not rise above the recorded maximum."
+                ? "Each cell is the maximum trail sample in that 20×20 block. The field color follows that value, linearly, and does not rise above the recorded maximum."
                 : mode === "occupancy"
                   ? "Stored simulator occupancy. Occupied cells are those at or above the same 12% of peak used by this view. The mask does not recompute occupancy."
                   : "Each cell is the mean trail in that 20×20 block."}
@@ -1726,6 +1594,18 @@ function binCenterDegrees(index: number, count: number) {
   return -180 + (index + 0.5) * (360 / count);
 }
 
+function compassWedge(index: number, count: number, inner: number, outer: number) {
+  const step = (Math.PI * 2) / count;
+  const start = -Math.PI + index * step;
+  const point = (angle: number, radius: number) => `${(Math.cos(angle) * radius).toFixed(2)},${(-Math.sin(angle) * radius).toFixed(2)}`;
+  const slices = 8;
+  let path = `M ${point(start, inner)} L ${point(start, outer)}`;
+  for (let i = 1; i <= slices; i += 1) path += ` L ${point(start + (step * i) / slices, outer)}`;
+  path += ` L ${point(start + step, inner)}`;
+  for (let i = slices - 1; i >= 0; i -= 1) path += ` L ${point(start + (step * i) / slices, inner)}`;
+  return `${path} Z`;
+}
+
 function PresentationDirection({
   session,
   mode,
@@ -1797,16 +1677,7 @@ function PresentationDirection({
                 const plotH = height - top - bottom;
                 const cellW = plotW / size;
                 const cellH = plotH / size;
-                ctx.strokeStyle = "rgba(242,242,238,0.22)";
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                for (let i = 0; i <= size; i += 1) {
-                  ctx.moveTo(left + i * cellW, top);
-                  ctx.lineTo(left + i * cellW, top + plotH);
-                  ctx.moveTo(left, top + i * cellH);
-                  ctx.lineTo(left + plotW, top + i * cellH);
-                }
-                ctx.stroke();
+                paintPlotGrid(ctx, left, top, plotW, plotH, size);
                 let maxMag = 0;
                 const mags = counts.map((count, index) => {
                   if (!count) return 0;
@@ -1815,6 +1686,10 @@ function PresentationDirection({
                   return mag;
                 });
                 const span = Math.min(cellW, cellH);
+                ctx.save();
+                ctx.strokeStyle = "rgba(15, 115, 119, 0.34)";
+                ctx.lineWidth = Math.max(1, span * 0.08);
+                ctx.lineCap = "round";
                 for (let y = 0; y < size; y += 1) {
                   for (let x = 0; x < size; x += 1) {
                     const index = y * size + x;
@@ -1824,26 +1699,46 @@ function PresentationDirection({
                     const dx = xs[index] / counts[index];
                     const dy = ys[index] / counts[index];
                     const mag = Math.hypot(dx, dy) || 1;
-                    const length = span * (0.38 + 0.44 * Math.sqrt(mags[index] / maxMag));
+                    const length = span * 0.72 * Math.sqrt(mags[index] / maxMag);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + (dx / mag) * length, cy - (dy / mag) * length);
+                    ctx.stroke();
+                  }
+                }
+                ctx.restore();
+                for (let y = 0; y < size; y += 1) {
+                  for (let x = 0; x < size; x += 1) {
+                    const index = y * size + x;
+                    if (!counts[index] || maxMag <= 0 || mags[index] <= 0) continue;
+                    const cx = left + (x + 0.5) * cellW;
+                    const cy = top + (fieldToDisplayRow(y, size) + 0.5) * cellH;
+                    const dx = xs[index] / counts[index];
+                    const dy = ys[index] / counts[index];
+                    const mag = Math.hypot(dx, dy) || 1;
+                    const length = span * (0.22 + 0.28 * Math.sqrt(mags[index] / maxMag));
                     const ex = cx + (dx / mag) * length;
                     const ey = cy - (dy / mag) * length;
                     const dominantCell = dominant != null && directionBin(Math.atan2(dy, dx), bins.length) === dominant.index;
-                    ctx.strokeStyle = dominantCell ? "#C77E5F" : "#0F7377";
+                    ctx.save();
+                    ctx.globalAlpha = dominantCell ? 0.95 : 0.55;
+                    ctx.strokeStyle = dominantCell ? CHART_COPPER : CHART_CYAN;
                     ctx.fillStyle = ctx.strokeStyle;
-                    ctx.lineWidth = Math.max(2.5, span * 0.07);
+                    ctx.lineWidth = dominantCell ? Math.max(1.1, span * 0.045) : Math.max(0.8, span * 0.028);
                     ctx.lineCap = "round";
                     ctx.beginPath();
                     ctx.moveTo(cx, cy);
                     ctx.lineTo(ex, ey);
                     ctx.stroke();
-                    const head = Math.min(length * 0.42, Math.max(7, span * 0.22));
+                    const head = Math.max(2.4, Math.min(span * 0.16, length * 0.38));
                     const ang = Math.atan2(ey - cy, ex - cx);
                     ctx.beginPath();
                     ctx.moveTo(ex, ey);
-                    ctx.lineTo(ex - head * Math.cos(ang - 0.42), ey - head * Math.sin(ang - 0.42));
-                    ctx.lineTo(ex - head * Math.cos(ang + 0.42), ey - head * Math.sin(ang + 0.42));
+                    ctx.lineTo(ex - head * Math.cos(ang - 0.4), ey - head * Math.sin(ang - 0.4));
+                    ctx.lineTo(ex - head * Math.cos(ang + 0.4), ey - head * Math.sin(ang + 0.4));
                     ctx.closePath();
                     ctx.fill();
+                    ctx.restore();
                   }
                 }
                 ctx.fillStyle = "rgba(242,242,238,0.78)";
@@ -1863,21 +1758,47 @@ function PresentationDirection({
             <p className="s1a-dir-key">
               <i className="s1a-dir-teal" /> Recorded direction
               <i className="s1a-dir-terra" /> Dominant bin
-              <span>Empty cells have no sample. Length runs from 38% to 82% of the cell by the square root of the cell mean relative to the strongest cell. Direction is unchanged.</span>
+              <span>Empty cells have no sample. Arrow length follows the cell mean, from 22% to 50% of the cell. Dominant arrows keep that length and are marked in terracotta.</span>
             </p>
           </div>
           <aside className="s1a-dir-side" aria-label="Direction measurements">
             <svg className="s1a-dir-compass" viewBox="-120 -120 240 240" role="img" aria-label="Directional compass">
-              <circle cx="0" cy="0" r="104" fill="none" stroke="rgba(242,242,238,0.28)" />
-              <circle cx="0" cy="0" r="4" fill="#f2f2ee" />
+              <circle cx="0" cy="0" r="104" fill="none" stroke="rgba(73,215,222,0.28)" strokeWidth="0.6" />
+              <circle cx="0" cy="0" r="82" fill="none" stroke="rgba(73,215,222,0.16)" strokeWidth="0.5" />
+              <circle cx="0" cy="0" r="58" fill="none" stroke="rgba(73,215,222,0.12)" strokeWidth="0.5" />
+              <circle cx="0" cy="0" r="34" fill="none" stroke="rgba(73,215,222,0.1)" strokeWidth="0.5" />
+              {Array.from({ length: 32 }, (_, index) => {
+                const angle = (index / 32) * Math.PI * 2;
+                const inner = index % 4 === 0 ? 86 : 96;
+                return (
+                  <line
+                    key={`tick-${index}`}
+                    x1={Math.cos(angle) * inner}
+                    y1={Math.sin(angle) * inner}
+                    x2={Math.cos(angle) * 104}
+                    y2={Math.sin(angle) * 104}
+                    stroke="rgba(73,215,222,0.7)"
+                    strokeWidth={index % 4 === 0 ? 1.4 : 0.7}
+                  />
+                );
+              })}
+              {dominant && maxBin > 0 ? (
+                <path
+                  d={compassWedge(dominant.index, bins.length, 18, 100)}
+                  fill="rgba(199,126,95,0.28)"
+                  stroke="#c77e5f"
+                  strokeWidth="1"
+                />
+              ) : null}
+              <circle cx="0" cy="0" r="3.5" fill="#f2f2ee" />
               {bins.map((count, index) => {
                 if (count <= 0 || maxBin <= 0) return null;
-                const angle = (-Math.PI + (index + 0.5) * ((Math.PI * 2) / bins.length));
-                const len = 34 + (count / maxBin) * 62;
+                const angle = -Math.PI + (index + 0.5) * ((Math.PI * 2) / bins.length);
+                const len = 28 + (count / maxBin) * 68;
                 const x2 = Math.cos(angle) * len;
                 const y2 = -Math.sin(angle) * len;
                 const marked = dominant != null && index === dominant.index;
-                return <line key={index} x1="0" y1="0" x2={x2} y2={y2} stroke={marked ? "#C77E5F" : "#0F7377"} strokeWidth={marked ? 4 : 2} />;
+                return <line key={index} x1="0" y1="0" x2={x2} y2={y2} stroke={marked ? "#c77e5f" : "rgba(73,215,222,0.8)"} strokeWidth={marked ? 1.6 : 0.7} />;
               })}
               <text x="0" y="-108" textAnchor="middle" fill="#f2f2ee">N</text>
               <text x="108" y="5" textAnchor="middle" fill="#f2f2ee">E</text>

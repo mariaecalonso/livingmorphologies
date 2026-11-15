@@ -966,14 +966,15 @@ export function recordAnalysisSample(
   session: AnalysisSession,
   state: SimulationState,
   input: AnalysisInput,
-  options?: { interval?: number; force?: boolean },
+  options?: { interval?: number; force?: boolean; live?: boolean },
 ): AnalysisSession {
   const interval = Math.max(1, options?.interval ?? DEFAULT_SAMPLE_INTERVAL);
   if (session.latest && session.latest.iteration === state.iteration && session.latest.simulationId === session.simulationId) {
     return session;
   }
   const previousIteration = session.samples.length ? session.samples[session.samples.length - 1].iteration : -interval;
-  if (!options?.force && state.iteration !== 0 && state.iteration - previousIteration < interval) return session;
+  const due = Boolean(options?.force) || state.iteration === 0 || state.iteration - previousIteration >= interval;
+  if (!due && !options?.live) return session;
 
   const grids = gridsFromState(state);
   const topology = extractTopology(grids.trailDensity, state.size);
@@ -1021,6 +1022,9 @@ export function recordAnalysisSample(
     flowReason: flow ? ANALYSIS_DEFINITIONS.flow : "Not available. This state has no flow field.",
     attractors: dedupePoints([{ x: state.attractor.x, y: state.attractor.y }, ...input.attractors]),
   };
+  if (!due) {
+    return { ...session, latest: frame };
+  }
   return {
     ...session,
     samples,

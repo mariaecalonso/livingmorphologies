@@ -7,6 +7,7 @@ import type { CatalogEntry } from "@/lib/skill4/catalog";
 import { PROGRAM_LABEL, SITE_ARCHETYPES } from "@/lib/skill5/catalog";
 import { SKILL5_MODULE_ENVELOPE_FEET } from "@/lib/skill5/contract";
 import { configurationStats, type ConfigurationDocument, type SiteConfiguration } from "@/lib/skill5/configurations";
+import type { MassingCatalogDocument, MassingStudy } from "@/lib/skill5/massing-catalog";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
 import { loadArchetypeMesh } from "@/lib/skill5/load-module";
 import { programDistribution, scenePlaced } from "@/lib/skill5/metrics";
@@ -346,6 +347,7 @@ function rowClaim(card: Card, modules: number) {
 export function ConfigurationCatalog() {
   const router = useRouter();
   const [saved, setSaved] = useState<SiteConfiguration[]>([]);
+  const [studies, setStudies] = useState<MassingStudy[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [comparing, setComparing] = useState(false);
@@ -372,6 +374,14 @@ export function ConfigurationCatalog() {
       })
       .catch(() => {
         if (!cancel.signal.aborted) setSaved([]);
+      });
+    fetch("/api/site/massing-catalog", { signal: cancel.signal })
+      .then((response) => response.json())
+      .then((body: MassingCatalogDocument) => {
+        if (!cancel.signal.aborted) setStudies(body.studies ?? []);
+      })
+      .catch(() => {
+        if (!cancel.signal.aborted) setStudies([]);
       });
     return () => cancel.abort();
   }, []);
@@ -442,6 +452,7 @@ export function ConfigurationCatalog() {
             {visible.length === 0 ? <p className="site-note">No saved configurations yet. Select assemblies in Hybrid Connection, place them on the site, and save a configuration.</p> : null}
             {visible.map((card) => {
               const stats = configurationStats(card.entry, site.site.ring, site.site.ringAreaSqFt);
+              const study = studies.find((item) => item.configurationId === card.entry.id);
               const active = selected.includes(card.entry.id);
               return (
                 <article
@@ -458,11 +469,12 @@ export function ConfigurationCatalog() {
                       <CardPreview card={card} meshes={meshes} />
                     </div>
                     <p className="site-note">{stats.modules} modules</p>
+                    {study ? <p className="site-note">{new Date(study.createdAt).toLocaleDateString()} · seed {study.seed} · {study.levels} levels · lobby {study.lobby} · workspace {study.workspace} · gathering {study.gathering}</p> : null}
                     <ShareMeters entry={card.entry} />
                   </div>
                   {card.placeholder ? null : (
                     <footer className="site-catalog-foot">
-                      <button type="button" className="site-catalog-action" onClick={(event) => { event.stopPropagation(); openOnSite(card.entry.id); }}>Open</button>
+                      <button type="button" className="site-catalog-action" onClick={(event) => { event.stopPropagation(); openOnSite(card.entry.id); }}>{study ? "Reopen" : "Open"}</button>
                     </footer>
                   )}
                 </article>

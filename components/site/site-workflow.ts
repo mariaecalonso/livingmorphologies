@@ -48,6 +48,8 @@ export type SiteConnection = {
   passage?: { positions: number[]; indices: number[] } | null;
   candidateId?: string;
   note?: string;
+  /** Set when a joined tile is transformed. The stored passage is kept until it is rebuilt. */
+  review?: string;
 };
 
 export const ZONE_KINDS = ZONE_KIND_ORDER;
@@ -86,7 +88,7 @@ export function readSiteWorkflowState(): SiteWorkflowState {
     const zones = readZoningList(body.zones);
     const connections = Array.isArray(body.connections) ? body.connections.flatMap((item): SiteConnection[] => {
       if (!item || typeof item !== "object") return [];
-      const link = item as { id?: unknown; tileA?: unknown; tileB?: unknown; mode?: unknown; faceA?: unknown; faceB?: unknown; joinType?: unknown; alignment?: unknown; floorDelta?: unknown; integrity?: unknown; passage?: unknown; candidateId?: unknown; note?: unknown };
+      const link = item as { id?: unknown; tileA?: unknown; tileB?: unknown; mode?: unknown; faceA?: unknown; faceB?: unknown; joinType?: unknown; alignment?: unknown; floorDelta?: unknown; integrity?: unknown; passage?: unknown; candidateId?: unknown; note?: unknown; review?: unknown };
       if (typeof link.id !== "string" || typeof link.tileA !== "string" || typeof link.tileB !== "string" || !isMode(link.mode)) return [];
       const passage = readPassage(link.passage);
       return [{
@@ -103,6 +105,7 @@ export function readSiteWorkflowState(): SiteWorkflowState {
         passage,
         candidateId: typeof link.candidateId === "string" ? link.candidateId : undefined,
         note: typeof link.note === "string" ? link.note : undefined,
+        review: typeof link.review === "string" ? link.review : undefined,
       }];
     }) : [];
     return { zones, connections, massingNetworkId: typeof body.massingNetworkId === "string" ? body.massingNetworkId : null };

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { paintedBox } from "@/lib/canvas-frame";
 import { sampleField } from "@/lib/skill1/engine";
-import { drawSlimeFieldGl } from "@/lib/render/slime-field-gl";
+import { drawSlimeFieldGl, NEUTRAL_FIELD_GRAPHIC, type FieldGraphic } from "@/lib/render/slime-field-gl";
 import {
   DISPLAY_LEVELS,
   FIELD_SIZE,
@@ -63,7 +63,7 @@ export function drawPlanField(
   snapshot: FieldSnapshot | null,
   width: number,
   height: number,
-  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number },
+  options?: { showHud?: boolean; fine?: boolean; density?: number; attractors?: FieldAttractor[]; showAttractors?: boolean; selectedIndex?: number; selectedIndices?: number[]; peak?: number; hairThin?: boolean; maxResolution?: number; graphic?: FieldGraphic },
 ) {
   ctx.clearRect(0, 0, width, height);
   const scale = Math.min(width, height) / FIELD_SIZE;
@@ -82,7 +82,7 @@ export function drawPlanField(
       options?.attractors?.length
         ? options.attractors
         : [{ kind: "point" as const, x: snapshot.attractor.x, y: snapshot.attractor.y, radius: 1.6 }];
-    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.maxResolution);
+    drawColonyBody(ctx, snapshot, peak, fieldW, fieldH, fine, density, colorMarks, options?.maxResolution, options?.graphic ?? NEUTRAL_FIELD_GRAPHIC);
     const sx = snapshot.source.x * scale;
     const sy = toCanvas(snapshot.source.y, fieldH, scale);
     ctx.strokeStyle = "rgba(15, 115, 119, 0.85)";
@@ -251,15 +251,16 @@ let coarseScratch: HTMLCanvasElement | null = null;
 let fineCacheKey = "";
 let coarseCacheKey = "";
 let nCache: Float32Array | null = null;
-function fillTrailCaches(trails: number[], ts: number, peak: number) {
+function fillTrailCaches(trails: number[], ts: number) {
   const count = ts * ts;
   if (!nCache || nCache.length !== count) {
     nCache = new Float32Array(count);
   }
+  const inkScale = 0.55;
   for (let y = 0; y < ts; y += 1) {
     const row = y * ts;
     for (let x = 0; x < ts; x += 1) {
-      nCache[row + x] = Math.pow(Math.max(0, trails[row + x] / peak), 0.82);
+      nCache[row + x] = Math.min(1, Math.max(0, trails[row + x] / inkScale));
     }
   }
 }
@@ -273,17 +274,18 @@ function drawColonyBody(
   density: number,
   attractors?: FieldAttractor[],
   maxResolution?: number,
+  graphic: FieldGraphic = NEUTRAL_FIELD_GRAPHIC,
 ) {
   const cutoff = trailMaskCutoff(density);
-  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors)) return;
+  if (drawSlimeFieldGl(ctx, snapshot.trails, snapshot.trailSize, peak, fieldW, fieldH, cutoff, attractors, undefined, graphic)) return;
   const dpr = ctx.getTransform().a || 1;
   const res = fine
-    ? Math.max(maxResolution ?? 4096, Math.min(maxResolution ?? 8192, Math.round(fieldH * Math.max(dpr, 1) * 2)))
+    ? Math.max(480, Math.min(maxResolution ?? 1280, Math.round(fieldH * Math.max(dpr, 1))))
     : Math.max(160, Math.min(maxResolution ?? 280, Math.round(fieldH)));
   let finger = 0;
   const stride = Math.max(1, Math.floor(snapshot.trails.length / 64));
   for (let i = 0; i < snapshot.trails.length; i += stride) finger = (finger + Math.round(snapshot.trails[i] * 1000)) | 0;
-  const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${peak.toFixed(5)}:${cutoff.toFixed(3)}:vessel:${attractors?.length ?? 0}`;
+  const cacheKey = `${finger}:${snapshot.iteration}:${snapshot.trailSize}:${res}:${cutoff.toFixed(3)}:${graphic.deposit.toFixed(2)}:${graphic.diffusion.toFixed(2)}:${graphic.influence.toFixed(2)}:${graphic.density.toFixed(2)}:${graphic.resistance.toFixed(2)}:read`;
   let scratch = fine ? fineScratch : coarseScratch;
   if (!scratch) {
     scratch = document.createElement("canvas");
@@ -303,10 +305,15 @@ function drawColonyBody(
     const image = off.createImageData(res, res);
     const data = image.data;
     const ts = snapshot.trailSize;
-    fillTrailCaches(snapshot.trails, ts, peak);
+    fillTrailCaches(snapshot.trails, ts);
     const nField = nCache;
     if (!nField) return;
     const last = res - 1;
+    const shade = (edge0: number, edge1: number, x: number) => {
+      const span = edge1 - edge0;
+      const t = span === 0 ? 0 : Math.min(1, Math.max(0, (x - edge0) / span));
+      return t * t * (3 - 2 * t);
+    };
     for (let py = 0; py < res; py += 1) {
       const fy = (1 - py / last) * FIELD_SIZE;
       for (let px = 0; px < res; px += 1) {
@@ -320,60 +327,30 @@ function drawColonyBody(
         const n = bilerp(nField, ts, tx, ty + 1);
         const s = bilerp(nField, ts, tx, ty - 1);
         const around = 0.25 * (e + w + n + s);
-        const ridge = Math.max(0, v - around * 0.62);
-        const gx = e - w;
-        const gy = n - s;
-        const glen = Math.hypot(gx, gy);
-        const ax = glen > 1e-6 ? -gy / glen : 1;
-        const ay = glen > 1e-6 ? gx / glen : 0;
-        let tissue = v;
-        if (v > 0.04 || ridge > 0.005) {
-          let linked = v;
-          for (let k = 1; k <= 6; k += 1) {
-            linked = Math.max(
-              linked,
-              bilerp(nField, ts, tx + ax * k * 1.6, ty + ay * k * 1.6),
-              bilerp(nField, ts, tx - ax * k * 1.6, ty - ay * k * 1.6),
-            );
-          }
-          tissue = Math.max(v, linked * 0.96);
-        }
-        const membrane = Math.min(1, Math.max(0, (tissue - 0.14) / 0.14));
-        const tube = Math.min(1, Math.max(0, (tissue - 0.045) / 0.075)) * Math.min(1, Math.max(0, (ridge - 0.004) / 0.012));
-        const hair = Math.min(1, Math.max(0, (tissue - 0.018) / 0.022)) * Math.min(1, Math.max(0, (ridge - 0.008) / 0.012));
-        const mask = Math.max(membrane, tube, hair);
-        if (mask < 0.03) {
-          const empty = (py * res + px) * 4;
-          data[empty + 3] = 255;
+        const gain = 0.55 + graphic.deposit * 0.9;
+        const vv = v * gain;
+        const ridge = Math.max(0, vv - around * gain);
+        const gate = 0.0014 + graphic.density * 0.0056;
+        const span = gate * 2;
+        const core = shade(gate, gate + span, ridge);
+        const trunk = shade(0.08, 0.22, vv);
+        const shaped = core * (1 - graphic.influence) + Math.max(trunk, core * 0.22) * graphic.influence;
+        const skirt = shade(0.015, 0.08, vv) * (1 - shade(0.0025, 0.018, ridge)) * graphic.diffusion;
+        const nx = px / last;
+        const ny = 1 - py / last;
+        const patch = Math.exp(-((nx - 0.68) ** 2 + (ny - 0.32) ** 2) / 0.06);
+        const resist = graphic.resistance * Math.min(1, Math.max(0, (nx * 0.55 + ny * 0.2) * 0.45 + patch * 0.7));
+        const cover = Math.max(shaped * (1 - resist * 0.78), skirt * 0.72);
+        const weight = 0.34 + graphic.deposit * 0.66;
+        const i = (py * res + px) * 4;
+        if (cover < 0.02) {
+          data[i + 3] = 255;
           continue;
         }
-        const body = Math.min(1, tissue);
-        const alpha = mask;
-        const vein = Math.min(1, Math.max(0, (body - 0.08) / 0.26));
-        let pull = 0;
-        if (attractors?.length) {
-          let nearest = 1;
-          for (const mark of attractors) {
-            const dx = fx / FIELD_SIZE - mark.x / FIELD_SIZE;
-            const dy = fy / FIELD_SIZE - mark.y / FIELD_SIZE;
-            let d = Math.hypot(dx, dy);
-            if (mark.kind === "ring") d = Math.abs(d - (mark.radius ?? 4) / FIELD_SIZE);
-            nearest = Math.min(nearest, d);
-          }
-          pull = nearest >= 0.16 ? 0 : 1 - nearest / 0.16;
-        }
-        const core = Math.max(
-          pull * Math.min(1, Math.max(0, (body - 0.08) / 0.24)),
-          Math.min(1, Math.max(0, (body - 0.48) / 0.34)),
-        );
-        const mixCore = core * (0.35 + body * 0.37);
-        const r = ((1 * (1 - vein) + 0.78 * vein) * (1 - mixCore) + 0.059 * mixCore) * alpha;
-        const g = ((1 * (1 - vein) + 0.494 * vein) * (1 - mixCore) + 0.451 * mixCore) * alpha;
-        const b = ((1 * (1 - vein) + 0.373 * vein) * (1 - mixCore) + 0.467 * mixCore) * alpha;
-        const i = (py * res + px) * 4;
-        data[i] = Math.round(Math.min(1, r) * 255);
-        data[i + 1] = Math.round(Math.min(1, g) * 255);
-        data[i + 2] = Math.round(Math.min(1, b) * 255);
+        const tone = Math.min(1, trunk);
+        data[i] = Math.round(Math.min(1, (0.9 * (1 - tone) + 0.99 * tone) * cover * weight) * 255);
+        data[i + 1] = Math.round(Math.min(1, (0.87 * (1 - tone) + 0.98 * tone) * cover * weight) * 255);
+        data[i + 2] = Math.round(Math.min(1, (0.76 * (1 - tone) + 0.95 * tone) * cover * weight) * 255);
         data[i + 3] = 255;
       }
     }
@@ -381,8 +358,7 @@ function drawColonyBody(
     if (fine) fineCacheKey = cacheKey;
     else coarseCacheKey = cacheKey;
   }
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  ctx.imageSmoothingEnabled = false;
   ctx.drawImage(scratch, 0, 0, fieldW, fieldH);
 }
 type Projector = (x: number, y: number, z: number) => { px: number; py: number };
@@ -880,6 +856,7 @@ export function Skill1PlanView({
   snapshot,
   density = 5,
   showHud = true,
+  graphic = NEUTRAL_FIELD_GRAPHIC,
   attractors,
   showAttractors = true,
   selectedIndices = [0],
@@ -890,6 +867,7 @@ export function Skill1PlanView({
   snapshot: FieldSnapshot | null;
   density?: number;
   showHud?: boolean;
+  graphic?: FieldGraphic;
   attractors?: FieldAttractor[];
   showAttractors?: boolean;
   selectedIndices?: number[];
@@ -899,8 +877,8 @@ export function Skill1PlanView({
 }) {
   const ref = useCanvas(
     (ctx, width, height) =>
-      drawPlanField(ctx, snapshot, width, height, { showHud, fine: true, density, attractors, showAttractors, selectedIndices }),
-    [snapshot, snapshot?.iteration, snapshot?.paths, density, showHud, attractors, showAttractors, selectedIndices],
+      drawPlanField(ctx, snapshot, width, height, { showHud, fine: true, density, attractors, showAttractors, selectedIndices, graphic }),
+    [snapshot, snapshot?.iteration, snapshot?.paths, density, showHud, attractors, showAttractors, selectedIndices, graphic],
   );
   const boxRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ index: number; mode: "move" | "resize" | "end" | "bend" } | null>(null);

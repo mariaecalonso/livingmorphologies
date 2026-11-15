@@ -12,6 +12,7 @@ import {
   DataTexture,
   DoubleSide,
   LinearFilter,
+  Line,
   LineBasicMaterial,
   MeshBasicMaterial,
   ShaderMaterial,
@@ -27,6 +28,7 @@ import { worldToStored } from "@/lib/skill5/render-frame";
 import { trailDisplayAlpha } from "./site-network-display";
 import { influenceContours } from "./site-network-contours";
 import type { NetworkCandidate, NetworkEdit, NetworkNode, NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import { growthRing } from "./site-water-growth";
 import { FLOW_SURVIVE } from "./site-network-flow";
 
 const TRAIL_Y = 1.5;
@@ -36,6 +38,7 @@ const EMPTY: NetworkEdit = { nodes: [], selectedId: null, candidates: [], select
 
 const SOURCE = "#c77e5f";
 const ATTRACTOR = "#49d7de";
+const WATER = "#e2c27a";
 const CANDIDATE = "#f2f2ee";
 
 let nodeGlow: CanvasTexture | null = null;
@@ -120,8 +123,9 @@ function NodeMark({
   onPointerDown: (node: NetworkNode, event: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
   interactive: boolean;
 }) {
-  const color = node.kind === "source" ? SOURCE : ATTRACTOR;
-  const label = node.kind === "source" ? "Source" : "Attractor";
+  const water = node.surface === "water";
+  const color = node.kind === "source" ? SOURCE : water ? WATER : ATTRACTOR;
+  const label = node.kind === "source" ? "Source" : water ? "Water" : "Attractor";
   const ring = useMemo(() => new RingGeometry(selected ? 4.2 : 5.4, selected ? 7.4 : 6.8, 32), [selected]);
   const material = useMemo(() => {
     const next = new MeshBasicMaterial({ color, side: DoubleSide, transparent: true, opacity: 0.95, depthWrite: false });
@@ -156,6 +160,12 @@ function NodeMark({
         {node.kind === "source" ? <circleGeometry args={[2.1, 4]} /> : <circleGeometry args={[2.2, 28]} />}
         <meshBasicMaterial color={color} depthWrite={false} toneMapped={false} side={DoubleSide} />
       </mesh>
+      {water ? (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={skipRaycast}>
+          <ringGeometry args={[selected ? 8.2 : 7.6, selected ? 9.4 : 8.6, 32]} />
+          <meshBasicMaterial color={color} transparent opacity={0.9} depthWrite={false} side={DoubleSide} toneMapped={false} />
+        </mesh>
+      ) : null}
       {reached ? (
         <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={skipRaycast}>
           <ringGeometry args={[8.4, 9.2, 32]} />
@@ -183,6 +193,7 @@ export function SiteNetworkLayer({
   showTrails,
   branches = null,
   interactive = true,
+  quiet = false,
 }: {
   study: SiteNetworkStudy;
   running: boolean;
@@ -196,6 +207,8 @@ export function SiteNetworkLayer({
   branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null;
   /** Node placement stays on Site Strategy. Other steps only draw the network. */
   interactive?: boolean;
+  /** Massing views keep the network, drawn lighter so the building reads first. */
+  quiet?: boolean;
 }) {
   const told = useRef(false);
   const seen = useRef(-1);
@@ -419,10 +432,32 @@ export function SiteNetworkLayer({
     window.addEventListener("pointercancel", up);
   };
 
+  const onLandingDown = (id: string, event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+    nodeGesture.current = performance.now();
+    dragging.current = true;
+    let moved = false;
+    const move = (native: PointerEvent) => {
+      const point = storedAt(native.clientX, native.clientY, cameraRef.current, glRef.current.domElement);
+      if (!point) return;
+      if (study.setGrowthLanding(id, point.x, point.z)) moved = true;
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      dragging.current = false;
+      if (moved) study.commit();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
   return (
     <group>
       {showField ? <InfluenceField study={study} nodes={edit.nodes} /> : null}
-      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
+      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} quiet={quiet} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
       <mesh
         visible={showTrails && !(branches && branches.length > 0) && (study.generator !== "flow" || preview != null || colored != null)}
         position={[(minX + maxX) / 2, TRAIL_Y, (minZ + maxZ) / 2]}
@@ -440,7 +475,7 @@ export function SiteNetworkLayer({
         onPointerMove={interactive ? (event) => {
           if (dragging.current) return;
           const point = pointFromEvent(event);
-          if (!point || !study.insideField(point.x, point.z)) {
+          if (!point || !study.canPlace(tool, point.x, point.z)) {
             setHover((current) => current === null ? current : null);
             return;
           }
@@ -459,9 +494,25 @@ export function SiteNetworkLayer({
         <planeGeometry args={[maxX - minX, maxZ - minZ]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} side={DoubleSide} />
       </mesh>
+      {showTrails || interactive ? edit.nodes.map((node) => {
+        if (!node.water) return null;
+        const ring = growthRing(node.x, node.z, node.water.landX, node.water.landZ, node.water.widthFt);
+        if (!ring) return null;
+        return <GrowthZone key={`zone-${node.id}`} ring={ring} />;
+      }) : null}
       {showTrails || interactive ? edit.nodes.map((node) => (
         <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} interactive={interactive} />
       )) : null}
+      {interactive ? edit.nodes.map((node) => node.water && node.id === edit.selectedId ? (
+        <mesh
+          key={`landing-${node.id}`}
+          position={[node.water.landX, MARK_Y, node.water.landZ]}
+          onPointerDown={(event) => onLandingDown(node.id, event)}
+        >
+          <sphereGeometry args={[4.2, 16, 16]} />
+          <meshBasicMaterial color={WATER} depthWrite={false} toneMapped={false} />
+        </mesh>
+      ) : null) : null}
       {showTrails || interactive ? edit.candidates.map((candidate) => (
         <CandidateMark
           key={candidate.id}
@@ -477,7 +528,7 @@ export function SiteNetworkLayer({
           }}
         />
       )) : null}
-      {hover && (showTrails || interactive) ? <HoverMark position={hover} kind={tool} /> : null}
+      {hover && (showTrails || interactive) ? <HoverMark position={hover} kind={tool} water={tool === "attractor" && study.onWater(hover.x, hover.z)} /> : null}
     </group>
   );
 }
@@ -518,21 +569,23 @@ const TUBE_VERTEX = `
 `;
 
 const TUBE_BODY = `
+  uniform float uAlpha;
   varying float vEdge;
   void main() {
     float edge = clamp(vEdge, 0.0, 1.0);
     float core = smoothstep(0.22, 0.0, edge);
     float sheath = smoothstep(0.55, 0.05, edge);
-    float alpha = core * 0.92 + sheath * 0.2;
+    float alpha = (core * 0.92 + sheath * 0.2) * uAlpha;
     gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
   }
 `;
 
 const TUBE_GLOW = `
+  uniform float uAlpha;
   varying float vEdge;
   void main() {
     float edge = clamp(vEdge, 0.0, 1.0);
-    float alpha = smoothstep(1.0, 0.0, edge) * 0.34;
+    float alpha = smoothstep(1.0, 0.0, edge) * 0.34 * uAlpha;
     gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
   }
 `;
@@ -667,7 +720,7 @@ function buildTube(edges: ReturnType<SiteNetworkStudy["flowAppearance"]>, widthS
   return geometry;
 }
 
-function TubeMeshes({ edges }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]> }) {
+function TubeMeshes({ edges, quiet = false }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]>; quiet?: boolean }) {
   const glow = useMemo(() => buildTube(edges, 2.6, 1.52), [edges]);
   const core = useMemo(() => buildTube(edges, 1, 1.7), [edges]);
   const glowMaterial = useMemo(() => new ShaderMaterial({
@@ -678,6 +731,7 @@ function TubeMeshes({ edges }: { edges: ReturnType<SiteNetworkStudy["flowAppeara
     blending: AdditiveBlending,
     side: DoubleSide,
     toneMapped: false,
+    uniforms: { uAlpha: { value: 1 } },
   }), []);
   const coreMaterial = useMemo(() => new ShaderMaterial({
     vertexShader: TUBE_VERTEX,
@@ -687,7 +741,13 @@ function TubeMeshes({ edges }: { edges: ReturnType<SiteNetworkStudy["flowAppeara
     blending: NormalBlending,
     side: DoubleSide,
     toneMapped: false,
+    uniforms: { uAlpha: { value: 1 } },
   }), []);
+  useEffect(() => {
+    const alpha = quiet ? 0.1 : 1;
+    glowMaterial.uniforms.uAlpha.value = alpha;
+    coreMaterial.uniforms.uAlpha.value = alpha;
+  }, [coreMaterial, glowMaterial, quiet]);
   useEffect(() => () => {
     glow.dispose();
     core.dispose();
@@ -697,7 +757,7 @@ function TubeMeshes({ edges }: { edges: ReturnType<SiteNetworkStudy["flowAppeara
   if (core.getAttribute("position").count === 0) return null;
   return (
     <group>
-      <mesh geometry={glow} material={glowMaterial} renderOrder={5} raycast={skipRaycast} />
+      <mesh geometry={glow} material={glowMaterial} visible={!quiet} renderOrder={5} raycast={skipRaycast} />
       <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />
     </group>
   );
@@ -834,8 +894,48 @@ function CandidateMark({
   );
 }
 
-function HoverMark({ position, kind }: { position: { x: number; z: number }; kind: NetworkNodeKind }) {
-  const color = kind === "source" ? SOURCE : ATTRACTOR;
+function GrowthZone({ ring }: { ring: readonly (readonly [number, number])[] }) {
+  const signature = ring.map((point) => `${point[0].toFixed(2)},${point[1].toFixed(2)}`).join(" ");
+  const fill = useMemo(() => {
+    const geometry = new BufferGeometry();
+    const positions: number[] = [];
+    const [x0, z0] = ring[0];
+    for (let index = 1; index < ring.length - 1; index += 1) {
+      const [x1, z1] = ring[index];
+      const [x2, z2] = ring[index + 1];
+      positions.push(x0, 1.15, z0, x1, 1.15, z1, x2, 1.15, z2);
+    }
+    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    return geometry;
+  }, [signature, ring]);
+  const edge = useMemo(() => {
+    const geometry = new BufferGeometry();
+    const positions = ring.flatMap(([x, z]) => [x, 1.35, z]);
+    positions.push(ring[0][0], 1.35, ring[0][1]);
+    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    const material = new LineBasicMaterial({ color: WATER, transparent: true, opacity: 0.9 });
+    const outline = new Line(geometry, material);
+    outline.raycast = skipRaycast;
+    return outline;
+  }, [signature, ring]);
+  useEffect(() => () => {
+    fill.dispose();
+    edge.geometry.dispose();
+    const material = edge.material;
+    if (!Array.isArray(material)) material.dispose();
+  }, [fill, edge]);
+  return (
+    <group>
+      <mesh geometry={fill} raycast={skipRaycast}>
+        <meshBasicMaterial color={WATER} transparent opacity={0.22} depthWrite={false} side={DoubleSide} toneMapped={false} />
+      </mesh>
+      <primitive object={edge} />
+    </group>
+  );
+}
+
+function HoverMark({ position, kind, water = false }: { position: { x: number; z: number }; kind: NetworkNodeKind; water?: boolean }) {
+  const color = kind === "source" ? SOURCE : water ? WATER : ATTRACTOR;
   return (
     <mesh position={[position.x, MARK_Y, position.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={skipRaycast}>
       <ringGeometry args={[4.6, 5.8, 28]} />

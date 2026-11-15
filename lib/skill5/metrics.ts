@@ -1,7 +1,8 @@
 import type { SiteAssembly } from "./assembly";
 import { assemblyWorldModules } from "./assembly";
 import { SKILL5_MODULE_ENVELOPE_FEET, type Skill5Program } from "./contract";
-import { MODULE_GROUND_Y, footprintCorners, pointInRing, type PlacedModule } from "./placement";
+import { tileAabb, tileAxes, tileFootprint } from "./gumball";
+import { MODULE_GROUND_Y, pointInRing, type PlacedModule } from "./placement";
 import type { XZ } from "./site-model";
 
 const HALF = SKILL5_MODULE_ENVELOPE_FEET / 2;
@@ -37,7 +38,7 @@ export function boundsOfCorners(corners: readonly PlanPoint[]) {
 }
 
 export function placedCorners(placed: PlacedModule) {
-  return footprintCorners(placed.transform.position, placed.transform.rotationY);
+  return tileFootprint(placed);
 }
 
 /**
@@ -60,8 +61,9 @@ export function nominalUnionSqFt(placed: readonly PlacedModule[], ring: readonly
       for (let iz = z0; iz < z1; iz += 1) {
         const x = (ix + 0.5) * cell;
         const z = (iz + 0.5) * cell;
+        const scale = tileAxes(item);
         const local = planLocal({ x, z }, item.transform.position, item.transform.rotationY);
-        const inside = local.x > -HALF && local.x <= HALF && local.z > -HALF && local.z <= HALF;
+        const inside = local.x > -HALF * scale.scaleX && local.x <= HALF * scale.scaleX && local.z > -HALF * scale.scaleZ && local.z <= HALF * scale.scaleZ;
         if (!inside || !pointInRing(x, z, ring)) continue;
         occupied.add(`${ix}:${iz}`);
       }
@@ -118,7 +120,7 @@ export function iterationMetrics(input: {
     linked.add(join.tileA);
     linked.add(join.tileB);
   }
-  const tops = input.modules.map((item) => item.transform.position.y + SKILL5_MODULE_ENVELOPE_FEET);
+  const tops = input.modules.map((item) => tileAabb(item).maxY);
   return {
     tiles: input.modules.length,
     programs: programDistribution(input.modules),

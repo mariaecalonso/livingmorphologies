@@ -1,0 +1,130 @@
+[
+  {
+    "label": "horizontal void-field",
+    "tiles": [
+      "void-field",
+      "void-field"
+    ],
+    "programs": [
+      "gathering",
+      "gathering"
+    ],
+    "faces": "W/W",
+    "rotations": [
+      3.141592653589793,
+      0
+    ],
+    "method": "direct",
+    "valid": true,
+    "traversable": true,
+    "integrity": "closed",
+    "alignment": 12,
+    "floorDelta": 0,
+    "passageVertices": 96,
+    "issues": []
+  },
+  {
+    "label": "third void-field",
+    "tiles": [
+      "void-field",
+      "void-field"
+    ],
+    "programs": [
+      "gathering",
+      "gathering"
+    ],
+    "faces": "E/E",
+    "rotations": [
+      0,
+      3.141592653589793
+    ],
+    "method": "direct",
+    "valid": false,
+    "traversable": false,
+    "integrity": "none",
+    "alignment": 0,
+    "floorDelta": 8,
+    "passageVertices": 0,
+    "issues": [
+      "East and East do not both have an opening. No passage was cut."
+    ]
+  },
+  {
+    "label": "vertical void-field",
+    "tiles": [
+      "void-field",
+      "void-field"
+    ],
+    "programs": [
+      "gathering",
+      "gathering"
+    ],
+    "faces": "T/B",
+    "rotations": [
+      3.141592653589793,
+      0
+    ],
+    "method": "direct",
+    "valid": false,
+    "traversable": false,
+    "integrity": "none",
+    "alignment": 0,
+    "floorDelta": 8,
+    "passageVertices": 0,
+    "issues": [
+      "Top and Bottom do not both have an opening. No passage was cut."
+    ]
+  },
+  {
+    "label": "vertical bottoms",
+    "tiles": [
+      "linear-edge-gallery",
+      "inserted-horizontal-plate"
+    ],
+    "programs": [
+      "gathering",
+      "gathering"
+    ],
+    "faces": "T/B",
+    "rotations": [
+      0,
+      0
+    ],
+    "method": "direct",
+    "valid": false,
+    "traversable": false,
+    "integrity": "none",
+    "alignment": 0,
+    "floorDelta": 8,
+    "passageVertices": 0,
+    "issues": [
+      "Top and Bottom do not both have an opening. No passage was cut."
+    ]
+  },
+  {
+    "label": "mixed void-field and terraced",
+    "tiles": [
+      "void-field",
+      "terraced"
+    ],
+    "programs": [
+      "gathering",
+      "workspace"
+    ],
+    "faces": "W/W",
+    "rotations": [
+      3.141592653589793,
+      0
+    ],
+    "method": "direct",
+    "valid": false,
+    "traversable": false,
+    "integrity": "none",
+    "alignment": 0,
+    "floorDelta": 1,
+    "passageVertices": 0,
+    "issues": [
+      "West and West do not both have an opening. No passage was cut."
+    ]
+  }
+]

@@ -17,6 +17,8 @@ export type NetworkDomainInput = {
    * A zone opens water only when its ring is an explicit, valid polygon.
    */
   overWater?: readonly XZ[] | null;
+  /** Additional valid rings. Each one opens only the water it covers. */
+  overWaterZones?: readonly (readonly XZ[])[] | null;
 };
 
 export type NetworkObstacle = {
@@ -30,6 +32,7 @@ export type NetworkDomain = {
   boundary: XZ[];
   water: XZ[] | null;
   overWater: XZ[] | null;
+  overWaterZones: XZ[][];
   obstacles: NetworkObstacle[];
   gaps: string[];
 };
@@ -133,6 +136,13 @@ export function assessNetworkDomain(input: NetworkDomainInput): NetworkDomain {
     if (zoneGap) gaps.push(`${zoneGap} Water stays closed.`);
     else overWater = copyRing(input.overWater);
   }
+  const overWaterZones: XZ[][] = [];
+  for (const zone of input.overWaterZones ?? []) {
+    if (!zone || zone.length === 0) continue;
+    const zoneGap = ringGap(zone, "An over-water growth zone");
+    if (zoneGap) gaps.push(`${zoneGap} That part of the bay stays closed.`);
+    else overWaterZones.push(copyRing(zone));
+  }
   const obstacles: NetworkObstacle[] = [];
   if (boundary.length >= 3) {
     for (const building of input.buildings ?? []) {
@@ -159,6 +169,7 @@ export function assessNetworkDomain(input: NetworkDomainInput): NetworkDomain {
     boundary,
     water,
     overWater,
+    overWaterZones,
     obstacles,
     gaps,
   };
@@ -186,7 +197,8 @@ export function rasterNetworkMask(frame: MaskFrame, domain: NetworkDomain, size:
       const east = frame.minX + ((x + 0.5) / size) * frame.width;
       const index = row + x;
       const onParcel = pointInRing(east, north, domain.boundary);
-      const onZone = domain.overWater ? pointInRing(east, north, domain.overWater) : false;
+      const onZone = (domain.overWater ? pointInRing(east, north, domain.overWater) : false)
+        || domain.overWaterZones.some((zone) => pointInRing(east, north, zone));
       const onWater = domain.water ? pointInRing(east, north, domain.water) : false;
       const allowed = (onParcel || onZone) && (!onWater || onZone);
       const blocked = allowed && domain.obstacles.some((obstacle) => insideObstacle(east, north, obstacle));

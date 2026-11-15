@@ -1,11 +1,11 @@
 import { faceBook, posePoint, type FaceHighlight, type FaceId, type TilePose } from "./face-match";
+import { tileAabb, tileAxes, tileDistorted } from "./gumball";
 import { MODULE_HEIGHT_FT, type PlacedModule } from "./placement";
 
 const GRID = 8;
 const SIZE = MODULE_HEIGHT_FT;
 const HALF = SIZE / 2;
 const CELL = SIZE / GRID;
-const STEP = SIZE;
 const TOLERANCE = 3;
 const THROAT = 0.45;
 
@@ -42,7 +42,8 @@ const LOCAL: Record<FaceId, { x: number; y: number; z: number }> = {
 
 function poseOf(instance: PlacedModule): TilePose {
   const mirror = instance.mirror === "x" || instance.mirror === "z" ? instance.mirror : null;
-  return { rotationY: instance.transform.rotationY, mirror };
+  const axes = tileAxes(instance);
+  return { rotationY: instance.transform.rotationY, mirror, rotationX: axes.rotationX, rotationZ: axes.rotationZ, scaleX: axes.scaleX, scaleY: axes.scaleY, scaleZ: axes.scaleZ };
 }
 
 function normalOf(id: FaceId, pose: TilePose) {
@@ -65,17 +66,17 @@ function faceToward(pose: TilePose, direction: { east: number; up: number; north
 }
 
 function adjacency(a: PlacedModule, b: PlacedModule) {
-  const dx = b.transform.position.x - a.transform.position.x;
-  const dy = b.transform.position.y - a.transform.position.y;
-  const dz = b.transform.position.z - a.transform.position.z;
-  const on = (value: number, target: number) => Math.abs(value - target) <= TOLERANCE;
-  const flat = (value: number) => Math.abs(value) <= TOLERANCE;
-  if (on(dx, STEP) && flat(dy) && flat(dz)) return { east: 1, up: 0, north: 0, type: "side" as const };
-  if (on(dx, -STEP) && flat(dy) && flat(dz)) return { east: -1, up: 0, north: 0, type: "side" as const };
-  if (on(dz, STEP) && flat(dx) && flat(dy)) return { east: 0, up: 0, north: 1, type: "side" as const };
-  if (on(dz, -STEP) && flat(dx) && flat(dy)) return { east: 0, up: 0, north: -1, type: "side" as const };
-  if (on(dy, STEP) && flat(dx) && flat(dz)) return { east: 0, up: 1, north: 0, type: "stack" as const };
-  if (on(dy, -STEP) && flat(dx) && flat(dz)) return { east: 0, up: -1, north: 0, type: "stack" as const };
+  const boxA = tileAabb(a);
+  const boxB = tileAabb(b);
+  const gapX = Math.max(boxA.minX, boxB.minX) - Math.min(boxA.maxX, boxB.maxX);
+  const gapY = Math.max(boxA.minY, boxB.minY) - Math.min(boxA.maxY, boxB.maxY);
+  const gapZ = Math.max(boxA.minZ, boxB.minZ) - Math.min(boxA.maxZ, boxB.maxZ);
+  const touch = (gap: number) => gap <= TOLERANCE && gap >= -TOLERANCE;
+  const overlap = (gap: number) => gap < -TOLERANCE;
+  const toward = (from: number, to: number) => to >= from ? 1 : -1;
+  if (touch(gapX) && overlap(gapY) && overlap(gapZ)) return { east: toward(a.transform.position.x, b.transform.position.x), up: 0, north: 0, type: "side" as const };
+  if (touch(gapZ) && overlap(gapX) && overlap(gapY)) return { east: 0, up: 0, north: toward(a.transform.position.z, b.transform.position.z), type: "side" as const };
+  if (touch(gapY) && overlap(gapX) && overlap(gapZ)) return { east: 0, up: toward(a.transform.position.y, b.transform.position.y), north: 0, type: "stack" as const };
   return null;
 }
 
@@ -208,6 +209,7 @@ export function proposeDirectJoin(
   }
   const floorDelta = sillA === GRID || sillB === GRID ? GRID : Math.abs(sillA - sillB);
   const issues: string[] = [];
+  if (tileDistorted(tileA) || tileDistorted(tileB)) issues.push("A tile is scaled differently on each axis. Openings and circulation can be distorted, so this passage was not cut.");
   if (bookA[faceA].openings < 2 || bookB[faceB].openings < 2) issues.push(`${LABEL[faceA]} and ${LABEL[faceB]} do not both have an opening. No passage was cut.`);
   else if (overlap.length < 2) issues.push("The openings do not overlap. No passage was cut.");
   else if (obstruction > overlap.length) issues.push("A solid face blocks the opening. No passage was cut.");
@@ -303,6 +305,7 @@ export type StoredDirectJoin = {
   floorDelta: number;
   integrity: "closed";
   passage: PassageMesh;
+  review?: string;
 };
 
 export function readStoredJoins(value: unknown): StoredDirectJoin[] {
@@ -331,6 +334,7 @@ export function readStoredJoins(value: unknown): StoredDirectJoin[] {
       floorDelta: typeof link.floorDelta === "number" ? link.floorDelta : 0,
       integrity: "closed" as const,
       passage: { positions, indices },
+      review: typeof link.review === "string" ? link.review : undefined,
     }];
   });
 }

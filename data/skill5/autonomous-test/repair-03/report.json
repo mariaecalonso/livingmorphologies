@@ -1,0 +1,123 @@
+{
+  "classification": "experimental",
+  "productionConnections": "unchanged",
+  "sourceMeshesUnchanged": true,
+  "whyHybridsFail": "Skill 04 lofts the outer section rings between the two faces. A closed shell can result. Section correspondence is only an angular comparison of those outer rings, and the mesh check can still leave a gap or a sharp fold. Neither test asks whether air inside one tile reaches air inside the other. Several sampled hybrids were also seated on the east-west placement faces while the near openings were on other faces.",
+  "sealedMass": "The enclosed voxel volume is the solid inside the shell. Face openings lead into exterior-connected air, not into that solid.",
+  "horizontal": {
+    "pair": [
+      "linear-gallery",
+      "terraced"
+    ],
+    "faces": "N/S",
+    "directValid": false,
+    "issues": [
+      "The openings do not overlap. No passage was cut."
+    ],
+    "openingSeparationFt": 2.5,
+    "galleryOpeningDepthFt": [
+      2.5,
+      3
+    ],
+    "terraceOpeningDepthFt": [
+      2,
+      1.5
+    ],
+    "adapted": false,
+    "reason": "An opening is present, but the air behind it is shorter than 6.5 ft, so it is not a passage. No derived opening was cut."
+  },
+  "vertical": {
+    "pair": [
+      "void-field",
+      "void-field"
+    ],
+    "levelsFt": [
+      0.7,
+      20.7
+    ],
+    "direct": {
+      "valid": false,
+      "issues": [
+        "Top and Bottom do not both have an opening. No passage was cut."
+      ],
+      "faces": "T/B"
+    },
+    "westOpening": {
+      "up": {
+        "min": 8.75,
+        "max": 16.25
+      },
+      "north": {
+        "min": -3.75,
+        "max": 3.75
+      },
+      "depthFt": {
+        "min": 4,
+        "max": 20
+      },
+      "cells": 14
+    },
+    "openingWidthFt": 10,
+    "openingHeightFt": 10,
+    "roofClearanceAboveVoidFt": 1.25,
+    "stair": {
+      "form": "external switchback running west from the opening, then back to the upper opening",
+      "risers": 34,
+      "riseInches": 7.06,
+      "treadInches": 11,
+      "runFt": 31.17,
+      "widthFt": 3.5,
+      "flights": 2,
+      "cells": 287,
+      "clashWithSolid": 0,
+      "headroomBlockedCells": 0,
+      "continuousRoute": true,
+      "code": "unverified"
+    },
+    "adaptedTile": false,
+    "valid": true,
+    "reason": "Experimental external stair. The original meshes were not cut. This is not a production connection, and no building code was checked."
+  },
+  "cluster": {
+    "tiles": [
+      "void-field A",
+      "void-field B",
+      "void-field C",
+      "void-field D"
+    ],
+    "edges": [
+      {
+        "from": "A",
+        "to": "B",
+        "method": "direct",
+        "valid": true,
+        "traversable": true,
+        "issues": []
+      },
+      {
+        "from": "C",
+        "to": "D",
+        "method": "direct",
+        "valid": true,
+        "traversable": true,
+        "issues": []
+      },
+      {
+        "from": "A",
+        "to": "C",
+        "method": "external-stair",
+        "valid": false,
+        "reason": "A's only opening faces B. The stair would occupy the same face as the horizontal join. No second opening was cut."
+      },
+      {
+        "from": "gallery",
+        "to": "terrace",
+        "method": "adapted-direct",
+        "valid": false,
+        "reason": "An opening is present, but the air behind it is shorter than 6.5 ft, so it is not a passage. No derived opening was cut."
+      }
+    ],
+    "oneConnectedCluster": false
+  },
+  "proposedIntegration": "Keep this out of the assembly workflow. A later Adapt Connection action could store an external stair as its own mesh, keyed to the two instance ids, and leave the source module untouched. It should run only after the opening is at least 3 by 6.5 ft, the treads reach both openings, and the stair misses both solids. The horizontal local cut tested here should stay unavailable."
+}

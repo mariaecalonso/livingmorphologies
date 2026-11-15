@@ -1,3 +1,4 @@
+import { tileVector, type GumballPose } from "./gumball";
 import { MODULE_HEIGHT_FT } from "./placement";
 import type { PlacedModule } from "./placement";
 
@@ -17,6 +18,11 @@ export type FaceMirror = "x" | "z" | null;
 export type TilePose = {
   rotationY: number;
   mirror: FaceMirror;
+  rotationX?: number;
+  rotationZ?: number;
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
 };
 
 export type FaceHighlight = {
@@ -183,17 +189,19 @@ function cellPoint(id: FaceId, row: number, col: number) {
 }
 
 export function posePoint(x: number, y: number, z: number, pose: TilePose) {
-  let east = x;
-  let north = z;
-  if (pose.mirror === "x") east = -east;
-  if (pose.mirror === "z") north = -north;
-  const cos = Math.cos(pose.rotationY);
-  const sin = Math.sin(pose.rotationY);
-  return {
-    east: east * cos - north * sin,
-    north: east * sin + north * cos,
-    up: y,
+  const framed: GumballPose = {
+    x: 0,
+    y: 0,
+    z: 0,
+    rotationX: pose.rotationX ?? 0,
+    rotationY: pose.rotationY,
+    rotationZ: pose.rotationZ ?? 0,
+    scaleX: pose.scaleX ?? 1,
+    scaleY: pose.scaleY ?? 1,
+    scaleZ: pose.scaleZ ?? 1,
   };
+  const turned = tileVector({ x, y, z }, framed, pose.mirror);
+  return { east: turned.x, up: turned.y, north: turned.z };
 }
 
 function worldOf(origin: Slot, local: { x: number; y: number; z: number }, pose: TilePose) {
