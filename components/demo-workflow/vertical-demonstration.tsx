@@ -30,7 +30,7 @@ const ARCHETYPE = "vertical-void";
 const CANDIDATE = 351;
 const CONTINUATIONS = Array.from({ length: 24 }, (_, index) => `N${String(index + 1).padStart(2, "0")}`);
 const CHOOSE_ORDER = ["N01", "N09", "N12", "N20", "N24"] as const;
-const CATALOG_ORDER = ["N15", "N12", "N23", "N10"] as const;
+const CATALOG_ORDER = ["N03", "N10", "N24"] as const;
 const STAGES = ["sample", "develop", "form", "cap", "choose", "solidify", "handoff", "catalog"] as const;
 const GROUPS: readonly { focus: string; start: number; end: number; count: number }[] = [
   { focus: "Formal", start: 1, end: 3, count: 3 },
@@ -794,6 +794,10 @@ export function CatalogDemonstration() {
       requestAnimationFrame(frame);
     });
     const moduleButton = (id: string) => host.current?.querySelector(`[data-module="${CSS.escape(id)}"]`) ?? null;
+    const stateButton = (label: string) => {
+      const buttons = host.current?.querySelectorAll(".vertical-catalogue-controls button") ?? [];
+      return [...buttons].find((button) => button.textContent?.trim() === label) ?? null;
+    };
     const backButton = () => {
       const buttons = host.current?.querySelectorAll("button") ?? [];
       return [...buttons].find((button) => button.textContent?.trim() === "Back to catalogue") ?? null;
@@ -809,11 +813,11 @@ export function CatalogDemonstration() {
         await sleep(ms / steps);
       }
     };
-    const moveTo = async (el: Element | null) => {
+    const moveTo = async (el: Element | null, ms = 2000) => {
       const root = store.portal;
       if (!root || !(el instanceof HTMLElement)) return;
       const to = pointIn(root, el, "mark");
-      await glide(to.x, to.y, 2000);
+      await glide(to.x, to.y, ms);
     };
     const press = async (el: HTMLElement) => {
       patch({ pressed: el.getAttribute("data-module") ?? "back" });
@@ -876,11 +880,23 @@ export function CatalogDemonstration() {
       const end = point(1);
       pointer("pointerup", end.x, end.y);
     };
+    patch({ run: true });
+    const root = document.querySelector("[data-demo-root]");
+    let playing = Boolean(root?.hasAttribute("data-playing"));
+    const observer = new MutationObserver(() => {
+      const next = Boolean(root?.hasAttribute("data-playing"));
+      if (next === playing) return;
+      playing = next;
+      patch({ run: next });
+    });
+    if (root) observer.observe(root, { attributes: true, attributeFilter: ["data-playing"] });
     const run = async () => {
       await sleep(DEMO_TIMING.transitionMs + 80);
       if (!live() || !host.current) return;
       const started = performance.now();
       while (live() && !moduleButton(CATALOG_ORDER[0]) && performance.now() - started < 12000) await sleep(80);
+      const stateWait = performance.now();
+      while (live() && !stateButton("Capped") && performance.now() - stateWait < 8000) await sleep(80);
       if (!live() || !host.current) return;
       patch({
         portal: columnsOf(host.current),
@@ -891,28 +907,46 @@ export function CatalogDemonstration() {
         pressed: null,
         cursor: { x: 28, y: 36, visible: false },
       });
+      const capped = stateButton("Capped");
+      if (capped instanceof HTMLElement) {
+        await moveTo(capped);
+        await press(capped);
+        await sleep(1400);
+      }
+      if (!live()) return;
       for (const id of CATALOG_ORDER) {
         if (!live()) return;
         const target = moduleButton(id);
         if (!(target instanceof HTMLElement)) continue;
         await moveTo(target);
         await press(target);
-        await sleep(1500);
+        const opened = performance.now();
+        while (live() && !host.current?.querySelector(".catalog-inspection[data-ready]") && performance.now() - opened < 4000) await sleep(80);
+        await sleep(700);
         if (!live()) return;
         await spin();
-        await sleep(420);
-        const opened = performance.now();
-        while (live() && !backButton() && performance.now() - opened < 2000) await sleep(80);
+        await sleep(900);
+        const advance = host.current?.querySelector(".catalog-advance");
+        if (advance instanceof HTMLElement) {
+          await moveTo(advance, 900);
+          await sleep(280);
+        }
+        if (!live()) return;
+        if (id === "N24") {
+          if (advance instanceof HTMLElement) await press(advance);
+          return;
+        }
         const back = backButton();
         if (!(back instanceof HTMLElement)) continue;
-        await moveTo(back);
+        await moveTo(back, 900);
         await press(back);
-        await sleep(1600);
+        await sleep(1400);
       }
     };
     void run();
     return () => {
       stop = true;
+      observer.disconnect();
     };
   }, []);
 

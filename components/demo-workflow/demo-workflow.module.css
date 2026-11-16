@@ -1,4 +1,25 @@
 .demo {
+  /*
+    Type reference: Chapter 03, Process, measured on the 1920 × 560 sheet.
+    Workflow chapter pages use these pixel sizes. Do not invent a second scale.
+    Display is the chapter name in the header. Label is a step title and its index.
+    Body is a sentence. Meta is a secondary mark. Value is a reading.
+  */
+  --wf-display: 16.8px;
+  --wf-display-tracking: 0.06em;
+  --wf-display-line: 1;
+  --wf-label: 9.6px;
+  --wf-label-tracking: 0.14em;
+  --wf-label-line: 1.15;
+  --wf-body: 8.48px;
+  --wf-body-tracking: 0.06em;
+  --wf-body-line: 1.35;
+  --wf-meta: 7.52px;
+  --wf-meta-tracking: 0.06em;
+  --wf-meta-line: 1.2;
+  --wf-value: 9.6px;
+  --wf-value-tracking: 0.04em;
+  --wf-value-line: 1;
   --demo-teal: #49d7de;
   --demo-copper: #c77e5f;
   --demo-line: rgba(255, 255, 255, 0.28);
@@ -39,9 +60,9 @@
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  font-size: 1.05rem;
-  line-height: 1;
-  letter-spacing: 0.06em;
+  font-size: var(--wf-display);
+  line-height: var(--wf-display-line);
+  letter-spacing: var(--wf-display-tracking);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -222,8 +243,9 @@
 }
 
 .kicker {
-  font-size: 0.56rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-label);
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.56);
 }
@@ -297,6 +319,9 @@
   position: absolute;
   inset: 0;
   --step-leave: var(--demo-transition);
+  font-size: var(--wf-body);
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
 }
 
 .stepField {
@@ -542,13 +567,16 @@
 }
 
 .summaryText {
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: var(--wf-label);
+  line-height: var(--wf-label-line);
+  letter-spacing: var(--wf-label-tracking);
+  text-transform: uppercase;
 }
 
 .note {
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
+  font-size: var(--wf-meta);
+  letter-spacing: var(--wf-meta-tracking);
+  line-height: var(--wf-meta-line);
   color: var(--demo-teal);
 }
 
@@ -891,8 +919,9 @@
   gap: 0.45rem;
   align-items: baseline;
   margin: 0;
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-label);
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.72);
 }
@@ -947,8 +976,9 @@
   border-radius: 999px;
   background: #000000;
   font: inherit;
-  font-size: 0.54rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-body);
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
   text-transform: uppercase;
   color: #ffffff;
   cursor: pointer;
@@ -977,8 +1007,9 @@
   border-radius: 999px;
   background: #000000;
   font: inherit;
-  font-size: 0.54rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-body);
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
   text-transform: uppercase;
   color: #ffffff;
   cursor: pointer;
@@ -1153,8 +1184,9 @@
   border: 1px solid rgba(199, 126, 95, 0.55);
   border-radius: 999px;
   background: #000000;
-  font-size: 0.48rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-meta);
+  letter-spacing: var(--wf-meta-tracking);
+  line-height: var(--wf-meta-line);
   text-transform: uppercase;
   white-space: nowrap;
   color: rgba(231, 160, 132, 0.7);
@@ -1167,7 +1199,8 @@
   color: #e7a084;
 }
 
-.demo:not([data-playing]) .chapter :global(.wf-phy-marks *) {
+.demo:not([data-playing]) .chapter :global(.wf-phy-marks *),
+.demo:not([data-playing]) .chapter :global([data-explain] *) {
   animation-play-state: paused;
 }
 

@@ -1098,6 +1098,7 @@ export function ProcessMorphology({
   isoTick = 0,
   fitMargin,
   accent = null,
+  accentTint,
   isoExtent = null,
   wire = false,
   wireBands = 8,
@@ -1131,6 +1132,8 @@ export function ProcessMorphology({
   fitMargin?: number;
   /** Faces drawn in copper over the clay mesh. Display only. */
   accent?: IsoMesh | null;
+  /** Tint for the accent faces. The catalogue keeps the default copper. */
+  accentTint?: [number, number, number];
   /** Shared projected extent. Both comparison views use it, so neither is fitted on its own. */
   isoExtent?: { minX: number; maxX: number; minY: number; maxY: number } | null;
   /** Dark body with section lines, so the surface curvature stays readable. */
@@ -1272,6 +1275,7 @@ export function ProcessMorphology({
         pan: viewPan,
         margin: fitMargin,
         accent,
+        accentTint,
         wire,
         wireBands,
         wireBright,
@@ -1296,7 +1300,14 @@ export function ProcessMorphology({
     const parent = canvas.parentElement;
     const observer = parent ? new ResizeObserver(() => paint(performance.now())) : null;
     if (parent && observer) observer.observe(parent);
-    if (!isoCamera && (spinning || (turn && external) || (insideBox && !reduced))) {
+    if (isoCamera && turn) {
+      const loop = (now: number) => {
+        isoCamera.current.yaw = (now / (turnSeconds * 1000)) * Math.PI * 2;
+        paint(now);
+        frameId = window.requestAnimationFrame(loop);
+      };
+      frameId = window.requestAnimationFrame(loop);
+    } else if (!isoCamera && (spinning || (turn && external) || (insideBox && !reduced))) {
       const loop = (now: number) => {
         paint(now);
         frameId = window.requestAnimationFrame(loop);
@@ -1307,7 +1318,7 @@ export function ProcessMorphology({
       if (frameId) window.cancelAnimationFrame(frameId);
       observer?.disconnect();
     };
-  }, [accent, column, external, float, frame, insideBox, isoCamera, isoExtent, isoTick, mesh, orbit, steered, turnSeconds, uniformFrame, wire, wireBands, wireBright, wireLift]);
+  }, [accent, accentTint, column, external, float, frame, insideBox, isoCamera, isoExtent, isoTick, mesh, orbit, steered, turnSeconds, uniformFrame, wire, wireBands, wireBright, wireLift]);
   const meshCanvas = <canvas ref={ref} className="vertical-process-mesh" aria-label="Network morphology in the 20 by 20 by 20 module" />;
   const boxCanvas = insideBox ? <canvas ref={boxRef} className="process-voxel-box" aria-hidden="true" /> : null;
   if (isoCamera || insideBox) {

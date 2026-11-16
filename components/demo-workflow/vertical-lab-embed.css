@@ -138,8 +138,9 @@
 .demo-vert-lab .process-handoff-ready {
   flex: 0 0 auto;
   margin: 0.08rem 0 0;
-  font-size: 0.62rem;
-  line-height: 1.2;
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
 }
 
 .demo-vert-lab .process-sentence {
@@ -163,8 +164,9 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.55rem;
-  letter-spacing: 0.06em;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
   text-transform: uppercase;
 }
 
@@ -188,8 +190,9 @@
   margin: 0.12rem 0 0;
   padding: 0;
   list-style: none;
-  font-size: 0.55rem;
-  letter-spacing: 0.06em;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
   text-transform: uppercase;
 }
 
@@ -215,7 +218,7 @@
   min-height: 0;
   border-radius: 0;
   padding: 0;
-  font-size: 0.55rem;
+  font-size: var(--wf-meta, 7.52px);
 }
 
 .demo-vert-lab .process-choose-stage {
@@ -1231,9 +1234,9 @@
 .demo-vert-lab .process-canvas .continue-flow-name,
 .demo-vert-lab .process-canvas .continue-flow-count,
 .demo-vert-lab .process-canvas .continue-origin-label {
-  font-size: 0.47rem;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
 }
 
 .demo-vert-lab .process-canvas .continue-selected {
@@ -1246,8 +1249,8 @@
 }
 
 .demo-vert-lab .process-canvas .process-start .process-read {
-  font-size: 0.47rem;
-  letter-spacing: 0.08em;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
   padding: 0.08rem 0.28rem;
 }
 
@@ -1300,19 +1303,19 @@
 .demo-vert-lab .process-down > .process-step :is(.eyebrow, .panel-title),
 .demo-vert-lab .process-canvas .process-start .vertical-process-label .eyebrow,
 .demo-vert-lab .process-canvas .process-start .vertical-process-label .panel-title {
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  line-height: 1.15;
+  font-size: var(--wf-label, 9.6px);
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+  line-height: var(--wf-label-line, 1.15);
 }
 
 .demo-vert-lab .process-setup > .process-step :is(.process-sentence, .process-cue),
 .demo-vert-lab .process-down > .process-step :is(.process-sentence, .process-cue),
 .demo-vert-lab .process-setup > .process-step :is(.process-cap-name, .process-handoff-ready, .process-cap-cue),
 .demo-vert-lab .process-down > .process-step :is(.process-cap-name, .process-handoff-ready, .process-cap-cue) {
-  font-size: 0.53rem;
+  font-size: var(--wf-body, 8.48px);
   margin: 0.12rem 0;
-  letter-spacing: 0.06em;
-  line-height: 1.35;
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
 }
 
 .demo-vert-lab .process-sample .vertical-process-label,
@@ -1329,26 +1332,26 @@
   flex: 0 0 auto;
   width: auto;
   margin: 0;
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  line-height: 1.15;
+  font-size: var(--wf-label, 9.6px);
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+  line-height: var(--wf-label-line, 1.15);
   white-space: nowrap;
 }
 
 .demo-vert-lab .process-sample :is(.process-sentence, .process-cue),
 .demo-vert-lab .process-xyt :is(.process-sentence, .process-cue),
 .demo-vert-lab .process-form :is(.process-sentence, .process-cue) {
-  font-size: 0.53rem;
-  letter-spacing: 0.06em;
-  line-height: 1.35;
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
 }
 
 .demo-vert-lab .process-sample .process-transport :is(button, span),
 .demo-vert-lab .process-xyt .process-transport :is(button, span),
 .demo-vert-lab .process-form .process-transport :is(button, span) {
-  font-size: 0.53rem;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
 }
 
 .demo-vert-lab .process-canvas .process-start-note span,
@@ -1364,14 +1367,14 @@
 .demo-vert-lab .process-canvas .inherit-chart-scale span,
 .demo-vert-lab .process-canvas .inherit-meter-name,
 .demo-vert-lab .process-canvas .inherit-meter-value span:last-child {
-  font-size: 0.47rem;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
 }
 
 .demo-vert-lab .process-canvas .inherit-meter-value span:first-child {
-  font-size: 0.6rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  font-size: var(--wf-value, 9.6px);
+  letter-spacing: var(--wf-value-tracking, 0.04em);
+  line-height: var(--wf-value-line, 1);
 }
 

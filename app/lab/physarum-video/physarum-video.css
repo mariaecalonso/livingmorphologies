@@ -4,6 +4,24 @@
   overflow: hidden;
   background: #000000;
   color: #ffffff;
+  /* Chapter 03 Process, measured on the 1920 × 560 sheet.
+     This stage is the 7407 × 2160 sheet, so each goal is carried across at 7407 / 1920. */
+  --wf-sheet: 3.8578125;
+  --wf-display: calc(16.8px * var(--wf-sheet));
+  --wf-display-tracking: 0.06em;
+  --wf-display-line: 1;
+  --wf-label: calc(9.6px * var(--wf-sheet));
+  --wf-label-tracking: 0.14em;
+  --wf-label-line: 1.15;
+  --wf-body: calc(8.48px * var(--wf-sheet));
+  --wf-body-tracking: 0.06em;
+  --wf-body-line: 1.35;
+  --wf-meta: calc(7.52px * var(--wf-sheet));
+  --wf-meta-tracking: 0.06em;
+  --wf-meta-line: 1.2;
+  --wf-value: calc(9.6px * var(--wf-sheet));
+  --wf-value-tracking: 0.04em;
+  --wf-value-line: 1;
 }
 
 .pv-scene {
@@ -58,20 +76,20 @@
   left: -2%;
   top: 8%;
   font-family: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
-  font-size: 18rem;
+  font-size: var(--wf-display);
   font-weight: 400;
-  letter-spacing: 0.08em;
-  line-height: 0.8;
+  letter-spacing: var(--wf-display-tracking);
+  line-height: var(--wf-display-line);
 }
 
 .pv-name {
   left: 7%;
   top: 24%;
   font-family: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
-  font-size: 7.2rem;
+  font-size: var(--wf-display);
   font-weight: 400;
-  letter-spacing: 0.12em;
-  line-height: 1;
+  letter-spacing: var(--wf-display-tracking);
+  line-height: var(--wf-display-line);
   white-space: nowrap;
   text-transform: uppercase;
   transform-origin: left center;
@@ -85,10 +103,10 @@
   left: 18%;
   top: 40%;
   font-family: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
-  font-size: 3.3rem;
+  font-size: var(--wf-label);
   font-weight: 400;
-  letter-spacing: 0.12em;
-  line-height: 1;
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
   white-space: nowrap;
   text-transform: uppercase;
 }
@@ -96,10 +114,10 @@
 .pv-line {
   max-width: 52%;
   font-family: var(--font-ui);
-  font-size: 2.85rem;
+  font-size: var(--wf-body);
   font-weight: 400;
-  letter-spacing: 0.08em;
-  line-height: 1.35;
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
   text-transform: uppercase;
 }
 
@@ -185,15 +203,17 @@
 .pv-echo {
   left: calc(7% + 18px);
   top: calc(24% - 10px);
-  font-size: 7.2rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-display);
+  letter-spacing: var(--wf-display-tracking);
+  line-height: var(--wf-display-line);
 }
 
 .pv-species-echo {
   left: calc(18% + 14px);
   top: calc(40% + 8px);
-  font-size: 3.3rem;
-  letter-spacing: 0.12em;
+  font-size: var(--wf-label);
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
   color: rgba(176, 122, 98, 0.42);
 }
 
@@ -274,9 +294,10 @@ canvas.pv-diagram {
   z-index: 2;
   margin: 0;
   font-family: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-size: var(--wf-display);
   font-weight: 400;
-  letter-spacing: 0.12em;
-  line-height: 1;
+  letter-spacing: var(--wf-display-tracking);
+  line-height: var(--wf-display-line);
   text-transform: uppercase;
   white-space: nowrap;
   color: #ffffff;

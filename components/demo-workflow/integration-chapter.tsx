@@ -4,8 +4,7 @@ import type { CSSProperties } from "react";
 import { SITE_ARCHETYPES, SITE_PROGRAMS, PROGRAM_LABEL } from "@/lib/skill5/catalog";
 import { ASSEMBLIES, CONFIGURATIONS, HYBRID, SITE } from "@/lib/demo-workflow/chapter-facts";
 import { MODULE_STILLS } from "@/lib/demo-workflow/overview";
-import { Caption, Chips, Img, Kicker, Missing } from "@/components/demo-workflow/chapter-kit";
-import { HybridCatalogPage, HybridLabPage, HybridSitePage } from "@/components/demo-workflow/integration-run";
+import { Caption, Chips, Img, Kicker, Missing, PendingFrame } from "@/components/demo-workflow/chapter-kit";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/integration-chapter.module.css";
@@ -139,7 +138,7 @@ function Comparison({ detail }: { detail?: boolean }) {
   );
 }
 
-/** Chapter 05: selected modules joined into hybrids and assemblies, one saved site configuration, and the return to requirements. */
+/** Chapter 06: cluster assemblies, then the connection between clusters. The hybrid lab still joins tiles. */
 export const INTEGRATION_CONTENT: ChapterContent = {
   visuals: [
     {
@@ -230,13 +229,33 @@ export const INTEGRATION_CONTENT: ChapterContent = {
   ],
   layout: styles.composed,
   boards: [
-    { layout: styles.sheet, details: [<HybridLabPage key="lab" />] },
-    { layout: styles.sheet, details: [<HybridCatalogPage key="catalog" />] },
-    { layout: styles.sheet, details: [<HybridSitePage key="site" />] },
+    {
+      layout: styles.sheet,
+      details: [
+        <PendingFrame
+          key="assemblies"
+          frame
+          kicker="Chapter 06"
+          title="Cluster Assemblies"
+          body="The cluster assemblies from the site strategy are carried forward. None are stored."
+        />,
+      ],
+    },
+    {
+      layout: styles.sheet,
+      details: [
+        <PendingFrame
+          key="connection"
+          frame
+          kicker="Chapter 06"
+          title="Cluster Connection"
+          body="SOM and hybrid connection will run between these clusters. The Hybrid Connection lab still joins two tiles. The cluster rules are still open."
+        />,
+      ],
+    },
   ],
-  loop: { from: 4, to: [1, 3], labels: ["Evaluation revises the hybrid", "Client and site set the next placement"] },
   feature: {
-    operation: 4,
+    operation: 1,
     action: "Watch the lab run",
     view: (
       <PresentationReel

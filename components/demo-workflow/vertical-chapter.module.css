@@ -377,10 +377,12 @@
   color: #49d7de;
 }
 
-/* Process, the 24-model catalog, and the final catalogue each fill their own page. */
+/* Process, the 24-model catalog, the final catalogue, and the human-scale reading each fill their own page. */
 .process,
 .catalog,
-.final {
+.final,
+.cluster,
+.scale {
   display: grid;
   height: 100%;
   min-height: 0;
@@ -389,8 +391,11 @@
 }
 
 .process > section,
+.cluster > section,
 .process > section[data-light="lit"],
-.process > section[data-light="current"] {
+.cluster > section[data-light="lit"],
+.process > section[data-light="current"],
+.cluster > section[data-light="current"] {
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -398,17 +403,21 @@
 
 .process > section,
 .catalog > section,
+.cluster > section,
 .process > section[data-light="current"],
 .catalog > section[data-light="current"],
+.cluster > section[data-light="current"],
 .process > section[data-light="lit"],
-.catalog > section[data-light="lit"] {
+.catalog > section[data-light="lit"],
+.cluster > section[data-light="lit"] {
   min-height: 0;
   overflow: hidden;
   transform: none;
 }
 
 .process > section > :last-child,
-.catalog > section > :last-child {
+.catalog > section > :last-child,
+.cluster > section > :last-child {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -417,7 +426,8 @@
 }
 
 .process > section > :last-child > *,
-.catalog > section > :last-child > * {
+.catalog > section > :last-child > *,
+.cluster > section > :last-child > * {
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -525,6 +535,350 @@
 
 .catalogField :global(.vertical-catalogue[data-inspect]) :global(.vertical-catalogue-controls) {
   display: none;
+}
+
+.catalogField :global(.vertical-catalogue[data-inspect] .vertical-catalogue-body) {
+  grid-template-columns: minmax(0, 1fr) minmax(16.5rem, 19rem);
+}
+
+.catalogField :global(.vertical-catalogue[data-inspect] .vertical-catalogue-side:first-child) {
+  display: none;
+}
+
+.catalogField :global(.vertical-catalogue[data-inspect] .vertical-catalogue-side:last-child .vertical-catalogue-frame) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0.55rem 0.85rem 0.4rem 0.35rem;
+}
+
+.catalogField :global(.vertical-catalogue[data-final] .vertical-catalogue-labels button[data-active]) {
+  color: #49d7de;
+}
+
+.catalogField :global(.catalog-inspection) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  color: #f2f2ee;
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
+}
+
+.catalogField :global(.catalog-plate) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.7rem 0.75rem 0.65rem;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  background: #000000;
+}
+
+.catalogField :global(.catalog-plate-head) {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.catalogField :global(.catalog-stamp) {
+  flex: 0 0 auto;
+  border: 1px solid rgba(73, 215, 222, 0.7);
+  color: #49d7de;
+  padding: 0.2rem 0.35rem;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
+  text-transform: uppercase;
+}
+
+.catalogField :global(.catalog-stamp[data-status="review"]) {
+  border-color: rgba(199, 126, 95, 0.8);
+  color: #c77e5f;
+}
+
+.catalogField :global(.catalog-measure) {
+  display: grid;
+  grid-template-columns: 7.2rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.catalogField :global(.catalog-cube) {
+  position: relative;
+  margin: 1.15rem 1.8rem 0.2rem 0.35rem;
+}
+
+.catalogField :global(.catalog-cube-front),
+.catalogField :global(.catalog-cube-side),
+.catalogField :global(.catalog-cube-top) {
+  position: absolute;
+  display: block;
+}
+
+.catalogField :global(.catalog-cube-front) {
+  inset: 0;
+  border: 1px solid #49d7de;
+}
+
+.catalogField :global(.catalog-cube-side) {
+  left: 100%;
+  top: 0.45rem;
+  height: 100%;
+  border: 1px solid #c77e5f;
+  transform: skewY(-18deg);
+  transform-origin: left center;
+}
+
+.catalogField :global(.catalog-cube-top) {
+  left: 0.35rem;
+  bottom: 100%;
+  width: 100%;
+  height: 1.15rem;
+  border: 1px solid #49d7de;
+  transform: skewX(-48deg);
+  transform-origin: left bottom;
+}
+
+.catalogField :global(.catalog-axes) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.catalogField :global(.catalog-axes) p {
+  display: grid;
+  grid-template-columns: 3.4rem auto auto;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.catalogField :global(.catalog-axes) span,
+.catalogField :global(.catalog-mass),
+.catalogField :global(.catalog-checks) {
+  color: rgba(242, 242, 238, 0.62);
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
+  text-transform: uppercase;
+}
+
+.catalogField :global(.catalog-axes) strong {
+  font-weight: 400;
+  font-size: var(--wf-value, 9.6px);
+  letter-spacing: var(--wf-value-tracking, 0.04em);
+  line-height: var(--wf-value-line, 1);
+}
+
+.catalogField :global(.catalog-axes) em {
+  font-style: normal;
+  color: #49d7de;
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+}
+
+.catalogField :global(.catalog-reading) {
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.catalogField :global(.catalog-mass) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.catalogField :global(.catalog-column) {
+  display: flex;
+  align-items: flex-end;
+  width: 0.7rem;
+  height: 3.4rem;
+  background: rgba(242, 242, 238, 0.12);
+}
+
+.catalogField :global(.catalog-column) i {
+  display: block;
+  width: 100%;
+  background: #c77e5f;
+}
+
+.catalogField :global(.catalog-checks) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogField :global(.catalog-checks) li {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.catalogField :global(.catalog-checks) i {
+  width: 6px;
+  height: 6px;
+  background: #49d7de;
+}
+
+.catalogField :global(.catalog-checks) i[data-mark="part"] {
+  background: transparent;
+  border: 1px solid #c77e5f;
+}
+
+.catalogField :global(.catalog-checks) i[data-mark="review"] {
+  background: #c77e5f;
+}
+
+.catalogField :global(.catalog-inspection-id) {
+  margin: 0;
+  color: #49d7de;
+  font-size: var(--wf-label, 9.6px);
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+  line-height: var(--wf-label-line, 1.15);
+}
+
+.catalogField :global(.catalog-inspection[data-selected] .catalog-inspection-id) {
+  text-shadow: 0 0 16px rgba(73, 215, 222, 0.45);
+}
+
+.catalogField :global(.catalog-inspection-name),
+.catalogField :global(.catalog-inspection-note) {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+}
+
+.catalogField :global(.catalog-inspection-name) {
+  font-size: var(--wf-label, 9.6px);
+  line-height: var(--wf-label-line, 1.15);
+}
+
+.catalogField :global(.catalog-inspection-note) {
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
+}
+
+.catalogField :global(.catalog-inspection-volume) {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.catalogField :global(.catalog-inspection-volume) strong {
+  font-weight: 400;
+  font-size: var(--wf-value, 9.6px);
+  letter-spacing: var(--wf-value-tracking, 0.04em);
+  line-height: var(--wf-value-line, 1);
+}
+
+.catalogField :global(.catalog-inspection-volume) span {
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.7);
+}
+
+.catalogField :global(.catalog-inspection-note) {
+  color: rgba(242, 242, 238, 0.62);
+}
+
+.catalogField :global(.catalog-bounds),
+.catalogField :global(.catalog-solid) {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.catalogField :global(.catalog-bounds) div,
+.catalogField :global(.catalog-solid) {
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.catalogField :global(.catalog-bounds) span,
+.catalogField :global(.catalog-solid) span,
+.catalogField :global(.catalog-marks) {
+  color: rgba(242, 242, 238, 0.72);
+  font-size: var(--wf-meta, 7.52px);
+  letter-spacing: var(--wf-meta-tracking, 0.06em);
+  line-height: var(--wf-meta-line, 1.2);
+  text-transform: uppercase;
+}
+
+.catalogField :global(.catalog-bounds) i,
+.catalogField :global(.catalog-solid) i {
+  display: block;
+  height: 3px;
+  background: rgba(242, 242, 238, 0.16);
+}
+
+.catalogField :global(.catalog-bounds) b,
+.catalogField :global(.catalog-solid) b {
+  display: block;
+  height: 3px;
+  background: #49d7de;
+}
+
+.catalogField :global(.catalog-bounds) em,
+.catalogField :global(.catalog-solid) em {
+  font-style: normal;
+  font-size: 12px;
+}
+
+.catalogField :global(.catalog-marks) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.catalogField :global(.catalog-parts) {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.catalogField :global(.catalog-parts) i {
+  width: 7px;
+  height: 7px;
+  border: 1px solid #c77e5f;
+}
+
+.catalogField :global(.catalog-marks [data-status="validated"]) {
+  color: #49d7de;
+}
+
+.catalogField :global(.catalog-marks [data-status="review"]) {
+  color: #c77e5f;
+}
+
+.catalogField :global(.catalog-advance) {
+  margin-top: 0.35rem;
+  border: 0;
+  border-bottom: 1px solid rgba(73, 215, 222, 0.7);
+  background: transparent;
+  color: #49d7de;
+  padding: 0 0 0.15rem;
+  font: inherit;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .catalogField :global(.evo-header) {
@@ -903,9 +1257,36 @@
 }
 
 .catalogue {
+  position: relative;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+:global(.catalog-flight) {
+  position: absolute;
+  z-index: 80;
+  pointer-events: none;
+  overflow: visible;
+}
+
+:global(.catalog-flight) img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px rgba(73, 215, 222, 0.45));
+}
+
+.catalogue[data-handoff="vertical-void"] :global(.final-item[aria-label="Vertical Void"]) {
+  box-shadow: inset 0 0 0 1px #49d7de;
+  animation: voidArrive 2.8s ease;
+}
+
+@keyframes voidArrive {
+  0% { box-shadow: inset 0 0 0 1px rgba(73, 215, 222, 0.2); }
+  40% { box-shadow: inset 0 0 0 1px #49d7de, 0 0 16px rgba(73, 215, 222, 0.35); }
+  100% { box-shadow: inset 0 0 0 1px rgba(73, 215, 222, 0.55); }
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-catalogue) {
@@ -988,42 +1369,59 @@
   top: 1.35rem;
 }
 
+.catalogue:global(.wf-vert-final) :global(.final-item) {
+  --plate: 82%;
+  --plinth-glow: 6;
+  --plinth-edge: 8;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-left"]),
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-right"]) {
+  --plate: 90%;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="back-left"]),
+.catalogue:global(.wf-vert-final) :global(.final-item[data-place="back-right"]) {
+  opacity: 0.84;
+  filter: brightness(0.92);
+}
+
 .catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-mesh),
 .catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-mark),
 .catalogue:global(.wf-vert-final) :global(.final-item) :global(.final-placeholder) {
+  width: min(calc(var(--plate) * 0.34), 50cqh);
   transform: translateY(0.85rem);
+  filter: drop-shadow(0 0.18em 0.14em rgba(0, 0, 0, 0.4));
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]),
 .catalogue:global(.wf-vert-final) :global(.final-row[data-focused="true"]) :global(.final-item[data-place="front-center"]) {
-  --plinth-glow: 28;
-  --plinth-edge: 18;
+  --plate: 96%;
+  --plinth-glow: 8;
+  --plinth-edge: 8;
 }
 
-.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-plinth)::before {
-  opacity: 0.42;
+.catalogue:global(.wf-vert-final) :global(.final-plinth)::before {
+  opacity: 0.28;
 }
 
-.catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-plinth)::after {
-  border-color: color-mix(in srgb, var(--tone) 34%, #6e6e6a);
+.catalogue:global(.wf-vert-final) :global(.final-plinth)::after {
+  border-color: color-mix(in srgb, var(--tone) 18%, #4a4a46);
   background: radial-gradient(
     ellipse at 50% 40%,
-    color-mix(in srgb, var(--tone) 7%, #101010) 0%,
-    color-mix(in srgb, var(--tone) 14%, #0a0a0a) 78%,
-    color-mix(in srgb, var(--tone) 24%, #141414) 100%
+    #101010 0%,
+    color-mix(in srgb, var(--tone) 7%, #0a0a0a) 78%,
+    color-mix(in srgb, var(--tone) 12%, #141414) 100%
   );
   box-shadow:
-    0 0.16em 0 color-mix(in srgb, var(--tone) 18%, #121212),
-    0 0.28em 0 color-mix(in srgb, var(--tone) 10%, #0c0c0c),
-    0 0 0.32em color-mix(in srgb, var(--tone) 12%, transparent);
+    0 0.1em 0 color-mix(in srgb, var(--tone) 8%, #121212),
+    0 0.16em 0 #0c0c0c;
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-mesh),
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-mark),
 .catalogue:global(.wf-vert-final) :global(.final-item[data-place="front-center"]) :global(.final-placeholder) {
-  filter:
-    drop-shadow(0 0.3em 0.22em rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 0.22em color-mix(in srgb, var(--tone) 16%, transparent));
+  filter: drop-shadow(0 0.2em 0.16em rgba(0, 0, 0, 0.45));
 }
 
 /* Focused composition. The worked example is one row. The fifteen validated modules are the row beneath it. */
@@ -1199,9 +1597,25 @@
   font-size: 0.5rem;
 }
 
-.catalogue:global(.wf-vert-final) :global(.final-spread-model) {
+.catalogue:global(.wf-vert-final) :global(.final-spread-model),
+.catalogue:global(.wf-vert-final) :global(.final-spread-scale) {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.catalogue:global(.wf-vert-final) :global(.final-spread-line) {
+  margin: 0;
+  min-height: 2.5em;
+  overflow: hidden;
+  color: rgba(242, 242, 238, 0.72);
+  font-size: 0.42rem;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .catalogue:global(.wf-vert-final) :global(.final-spread-model) :global(.final-mesh) {
@@ -1209,3 +1623,148 @@
   width: 100%;
   height: 100%;
 }
+
+.scalePage {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0.28rem;
+  padding: 0.35rem 0.55rem 0.4rem;
+}
+
+.scaleHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.scaleHead p {
+  margin: 0;
+  font-size: 0.48rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.62);
+}
+
+.scaleHead p:first-child {
+  color: #f2f2ee;
+}
+
+.scaleRows {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 0.38rem;
+  min-height: 0;
+}
+
+.scaleBand {
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr);
+  gap: 0.4rem;
+  min-height: 0;
+}
+
+.scaleKind {
+  margin: 0;
+  align-self: center;
+  font-size: 0.46rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.55);
+}
+
+.scaleKind[data-kind="lobby"] { color: #c77e5f; }
+.scaleKind[data-kind="workspace"] { color: #f2f2ee; }
+.scaleKind[data-kind="gathering"] { color: #7db8b8; }
+
+.scaleTiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.tile {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  gap: 0.12rem;
+}
+
+.stage {
+  position: relative;
+  min-height: 0;
+}
+
+.stage :global(.process-mesh-well) {
+  position: absolute;
+  inset: 0;
+}
+
+.stage :global(.process-mesh-well) canvas,
+.figure {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.figure {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.figure[data-ready] {
+  animation: scale-read 0.8s ease forwards;
+}
+
+@keyframes scale-read {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figure[data-ready] {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.06rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.caption b,
+.caption span {
+  overflow: hidden;
+  font-size: 0.4rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.caption b {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  color: rgba(242, 242, 238, 0.88);
+}
+
+.caption span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  color: rgba(73, 215, 222, 0.86);
+}
+

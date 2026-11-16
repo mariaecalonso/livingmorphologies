@@ -88,7 +88,7 @@ function WordEvent() {
       layer.style.visibility = "";
       layer.style.opacity = String(fade);
       layer.style.transform = `translate3d(${48 * (1 - enter) - 54 * exit}vw, 0, 0)`;
-      text.style.fontSize = `${4.6 + enter * 5.8}rem`;
+      text.style.fontSize = `calc(${(0.442 + enter * 0.558).toFixed(4)} * var(--wf-display))`;
       void word;
     });
   }), []);

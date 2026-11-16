@@ -567,6 +567,7 @@ export function CatalogueField({
   surface = "refined",
   onTriangles,
   seatOnFloor = false,
+  retainFrame = false,
 }: {
   modules: readonly CatalogueModule[];
   origin: string;
@@ -577,6 +578,8 @@ export function CatalogueField({
   inspecting?: boolean;
   surface?: CatalogueSurface;
   onTriangles?: (id: string, count: number) => void;
+  /** Keeps the last frame readable so the presentation can carry the selected model out. */
+  retainFrame?: boolean;
   seatOnFloor?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -721,7 +724,7 @@ export function CatalogueField({
     const canvas = canvasRef.current;
     const labels = labelRef.current;
     if (!canvas || !labels) return;
-    const gl = canvas.getContext("webgl2", { antialias: true, alpha: false, depth: true });
+    const gl = canvas.getContext("webgl2", { antialias: true, alpha: false, depth: true, preserveDrawingBuffer: retainFrame });
     if (!gl) return;
     const clay = program(gl, CLAY_VERT, CLAY_FRAG);
     const lines = program(gl, LINE_VERT, LINE_FRAG);
@@ -1136,9 +1139,17 @@ export function CatalogueField({
     };
     paintRef.current = draw;
     draw();
+    const stage = canvas.parentElement;
+    const home = () => {
+      exploringRef.current = false;
+      steerRef.current = true;
+      draw();
+    };
+    stage?.addEventListener("lm-catalog-home", home);
     const observer = new ResizeObserver(() => paintRef.current());
-    observer.observe(canvas.parentElement ?? canvas);
+    observer.observe(stage ?? canvas);
     return () => {
+      stage?.removeEventListener("lm-catalog-home", home);
       observer.disconnect();
       paintRef.current = () => undefined;
       if (texA) gl.deleteTexture(texA);

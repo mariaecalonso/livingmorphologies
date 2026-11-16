@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import handoff from "@/data/skill3/final-selection.json";
+import { HumanScaleModel } from "@/components/demo-workflow/human-scale-page";
 import { FinalOrthographicViews } from "@/components/final-orthographic-drawing";
 import { ProcessMorphology } from "@/components/vertical-process-stage";
 import type { IsoMesh } from "@/lib/scan/isomesh";
@@ -103,12 +104,12 @@ const ROW_SUBTITLE: Record<RowId, string> = {
 
 const TURN_SECONDS = 48;
 
-export function FinalMorphologyCatalogue({ fixture, handoff = [], wireframe = false, wireBright = 0.55, wireLift = 0, spread = false }: { fixture: boolean; handoff?: FinalArchiveHandoff[]; wireframe?: boolean; wireBright?: number; wireLift?: number; spread?: boolean }) {
+export function FinalMorphologyCatalogue({ fixture, handoff = [], wireframe = false, wireBands = 6, wireBright = 0.55, wireLift = 0, spread = false, scale = false, arriveId = null }: { fixture: boolean; handoff?: FinalArchiveHandoff[]; wireframe?: boolean; wireBands?: number; wireBright?: number; wireLift?: number; spread?: boolean; scale?: boolean; arriveId?: string | null }) {
   const search = useSearchParams();
   const preview = search.get("preview") === "1";
   const rows = ROWS.map((row) => ({ ...row, slots: slotsFor(row) }));
-  const [indexes, setIndexes] = useState<Record<RowId, number>>({ lobby: 2, workspace: 2, gathering: 2 });
-  const [focus, setFocus] = useState<Focus>({ row: "lobby", index: 2 });
+  const [indexes, setIndexes] = useState<Record<RowId, number>>({ lobby: arriveId === "vertical-void" ? 0 : 2, workspace: 2, gathering: 2 });
+  const [focus, setFocus] = useState<Focus>({ row: "lobby", index: arriveId === "vertical-void" ? 0 : 2 });
   const [collection, setCollection] = useState<SelectedSkill3Collection>({});
   const [skill2Selections, setSkill2Selections] = useState<Skill2Selections>({});
   const [fields, setFields] = useState<Record<string, VerticalViewerField | null>>({});
@@ -249,7 +250,7 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [], wireframe = fa
             handoff={tracked}
             skill2Selections={skill2Selections}
             wireframe={wireframe}
-            wireBands={6}
+            wireBands={wireBands}
             wireBright={wireBright}
             wireLift={wireLift}
             spinAll={spread}
@@ -276,6 +277,7 @@ export function FinalMorphologyCatalogue({ fixture, handoff = [], wireframe = fa
           wireLift={wireLift}
           onTriangles={reportTriangles}
           onClose={() => setEnlarged(null)}
+          scale={scale}
         />
       ) : null}
       {!spread && enlarged && enlargedSlot ? (
@@ -512,6 +514,7 @@ function TypologySpread({
   wireLift,
   onTriangles,
   onClose,
+  scale = false,
 }: {
   rowId: RowId;
   label: string;
@@ -526,6 +529,7 @@ function TypologySpread({
   wireLift: number;
   onTriangles: (archetypeId: string, count: number | null) => void;
   onClose: () => void;
+  scale?: boolean;
 }) {
   return (
     <section className="final-spread" aria-label={label}>
@@ -544,6 +548,9 @@ function TypologySpread({
                 <small>{archetypeCode(rowId, index)}</small>
                 <b>{slot.name}</b>
               </p>
+              {scale && pick?.mesh ? (
+                <HumanScaleModel mesh={pick.mesh} cacheIdentity={identity ?? source?.archetypeId ?? slot.id} />
+              ) : (
               <div className="final-spread-model">
                 {pick && source ? (
                   <SlotMesh
@@ -573,6 +580,7 @@ function TypologySpread({
                   />
                 ) : null}
               </div>
+              )}
             </article>
           );
         })}

@@ -12,7 +12,7 @@ import { loadVerifiedContinuations, peekVerifiedContinuations } from "@/lib/skil
 import { buildDevelopmentCatalogueSet } from "@/lib/skill3/fixture";
 import { loadProvisionalContinuations, peekProvisionalContinuations } from "@/lib/skill3/provisional-replay";
 import { selectionFromQuery } from "@/lib/skill3/selection";
-import { listSolidifiedCatalogue, readSolidifiedChecks, readSolidifiedMesh, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
+import { listSolidifiedCatalogue, readSolidifiedChecks, readSolidifiedMesh, readSolidifiedReading, readSolidifiedStatus } from "@/lib/skill3/solidified-catalogue";
 
 const PUBLISHED = publishedSelections as Record<string, { candidateId?: number; typologyId?: string }>;
 
@@ -220,6 +220,7 @@ function solidified(request: Request) {
       continuationId,
       status,
       checks: readSolidifiedChecks(archetypeId, candidateId, continuationId),
+      reading: readSolidifiedReading(archetypeId, candidateId, continuationId),
       geometry: mesh.geometry,
       original: mesh.original,
     });

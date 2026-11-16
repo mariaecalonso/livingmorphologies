@@ -23,7 +23,8 @@ type DemoAction =
   | { type: "sheet"; sheet: number }
   | { type: "operation"; operation: number }
   | { type: "feature"; open: boolean }
-  | { type: "advance" };
+  | { type: "advance" }
+  | { type: "catalog-handoff" };
 
 const LAST = DEMO_CHAPTERS.length - 1;
 const UNLIT = { operation: null, reached: -1, feature: false } as const;
@@ -82,6 +83,13 @@ function reduce(state: DemoState, action: DemoAction): DemoState {
       if (state.chapter == null) return state;
       if (state.phase !== "focused" && !DEMO_CHAPTERS[state.chapter]?.overviewOnly && !DEMO_CHAPTERS[state.chapter]?.pages) return state;
       return action.open ? { ...state, feature: true, playing: false } : { ...state, feature: false };
+    case "catalog-handoff": {
+      const chapter = state.chapter == null ? undefined : DEMO_CHAPTERS[state.chapter];
+      if (chapter?.id !== "vertical" || state.sheet !== 1) return state;
+      const next = nextPosition(state);
+      if (!next) return state;
+      return { ...state, ...next, epoch: state.epoch + 1, operation: null, reached: -1, feature: false };
+    }
     case "advance": {
       const next = nextPosition(state);
       if (!next) return { ...state, playing: false };
@@ -131,6 +139,11 @@ export function useDemoPresentation() {
       window.removeEventListener("demo-feature-close", back);
     };
   }, [feature]);
+  useEffect(() => {
+    const handoff = () => dispatch({ type: "catalog-handoff" });
+    window.addEventListener("lm-catalog-handoff", handoff);
+    return () => window.removeEventListener("lm-catalog-handoff", handoff);
+  }, []);
   const root = useRef<HTMLDivElement>(null);
   const elapsed = useRef(0);
 

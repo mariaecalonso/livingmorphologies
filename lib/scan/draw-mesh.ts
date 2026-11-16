@@ -217,7 +217,11 @@ void main() {
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
-/** Dark body under the section lines. The shading stays, so the volume still reads between them. */
+/**
+ * Body under the section lines, lit as in Skill 6: a hemisphere light over a warm
+ * key from the upper front and a copper fill from the opposite side, on a matte
+ * standard surface. uLift still sets how pale the body is.
+ */
 const WIRE_BODY_FRAG = `#version 300 es
 precision highp float;
 in vec3 vNormal;
@@ -229,11 +233,24 @@ void main() {
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
   if (dot(n, viewDir) < 0.0) n = -n;
-  vec3 key = normalize(vec3(0.28, 0.86, 0.42));
-  float wrap = clamp((dot(n, key) + 0.35) / 1.35, 0.0, 1.0);
-  vec3 shadow = mix(vec3(0.07, 0.08, 0.09), vec3(0.58, 0.58, 0.56), uLift);
-  vec3 body = mix(vec3(0.34, 0.36, 0.38), vec3(0.97, 0.97, 0.96), uLift);
-  oColor = vec4(mix(shadow, body, wrap), 1.0);
+  vec3 albedo = mix(vec3(0.62, 0.60, 0.57), vec3(0.96, 0.94, 0.91), uLift);
+  vec3 hemi = mix(vec3(0.10, 0.10, 0.10), vec3(0.78, 0.78, 0.78), n.y * 0.5 + 0.5) * 0.14;
+  vec3 keyDir = normalize(vec3(0.35, 0.72, 0.60));
+  float keyWrap = clamp((dot(n, keyDir) + 0.12) / 1.12, 0.0, 1.0);
+  vec3 fillDir = normalize(vec3(-0.60, 0.20, -0.30));
+  float fillWrap = clamp(dot(n, fillDir), 0.0, 1.0);
+  vec3 light = hemi + vec3(0.42)
+    + vec3(1.00, 0.96, 0.93) * keyWrap * 0.48
+    + vec3(0.78, 0.49, 0.37) * fillWrap * 0.12;
+  vec3 halfDir = normalize(keyDir + viewDir);
+  float spec = pow(clamp(dot(n, halfDir), 0.0, 1.0), 28.0) * 0.05;
+  float rim = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
+  float ortho = step(abs(vDepth - 4.2), 0.4);
+  float along = (vDepth - 4.2) * 46.0;
+  float fog = mix(smoothstep(4.4, 6.2, vDepth), smoothstep(-0.06, 0.30, along), ortho);
+  vec3 tone = albedo * light + vec3(1.00, 0.97, 0.94) * spec + vec3(0.62, 0.74, 0.78) * rim * 0.1;
+  tone = mix(tone, vec3(0.0), fog * 0.08);
+  oColor = vec4(tone, 1.0);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
 }`;
 
@@ -286,7 +303,10 @@ in float vDepth;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
 void main() {
-  oColor = vec4(vec3(0.86, 0.91, 0.93) * uBright, 1.0);
+  float ortho = step(abs(vDepth - 4.2), 0.4);
+  float along = (vDepth - 4.2) * 46.0;
+  float depthFade = mix(mix(0.72, 0.32, smoothstep(3.6, 6.0, vDepth)), mix(0.72, 0.24, smoothstep(-0.16, 0.30, along)), ortho);
+  oColor = vec4(vec3(0.86, 0.91, 0.93) * uBright * depthFade, 1.0);
   oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
   gl_FragDepth = max(0.0, gl_FragCoord.z - 0.0012);
 }`;

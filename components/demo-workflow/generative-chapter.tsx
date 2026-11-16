@@ -5,7 +5,10 @@ import { TYPOLOGIES, defaultRatings, groupsForArchetype } from "@/lib/catalog";
 import { ratingLabel } from "@/lib/physarum";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import { LabRun } from "@/components/demo-workflow/lab-run";
+import { MooIntro } from "@/components/demo-workflow/moo-intro";
+import { CatalogSelection } from "@/components/demo-workflow/catalog-selection";
 import { OptimizationStage } from "@/components/demo-workflow/optimization-stage";
+import { SimulationParameters } from "@/components/demo-workflow/simulation-logic";
 import { ArchetypeReading } from "@/components/demo-workflow/archetype-reading";
 import { SelectedCatalog } from "@/components/demo-workflow/selected-catalog";
 import styles from "@/components/demo-workflow/generative-chapter.module.css";
@@ -175,12 +178,16 @@ function FirstPopulation() {
   );
 }
 
-/** Chapter 02: Physarum logic, the first population, optimization, then the selected candidates. */
+/** Chapter 02: the simulation rule, the lab, the first population, the search, then the selected candidates. */
 export function useGenerativeContent(): ChapterContent {
   return useMemo(() => ({
     visuals: [],
     details: [],
     boards: [
+      {
+        layout: styles.open,
+        details: [<SimulationParameters key="logic-parameters" />],
+      },
       {
         layout: styles.logic,
         details: [
@@ -196,8 +203,16 @@ export function useGenerativeContent(): ChapterContent {
         details: [<FirstPopulation key="population" />],
       },
       {
+        layout: styles.open,
+        details: [<MooIntro key="moo" />],
+      },
+      {
         layout: styles.optPage,
         details: [<OptimizationStage key="optimization" />],
+      },
+      {
+        layout: styles.optPage,
+        details: [<CatalogSelection key="catalog-selection" />],
       },
       {
         layout: styles.optPage,

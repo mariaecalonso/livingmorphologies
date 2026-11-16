@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import savedPicks from "@/data/skill2/pareto-catalog/selections.json";
+import { CatalogInspection } from "@/components/demo-workflow/catalog-inspection";
 import { CatalogueField, type CatalogueModule, type CatalogueSurface } from "@/components/vertical-catalogue-scene";
 import { ARCHETYPES } from "@/lib/skill1/archetypes";
 import { parseSkill2Selection, readActiveArchetype, readSkill2Selections, SKILL2_SELECTIONS_KEY } from "@/lib/skill2/published-selection";
@@ -527,14 +528,21 @@ export function VerticalCatalogue({
   const processHref = processParams.toString() ? `/lab/vertical?${processParams.toString()}` : "/lab/vertical";
   const modules = useMemo<CatalogueModule[]>(() => {
     if (!matches || !set || slots.length === 0) return PLACEHOLDER_MODULES;
-    return slots.map((item) => ({
-      id: item.id,
-      label: item.id,
-      cacheIdentity: `hybrid:${reading}:${item.archetypeId}:${item.candidateId}:${item.id}:${item.parentChecksum}`,
-      status: reading === "adapted" ? undefined : auditedDownstream?.candidates[item.id]?.status,
-      meshUrl: `/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(item.archetypeId)}&continuation=${item.id}&reading=${reading}`,
-    }));
-  }, [auditedDownstream, matches, reading, set, slots]);
+    return slots.map((item) => {
+      const solidified = embedded && selectedId === item.id;
+      return {
+        id: item.id,
+        label: item.id,
+        cacheIdentity: solidified
+          ? `solid:${item.archetypeId}:${item.candidateId}:${item.id}`
+          : `hybrid:${reading}:${item.archetypeId}:${item.candidateId}:${item.id}:${item.parentChecksum}`,
+        status: reading === "adapted" ? undefined : auditedDownstream?.candidates[item.id]?.status,
+        meshUrl: solidified
+          ? `/api/vertical/solidified?archetype=${encodeURIComponent(item.archetypeId)}&candidate=${item.candidateId}&continuation=${item.id}`
+          : `/api/vertical/experiments/criteria-hybrid?archetype=${encodeURIComponent(item.archetypeId)}&continuation=${item.id}&reading=${reading}`,
+      };
+    });
+  }, [auditedDownstream, embedded, matches, reading, selectedId, set, slots]);
   const chosenContinuation = storedChoice && matches && set && storedChoice.origin === set.origin
     ? set.continuations.find((item) => sameSelectedMorphology(storedChoice, item)) ?? null
     : null;
@@ -547,7 +555,7 @@ export function VerticalCatalogue({
   };
 
   return (
-    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-tone={typologyId} data-inspect={inspecting && selectedId ? "" : undefined}>
+    <main className="evo-page vertical-catalogue" data-origin={set?.origin ?? "pending"} data-tone={typologyId} data-inspect={inspecting && selectedId ? "" : undefined} data-final={embedded && selectedId === "N24" ? "" : undefined}>
       <header className="evo-header">
         <div>
           <p className="display evo-header-title">3D Catalogue</p>
@@ -643,6 +651,7 @@ export function VerticalCatalogue({
             }}
             resetToken={viewReset}
             inspecting={inspecting && selectedId != null}
+            retainFrame={embedded}
             surface={surface}
             onTriangles={(id, count) => {
               setTriangles((current) => current[id] === count ? current : { ...current, [id]: count });
@@ -651,7 +660,18 @@ export function VerticalCatalogue({
         </section>
         <aside className="vertical-catalogue-side">
           <section className="vertical-catalogue-frame vertical-catalogue-grow">
-            {inspecting && selected && set ? (
+            {inspecting && selected && set && embedded ? (
+              <CatalogInspection
+                archetypeId={set.archetypeId}
+                candidateId={set.candidateId}
+                continuationId={selected.id}
+                archetypeName={archetypeName}
+                onBack={() => {
+                  setInspecting(false);
+                  setSelectedId(null);
+                }}
+              />
+            ) : inspecting && selected && set ? (
               <ResultDetail
                 resultId={modules.find((item) => item.id === selected.id)?.label ?? selected.id}
                 continuation={selected}

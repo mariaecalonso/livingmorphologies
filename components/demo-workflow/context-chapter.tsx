@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 import "@/app/lab/site/site-interface.css";
 import brief from "@/data/skill5/workplace-brief.json";
 import { FLOOR_SHARES, SHARE_LEGEND, SITE, STUDIO } from "@/lib/demo-workflow/chapter-facts";
-import { Caption, Chips, Img, Kicker } from "@/components/demo-workflow/chapter-kit";
+import { Caption, Chips, Img, Kicker, PendingFrame } from "@/components/demo-workflow/chapter-kit";
 import { HomeClient } from "@/components/home-client";
 import { SiteAnalysisWorkspace } from "@/components/site/site-analysis-workspace";
 import { SiteWorkspace } from "@/components/site/site-workspace";
+import type { SiteWorkflowId } from "@/components/site/site-workflow";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/context-chapter.module.css";
@@ -29,6 +30,15 @@ export function ContextWorkflow({ part }: { part: "client" | "analysis" | "site"
   }
   if (part === "analysis") return <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
   return <WorkflowHost part="site"><SiteWorkspace /></WorkflowHost>;
+}
+
+/** One site-model sheet: attractors, zones, archetype placement, or the shared-face joint. */
+export function SiteSheet({ sheet }: { sheet: SiteWorkflowId }) {
+  return (
+    <WorkflowHost part="site">
+      <SiteWorkspace sheet={sheet} />
+    </WorkflowHost>
+  );
 }
 
 const FLOORS = [5, 4, 3, 2, 1] as const;
@@ -123,7 +133,7 @@ function Requirements({ detail }: { detail?: boolean }) {
   );
 }
 
-/** Chapter 04: the studio, its brief, and the waterfront site, read into a spatial strategy and requirements. */
+/** Chapter 04: the client and the site analysis. The site strategy opens in the next chapter. */
 export const CONTEXT_CONTENT: ChapterContent = {
   visuals: [
     {
@@ -245,10 +255,32 @@ export const CONTEXT_CONTENT: ChapterContent = {
   boards: [
     { layout: styles.sheet, details: [<ContextWorkflow key="client" part="client" />] },
     { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" />] },
-    { layout: styles.sheet, details: [<ContextWorkflow key="site" part="site" />] },
+    {
+      layout: styles.sheet,
+      details: [
+        <PendingFrame
+          key="conclusion"
+          kicker="Chapter 04"
+          title="Design Context Conclusion"
+          body="The conclusion is still open."
+        />,
+      ],
+    },
+    {
+      layout: styles.sheet,
+      details: [
+        <WorkflowHost key="refined" part="site">
+          <PendingFrame
+            kicker="Chapter 04"
+            title="Clustering Refinement"
+            body="Clustering refinement stays in the clustering lab."
+          />
+        </WorkflowHost>,
+      ],
+    },
   ],
   feature: {
-    operation: 2,
+    operation: 1,
     action: "Watch the site",
     view: (
       <PresentationReel
@@ -261,4 +293,50 @@ export const CONTEXT_CONTENT: ChapterContent = {
       />
     ),
   },
+};
+
+/** Chapter 05: the site strategy and its attractor network, then cluster assembly. */
+export const STRATEGY_CONTENT: ChapterContent = {
+  visuals: [
+    {
+      full: (
+        <div className={styles.stack}>
+          <Img className={styles.aerial} src={SITE.aerial} />
+          <Caption>Attractors on the site network</Caption>
+        </div>
+      ),
+    },
+    {
+      full: (
+        <div className={styles.stack}>
+          <Img className={styles.plan} src={SITE.plan} />
+          <Caption>Zones drawn on the parcel</Caption>
+        </div>
+      ),
+    },
+    {
+      full: (
+        <div className={styles.stack}>
+          <Img className={styles.plan} src={SITE.plan} />
+          <Caption>Cluster assembly is not stored yet</Caption>
+        </div>
+      ),
+    },
+  ],
+  details: [],
+  boards: [
+    { layout: styles.sheet, details: [<SiteSheet key="strategy" sheet="strategy" />] },
+    { layout: styles.sheet, details: [<SiteSheet key="attractors" sheet="strategy" />] },
+    {
+      layout: styles.sheet,
+      details: [
+        <PendingFrame
+          key="assembly"
+          kicker="Chapter 05"
+          title="Cluster Assembly"
+          body="Clusters from the clustering lab are placed on this site strategy. No assembly is stored."
+        />,
+      ],
+    },
+  ],
 };

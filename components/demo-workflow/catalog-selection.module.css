@@ -1,0 +1,289 @@
+.board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 4px 8px 6px;
+  gap: 6px;
+  overflow: hidden;
+  background: #000000;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.head,
+.catalogHead,
+.detail header,
+.role,
+.note,
+.empty,
+.commit,
+.pager,
+.meta,
+.criteria {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.head p:first-child {
+  color: #49d7de;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(280px, 0.72fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.catalog,
+.detail {
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalogHead,
+.detail header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px 4px;
+}
+
+.catalogHead span,
+.detail header p:last-child {
+  color: rgba(255, 255, 255, 0.48);
+  letter-spacing: 0.08em;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager button,
+.commit {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pager button {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px 8px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #000000;
+  color: inherit;
+  text-align: left;
+}
+
+.card[data-active] {
+  border-color: #49d7de;
+}
+
+.card[data-chosen] {
+  border-color: #c77e5f;
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 1;
+  padding: 1px 4px;
+  background: #c77e5f;
+  color: #000000;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.image,
+.preview {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+}
+
+.image img,
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 4px 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+
+.detail header p {
+  margin: 0;
+}
+
+.detail header p:first-child {
+  color: #49d7de;
+}
+
+.preview {
+  flex: 1 1 42%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.preview[data-chosen] {
+  border-color: #c77e5f;
+}
+
+.scores {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scores li {
+  display: grid;
+  grid-template-columns: 92px 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scores i {
+  display: block;
+  height: 2px;
+  background: #49d7de;
+}
+
+.scores em {
+  font-style: normal;
+  text-align: right;
+}
+
+.role,
+.note,
+.empty {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.criteria {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 12px;
+  margin: 0;
+}
+
+.criteria div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.criteria dt {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.criteria dd {
+  margin: 0;
+}
+
+.commit {
+  align-self: flex-start;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.commit[data-chosen] {
+  border-color: #c77e5f;
+  color: #c77e5f;
+}
+
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 16px;
+  height: 20px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+}
+
+.cursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cursor path {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 0.8;
+}
+
+.cursor[data-press="true"] svg {
+  transform: translate(1px, 1px) scale(0.92);
+}
+
+.cursor[data-hidden="true"] {
+  opacity: 0;
+}

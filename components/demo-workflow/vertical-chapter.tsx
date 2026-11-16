@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import handoff from "@/data/skill3/final-selection.json";
+import { PendingFrame } from "@/components/demo-workflow/chapter-kit";
 import { FinalMorphologyCatalogue, type FinalArchiveHandoff } from "@/components/final-morphology-catalogue";
+import { takeCatalogHandoff, clearCatalogHandoff, catalogFlightActive, catalogFlightSettled } from "@/components/demo-workflow/catalog-inspection";
 import { CatalogDemonstration, ProcessDemonstration } from "@/components/demo-workflow/vertical-demonstration";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import "@/components/final-catalogue-frame.css";
@@ -17,7 +19,40 @@ const FINAL_HANDOFF: FinalArchiveHandoff[] = handoff.selections.map((entry) => (
   status: entry.status === "Validated" ? "validated" : "review",
 }));
 
-/** Chapter 03: the lab replay, then the 24-model catalogue, then the final catalogue. */
+function FinalCatalogueBoard() {
+  const board = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = board.current;
+    if (!node || takeCatalogHandoff() !== "vertical-void") return;
+    let timer = 0;
+    const light = () => {
+      node.dataset.handoff = "vertical-void";
+      timer = window.setTimeout(() => {
+        clearCatalogHandoff();
+        delete node.dataset.handoff;
+      }, 3600);
+    };
+    if (!catalogFlightActive() || catalogFlightSettled()) {
+      light();
+      return () => window.clearTimeout(timer);
+    }
+    const arrived = () => light();
+    window.addEventListener("lm-catalog-arrived", arrived);
+    return () => {
+      window.removeEventListener("lm-catalog-arrived", arrived);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  return (
+    <div ref={board} className={`${styles.catalogue} wf-vert-final`}>
+      <Suspense fallback={null}>
+        <FinalMorphologyCatalogue fixture={false} handoff={FINAL_HANDOFF} wireframe wireBands={12} wireBright={0.58} wireLift={0.55} spread scale arriveId={takeCatalogHandoff() === "vertical-void" ? "vertical-void" : null} />
+      </Suspense>
+    </div>
+  );
+}
+
+/** Chapter 03: the lab replay, the catalogues, then initial clustering. */
 export function useVerticalContent(): ChapterContent {
   return useMemo(() => ({
     visuals: [],
@@ -33,12 +68,28 @@ export function useVerticalContent(): ChapterContent {
       },
       {
         layout: styles.final,
+        details: [<FinalCatalogueBoard key="catalogue" />],
+      },
+      {
+        layout: styles.cluster,
         details: [
-          <div key="catalogue" className={`${styles.catalogue} wf-vert-final`}>
-            <Suspense fallback={null}>
-              <FinalMorphologyCatalogue fixture={false} handoff={FINAL_HANDOFF} wireframe wireBright={1.15} wireLift={0.73} spread />
-            </Suspense>
-          </div>,
+          <PendingFrame
+            key="clustering"
+            kicker="Chapter 03"
+            title="Clustering"
+            body="Initial clustering stays in the clustering lab."
+          />,
+        ],
+      },
+      {
+        layout: styles.cluster,
+        details: [
+          <PendingFrame
+            key="joint"
+            kicker="Chapter 03"
+            title="Joint Refinement"
+            body="Joint refinement stays in the clustering lab."
+          />,
         ],
       },
     ],
