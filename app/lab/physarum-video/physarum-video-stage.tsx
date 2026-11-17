@@ -668,13 +668,13 @@ function Intro() {
       <div className="pv-lockup">
         <span className="pv-charge pv-charge-b" />
         <p className="pv-echo">PHYSARUM</p>
-        <h1 className="pv-name" style={{ fontSize: "7.2rem" }}>
+        <h1 className="pv-name">
           {"PHYSARUM".split("").map((letter, index) => (
             <span key={`${letter}-${index}`}>{letter}</span>
           ))}
         </h1>
         <p className="pv-species pv-species-echo">POLYCEPHALUM</p>
-        <p className="pv-species" style={{ letterSpacing: "0.14em" }}>POLYCEPHALUM</p>
+        <p className="pv-species">POLYCEPHALUM</p>
       </div>
       <div className="pv-sentences">
         <WordLine start={SENTENCE_A} step={SENTENCE_STEP} className="pv-line pv-line-a" rows={[...BEHAVIOR_ROWS]} />
@@ -718,7 +718,7 @@ function applyIntro(root: HTMLDivElement | null, time: number) {
   const echoLine = root.querySelector<HTMLElement>(".pv-echo");
   if (echoLine) echoLine.style.opacity = "1";
   const name = root.querySelector<HTMLElement>(".pv-name");
-  if (name) name.style.letterSpacing = `${0.16 - ease * 0.04}em`;
+  if (name) name.style.letterSpacing = `${0.1 - ease * 0.04}em`;
   const speciesEcho = root.querySelector<HTMLElement>(".pv-species-echo");
   if (speciesEcho) speciesEcho.style.opacity = String(speciesOn);
   const species = root.querySelector<HTMLElement>(".pv-species:not(.pv-species-echo)");

@@ -34,7 +34,7 @@ export type ChapterContent = {
 
 /** The numbered chapters stay fully lit. They do not wait for the travelling light. */
 function stillLit(chapter: Chapter) {
-  return chapter.index === "01" || chapter.index === "02" || chapter.index === "03" || chapter.index === "04" || chapter.index === "05";
+  return chapter.index === "01" || chapter.index === "02" || chapter.index === "03" || chapter.index === "04" || chapter.index === "05" || chapter.index === "06" || chapter.index === "07";
 }
 
 function frameLight(chapter: Chapter, light: Light, index: number, steady = false) {

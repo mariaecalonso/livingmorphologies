@@ -1063,9 +1063,9 @@ function branchJunctions(branches: readonly { x0: number; z0: number; x1: number
   return [...marks.values()].filter((mark) => mark.count >= 3);
 }
 
-export function SiteWorkspace({ panels = "model" }: { panels?: "model" | "analysis" }) {
+export function SiteWorkspace({ panels = "model", sheet }: { panels?: "model" | "analysis"; sheet?: SiteWorkflowId }) {
   if (panels === "analysis") return <SiteAnalysisWorkspace />;
-  return <SiteModelWorkspace />;
+  return <SiteModelWorkspace initialSheet={sheet} />;
 }
 
 function sheetFromSearch(search: { get: (key: string) => string | null }): SiteWorkflowId {
@@ -1073,13 +1073,17 @@ function sheetFromSearch(search: { get: (key: string) => string | null }): SiteW
   return next === "zoning" || next === "placement" || next === "assembly" ? next : "strategy";
 }
 
-function SiteModelWorkspace() {
+function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId }) {
   const search = useSearchParams();
-  const [sheet, setSheet] = useState<SiteWorkflowId>(() => sheetFromSearch(search));
+  const [sheet, setSheet] = useState<SiteWorkflowId>(() => initialSheet ?? sheetFromSearch(search));
   useEffect(() => {
+    if (initialSheet) {
+      setSheet(initialSheet);
+      return;
+    }
     const next = search.get("sheet");
     if (next === "zoning" || next === "placement" || next === "assembly") setSheet(next);
-  }, [search]);
+  }, [initialSheet, search]);
   const [zones, setZones] = useState<SiteZone[]>([]);
   const [connections, setConnections] = useState<SiteConnection[]>([]);
   const [zoneKind, setZoneKind] = useState<SiteZoneKind>("lobby");
@@ -1160,11 +1164,12 @@ function SiteModelWorkspace() {
     if (!workflowReady) return;
     writeSiteWorkflowState({ zones, connections, massingNetworkId: massingId });
   }, [connections, massingId, workflowReady, zones]);
-  const [mode, setMode] = useState<SiteViewMode>(() => (sheetFromSearch(search) === "strategy" ? "plan" : "perspective"));
+  const [mode, setMode] = useState<SiteViewMode>(() => ((initialSheet ?? sheetFromSearch(search)) === "strategy" ? "plan" : "perspective"));
   const sheetQuery = search.get("sheet");
   useEffect(() => {
+    if (initialSheet) return;
     if (sheetQuery === "zoning" || sheetQuery === "placement" || sheetQuery === "assembly") setMode("perspective");
-  }, [sheetQuery]);
+  }, [initialSheet, sheetQuery]);
   const [planHeading, setPlanHeading] = useState<"north" | "east" | "west">("west");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);

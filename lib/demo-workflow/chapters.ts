@@ -61,7 +61,7 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
   {
     id: "generative",
     index: "02",
-    title: "2D Generative Development",
+    title: "Generative Development",
     stages: ["Physarum Logic", "Optimization"],
     sequence: [
       { label: "Architectural Input + Physarum Behavior" },
@@ -72,7 +72,12 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
     ],
     pages: [
       {
-        name: "Physarum Logic",
+        name: "Parameter Map",
+        holdMs: 48000,
+        sequence: [{ label: "Parameter Map", mark: "" }],
+      },
+      {
+        name: "Lab Simulation",
         holdMs: 64000,
         sequence: [
           { label: "Criteria Configuration", mark: "01", locked: true },
@@ -86,9 +91,19 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [{ label: "First Population", mark: "03" }],
       },
       {
+        name: "Multiobjective Optimization",
+        holdMs: 64000,
+        sequence: [{ label: "Multiobjective Optimization", mark: "" }],
+      },
+      {
         name: "Optimization",
         holdMs: 72000,
         sequence: [{ label: "Optimization", mark: "" }],
+      },
+      {
+        name: "Catalog Selection",
+        holdMs: 50000,
+        sequence: [{ label: "Catalog selection", mark: "" }],
       },
       {
         name: "Selected Candidates",
@@ -113,6 +128,8 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
       { label: "Sampling / XYT Stack" },
       { label: "3D Formation" },
       { label: "Selection / Validation", feature: "Lab run" },
+      { label: "Clustering" },
+      { label: "Joint Refinement" },
     ],
     pages: [
       {
@@ -122,12 +139,22 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
       },
       {
         name: "Catalog",
-        holdMs: 78000,
+        holdMs: 110000,
         sequence: [{ label: "Catalog", mark: "02" }],
       },
       {
         name: "Final View",
         sequence: [{ label: "Final Morphology Catalogue" }],
+      },
+      {
+        name: "Clustering",
+        holdMs: 36000,
+        sequence: [{ label: "Clustering", mark: "" }],
+      },
+      {
+        name: "Joint Refinement",
+        holdMs: 28000,
+        sequence: [{ label: "Joint refinement", mark: "" }],
       },
     ],
   },
@@ -135,11 +162,12 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
     id: "context",
     index: "04",
     title: "Design Context",
-    stages: ["The Client", "Site Analysis", "Site Integration"],
+    stages: ["The Client", "Site Analysis", "Clustering"],
     sequence: [
       { label: "Client" },
       { label: "Site Analysis" },
-      { label: "Site Integration" },
+      { label: "Design Context Conclusion" },
+      { label: "Clustering Refinement" },
     ],
     pages: [
       {
@@ -153,39 +181,92 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [{ label: "Site Analysis", mark: "" }],
       },
       {
-        name: "Site Integration",
-        holdMs: 52000,
-        sequence: [{ label: "Site Integration", mark: "" }],
+        name: "Design Context Conclusion",
+        holdMs: 28000,
+        sequence: [{ label: "Design context conclusion", mark: "" }],
+      },
+      {
+        name: "Clustering Refinement",
+        holdMs: 36000,
+        sequence: [{ label: "Clustering refinement", mark: "" }],
+      },
+    ],
+  },
+  {
+    id: "strategy",
+    index: "05",
+    title: "Site Strategy",
+    stages: ["Site Strategy", "Physarum Attractors", "Cluster Assembly"],
+    sequence: [
+      { label: "Site Strategy" },
+      { label: "Physarum Attractors" },
+      { label: "Cluster Assembly" },
+    ],
+    pages: [
+      {
+        name: "Site Strategy",
+        holdMs: 42000,
+        sequence: [{ label: "Site strategy", mark: "" }],
+      },
+      {
+        name: "Attractors",
+        holdMs: 42000,
+        sequence: [{ label: "Physarum attractors", mark: "" }],
+      },
+      {
+        name: "Cluster Assembly",
+        holdMs: 36000,
+        sequence: [{ label: "Cluster assembly", mark: "" }],
       },
     ],
   },
   {
     id: "integration",
-    index: "05",
-    title: "Architectural Integration",
-    stages: ["Hybrid Connection", "Site Integration"],
+    index: "06",
+    title: "Cluster Connection",
+    stages: ["Cluster Assemblies", "Cluster Connection"],
     sequence: [
-      { label: "Selected Modules" },
-      { label: "Hybrid Generation" },
-      { label: "Assembly Catalog" },
-      { label: "Site Configuration", twoWay: true },
-      { label: "Comparative Evaluation", feature: "Lab run" },
+      { label: "Cluster Assemblies" },
+      { label: "Cluster Connection" },
     ],
     pages: [
       {
-        name: "Hybrid Connection",
-        holdMs: 80000,
-        sequence: [{ label: "Hybrid connection", mark: "" }],
+        name: "Cluster Assemblies",
+        holdMs: 36000,
+        sequence: [{ label: "Cluster assemblies", mark: "" }],
       },
       {
-        name: "Catalog",
-        holdMs: 42000,
-        sequence: [{ label: "Catalog", mark: "" }],
+        name: "Cluster Connection",
+        holdMs: 36000,
+        sequence: [{ label: "Cluster connection", mark: "" }],
+      },
+    ],
+  },
+  {
+    id: "approach",
+    index: "07",
+    title: "Architectural Approach",
+    stages: ["Massing", "Sections and Plans", "Renders"],
+    sequence: [
+      { label: "Massing" },
+      { label: "Sections and Plans" },
+      { label: "Renders" },
+    ],
+    pages: [
+      {
+        name: "Massing",
+        holdMs: 28000,
+        sequence: [{ label: "Massing", mark: "" }],
       },
       {
-        name: "Site",
-        holdMs: 48000,
-        sequence: [{ label: "Site", mark: "" }],
+        name: "Sections and Plans",
+        holdMs: 28000,
+        sequence: [{ label: "Sections and plans", mark: "" }],
+      },
+      {
+        name: "Renders",
+        holdMs: 28000,
+        sequence: [{ label: "Renders", mark: "" }],
       },
     ],
   },

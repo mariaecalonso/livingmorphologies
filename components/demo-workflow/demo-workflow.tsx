@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentProps, type ComponentType, type CSSProperties } from "react";
-import { CONTEXT_CONTENT } from "@/components/demo-workflow/context-chapter";
+import { APPROACH_CONTENT } from "@/components/demo-workflow/approach-chapter";
+import { CONTEXT_CONTENT, STRATEGY_CONTENT } from "@/components/demo-workflow/context-chapter";
 import { DemoChapterView } from "@/components/demo-workflow/demo-chapter";
 import { useGenerativeContent } from "@/components/demo-workflow/generative-chapter";
 import { INTEGRATION_CONTENT } from "@/components/demo-workflow/integration-chapter";
@@ -29,7 +30,9 @@ function VerticalChapter(props: ChapterViewProps) {
 
 const ResearchChapter = (props: ChapterViewProps) => <DemoChapterView {...props} content={RESEARCH_CONTENT} />;
 const ContextChapter = (props: ChapterViewProps) => <DemoChapterView {...props} content={CONTEXT_CONTENT} />;
+const StrategyChapter = (props: ChapterViewProps) => <DemoChapterView {...props} content={STRATEGY_CONTENT} />;
 const IntegrationChapter = (props: ChapterViewProps) => <DemoChapterView {...props} content={INTEGRATION_CONTENT} />;
+const ApproachChapter = (props: ChapterViewProps) => <DemoChapterView {...props} content={APPROACH_CONTENT} />;
 
 type StageLight = { operation: number | null; reached: number };
 
@@ -49,7 +52,9 @@ const CHAPTER_VIEWS: Partial<Record<string, ComponentType<ChapterViewProps>>> = 
   generative: GenerativeChapter,
   vertical: VerticalChapter,
   context: ContextChapter,
+  strategy: StrategyChapter,
   integration: IntegrationChapter,
+  approach: ApproachChapter,
 };
 
 function DemoTransport({ playing, onToggle, onRestart }: { playing: boolean; onToggle: () => void; onRestart: () => void }) {
@@ -177,6 +182,7 @@ export function DemoWorkflow() {
     <div
       ref={root}
       className={styles.demo}
+      data-demo-root=""
       data-playing={state.playing || undefined}
       style={{ "--demo-transition": `${DEMO_TIMING.transitionMs}ms`, "--demo-lit": `${DEMO_TIMING.litMs}ms` } as CSSProperties}
     >

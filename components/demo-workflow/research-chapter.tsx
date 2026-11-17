@@ -35,9 +35,9 @@ function CriteriaExtract() {
   );
 }
 
-const START_MS = 6000;
-const AIM_MS = 900;
-const DRAG_MS = 1500;
+const START_MS = 3000;
+const AIM_MS = 650;
+const DRAG_MS = 1100;
 const HOLD_MS = 1800;
 
 /** Vertical Void ratings. A cursor sets each group's three ratings, then that descriptor appears. */
@@ -290,21 +290,12 @@ export const RESEARCH_CONTENT: ChapterContent = {
     </div>,
     <div key="systems" className={styles.column}>
       <Systems traits />
-      <Kicker>Filtered interests</Kicker>
-      <Chips items={FILTERED_INTERESTS} />
+      <Kicker>Stigmergy carried forward</Kicker>
     </div>,
     <div key="physarum" className={styles.column}>
-      <Img className={styles.organismDetail} src="/assets/skill0/physarum-growth.gif" />
-      <Caption align="start">Project growth recording. It is not a separate documentary film.</Caption>
-      <Chips items={PHYSARUM.strengths} tone="teal" />
-      <ol className={styles.behavior}>
-        {PHYSARUM.behavior.map((step, index) => (
-          <li key={step}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            {step}
-          </li>
-        ))}
-      </ol>
+      <Img className={styles.organismDetail} src={PHYSARUM.src} />
+      <Kicker>Filtered interests within Stigmergy</Kicker>
+      <Chips items={FILTERED_INTERESTS} tone="teal" />
       <p className={styles.question}>{PHYSARUM.question}</p>
     </div>,
   ],

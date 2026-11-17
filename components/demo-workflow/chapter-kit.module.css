@@ -11,17 +11,18 @@
 
 .kicker {
   margin: 0;
-  font-size: 0.56rem;
-  letter-spacing: 0.14em;
+  font-size: var(--wf-label);
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.56);
 }
 
 .caption {
   margin: 0;
-  font-size: 0.58rem;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
+  font-size: var(--wf-body);
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
   text-align: center;
   color: rgba(255, 255, 255, 0.62);
 }
@@ -48,8 +49,9 @@
   padding: 0.14rem 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-  font-size: 0.5rem;
-  letter-spacing: 0.13em;
+  font-size: var(--wf-meta);
+  letter-spacing: var(--wf-meta-tracking);
+  line-height: var(--wf-meta-line);
   text-transform: uppercase;
   white-space: nowrap;
   color: rgba(255, 255, 255, 0.8);
@@ -72,18 +74,46 @@
   padding: 0.5rem;
   border: 1px dashed rgba(255, 255, 255, 0.28);
   border-radius: 6px;
-  font-size: 0.5rem;
-  letter-spacing: 0.12em;
-  line-height: 1.4;
+  font-size: var(--wf-meta);
+  letter-spacing: var(--wf-meta-tracking);
+  line-height: var(--wf-meta-line);
   text-align: center;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.46);
 }
 
+.pending,
+.pendingFrame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  height: 100%;
+  min-height: 0;
+  max-width: 36rem;
+}
+
+.pendingFrame {
+  padding: 1.05rem 1.2rem 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-glow);
+}
+
+.pendingTitle {
+  margin: 0;
+  font-family: var(--font-site-display);
+  font-size: var(--wf-label);
+  font-weight: 400;
+  letter-spacing: var(--wf-label-tracking);
+  line-height: var(--wf-label-line);
+  text-transform: uppercase;
+}
+
 .unavailable {
   margin: auto;
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
+  font-size: var(--wf-body);
+  letter-spacing: var(--wf-body-tracking);
+  line-height: var(--wf-body-line);
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.42);
 }

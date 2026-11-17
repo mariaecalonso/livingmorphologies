@@ -147,6 +147,83 @@ export function readSolidifiedStatus(archetypeId: string, candidateId: number, c
   return metric ? solidifiedStatus(metric) : null;
 }
 
+export type SolidifiedReading = {
+  signedVolume: number | null;
+  solidFraction: number | null;
+  components: number | null;
+  boundaryEdges: number | null;
+  nonManifoldEdges: number | null;
+  triangles: number | null;
+  manifold: "PASS" | "FAIL" | null;
+  preflight: "PASS" | "FAIL" | null;
+  bounds: { min: [number, number, number]; max: [number, number, number] } | null;
+};
+
+function objectAfter(text: string, key: string): Record<string, unknown> | null {
+  const token = `"${key}":`;
+  const start = text.indexOf(token);
+  if (start < 0) return null;
+  const brace = text.indexOf("{", start + token.length);
+  if (brace < 0) return null;
+  let depth = 0;
+  for (let index = brace; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === "{") depth += 1;
+    else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          const parsed = JSON.parse(text.slice(brace, index + 1)) as unknown;
+          return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function finite(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function vec3(value: unknown): [number, number, number] | null {
+  if (!Array.isArray(value) || value.length !== 3) return null;
+  const next = value.map(finite);
+  if (next.some((item) => item == null)) return null;
+  return next as [number, number, number];
+}
+
+function mark(value: unknown): "PASS" | "FAIL" | null {
+  return value === "PASS" || value === "FAIL" ? value : null;
+}
+
+/** Stored solidification readings from the mesh record. Missing fields stay null. */
+export function readSolidifiedReading(archetypeId: string, candidateId: number, continuationId: string): SolidifiedReading | null {
+  if (!safeName(archetypeId) || !Number.isInteger(candidateId) || !/^N\d{2}$/.test(continuationId)) return null;
+  const file = path.join(ROOT, solidifiedFileName(archetypeId, candidateId, continuationId));
+  if (!insideRoot(file) || !existsSync(file)) return null;
+  const text = headerText(file);
+  const report = objectAfter(text, "report");
+  const metric = objectAfter(text, "metric");
+  if (!report && !metric) return null;
+  const bounds = report?.bounds;
+  const min = bounds && typeof bounds === "object" ? vec3((bounds as { min?: unknown }).min) : null;
+  const max = bounds && typeof bounds === "object" ? vec3((bounds as { max?: unknown }).max) : null;
+  return {
+    signedVolume: finite(report?.signedVolume),
+    solidFraction: finite(report?.solidFraction),
+    components: finite(metric?.components) ?? finite(report?.components),
+    boundaryEdges: finite(metric?.boundaryEdges) ?? finite(report?.boundaryEdges),
+    nonManifoldEdges: finite(metric?.nonManifoldEdges) ?? finite(report?.nonManifoldEdges),
+    triangles: finite(metric?.triangles) ?? finite(report?.triangles),
+    manifold: mark(metric?.manifold),
+    preflight: mark(metric?.preflight),
+    bounds: min && max ? { min, max } : null,
+  };
+}
+
 /** Stored manifold checks for the process page. This does not recompute or rewrite them. */
 export function readSolidifiedChecks(archetypeId: string, candidateId: number, continuationId: string) {
   const metric = readSolidifiedMetric(archetypeId, candidateId, continuationId);

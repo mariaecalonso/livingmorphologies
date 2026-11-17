@@ -31,6 +31,17 @@ export function Chips({ items, tone }: { items: readonly string[]; tone?: "teal"
   );
 }
 
+/** A chapter page whose drawing is not part of this workflow yet. */
+export function PendingFrame({ kicker, title, body, frame = false }: { kicker: string; title: string; body: string; frame?: boolean }) {
+  return (
+    <section className={frame ? styles.pendingFrame : styles.pending} aria-label={title}>
+      <Kicker>{kicker}</Kicker>
+      <h1 className={styles.pendingTitle}>{title}</h1>
+      <p className={styles.caption} data-align="start">{body}</p>
+    </section>
+  );
+}
+
 /** Stated in place of material that is not stored in the project, so nothing is drawn as if it were. */
 export function Missing({ children }: { children: ReactNode }) {
   return <p className={styles.missing}>{children}</p>;
