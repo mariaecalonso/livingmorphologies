@@ -25,6 +25,7 @@ import {
   type Texture,
 } from "three";
 import type { FaceHighlight } from "@/lib/skill5/face-match";
+import { AssemblyFilmLayer, type SiteAssemblyFilmView } from "./site-assembly-film";
 import {
   clipPath,
   clipPolygon,
@@ -1348,6 +1349,7 @@ export function SiteViewport({
   zoning = null,
   connections = null,
   joins = null,
+  assemblyFilm = null,
   typology = null,
   focusBounds = null,
   onReadout,
@@ -1402,6 +1404,7 @@ export function SiteViewport({
   } | null;
   connections?: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
   joins?: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
+  assemblyFilm?: SiteAssemblyFilmView | null;
   typology?: {
     study: SiteNetworkStudy;
     points: readonly TypologyAttractor[];
@@ -1454,7 +1457,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} typology={typology} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
     </Canvas>
   );
@@ -1483,6 +1486,7 @@ function PlacementScene({
   zoning,
   connections,
   joins,
+  assemblyFilm,
   typology,
 }: {
   context: SiteContext;
@@ -1529,6 +1533,7 @@ function PlacementScene({
   } | null;
   connections: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
   joins: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
+  assemblyFilm: SiteAssemblyFilmView | null;
   typology: {
     study: SiteNetworkStudy;
     points: readonly TypologyAttractor[];
@@ -1591,6 +1596,7 @@ function PlacementScene({
       ) : null}
       {connections ? <ConnectionMarks links={connections} /> : null}
       {joins ? <JoinOverlay highlights={joins.highlights} passages={joins.passages} /> : null}
+      {assemblyFilm ? <AssemblyFilmLayer assembly={assemblyFilm.assembly} sweep={assemblyFilm.sweep} skins={assemblyFilm.skins} onSweepDone={assemblyFilm.onSweepDone} /> : null}
       </group>
     </>
   );

@@ -59,6 +59,8 @@ import { SiteAnalysisWorkspace } from "./site-analysis-workspace";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
 import { readSiteWorkflowState, writeSiteWorkflowState, ZONE_KINDS, type SiteConnection, type SiteWorkflowId, type SiteZone, type SiteZoneKind } from "./site-workflow";
 import { SiteAssemblyStep, SiteWorkflowNav, SiteZoningInspector, SiteZoningPanel } from "./site-workflow-panels";
+import { siteAssemblyFilmMeshes, siteFilmClusters } from "./site-assembly-film";
+import { useAssemblyFilm } from "@/components/hybrid/validation-panel";
 import { ArchitecturalDna } from "./architectural-dna";
 import { CompatibilityOverview } from "./client-compatibility-panel";
 import { CriteriaDefinitionsModal } from "./criteria-definitions";
@@ -1486,6 +1488,21 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     }
     return next;
   }, [meshes]);
+  const assemblyFilmMeshes = useMemo(() => siteAssemblyFilmMeshes(
+    sceneInstances,
+    loadedMeshes,
+    connections.flatMap((link) => link.passage ? [{ id: link.id, positions: link.passage.positions, indices: link.passage.indices }] : []),
+    displayShift,
+  ), [connections, displayShift, loadedMeshes, sceneInstances]);
+  const assemblyClusters = useMemo(() => siteFilmClusters(
+    assemblyFilmMeshes,
+    connections.map((link) => ({ id: link.id, a: link.tileA, b: link.tileB })),
+  ), [assemblyFilmMeshes, connections]);
+  const assemblyFilm = useAssemblyFilm(sheet === "assembly" ? assemblyFilmMeshes : [], true, sheet === "assembly" ? assemblyClusters : undefined);
+  const assemblySkins = useMemo(
+    () => assemblyFilm.phase === "complete" ? assemblyFilm.instances.filter((item) => item.id.startsWith("film-wrap")) : [],
+    [assemblyFilm.instances, assemblyFilm.phase],
+  );
   const noteGeometry = useCallback((moduleId: string, state: "available" | "unavailable") => {
     const present = historyRef.current.present;
     const next = {
@@ -3292,6 +3309,12 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               <div className="site-frame-name site-sim">
                 <h2 className="site-subtitle">Assembly</h2>
                 <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
+                <div className="site-modes">
+                  <button type="button" disabled={assemblyFilmMeshes.length === 0 || assemblyFilm.running} onClick={assemblyFilm.start}>
+                    {assemblyFilm.running ? "Running" : "Validation and smoothing"}
+                  </button>
+                </div>
+                {assemblyFilm.status ? <p className="site-note">{assemblyFilm.status === "VALIDATED" ? "Validated" : "Issues detected"}</p> : null}
               </div>
             ) : (
             <>
@@ -3383,6 +3406,12 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               } : null}
               connections={connectionLines}
               joins={sheet === "assembly" ? joinOverlay : null}
+              assemblyFilm={sheet === "assembly" ? {
+                assembly: assemblyFilmMeshes,
+                sweep: assemblyFilm.sweep,
+                skins: assemblySkins,
+                onSweepDone: assemblyFilm.finishSweep,
+              } : null}
               network={
                 networkStudy
                   ? {
