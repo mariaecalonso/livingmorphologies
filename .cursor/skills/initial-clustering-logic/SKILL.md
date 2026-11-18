@@ -5,14 +5,15 @@ description: >-
   the WFC constraint propagator from Skill 6. Use when the user says retrieve
   Initial Clustering logic, Initial Clustering Logic, graph-based-v1, or
   wave-function-collapse-v1, or asks to reuse those two searches in another
-  system. Read this file and the two source paths it names. Do not search the
-  rest of Skill 6 first. Do not use for the Skill 6 lab, Rule-Based search,
-  assembly, refinement, or for building System 02.
+  system, including Skill 4. Read this file and the two source paths it names.
+  Do not search the rest of Skill 6 first. Skill 4 adaptations are written in
+  lib/skill4. Do not modify Skill 6 unless the request specifically alters
+  Skill 6. Do not use this to rebuild the Skill 6 lab or to create System 02.
 ---
 
 # Initial Clustering Logic
 
-Reference only. The authoritative implementations stay in the source files below. Do not copy, extract, or rewrite them. System 01 is the Skill 6 lab and remains complete, including Rule-Based. System 02 is not started.
+Reference only. `lib/skill6/engines/graph.ts` and `lib/skill6/engines/wfc.ts` remain the Skill 6 implementations. Skill 4 may reuse the Graph plan and the WFC propagator and alter that behavior in `lib/skill4/`. Those alterations stay in Skill 4. Skill 6 stays as it is unless a request specifically alters Skill 6. System 02 is not started.
 
 Stored overnight runs use seed `101`, root `open-hall`, and budget `120 × tiles`. Graph does not read the seed. WFC does.
 
@@ -80,10 +81,12 @@ Leave these in System 01. Another system does not import them in order to run th
 - Assembly, patching, union, and refinement: `assembleCluster`. Neither search calls it.
 - Rule-Based: `lib/skill6/engines/rule.ts`. The lab, catalog, and stored experiments.
 
-## Reuse without a second copy
+## Reuse in Skill 4
 
-Import `runGraph` or `runWfc` and pass a board and pool that satisfy the calls above. Do not paste either file into another system.
+Skill 4 reuses the Graph plan and the WFC propagator. Any change for Hybrid Connection is written in `lib/skill4/` or `components/hybrid/`. It is not written into `lib/skill6/`.
 
-`tryAttach`, `seed`, `tests`, and `forHost` are already arguments, so another board and pool can change listing and attachment without editing the searches. WFC's spatial preview, `preference`, the plan orders, the weights, and `finish` are inside the source. Changing those is a later edit of the authoritative file, not a fork. Until that edit exists, a caller of `runWfc` uses the growth rule, the `0.4` overlap test, and System 01 ranking.
+Calling `runGraph` or `runWfc` keeps Skill 6 behavior, including its growth check, `0.4` overlap test, plan order, weights, and ranking. A Skill 4 change to plans, weights, propagation, the spatial preview, `preference`, or ranking lives beside that call, in Skill 4. Leave `graph.ts` and `wfc.ts` untouched unless the request specifically alters Skill 6.
 
-Do not import `run-overnight.ts`, `run-five-tile.ts`, or `run-expansion.ts`. They start a generation when loaded. Do not rerun stored experiments to explain these methods.
+Record, in the Skill 4 work, which of these were retained, adapted, or replaced: Graph planning, WFC propagation, compatibility, attachment, and assembly. Do not rerun or rewrite Skill 6 experiments to match Skill 4.
+
+Do not import `run-overnight.ts`, `run-five-tile.ts`, or `run-expansion.ts`. They start a generation when loaded.

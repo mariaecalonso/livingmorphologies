@@ -26,7 +26,7 @@ Shared code is limited to those two searches and the narrow operations they alre
 
 Record, when System 02 exists, which of these were retained, adapted, or replaced: Graph planning, WFC propagation, compatibility, attachment, and assembly. Do not rewrite System 01’s results to match System 02.
 
-The retrieval reference for the two searches is `.cursor/skills/initial-clustering-logic/SKILL.md`. Ask to retrieve Initial Clustering logic. That reference points at `lib/skill6/engines/graph.ts` and `lib/skill6/engines/wfc.ts`. It does not replace them.
+The retrieval reference for the two searches is `.cursor/skills/initial-clustering-logic/SKILL.md`. Ask to retrieve Initial Clustering logic. That reference points at `lib/skill6/engines/graph.ts` and `lib/skill6/engines/wfc.ts`. Skill 4 may adapt those methods in `lib/skill4/`. Skill 6 stays as written unless a request specifically alters Skill 6.
 
 ## Official workflow
 

@@ -16,6 +16,8 @@ Apply it when joining already selected Skill 3 modules into an assembly. Do not 
 
 The lab is `/lab/hybrid`. Its tabs are Process, Catalog, and Final Catalog. The work lives in `lib/skill4/` and `components/hybrid/`.
 
+Skill 4 may reuse the Skill 6 Graph plan and WFC propagator. Ask to retrieve Initial Clustering logic, then read `.cursor/skills/initial-clustering-logic/SKILL.md`. Alterations for Hybrid Connection are written in `lib/skill4/` or `components/hybrid/`. Do not modify `lib/skill6/` unless the request specifically alters Skill 6.
+
 ## Purpose
 
 Take Skill 3 modules and connect them. A connection chooses two faces. The hybrid grows between those faces. An assembly is the saved arrangement of those modules and their connections.

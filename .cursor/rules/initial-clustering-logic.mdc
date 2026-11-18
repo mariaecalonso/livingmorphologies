@@ -12,4 +12,4 @@ alwaysApply: false
 
 When the user asks to retrieve Initial Clustering logic, read `.cursor/skills/initial-clustering-logic/SKILL.md` and explain Graph-Based and WFC from that reference and from `lib/skill6/engines/graph.ts` and `lib/skill6/engines/wfc.ts`.
 
-Do not search the rest of Skill 6 first. Do not copy, extract, or rewrite either algorithm. System 01 stays the complete Skill 6 lab. Do not create System 02.
+Do not search the rest of Skill 6 first. Skill 4 may reuse the Graph plan and the WFC propagator and alter that behavior in `lib/skill4/`. Leave Skill 6 as it is unless the request specifically alters Skill 6. Do not create System 02.
