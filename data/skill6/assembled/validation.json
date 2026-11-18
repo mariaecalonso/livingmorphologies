@@ -1,0 +1,264 @@
+{
+ "version": 1,
+ "note": "Measured from the stored meshes. A penetration is a triangle pair deeper than the seating tolerance; a shallower meeting is a graze. Manifold reports NoError for a closed mesh even when its surface folds through itself. A growth rejection uses the posed bounds: below ground, a downward meeting face, a body that drops into the host's lower quarter, or a tile floating above its host.",
+ "clusters": {
+  "assembled-flat-self": {
+   "meshFile": "data/skill6/assembled/assembled-flat-self.mesh.json",
+   "refinedTriangles": 30544,
+   "lift": 14.088294982910156,
+   "raw": {
+    "status": "NoError",
+    "triangles": 30544,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 0,
+    "volume": 1774.3,
+    "minZ": 0,
+    "penetrations": 92,
+    "grazes": 79,
+    "maxPenetration": 0.1667
+   },
+   "refined": {
+    "status": "NoError",
+    "triangles": 30544,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 0,
+    "volume": 1762.3,
+    "minZ": 0,
+    "penetrations": 0,
+    "grazes": 96,
+    "maxPenetration": 0.0155
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "tiltDegrees": 0,
+     "mirrored": false,
+     "minZ": 3.9,
+     "maxZ": 24.28
+    },
+    {
+     "instanceId": "t01",
+     "tiltDegrees": 40,
+     "mirrored": false,
+     "minZ": 0,
+     "maxZ": 23.53
+    }
+   ],
+   "growth": [
+    {
+     "instanceId": "t01",
+     "hostInstanceId": "t00",
+     "label": "-Y",
+     "baseChange": -3.9,
+     "topChange": -0.8,
+     "rejection": null
+    }
+   ],
+   "seatedTilesMinZ": 0,
+   "refinedToTilesOffset": 0.006
+  },
+  "assembled-flat-plate": {
+   "meshFile": "data/skill6/assembled/assembled-flat-plate.mesh.json",
+   "refinedTriangles": 32032,
+   "lift": 10.189441680908203,
+   "raw": {
+    "status": "NoError",
+    "triangles": 32032,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 1,
+    "volume": 1943.8,
+    "minZ": 0,
+    "penetrations": 41,
+    "grazes": 124,
+    "maxPenetration": 0.1523
+   },
+   "refined": {
+    "status": "NoError",
+    "triangles": 32032,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 1,
+    "volume": 1935.8,
+    "minZ": 0,
+    "penetrations": 0,
+    "grazes": 97,
+    "maxPenetration": 0.0147
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "tiltDegrees": 0,
+     "mirrored": false,
+     "minZ": 0,
+     "maxZ": 20.38
+    },
+    {
+     "instanceId": "t01",
+     "tiltDegrees": 0,
+     "mirrored": false,
+     "minZ": 4.25,
+     "maxZ": 20.38
+    }
+   ],
+   "growth": [
+    {
+     "instanceId": "t01",
+     "hostInstanceId": "t00",
+     "label": "-X",
+     "baseChange": 4.2,
+     "topChange": 0,
+     "rejection": null
+    }
+   ],
+   "seatedTilesMinZ": 0,
+   "refinedToTilesOffset": 0.045
+  },
+  "assembled-rule-small-02": {
+   "meshFile": "data/skill6/assembled/assembled-rule-small-02.mesh.json",
+   "refinedTriangles": 45828,
+   "lift": 10.972105979919434,
+   "raw": {
+    "status": "NoError",
+    "triangles": 45828,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 0,
+    "volume": 2612.2,
+    "minZ": 0,
+    "penetrations": 130,
+    "grazes": 167,
+    "maxPenetration": 0.36
+   },
+   "refined": {
+    "status": "NoError",
+    "triangles": 45828,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 0,
+    "volume": 2598.6,
+    "minZ": 0,
+    "penetrations": 0,
+    "grazes": 112,
+    "maxPenetration": 0.0156
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "tiltDegrees": 0,
+     "mirrored": false,
+     "minZ": 0.78,
+     "maxZ": 21.16
+    },
+    {
+     "instanceId": "t01",
+     "tiltDegrees": 90,
+     "mirrored": false,
+     "minZ": 0,
+     "maxZ": 17.16
+    }
+   ],
+   "growth": [
+    {
+     "instanceId": "t01",
+     "hostInstanceId": "t00",
+     "label": "+Y",
+     "baseChange": -0.8,
+     "topChange": -4,
+     "rejection": null
+    }
+   ],
+   "seatedTilesMinZ": 0,
+   "refinedToTilesOffset": 0.041
+  },
+  "assembled-rule-small-04": {
+   "meshFile": "data/skill6/assembled/assembled-rule-small-04.mesh.json",
+   "refinedTriangles": 94944,
+   "lift": 14.21343994140625,
+   "raw": {
+    "status": "NoError",
+    "triangles": 96704,
+    "bodies": 1,
+    "cavities": 17,
+    "genus": -15,
+    "volume": 5344.2,
+    "minZ": 0,
+    "penetrations": 388,
+    "grazes": 515,
+    "maxPenetration": 0.2395
+   },
+   "refined": {
+    "status": "NoError",
+    "triangles": 94944,
+    "bodies": 1,
+    "cavities": 0,
+    "genus": 1,
+    "volume": 5317.7,
+    "minZ": 0,
+    "penetrations": 1,
+    "grazes": 2396,
+    "maxPenetration": 0.0399
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "tiltDegrees": 0,
+     "mirrored": false,
+     "minZ": 4.02,
+     "maxZ": 24.4
+    },
+    {
+     "instanceId": "t01",
+     "tiltDegrees": 40,
+     "mirrored": false,
+     "minZ": 0,
+     "maxZ": 24.82
+    },
+    {
+     "instanceId": "t02",
+     "tiltDegrees": 90,
+     "mirrored": true,
+     "minZ": 13.03,
+     "maxZ": 30.93
+    },
+    {
+     "instanceId": "t03",
+     "tiltDegrees": 130,
+     "mirrored": false,
+     "minZ": 12.71,
+     "maxZ": 36.15
+    }
+   ],
+   "growth": [
+    {
+     "instanceId": "t01",
+     "hostInstanceId": "t00",
+     "label": "-X",
+     "baseChange": -4,
+     "topChange": 0.4,
+     "rejection": null
+    },
+    {
+     "instanceId": "t02",
+     "hostInstanceId": "t00",
+     "label": "-X",
+     "baseChange": 9,
+     "topChange": 6.5,
+     "rejection": null
+    },
+    {
+     "instanceId": "t03",
+     "hostInstanceId": "t02",
+     "label": "+X",
+     "baseChange": -0.3,
+     "topChange": 5.2,
+     "rejection": null
+    }
+   ],
+   "seatedTilesMinZ": 0,
+   "refinedToTilesOffset": 0.005
+  }
+ }
+}

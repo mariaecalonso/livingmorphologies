@@ -1,6 +1,6 @@
 "use client";
 
-import { PendingFrame } from "@/components/demo-workflow/chapter-kit";
+import { PendingFrame } from "@/components/clustering/clustering-workspace";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/approach-chapter.module.css";
 

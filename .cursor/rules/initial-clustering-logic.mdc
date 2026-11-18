@@ -1,0 +1,15 @@
+---
+description: >-
+  Retrieve Initial Clustering Logic. Use when the user asks to retrieve
+  Initial Clustering logic, Initial Clustering Logic, the Graph-Based planner,
+  or the WFC propagator. Read the reference and explain those two methods
+  from their source files. Do not use for the Skill 6 lab, Rule-Based search,
+  assembly, or a new clustering system.
+alwaysApply: false
+---
+
+# Initial Clustering Logic
+
+When the user asks to retrieve Initial Clustering logic, read `.cursor/skills/initial-clustering-logic/SKILL.md` and explain Graph-Based and WFC from that reference and from `lib/skill6/engines/graph.ts` and `lib/skill6/engines/wfc.ts`.
+
+Do not search the rest of Skill 6 first. Do not copy, extract, or rewrite either algorithm. System 01 stays the complete Skill 6 lab. Do not create System 02.

@@ -6,11 +6,11 @@ description: >-
   selects one final 2D outcome per archetype. Use when working on Skill 2, 2D
   Physarum generation, iteration, architectural evaluation, final 2D selection,
   or the Skill 3 handoff of 15 selected sections. Do not use for Skill 1
-  translation, vertical propagation, 3D geometry, interlocking, or aggregation.
+  translation, vertical propagation, 3D geometry, Skill 4 Hybrid Connection, or Skill 5 Site Integration.
 ---
 # Skill 2: 2D Physarum Generation, Iteration, Architectural Evaluation, and Final Selection
 This is the project-level skill for Skill 2 in the shared repository `livingmorphologies`.
-Apply this skill when generating, iterating, evaluating, and selecting 2D Physarum sections from a Skill 1 translation. Do not apply it to architectural-to-Physarum translation, vertical 3D development, 3D form-making, interlocking, or module aggregation.
+Apply this skill when generating, iterating, evaluating, and selecting 2D Physarum sections from a Skill 1 translation. Do not apply it to architectural-to-Physarum translation, vertical 3D development, or 3D form-making. Joining modules is Skill 4, Hybrid Connection. Placing them on the site is Skill 5, Site Integration.
 Current status: Skill 1 translation is complete and handed off. Skill 2 generation, evaluation, and selection are not implemented yet. Begin from a `Skill1Handoff`. Do not rewrite Skill 1 translation, edit `lib/catalog.ts`, or implement Skill 3 vertical propagation.
 ## Purpose
 Receive the architectural-to-Physarum translation produced by Skill 1 and use it to generate multiple abstract 2D protoarchitectural sections.

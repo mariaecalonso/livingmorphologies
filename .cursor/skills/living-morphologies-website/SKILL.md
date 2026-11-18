@@ -36,7 +36,7 @@ Typography, navigation, and controls stay legible because they scale with the fr
 
 The existing LivingInstrument currently rendered at / is not the final Home page concept.
 Conceptually, this interface belongs to the Lab section of the website.
-It currently combines functionality from Skill 1: architecture-to-physarum and Skill 2: physarum-2d-generation.
+It currently combines functionality from Skill 1: architecture-to-physarum and Skill 2: physarum-2d-generation. Hybrid Connection is Skill 4. Site Integration is Skill 5. Those labs are not website work.
 Do not treat this current instrument as the long-term Home page.
 Do not move or refactor it yet unless explicitly requested.
 When the website structure is developed further, the current instrument should eventually be incorporated into the /lab experience, while / becomes the project overview Home page.

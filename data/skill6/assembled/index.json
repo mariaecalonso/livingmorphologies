@@ -1,0 +1,7859 @@
+{
+ "version": 1,
+ "note": "Newly generated or explicitly regenerated clusters only. Saved catalog and coverage clusters are not patched. Tile poses are the rigid solver output; seatedTiles add one Z lift. Patches, union, and refined surface are derivatives stored in the mesh files.",
+ "growthDirections": [
+  "+X",
+  "-X",
+  "+Y",
+  "-Y",
+  "+Z"
+ ],
+ "budget": {
+  "evaluations": 1600,
+  "backtracks": 48,
+  "triesPerDepth": 80
+ },
+ "clusters": [
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-flat-self",
+   "status": "accepted",
+   "reason": "Verified pair, rebuilt from its stored envelope specification.",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 0,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "flat-deep-plan",
+     "moduleId": "carved-mass:flat-deep-plan:83:N16",
+     "typologyId": "workspace",
+     "name": "Flat Deep Plan",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "flat-deep-plan",
+     "moduleId": "carved-mass:flat-deep-plan:83:N16",
+     "typologyId": "workspace",
+     "name": "Flat Deep Plan",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -1,
+       1.2246467991473532e-16,
+       0,
+       -9.381338752702731e-17,
+       -0.766044443118978,
+       -0.6427876096865393,
+       -7.871877887341985e-17,
+       -0.6427876096865393,
+       0.766044443118978
+      ],
+      "translation": [
+       -20.44889157613119,
+       0,
+       0
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.07964917624704133,
+     "residualGap": 0.1771576599245016,
+     "contactArea": 42.19011227596405,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9939159163900531,
+     "hostNormal": [
+      1,
+      0,
+      0
+     ],
+     "guestNormal": [
+      -1,
+      0,
+      0
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.182384335319208,
+        8.216536654126926,
+        -6.02180376474978
+       ],
+       "guest": [
+        -10.350883420308435,
+        8.216717852728895,
+        -6.02179975581081
+       ],
+       "gap": 0.1684991824645202
+      },
+      {
+       "host": [
+        -10.1825462292001,
+        7.065948219530755,
+        -7.121535962550376
+       ],
+       "guest": [
+        -10.330360031127933,
+        7.0662413735304925,
+        -7.121351782032068
+       ],
+       "gap": 0.14781420737565024
+      },
+      {
+       "host": [
+        -10.182977289623024,
+        6.835366536436033,
+        -7.199868870112059
+       ],
+       "guest": [
+        -10.297476704915368,
+        6.835547454110899,
+        -7.199578075135598
+       ],
+       "gap": 0.11449992748998694
+      },
+      {
+       "host": [
+        -10.181874647625905,
+        7.173553172006681,
+        -6.643827384447401
+       ],
+       "guest": [
+        -10.263475036621097,
+        7.173560875913626,
+        -6.6437588980549345
+       ],
+       "gap": 0.08160041809882292
+      },
+      {
+       "host": [
+        -10.181959644088485,
+        6.906425752746682,
+        -6.710881916944204
+       ],
+       "guest": [
+        -10.262526448567712,
+        6.906538835583737,
+        -6.710814292219468
+       ],
+       "gap": 0.08056691222099481
+      },
+      {
+       "host": [
+        -10.137276065562746,
+        5.801290638885061,
+        -7.795294505690204
+       ],
+       "guest": [
+        -10.27969926198324,
+        5.781528686161062,
+        -7.813172477318495
+       ],
+       "gap": 0.14489487059119083
+      },
+      {
+       "host": [
+        -10.181878239585473,
+        7.491844204271947,
+        -5.904331685683836
+       ],
+       "guest": [
+        -10.278143501281741,
+        7.491807091564714,
+        -5.904333200378153
+       ],
+       "gap": 0.09626526886213158
+      },
+      {
+       "host": [
+        -10.181794062695074,
+        7.223584028653425,
+        -5.967294706702627
+       ],
+       "guest": [
+        -10.267856852213546,
+        7.223586285740873,
+        -5.967296060958174
+       ],
+       "gap": 0.08606278955872432
+      },
+      {
+       "host": [
+        -10.18248363750103,
+        6.096237923417249,
+        -7.073832995311285
+       ],
+       "guest": [
+        -10.26316922505697,
+        6.095611774726378,
+        -7.073861308784694
+       ],
+       "gap": 0.08068802205459759
+      },
+      {
+       "host": [
+        -10.181405850063046,
+        5.830231046883017,
+        -7.135370676707881
+       ],
+       "guest": [
+        -10.264907137552902,
+        5.830253490390009,
+        -7.136069690512015
+       ],
+       "gap": 0.08350421627961639
+      },
+      {
+       "host": [
+        -10.181801843889406,
+        6.694046397555825,
+        -6.092405389184591
+       ],
+       "guest": [
+        -10.266337649027511,
+        6.694046619267276,
+        -6.0924076062185755
+       ],
+       "gap": 0.08453580516746712
+      },
+      {
+       "host": [
+        -10.18180495082499,
+        6.430439828243247,
+        -6.155149094175836
+       ],
+       "guest": [
+        -10.26680749257406,
+        6.43044294922764,
+        -6.15515176931776
+       ],
+       "gap": 0.08500254184846057
+      },
+      {
+       "host": [
+        -10.172437990894602,
+        5.302938755209787,
+        -7.258868631123129
+       ],
+       "guest": [
+        -10.269092814127609,
+        5.301266706116477,
+        -7.261020246317298
+       ],
+       "gap": 0.0966932264965747
+      },
+      {
+       "host": [
+        -10.163697251706864,
+        5.038868949857713,
+        -7.31091305714971
+       ],
+       "guest": [
+        -10.272265052795413,
+        5.037630015113178,
+        -7.323784232716686
+       ],
+       "gap": 0.10933512497354131
+      },
+      {
+       "host": [
+        -10.182209479062825,
+        7.32491105344449,
+        -4.9353862141623575
+       ],
+       "guest": [
+        -10.359366353352868,
+        7.324419086532258,
+        -4.935576819158312
+       ],
+       "gap": 0.1771576599245016
+      },
+      {
+       "host": [
+        -10.181811124617674,
+        6.181776017595399,
+        -6.04718672951345
+       ],
+       "guest": [
+        -10.26702524820964,
+        6.18178249858993,
+        -6.047185388669081
+       ],
+       "gap": 0.08521412384897209
+      },
+      {
+       "host": [
+        -10.18183216308487,
+        5.918187917886872,
+        -6.110178015504345
+       ],
+       "guest": [
+        -10.267111396789554,
+        5.918194403833379,
+        -6.110176673635468
+       ],
+       "gap": 0.08527923396188672
+      },
+      {
+       "host": [
+        -10.167376281002694,
+        4.7891049753828145,
+        -7.210908051405719
+       ],
+       "guest": [
+        -10.270393625895187,
+        4.7889639594155105,
+        -7.21586031825168
+       ],
+       "gap": 0.10313640570194132
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": null,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch -40 roll 0 gap 0.1",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 2,
+    "size": "small",
+    "typologyDistribution": {
+     "workspace": 2
+    },
+    "dominantTypology": "workspace",
+    "dominantTied": false,
+    "archetypeDiversity": 0.5,
+    "uniqueArchetypes": 1,
+    "tileCellVoidFraction": 0.8894520606819799,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.8164056553550861,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 1768.7670290883223,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 9634.104103311345,
+    "surfaceExposure": 1244.5201825718425,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 1,
+    "connected": true,
+    "geometricDiversity": 0
+   },
+   "search": {
+    "evaluations": 1,
+    "acceptedPoses": 1,
+    "backtracks": 0,
+    "milliseconds": 0,
+    "exhausted": false,
+    "truncated": false,
+    "untried": 0,
+    "geometricRejections": 0,
+    "rejectionCounts": {
+     "intersection": 0,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": null,
+    "stop": "reached"
+   },
+   "assembly": {
+    "contract": "skill6-assembly-v1",
+    "sourceClusterId": "assembled-flat-self",
+    "patchSettings": {
+     "radius": 0.32,
+     "cell": 0.12,
+     "maxCells": 168,
+     "largestOnly": true,
+     "spacingReach": true,
+     "bodyFraction": 0.15,
+     "regionMinArea": 1
+    },
+    "ground": {
+     "lift": 14.088294982910156,
+     "minZBefore": -14.088294982910156,
+     "minZAfter": 0
+    },
+    "seatedTiles": [
+     {
+      "instanceId": "t00",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "translation": [
+        0,
+        0,
+        14.088294982910156
+       ]
+      }
+     },
+     {
+      "instanceId": "t01",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        -1,
+        1.2246467991473532e-16,
+        0,
+        -9.381338752702731e-17,
+        -0.766044443118978,
+        -0.6427876096865393,
+        -7.871877887341985e-17,
+        -0.6427876096865393,
+        0.766044443118978
+       ],
+       "translation": [
+        -20.44889157613119,
+        0,
+        14.088294982910156
+       ]
+      }
+     }
+    ],
+    "growth": [
+     {
+      "step": 0,
+      "instanceId": "t00",
+      "archetypeId": "flat-deep-plan",
+      "hostInstanceId": null,
+      "direction": null,
+      "placement": "seed",
+      "depth": 0
+     },
+     {
+      "step": 1,
+      "instanceId": "t01",
+      "archetypeId": "flat-deep-plan",
+      "hostInstanceId": "t00",
+      "direction": "-Y",
+      "placement": "lateral",
+      "depth": 1
+     }
+    ],
+    "joints": [
+     {
+      "id": "t00-t01",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "flat-deep-plan",
+      "primary": true,
+      "direction": "-Y",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.1771576599245016,
+       "contactArea": 42.19011227596405,
+       "normalAlignment": -0.9939159163900531,
+       "deepestCrossing": 0,
+       "overlapVolume": null
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 0,
+       "samples": 219,
+       "triangles": 19848,
+       "volume": 34.61699031439085,
+       "hostOverlap": 14.621004701175568,
+       "guestOverlap": 14.416791262863,
+       "footprint": {
+        "min": [
+         -10.692063331604004,
+         -2.8077006340026855,
+         3.665729522705078
+        ],
+        "max": [
+         -9.732063293457031,
+         8.352299690246582,
+         10.865729331970215
+        ],
+        "extent": [
+         0.9600000381469727,
+         11.160000324249268,
+         7.199999809265137
+        ],
+        "center": [
+         -10.212063312530518,
+         2.7722995281219482,
+         7.2657294273376465
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 0,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 1414,
+       "validationMilliseconds": 2834
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     }
+    ],
+    "graph": {
+     "nodes": [
+      {
+       "instanceId": "t00",
+       "parent": null,
+       "children": [
+        "t01"
+       ],
+       "depth": 0,
+       "degree": 1
+      },
+      {
+       "instanceId": "t01",
+       "parent": "t00",
+       "children": [],
+       "depth": 1,
+       "degree": 1
+      }
+     ],
+     "edges": [
+      {
+       "host": "t00",
+       "guest": "t01",
+       "primary": true,
+       "classification": "patched-near-contact"
+      }
+     ],
+     "branchPoints": [],
+     "leaves": [
+      "t01"
+     ],
+     "maxDepth": 1
+    },
+    "counts": {
+     "direct-contact": 0,
+     "patched-near-contact": 1,
+     "failed-patch": 0
+    },
+    "union": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1774.3461975165349,
+     "triangles": 30544,
+     "minZ": 0
+    },
+    "refined": {
+     "method": "seam fillet (Laplacian at patches, Taubin elsewhere, rim pass)",
+     "parameters": {
+      "iterations": 24,
+      "lambda": 0.5,
+      "mu": -0.53,
+      "seamReach": 1.2,
+      "seamFade": 2,
+      "baseWeight": 0.1,
+      "maxShift": 0.9,
+      "floorShift": 0.04,
+      "fillCavityVolume": 1
+     },
+     "cavitiesFilled": 0,
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1762.3273422540299,
+     "triangles": 30544,
+     "minZ": 0,
+     "maxShift": 0.6921183923696733,
+     "meanShift": 0.041459942660367136,
+     "sharpEdgesBefore": 2790,
+     "sharpEdgesAfter": 431,
+     "seamSharpEdgesBefore": 2427,
+     "seamSharpEdgesAfter": 67
+    },
+    "meshFile": "data/skill6/assembled/assembled-flat-self.mesh.json",
+    "milliseconds": {
+     "patches": 4289,
+     "union": 124,
+     "refine": 466,
+     "total": 4879
+    }
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-flat-plate",
+   "status": "accepted",
+   "reason": "Verified pair, rebuilt from its stored envelope specification.",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 0,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "flat-deep-plan",
+     "moduleId": "carved-mass:flat-deep-plan:83:N16",
+     "typologyId": "workspace",
+     "name": "Flat Deep Plan",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "inserted-horizontal-plate",
+     "moduleId": "carved-mass:inserted-horizontal-plate:265:N47",
+     "typologyId": "gathering",
+     "name": "Inserted Horizontal Plate",
+     "pose": {
+      "quarterZ": 2,
+      "mirrorX": false,
+      "basis": [
+       -1,
+       1.2246467991473532e-16,
+       0,
+       -1.2246467991473532e-16,
+       -1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       -20.366051610310876,
+       0,
+       0
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.000339473049922941,
+     "residualGap": 0.17943193716569028,
+     "contactArea": 15.623297399679863,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9717505735624871,
+     "hostNormal": [
+      1,
+      0,
+      0
+     ],
+     "guestNormal": [
+      -1,
+      0,
+      0
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.08745494495088,
+        -1.6687996338013824,
+        6.304594544003411
+       ],
+       "guest": [
+        -10.184835688273116,
+        -1.6921875476837172,
+        6.297996838887532
+       ],
+       "gap": 0.1003669935713678
+      },
+      {
+       "host": [
+        -10.181370639745861,
+        -0.9621396346619355,
+        6.653445551446484
+       ],
+       "guest": [
+        -10.20942395528158,
+        -0.9624871412913016,
+        6.653501987457275
+       ],
+       "gap": 0.028055524561614285
+      },
+      {
+       "host": [
+        -10.041537690552401,
+        -2.01569513044002,
+        6.680784584588836
+       ],
+       "guest": [
+        -10.18189137776693,
+        -2.0600871245066337,
+        6.666244824727376
+       ],
+       "gap": 0.1479229910080014
+      },
+      {
+       "host": [
+        -10.181842026271745,
+        0.821247497615832,
+        7.088904139689807
+       ],
+       "guest": [
+        -10.263733482360843,
+        0.8212135632832833,
+        7.088898340861003
+       ],
+       "gap": 0.08189146332529397
+      },
+      {
+       "host": [
+        -10.182111261491066,
+        -0.24497314270277104,
+        7.051570416835915
+       ],
+       "guest": [
+        -10.245690600077316,
+        -0.24494712489346787,
+        7.051637967427571
+       ],
+       "gap": 0.06357937979466136
+      },
+      {
+       "host": [
+        -10.173739876371526,
+        -1.329340190816991,
+        7.027192614699361
+       ],
+       "guest": [
+        -10.181948598225915,
+        -1.3296812772750868,
+        7.0271830558776855
+       ],
+       "gap": 0.008215810722363175
+      },
+      {
+       "host": [
+        -10.069070158765909,
+        -2.0348145606336083,
+        7.046152266956003
+       ],
+       "guest": [
+        -10.18277797698975,
+        -2.0605150461196913,
+        7.030397891998291
+       ],
+       "gap": 0.11763580751520558
+      },
+      {
+       "host": [
+        -10.183138878130729,
+        1.8821850452490827,
+        7.456692121554138
+       ],
+       "guest": [
+        -10.26353543599447,
+        1.882582108179727,
+        7.456512610117595
+       ],
+       "gap": 0.08039773877208645
+      },
+      {
+       "host": [
+        -10.1820921657189,
+        0.8597967828762616,
+        7.39247411578441
+       ],
+       "guest": [
+        -10.198585446675622,
+        0.8597899476687101,
+        7.392443656921387
+       ],
+       "gap": 0.016493310497888294
+      },
+      {
+       "host": [
+        -10.18187090483557,
+        -0.23338609281606307,
+        7.393294103701089
+       ],
+       "guest": [
+        -10.195558484395349,
+        -0.2333804924661927,
+        7.393294175465901
+       ],
+       "gap": 0.013687580705674189
+      },
+      {
+       "host": [
+        -10.179419523026102,
+        -1.3330229522170773,
+        7.393802023151146
+       ],
+       "guest": [
+        -10.181934611002609,
+        -1.333068410555523,
+        7.393804709116618
+       ],
+       "gap": 0.0025155001897264463
+      },
+      {
+       "host": [
+        -10.101347679622364,
+        -2.0421733439616876,
+        7.396633990987326
+       ],
+       "guest": [
+        -10.18305422465007,
+        -2.0606276988983168,
+        7.394010225931804
+       ],
+       "gap": 0.08380576865322635
+      },
+      {
+       "host": [
+        -10.169499945126176,
+        2.2845476404061538,
+        7.793892930233394
+       ],
+       "guest": [
+        -10.24549573262533,
+        2.289045413335163,
+        7.79703426361084
+       ],
+       "gap": 0.07619355388958818
+      },
+      {
+       "host": [
+        -10.182803648620217,
+        1.2202660171315385,
+        7.750042099216035
+       ],
+       "guest": [
+        -10.186022694905603,
+        1.2202595074971503,
+        7.750044822692871
+       ],
+       "gap": 0.0032190540194476777
+      },
+      {
+       "host": [
+        -10.181859764262036,
+        0.1227703721558886,
+        7.754271641840096
+       ],
+       "guest": [
+        -10.182877794901534,
+        0.12277024933912976,
+        7.754271030426025
+       ],
+       "gap": 0.0010180308305097188
+      },
+      {
+       "host": [
+        -10.183042052039909,
+        -0.9697360904584331,
+        7.757205666490865
+       ],
+       "guest": [
+        -10.182394282023116,
+        -0.9697382450103772,
+        7.757205168406169
+       ],
+       "gap": 0.0006477737914099807
+      },
+      {
+       "host": [
+        -10.165709871885621,
+        -1.6958759398700491,
+        7.757740755840979
+       ],
+       "guest": [
+        -10.183316485087081,
+        -1.6970216433207208,
+        7.757685502370198
+       ],
+       "gap": 0.017643937139106513
+      },
+      {
+       "host": [
+        -10.114712905165945,
+        2.6056685895834826,
+        8.099408541582086
+       ],
+       "guest": [
+        -10.24518737792969,
+        2.621471007664997,
+        8.134115854899088
+       ],
+       "gap": 0.13593344716398897
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0.007703600816894769,
+     "overlapVolume": null,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 0 roll 0 gap 0.1",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 2,
+    "size": "small",
+    "typologyDistribution": {
+     "workspace": 1,
+     "gathering": 1
+    },
+    "dominantTypology": "gathering + workspace",
+    "dominantTied": true,
+    "archetypeDiversity": 1,
+    "uniqueArchetypes": 2,
+    "tileCellVoidFraction": 0.8786348229788579,
+    "tileCellVoidFractionAvailability": "derived",
+    "clusterVoidFraction": 0.7705261222358507,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 1941.8428323382745,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 8462.151994198133,
+    "surfaceExposure": 1386.3930261052767,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 1,
+    "connected": true,
+    "geometricDiversity": 0.20533593907488223
+   },
+   "search": {
+    "evaluations": 1,
+    "acceptedPoses": 1,
+    "backtracks": 0,
+    "milliseconds": 0,
+    "exhausted": false,
+    "truncated": false,
+    "untried": 0,
+    "geometricRejections": 0,
+    "rejectionCounts": {
+     "intersection": 0,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": null,
+    "stop": "reached"
+   },
+   "assembly": {
+    "contract": "skill6-assembly-v1",
+    "sourceClusterId": "assembled-flat-plate",
+    "patchSettings": {
+     "radius": 0.32,
+     "cell": 0.12,
+     "maxCells": 168,
+     "largestOnly": true,
+     "spacingReach": true,
+     "bodyFraction": 0.15,
+     "regionMinArea": 1
+    },
+    "ground": {
+     "lift": 10.189441680908203,
+     "minZBefore": -10.189441680908203,
+     "minZAfter": 0
+    },
+    "seatedTiles": [
+     {
+      "instanceId": "t00",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "translation": [
+        0,
+        0,
+        10.189441680908203
+       ]
+      }
+     },
+     {
+      "instanceId": "t01",
+      "pose": {
+       "quarterZ": 2,
+       "mirrorX": false,
+       "basis": [
+        -1,
+        1.2246467991473532e-16,
+        0,
+        -1.2246467991473532e-16,
+        -1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "translation": [
+        -20.366051610310876,
+        0,
+        10.189441680908203
+       ]
+      }
+     }
+    ],
+    "growth": [
+     {
+      "step": 0,
+      "instanceId": "t00",
+      "archetypeId": "flat-deep-plan",
+      "hostInstanceId": null,
+      "direction": null,
+      "placement": "seed",
+      "depth": 0
+     },
+     {
+      "step": 1,
+      "instanceId": "t01",
+      "archetypeId": "inserted-horizontal-plate",
+      "hostInstanceId": "t00",
+      "direction": "-X",
+      "placement": "lateral",
+      "depth": 1
+     }
+    ],
+    "joints": [
+     {
+      "id": "t00-t01",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "inserted-horizontal-plate",
+      "primary": true,
+      "direction": "-X",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.17943193716569028,
+       "contactArea": 15.623297399679863,
+       "normalAlignment": -0.9717505735624871,
+       "deepestCrossing": 0.007703600816894769,
+       "overlapVolume": null
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 0,
+       "samples": 125,
+       "triangles": 8272,
+       "volume": 15.41203630939573,
+       "hostOverlap": 6.342260569573559,
+       "guestOverlap": 7.141551264279307,
+       "footprint": {
+        "min": [
+         -10.633008003234863,
+         -2.892321825027466,
+         15.686152458190918
+        ],
+        "max": [
+         -9.67300796508789,
+         2.987678289413452,
+         20.48615264892578
+        ],
+        "extent": [
+         0.9600000381469727,
+         5.880000114440918,
+         4.800000190734863
+        ],
+        "center": [
+         -10.153007984161377,
+         0.047678232192993164,
+         18.08615255355835
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 0,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 740,
+       "validationMilliseconds": 1089
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     }
+    ],
+    "graph": {
+     "nodes": [
+      {
+       "instanceId": "t00",
+       "parent": null,
+       "children": [
+        "t01"
+       ],
+       "depth": 0,
+       "degree": 1
+      },
+      {
+       "instanceId": "t01",
+       "parent": "t00",
+       "children": [],
+       "depth": 1,
+       "degree": 1
+      }
+     ],
+     "edges": [
+      {
+       "host": "t00",
+       "guest": "t01",
+       "primary": true,
+       "classification": "patched-near-contact"
+      }
+     ],
+     "branchPoints": [],
+     "leaves": [
+      "t01"
+     ],
+     "maxDepth": 1
+    },
+    "counts": {
+     "direct-contact": 0,
+     "patched-near-contact": 1,
+     "failed-patch": 0
+    },
+    "union": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1943.7710531440277,
+     "triangles": 32032,
+     "minZ": 0
+    },
+    "refined": {
+     "method": "seam fillet (Laplacian at patches, Taubin elsewhere, rim pass)",
+     "parameters": {
+      "iterations": 24,
+      "lambda": 0.5,
+      "mu": -0.53,
+      "seamReach": 1.2,
+      "seamFade": 2,
+      "baseWeight": 0.1,
+      "maxShift": 0.9,
+      "floorShift": 0.04,
+      "fillCavityVolume": 1,
+      "penetrations": 0,
+      "grazes": 97,
+      "verticesRestored": 6
+     },
+     "cavitiesFilled": 0,
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1935.8397746250146,
+     "triangles": 32032,
+     "minZ": 0,
+     "maxShift": 0.5570078386603653,
+     "meanShift": 0.02330079742437834,
+     "sharpEdgesBefore": 2089,
+     "sharpEdgesAfter": 764,
+     "seamSharpEdgesBefore": 1409,
+     "seamSharpEdgesAfter": 86
+    },
+    "meshFile": "data/skill6/assembled/assembled-flat-plate.mesh.json",
+    "milliseconds": {
+     "patches": 1869,
+     "union": 119,
+     "refine": 326,
+     "total": 2314
+    }
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-small-02",
+   "status": "accepted",
+   "reason": null,
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 11,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "continuous-hall",
+     "moduleId": "carved-mass:continuous-hall:237:N15",
+     "typologyId": "lobby",
+     "name": "Continuous Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -1.1248198369963932e-32,
+       -6.123233995736766e-17,
+       -1,
+       1,
+       -1.8369701987210297e-16,
+       0,
+       -1.8369701987210297e-16,
+       -1,
+       6.123233995736766e-17
+      ],
+      "translation": [
+       -4,
+       20.446792856852213,
+       -4
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.07835514953019246,
+     "residualGap": 0.17943542055785444,
+     "contactArea": 77.88348321841656,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9946706528696644,
+     "hostNormal": [
+      0.10624105754292826,
+      -0.9941826270497283,
+      0.017712757116297533
+     ],
+     "guestNormal": [
+      -0.10624105754292826,
+      0.9941826270497283,
+      -0.017712757116297533
+     ],
+     "samples": [
+      {
+       "host": [
+        -8.591559853283446,
+        10.115136595823452,
+        -1.3278204818855395
+       ],
+       "guest": [
+        -8.610101064046226,
+        10.28864154815674,
+        -1.3309117158253985
+       ],
+       "gap": 0.1745202014323759
+      },
+      {
+       "host": [
+        -8.118067813846187,
+        10.165300259689095,
+        -0.11978800483798624
+       ],
+       "guest": [
+        -8.127635320027672,
+        10.295998827616375,
+        -0.11977028846740678
+       ],
+       "gap": 0.13104828555400544
+      },
+      {
+       "host": [
+        -8.238389314201246,
+        10.153838189546573,
+        -0.9678833361061144
+       ],
+       "guest": [
+        -8.247530778249107,
+        10.274105962117513,
+        -0.9684922695159908
+       ],
+       "gap": 0.12061622728311276
+      },
+      {
+       "host": [
+        -8.108792404575654,
+        10.147998909258162,
+        -1.9367970459188015
+       ],
+       "guest": [
+        -8.121589501698814,
+        10.263992563883463,
+        -1.9393925666809078
+       ],
+       "gap": 0.11672630524496075
+      },
+      {
+       "host": [
+        -7.754880797160166,
+        10.172602801838618,
+        2.060064962150014
+       ],
+       "guest": [
+        -7.762000163396202,
+        10.308020528157552,
+        2.060604890187582
+       ],
+       "gap": 0.13560581661299903
+      },
+      {
+       "host": [
+        -7.872889050100633,
+        10.17294832824032,
+        1.2118790532335575
+       ],
+       "guest": [
+        -7.878021955490114,
+        10.323334948221843,
+        1.2121284802754726
+       ],
+       "gap": 0.15047439782585495
+      },
+      {
+       "host": [
+        -7.759880448535678,
+        10.179258083031188,
+        0.2427926305575197
+       ],
+       "guest": [
+        -7.762184143066408,
+        10.272260920206707,
+        0.24303038914998432
+       ],
+       "gap": 0.09303166805091269
+      },
+      {
+       "host": [
+        -7.881378229831464,
+        10.176137792495005,
+        -0.6046041376663284
+       ],
+       "guest": [
+        -7.883427063624065,
+        10.266784286499025,
+        -0.6048022111256914
+       ],
+       "gap": 0.09066986174151666
+      },
+      {
+       "host": [
+        -7.753444069576546,
+        10.175144402887236,
+        -1.5754050665221535
+       ],
+       "guest": [
+        -7.7576588789622,
+        10.263936932881672,
+        -1.575713237126668
+       ],
+       "gap": 0.08889304230417382
+      },
+      {
+       "host": [
+        -7.870116957056754,
+        10.154429066347815,
+        -2.422293929203913
+       ],
+       "guest": [
+        -7.878700494766237,
+        10.264281209309894,
+        -2.4242747227350865
+       ],
+       "gap": 0.11020478200143777
+      },
+      {
+       "host": [
+        -7.714798759554443,
+        10.106056660820435,
+        -3.379384289690943
+       ],
+       "guest": [
+        -7.756797631581627,
+        10.267945861816406,
+        -3.3948446909586583
+       ],
+       "gap": 0.16796143205518407
+      },
+      {
+       "host": [
+        -7.513252799371599,
+        10.165714811117192,
+        3.027086500347146
+       ],
+       "guest": [
+        -7.518330971399944,
+        10.271854972839357,
+        3.0303387641906747
+       ],
+       "gap": 0.10631133044819173
+      },
+      {
+       "host": [
+        -7.396547908689315,
+        10.181653033804176,
+        2.06025248066872
+       ],
+       "guest": [
+        -7.397587458292644,
+        10.270181910196941,
+        2.0606050491333017
+       ],
+       "gap": 0.08853568163890432
+      },
+      {
+       "host": [
+        -7.521400400992176,
+        10.181570046373048,
+        1.2119636038181463
+       ],
+       "guest": [
+        -7.521841764450075,
+        10.274034436543783,
+        1.212116877237957
+       ],
+       "gap": 0.09246557058759226
+      },
+      {
+       "host": [
+        -7.3961177287599185,
+        10.182241725351187,
+        0.2425365448854617
+       ],
+       "guest": [
+        -7.396176179250084,
+        10.263581212361652,
+        0.24257707595825284
+       ],
+       "gap": 0.08133951810991603
+      },
+      {
+       "host": [
+        -7.515497889870021,
+        10.182151776952065,
+        -0.605797340502406
+       ],
+       "guest": [
+        -7.515523672103884,
+        10.263397471110025,
+        -0.605827172597249
+       ],
+       "gap": 0.08124570372571287
+      },
+      {
+       "host": [
+        -7.393171465634462,
+        10.181778798918337,
+        -1.5758291501536426
+       ],
+       "guest": [
+        -7.393883784612022,
+        10.264679527282714,
+        -1.5757677555084224
+       ],
+       "gap": 0.08290381131752939
+      },
+      {
+       "host": [
+        -7.512279727292181,
+        10.174728636138687,
+        -2.4239567095101373
+       ],
+       "guest": [
+        -7.515173594156902,
+        10.264419809977213,
+        -2.4241869052251173
+       ],
+       "gap": 0.08973814194661386
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "+Y yaw 270 pitch 0 roll 90 gap 0.1 shift -4.0,0.0,-4.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 2,
+    "size": "small",
+    "typologyDistribution": {
+     "lobby": 2
+    },
+    "dominantTypology": "lobby",
+    "dominantTied": false,
+    "archetypeDiversity": 1,
+    "uniqueArchetypes": 2,
+    "tileCellVoidFraction": 0.8373474387770821,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.8053037749981199,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 2602.440979566686,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 13366.674056169066,
+    "surfaceExposure": 1833.991635516125,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 1,
+    "connected": true,
+    "geometricDiversity": 0.08407386010453259
+   },
+   "search": {
+    "evaluations": 1,
+    "acceptedPoses": 1,
+    "backtracks": 0,
+    "milliseconds": 50,
+    "exhausted": false,
+    "truncated": false,
+    "untried": 73,
+    "geometricRejections": 0,
+    "rejectionCounts": {
+     "intersection": 0,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "reached",
+    "directionRejections": 0
+   },
+   "assembly": {
+    "contract": "skill6-assembly-v1",
+    "sourceClusterId": "assembled-rule-small-02",
+    "patchSettings": {
+     "radius": 0.32,
+     "cell": 0.12,
+     "maxCells": 168,
+     "largestOnly": true,
+     "spacingReach": true,
+     "bodyFraction": 0.15,
+     "regionMinArea": 1
+    },
+    "ground": {
+     "lift": 10.972105979919434,
+     "minZBefore": -10.972105979919434,
+     "minZAfter": 0
+    },
+    "seatedTiles": [
+     {
+      "instanceId": "t00",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "translation": [
+        0,
+        0,
+        10.972105979919434
+       ]
+      }
+     },
+     {
+      "instanceId": "t01",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        -1.1248198369963932e-32,
+        -6.123233995736766e-17,
+        -1,
+        1,
+        -1.8369701987210297e-16,
+        0,
+        -1.8369701987210297e-16,
+        -1,
+        6.123233995736766e-17
+       ],
+       "translation": [
+        -4,
+        20.446792856852213,
+        6.972105979919434
+       ]
+      }
+     }
+    ],
+    "growth": [
+     {
+      "step": 0,
+      "instanceId": "t00",
+      "archetypeId": "topographic-ground-field",
+      "hostInstanceId": null,
+      "direction": null,
+      "placement": "seed",
+      "depth": 0
+     },
+     {
+      "step": 1,
+      "instanceId": "t01",
+      "archetypeId": "continuous-hall",
+      "hostInstanceId": "t00",
+      "direction": "+Y",
+      "placement": "lateral",
+      "depth": 1
+     }
+    ],
+    "joints": [
+     {
+      "id": "t00-t01",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "topographic-ground-field",
+      "guestArchetypeId": "continuous-hall",
+      "primary": true,
+      "direction": "+Y",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.17943542055785444,
+       "contactArea": 77.88348321841656,
+       "normalAlignment": -0.9946706528696644,
+       "deepestCrossing": 0,
+       "overlapVolume": 0
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 0,
+       "samples": 400,
+       "triangles": 37128,
+       "volume": 64.18138890337107,
+       "hostOverlap": 26.961598303010177,
+       "guestOverlap": 27.421411192307158,
+       "footprint": {
+        "min": [
+         -9.05923080444336,
+         9.765647888183594,
+         0.45822715759277344
+        ],
+        "max": [
+         2.8207690715789795,
+         10.725647926330566,
+         17.37822723388672
+        ],
+        "extent": [
+         11.879999876022339,
+         0.9600000381469727,
+         16.920000076293945
+        ],
+        "center": [
+         -3.11923086643219,
+         10.24564790725708,
+         8.918227195739746
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 0,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 3335,
+       "validationMilliseconds": 4694
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     }
+    ],
+    "graph": {
+     "nodes": [
+      {
+       "instanceId": "t00",
+       "parent": null,
+       "children": [
+        "t01"
+       ],
+       "depth": 0,
+       "degree": 1
+      },
+      {
+       "instanceId": "t01",
+       "parent": "t00",
+       "children": [],
+       "depth": 1,
+       "degree": 1
+      }
+     ],
+     "edges": [
+      {
+       "host": "t00",
+       "guest": "t01",
+       "primary": true,
+       "classification": "patched-near-contact"
+      }
+     ],
+     "branchPoints": [],
+     "leaves": [
+      "t01"
+     ],
+     "maxDepth": 1
+    },
+    "counts": {
+     "direct-contact": 0,
+     "patched-near-contact": 1,
+     "failed-patch": 0
+    },
+    "union": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2612.2394067953055,
+     "triangles": 45828,
+     "minZ": 0
+    },
+    "refined": {
+     "method": "seam fillet (Laplacian at patches, Taubin elsewhere, rim pass)",
+     "parameters": {
+      "iterations": 24,
+      "lambda": 0.5,
+      "mu": -0.53,
+      "seamReach": 1.2,
+      "seamFade": 2,
+      "baseWeight": 0.1,
+      "maxShift": 0.9,
+      "floorShift": 0.04,
+      "fillCavityVolume": 1,
+      "penetrations": 0,
+      "grazes": 112,
+      "verticesRestored": 30
+     },
+     "cavitiesFilled": 0,
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2598.5946053037624,
+     "triangles": 45828,
+     "minZ": 0,
+     "maxShift": 0.6117649438562254,
+     "meanShift": 0.04240714487866315,
+     "sharpEdgesBefore": 4584,
+     "sharpEdgesAfter": 876,
+     "seamSharpEdgesBefore": 3878,
+     "seamSharpEdgesAfter": 184
+    },
+    "meshFile": "data/skill6/assembled/assembled-rule-small-02.mesh.json",
+    "milliseconds": {
+     "patches": 8081,
+     "union": 201,
+     "refine": 810,
+     "total": 9092
+    }
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-small-04",
+   "status": "accepted",
+   "reason": null,
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 29,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "flat-deep-plan",
+     "moduleId": "carved-mass:flat-deep-plan:83:N16",
+     "typologyId": "workspace",
+     "name": "Flat Deep Plan",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "compressed-sequential",
+     "moduleId": "carved-mass:compressed-sequential:205:N03",
+     "typologyId": "lobby",
+     "name": "Compressed Sequential",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -1,
+       1.2246467991473532e-16,
+       0,
+       -9.381338752702731e-17,
+       -0.766044443118978,
+       0.6427876096865393,
+       7.871877887341985e-17,
+       0.6427876096865393,
+       0.766044443118978
+      ],
+      "translation": [
+       -20.40364227294922,
+       6,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t02",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       1.1248198369963932e-32,
+       6.123233995736766e-17,
+       1,
+       1,
+       -1.8369701987210297e-16,
+       0,
+       -1.8369701987210297e-16,
+       -1,
+       6.123233995736766e-17
+      ],
+      "translation": [
+       -20.44376653035482,
+       0,
+       9
+      ]
+     }
+    },
+    {
+     "instanceId": "t03",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       -1.8369701987210297e-16,
+       6.123233995736766e-17,
+       1.6498486207364342e-16,
+       0.6427876096865393,
+       -0.766044443118978,
+       -1.0136069185383102e-16,
+       -0.766044443118978,
+       -0.6427876096865393
+      ],
+      "translation": [
+       0.011681556701660156,
+       -3.0000000000000036,
+       9
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.03332765995579763,
+     "residualGap": 0.17405070404009046,
+     "contactArea": 67.82798724822665,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9921623549426017,
+     "hostNormal": [
+      0.9563641367753709,
+      0.06830096408149974,
+      0.2840820589115713
+     ],
+     "guestNormal": [
+      -0.9563641367753709,
+      -0.06830096408149974,
+      -0.2840820589115713
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.094709032723285,
+        7.31009467093413,
+        -9.914499725125998
+       ],
+       "guest": [
+        -10.22277412414551,
+        7.300948605253733,
+        -9.9525406694138
+       ],
+       "gap": 0.13390829548881714
+      },
+      {
+       "host": [
+        -10.065876543839977,
+        8.089222320913,
+        -10.065590405569635
+       ],
+       "guest": [
+        -10.221824900309246,
+        8.091783673634684,
+        -10.14146934482869
+       ],
+       "gap": 0.1734475823881972
+      },
+      {
+       "host": [
+        -10.142776187729314,
+        7.5404128935151284,
+        -9.67210407012793
+       ],
+       "guest": [
+        -10.221702829996746,
+        7.534660062499711,
+        -9.673986505738478
+       ],
+       "gap": 0.0791584075643951
+      },
+      {
+       "host": [
+        -10.104505738760334,
+        6.991605373128423,
+        -9.197182646669082
+       ],
+       "guest": [
+        -10.234389559427898,
+        6.977640584806594,
+        -9.206618433515814
+       ],
+       "gap": 0.13097273096906192
+      },
+      {
+       "host": [
+        -10.059280924169153,
+        8.597384169252235,
+        -10.045686128781124
+       ],
+       "guest": [
+        -10.221863047281902,
+        8.604063505649144,
+        -10.096618851476808
+       ],
+       "gap": 0.17050425957068513
+      },
+      {
+       "host": [
+        -10.155173718134114,
+        8.045700312112833,
+        -9.627341863203627
+       ],
+       "guest": [
+        -10.221819178263347,
+        8.046965084617863,
+        -9.629167316349447
+       ],
+       "gap": 0.06668245109857869
+      },
+      {
+       "host": [
+        -10.152323167927399,
+        7.493976631181031,
+        -9.158768000926932
+       ],
+       "guest": [
+        -10.221608098347984,
+        7.489840173310844,
+        -9.161683801263152
+       ],
+       "gap": 0.06946951675877555
+      },
+      {
+       "host": [
+        -10.137537500539919,
+        6.937292937691151,
+        -8.686976096603379
+       ],
+       "guest": [
+        -10.234332338968914,
+        6.932827812634861,
+        -8.694287465258324
+       ],
+       "gap": 0.09717321750293133
+      },
+      {
+       "host": [
+        -10.139895756009825,
+        8.55482427792482,
+        -9.582071383696887
+       ],
+       "guest": [
+        -10.221825536092124,
+        8.559265534436408,
+        -9.58434615774561
+       ],
+       "gap": 0.082081594896228
+      },
+      {
+       "host": [
+        -10.167158060802514,
+        8.00098739011469,
+        -9.115821152908024
+       ],
+       "guest": [
+        -10.221817906697593,
+        8.002144401886039,
+        -9.11686456847922
+       ],
+       "gap": 0.054682045916068976
+      },
+      {
+       "host": [
+        -10.170267994876102,
+        7.446911983167063,
+        -8.648432469418708
+       ],
+       "guest": [
+        -10.221538162231447,
+        7.445019286242342,
+        -8.649381296911898
+       ],
+       "gap": 0.05131386397364463
+      },
+      {
+       "host": [
+        -10.168159425727737,
+        6.893166922276031,
+        -8.178923581288686
+       ],
+       "guest": [
+        -10.231700515747072,
+        6.888090290312242,
+        -8.181922949293737
+       ],
+       "gap": 0.06381409343844598
+      },
+      {
+       "host": [
+        -10.075452102969738,
+        9.338758088167479,
+        -9.770350165109019
+       ],
+       "guest": [
+        -10.22177880605062,
+        9.350258107467267,
+        -9.773188509441695
+       ],
+       "gap": 0.14680534961971622
+      },
+      {
+       "host": [
+        -10.131622935494565,
+        8.785460391353702,
+        -9.30425716064927
+       ],
+       "guest": [
+        -10.221825536092124,
+        8.793006567005609,
+        -9.305784442444585
+       ],
+       "gap": 0.09053058329213653
+      },
+      {
+       "host": [
+        -10.170021601104082,
+        8.234855650477748,
+        -8.836868797550562
+       ],
+       "guest": [
+        -10.221825536092124,
+        8.235885434455238,
+        -8.838302853178195
+       ],
+       "gap": 0.05183401056091203
+      },
+      {
+       "host": [
+        -10.182456223950375,
+        7.678799775262274,
+        -8.370094014047455
+       ],
+       "guest": [
+        -10.221719996134441,
+        7.678762427905082,
+        -8.370821766328284
+       ],
+       "gap": 0.03927053379226697
+      },
+      {
+       "host": [
+        -10.180788348604699,
+        7.12223260541894,
+        -7.903262545742438
+       ],
+       "guest": [
+        -10.222746467590333,
+        7.121652194072287,
+        -7.903300977257926
+       ],
+       "gap": 0.04196215084007726
+      },
+      {
+       "host": [
+        -10.18213265914189,
+        6.564699023945094,
+        -7.435839066041044
+       ],
+       "guest": [
+        -10.236041323343914,
+        6.5647840157091775,
+        -7.436319843839865
+       ],
+       "gap": 0.053910875034062264
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 40 roll 0 gap 0.1 shift 0.0,6.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t00",
+     "guestId": "t02",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.07653831342832279,
+     "residualGap": 0.17045090452266026,
+     "contactArea": 39.46894665786178,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9945009198691687,
+     "hostNormal": [
+      0.995647669441718,
+      -0.09191123948817925,
+      -0.01542862246028028
+     ],
+     "guestNormal": [
+      -0.995647669441718,
+      0.09191123948817925,
+      0.01542862246028028
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.122315150649383,
+        9.201328555999813,
+        8.021140830379984
+       ],
+       "guest": [
+        -10.291741943359376,
+        9.21696885426839,
+        8.023766279220581
+       ],
+       "gap": 0.17016741756147
+      },
+      {
+       "host": [
+        -10.146220035412993,
+        8.958887890902368,
+        7.781606691414971
+       ],
+       "guest": [
+        -10.30443344116211,
+        8.972336769104002,
+        7.783176779747009
+       ],
+       "gap": 0.15879174808845634
+      },
+      {
+       "host": [
+        -10.11184018937329,
+        8.835189164954777,
+        9.817576738871432
+       ],
+       "guest": [
+        -10.261731402079267,
+        8.848525365193684,
+        9.848483324050903
+       ],
+       "gap": 0.15362436945594507
+      },
+      {
+       "host": [
+        -10.151377974330577,
+        8.47849624676458,
+        9.118625544702033
+       ],
+       "guest": [
+        -10.26170883178711,
+        8.484799702962238,
+        9.12121604756203
+       ],
+       "gap": 0.11054113429939727
+      },
+      {
+       "host": [
+        -10.18217587744692,
+        8.239837373472655,
+        7.056938990120975
+       ],
+       "guest": [
+        -10.348268445332847,
+        8.240047772725422,
+        7.057003458340962
+       ],
+       "gap": 0.1660927136599869
+      },
+      {
+       "host": [
+        -10.16324457848788,
+        8.119080292632283,
+        9.119009213228157
+       ],
+       "guest": [
+        -10.261840438842775,
+        8.12120978037516,
+        9.121213238285842
+       ],
+       "gap": 0.09864347988399338
+      },
+      {
+       "host": [
+        -10.182283888470744,
+        7.758599929220843,
+        7.665812413475175
+       ],
+       "guest": [
+        -10.263987795511884,
+        7.758444150288898,
+        7.665801485379537
+       ],
+       "gap": 0.08170405627804636
+      },
+      {
+       "host": [
+        -10.152072453849685,
+        7.88052216254427,
+        9.602925071321886
+       ],
+       "guest": [
+        -10.261944707234703,
+        7.878786563873289,
+        9.606061329444248
+       ],
+       "gap": 0.10993070763739406
+      },
+      {
+       "host": [
+        -10.182215084391238,
+        7.5153125905910985,
+        7.78787871731894
+       ],
+       "guest": [
+        -10.26116523742676,
+        7.515297889709471,
+        7.787779331207275
+       ],
+       "gap": 0.07895021696010276
+      },
+      {
+       "host": [
+        -10.125615467156702,
+        7.403606602250512,
+        9.81548732440724
+       ],
+       "guest": [
+        -10.261678314208986,
+        7.3939506212870265,
+        9.848463614781696
+       ],
+       "gap": 0.1403345005449505
+      },
+      {
+       "host": [
+        -10.181811256708183,
+        7.035875205061171,
+        6.569515294377917
+       ],
+       "guest": [
+        -10.28452040354411,
+        7.0358789761861145,
+        6.5695161024729405
+       ],
+       "gap": 0.10270914690833766
+      },
+      {
+       "host": [
+        -10.16610372376864,
+        7.155738213383439,
+        8.51136186835573
+       ],
+       "guest": [
+        -10.261867459615074,
+        7.151511510213214,
+        8.515154898166656
+       ],
+       "gap": 0.09593198214412862
+      },
+      {
+       "host": [
+        -10.181958650485921,
+        6.7876082858392754,
+        7.424374255662786
+       ],
+       "guest": [
+        -10.260544713338218,
+        6.787656307220457,
+        7.4243932167689
+       ],
+       "gap": 0.07858607981189672
+      },
+      {
+       "host": [
+        -10.181818008422852,
+        6.309558709462482,
+        5.478434880574544
+       ],
+       "guest": [
+        -10.335555330912275,
+        6.309558709462482,
+        5.478434880574544
+       ],
+       "gap": 0.15373732248942318
+      },
+      {
+       "host": [
+        -10.181443465194132,
+        6.4241413952820885,
+        7.423953016731012
+       ],
+       "guest": [
+        -10.261224683125816,
+        6.424169222513833,
+        7.424344499905904
+       ],
+       "gap": 0.07978218327480072
+      },
+      {
+       "host": [
+        -10.181817619406706,
+        6.063886483510333,
+        5.966514042398467
+       ],
+       "guest": [
+        -10.268415705362958,
+        6.063886483510333,
+        5.966514269510904
+       ],
+       "gap": 0.08659808595655011
+      },
+      {
+       "host": [
+        -10.128864538060082,
+        5.948648449433707,
+        8.010840747144085
+       ],
+       "guest": [
+        -10.261976178487144,
+        5.939395109812417,
+        8.030302584171295
+       ],
+       "gap": 0.1348447114713961
+      },
+      {
+       "host": [
+        -10.181815633984144,
+        5.697633266448973,
+        5.969077769354053
+       ],
+       "guest": [
+        -10.261144256591798,
+        5.697633266448973,
+        5.96907901763916
+       ],
+       "gap": 0.07932862261747586
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 270 pitch 0 roll 90 gap 0.1 mirror shift 0.0,0.0,9.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t03",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.08557985533546282,
+     "residualGap": 0.17569243331968673,
+     "contactArea": 88.54207626393078,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9961104870354412,
+     "hostNormal": [
+      -0.9927926267717826,
+      -0.07151476515280658,
+      -0.09616880259586774
+     ],
+     "guestNormal": [
+      0.9927926267717826,
+      0.07151476515280658,
+      0.09616880259586774
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.313156558030963,
+        -4.41383987295988,
+        15.561689309699062
+       ],
+       "guest": [
+        -10.170924186706545,
+        -4.40359431476565,
+        15.575466926969566
+       ],
+       "gap": 0.14326493518279704
+      },
+      {
+       "host": [
+        -10.288170877733348,
+        -4.920301768560433,
+        15.608235641896083
+       ],
+       "guest": [
+        -10.170989672342937,
+        -4.915875138162901,
+        15.620237742670243
+       ],
+       "gap": 0.1178773955278071
+      },
+      {
+       "host": [
+        -10.301873590737374,
+        -4.458942991981513,
+        15.068048965204174
+       ],
+       "guest": [
+        -10.170194943745933,
+        -4.44838659231437,
+        15.063291550839464
+       ],
+       "gap": 0.13218674910469086
+      },
+      {
+       "host": [
+        -10.307027777801512,
+        -5.662344265688359,
+        15.920562972285051
+       ],
+       "guest": [
+        -10.170081456502281,
+        -5.661911919513084,
+        15.943686600395305
+       ],
+       "gap": 0.13888550686658685
+      },
+      {
+       "host": [
+        -10.268120502900477,
+        -5.19590995295001,
+        15.383244674230236
+       ],
+       "guest": [
+        -10.170573234558107,
+        -5.1944330118740085,
+        15.386636046296594
+       ],
+       "gap": 0.09761737714409588
+      },
+      {
+       "host": [
+        -10.281937360951057,
+        -4.7311508178993025,
+        14.831382059465327
+       ],
+       "guest": [
+        -10.170134226481121,
+        -4.726949883535382,
+        14.829553138205497
+       ],
+       "gap": 0.11189697797441697
+      },
+      {
+       "host": [
+        -10.285130939573307,
+        -5.939581807372541,
+        15.698383489524828
+       ],
+       "guest": [
+        -10.171006520589195,
+        -5.9404846246733705,
+        15.70990667532645
+       ],
+       "gap": 0.11470824686376503
+      },
+      {
+       "host": [
+        -10.25987969311366,
+        -5.472866576402443,
+        15.152891673081191
+       ],
+       "guest": [
+        -10.170282363891603,
+        -5.4729942230584205,
+        15.152932369755785
+       ],
+       "gap": 0.08959742939177325
+      },
+      {
+       "host": [
+        -10.273539611395796,
+        -5.013936570971272,
+        14.597719510776177
+       ],
+       "guest": [
+        -10.170127232869469,
+        -5.005512235967399,
+        14.595810948553213
+       ],
+       "gap": 0.1037725014755296
+      },
+      {
+       "host": [
+        -10.296770075108983,
+        -6.450802700872638,
+        15.740476973760853
+       ],
+       "guest": [
+        -10.1700865427653,
+        -6.452786480093298,
+        15.75473723642462
+       ],
+       "gap": 0.12749905034277179
+      },
+      {
+       "host": [
+        -10.260933472435331,
+        -5.985203535683313,
+        15.195235469591399
+       ],
+       "guest": [
+        -10.170386314392092,
+        -5.985297421207802,
+        15.19775080725843
+       ],
+       "gap": 0.09058213713408583
+      },
+      {
+       "host": [
+        -10.260141708893192,
+        -5.517628585574128,
+        14.640788767244763
+       ],
+       "guest": [
+        -10.170127868652346,
+        -5.517814657741463,
+        14.640631489934407
+       ],
+       "gap": 0.09001416996178134
+      },
+      {
+       "host": [
+        -10.286052636008332,
+        -5.064266251724662,
+        14.088152287046803
+       ],
+       "guest": [
+        -10.170125643412272,
+        -5.050332753544838,
+        14.08350750930837
+       ],
+       "gap": 0.11685368605283133
+      },
+      {
+       "host": [
+        -10.321383813708882,
+        -6.9523695585226655,
+        15.778600956870863
+       ],
+       "guest": [
+        -10.167359034220379,
+        -6.965089470213681,
+        15.79956933526287
+       ],
+       "gap": 0.15596506577531977
+      },
+      {
+       "host": [
+        -10.263542297497686,
+        -6.497494804738441,
+        15.238603141966601
+       ],
+       "guest": [
+        -10.170513470967613,
+        -6.497600314958471,
+        15.242569500181922
+       ],
+       "gap": 0.09311340234070076
+      },
+      {
+       "host": [
+        -10.260697798655428,
+        -6.030010121066994,
+        14.685448213684719
+       ],
+       "guest": [
+        -10.170131047566734,
+        -6.030117283852203,
+        14.68545227483457
+       ],
+       "gap": 0.09056681457971776
+      },
+      {
+       "host": [
+        -10.262759501731743,
+        -5.563500801454929,
+        14.128311789172697
+       ],
+       "guest": [
+        -10.17013454437256,
+        -5.562635318775836,
+        14.128328345292703
+       ],
+       "gap": 0.09262900226259248
+      },
+      {
+       "host": [
+        -10.314117290139706,
+        -5.107489954379318,
+        13.582477359328696
+       ],
+       "guest": [
+        -10.170197168986002,
+        -5.095152621036254,
+        13.571204408061565
+       ],
+       "gap": 0.14488716470821603
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "+Y yaw 90 pitch -40 roll 0 gap 0.1 shift 0.0,0.0,3.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01",
+     "t02",
+     "t03"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 4,
+    "size": "small",
+    "typologyDistribution": {
+     "workspace": 2,
+     "lobby": 2
+    },
+    "dominantTypology": "lobby + workspace",
+    "dominantTied": true,
+    "archetypeDiversity": 1,
+    "uniqueArchetypes": 4,
+    "tileCellVoidFraction": 0.8332843874363777,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.9048110016645763,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 5334.8996020359145,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 56045.338172768454,
+    "surfaceExposure": 3610.580547986424,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 3,
+    "connected": true,
+    "geometricDiversity": 0.1539298771660923
+   },
+   "search": {
+    "evaluations": 59,
+    "acceptedPoses": 3,
+    "backtracks": 0,
+    "milliseconds": 305,
+    "exhausted": false,
+    "truncated": false,
+    "untried": 231,
+    "geometricRejections": 53,
+    "rejectionCounts": {
+     "intersection": 53,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "reached",
+    "directionRejections": 0
+   },
+   "assembly": {
+    "contract": "skill6-assembly-v1",
+    "sourceClusterId": "assembled-rule-small-04",
+    "patchSettings": {
+     "radius": 0.32,
+     "cell": 0.12,
+     "maxCells": 168,
+     "largestOnly": true,
+     "spacingReach": true,
+     "bodyFraction": 0.15,
+     "regionMinArea": 1
+    },
+    "ground": {
+     "lift": 14.21343994140625,
+     "minZBefore": -14.21343994140625,
+     "minZAfter": 0
+    },
+    "seatedTiles": [
+     {
+      "instanceId": "t00",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1
+       ],
+       "translation": [
+        0,
+        0,
+        14.21343994140625
+       ]
+      }
+     },
+     {
+      "instanceId": "t01",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        -1,
+        1.2246467991473532e-16,
+        0,
+        -9.381338752702731e-17,
+        -0.766044443118978,
+        0.6427876096865393,
+        7.871877887341985e-17,
+        0.6427876096865393,
+        0.766044443118978
+       ],
+       "translation": [
+        -20.40364227294922,
+        6,
+        14.21343994140625
+       ]
+      }
+     },
+     {
+      "instanceId": "t02",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": true,
+       "basis": [
+        1.1248198369963932e-32,
+        6.123233995736766e-17,
+        1,
+        1,
+        -1.8369701987210297e-16,
+        0,
+        -1.8369701987210297e-16,
+        -1,
+        6.123233995736766e-17
+       ],
+       "translation": [
+        -20.44376653035482,
+        0,
+        23.21343994140625
+       ]
+      }
+     },
+     {
+      "instanceId": "t03",
+      "pose": {
+       "quarterZ": 0,
+       "mirrorX": false,
+       "basis": [
+        1,
+        -1.8369701987210297e-16,
+        6.123233995736766e-17,
+        1.6498486207364342e-16,
+        0.6427876096865393,
+        -0.766044443118978,
+        -1.0136069185383102e-16,
+        -0.766044443118978,
+        -0.6427876096865393
+       ],
+       "translation": [
+        0.011681556701660156,
+        -3.0000000000000036,
+        23.21343994140625
+       ]
+      }
+     }
+    ],
+    "growth": [
+     {
+      "step": 0,
+      "instanceId": "t00",
+      "archetypeId": "flat-deep-plan",
+      "hostInstanceId": null,
+      "direction": null,
+      "placement": "seed",
+      "depth": 0
+     },
+     {
+      "step": 1,
+      "instanceId": "t01",
+      "archetypeId": "compressed-sequential",
+      "hostInstanceId": "t00",
+      "direction": "-X",
+      "placement": "lateral",
+      "depth": 1
+     },
+     {
+      "step": 2,
+      "instanceId": "t02",
+      "archetypeId": "topographic-ground-field",
+      "hostInstanceId": "t00",
+      "direction": "-X",
+      "placement": "lateral",
+      "depth": 1
+     },
+     {
+      "step": 3,
+      "instanceId": "t03",
+      "archetypeId": "open-hall",
+      "hostInstanceId": "t02",
+      "direction": "+X",
+      "placement": "lateral",
+      "depth": 2
+     }
+    ],
+    "joints": [
+     {
+      "id": "t00-t01",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "compressed-sequential",
+      "primary": true,
+      "direction": "-X",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.17405070404009046,
+       "contactArea": 67.82798724822665,
+       "normalAlignment": -0.9921623549426017,
+       "deepestCrossing": 0,
+       "overlapVolume": 0
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 0,
+       "samples": 108,
+       "triangles": 14732,
+       "volume": 13.309928827057119,
+       "hostOverlap": 5.800225417606677,
+       "guestOverlap": 5.606077492833851,
+       "footprint": {
+        "min": [
+         -10.639997482299805,
+         2.2225797176361084,
+         3.9958324432373047
+        ],
+        "max": [
+         -9.799997329711914,
+         10.142580032348633,
+         12.155832290649414
+        ],
+        "extent": [
+         0.8400001525878906,
+         7.920000314712524,
+         8.15999984741211
+        ],
+        "center": [
+         -10.21999740600586,
+         6.182579874992371,
+         8.07583236694336
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 0,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 801,
+       "validationMilliseconds": 1287
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     },
+     {
+      "id": "t00-t02",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t02",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "topographic-ground-field",
+      "primary": true,
+      "direction": "-X",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.17045090452266026,
+       "contactArea": 39.46894665786178,
+       "normalAlignment": -0.9945009198691687,
+       "deepestCrossing": 0,
+       "overlapVolume": 0
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 1,
+       "samples": 99,
+       "triangles": 21824,
+       "volume": 24.26283165736804,
+       "hostOverlap": 10.180513656647722,
+       "guestOverlap": 10.104969633586334,
+       "footprint": {
+        "min": [
+         -10.706843376159668,
+         -2.1624503135681152,
+         16.32200813293457
+        ],
+        "max": [
+         -9.746843338012695,
+         9.597549438476562,
+         24.482009887695312
+        ],
+        "extent": [
+         0.9600000381469727,
+         11.759999752044678,
+         8.160001754760742
+        ],
+        "center": [
+         -10.226843357086182,
+         3.7175495624542236,
+         20.40200901031494
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 15,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 1232,
+       "validationMilliseconds": 1745
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     },
+     {
+      "id": "t02-t03",
+      "hostInstanceId": "t02",
+      "guestInstanceId": "t03",
+      "hostArchetypeId": "topographic-ground-field",
+      "guestArchetypeId": "open-hall",
+      "primary": true,
+      "direction": "+X",
+      "placement": "lateral",
+      "contact": {
+       "verdict": "near-contact",
+       "residualGap": 0.17569243331968673,
+       "contactArea": 88.54207626393078,
+       "normalAlignment": -0.9961104870354412,
+       "deepestCrossing": 0,
+       "overlapVolume": 0
+      },
+      "classification": "patched-near-contact",
+      "patch": {
+       "method": "implicit-blend",
+       "radius": 0.32,
+       "cell": 0.12,
+       "meshIndex": 2,
+       "samples": 137,
+       "triangles": 19416,
+       "volume": 16.89466792401155,
+       "hostOverlap": 6.821011030967141,
+       "guestOverlap": 6.658660758122283,
+       "footprint": {
+        "min": [
+         -10.62483024597168,
+         -10.210694313049316,
+         20.14824676513672
+        ],
+        "max": [
+         -9.784830093383789,
+         -4.210694789886475,
+         30.588245391845703
+        ],
+        "extent": [
+         0.8400001525878906,
+         5.999999523162842,
+         10.439998626708984
+        ],
+        "center": [
+         -10.204830169677734,
+         -7.2106945514678955,
+         25.36824607849121
+        ]
+       },
+       "status": "NoError / NoError",
+       "components": 1,
+       "cavities": 2,
+       "selfIntersections": 0,
+       "oneSolid": true,
+       "buildMilliseconds": 854,
+       "validationMilliseconds": 1586
+      },
+      "note": "Near-contact joined by a separate implicit patch. Not exact surface contact."
+     }
+    ],
+    "graph": {
+     "nodes": [
+      {
+       "instanceId": "t00",
+       "parent": null,
+       "children": [
+        "t01",
+        "t02"
+       ],
+       "depth": 0,
+       "degree": 2
+      },
+      {
+       "instanceId": "t01",
+       "parent": "t00",
+       "children": [],
+       "depth": 1,
+       "degree": 1
+      },
+      {
+       "instanceId": "t02",
+       "parent": "t00",
+       "children": [
+        "t03"
+       ],
+       "depth": 1,
+       "degree": 2
+      },
+      {
+       "instanceId": "t03",
+       "parent": "t02",
+       "children": [],
+       "depth": 2,
+       "degree": 1
+      }
+     ],
+     "edges": [
+      {
+       "host": "t00",
+       "guest": "t01",
+       "primary": true,
+       "classification": "patched-near-contact"
+      },
+      {
+       "host": "t00",
+       "guest": "t02",
+       "primary": true,
+       "classification": "patched-near-contact"
+      },
+      {
+       "host": "t02",
+       "guest": "t03",
+       "primary": true,
+       "classification": "patched-near-contact"
+      }
+     ],
+     "branchPoints": [
+      "t00"
+     ],
+     "leaves": [
+      "t01",
+      "t03"
+     ],
+     "maxDepth": 2
+    },
+    "counts": {
+     "direct-contact": 0,
+     "patched-near-contact": 3,
+     "failed-patch": 0
+    },
+    "union": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 17,
+     "volume": 5344.195503648285,
+     "triangles": 96704,
+     "minZ": 0
+    },
+    "refined": {
+     "method": "seam fillet (Laplacian at patches, Taubin elsewhere, rim pass)",
+     "parameters": {
+      "iterations": 24,
+      "lambda": 0.5,
+      "mu": -0.53,
+      "seamReach": 1.2,
+      "seamFade": 2,
+      "baseWeight": 0.1,
+      "maxShift": 0.9,
+      "floorShift": 0.04,
+      "fillCavityVolume": 1,
+      "penetrations": 1,
+      "grazes": 2396,
+      "verticesRestored": 308
+     },
+     "cavitiesFilled": 16,
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 5317.696238034489,
+     "triangles": 94944,
+     "minZ": 0,
+     "maxShift": 0.7986921164762104,
+     "meanShift": 0.05095984634580022,
+     "sharpEdgesBefore": 10304,
+     "sharpEdgesAfter": 4215,
+     "seamSharpEdgesBefore": 8528,
+     "seamSharpEdgesAfter": 2452
+    },
+    "meshFile": "data/skill6/assembled/assembled-rule-small-04.mesh.json",
+    "milliseconds": {
+     "patches": 7599,
+     "union": 484,
+     "refine": 1665,
+     "total": 9748
+    }
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-small-06",
+   "status": "unsuccessful",
+   "reason": "Every stored pose at the searched depths was evaluated. Deepest valid cluster has 2. 1424 evaluations, 23 backtracks. 0 candidates were not evaluated. 777 evaluated candidates were rejected geometrically (777 intersections, 0 containments, 0 contact failures). Last rejection: intersection with an existing tile, depth 0.129.",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 47,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       10.188328742980957
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "continuous-hall",
+     "moduleId": "carved-mass:continuous-hall:237:N15",
+     "typologyId": "lobby",
+     "name": "Continuous Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       0.6427876096865393,
+       -5.684582835276212e-17,
+       0.766044443118978,
+       0.766044443118978,
+       -1.4072008129054095e-16,
+       -0.6427876096865393,
+       -1.4433763043539304e-16,
+       -1,
+       4.6906693763513654e-17
+      ],
+      "translation": [
+       0,
+       20.446792856852213,
+       19.188328742980957
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.078355089823404,
+     "residualGap": 0.17945237788039056,
+     "contactArea": 70.19871184969998,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9943226621062126,
+     "hostNormal": [
+      0.09359038420735037,
+      -0.9951805627542095,
+      -0.029265807696621543
+     ],
+     "guestNormal": [
+      -0.09359038420735037,
+      0.9951805627542095,
+      0.029265807696621543
+     ],
+     "samples": [
+      {
+       "host": [
+        -7.711316999208585,
+        10.159195327805264,
+        13.00101638014534
+       ],
+       "guest": [
+        -7.720944377018779,
+        10.261566734313964,
+        13.00402687091319
+       ],
+       "gap": 0.10286716837131799
+      },
+      {
+       "host": [
+        -7.2596579580894485,
+        10.147882642008343,
+        13.724492097925282
+       ],
+       "guest": [
+        -7.266241576918539,
+        10.264930661519367,
+        13.7344932190081
+       ],
+       "gap": 0.11765885147855681
+      },
+      {
+       "host": [
+        -7.453975939544459,
+        10.17684633851109,
+        12.937815909279502
+       ],
+       "guest": [
+        -7.457980403436517,
+        10.260544077555338,
+        12.940269949764918
+       ],
+       "gap": 0.08382940753032753
+      },
+      {
+       "host": [
+        -6.738300722448285,
+        10.176132610453115,
+        13.605727752847091
+       ],
+       "guest": [
+        -6.738923731669665,
+        10.265046374003092,
+        13.60863579274692
+       ],
+       "gap": 0.08896348793280369
+      },
+      {
+       "host": [
+        -6.2799654612162525,
+        10.117283023910284,
+        14.30015254333739
+       ],
+       "guest": [
+        -6.2864277068130265,
+        10.264974530537922,
+        14.336472084879397
+       ],
+       "gap": 0.15222894220849104
+      },
+      {
+       "host": [
+        -2.0174905178287283,
+        10.112896082324388,
+        19.16542328051292
+       ],
+       "guest": [
+        -2.0562431661800016,
+        10.280694580078125,
+        19.179864072760274
+       ],
+       "gap": 0.17281967504708326
+      },
+      {
+       "host": [
+        -6.930412115146865,
+        10.182439234508093,
+        12.814987273992097
+       ],
+       "guest": [
+        -6.9303005344738144,
+        10.261224047342935,
+        12.81484409020312
+       ],
+       "gap": 0.07878502196017391
+      },
+      {
+       "host": [
+        -6.473736860127596,
+        10.180889734717827,
+        13.542883110376
+       ],
+       "guest": [
+        -6.475323279775033,
+        10.265013631184894,
+        13.545637458732937
+       ],
+       "gap": 0.08418392435002692
+      },
+      {
+       "host": [
+        -5.756111713688761,
+        10.1637541304977,
+        14.201729815588253
+       ],
+       "guest": [
+        -5.759184914004753,
+        10.264974848429361,
+        14.210525338240323
+       ],
+       "gap": 0.10164860804509845
+      },
+      {
+       "host": [
+        -5.274557984728584,
+        10.093323091532486,
+        14.897071517639365
+       ],
+       "guest": [
+        -5.306643454677111,
+        10.264974848429361,
+        14.938415838885756
+       ],
+       "gap": 0.17945237788039056
+      },
+      {
+       "host": [
+        -2.218964365947117,
+        10.11392931710422,
+        18.38094245790855
+       ],
+       "guest": [
+        -2.2531652046803132,
+        10.26426658630371,
+        18.389032888480788
+       ],
+       "gap": 0.15439056625085013
+      },
+      {
+       "host": [
+        -1.775643493102941,
+        10.154064974007731,
+        19.111995333478255
+       ],
+       "guest": [
+        -1.7876084664271386,
+        10.29692579905192,
+        19.114425804026887
+       ],
+       "gap": 0.1433815996076299
+      },
+      {
+       "host": [
+        -6.885302138482391,
+        10.181976609188492,
+        12.30281650854568
+       ],
+       "guest": [
+        -6.885259974627643,
+        10.261566416422525,
+        12.30280356713058
+       ],
+       "gap": 0.0795898194546349
+      },
+      {
+       "host": [
+        -6.430628602507575,
+        10.182110487302918,
+        13.033375230627588
+       ],
+       "guest": [
+        -6.4305571440875315,
+        10.264929389953613,
+        13.033269889683403
+       ],
+       "gap": 0.08281900047263088
+      },
+      {
+       "host": [
+        -5.7141007903215195,
+        10.181824713348485,
+        13.697912015689923
+       ],
+       "guest": [
+        -5.714364322592542,
+        10.264974212646484,
+        13.698222666996351
+       ],
+       "gap": 0.08315049721438834
+      },
+      {
+       "host": [
+        -5.255822689621824,
+        10.166127264267223,
+        14.417483264794072
+       ],
+       "guest": [
+        -5.2618228632649,
+        10.264974848429361,
+        14.426113167641784
+       ],
+       "gap": 0.09940483993045328
+      },
+      {
+       "host": [
+        -4.539644726221986,
+        10.153719643612673,
+        15.083069851361794
+       ],
+       "guest": [
+        -4.545659772756572,
+        10.264974848429361,
+        15.091030512944567
+       ],
+       "gap": 0.11170171671219681
+      },
+      {
+       "host": [
+        -4.061767833789276,
+        10.10370747260764,
+        15.784863723309252
+       ],
+       "guest": [
+        -4.093117904755575,
+        10.264974848429361,
+        15.81892150062794
+       ],
+       "gap": 0.16777939578477885
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "+Y yaw 270 pitch -40 roll 90 gap 0.1 mirror shift 0.0,0.0,9.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 2,
+    "size": "small",
+    "typologyDistribution": {
+     "lobby": 2
+    },
+    "dominantTypology": "lobby",
+    "dominantTied": false,
+    "archetypeDiversity": 1,
+    "uniqueArchetypes": 2,
+    "tileCellVoidFraction": 0.8373474387770821,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.8901863784359316,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 2602.440979566686,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 23698.70825222124,
+    "surfaceExposure": 1849.3611782535581,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 1,
+    "connected": true,
+    "geometricDiversity": 0.08407386010453259
+   },
+   "search": {
+    "evaluations": 1424,
+    "acceptedPoses": 23,
+    "backtracks": 23,
+    "milliseconds": 4436,
+    "exhausted": false,
+    "truncated": false,
+    "untried": 0,
+    "geometricRejections": 777,
+    "rejectionCounts": {
+     "intersection": 777,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "geometric",
+    "directionRejections": 596
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-medium-07",
+   "status": "unsuccessful",
+   "reason": "Search budget exhausted at 4 tiles after 1600 evaluations and 25 backtracks. 492 candidates were not evaluated. 1520 evaluated candidates were rejected geometrically (1520 intersections, 0 containments, 0 contact failures).",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 71,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -1,
+       1.2246467991473532e-16,
+       0,
+       -9.381338752702731e-17,
+       -0.766044443118978,
+       0.6427876096865393,
+       7.871877887341985e-17,
+       0.6427876096865393,
+       0.766044443118978
+      ],
+      "translation": [
+       -20.463636652628583,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t02",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -7.871877887341984e-17,
+       -0.6427876096865393,
+       -0.766044443118978,
+       -1,
+       2.6318476120527627e-16,
+       -1.1807816831012978e-16,
+       2.775104073991303e-16,
+       0.766044443118978,
+       -0.6427876096865393
+      ],
+      "translation": [
+       -0.00818856557210168,
+       6.894399988070799,
+       -5.785088487178854
+      ]
+     }
+    },
+    {
+     "instanceId": "t03",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -1.1248198369963932e-32,
+       -6.123233995736766e-17,
+       -1,
+       1,
+       -1.8369701987210297e-16,
+       0,
+       -1.8369701987210297e-16,
+       -1,
+       6.123233995736766e-17
+      ],
+      "translation": [
+       -20.45544808705648,
+       -9,
+       0
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.09764477729143302,
+     "residualGap": 0.17271953363453546,
+     "contactArea": 55.790109728009945,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9966229461501958,
+     "hostNormal": [
+      0.9944599708112603,
+      0.09912723938149653,
+      0.03497365961220974
+     ],
+     "guestNormal": [
+      -0.9944599708112603,
+      -0.09912723938149653,
+      -0.03497365961220974
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.162181977206744,
+        -2.963207696031592,
+        -8.264678524235316
+       ],
+       "guest": [
+        -10.308027521769208,
+        -2.9777455021101757,
+        -8.269807692408193
+       ],
+       "gap": 0.14665803435354585
+      },
+      {
+       "host": [
+        -10.141355413807593,
+        -3.523077920556474,
+        -7.782110125531007
+       ],
+       "guest": [
+        -10.28160406748454,
+        -3.5338337530019386,
+        -7.794534074444883
+       ],
+       "gap": 0.14120809925923405
+      },
+      {
+       "host": [
+        -10.123959678021373,
+        -4.064967366190986,
+        -7.296169102266498
+       ],
+       "guest": [
+        -10.281523323059085,
+        -4.0910299072223335,
+        -7.326925835430326
+       ],
+       "gap": 0.16263927851995533
+      },
+      {
+       "host": [
+        -10.179598968388811,
+        -2.739887771739776,
+        -7.988392158309051
+       ],
+       "guest": [
+        -10.29282150268555,
+        -2.7418356179864447,
+        -7.988504838631151
+       ],
+       "gap": 0.11323934419817099
+      },
+      {
+       "host": [
+        -10.17461412699978,
+        -3.291895920366139,
+        -7.513312004187095
+       ],
+       "guest": [
+        -10.280866559346519,
+        -3.300138749171773,
+        -7.5157608981916155
+       ],
+       "gap": 0.10659981561036012
+      },
+      {
+       "host": [
+        -10.16084130972968,
+        -3.851763543351093,
+        -7.039221228725069
+       ],
+       "guest": [
+        -10.281712150573734,
+        -3.8572890560235473,
+        -7.048375587319894
+       ],
+       "gap": 0.12134287674983124
+      },
+      {
+       "host": [
+        -10.156556473759775,
+        -4.402389415768624,
+        -6.558021636857602
+       ],
+       "guest": [
+        -10.281823412577314,
+        -4.414410016466212,
+        -6.580897254802527
+       ],
+       "gap": 0.12790463126177287
+      },
+      {
+       "host": [
+        -10.138412747357341,
+        -4.956905020454149,
+        -6.106175142376583
+       ],
+       "guest": [
+        -10.281828816731773,
+        -4.971533337043348,
+        -6.11341528198599
+       ],
+       "gap": 0.1443418727279418
+      },
+      {
+       "host": [
+        -10.125556228304589,
+        -5.497006812755489,
+        -5.630928223137815
+       ],
+       "guest": [
+        -10.28128045399984,
+        -5.52865066338452,
+        -5.6459302468635135
+       ],
+       "gap": 0.1596133718298189
+      },
+      {
+       "host": [
+        -10.18259972940416,
+        -1.9532471366460604,
+        -8.17910270203404
+       ],
+       "guest": [
+        -10.326490020751956,
+        -1.9529824489057321,
+        -8.17893097400986
+       ],
+       "gap": 0.1438906372710466
+      },
+      {
+       "host": [
+        -10.183136936405669,
+        -2.5093232062857425,
+        -7.7062367074666085
+       ],
+       "guest": [
+        -10.28397649129232,
+        -2.5090716767509598,
+        -7.7063381228380905
+       ],
+       "gap": 0.10083991958506482
+      },
+      {
+       "host": [
+        -10.182656939240255,
+        -3.0658717710145122,
+        -7.237360394987456
+       ],
+       "guest": [
+        -10.281076685587568,
+        -3.0664243324190803,
+        -7.237192203747427
+       ],
+       "gap": 0.09842144117756255
+      },
+      {
+       "host": [
+        -10.181668685266311,
+        -3.623677719971372,
+        -6.768904657209046
+       ],
+       "guest": [
+        -10.281801795959476,
+        -3.6235460403329016,
+        -6.769817195966547
+       ],
+       "gap": 0.10013735528563081
+      },
+      {
+       "host": [
+        -10.175322057899445,
+        -4.179040885960528,
+        -6.29723858593442
+       ],
+       "guest": [
+        -10.28182182312012,
+        -4.180669044776755,
+        -6.302335488417332
+       ],
+       "gap": 0.1066340907407673
+      },
+      {
+       "host": [
+        -10.175484369875983,
+        -4.730430623221717,
+        -5.829422577786655
+       ],
+       "guest": [
+        -10.281831995646161,
+        -4.737792353412855,
+        -5.834853318131614
+       ],
+       "gap": 0.10674036499401424
+      },
+      {
+       "host": [
+        -10.162585340208794,
+        -5.2867738926865755,
+        -5.364804952298739
+       ],
+       "guest": [
+        -10.281339263916019,
+        -5.294906989997885,
+        -5.367372199893729
+       ],
+       "gap": 0.11905978509954766
+      },
+      {
+       "host": [
+        -10.155693598713706,
+        -5.836354105478816,
+        -4.891314233470121
+       ],
+       "guest": [
+        -10.289672470092777,
+        -5.852308993126263,
+        -4.900055800785104
+       ],
+       "gap": 0.13520839994236564
+      },
+      {
+       "host": [
+        -10.182046901883169,
+        -1.7196811783750738,
+        -7.9024183651175886
+       ],
+       "guest": [
+        -10.302473640441898,
+        -1.7195804236816303,
+        -7.902408258480795
+       ],
+       "gap": 0.12042678113087978
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 40 roll 0 gap 0.1",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t01",
+     "guestId": "t02",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.09034228826739038,
+     "residualGap": 0.1736861449019367,
+     "contactArea": 24.695866326355333,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9943944793177986,
+     "hostNormal": [
+      -0.9990759328378057,
+      0.042211353527815854,
+      0.008092098468132754
+     ],
+     "guestNormal": [
+      0.9990759328378057,
+      -0.042211353527815854,
+      -0.008092098468132754
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.293140390222785,
+        3.072200046258218,
+        0.6003641894949545
+       ],
+       "guest": [
+        -10.167434692382812,
+        3.066888930778825,
+        0.5993460257583534
+       ],
+       "gap": 0.12582196578683877
+      },
+      {
+       "host": [
+        -10.342541958084055,
+        2.7319168817122534,
+        -0.21418923467599793
+       ],
+       "guest": [
+        -10.191410382588705,
+        2.7075341101221024,
+        -0.21508229325210237
+       ],
+       "gap": 0.15308843919690548
+      },
+      {
+       "host": [
+        -10.281821267692177,
+        4.324617859227608,
+        0.9682932250909508
+       ],
+       "guest": [
+        -10.116399765014648,
+        4.324616025625097,
+        0.9682930646709114
+       ],
+       "gap": 0.1654215026877683
+      },
+      {
+       "host": [
+        -10.30826184982322,
+        2.997681335271783,
+        -0.44830571932737784
+       ],
+       "guest": [
+        -10.190730412801107,
+        2.986012686103046,
+        -0.4486899683004175
+       ],
+       "gap": 0.11810987981189006
+      },
+      {
+       "host": [
+        -10.28181760919594,
+        4.199077943557187,
+        0.43648727570735635
+       ],
+       "guest": [
+        -10.183539390563965,
+        4.199080485392741,
+        0.43648749808915177
+       ],
+       "gap": 0.09827821866509748
+      },
+      {
+       "host": [
+        -10.303380697655827,
+        2.9750251694863463,
+        -1.2265718804128445
+       ],
+       "guest": [
+        -10.18997891743978,
+        2.9678688527507133,
+        -1.224487584656198
+       ],
+       "gap": 0.11364647339090951
+      },
+      {
+       "host": [
+        -10.281820313483584,
+        4.477999147566434,
+        0.1990998453601578
+       ],
+       "guest": [
+        -10.190810839335125,
+        4.4779981387782355,
+        0.19909975710262628
+       ],
+       "gap": 0.09100947415409255
+      },
+      {
+       "host": [
+        -10.2858754686712,
+        3.247920643513336,
+        -1.4589296140610624
+       ],
+       "guest": [
+        -10.189998626708984,
+        3.2464285798485206,
+        -1.45822604116087
+       ],
+       "gap": 0.09589103239330306
+      },
+      {
+       "host": [
+        -10.334090157555169,
+        1.9179054713208448,
+        -2.879574512515745
+       ],
+       "guest": [
+        -10.188579241434734,
+        1.906809282007166,
+        -2.868911815765311
+       ],
+       "gap": 0.14632240166661026
+      },
+      {
+       "host": [
+        -10.281820195346175,
+        5.689449294271096,
+        1.0864429752164964
+       ],
+       "guest": [
+        -10.155923843383789,
+        5.689449465808187,
+        1.086443693309766
+       ],
+       "gap": 0.12589635196455026
+      },
+      {
+       "host": [
+        -10.281821266783913,
+        4.459962054292571,
+        -0.5777621913920254
+       ],
+       "guest": [
+        -10.19024435679118,
+        4.459961039214669,
+        -0.5777622801998348
+       ],
+       "gap": 0.09157690999840233
+      },
+      {
+       "host": [
+        -10.285395088781124,
+        3.12224104276747,
+        -1.9855628776079257
+       ],
+       "guest": [
+        -10.190587997436523,
+        3.120484710554914,
+        -1.9853477016763468
+       ],
+       "gap": 0.09482360240333544
+      },
+      {
+       "host": [
+        -10.281695997428175,
+        6.201646573106364,
+        1.1309800879587018
+       ],
+       "guest": [
+        -10.169684727986654,
+        6.201546179117771,
+        1.131000287940532
+       ],
+       "gap": 0.11201131625373001
+      },
+      {
+       "host": [
+        -10.281818644205732,
+        4.9722656437013795,
+        -0.5329312247424287
+       ],
+       "guest": [
+        -10.190194447835287,
+        4.97226564370138,
+        -0.5329312247424287
+       ],
+       "gap": 0.09162419637044472
+      },
+      {
+       "host": [
+        -10.281574703126596,
+        3.6326708966177566,
+        -1.940505383306506
+       ],
+       "guest": [
+        -10.190818150838217,
+        3.6327506405537924,
+        -1.940516990684832
+       ],
+       "gap": 0.09075658806444795
+      },
+      {
+       "host": [
+        -10.281950904382288,
+        2.400240350008631,
+        -3.58308069320503
+       ],
+       "guest": [
+        -10.108266512552898,
+        2.399664460584691,
+        -3.5825540841252796
+       ],
+       "gap": 0.1736861449019367
+      },
+      {
+       "host": [
+        -10.287688233581752,
+        6.941866299682103,
+        1.45611765143738
+       ],
+       "guest": [
+        -10.165466944376629,
+        6.947344463453749,
+        1.454376213028909
+       ],
+       "gap": 0.12235639101004049
+      },
+      {
+       "host": [
+        -10.28181704928756,
+        5.718337770668779,
+        -0.20960614268245603
+       ],
+       "guest": [
+        -10.190433820088705,
+        5.718320367242626,
+        -0.20960749516510013
+       ],
+       "gap": 0.09138323086605525
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 270 pitch 0 roll 90 gap 0.1 shift 0.0,-9.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t00",
+     "guestId": "t03",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.09034228826739216,
+     "residualGap": 0.1736861449019367,
+     "contactArea": 24.695866326355333,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9941429951657301,
+     "hostNormal": [
+      0.9990759328378057,
+      -0.027134272174835012,
+      0.0333318421004634
+     ],
+     "guestNormal": [
+      -0.9990759328378057,
+      0.027134272174835012,
+      -0.0333318421004634
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.170496262405798,
+        -1.9675351112791184,
+        2.4346777754234354
+       ],
+       "guest": [
+        -10.29620196024577,
+        -1.9641210238138855,
+        2.4304838975270586
+       ],
+       "gap": 0.12582196578683877
+      },
+      {
+       "host": [
+        -10.121094694544528,
+        -2.230447932476573,
+        1.5919638492586696
+       ],
+       "guest": [
+        -10.272226270039878,
+        -2.212343692779543,
+        1.575606783231099
+       ],
+       "gap": 0.15308843919690548
+      },
+      {
+       "host": [
+        -10.181815384936407,
+        -2.6904425920425203,
+        3.5215664209313107
+       ],
+       "guest": [
+        -10.347236887613935,
+        -2.6904412905375183,
+        3.521565119425455
+       ],
+       "gap": 0.1654215026877683
+      },
+      {
+       "host": [
+        -10.155374802805364,
+        -2.5845224908616786,
+        1.5834503149921102
+       ],
+       "guest": [
+        -10.272906239827476,
+        -2.575830777486167,
+        1.5756555000940955
+       ],
+       "gap": 0.11810987981189006
+      },
+      {
+       "host": [
+        -10.181819043432643,
+        -2.936111712274929,
+        3.0334839262743576
+       ],
+       "guest": [
+        -10.280097262064618,
+        -2.936113516489667,
+        3.0334857304890948
+       ],
+       "gap": 0.09827821866509748
+      },
+      {
+       "host": [
+        -10.160255954972756,
+        -3.0674267063434084,
+        0.9727007443751665
+       ],
+       "guest": [
+        -10.273657735188804,
+        -3.060604890187583,
+        0.9696974158287045
+       ],
+       "gap": 0.11364647339090948
+      },
+      {
+       "host": [
+        -10.181816339145,
+        -3.3023674495967743,
+        3.0309216984065865
+       ],
+       "guest": [
+        -10.272825813293458,
+        -3.302366733551027,
+        3.0309209823608394
+       ],
+       "gap": 0.09100947415409255
+      },
+      {
+       "host": [
+        -10.177761183957383,
+        -3.4258334399780233,
+        0.9701182231423121
+       ],
+       "guest": [
+        -10.273638025919599,
+        -3.4242382049560565,
+        0.9696981112162268
+       ],
+       "gap": 0.09589103239330306
+      },
+      {
+       "host": [
+        -10.129546495073415,
+        -3.320155646547096,
+        -0.9730761803446644
+       ],
+       "guest": [
+        -10.275057411193849,
+        -3.304801623026532,
+        -0.9720405737559004
+       ],
+       "gap": 0.14632240166661026
+      },
+      {
+       "host": [
+        -10.181816457282409,
+        -3.660018933183422,
+        4.489371116227535
+       ],
+       "guest": [
+        -10.307712809244794,
+        -3.6600186030070008,
+        4.4893717765808105
+       ],
+       "gap": 0.12589635196455026
+      },
+      {
+       "host": [
+        -10.18181538584467,
+        -3.787907526184465,
+        2.4242168320112856
+       ],
+       "guest": [
+        -10.273392295837404,
+        -3.787906805674237,
+        2.4242161115010576
+       ],
+       "gap": 0.09157690999840233
+      },
+      {
+       "host": [
+        -10.17824156384746,
+        -3.6680706168699513,
+        0.4859084478908322
+       ],
+       "guest": [
+        -10.27304865519206,
+        -3.666586875915529,
+        0.4849443336327867
+       ],
+       "gap": 0.09482360240333544
+      },
+      {
+       "host": [
+        -10.181940655200409,
+        -4.023756908173939,
+        4.852722588506737
+       ],
+       "guest": [
+        -10.293951924641929,
+        -4.023667017618817,
+        4.852673530578613
+       ],
+       "gap": 0.11201131625373001
+      },
+      {
+       "host": [
+        -10.181818008422852,
+        -4.151538054148358,
+        2.7878617445627842
+       ],
+       "guest": [
+        -10.273442204793296,
+        -4.151538054148358,
+        2.7878617445627842
+       ],
+       "gap": 0.09162419637044472
+      },
+      {
+       "host": [
+        -10.182061949501987,
+        -4.03012017095352,
+        0.8485224766903754
+       ],
+       "guest": [
+        -10.272818501790367,
+        -4.030188719431561,
+        0.8485648433367408
+       ],
+       "gap": 0.09075658806444795
+      },
+      {
+       "host": [
+        -10.181685748246295,
+        -4.141850656373315,
+        -1.2019542970213775
+       ],
+       "guest": [
+        -10.355370140075685,
+        -4.141071001688641,
+        -1.201921065648397
+       ],
+       "gap": 0.1736861449019367
+      },
+      {
+       "host": [
+        -10.175948419046831,
+        -4.381803719156569,
+        5.577596480947265
+       ],
+       "guest": [
+        -10.298169708251956,
+        -4.387119611104331,
+        5.579783757527669
+       ],
+       "gap": 0.12235639101004227
+      },
+      {
+       "host": [
+        -10.181819603341024,
+        -4.515233104528656,
+        3.5151090461429413
+       ],
+       "guest": [
+        -10.27320283253988,
+        -4.5152206420898455,
+        3.5150968233744297
+       ],
+       "gap": 0.09138323086605703
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 270 pitch 0 roll 90 gap 0.1 shift 0.0,-9.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t03",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.07841906715014028,
+     "residualGap": 0.16507799675665627,
+     "contactArea": 9.908043051547905,
+     "coherentRegions": 1,
+     "normalAlignment": -0.987826914897549,
+     "hostNormal": [
+      0.99923246133173,
+      -0.017421814427721265,
+      -0.035085162148390685
+     ],
+     "guestNormal": [
+      -0.99923246133173,
+      0.017421814427721265,
+      0.035085162148390685
+     ],
+     "samples": [
+      {
+       "host": [
+        -10.188815908385866,
+        0.9062748034266717,
+        0.2383395282160592
+       ],
+       "guest": [
+        -10.306744829813642,
+        0.9083309173583967,
+        0.24248026171941636
+       ],
+       "gap": 0.118019505962212
+      },
+      {
+       "host": [
+        -10.190102928422839,
+        0.9930937220027465,
+        -1.6974143623656053
+       ],
+       "guest": [
+        -10.347551600138349,
+        0.9930804570515939,
+        -1.6973498662312831
+       ],
+       "gap": 0.15744868548415647
+      },
+      {
+       "host": [
+        -10.189434135609243,
+        0.7015967088836907,
+        0.12072073082323342
+       ],
+       "guest": [
+        -10.271968777974449,
+        0.7009916305541974,
+        0.12118641546354958
+       ],
+       "gap": 0.08253817403069563
+      },
+      {
+       "host": [
+        -10.190726426691915,
+        0.5794670733259304,
+        -1.9423116945510368
+       ],
+       "guest": [
+        -10.299972788492841,
+        0.5794941584269182,
+        -1.942188461621603
+       ],
+       "gap": 0.1092464346635458
+      },
+      {
+       "host": [
+        -10.164170535410845,
+        0.20981041023471203,
+        0.9653409370377499
+       ],
+       "guest": [
+        -10.303423500061037,
+        0.21696885426839074,
+        0.9762337207794184
+       ],
+       "gap": 0.13986166101721223
+      },
+      {
+       "host": [
+        -10.190007493171258,
+        0.33706970515923906,
+        -0.9696930941696023
+       ],
+       "guest": [
+        -10.269553438822431,
+        0.3370780944824201,
+        -0.9696925083796188
+       ],
+       "gap": 0.07954594609572034
+      },
+      {
+       "host": [
+        -10.151951123584057,
+        -0.035364835252301496,
+        1.2012780382018429
+       ],
+       "guest": [
+        -10.316114997863771,
+        -0.02766323089599787,
+        1.2168232202529903
+       ],
+       "gap": 0.16507799675665627
+      },
+      {
+       "host": [
+        -10.189985551388045,
+        -0.1515208549050273,
+        -0.8485656454084776
+       ],
+       "guest": [
+        -10.273412958780927,
+        -0.1514746348063163,
+        -0.8484833240509039
+       ],
+       "gap": 0.08342746081118264
+      },
+      {
+       "host": [
+        -10.193667052591199,
+        -0.5160307686026595,
+        -0.1204861850995691
+       ],
+       "guest": [
+        -10.273390388488771,
+        -0.5152002970377616,
+        -0.12121604756202993
+       ],
+       "gap": 0.07973100193068801
+      },
+      {
+       "host": [
+        -10.183628493861294,
+        -0.3894372670546895,
+        -2.0582875961846803
+       ],
+       "guest": [
+        -10.303041712443036,
+        -0.3953173955281599,
+        -2.065128842989604
+       ],
+       "gap": 0.11975347736396408
+      },
+      {
+       "host": [
+        -10.194445458509342,
+        -0.8782888033788909,
+        -0.12164966255999499
+       ],
+       "guest": [
+        -10.273521995544435,
+        -0.8787902196248396,
+        -0.12121323828584284
+       ],
+       "gap": 0.07907933101551334
+      },
+      {
+       "host": [
+        -10.164903992576937,
+        -0.7514011059828452,
+        -2.057711218911992
+       ],
+       "guest": [
+        -10.299089686075849,
+        -0.7589190800984724,
+        -2.065051635106405
+       ],
+       "gap": 0.13459644120293224
+      },
+      {
+       "host": [
+        -10.195211755523058,
+        -1.1203686286935133,
+        -0.6060968737656607
+       ],
+       "guest": [
+        -10.273626263936363,
+        -1.1212134361267108,
+        -0.60606132944425
+       ],
+       "gap": 0.07841906715014028
+      },
+      {
+       "host": [
+        -10.181369554834147,
+        -1.6024092261246823,
+        -0.8460910428962851
+       ],
+       "guest": [
+        -10.273359870910646,
+        -1.6060493787129735,
+        -0.8484636147816981
+       ],
+       "gap": 0.09209287735798057
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 270 pitch 0 roll 90 gap 0.1 shift 0.0,-9.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01",
+     "t02",
+     "t03"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 4,
+    "size": "small",
+    "typologyDistribution": {
+     "workspace": 2,
+     "lobby": 2
+    },
+    "dominantTypology": "lobby + workspace",
+    "dominantTied": true,
+    "archetypeDiversity": 0.5,
+    "uniqueArchetypes": 2,
+    "tileCellVoidFraction": 0.8067395402253066,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.8730582127700497,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 6184.334712790193,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 48717.87964972873,
+    "surfaceExposure": 4484.212495579601,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 4,
+    "connected": true,
+    "geometricDiversity": 0.0986310127251614
+   },
+   "search": {
+    "evaluations": 1600,
+    "acceptedPoses": 26,
+    "backtracks": 25,
+    "milliseconds": 6522,
+    "exhausted": true,
+    "truncated": true,
+    "untried": 492,
+    "geometricRejections": 1520,
+    "rejectionCounts": {
+     "intersection": 1520,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "exhausted",
+    "directionRejections": 17
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-medium-09",
+   "status": "unsuccessful",
+   "reason": "Search budget exhausted at 5 tiles after 1600 evaluations and 19 backtracks. 1222 candidates were not evaluated. 1116 evaluated candidates were rejected geometrically (1116 intersections, 0 containments, 0 contact failures).",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 97,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       1.1248198369963932e-32,
+       6.123233995736766e-17,
+       1,
+       1,
+       -1.8369701987210297e-16,
+       0,
+       -1.8369701987210297e-16,
+       -1,
+       6.123233995736766e-17
+      ],
+      "translation": [
+       0,
+       20.382643953959146,
+       -3
+      ]
+     }
+    },
+    {
+     "instanceId": "t02",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       -0.6427876096865394,
+       -0.7660444431189779,
+       -1.4325646193854006e-17,
+       0.7660444431189779,
+       -0.6427876096865394,
+       3.9359389436709925e-17,
+       -3.935938943670992e-17,
+       1.432564619385402e-17,
+       1
+      ],
+      "translation": [
+       1.6532731788489265e-15,
+       29.382643953959146,
+       -23.39083251953125
+      ]
+     }
+    },
+    {
+     "instanceId": "t03",
+     "archetypeId": "continuous-hall",
+     "moduleId": "carved-mass:continuous-hall:237:N15",
+     "typologyId": "lobby",
+     "name": "Continuous Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       0.4924038765061039,
+       -0.41317591116653474,
+       0.766044443118978,
+       0.586824088833465,
+       -0.49240387650610407,
+       -0.6427876096865393,
+       -0.6427876096865394,
+       -0.7660444431189779,
+       3.258104756965965e-17
+      ],
+      "translation": [
+       13.148208614702698,
+       45.05206880670922,
+       -23.39083251953125
+      ]
+     }
+    },
+    {
+     "instanceId": "t04",
+     "archetypeId": "continuous-hall",
+     "moduleId": "carved-mass:continuous-hall:237:N15",
+     "typologyId": "lobby",
+     "name": "Continuous Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       0.4924038765061039,
+       -0.41317591116653485,
+       -0.766044443118978,
+       0.586824088833465,
+       -0.49240387650610407,
+       0.6427876096865393,
+       -0.6427876096865394,
+       -0.7660444431189779,
+       3.258104756965965e-17
+      ],
+      "translation": [
+       16.212386387178608,
+       42.48091836796306,
+       -19.39083251953125
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.014075102032343984,
+     "residualGap": 0.17194685613061098,
+     "contactArea": 66.29657336667059,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9859442292249377,
+     "hostNormal": [
+      0.19430492682444228,
+      -0.9694511318989457,
+      0.14970002762725423
+     ],
+     "guestNormal": [
+      -0.19430492682444228,
+      0.9694511318989457,
+      -0.14970002762725423
+     ],
+     "samples": [
+      {
+       "host": [
+        -7.002892402646914,
+        10.07275179844037,
+        -4.312477601031444
+       ],
+       "guest": [
+        -7.03019444147746,
+        10.208970642089845,
+        -4.333512147267658
+       ],
+       "gap": 0.14051130497176456
+      },
+      {
+       "host": [
+        -6.988170295201298,
+        10.182148540595858,
+        -2.8842007606831923
+       ],
+       "guest": [
+        -6.99032243092855,
+        10.323199526468914,
+        -2.8842119951732452
+       ],
+       "gap": 0.14106740385419772
+      },
+      {
+       "host": [
+        -6.656845597554098,
+        10.117419646706661,
+        -4.324705446100491
+       ],
+       "guest": [
+        -6.666612625122072,
+        10.200818634033205,
+        -4.333356777826944
+       ],
+       "gap": 0.08441345541587308
+      },
+      {
+       "host": [
+        -6.666090907703174,
+        10.183147763917084,
+        -2.875664913793768
+       ],
+       "guest": [
+        -6.666052659352622,
+        10.251999791463216,
+        -2.8755171685479577
+       ],
+       "gap": 0.0688521966883216
+      },
+      {
+       "host": [
+        -6.302813481452295,
+        10.182633939838505,
+        -3.60612876199855
+       ],
+       "guest": [
+        -6.30297104517619,
+        10.200956598917644,
+        -3.606107681989669
+       ],
+       "gap": 0.018323348668412787
+      },
+      {
+       "host": [
+        -6.290053699353314,
+        10.181851821110087,
+        -2.1670841787995023
+       ],
+       "guest": [
+        -6.289995193481447,
+        10.305785115559896,
+        -2.167083203792571
+       ],
+       "gap": 0.12393330826323837
+      },
+      {
+       "host": [
+        -5.9182421511735575,
+        10.04268265438385,
+        -5.015728495125497
+       ],
+       "guest": [
+        -5.939394156138104,
+        10.200831349690755,
+        -5.060606082280477
+       ],
+       "gap": 0.1657480466556079
+      },
+      {
+       "host": [
+        -5.939402299963833,
+        10.183511986096883,
+        -3.606111738702252
+       ],
+       "guest": [
+        -5.939395109812421,
+        10.200551923116048,
+        -3.606058587630589
+       ],
+       "gap": 0.017040021430497217
+      },
+      {
+       "host": [
+        -5.937877511580652,
+        10.181803094444966,
+        -2.148103461469895
+       ],
+       "guest": [
+        -5.937877813975018,
+        10.239454523722332,
+        -2.148105124632517
+       ],
+       "gap": 0.05765142930214856
+      },
+      {
+       "host": [
+        -5.5750947543066705,
+        10.176713019845653,
+        -4.333077061848438
+       ],
+       "guest": [
+        -5.575757662455243,
+        10.200829124450685,
+        -4.333333373069762
+       ],
+       "gap": 0.024126575471385175
+      },
+      {
+       "host": [
+        -5.575748909653988,
+        10.181828099728607,
+        -2.878806336579613
+       ],
+       "guest": [
+        -5.575744628906252,
+        10.200376129150392,
+        -2.8788064825063766
+       ],
+       "gap": 0.018548029916341476
+      },
+      {
+       "host": [
+        -5.566822864058884,
+        10.181817713963845,
+        -1.4354894161224359
+       ],
+       "guest": [
+        -5.566823164621991,
+        10.296422576904298,
+        -1.4354894161224359
+       ],
+       "gap": 0.11460486294084737
+      },
+      {
+       "host": [
+        -5.211928631435883,
+        10.182168364847785,
+        -4.333336197098564
+       ],
+       "guest": [
+        -5.212121168772382,
+        10.200825945536295,
+        -4.333333373069762
+       ],
+       "gap": 0.01865857432252907
+      },
+      {
+       "host": [
+        -5.212120314329175,
+        10.181799888654448,
+        -2.878787489105782
+       ],
+       "guest": [
+        -5.212120215098065,
+        10.200718498229982,
+        -2.878788282959997
+       ],
+       "gap": 0.01891860959245018
+      },
+      {
+       "host": [
+        -5.2110315958658875,
+        10.181818008422852,
+        -1.4206783771514886
+       ],
+       "guest": [
+        -5.2110315958658875,
+        10.232009824117025,
+        -1.4206783771514886
+       ],
+       "gap": 0.050191815694173414
+      },
+      {
+       "host": [
+        -4.827187474488717,
+        10.10219104106829,
+        -5.411491117580479
+       ],
+       "guest": [
+        -4.84848467508952,
+        10.200826581319172,
+        -5.424242417017618
+       ],
+       "gap": 0.10171104262246948
+      },
+      {
+       "host": [
+        -4.848518776755749,
+        10.182846111873376,
+        -3.9697340767033222
+       ],
+       "guest": [
+        -4.84848467508952,
+        10.200825945536295,
+        -3.9696969985961905
+       ],
+       "gap": 0.01797990423377976
+      },
+      {
+       "host": [
+        -4.8484835228886345,
+        10.181815862666998,
+        -2.5151517590275603
+       ],
+       "guest": [
+        -4.848483721415204,
+        10.20074043273926,
+        -2.515151808659235
+       ],
+       "gap": 0.018924570073367956
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "+Y yaw 270 pitch 0 roll 90 gap 0.1 mirror shift 0.0,0.0,-3.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t01",
+     "guestId": "t02",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.021750603971607153,
+     "residualGap": 0.17413560973301334,
+     "contactArea": 52.82578365251112,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9879559402312564,
+     "hostNormal": [
+      0.08977887781523951,
+      -0.3151068908472581,
+      0.9448001907487161
+     ],
+     "guestNormal": [
+      -0.08977887781523951,
+      0.3151068908472581,
+      -0.9448001907487161
+     ],
+     "samples": [
+      {
+       "host": [
+        -2.5750014325483574,
+        30.400536129106165,
+        -13.070217199811031
+       ],
+       "guest": [
+        -2.5881739213018093,
+        30.446769074725765,
+        -13.208839670817058
+       ],
+       "gap": 0.14672146805577338
+      },
+      {
+       "host": [
+        -2.3054136615066283,
+        30.20086344934557,
+        -13.160386122735758
+       ],
+       "guest": [
+        -2.309679486509848,
+        30.213069272708815,
+        -13.209587987264
+       ],
+       "gap": 0.050872417477335195
+      },
+      {
+       "host": [
+        -3.2308668863771643,
+        29.092772192020824,
+        -13.103037207375966
+       ],
+       "guest": [
+        -3.244582950205643,
+        29.098779727946656,
+        -13.209015464782716
+       ],
+       "gap": 0.10703089244614614
+      },
+      {
+       "host": [
+        -4.142625301093468,
+        27.968810978375473,
+        -13.066857329516884
+       ],
+       "guest": [
+        -4.179548258895004,
+        27.984533440570296,
+        -13.209019597371421
+       ],
+       "gap": 0.14771801187338968
+      },
+      {
+       "host": [
+        -5.082756138056364,
+        26.84429660986897,
+        -13.071739468166369
+       ],
+       "guest": [
+        -5.114528973306111,
+        26.870269164283165,
+        -13.208647346496583
+       ],
+       "gap": 0.14292604308343085
+      },
+      {
+       "host": [
+        -6.02371238818971,
+        25.74422305371553,
+        -13.07660722693518
+       ],
+       "guest": [
+        -6.051351609403395,
+        25.757596921317322,
+        -13.21057758331299
+       ],
+       "gap": 0.13744396411602375
+      },
+      {
+       "host": [
+        -6.951751355693633,
+        24.62644659549523,
+        -13.089135730996837
+       ],
+       "guest": [
+        -6.987701993521734,
+        24.644476747153846,
+        -13.243490791320802
+       ],
+       "gap": 0.15950868119539738
+      },
+      {
+       "host": [
+        -7.903014488332806,
+        23.494337586307516,
+        -13.084970139970592
+       ],
+       "guest": [
+        -7.920623987086106,
+        23.522227341206882,
+        -13.255953407287599
+       ],
+       "gap": 0.17413560973301334
+      },
+      {
+       "host": [
+        -2.497293337269391,
+        29.42058765555928,
+        -13.162785304760314
+       ],
+       "guest": [
+        -2.498534200644362,
+        29.42216464790824,
+        -13.208785947163902
+       ],
+       "gap": 0.04604438889079487
+      },
+      {
+       "host": [
+        -3.425782385074906,
+        28.304474334060615,
+        -13.141446855069315
+       ],
+       "guest": [
+        -3.4335032076702534,
+        28.3079154984988,
+        -13.2090145111084
+       ],
+       "gap": 0.06809435260618561
+      },
+      {
+       "host": [
+        -4.36498444346814,
+        27.187794223859157,
+        -13.139315728487327
+       ],
+       "guest": [
+        -4.368467397773646,
+        27.193668998728523,
+        -13.209016736348472
+       ],
+       "gap": 0.07003480882617841
+      },
+      {
+       "host": [
+        -5.295967082629468,
+        26.075571087198725,
+        -13.13920237917213
+       ],
+       "guest": [
+        -5.303394059740942,
+        26.079419746325833,
+        -13.208710289001466
+       ],
+       "gap": 0.07000944004157061
+      },
+      {
+       "host": [
+        -6.231469715076363,
+        24.96163097756956,
+        -13.143376385775815
+       ],
+       "guest": [
+        -6.239762150195488,
+        24.96636526432321,
+        -13.209189351399742
+       ],
+       "gap": 0.06650206309195868
+      },
+      {
+       "host": [
+        -7.171286231825899,
+        23.8466444131141,
+        -13.140774755412078
+       ],
+       "guest": [
+        -7.176166812449409,
+        23.853166556560655,
+        -13.218310610453289
+       ],
+       "gap": 0.07796260154286558
+      },
+      {
+       "host": [
+        -1.9860724783526678,
+        29.466831846488958,
+        -13.180791398881219
+       ],
+       "guest": [
+        -1.9865050266332884,
+        29.466820398091894,
+        -13.214896138509117
+       ],
+       "gap": 0.03410748443036456
+      },
+      {
+       "host": [
+        -2.9191829059627863,
+        28.352229681911464,
+        -13.176632366831761
+       ],
+       "guest": [
+        -2.9212006326436817,
+        28.352736222519223,
+        -13.209016418457033
+       ],
+       "gap": 0.03245080282542113
+      },
+      {
+       "host": [
+        -3.8543589967523175,
+        27.23814867901041,
+        -13.17069333626492
+       ],
+       "guest": [
+        -3.8561643542471287,
+        27.238489848353062,
+        -13.2090145111084
+       ],
+       "gap": 0.038365194559509236
+      },
+      {
+       "host": [
+        -4.788917488984257,
+        26.12360603502468,
+        -13.173693017294426
+       ],
+       "guest": [
+        -4.791127760603138,
+        26.124243417151792,
+        -13.209016100565593
+       ],
+       "gap": 0.03539790627123367
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 0 pitch 40 roll 90 gap 0.1 mirror shift 0.0,0.0,-9.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t03",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.08925510570637941,
+     "residualGap": 0.17861230284621687,
+     "contactArea": 47.83346721111513,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9950938382008786,
+     "hostNormal": [
+      -0.6427856006420519,
+      -0.7660461288850198,
+      -0.000005245210305760248
+     ],
+     "guestNormal": [
+      0.6427856006420519,
+      0.7660461288850198,
+      0.000005245210305760248
+     ],
+     "samples": [
+      {
+       "host": [
+        3.1491851708139524,
+        40.03158093459211,
+        -19.991062222768914
+       ],
+       "guest": [
+        3.2231771847473443,
+        40.11976165268141,
+        -19.991061618984894
+       ],
+       "gap": 0.1151114988566691
+      },
+      {
+       "host": [
+        3.5037185355000653,
+        39.73409206789352,
+        -19.250994399193246
+       ],
+       "guest": [
+        3.6184720407520334,
+        39.87084924165277,
+        -19.2509958037869
+       ],
+       "gap": 0.17852420436513264
+      },
+      {
+       "host": [
+        2.4883298349237934,
+        40.586105821177426,
+        -21.640770167143707
+       ],
+       "guest": [
+        2.5931643264520137,
+        40.7110440339506,
+        -21.640769311678568
+       ],
+       "gap": 0.1630945358547198
+      },
+      {
+       "host": [
+        2.815641061611639,
+        40.31145871852415,
+        -20.890740600764993
+       ],
+       "guest": [
+        2.8908390732434306,
+        40.401078128321345,
+        -20.890739373503262
+       ],
+       "gap": 0.11698880103359366
+      },
+      {
+       "host": [
+        3.3655869073519846,
+        39.850000523512776,
+        -20.225954337280495
+       ],
+       "guest": [
+        3.4267167202721165,
+        39.922852585692866,
+        -20.225954087867063
+       ],
+       "gap": 0.09510140373098472
+      },
+      {
+       "host": [
+        3.722725544729728,
+        39.55032576925205,
+        -19.49385132913411
+       ],
+       "guest": [
+        3.8130948301032976,
+        39.65802368975617,
+        -19.49385132913411
+       ],
+       "gap": 0.140589650472009
+      },
+      {
+       "host": [
+        2.3417115446804786,
+        40.709134107344035,
+        -22.428037414745862
+       ],
+       "guest": [
+        2.4444521898921696,
+        40.831575640380514,
+        -22.428037414745862
+       ],
+       "gap": 0.15983606974283937
+      },
+      {
+       "host": [
+        2.6704901162696633,
+        40.43325612918456,
+        -21.681819385880672
+       ],
+       "guest": [
+        2.745935059349085,
+        40.52316791114252,
+        -21.681819385880672
+       ],
+       "gap": 0.11737149556478244
+      },
+      {
+       "host": [
+        3.2209223213625298,
+        39.97138866890303,
+        -21.016507948768187
+       ],
+       "guest": [
+        3.2792892135607588,
+        40.04094762236883,
+        -21.016507948768187
+       ],
+       "gap": 0.090802764892576
+      },
+      {
+       "host": [
+        3.5685000620218585,
+        39.67973631491036,
+        -20.289141437221723
+       ],
+       "guest": [
+        3.6272208653465388,
+        39.749717043232565,
+        -20.289141437221723
+       ],
+       "gap": 0.09135335286458712
+      },
+      {
+       "host": [
+        4.124602376505262,
+        39.213111067930505,
+        -19.616007622150942
+       ],
+       "guest": [
+        4.233533605716291,
+        39.34293025168845,
+        -19.616007622150942
+       ],
+       "gap": 0.16946690877279025
+      },
+      {
+       "host": [
+        2.1996156824979334,
+        40.828366692893226,
+        -23.23067211044816
+       ],
+       "guest": [
+        2.298514798161582,
+        40.94623006928977,
+        -23.23067211044816
+       ],
+       "gap": 0.1538597106933608
+      },
+      {
+       "host": [
+        2.5251586856937767,
+        40.55520367897925,
+        -22.472156924445528
+       ],
+       "guest": [
+        2.5990870419484295,
+        40.64330806314032,
+        -22.472156924445528
+       ],
+       "gap": 0.11501210530598804
+      },
+      {
+       "host": [
+        3.0763334328255136,
+        40.09271291018563,
+        -21.80732259559292
+       ],
+       "guest": [
+        3.134991194158438,
+        40.16261813566257,
+        -21.807322834918732
+       ],
+       "gap": 0.0912549917189646
+      },
+      {
+       "host": [
+        3.4239243585648365,
+        39.801048083566805,
+        -21.080049200903176
+       ],
+       "guest": [
+        3.481364913686157,
+        39.869501977705234,
+        -21.08004990397748
+       ],
+       "gap": 0.08936080234563101
+      },
+      {
+       "host": [
+        3.9771208270293275,
+        39.33686055581879,
+        -20.413895316728794
+       ],
+       "guest": [
+        4.042782206969614,
+        39.41511149092601,
+        -20.413896120426266
+       ],
+       "gap": 0.10215001547461129
+      },
+      {
+       "host": [
+        2.2119104724926126,
+        40.81805013914329,
+        -23.710068087057632
+       ],
+       "guest": [
+        2.2905679968249224,
+        40.911790526350885,
+        -23.710068087057632
+       ],
+       "gap": 0.12236938476562642
+      },
+      {
+       "host": [
+        2.559466370882146,
+        40.52641540164997,
+        -22.982841751208422
+       ],
+       "guest": [
+        2.6240519846599177,
+        40.603385128948425,
+        -22.982842014720003
+       ],
+       "gap": 0.10047706418640531
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 0 pitch -40 roll 90 gap 0.1 mirror",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t04",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.08614532399822247,
+     "residualGap": 0.16436097618634626,
+     "contactArea": 37.552874144043415,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9957776419872312,
+     "hostNormal": [
+      -0.6570961923670953,
+      -0.7535031072301218,
+      0.02139302155415918
+     ],
+     "guestNormal": [
+      0.6570961923670953,
+      0.7535031072301218,
+      -0.02139302155415918
+     ],
+     "samples": [
+      {
+       "host": [
+        5.400628990742292,
+        38.13657869537057,
+        -20.35011144641042
+       ],
+       "guest": [
+        5.5086299623680794,
+        38.260425201634355,
+        -20.353627624316637
+       ],
+       "gap": 0.16436097618634626
+      },
+      {
+       "host": [
+        5.263818412437214,
+        38.257232189214804,
+        -19.55101471433023
+       ],
+       "guest": [
+        5.362692570637492,
+        38.37507963054361,
+        -19.550992928614342
+       ],
+       "gap": 0.15383146317375174
+      },
+      {
+       "host": [
+        5.580502163643029,
+        37.98205597016453,
+        -20.302815410189492
+       ],
+       "guest": [
+        5.663264814424339,
+        38.072157624394166,
+        -20.309508114616975
+       ],
+       "gap": 0.12252655529238982
+      },
+      {
+       "host": [
+        5.276086463264071,
+        38.24689907488371,
+        -19.071595989213616
+       ],
+       "guest": [
+        5.354745769300832,
+        38.340640087604726,
+        -19.07159695200487
+       ],
+       "gap": 0.12237100920182688
+      },
+      {
+       "host": [
+        5.6237540287933445,
+        37.95540614925163,
+        -19.798710440909463
+       ],
+       "guest": [
+        5.688229757135828,
+        38.032234690202266,
+        -19.7988230243425
+       ],
+       "gap": 0.10029833959206919
+      },
+      {
+       "host": [
+        6.116458754482086,
+        37.44942691298127,
+        -20.43834172208411
+       ],
+       "guest": [
+        6.233709434942238,
+        37.561320789965556,
+        -20.461622309693613
+       ],
+       "gap": 0.16373743473741023
+      },
+      {
+       "host": [
+        3.5124229198071903,
+        39.69179091473871,
+        -15.776504030387333
+       ],
+       "guest": [
+        3.5884051667731356,
+        39.7965538034247,
+        -15.7731966797418
+       ],
+       "gap": 0.1294585001771562
+      },
+      {
+       "host": [
+        3.87041333937035,
+        39.42622618912372,
+        -16.49924629532614
+       ],
+       "guest": [
+        3.9593632881253384,
+        39.532827402303326,
+        -16.49895280815325
+       ],
+       "gap": 0.13883802854261443
+      },
+      {
+       "host": [
+        4.417025992685254,
+        38.967735697145,
+        -17.166307971515124
+       ],
+       "guest": [
+        4.5034114968844,
+        39.070687577114555,
+        -17.166306914133163
+       ],
+       "gap": 0.13439324732337946
+      },
+      {
+       "host": [
+        4.766735263331231,
+        38.67429759942803,
+        -17.89085492347547
+       ],
+       "guest": [
+        4.862964107285631,
+        38.788978669921875,
+        -17.89085492347547
+       ],
+       "gap": 0.14970550537109162
+      },
+      {
+       "host": [
+        5.31189933884409,
+        38.216850624734086,
+        -18.558768020460207
+       ],
+       "guest": [
+        5.375298430413576,
+        38.29240671987923,
+        -18.558768020460207
+       ],
+       "gap": 0.09863147735595135
+      },
+      {
+       "host": [
+        5.658300941602823,
+        37.926286456030965,
+        -19.28621480300636
+       ],
+       "guest": [
+        5.718105910743725,
+        37.99760785200638,
+        -19.286178919693175
+       ],
+       "gap": 0.09307726438522958
+      },
+      {
+       "host": [
+        6.192152658686199,
+        37.4527723201239,
+        -19.939856829654968
+       ],
+       "guest": [
+        6.268159820431933,
+        37.53234086309199,
+        -19.949097685130752
+       ],
+       "gap": 0.1104247937586092
+      },
+      {
+       "host": [
+        3.736858739488329,
+        39.5256453989427,
+        -15.537945607758353
+       ],
+       "guest": [
+        3.795993273197677,
+        39.60717394759898,
+        -15.536940537654957
+       ],
+       "gap": 0.10072143510163577
+      },
+      {
+       "host": [
+        4.082700639558926,
+        39.24884203463632,
+        -16.266782174826034
+       ],
+       "guest": [
+        4.145654958860018,
+        39.32367017668695,
+        -16.26682013117133
+       ],
+       "gap": 0.09778802893042651
+      },
+      {
+       "host": [
+        4.630872067144242,
+        38.78829799624879,
+        -16.932067580392477
+       ],
+       "guest": [
+        4.692935377457902,
+        38.862263351122,
+        -16.932066820720756
+       ],
+       "gap": 0.09655427597567852
+      },
+      {
+       "host": [
+        4.975756092779484,
+        38.498908298529635,
+        -17.66191559830156
+       ],
+       "guest": [
+        5.04029517867602,
+        38.57582298600958,
+        -17.66191559830156
+       ],
+       "gap": 0.10040499369303113
+      },
+      {
+       "host": [
+        5.5269048418892766,
+        38.03643958642779,
+        -18.323849894323992
+       ],
+       "guest": [
+        5.584724724800264,
+        38.10534663961033,
+        -18.323849894323992
+       ],
+       "gap": 0.08995176951090045
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 0 pitch 40 roll 90 gap 0.1 shift 0.0,4.0,4.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01",
+     "t02",
+     "t03",
+     "t04"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 5,
+    "size": "small",
+    "typologyDistribution": {
+     "lobby": 3,
+     "workspace": 2
+    },
+    "dominantTypology": "lobby",
+    "dominantTied": false,
+    "archetypeDiversity": 0.6,
+    "uniqueArchetypes": 3,
+    "tileCellVoidFraction": 0.845888043535088,
+    "tileCellVoidFractionAvailability": "measured",
+    "clusterVoidFraction": 0.9546863444546381,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 6164.4782585964795,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 136040.1888659245,
+    "surfaceExposure": 4439.245009669477,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 4,
+    "connected": true,
+    "geometricDiversity": 0.09484963616266863
+   },
+   "search": {
+    "evaluations": 1600,
+    "acceptedPoses": 22,
+    "backtracks": 19,
+    "milliseconds": 7429,
+    "exhausted": true,
+    "truncated": true,
+    "untried": 1222,
+    "geometricRejections": 1116,
+    "rejectionCounts": {
+     "intersection": 1116,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "exhausted",
+    "directionRejections": 417
+   }
+  },
+  {
+   "contract": "skill6-cluster-v1",
+   "id": "assembled-rule-large-11",
+   "status": "unsuccessful",
+   "reason": "Search budget exhausted at 6 tiles after 1600 evaluations and 22 backtracks. 1142 candidates were not evaluated. 1318 evaluated candidates were rejected geometrically (1318 intersections, 0 containments, 0 contact failures).",
+   "algorithm": "rule-based-envelope-v2.1",
+   "seed": 113,
+   "parameters": {
+    "contactTolerance": 0.18,
+    "minContactArea": 3.2,
+    "targetGap": 0.05,
+    "normalOpposition": 0.82,
+    "minPatchArea": 2.8,
+    "maxPenetration": 0.02,
+    "maxIntersectingTriangles": 0,
+    "sizeBands": {
+     "small": {
+      "min": 2,
+      "max": 6
+     },
+     "medium": {
+      "min": 7,
+      "max": 10
+     },
+     "large": {
+      "min": 11,
+      "max": null
+     }
+    }
+   },
+   "tiles": [
+    {
+     "instanceId": "t00",
+     "archetypeId": "topographic-ground-field",
+     "moduleId": "carved-mass:topographic-ground-field:49:N09",
+     "typologyId": "lobby",
+     "name": "Topographic Ground Field",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      "translation": [
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "instanceId": "t01",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       1.1248198369963932e-32,
+       6.123233995736766e-17,
+       1,
+       1,
+       -1.8369701987210297e-16,
+       0,
+       -1.8369701987210297e-16,
+       -1,
+       6.123233995736766e-17
+      ],
+      "translation": [
+       -4,
+       20.382643953959146,
+       -4
+      ]
+     }
+    },
+    {
+     "instanceId": "t02",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": true,
+      "basis": [
+       -0.6427876096865394,
+       -0.7660444431189779,
+       -1.4325646193854006e-17,
+       0.7660444431189779,
+       -0.6427876096865394,
+       3.9359389436709925e-17,
+       -3.935938943670992e-17,
+       1.432564619385402e-17,
+       1
+      ],
+      "translation": [
+       -3.9999999999999982,
+       29.382643953959146,
+       -24.39083251953125
+      ]
+     }
+    },
+    {
+     "instanceId": "t03",
+     "archetypeId": "open-hall",
+     "moduleId": "carved-mass:open-hall:333:N08",
+     "typologyId": "workspace",
+     "name": "Open Hall",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       0.6427876096865395,
+       0.7660444431189778,
+       1.4325646193854013e-17,
+       -0.5868240888334649,
+       0.4924038765061041,
+       0.6427876096865393,
+       0.4924038765061038,
+       -0.41317591116653485,
+       0.766044443118978
+      ],
+      "translation": [
+       9.153772089436984,
+       45.05869909771111,
+       -24.39083251953125
+      ]
+     }
+    },
+    {
+     "instanceId": "t04",
+     "archetypeId": "inserted-horizontal-plate",
+     "moduleId": "carved-mass:inserted-horizontal-plate:265:N47",
+     "typologyId": "gathering",
+     "name": "Inserted Horizontal Plate",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       0.6427876096865395,
+       0.7660444431189778,
+       1.4325646193854013e-17,
+       -0.5868240888334649,
+       0.4924038765061041,
+       0.6427876096865393,
+       0.4924038765061038,
+       -0.41317591116653485,
+       0.766044443118978
+      ],
+      "translation": [
+       2.204154405183302,
+       50.777981697089245,
+       -24.39083251953125
+      ]
+     }
+    },
+    {
+     "instanceId": "t05",
+     "archetypeId": "inserted-horizontal-plate",
+     "moduleId": "carved-mass:inserted-horizontal-plate:265:N47",
+     "typologyId": "gathering",
+     "name": "Inserted Horizontal Plate",
+     "pose": {
+      "quarterZ": 0,
+      "mirrorX": false,
+      "basis": [
+       -0.6427876096865396,
+       -0.7660444431189777,
+       6.439313267956584e-17,
+       0.7660444431189776,
+       -0.6427876096865395,
+       0,
+       5.551115123125783e-17,
+       5.551115123125783e-17,
+       0.9999999999999999
+      ],
+      "translation": [
+       1.3366344956840637,
+       25.016814953204936,
+       -30.175921006710105
+      ]
+     }
+    }
+   ],
+   "contacts": [
+    {
+     "hostId": "t00",
+     "guestId": "t01",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.014325697026000579,
+     "residualGap": 0.16778781482872254,
+     "contactArea": 60.95070420904093,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9896541443524577,
+     "hostNormal": [
+      0.11992251276781894,
+      -0.9923778503750196,
+      0.028368874078958238
+     ],
+     "guestNormal": [
+      -0.11992251276781894,
+      0.9923778503750196,
+      -0.028368874078958238
+     ],
+     "samples": [
+      {
+       "host": [
+        -8.474283287960933,
+        10.117103164925808,
+        -1.6929511637450692
+       ],
+       "guest": [
+        -8.486173470815025,
+        10.215496317545574,
+        -1.6957639058430987
+       ],
+       "gap": 0.09914888021995118
+      },
+      {
+       "host": [
+        -8.115020594991707,
+        10.144569240422822,
+        -2.059360914162161
+       ],
+       "guest": [
+        -8.12120548884074,
+        10.200629488627115,
+        -2.0606153408686314
+       ],
+       "gap": 0.05641434150118802
+      },
+      {
+       "host": [
+        -8.127518164322058,
+        10.164065636002027,
+        -0.6036558193028078
+       ],
+       "guest": [
+        -8.135715007781984,
+        10.27546304066976,
+        -0.6039005915323887
+       ],
+       "gap": 0.11169883581692976
+      },
+      {
+       "host": [
+        -7.752452611930991,
+        10.149789401415221,
+        -2.7859559231330544
+       ],
+       "guest": [
+        -7.757575591405235,
+        10.200828170776367,
+        -2.7878786722819004
+       ],
+       "gap": 0.05133125617869807
+      },
+      {
+       "host": [
+        -7.756734898608531,
+        10.176943666413658,
+        -1.3332871676218496
+       ],
+       "guest": [
+        -7.757599592208864,
+        10.200673993428547,
+        -1.3333276112874346
+       ],
+       "gap": 0.02374611022770026
+      },
+      {
+       "host": [
+        -7.740072297550043,
+        10.179771966210943,
+        0.12550953999568545
+       ],
+       "guest": [
+        -7.74177638689677,
+        10.25480359395345,
+        0.12554693222045987
+       ],
+       "gap": 0.07505098587207482
+      },
+      {
+       "host": [
+        -7.390370892414913,
+        10.159887034686307,
+        -3.150199878375641
+       ],
+       "guest": [
+        -7.393939336140953,
+        10.200827534993488,
+        -3.151515106360117
+       ],
+       "gap": 0.04111676276993829
+      },
+      {
+       "host": [
+        -7.393776092594935,
+        10.18186332899767,
+        -1.696984543706438
+       ],
+       "guest": [
+        -7.393938541412355,
+        10.200769360860187,
+        -1.6969705422719317
+       ],
+       "gap": 0.01890673494934998
+      },
+      {
+       "host": [
+        -7.394532291955113,
+        10.182267251334979,
+        -0.24173223404188343
+       ],
+       "guest": [
+        -7.394538640975954,
+        10.202274258931476,
+        -0.2417302926381426
+       ],
+       "gap": 0.020007008698089163
+      },
+      {
+       "host": [
+        -7.352627930906638,
+        10.182082225701528,
+        1.2068741950967026
+       ],
+       "guest": [
+        -7.352951367696129,
+        10.290834999084474,
+        1.206858793894451
+       ],
+       "gap": 0.10875325543190077
+      },
+      {
+       "host": [
+        -7.007259511817261,
+        10.0854434797992,
+        -4.2246184610214925
+       ],
+       "guest": [
+        -7.0303803284963,
+        10.200800832112629,
+        -4.24243163206241
+       ],
+       "gap": 0.11899243656301603
+      },
+      {
+       "host": [
+        -7.030008550502222,
+        10.181517850515437,
+        -2.787877174108171
+       ],
+       "guest": [
+        -7.030303160349529,
+        10.200826581319172,
+        -2.78787871201833
+       ],
+       "gap": 0.01931097829159321
+      },
+      {
+       "host": [
+        -7.030338402467166,
+        10.182235156110533,
+        -1.3333383577292865
+       ],
+       "guest": [
+        -7.030303557713829,
+        10.20081640879313,
+        -1.333333094914754
+       ],
+       "gap": 0.018581286099422608
+      },
+      {
+       "host": [
+        -7.0303149890283185,
+        10.181994452902899,
+        0.12093303905487038
+       ],
+       "guest": [
+        -7.030293226242067,
+        10.200353240966797,
+        0.12093313535054584
+       ],
+       "gap": 0.018358800963114513
+      },
+      {
+       "host": [
+        -7.031794688047951,
+        10.1820681520422,
+        1.5728546482879837
+       ],
+       "guest": [
+        -7.031717936197918,
+        10.243940289815267,
+        1.572848320007325
+       ],
+       "gap": 0.061872185701678496
+      },
+      {
+       "host": [
+        -6.648002132567201,
+        10.062258055055223,
+        -4.561933207991522
+       ],
+       "guest": [
+        -6.66476901372274,
+        10.219514147440592,
+        -4.605027059713999
+       ],
+       "gap": 0.16391365700355334
+      },
+      {
+       "host": [
+        -6.666498731048834,
+        10.182433359024477,
+        -3.1515489091514173
+       ],
+       "guest": [
+        -6.666662693023683,
+        10.200651105244953,
+        -3.1515210072199498
+       ],
+       "gap": 0.01821850541072532
+      },
+      {
+       "host": [
+        -6.666689063664765,
+        10.181974438193192,
+        -1.6969712996466708
+       ],
+       "guest": [
+        -6.666666666666668,
+        10.200826263427734,
+        -1.6969696680704747
+       ],
+       "gap": 0.018851838609569897
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "+Y yaw 270 pitch 0 roll 90 gap 0.1 mirror shift -4.0,0.0,-4.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t01",
+     "guestId": "t02",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.021750603971607153,
+     "residualGap": 0.17413560973301334,
+     "contactArea": 52.82578365251112,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9879559402312564,
+     "hostNormal": [
+      0.08977887781523951,
+      -0.3151068908472581,
+      0.9448001907487161
+     ],
+     "guestNormal": [
+      -0.08977887781523951,
+      0.3151068908472581,
+      -0.9448001907487161
+     ],
+     "samples": [
+      {
+       "host": [
+        -6.5750014325483574,
+        30.400536129106165,
+        -14.070217199811031
+       ],
+       "guest": [
+        -6.588173921301809,
+        30.446769074725765,
+        -14.208839670817058
+       ],
+       "gap": 0.14672146805577338
+      },
+      {
+       "host": [
+        -6.305413661506629,
+        30.20086344934557,
+        -14.160386122735758
+       ],
+       "guest": [
+        -6.3096794865098484,
+        30.213069272708815,
+        -14.209587987264
+       ],
+       "gap": 0.050872417477335195
+      },
+      {
+       "host": [
+        -7.230866886377164,
+        29.092772192020824,
+        -14.103037207375966
+       ],
+       "guest": [
+        -7.244582950205643,
+        29.098779727946656,
+        -14.209015464782716
+       ],
+       "gap": 0.10703089244614614
+      },
+      {
+       "host": [
+        -8.142625301093467,
+        27.968810978375473,
+        -14.066857329516884
+       ],
+       "guest": [
+        -8.179548258895004,
+        27.984533440570296,
+        -14.209019597371421
+       ],
+       "gap": 0.14771801187338968
+      },
+      {
+       "host": [
+        -9.082756138056364,
+        26.84429660986897,
+        -14.071739468166369
+       ],
+       "guest": [
+        -9.114528973306111,
+        26.870269164283165,
+        -14.208647346496583
+       ],
+       "gap": 0.14292604308343085
+      },
+      {
+       "host": [
+        -10.02371238818971,
+        25.74422305371553,
+        -14.07660722693518
+       ],
+       "guest": [
+        -10.051351609403394,
+        25.757596921317322,
+        -14.21057758331299
+       ],
+       "gap": 0.13744396411602375
+      },
+      {
+       "host": [
+        -10.951751355693633,
+        24.62644659549523,
+        -14.089135730996837
+       ],
+       "guest": [
+        -10.987701993521734,
+        24.644476747153846,
+        -14.243490791320802
+       ],
+       "gap": 0.15950868119539738
+      },
+      {
+       "host": [
+        -11.903014488332806,
+        23.494337586307516,
+        -14.084970139970592
+       ],
+       "guest": [
+        -11.920623987086106,
+        23.522227341206882,
+        -14.255953407287599
+       ],
+       "gap": 0.17413560973301334
+      },
+      {
+       "host": [
+        -6.497293337269391,
+        29.42058765555928,
+        -14.162785304760314
+       ],
+       "guest": [
+        -6.498534200644362,
+        29.42216464790824,
+        -14.208785947163902
+       ],
+       "gap": 0.04604438889079487
+      },
+      {
+       "host": [
+        -7.425782385074906,
+        28.304474334060615,
+        -14.141446855069315
+       ],
+       "guest": [
+        -7.433503207670253,
+        28.3079154984988,
+        -14.2090145111084
+       ],
+       "gap": 0.06809435260618561
+      },
+      {
+       "host": [
+        -8.36498444346814,
+        27.187794223859157,
+        -14.139315728487327
+       ],
+       "guest": [
+        -8.368467397773646,
+        27.193668998728523,
+        -14.209016736348472
+       ],
+       "gap": 0.07003480882617841
+      },
+      {
+       "host": [
+        -9.295967082629467,
+        26.075571087198725,
+        -14.13920237917213
+       ],
+       "guest": [
+        -9.303394059740942,
+        26.079419746325833,
+        -14.208710289001466
+       ],
+       "gap": 0.07000944004157061
+      },
+      {
+       "host": [
+        -10.231469715076365,
+        24.96163097756956,
+        -14.143376385775815
+       ],
+       "guest": [
+        -10.239762150195489,
+        24.96636526432321,
+        -14.209189351399742
+       ],
+       "gap": 0.06650206309195868
+      },
+      {
+       "host": [
+        -11.1712862318259,
+        23.8466444131141,
+        -14.140774755412078
+       ],
+       "guest": [
+        -11.17616681244941,
+        23.853166556560655,
+        -14.218310610453289
+       ],
+       "gap": 0.07796260154286558
+      },
+      {
+       "host": [
+        -5.986072478352668,
+        29.466831846488958,
+        -14.180791398881219
+       ],
+       "guest": [
+        -5.986505026633289,
+        29.466820398091894,
+        -14.214896138509117
+       ],
+       "gap": 0.03410748443036456
+      },
+      {
+       "host": [
+        -6.919182905962787,
+        28.352229681911464,
+        -14.176632366831761
+       ],
+       "guest": [
+        -6.921200632643682,
+        28.352736222519223,
+        -14.209016418457033
+       ],
+       "gap": 0.03245080282542111
+      },
+      {
+       "host": [
+        -7.8543589967523175,
+        27.23814867901041,
+        -14.17069333626492
+       ],
+       "guest": [
+        -7.856164354247129,
+        27.238489848353062,
+        -14.2090145111084
+       ],
+       "gap": 0.038365194559509236
+      },
+      {
+       "host": [
+        -8.788917488984257,
+        26.12360603502468,
+        -14.173693017294426
+       ],
+       "guest": [
+        -8.791127760603139,
+        26.124243417151792,
+        -14.209016100565593
+       ],
+       "gap": 0.03539790627123367
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 0 pitch 40 roll 90 gap 0.1 mirror shift 0.0,0.0,-9.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t03",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.09764477729142947,
+     "residualGap": 0.17271953363453368,
+     "contactArea": 55.790109728009945,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9966229461501956,
+     "hostNormal": [
+      -0.5632906766767966,
+      -0.8255182958010835,
+      0.03497365961222309
+     ],
+     "guestNormal": [
+      0.5632906766767966,
+      0.8255182958010835,
+      -0.03497365961222309
+     ],
+     "samples": [
+      {
+       "host": [
+        0.262175872975968,
+        39.072040179499105,
+        -32.655511043766566
+       ],
+       "guest": [
+        0.3447869763870628,
+        39.193109070084176,
+        -32.660640211939445
+       ],
+       "gap": 0.1466580343535405
+      },
+      {
+       "host": [
+        -0.18009665829442012,
+        39.41596374969494,
+        -32.17294264506226
+       ],
+       "guest": [
+        -0.09818600711162873,
+        39.530314167326885,
+        -32.185366593976134
+       ],
+       "gap": 0.14120809925923056
+      },
+      {
+       "host": [
+        -0.606389820332327,
+        39.7509576644357,
+        -31.68700162179775
+       ],
+       "guest": [
+        -0.5250749262956607,
+        39.888411097606316,
+        -31.71775835496158
+       ],
+       "gap": 0.16263927851995502
+      },
+      {
+       "host": [
+        0.44444428614731457,
+        38.94183508847907,
+        -32.379224677840305
+       ],
+       "guest": [
+        0.5157301915372567,
+        39.02982063314586,
+        -32.3793373581624
+       ],
+       "gap": 0.11323934419816921
+      },
+      {
+       "host": [
+        0.018377317054573794,
+        39.292840476816195,
+        -31.904144523718347
+       ],
+       "guest": [
+        0.08036069086397646,
+        39.37953295040832,
+        -31.906593417722867
+       ],
+       "gap": 0.10659981561035657
+      },
+      {
+       "host": [
+        -0.4193591607069811,
+        39.642165857799725,
+        -31.43005374825632
+       ],
+       "guest": [
+        -0.34589767011814665,
+        39.738310024846456,
+        -31.439208106851147
+       ],
+       "gap": 0.12134287674983124
+      },
+      {
+       "host": [
+        -0.8439172899809617,
+        39.992818971378135,
+        -30.948854156388855
+       ],
+       "guest": [
+        -0.7726055681730273,
+        40.096505706955234,
+        -30.971729774333777
+       ],
+       "gap": 0.12790463126176924
+      },
+      {
+       "host": [
+        -1.2803634500980956,
+        40.33535583065978,
+        -30.497007661907837
+       ],
+       "guest": [
+        -1.1993833183096072,
+        40.454621814312134,
+        -30.50424780151724
+       ],
+       "gap": 0.14434187272793988
+      },
+      {
+       "host": [
+        -1.7023694379599457,
+        40.672677905742354,
+        -30.021760742669066
+       ],
+       "guest": [
+        -1.6265124310882655,
+        40.81230985860232,
+        -30.036762766394766
+       ],
+       "gap": 0.15961337182981528
+      },
+      {
+       "host": [
+        1.0489748253927367,
+        38.438490951265806,
+        -32.56993522156529
+       ],
+       "guest": [
+        1.1416684843979255,
+        38.54854717137164,
+        -32.56976349354111
+       ],
+       "gap": 0.14389063727104304
+      },
+      {
+       "host": [
+        0.623341152298222,
+        38.7963412833117,
+        -32.09706922699786
+       ],
+       "guest": [
+        0.6883522515480678,
+        38.87342718391078,
+        -32.09717064236934
+       ],
+       "gap": 0.10083991958506304
+      },
+      {
+       "host": [
+        0.19669168073129129,
+        39.153716105746895,
+        -31.628192914518706
+       ],
+       "guest": [
+        0.25953138763838446,
+        39.229465185153884,
+        -31.628024723278678
+       ],
+       "gap": 0.09842144117756077
+      },
+      {
+       "host": [
+        -0.2312477042154928,
+        39.51150981188068,
+        -31.159737176740297
+       ],
+       "guest": [
+        -0.16678250888723412,
+        39.58813158285934,
+        -31.160649715497797
+       ],
+       "gap": 0.10013735528562903
+      },
+      {
+       "host": [
+        -0.6607601048691669,
+        39.863628575227864,
+        -30.68807110546567
+       ],
+       "guest": [
+        -0.5935506173644782,
+        39.94625868888231,
+        -30.693168007948582
+       ],
+       "gap": 0.10663409074076552
+      },
+      {
+       "host": [
+        -1.083044816963512,
+        40.21817940463535,
+        -30.220255097317906
+       ],
+       "guest": [
+        -1.0203252933035234,
+        40.30437844134821,
+        -30.225685837662866
+       ],
+       "gap": 0.10674036499401245
+      },
+      {
+       "host": [
+        -1.5175198234507556,
+        40.56590873498168,
+        -29.755637471829992
+       ],
+       "guest": [
+        -1.4474165866907676,
+        40.66210737251626,
+        -29.75820471942498
+       ],
+       "gap": 0.11905978509954412
+      },
+      {
+       "host": [
+        -1.9429526175506044,
+        40.913892706017705,
+        -29.28214675300137
+       ],
+       "guest": [
+        -1.8690548120912656,
+        41.02678208002671,
+        -29.290888320316355
+       ],
+       "gap": 0.13520839994236564
+      },
+      {
+       "host": [
+        1.2275413791471967,
+        38.28793415679419,
+        -32.29325088464884
+       ],
+       "guest": [
+        1.3050273771407381,
+        38.38012162680149,
+        -32.29324077801205
+       ],
+       "gap": 0.120426781130878
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 40 roll 0 gap 0.1",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t02",
+     "guestId": "t04",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.009449259440104996,
+     "residualGap": 0.1467976220848532,
+     "contactArea": 12.487368796207036,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9811790144220928,
+     "hostNormal": [
+      -0.642896090670485,
+      -0.7659534029157499,
+      0.00003409384425373747
+     ],
+     "guestNormal": [
+      0.642896090670485,
+      0.7659534029157499,
+      -0.00003409384425373747
+     ],
+     "samples": [
+      {
+       "host": [
+        -0.37713655756732,
+        39.63415697883249,
+        -19.48828405094695
+       ],
+       "guest": [
+        -0.3169815923656536,
+        39.705826259400745,
+        -19.488287241064366
+       ],
+       "gap": 0.09356872140711087
+      },
+      {
+       "host": [
+        -1.0273830499519296,
+        40.15665822756743,
+        -18.83581162726244
+       ],
+       "guest": [
+        -0.9725752602486066,
+        40.23238135427001,
+        -18.831515462786694
+       ],
+       "gap": 0.09357533200037314
+      },
+      {
+       "host": [
+        0.4267067165519869,
+        38.95961542762024,
+        -19.888912922859575
+       ],
+       "guest": [
+        0.48674242640015786,
+        39.03116320051574,
+        -19.888912922859575
+       ],
+       "gap": 0.09339898427327498
+      },
+      {
+       "host": [
+        -0.2050356963895381,
+        39.48972071485271,
+        -19.280554534960388
+       ],
+       "guest": [
+        -0.18675350055866025,
+        39.51150719492741,
+        -19.280554460370972
+       ],
+       "gap": 0.028440980968477723
+      },
+      {
+       "host": [
+        -0.852603077585417,
+        40.01558452321726,
+        -18.57901558853507
+       ],
+       "guest": [
+        -0.8297791432508905,
+        40.04711835592279,
+        -18.57722651117188
+       ],
+       "gap": 0.03896813289623501
+      },
+      {
+       "host": [
+        0.8329033574584077,
+        38.618775976050216,
+        -19.889327778785542
+       ],
+       "guest": [
+        0.8813433694984742,
+        38.67650453442427,
+        -19.889327778785542
+       ],
+       "gap": 0.07535928090413435
+      },
+      {
+       "host": [
+        0.18257573473265598,
+        39.16446444957724,
+        -19.23832144120574
+       ],
+       "guest": [
+        0.1927877395275095,
+        39.17663477261988,
+        -19.23832144120574
+       ],
+       "gap": 0.015887158490183902
+      },
+      {
+       "host": [
+        -0.4595663714070195,
+        39.702859612659054,
+        -18.52962726552026
+       ],
+       "guest": [
+        -0.45118589608117965,
+        39.712887437357494,
+        -18.529631481348243
+       ],
+       "gap": 0.013068651523507181
+      },
+      {
+       "host": [
+        -1.1323549907127175,
+        40.16418155610974,
+        -17.830943541434532
+       ],
+       "guest": [
+        -1.0911622129923946,
+        40.24926014760391,
+        -17.82513287760805
+       ],
+       "gap": 0.0947046750749512
+      },
+      {
+       "host": [
+        1.1939589862051125,
+        38.31581433113437,
+        -19.84478735207938
+       ],
+       "guest": [
+        1.242200791667436,
+        38.373306676107326,
+        -19.84478735207938
+       ],
+       "gap": 0.07505092620849929
+      },
+      {
+       "host": [
+        0.5739428499551718,
+        38.83606964238566,
+        -19.188306496572032
+       ],
+       "guest": [
+        0.5809251977147634,
+        38.844390880412895,
+        -19.188306496572032
+       ],
+       "gap": 0.010862604777020834
+      },
+      {
+       "host": [
+        -0.06638806786954765,
+        39.37351732647518,
+        -18.481270132466364
+       ],
+       "guest": [
+        -0.05825294203716469,
+        39.38320119427644,
+        -18.481272421140922
+       ],
+       "gap": 0.012647433460544774
+      },
+      {
+       "host": [
+        -0.7207961790708417,
+        39.889338329542085,
+        -17.78075614237011
+       ],
+       "guest": [
+        -0.6979598655220651,
+        39.92081729299306,
+        -17.78002525207117
+       ],
+       "gap": 0.03889674224243746
+      },
+      {
+       "host": [
+        1.3702986520104847,
+        38.16784778259516,
+        -19.576110188176333
+       ],
+       "guest": [
+        1.4127806151908784,
+        38.21847581483585,
+        -19.576110188176333
+       ],
+       "gap": 0.06609020233154439
+      },
+      {
+       "host": [
+        0.7528499797563732,
+        38.68594873575449,
+        -18.905057604857525
+       ],
+       "guest": [
+        0.7605462798692031,
+        38.69512082906363,
+        -18.905057604857525
+       ],
+       "gap": 0.011973317464196498
+      },
+      {
+       "host": [
+        0.11285950440637382,
+        39.2230436839379,
+        -18.202570975811128
+       ],
+       "guest": [
+        0.12185328489450953,
+        39.233756860670134,
+        -18.20257126928839
+       ],
+       "gap": 0.013987860567325833
+      },
+      {
+       "host": [
+        -0.5349102423813279,
+        39.748015966151605,
+        -17.50201119566681
+       ],
+       "guest": [
+        -0.5182554483341884,
+        39.77097394717484,
+        -17.50147814871184
+       ],
+       "gap": 0.028367854985384022
+      },
+      {
+       "host": [
+        -1.0020516592110078,
+        40.02146275639258,
+        -17.038469360865378
+       ],
+       "guest": [
+        -0.9452835979572809,
+        40.128803851198015,
+        -17.034051006367186
+       ],
+       "gap": 0.12150821070614261
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 40 roll 0 gap 0.1 shift 0.0,-9.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    },
+    {
+     "hostId": "t03",
+     "guestId": "t05",
+     "hostPatch": "envelope",
+     "guestPatch": "envelope",
+     "verdict": "near-contact",
+     "minSurfaceDistance": 0.009449259440104996,
+     "residualGap": 0.14679762208485123,
+     "contactArea": 12.487368796207036,
+     "coherentRegions": 1,
+     "normalAlignment": -0.9811790144220928,
+     "hostNormal": [
+      0.6428874972870413,
+      0.7659606136206285,
+      -0.0000649146759887454
+     ],
+     "guestNormal": [
+      -0.6428874972870413,
+      -0.7659606136206285,
+      0.0000649146759887454
+     ],
+     "samples": [
+      {
+       "host": [
+        7.2613474918047345,
+        33.35517547639089,
+        -23.087028739832338
+       ],
+       "guest": [
+        7.201193330674968,
+        33.2835055211262,
+        -23.087022665849105
+       ],
+       "gap": 0.09356872140710909
+      },
+      {
+       "host": [
+        8.083408632632889,
+        32.68850461951611,
+        -23.12327468844684
+       ],
+       "guest": [
+        8.029517542499558,
+        32.61201229054245,
+        -23.124283039282535
+       ],
+       "gap": 0.09357533200037493
+      },
+      {
+       "host": [
+        6.4483008663543915,
+        34.03743955631061,
+        -22.719408396592513
+       ],
+       "guest": [
+        6.38826515650622,
+        33.9658917834151,
+        -22.719408396592513
+       ],
+       "gap": 0.09339898427327853
+      },
+      {
+       "host": [
+        7.231800454602126,
+        33.37999487925019,
+        -22.78347798226972
+       ],
+       "guest": [
+        7.213518455914766,
+        33.358208233752435,
+        -22.78347734978872
+       ],
+       "gap": 0.0284409809684795
+      },
+      {
+       "host": [
+        8.075323478482963,
+        32.689704763381584,
+        -22.782206917699348
+       ],
+       "guest": [
+        8.052881290810785,
+        32.65785060719247,
+        -22.782626831244205
+       ],
+       "gap": 0.03896813289623678
+      },
+      {
+       "host": [
+        6.136931910108295,
+        34.29870913265676,
+        -22.378886743099265
+       ],
+       "guest": [
+        6.08849189806823,
+        34.2409805742827,
+        -22.378886743099265
+       ],
+       "gap": 0.07535928090413613
+      },
+      {
+       "host": [
+        6.9556699536055335,
+        33.61170753717397,
+        -22.425876130452785
+       ],
+       "guest": [
+        6.945457933875982,
+        33.59953722666303,
+        -22.425876184017234
+       ],
+       "gap": 0.015887158490182126
+      },
+      {
+       "host": [
+        7.796592185299616,
+        32.90651604405408,
+        -22.42163006970309
+       ],
+       "guest": [
+        7.788204984227021,
+        32.89649386292726,
+        -22.42164997628408
+       ],
+       "gap": 0.013068651523508957
+      },
+      {
+       "host": [
+        8.667903144938741,
+        32.27861407804916,
+        -22.408298123911223
+       ],
+       "guest": [
+        8.625425841471113,
+        32.19461333163579,
+        -22.41871583830394
+       ],
+       "gap": 0.09470467507494518
+      },
+      {
+       "host": [
+        5.882279130821402,
+        34.512388185834666,
+        -22.04180515181102
+       ],
+       "guest": [
+        5.834037325359082,
+        34.45489584086171,
+        -22.04180515181102
+       ],
+       "gap": 0.07505092620849396
+      },
+      {
+       "host": [
+        6.680492764743632,
+        33.84260742000984,
+        -22.05916695168691
+       ],
+       "guest": [
+        6.6735104169840405,
+        33.834286181982606,
+        -22.05916695168691
+       ],
+       "gap": 0.010862604777020834
+      },
+      {
+       "host": [
+        7.5191453048585775,
+        33.13874813580211,
+        -22.054907536642357
+       ],
+       "guest": [
+        7.511010342048582,
+        33.12906413120883,
+        -22.054904663275455
+       ],
+       "gap": 0.01264743346054655
+      },
+      {
+       "host": [
+        8.369222134706076,
+        32.458741583086244,
+        -22.053640590915577
+       ],
+       "guest": [
+        8.346254532931152,
+        32.427372783537415,
+        -22.05484235655345
+       ],
+       "gap": 0.03889674224243385
+      },
+      {
+       "host": [
+        5.879492786764265,
+        34.51472620610534,
+        -21.688019954870914
+       ],
+       "guest": [
+        5.837010823583873,
+        34.46409817386465,
+        -21.688019954870914
+       ],
+       "gap": 0.06609020233154261
+      },
+      {
+       "host": [
+        6.682914804421332,
+        33.84057508740959,
+        -21.69206480553823
+       ],
+       "guest": [
+        6.675218504308506,
+        33.83140299410044,
+        -21.69206480553823
+       ],
+       "gap": 0.011973317464189392
+      },
+      {
+       "host": [
+        7.519073969882389,
+        33.138875063705456,
+        -21.690977312579804
+       ],
+       "guest": [
+        7.510080643176527,
+        33.128161506204684,
+        -21.690975391577457
+       ],
+       "gap": 0.013987860567325833
+      },
+      {
+       "host": [
+        8.362392135525468,
+        32.4498181753529,
+        -21.690187621370065
+       ],
+       "guest": [
+        8.34564159141943,
+        32.42694053816877,
+        -21.691064083288882
+       ],
+       "gap": 0.02836785498538579
+      },
+      {
+       "host": [
+        8.962147909596842,
+        32.06509472686161,
+        -21.678097845904116
+       ],
+       "guest": [
+        8.902983432290105,
+        31.959764463882408,
+        -21.691111131221824
+       ],
+       "gap": 0.12150821070613547
+      }
+     ],
+     "rejected": [],
+     "intersectingTriangles": 0,
+     "deepestCrossing": 0,
+     "overlapVolume": 0,
+     "attachment": "envelope",
+     "searchNote": "-X yaw 180 pitch 40 roll 0 gap 0.1 shift 0.0,-9.0,0.0",
+     "registrationOverlap": false,
+     "tightBox": "touch",
+     "tolerance": 0.18
+    }
+   ],
+   "components": [
+    [
+     "t00",
+     "t01",
+     "t02",
+     "t03",
+     "t04",
+     "t05"
+    ]
+   ],
+   "metrics": {
+    "tileCount": 6,
+    "size": "small",
+    "typologyDistribution": {
+     "lobby": 1,
+     "workspace": 3,
+     "gathering": 2
+    },
+    "dominantTypology": "workspace",
+    "dominantTied": false,
+    "archetypeDiversity": 0.5,
+    "uniqueArchetypes": 3,
+    "tileCellVoidFraction": 0.8352445466134281,
+    "tileCellVoidFractionAvailability": "derived",
+    "clusterVoidFraction": 0.9477558285025466,
+    "clusterVoidFractionAvailability": "measured",
+    "solidVolume": 7908.2617625554585,
+    "solidVolumeAvailability": "measured",
+    "overlapVolume": 0,
+    "boundingVolume": 151371.17760477716,
+    "surfaceExposure": 5625.119854699826,
+    "surfaceExposureAvailability": "derived",
+    "components": 1,
+    "contactEdges": 5,
+    "connected": true,
+    "geometricDiversity": 0.08929191699967598
+   },
+   "search": {
+    "evaluations": 1600,
+    "acceptedPoses": 25,
+    "backtracks": 22,
+    "milliseconds": 7375,
+    "exhausted": true,
+    "truncated": true,
+    "untried": 1142,
+    "geometricRejections": 1318,
+    "rejectionCounts": {
+     "intersection": 1318,
+     "containment": 0,
+     "contact": 0
+    },
+    "depthLimit": 80,
+    "stop": "exhausted",
+    "directionRejections": 217
+   }
+  }
+ ]
+}

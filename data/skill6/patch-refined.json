@@ -1,0 +1,681 @@
+{
+  "version": 1,
+  "baselinePreserved": "data/skill6/patch-prototype.json",
+  "note": "Near-contact is not recorded as exact surface contact. Direct contact would require a residual at or under 0.05. These joints remain near-contact and carry a separate patch.",
+  "pairs": [
+    {
+      "id": "flat-self",
+      "classification": "patched-near-contact",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "flat-deep-plan",
+      "rigidPose": {
+        "quarterZ": 0,
+        "mirrorX": false,
+        "basis": [
+          -1,
+          1.2246467991473532e-16,
+          0,
+          -9.381338752702731e-17,
+          -0.766044443118978,
+          -0.6427876096865393,
+          -7.871877887341985e-17,
+          -0.6427876096865393,
+          0.766044443118978
+        ],
+        "translation": [
+          -20.44889157613119,
+          0,
+          0
+        ]
+      },
+      "seatedHostPose": {
+        "basis": [
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1
+        ],
+        "translation": [
+          0,
+          0,
+          14.088294982910156
+        ]
+      },
+      "seatedGuestPose": {
+        "basis": [
+          -1,
+          1.2246467991473532e-16,
+          0,
+          -9.381338752702731e-17,
+          -0.766044443118978,
+          -0.6427876096865393,
+          -7.871877887341985e-17,
+          -0.6427876096865393,
+          0.766044443118978
+        ],
+        "translation": [
+          -20.44889157613119,
+          0,
+          14.088294982910156
+        ]
+      },
+      "spec": {
+        "yaw": 180,
+        "pitch": -40,
+        "roll": 0,
+        "axis": [
+          -1,
+          0,
+          0
+        ],
+        "axisName": "-X",
+        "gap": 0.1,
+        "mirrorX": false
+      },
+      "before": {
+        "contactArea": 42.19011227596405,
+        "residualGap": 0.1771576599245016,
+        "normalAlignment": -0.9939159163900531,
+        "deepestCrossing": 0,
+        "lowestZ": -14.088295204310647
+      },
+      "afterSeat": {
+        "contactArea": 42.19011227596405,
+        "residualGap": 0.1771576599245016,
+        "normalAlignment": -0.9939159163900531,
+        "lowestZ": -2.2140049082963742e-7,
+        "lift": 14.088294982910156
+      },
+      "relativeUnchanged": true,
+      "growth": [
+        {
+          "direction": "+X",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "-X",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "+Y",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "-Y",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "+Z",
+          "lowestAfterSeat": 0
+        }
+      ],
+      "trials": [
+        {
+          "id": "baseline",
+          "radius": 0.45,
+          "cell": 0.22,
+          "buildMilliseconds": 373,
+          "validationMilliseconds": 599,
+          "note": "Voxelized blend, radius 0.45, grid 8×53×36, cell 0.22.",
+          "triangles": 6068,
+          "patchVolume": 54.166354056362096,
+          "addedVolume": 7.030535441846723,
+          "hostOverlap": 22.851173311221917,
+          "guestOverlap": 24.284645303293544,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.0999994277954102,
+            11.220000505447388,
+            7.479999780654907
+          ]
+        },
+        {
+          "id": "r40-c16",
+          "radius": 0.4,
+          "cell": 0.16,
+          "buildMilliseconds": 707,
+          "validationMilliseconds": 1634,
+          "note": "Voxelized blend, radius 0.40, grid 10×72×49, cell 0.16.",
+          "triangles": 11272,
+          "patchVolume": 39.35847148043867,
+          "addedVolume": 6.091368330803789,
+          "hostOverlap": 16.19815046706104,
+          "guestOverlap": 17.068952682573833,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.119999885559082,
+            11.200000047683716,
+            7.359999656677246
+          ]
+        },
+        {
+          "id": "r38-c14",
+          "radius": 0.38,
+          "cell": 0.14,
+          "buildMilliseconds": 1414,
+          "validationMilliseconds": 2633,
+          "note": "Voxelized blend, radius 0.38, grid 11×82×55, cell 0.14.",
+          "triangles": 13788,
+          "patchVolume": 38.97303640695848,
+          "addedVolume": 5.7643260226218445,
+          "hostOverlap": 15.970180044618335,
+          "guestOverlap": 17.23853033971837,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.9800004959106445,
+            11.200000047683716,
+            7.419999599456787
+          ]
+        },
+        {
+          "id": "r36-c12",
+          "radius": 0.36,
+          "cell": 0.12,
+          "buildMilliseconds": 2081,
+          "validationMilliseconds": 3764,
+          "note": "Voxelized blend, radius 0.36, grid 12×96×64, cell 0.12.",
+          "triangles": 19844,
+          "patchVolume": 34.09171961990625,
+          "addedVolume": 5.463784529662007,
+          "hostOverlap": 14.753278345271516,
+          "guestOverlap": 13.874656744972734,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.9600000381469727,
+            11.160000085830688,
+            7.199999570846558
+          ]
+        },
+        {
+          "id": "r32-c12",
+          "radius": 0.32,
+          "cell": 0.12,
+          "buildMilliseconds": 1825,
+          "validationMilliseconds": 3380,
+          "note": "Voxelized blend, radius 0.32, grid 11×95×63, cell 0.12.",
+          "triangles": 20236,
+          "patchVolume": 28.413518642168548,
+          "addedVolume": 5.082780292477992,
+          "hostOverlap": 11.618977867277902,
+          "guestOverlap": 11.711760482412584,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.8400001525878906,
+            11.040000200271606,
+            7.079999685287476
+          ]
+        },
+        {
+          "id": "r42-c14",
+          "radius": 0.42,
+          "cell": 0.14,
+          "buildMilliseconds": 1634,
+          "validationMilliseconds": 2537,
+          "note": "Voxelized blend, radius 0.42, grid 11×83×56, cell 0.14.",
+          "triangles": 15728,
+          "patchVolume": 45.174488492801615,
+          "addedVolume": 6.268477281002333,
+          "hostOverlap": 19.42557944926556,
+          "guestOverlap": 19.480431762533673,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.9800004959106445,
+            11.200000286102295,
+            7.4200005531311035
+          ]
+        }
+      ],
+      "selected": {
+        "id": "r32-c12",
+        "radius": 0.32,
+        "cell": 0.12,
+        "buildMilliseconds": 1825,
+        "validationMilliseconds": 3380,
+        "note": "Voxelized blend, radius 0.32, grid 11×95×63, cell 0.12.",
+        "triangles": 20236,
+        "patchVolume": 28.413518642168548,
+        "addedVolume": 5.082780292477992,
+        "hostOverlap": 11.618977867277902,
+        "guestOverlap": 11.711760482412584,
+        "patchStatus": "NoError",
+        "joinedStatus": "NoError",
+        "joinedComponents": 1,
+        "selfIntersections": 0,
+        "oneSolid": true,
+        "extent": [
+          0.8400001525878906,
+          11.040000200271606,
+          7.079999685287476
+        ]
+      },
+      "connection": {
+        "contract": "skill6-patch-connection-v1",
+        "classification": "patched-near-contact",
+        "hostInstanceId": "t00",
+        "guestInstanceId": "t01",
+        "hostArchetypeId": "flat-deep-plan",
+        "guestArchetypeId": "flat-deep-plan",
+        "rigidPose": {
+          "quarterZ": 0,
+          "mirrorX": false,
+          "basis": [
+            -1,
+            1.2246467991473532e-16,
+            0,
+            -9.381338752702731e-17,
+            -0.766044443118978,
+            -0.6427876096865393,
+            -7.871877887341985e-17,
+            -0.6427876096865393,
+            0.766044443118978
+          ],
+          "translation": [
+            -20.44889157613119,
+            0,
+            0
+          ]
+        },
+        "parameters": {
+          "radius": 0.32,
+          "cell": 0.12,
+          "method": "implicit-blend"
+        },
+        "contact": {
+          "contactArea": 42.19011227596405,
+          "residualGap": 0.1771576599245016,
+          "normalAlignment": -0.9939159163900531,
+          "deepestCrossing": 0,
+          "kind": "near-contact"
+        },
+        "patch": {
+          "id": "r32-c12",
+          "patchVolume": 28.413518642168548,
+          "addedVolume": 5.082780292477992,
+          "hostOverlap": 11.618977867277902,
+          "guestOverlap": 11.711760482412584
+        },
+        "boolean": {
+          "status": "NoError",
+          "components": 1,
+          "selfIntersections": 0,
+          "oneSolid": true
+        },
+        "ground": {
+          "lift": 14.088294982910156,
+          "minZBefore": -14.088295204310647,
+          "minZAfter": -2.2140049082963742e-7
+        },
+        "geometry": "patch:flat-self:r32-c12",
+        "provenance": "rule-based-envelope pose, implicit blend refined from the 0.45 / 0.22 baseline. Source meshes were not edited."
+      }
+    },
+    {
+      "id": "flat-plate",
+      "classification": "patched-near-contact",
+      "hostInstanceId": "t00",
+      "guestInstanceId": "t01",
+      "hostArchetypeId": "flat-deep-plan",
+      "guestArchetypeId": "inserted-horizontal-plate",
+      "rigidPose": {
+        "quarterZ": 2,
+        "mirrorX": false,
+        "basis": [
+          -1,
+          1.2246467991473532e-16,
+          0,
+          -1.2246467991473532e-16,
+          -1,
+          0,
+          0,
+          0,
+          1
+        ],
+        "translation": [
+          -20.366051610310876,
+          0,
+          0
+        ]
+      },
+      "seatedHostPose": {
+        "basis": [
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1
+        ],
+        "translation": [
+          0,
+          0,
+          10.189441680908203
+        ]
+      },
+      "seatedGuestPose": {
+        "basis": [
+          -1,
+          1.2246467991473532e-16,
+          0,
+          -1.2246467991473532e-16,
+          -1,
+          0,
+          0,
+          0,
+          1
+        ],
+        "translation": [
+          -20.366051610310876,
+          0,
+          10.189441680908203
+        ]
+      },
+      "spec": {
+        "yaw": 180,
+        "pitch": 0,
+        "roll": 0,
+        "axis": [
+          -1,
+          0,
+          0
+        ],
+        "axisName": "-X",
+        "gap": 0.1,
+        "mirrorX": false
+      },
+      "before": {
+        "contactArea": 15.623297399679863,
+        "residualGap": 0.17943193716569028,
+        "normalAlignment": -0.9717505735624871,
+        "deepestCrossing": 0.007703600816894769,
+        "lowestZ": -10.189441680908203
+      },
+      "afterSeat": {
+        "contactArea": 15.623297399679863,
+        "residualGap": 0.17943193716569028,
+        "normalAlignment": -0.9717505735624871,
+        "lowestZ": 0,
+        "lift": 10.189441680908203
+      },
+      "relativeUnchanged": true,
+      "growth": [
+        {
+          "direction": "+X",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "-X",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "+Y",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "-Y",
+          "lowestAfterSeat": 0
+        },
+        {
+          "direction": "+Z",
+          "lowestAfterSeat": 0
+        }
+      ],
+      "trials": [
+        {
+          "id": "baseline",
+          "radius": 0.45,
+          "cell": 0.22,
+          "buildMilliseconds": 206,
+          "validationMilliseconds": 409,
+          "note": "Voxelized blend, radius 0.45, grid 8×29×24, cell 0.22.",
+          "triangles": 2720,
+          "patchVolume": 21.785796194609283,
+          "addedVolume": 2.881276502188939,
+          "hostOverlap": 9.345279368273514,
+          "guestOverlap": 9.559240325697965,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.0999994277954102,
+            5.93999981880188,
+            4.839999675750732
+          ]
+        },
+        {
+          "id": "r40-c16",
+          "radius": 0.4,
+          "cell": 0.16,
+          "buildMilliseconds": 485,
+          "validationMilliseconds": 754,
+          "note": "Voxelized blend, radius 0.40, grid 10×40×33, cell 0.16.",
+          "triangles": 4856,
+          "patchVolume": 16.142339868285585,
+          "addedVolume": 2.2447020580343633,
+          "hostOverlap": 6.8961750992388104,
+          "guestOverlap": 7.001462711012328,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.119999885559082,
+            5.920000076293945,
+            4.799999713897705
+          ]
+        },
+        {
+          "id": "r38-c14",
+          "radius": 0.38,
+          "cell": 0.14,
+          "buildMilliseconds": 568,
+          "validationMilliseconds": 1221,
+          "note": "Voxelized blend, radius 0.38, grid 11×45×37, cell 0.14.",
+          "triangles": 5928,
+          "patchVolume": 15.701155564006266,
+          "addedVolume": 1.9942547259715866,
+          "hostOverlap": 6.841468319230537,
+          "guestOverlap": 6.865432521381216,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.119999885559082,
+            5.879999876022339,
+            4.759999752044678
+          ]
+        },
+        {
+          "id": "r36-c12",
+          "radius": 0.36,
+          "cell": 0.12,
+          "buildMilliseconds": 792,
+          "validationMilliseconds": 1704,
+          "note": "Voxelized blend, radius 0.36, grid 12×52×43, cell 0.12.",
+          "triangles": 7980,
+          "patchVolume": 14.881540567805748,
+          "addedVolume": 1.7818779574681685,
+          "hostOverlap": 6.379466151103565,
+          "guestOverlap": 6.720196461021869,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.9600000381469727,
+            5.879999876022339,
+            4.799999713897705
+          ]
+        },
+        {
+          "id": "r32-c12",
+          "radius": 0.32,
+          "cell": 0.12,
+          "buildMilliseconds": 712,
+          "validationMilliseconds": 1609,
+          "note": "Voxelized blend, radius 0.32, grid 11×51×42, cell 0.12.",
+          "triangles": 7736,
+          "patchVolume": 12.42086971320797,
+          "addedVolume": 1.457420756819829,
+          "hostOverlap": 5.170889716096238,
+          "guestOverlap": 5.792559240291723,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            0.8400001525878906,
+            5.759999990463257,
+            4.679999828338623
+          ]
+        },
+        {
+          "id": "r42-c14",
+          "radius": 0.42,
+          "cell": 0.14,
+          "buildMilliseconds": 669,
+          "validationMilliseconds": 1090,
+          "note": "Voxelized blend, radius 0.42, grid 11×45×38, cell 0.14.",
+          "triangles": 6764,
+          "patchVolume": 18.184478417455836,
+          "addedVolume": 2.487815602250521,
+          "hostOverlap": 7.962650770378027,
+          "guestOverlap": 7.734012046615399,
+          "patchStatus": "NoError",
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "selfIntersections": 0,
+          "oneSolid": true,
+          "extent": [
+            1.119999885559082,
+            6.019999980926514,
+            4.900000095367432
+          ]
+        }
+      ],
+      "selected": {
+        "id": "r32-c12",
+        "radius": 0.32,
+        "cell": 0.12,
+        "buildMilliseconds": 712,
+        "validationMilliseconds": 1609,
+        "note": "Voxelized blend, radius 0.32, grid 11×51×42, cell 0.12.",
+        "triangles": 7736,
+        "patchVolume": 12.42086971320797,
+        "addedVolume": 1.457420756819829,
+        "hostOverlap": 5.170889716096238,
+        "guestOverlap": 5.792559240291723,
+        "patchStatus": "NoError",
+        "joinedStatus": "NoError",
+        "joinedComponents": 1,
+        "selfIntersections": 0,
+        "oneSolid": true,
+        "extent": [
+          0.8400001525878906,
+          5.759999990463257,
+          4.679999828338623
+        ]
+      },
+      "connection": {
+        "contract": "skill6-patch-connection-v1",
+        "classification": "patched-near-contact",
+        "hostInstanceId": "t00",
+        "guestInstanceId": "t01",
+        "hostArchetypeId": "flat-deep-plan",
+        "guestArchetypeId": "inserted-horizontal-plate",
+        "rigidPose": {
+          "quarterZ": 2,
+          "mirrorX": false,
+          "basis": [
+            -1,
+            1.2246467991473532e-16,
+            0,
+            -1.2246467991473532e-16,
+            -1,
+            0,
+            0,
+            0,
+            1
+          ],
+          "translation": [
+            -20.366051610310876,
+            0,
+            0
+          ]
+        },
+        "parameters": {
+          "radius": 0.32,
+          "cell": 0.12,
+          "method": "implicit-blend"
+        },
+        "contact": {
+          "contactArea": 15.623297399679863,
+          "residualGap": 0.17943193716569028,
+          "normalAlignment": -0.9717505735624871,
+          "deepestCrossing": 0.007703600816894769,
+          "kind": "near-contact"
+        },
+        "patch": {
+          "id": "r32-c12",
+          "patchVolume": 12.42086971320797,
+          "addedVolume": 1.457420756819829,
+          "hostOverlap": 5.170889716096238,
+          "guestOverlap": 5.792559240291723
+        },
+        "boolean": {
+          "status": "NoError",
+          "components": 1,
+          "selfIntersections": 0,
+          "oneSolid": true
+        },
+        "ground": {
+          "lift": 10.189441680908203,
+          "minZBefore": -10.189441680908203,
+          "minZAfter": 0
+        },
+        "geometry": "patch:flat-plate:r32-c12",
+        "provenance": "rule-based-envelope pose, implicit blend refined from the 0.45 / 0.22 baseline. Source meshes were not edited."
+      }
+    }
+  ]
+}

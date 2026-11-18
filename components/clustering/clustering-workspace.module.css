@@ -1,0 +1,407 @@
+.canvas {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  place-items: center;
+  background: #000000;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+}
+
+:global([data-view-mode="presentation"]) .canvas {
+  font-size: calc(13px * 7407 / 1920);
+}
+
+.canvas p {
+  margin: 0;
+  font-family: var(--font-site-display);
+  font-size: 1.15em;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.view,
+.bare,
+.board,
+.boardBare {
+  height: 100%;
+  min-height: 0;
+  background: #000000;
+  color: #ffffff;
+}
+
+.view {
+  padding: 1.4rem 3.75rem 1.4rem 1.6rem;
+}
+
+.bare,
+.boardBare {
+  padding: 1.15rem 1.35rem;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(200px, 260px);
+  gap: 18px;
+  padding: 14px 48px 14px 16px;
+}
+
+.frame,
+.copy {
+  max-width: 34rem;
+}
+
+.frame {
+  padding: 1.05rem 1.2rem 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  background: #000000;
+  box-shadow: var(--frame-glow);
+}
+
+.list,
+.detail,
+.stage {
+  min-height: 0;
+  min-width: 0;
+}
+
+.list,
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.spec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.specMain,
+.specSide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kicker {
+  margin: 0;
+  font-size: var(--wf-label, 9.6px);
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+  line-height: var(--wf-label-line, 1.15);
+  text-transform: uppercase;
+  color: #49d7de;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-site-display);
+  font-size: var(--wf-label, 9.6px);
+  font-weight: 400;
+  letter-spacing: var(--wf-label-tracking, 0.14em);
+  line-height: var(--wf-label-line, 1.15);
+  text-transform: uppercase;
+}
+
+.body,
+.note {
+  margin: 0;
+  font-size: var(--wf-body, 8.48px);
+  letter-spacing: var(--wf-body-tracking, 0.06em);
+  line-height: var(--wf-body-line, 1.35);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filters button,
+.tools button,
+.tiles button,
+.check {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  font-size: var(--wf-label, 9.6px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.filters button[data-on="true"],
+.tiles button[data-on="true"],
+.tools button[data-on="true"],
+.card[data-on="true"] {
+  color: #49d7de;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: #000000;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardView {
+  height: 72px;
+  min-width: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.cardView :global(canvas),
+.stage :global(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cardCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.cardCopy b,
+.cardCopy i,
+.cardCopy em,
+.tiles i {
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cardCopy em,
+.tiles i,
+.tools span {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.miss {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: #c77e5f;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-glow);
+  overflow: hidden;
+}
+
+.stage > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 8px;
+}
+
+.metrics {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.metrics div {
+  display: grid;
+  gap: 2px;
+}
+
+.metrics dt {
+  color: #49d7de;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.metrics dd {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tiles button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+/* Presentation sheet, matched to Hybrid Connection's assembly row and Vertical Propagation's frame padding. */
+:global([data-view-mode="presentation"]) .board,
+:global([data-view-mode="presentation"]) .view {
+  padding: 40px;
+  gap: 22px;
+  font-size: 30px;
+}
+
+:global([data-view-mode="presentation"]) .board {
+  grid-template-columns: minmax(720px, 0.22fr) minmax(0, 0.4fr) minmax(0, 0.38fr);
+}
+
+:global([data-view-mode="presentation"]) .list,
+:global([data-view-mode="presentation"]) .detail,
+:global([data-view-mode="presentation"]) .stage,
+:global([data-view-mode="presentation"]) .frame {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 64px;
+  padding: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 26%),
+    linear-gradient(155deg, rgba(30, 30, 30, 0.94) 0%, rgba(12, 12, 12, 0.97) 46%, rgba(0, 0, 0, 0.98) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 8px rgba(255, 255, 255, 0.26),
+    0 0 24px rgba(255, 255, 255, 0.16),
+    0 0 52px rgba(255, 255, 255, 0.09);
+}
+
+:global([data-view-mode="presentation"]) .list,
+:global([data-view-mode="presentation"]) .detail {
+  gap: 0.4em;
+}
+
+:global([data-view-mode="presentation"]) .spec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.6em;
+  align-content: start;
+}
+
+:global([data-view-mode="presentation"]) .specMain,
+:global([data-view-mode="presentation"]) .specSide {
+  gap: 0.4em;
+}
+
+:global([data-view-mode="presentation"]) .kicker {
+  font-size: 0.5em;
+  letter-spacing: 0.22em;
+}
+
+:global([data-view-mode="presentation"]) .title {
+  font-size: 0.86em;
+  letter-spacing: 0.14em;
+}
+
+:global([data-view-mode="presentation"]) .body,
+:global([data-view-mode="presentation"]) .note,
+:global([data-view-mode="presentation"]) .metrics dd,
+:global([data-view-mode="presentation"]) .tools span {
+  font-size: 0.62em;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+:global([data-view-mode="presentation"]) .filters,
+:global([data-view-mode="presentation"]) .tools {
+  gap: 0.4em;
+}
+
+:global([data-view-mode="presentation"]) .filters button,
+:global([data-view-mode="presentation"]) .tools button,
+:global([data-view-mode="presentation"]) .check,
+:global([data-view-mode="presentation"]) .metrics dt,
+:global([data-view-mode="presentation"]) .cardCopy b,
+:global([data-view-mode="presentation"]) .cardCopy i,
+:global([data-view-mode="presentation"]) .cardCopy em,
+:global([data-view-mode="presentation"]) .tiles i,
+:global([data-view-mode="presentation"]) .miss {
+  font-size: 0.5em;
+  letter-spacing: 0.14em;
+}
+
+:global([data-view-mode="presentation"]) .tiles button {
+  gap: 0.15em;
+  font-size: 0.62em;
+  letter-spacing: 0.04em;
+}
+
+:global([data-view-mode="presentation"]) .tiles i {
+  font-size: 0.8em;
+}
+
+:global([data-view-mode="presentation"]) .metrics {
+  gap: 0.45em;
+}
+
+:global([data-view-mode="presentation"]) .cards {
+  gap: 0.4em;
+}
+
+:global([data-view-mode="presentation"]) .card {
+  grid-template-columns: 8.4em minmax(0, 1fr);
+  border-radius: 16px;
+}
+
+:global([data-view-mode="presentation"]) .cardView {
+  height: 4.6em;
+}
+
+:global([data-view-mode="presentation"]) .cardCopy {
+  gap: 0.2em;
+  padding-right: 0.6em;
+}
+
+:global([data-view-mode="presentation"]) .tools {
+  padding: 0.45em 0.2em 0.1em;
+}

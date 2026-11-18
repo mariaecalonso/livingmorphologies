@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "algorithm": "localized-patch-prototype",
+  "groundRule": "Final geometry stays at Z >= 0. Horizontal growth is +X, -X, +Y, -Y. Stacking is +Z. A local downward seat is allowed only while the result remains on or above the ground. The 20-unit cell is not a placement grid.",
+  "results": [
+    {
+      "id": "flat-self",
+      "hostId": "flat-deep-plan",
+      "guestId": "flat-deep-plan",
+      "spec": {
+        "yaw": 180,
+        "pitch": -40,
+        "roll": 0,
+        "axis": [
+          -1,
+          0,
+          0
+        ],
+        "axisName": "-X",
+        "gap": 0.1,
+        "mirrorX": false
+      },
+      "contactArea": 42.19011227596405,
+      "residualGap": 0.1771576599245016,
+      "normalAlignment": -0.9939159163900531,
+      "deepestCrossing": 0,
+      "overlapVolume": null,
+      "samples": 219,
+      "ground": {
+        "hostLowestZ": -10.189441680908203,
+        "guestLowestZ": -14.088295204310647,
+        "clusterLowestZ": -14.088295204310647,
+        "aboveGround": false,
+        "lift": 14.088295204310647
+      },
+      "loft": {
+        "build": {
+          "method": "surface-loft",
+          "milliseconds": 4,
+          "samples": 219,
+          "note": "99 surface cells, inset 0.06, vertices welded."
+        },
+        "measure": {
+          "triangles": 683,
+          "area": 63.58421584606703,
+          "volume": null,
+          "thickness": null,
+          "extent": [
+            0.3750762939453125,
+            10.21634030342102,
+            6.4659504890441895
+          ],
+          "min": [
+            -10.422933578491211,
+            -2.3686983585357666,
+            -10.114431381225586
+          ],
+          "lowestZ": -10.114431381225586,
+          "patchStatus": "Not manifold",
+          "hostOverlap": null,
+          "guestOverlap": null,
+          "joinedStatus": "not-run",
+          "joinedComponents": null,
+          "joinedVolume": null,
+          "hostVolume": null,
+          "guestVolume": null,
+          "selfIntersections": 138,
+          "joinsBoth": false,
+          "oneSolid": false,
+          "milliseconds": 57
+        }
+      },
+      "blend": {
+        "build": {
+          "method": "implicit-blend",
+          "milliseconds": 363,
+          "samples": 219,
+          "note": "Voxelized blend, radius 0.45, grid 8×53×36, cell 0.22."
+        },
+        "measure": {
+          "triangles": 6068,
+          "area": 146.8455782243829,
+          "volume": 54.166354056362096,
+          "thickness": 0.7377321770437629,
+          "extent": [
+            1.0999994277954102,
+            11.220000505447388,
+            7.479999780654907
+          ],
+          "min": [
+            -10.792078971862793,
+            -2.7877161502838135,
+            -10.522581100463867
+          ],
+          "lowestZ": -10.522581100463867,
+          "patchStatus": "NoError",
+          "hostOverlap": 22.851173311221917,
+          "guestOverlap": 24.284645303293544,
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "joinedVolume": 1775.7975386080293,
+          "hostVolume": 884.3835145441602,
+          "guestVolume": 884.3834886220224,
+          "selfIntersections": 0,
+          "joinsBoth": true,
+          "oneSolid": true,
+          "milliseconds": 568
+        }
+      }
+    },
+    {
+      "id": "flat-plate",
+      "hostId": "flat-deep-plan",
+      "guestId": "inserted-horizontal-plate",
+      "spec": {
+        "yaw": 180,
+        "pitch": 0,
+        "roll": 0,
+        "axis": [
+          -1,
+          0,
+          0
+        ],
+        "axisName": "-X",
+        "gap": 0.1,
+        "mirrorX": false
+      },
+      "contactArea": 15.623297399679863,
+      "residualGap": 0.17943193716569028,
+      "normalAlignment": -0.9717505735624871,
+      "deepestCrossing": 0.007703600816894769,
+      "overlapVolume": null,
+      "samples": 125,
+      "ground": {
+        "hostLowestZ": -10.189441680908203,
+        "guestLowestZ": -5.940267562866211,
+        "clusterLowestZ": -10.189441680908203,
+        "aboveGround": false,
+        "lift": 10.189441680908203
+      },
+      "loft": {
+        "build": {
+          "method": "surface-loft",
+          "milliseconds": 1,
+          "samples": 125,
+          "note": "60 surface cells, inset 0.06, vertices welded."
+        },
+        "measure": {
+          "triangles": 316,
+          "area": 27.9850818433003,
+          "volume": 1.2335288125541601,
+          "thickness": 0.08815616973794702,
+          "extent": [
+            0.3801565170288086,
+            5.073765993118286,
+            3.6362032890319824
+          ],
+          "min": [
+            -10.343537330627441,
+            -2.445319890975952,
+            6.294052600860596
+          ],
+          "lowestZ": 6.294052600860596,
+          "patchStatus": "NoError",
+          "hostOverlap": 0.49645884031542875,
+          "guestOverlap": 0.5168657769283486,
+          "joinedStatus": "NoError",
+          "joinedComponents": 13,
+          "joinedVolume": 1942.0506781264392,
+          "hostVolume": 884.3835145441602,
+          "guestVolume": 1057.4593141231003,
+          "selfIntersections": 137,
+          "joinsBoth": true,
+          "oneSolid": false,
+          "milliseconds": 123
+        }
+      },
+      "blend": {
+        "build": {
+          "method": "implicit-blend",
+          "milliseconds": 151,
+          "samples": 125,
+          "note": "Voxelized blend, radius 0.45, grid 8×29×24, cell 0.22."
+        },
+        "measure": {
+          "triangles": 2720,
+          "area": 65.82398542618839,
+          "volume": 21.785796194609283,
+          "thickness": 0.6619409643324848,
+          "extent": [
+            1.0999994277954102,
+            5.93999981880188,
+            4.839999675750732
+          ],
+          "min": [
+            -10.722370147705078,
+            -2.8616838455200195,
+            5.52734899520874
+          ],
+          "lowestZ": 5.52734899520874,
+          "patchStatus": "NoError",
+          "hostOverlap": 9.345279368273514,
+          "guestOverlap": 9.559240325697965,
+          "joinedStatus": "NoError",
+          "joinedComponents": 1,
+          "joinedVolume": 1944.7241051694493,
+          "hostVolume": 884.3835145441602,
+          "guestVolume": 1057.4593141231003,
+          "selfIntersections": 0,
+          "joinsBoth": true,
+          "oneSolid": true,
+          "milliseconds": 273
+        }
+      }
+    }
+  ],
+  "savedClusterGround": {
+    "id": "rule-medium-07-rule-based-envelope-v2.1-depth-80-long",
+    "lowestZ": -39.36091594311287,
+    "tiles": 7
+  }
+}

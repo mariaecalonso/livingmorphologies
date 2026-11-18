@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import handoff from "@/data/skill3/final-selection.json";
-import { PendingFrame } from "@/components/demo-workflow/chapter-kit";
+import { ClusteringWorkspace } from "@/components/clustering/clustering-workspace";
+import { JointDiagram } from "@/components/clustering/joint-diagram";
 import { FinalMorphologyCatalogue, type FinalArchiveHandoff } from "@/components/final-morphology-catalogue";
 import { takeCatalogHandoff, clearCatalogHandoff, catalogFlightActive, catalogFlightSettled } from "@/components/demo-workflow/catalog-inspection";
 import { CatalogDemonstration, ProcessDemonstration } from "@/components/demo-workflow/vertical-demonstration";
@@ -72,25 +73,11 @@ export function useVerticalContent(): ChapterContent {
       },
       {
         layout: styles.cluster,
-        details: [
-          <PendingFrame
-            key="clustering"
-            kicker="Chapter 03"
-            title="Clustering"
-            body="Initial clustering stays in the clustering lab."
-          />,
-        ],
+        details: [<ClusteringWorkspace key="clustering" tab="initial" />],
       },
       {
         layout: styles.cluster,
-        details: [
-          <PendingFrame
-            key="joint"
-            kicker="Chapter 03"
-            title="Joint Refinement"
-            body="Joint refinement stays in the clustering lab."
-          />,
-        ],
+        details: [<JointDiagram key="joint" />],
       },
     ],
   }), []);

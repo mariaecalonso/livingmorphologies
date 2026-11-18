@@ -1,0 +1,36 @@
+{
+  "clusterId": "assembled-flat-plate",
+  "host": "flat-deep-plan",
+  "guest": "inserted-horizontal-plate",
+  "direction": "-X",
+  "placement": "lateral",
+  "classification": "patched-near-contact",
+  "residualGap": 0.179,
+  "contactArea": 15.623,
+  "plane": [
+    "Y",
+    "Z"
+  ],
+  "sampleCount": 125,
+  "patch": {
+    "radius": 0.32,
+    "cell": 0.12,
+    "extent": [
+      0.96,
+      5.88,
+      4.8
+    ],
+    "volume": 15.412,
+    "bodies": 1
+  },
+  "union": {
+    "solids": 1,
+    "cavities": 0
+  },
+  "refined": {
+    "solids": 1,
+    "seamCreasesBefore": 1409,
+    "seamCreasesAfter": 89
+  },
+  "lift": 10.189
+}

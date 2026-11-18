@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import "@/app/lab/site/site-interface.css";
 import brief from "@/data/skill5/workplace-brief.json";
 import { FLOOR_SHARES, SHARE_LEGEND, SITE, STUDIO } from "@/lib/demo-workflow/chapter-facts";
-import { Caption, Chips, Img, Kicker, PendingFrame } from "@/components/demo-workflow/chapter-kit";
+import { Caption, Chips, Img, Kicker } from "@/components/demo-workflow/chapter-kit";
+import { ClusteringWorkspace, PendingFrame } from "@/components/clustering/clustering-workspace";
 import { HomeClient } from "@/components/home-client";
 import { SiteAnalysisWorkspace } from "@/components/site/site-analysis-workspace";
 import { SiteWorkspace } from "@/components/site/site-workspace";
@@ -270,11 +271,7 @@ export const CONTEXT_CONTENT: ChapterContent = {
       layout: styles.sheet,
       details: [
         <WorkflowHost key="refined" part="site">
-          <PendingFrame
-            kicker="Chapter 04"
-            title="Clustering Refinement"
-            body="Clustering refinement stays in the clustering lab."
-          />
+          <ClusteringWorkspace tab="refined" frame={false} />
         </WorkflowHost>,
       ],
     },

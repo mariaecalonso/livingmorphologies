@@ -6,12 +6,12 @@ description: >-
   continuous vertical propagation, successive Z states, 3D Physarum morphology,
   modular protoarchitectural modules, interlocking, aggregation, or converting
   a selected 2D Physarum state into a 3D form. Do not use for Skill 1
-  translation, Skill 2 2D generation, 2D evaluation, 2D selection, or final
-  multi-module aggregation.
+  translation, Skill 2 2D generation, 2D evaluation, 2D selection, Skill 4
+  Hybrid Connection, or Skill 5 Site Integration.
 ---
 # Skill 3: Continuous Vertical Propagation and Modular 3D Development
 This is the project-level skill for Skill 3 in the shared repository `livingmorphologies`.
-Apply this skill when continuing a final, already selected 2D Physarum outcome into the Z dimension as a modular 3D protoarchitectural form. Do not apply it to Skill 1 translation, Skill 2 2D generation, 2D evaluation, 2D selection, architectural criteria, or final multi-module aggregation.
+Apply this skill when continuing a final, already selected 2D Physarum outcome into the Z dimension as a modular 3D protoarchitectural form. Do not apply it to Skill 1 translation, Skill 2 2D generation, 2D evaluation, 2D selection, or architectural criteria. Joining modules is Skill 4, Hybrid Connection. Placing them on the site is Skill 5, Site Integration.
 Current status: definition only. Skill 1 translation is complete in this repository. Skill 3 still waits for Skill 2's 15 selected 2D outcomes. Do not implement vertical-propagation code, create 3D geometry, or reconstruct Skill 1 / Skill 2 unless the user explicitly requests that work.
 ## Purpose
 Skill 3 begins only after Skill 2 has completed the 2D generation and architectural evaluation process.
