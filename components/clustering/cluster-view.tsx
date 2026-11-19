@@ -28,7 +28,7 @@ const INTERFACE_COLOR: Record<string, string> = {
 
 const geometries = new Map<string, Promise<THREE.BufferGeometry>>();
 
-function geometryFor(archetype: ViewArchetype): Promise<THREE.BufferGeometry> {
+export function loadArchetypeGeometry(archetype: ViewArchetype): Promise<THREE.BufferGeometry> {
   const cached = geometries.get(archetype.archetypeId);
   if (cached) return cached;
   const pending = fetch(`/api/vertical/solidified?archetype=${encodeURIComponent(archetype.archetypeId)}&candidate=${archetype.candidateId}&continuation=${encodeURIComponent(archetype.continuationId)}`)
@@ -80,7 +80,7 @@ export function assemblyGeometry(encoded: EncodedAssemblyMesh): THREE.BufferGeom
   return geometry;
 }
 
-function poseMatrix(pose: Skill6Pose) {
+export function poseMatrix(pose: Skill6Pose) {
   const basis = pose.basis;
   const matrix = new THREE.Matrix4();
   matrix.set(
@@ -104,13 +104,16 @@ export function ClusterView({
   extras,
   shownExtras,
   hideTiles = false,
+  shownIds,
   floorZ,
   syncGroup,
   fixedSpan,
+  focus,
   onSpan,
   ink = "typology",
   presentation = false,
   tones = "lab",
+  ground = true,
 }: {
   tiles: readonly ClusterTile[];
   archetypes: readonly ViewArchetype[];
@@ -125,12 +128,16 @@ export function ClusterView({
   /** Ids of the extras to draw. Switching keeps the camera where it is. */
   shownExtras?: readonly string[];
   hideTiles?: boolean;
+  /** When set, only these tiles are drawn. The camera still frames the whole cluster. */
+  shownIds?: readonly string[];
   /** A seated assembly sits on this plane. Otherwise the floor sits just under the lowest tile. */
   floorZ?: number;
   /** Views with the same group share orbit and zoom. Pan stays local. */
   syncGroup?: string;
   /** Frame every view in a group to this span so the clusters read at one scale. */
   fixedSpan?: number;
+  /** World point the camera frames. The mesh center is used when this is omitted. */
+  focus?: readonly [number, number, number];
   /** Largest extent of the drawn cluster, reported once it loads. */
   onSpan?: (span: number) => void;
   /** Fit Tiles can be drawn as one white body. The assembly reading keeps typology color. */
@@ -139,6 +146,8 @@ export function ClusterView({
   presentation?: boolean;
   /** The assembly reading uses the interface typology colors. Fit Tiles keeps the lab tones. */
   tones?: "lab" | "interface";
+  /** The chapter cards frame the cluster without the ground plane. */
+  ground?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectRef = useRef(onSelect);
@@ -147,12 +156,14 @@ export function ClusterView({
   const showContactsRef = useRef(showContacts);
   const shownRef = useRef(shownExtras);
   const hideTilesRef = useRef(hideTiles);
+  const shownIdsRef = useRef(shownIds);
   const syncRef = useRef(syncGroup);
   const spanRef = useRef(onSpan);
   syncRef.current = syncGroup;
   spanRef.current = onSpan;
   shownRef.current = shownExtras;
   hideTilesRef.current = hideTiles;
+  shownIdsRef.current = shownIds;
   selectRef.current = onSelect;
   selectedRef.current = selectedId;
   contactsRef.current = contacts;
@@ -197,8 +208,8 @@ export function ClusterView({
     scene.add(fill);
     const root = new THREE.Group();
     scene.add(root);
-    const ground = new THREE.Group();
-    scene.add(ground);
+    const floor = new THREE.Group();
+    scene.add(floor);
     const marks = new THREE.Group();
     scene.add(marks);
     let disposed = false;
@@ -228,42 +239,44 @@ export function ClusterView({
     };
 
     const seatGround = (box: THREE.Box3) => {
-      ground.clear();
+      floor.clear();
       const size = box.getSize(new THREE.Vector3());
       const span = Math.max(size.x, size.y, 12) * 2.4;
       const center = box.getCenter(new THREE.Vector3());
-      const floor = floorZ ?? box.min.z - Math.max(0.35, size.z * 0.02);
-      const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(span, span),
-        new THREE.MeshStandardMaterial({ color: presentation ? 0x141414 : 0x0a0a0a, roughness: 1, metalness: 0 }),
-      );
-      plane.position.set(center.x, center.y, floor);
-      plane.receiveShadow = true;
-      ground.add(plane);
-      const grid = new THREE.GridHelper(span, 8, 0x24383a, 0x1c1c1c);
-      grid.rotation.x = Math.PI / 2;
-      grid.position.set(center.x, center.y, floor + Math.max(0.04, span * 0.001));
-      const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material];
-      for (const material of gridMaterials) {
-        material.transparent = true;
-        material.opacity = 0.28;
-      }
-      ground.add(grid);
-      const arm = Math.min(span * 0.1, Math.max(size.x, size.y) * 0.28);
-      const thickness = Math.max(0.06, span * 0.0014);
-      const originX = box.min.x - arm * 0.2;
-      const originY = box.min.y - arm * 0.2;
-      const bar = (width: number, depth: number, height: number, color: number, x: number, y: number, z: number) => {
-        const mark = new THREE.Mesh(
-          new THREE.BoxGeometry(width, depth, height),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.32 }),
+      const level = floorZ ?? box.min.z - Math.max(0.35, size.z * 0.02);
+      if (ground) {
+        const plane = new THREE.Mesh(
+          new THREE.PlaneGeometry(span, span),
+          new THREE.MeshStandardMaterial({ color: presentation ? 0x141414 : 0x0a0a0a, roughness: 1, metalness: 0 }),
         );
-        mark.position.set(x, y, z);
-        ground.add(mark);
-      };
-      bar(arm, thickness, thickness, 0x9a9a9a, originX + arm / 2, originY, floor + thickness * 0.5);
-      bar(thickness, arm, thickness, 0x6e6e6e, originX, originY + arm / 2, floor + thickness * 0.5);
-      bar(thickness, thickness, arm * 0.7, 0x2f6d70, originX, originY, floor + arm * 0.35);
+        plane.position.set(center.x, center.y, level);
+        plane.receiveShadow = true;
+        floor.add(plane);
+        const grid = new THREE.GridHelper(span, 8, 0x24383a, 0x1c1c1c);
+        grid.rotation.x = Math.PI / 2;
+        grid.position.set(center.x, center.y, level + Math.max(0.04, span * 0.001));
+        const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material];
+        for (const material of gridMaterials) {
+          material.transparent = true;
+          material.opacity = 0.28;
+        }
+        floor.add(grid);
+        const arm = Math.min(span * 0.1, Math.max(size.x, size.y) * 0.28);
+        const thickness = Math.max(0.06, span * 0.0014);
+        const originX = box.min.x - arm * 0.2;
+        const originY = box.min.y - arm * 0.2;
+        const bar = (width: number, depth: number, height: number, color: number, x: number, y: number, z: number) => {
+          const mark = new THREE.Mesh(
+            new THREE.BoxGeometry(width, depth, height),
+            new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.32 }),
+          );
+          mark.position.set(x, y, z);
+          floor.add(mark);
+        };
+        bar(arm, thickness, thickness, 0x9a9a9a, originX + arm / 2, originY, level + thickness * 0.5);
+        bar(thickness, arm, thickness, 0x6e6e6e, originX, originY + arm / 2, level + thickness * 0.5);
+        bar(thickness, thickness, arm * 0.7, 0x2f6d70, originX, originY, level + arm * 0.35);
+      }
       key.position.set(center.x + span * 0.22, center.y - span * 0.42, box.max.z + span * 0.55);
       key.target.position.set(center.x, center.y, center.z);
       key.target.updateMatrixWorld();
@@ -294,7 +307,7 @@ export function ClusterView({
     void Promise.all(tiles.map(async (tile) => {
       const source = lookup.get(tile.archetypeId);
       if (!source) return null;
-      const geometry = await geometryFor(source);
+      const geometry = await loadArchetypeGeometry(source);
       if (disposed) return null;
       const material = new THREE.MeshStandardMaterial({
         color: ink === "white" ? "#f4f4f4" : ((tones === "interface" ? INTERFACE_COLOR : COLOR)[tile.typologyId] ?? "#ffffff"),
@@ -325,6 +338,7 @@ export function ClusterView({
       root.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(root);
       const home = box.getCenter(new THREE.Vector3());
+      if (focus) home.set(focus[0], focus[1], focus[2]);
       const look = home.clone();
       seatGround(box);
       fit(box);
@@ -386,7 +400,8 @@ export function ClusterView({
           const lit = mesh.userData.instanceId === selectedRef.current;
           const material = mesh.material as THREE.MeshStandardMaterial;
           material.emissive.set(lit ? 0x123436 : 0x000000);
-          mesh.visible = !hideTilesRef.current;
+          const allow = shownIdsRef.current;
+          mesh.visible = !hideTilesRef.current && (allow == null || allow.includes(mesh.userData.instanceId));
         }
         for (const mesh of extraMeshes) mesh.visible = shownRef.current?.includes(mesh.userData.extraId) ?? false;
         paintContacts();
@@ -512,7 +527,7 @@ export function ClusterView({
       disposed = true;
       detach();
       observer.disconnect();
-      ground.traverse((node) => {
+      floor.traverse((node) => {
         const mesh = node as THREE.Mesh;
         mesh.geometry?.dispose();
         const material = mesh.material;
@@ -521,14 +536,14 @@ export function ClusterView({
       });
       renderer?.dispose();
       root.clear();
-      ground.clear();
+      floor.clear();
       marks.traverse((node) => {
         const line = node as THREE.LineSegments;
         line.geometry?.dispose();
       });
       marks.clear();
     };
-  }, [tiles, archetypes, interactive, extras, floorZ, fixedSpan, ink, presentation, tones]);
+  }, [tiles, archetypes, interactive, extras, floorZ, fixedSpan, focus, ink, presentation, tones, ground, shownIds, selectedId]);
 
   useEffect(() => {
     canvasRef.current?.dispatchEvent(new Event("lm-cluster-draw"));
