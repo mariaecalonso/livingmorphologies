@@ -1,20 +1,20 @@
 "use client";
 
-import { AnalysisAccuracy } from "./analysis-record";
 import { AutumnIcon, ExploreSegment, ExploreSlider, SpringIcon, SunIcon, WinterIcon, YearIcon } from "./explore-controls";
 import { AnalysisColumnFrame, siteRecord, type SiteFinding, type SiteObservation } from "./site-inputs";
-import { WindRose } from "@/components/site/wind-rose";
+import { AnalysisReadout } from "./analysis-readout";
+import type { SiteAnalysisBundle, SiteAnalysisStoreState } from "@/lib/skill5/site-analysis-bundle";
+import { WindRose, windSpeedColor } from "@/components/site/wind-rose";
 import {
   MONTH_NAMES,
-  WIND_CALM_NOTE,
   WIND_CONDITIONS,
-  WIND_DIRECTION_NOTE,
   WIND_HISTORY_NOTE,
   WIND_SEASONS,
   WIND_SOURCE,
   conditionLabel,
   displayedMph,
   periodLabel,
+  seasonalComparison,
   windSeason,
   type WindCondition,
   type WindSummary,
@@ -97,43 +97,28 @@ export function WindConfigure({
 
 export function WindResults({
   summary,
-  year,
-  seasons,
   sector,
   distanceKm,
   inputs,
   onRetain,
+  onRemove,
   onLive,
-  onSeason,
-  onSector,
 }: {
   summary: WindSummary;
-  year: WindSummary | null;
-  seasons: ReadonlyArray<{ id: string; label: string; summary: WindSummary }>;
   sector: number | null;
   distanceKm: number;
+  analysisBundle: SiteAnalysisBundle | null;
+  bundleStored: SiteAnalysisStoreState;
   inputs: readonly SiteObservation[];
   onRetain: (finding: SiteFinding) => void;
+  onRemove?: (id: string) => void;
   onLive: (findings: readonly SiteFinding[]) => void;
-  onSeason: (value: string) => void;
   onSector: (index: number | null) => void;
 }) {
-  const drawn = sector === null ? summary.prevailing : summary.sectors[sector] ?? null;
   const moving = summary.hours - summary.calmHours;
   const share = summary.prevailing && moving > 0 ? Math.round((100 * summary.prevailing.hours) / moving) : 0;
-  const sources = [
-    WIND_HISTORY_NOTE,
-    `${WIND_SOURCE.dataset}, WMO ${WIND_SOURCE.wmo}, ${WIND_SOURCE.station}`,
-    `${WIND_SOURCE.lat.toFixed(2)}° N, ${Math.abs(WIND_SOURCE.lon).toFixed(2)}° W, ${WIND_SOURCE.elevationMeters} m, ${distanceKm.toFixed(1)} km from this site`,
-    WIND_CALM_NOTE,
-    WIND_DIRECTION_NOTE,
-    "Speed in m/s. Direction is where the wind comes from.",
-    "Hours under 0.5 m/s are calm and leave the rose.",
-    `${summary.hours.toLocaleString("en-US")} hours, ${summary.calmHours.toLocaleString("en-US")} calm.`,
-    "One direction across the model. Not airflow around buildings.",
-  ];
   const studyName = "Wind";
-  const period = periodLabel(summary.season, summary.month);
+  const period = periodLabel(summary.season, summary.month).replace("Autumn", "Fall");
   const condition = conditionLabel(summary.condition);
   const windSource = {
     name: WIND_SOURCE.dataset,
@@ -145,6 +130,8 @@ export function WindResults({
     { id: "period", value: period },
     { id: "condition", value: condition },
     { id: "season", value: summary.season },
+    { id: "seasonLabel", value: period },
+    { id: "scenario", value: "regional airport composite" },
     { id: "month", value: String(summary.month) },
   ];
   const findings: SiteFinding[] = [];
@@ -185,59 +172,74 @@ export function WindResults({
       gaps: ["The vector mean has a direction and no location on the parcel."],
     }));
   }
-  const gap = selectedSector && selectedSector.hours === 0
-    ? "The selected wedge has no moving hours, so it is not offered."
-    : "Wind is one airport direction across the model. No shaded or exposed location on the parcel is stored.";
+  const seasons = seasonalComparison(summary.condition);
+  const speeds = seasons.flatMap((row) => row.summary.sectors.filter((item) => item.hours > 0).map((item) => item.meanSpeed));
+  const slow = speeds.length > 0 ? Math.min(...speeds) : 0;
+  const fast = speeds.length > 0 ? Math.max(...speeds) : 0;
+  const seasonOrder = ["spring", "summer", "autumn", "winter"] as const;
   return (
-    <AnalysisColumnFrame findings={findings} gap={gap} inputs={inputs} onRetain={onRetain} onLive={onLive}>
-      <section className="site-block">
-        <p className="site-sun-when">{periodLabel(summary.season, summary.month)}<br />{conditionLabel(summary.condition)}</p>
-        <WindRose sectors={summary.sectors} selected={sector} onSelect={onSector} />
-        <p className="site-note">{drawn && drawn.hours > 0 ? `${drawn.name} from ${drawn.meanFrom.toFixed(0)}°, ${drawn.meanSpeed.toFixed(1)} m/s in that wedge.` : "This selection has no direction to draw."}</p>
-        <div className="site-sun-figures">
-          <div className="site-sun-figure-lead">
-            <span>Most frequent</span>
-            <strong>{summary.prevailing ? summary.prevailing.name : "None"}</strong>
-            <em>{summary.prevailing ? `from ${summary.prevailing.meanFrom.toFixed(0)}°, ${share}% of moving hours` : "No moving hours"}</em>
-          </div>
-          <div>
-            <span>Average speed</span>
-            <strong>{summary.meanSpeed.toFixed(1)}</strong>
-            <em>m/s, including calm, {speedMph(summary.meanSpeed)}</em>
-          </div>
-          <div>
-            <span>Vector mean</span>
-            <strong>{summary.vectorFrom === null ? "None" : `${summary.vectorFrom.toFixed(0)}°`}</strong>
-            <em>speed-weighted</em>
-          </div>
-        </div>
-        {summary.condition === "strong" ? <p className="site-note">Median threshold {summary.medianSpeed.toFixed(1)} m/s.</p> : null}
-        <div className="site-wind-seasons" data-layout="strip" role="group" aria-label="Year and seasons">
-          {year ? (
-            <button type="button" data-active={summary.season === "year" && summary.month === 0 || undefined} onClick={() => onSeason("year")}>
-              <span>Year</span>
-              <span>{year.prevailing?.name ?? "—"}</span>
-              <span>{year.meanSpeed.toFixed(1)}</span>
-            </button>
-          ) : null}
-          {seasons.map((row) => (
-            <button key={row.id} type="button" data-active={summary.season === row.id || undefined} onClick={() => onSeason(row.id)}>
-              <span>{row.label}</span>
-              <span>{row.summary.prevailing?.name ?? "—"}</span>
-              <span>{row.summary.meanSpeed.toFixed(1)}</span>
-            </button>
-          ))}
-        </div>
-        <AnalysisAccuracy limits={sources} />
-      </section>
-      <section className="site-block">
-        <h2 className="site-subtitle">Legend</h2>
-        <ul className="site-analysis-legend">
-          <li data-rank="primary"><i style={{ background: "#f2f2ee" }} /><span>Arrow, the way the wind moves</span></li>
-          <li data-rank="support"><i style={{ background: "#8d8d8d" }} /><span>Longer wedge, more hours</span></li>
-          <li data-rank="support"><i style={{ background: "#d8d8d8" }} /><span>Brighter wedge, higher speed</span></li>
-        </ul>
-      </section>
+    <AnalysisColumnFrame title="Wind : Results" findings={findings} inputs={inputs} onRetain={onRetain} onRemove={onRemove} onLive={onLive}>
+      <div className="site-wind-study">
+      <AnalysisReadout
+        titles={["/ Wind rose", "/ This season", "/ Four seasons"]}
+        condition={(
+          <>
+            <div className="site-wind-rose-row">
+              <div className="site-wind-rose-slot">
+                <WindRose sectors={summary.sectors} movingHours={moving} prevailingIndex={summary.prevailing?.index ?? null} slow={slow} fast={fast} />
+              </div>
+              <div className="site-sun-scale site-wind-speed" aria-hidden="true">
+                <span>{speedMph(fast)}</span>
+                <i style={{ background: `linear-gradient(180deg, ${windSpeedColor(fast, slow, fast)}, ${windSpeedColor(slow, slow, fast)})` }} />
+                <span>{speedMph(slow)}</span>
+              </div>
+            </div>
+            <div className="site-sun-scale site-wind-length" aria-hidden="true">
+              <span>0%</span>
+              <i />
+              <span>30%</span>
+            </div>
+            <p className="site-sun-range">Length is the share of moving hours. Color is the wedge mean. Both scales stay fixed across seasons.</p>
+          </>
+        )}
+        input={(
+          <dl className="site-sun-measures">
+            <div><dt>Prevailing</dt><dd>{summary.prevailing?.name ?? "—"}</dd></div>
+            <div><dt>Bearing</dt><dd>{summary.prevailing ? `${Math.round(summary.prevailing.meanFrom)}°` : "—"}</dd></div>
+            <div><dt>Frequency</dt><dd>{summary.prevailing ? `${share}%` : "—"}</dd></div>
+            <div><dt>Wedge mean</dt><dd>{summary.prevailing ? speedMph(summary.prevailing.meanSpeed) : "—"}</dd></div>
+            <div><dt>Seasonal mean</dt><dd>{speedMph(summary.meanSpeed)}</dd></div>
+            <div><dt>Calm hours</dt><dd>{summary.calmHours}</dd></div>
+          </dl>
+        )}
+        response={(
+          <ul className="site-wind-compare">
+            <li className="site-wind-compare-head" aria-hidden="true">
+              <span>Season</span>
+              <span>From</span>
+              <span>Share</span>
+              <span>Mean</span>
+            </li>
+            {seasonOrder.map((id) => {
+              const row = seasons.find((item) => item.id === id);
+              if (!row) return null;
+              const rowMoving = row.summary.hours - row.summary.calmHours;
+              const rowPrevailing = row.summary.prevailing;
+              const rowShare = rowPrevailing && rowMoving > 0 ? Math.round((100 * rowPrevailing.hours) / rowMoving) : 0;
+              const label = id === "autumn" ? "Fall" : row.label;
+              return (
+                <li key={id} data-active={id === summary.season ? "true" : undefined}>
+                  <span>{label}</span>
+                  <span>{rowPrevailing ? `${rowPrevailing.name} · ${Math.round(rowPrevailing.meanFrom)}°` : "—"}</span>
+                  <span>{rowShare}%</span>
+                  <span>{speedMph(row.summary.meanSpeed)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      />
+      </div>
     </AnalysisColumnFrame>
   );
 }

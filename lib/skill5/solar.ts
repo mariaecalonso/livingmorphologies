@@ -202,6 +202,136 @@ export function monthlySolarNoon(latitude: number, longitude: number, year: numb
   return rows;
 }
 
+export type SolarSeasonId = "spring" | "summer" | "fall" | "winter";
+
+export type DaySunSample = {
+  time: string;
+  altitude: number;
+  azimuth: number;
+  above: boolean;
+  shadowPerFoot: number | null;
+};
+
+function isoDate(year: number, month: number, day: number) {
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function daysInMonth(year: number, month: number) {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+const representativeDateCache = new Map<string, Record<SolarSeasonId, string> | null>();
+
+/**
+ * One civil date for each season, found with the same geometric solar position:
+ * summer and winter are the highest and lowest solar-noon days, and the equinoxes
+ * are the days whose solar-noon altitude is closest to 90° minus latitude.
+ * Each date is a single instant's geometry, not average sunlight for the season.
+ * The year scan runs once per place.
+ */
+export function representativeSolarDates(
+  latitude: number,
+  longitude: number,
+  year: number,
+  timeZone = MIAMI_TIME_ZONE,
+): Record<SolarSeasonId, string> | null {
+  const key = `${latitude}|${longitude}|${year}|${timeZone}`;
+  const cached = representativeDateCache.get(key);
+  if (cached !== undefined) return cached;
+  const value = calculateRepresentativeSolarDates(latitude, longitude, year, timeZone);
+  representativeDateCache.set(key, value);
+  return value;
+}
+
+function calculateRepresentativeSolarDates(
+  latitude: number,
+  longitude: number,
+  year: number,
+  timeZone: string,
+): Record<SolarSeasonId, string> | null {
+  if (!Number.isInteger(year) || year < 1) return null;
+  const coarse: { date: string; month: number; altitude: number }[] = [];
+  for (let month = 1; month <= 12; month += 1) {
+    const days = daysInMonth(year, month);
+    for (let day = 1; day <= days; day += 1) {
+      const date = isoDate(year, month, day);
+      let altitude = -90;
+      for (const hour of [16, 17, 18]) {
+        for (const minute of [0, 20, 40]) {
+          const sample = solarPosition(latitude, longitude, new Date(Date.UTC(year, month - 1, day, hour, minute, 0)));
+          if (sample.altitude > altitude) altitude = sample.altitude;
+        }
+      }
+      coarse.push({ date, month, altitude });
+    }
+  }
+  if (coarse.length < 4) return null;
+  const equinoxAltitude = 90 - latitude;
+  const byDistance = (left: { altitude: number }, right: { altitude: number }) => (
+    Math.abs(left.altitude - equinoxAltitude) - Math.abs(right.altitude - equinoxAltitude)
+  );
+  const candidates = [
+    ...[...coarse].sort((left, right) => right.altitude - left.altitude).slice(0, 8),
+    ...[...coarse].sort((left, right) => left.altitude - right.altitude).slice(0, 8),
+    ...coarse.filter((row) => row.month <= 6).sort(byDistance).slice(0, 8),
+    ...coarse.filter((row) => row.month >= 7).sort(byDistance).slice(0, 8),
+  ];
+  const refined = new Map<string, { date: string; month: number; altitude: number }>();
+  for (const row of candidates) {
+    if (refined.has(row.date)) continue;
+    const peak = highestAltitude(latitude, longitude, row.date, 11 * 60, 14 * 60 + 30, 10, timeZone);
+    if (!peak) continue;
+    const best = highestAltitude(
+      latitude,
+      longitude,
+      row.date,
+      Math.max(0, peak.minute - 10),
+      Math.min(23 * 60 + 59, peak.minute + 10),
+      1,
+      timeZone,
+    ) ?? peak;
+    refined.set(row.date, { date: row.date, month: row.month, altitude: best.sample.altitude });
+  }
+  const noons = [...refined.values()];
+  if (noons.length < 4) return null;
+  const summer = noons.reduce((best, row) => (row.altitude > best.altitude ? row : best));
+  const winter = noons.reduce((best, row) => (row.altitude < best.altitude ? row : best));
+  const closest = (rows: typeof noons) => rows.reduce((best, row) => (
+    Math.abs(row.altitude - equinoxAltitude) < Math.abs(best.altitude - equinoxAltitude) ? row : best
+  ));
+  const springRows = noons.filter((row) => row.month <= 6 && row.date !== summer.date);
+  const fallRows = noons.filter((row) => row.month >= 7 && row.date !== winter.date);
+  if (springRows.length === 0 || fallRows.length === 0) return null;
+  return {
+    spring: closest(springRows).date,
+    summer: summer.date,
+    fall: closest(fallRows).date,
+    winter: winter.date,
+  };
+}
+
+/** Solar position through one civil date, sampled with the geometric calculator. */
+export function daySunPath(
+  latitude: number,
+  longitude: number,
+  date: string,
+  timeZone = MIAMI_TIME_ZONE,
+): DaySunSample[] {
+  const rows: DaySunSample[] = [];
+  for (let minute = 0; minute < 24 * 60; minute += 30) {
+    const time = clockTime(minute);
+    const sample = solarAt(latitude, longitude, date, time, timeZone);
+    rows.push({
+      time,
+      altitude: sample.altitude,
+      azimuth: sample.azimuth,
+      above: sample.above,
+      shadowPerFoot: sample.shadowPerFoot,
+    });
+  }
+  return rows;
+}
+
 export type ZonedOccurrence = {
   instant: Date;
   /** Minutes added to UTC to get local time. Eastern Standard Time is −300. */

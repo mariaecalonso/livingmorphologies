@@ -1,16 +1,19 @@
 "use client";
 
-import { AnalysisAccuracy } from "./analysis-record";
 import { AccessIcon, BaywalkIcon, ExploreSegment, NetworkIcon } from "./explore-controls";
+import { roadSummary } from "./movement-layer";
 import { AnalysisColumnFrame, siteRecord, type SiteFinding, type SiteObservation } from "./site-inputs";
+import { AnalysisReadout } from "./analysis-readout";
 import {
-  PEDESTRIAN_LIMITS,
   PEDESTRIAN_MODES,
   PEDESTRIAN_SOURCES,
   mappedLinks,
+  type LineApproach,
+  type LineHit,
   type PedestrianMode,
   type PedestrianStudy,
 } from "@/lib/skill5/pedestrian";
+import type { SiteRoad } from "@/lib/skill5/site-model";
 
 function feet(value: number) {
   if (value < 10) return `${value.toFixed(1)} ft`;
@@ -45,21 +48,44 @@ export function PedestrianConfigure({
   );
 }
 
+function pathLength(path: readonly (readonly [number, number])[]) {
+  let length = 0;
+  for (let index = 1; index < path.length; index += 1) length += Math.hypot(path[index][0] - path[index - 1][0], path[index][1] - path[index - 1][1]);
+  return length;
+}
+
+function sourceName(name: string) {
+  if (/HERALD/i.test(name)) return "Herald Plaza";
+  if (/15/.test(name)) return "NE 15th Street";
+  return name;
+}
+
+function authorityLabel(authorityName: string) {
+  return authorityName === "county" ? "County" : "OSM mapped";
+}
+
 export function PedestrianResults({
   mode,
   study,
+  roads,
+  approaches,
+  probe,
   inputs,
   onRetain,
+  onRemove,
   onLive,
 }: {
   mode: PedestrianMode;
   study: PedestrianStudy;
+  roads: readonly SiteRoad[];
+  approaches: readonly LineApproach[];
+  probe: LineHit | null;
   inputs: readonly SiteObservation[];
   onRetain: (finding: SiteFinding) => void;
+  onRemove?: (id: string) => void;
   onLive: (findings: readonly SiteFinding[]) => void;
 }) {
   const countyRoutes = study.stations.filter((station) => station.routeFeet !== null);
-  const mappedOpenings = study.stations.filter((station) => station.mappedReach === "opening");
   const city = study.cityAccess[0];
   const northeast = study.waterfrontAccess[0];
   const studyName = "Pedestrian Mobility + Baywalk";
@@ -87,37 +113,6 @@ export function PedestrianResults({
         reliability: "Unverified. A gap is not a built path or a confirmed entrance.",
         gaps: ["The sidewalk feature id is not stored on the contact."],
       }));
-  const stationFindings = study.stations.filter((station) => station.routeFeet === null || station.mappedReach !== "absent" || station.mappedGapFeet !== null || (station.offsetFeet !== null && station.offsetFeet > 0)).map((station) => siteRecord({
-          id: `pedestrian:gap:${station.name}`,
-          study: studyName,
-          kind: "station-gap",
-          title: station.name,
-          quantities: [
-            ...(station.routeFeet === null ? [] : [{ id: "countyRoute", value: station.routeFeet, unit: "ft" as const }]),
-            ...(station.offsetFeet === null ? [] : [{ id: "sidewalkOffset", value: station.offsetFeet, unit: "ft" as const }]),
-            ...(station.mappedGapFeet === null ? [] : [{ id: "mappedGap", value: station.mappedGapFeet, unit: "ft" as const }]),
-            { id: "openFlag", value: station.openFlag, unit: "count" as const },
-          ],
-          geometry: { type: "point", x: station.x, z: station.z },
-          settings: [
-            { id: "mode", value: "County sidewalk network" },
-            { id: "mappedReach", value: station.mappedReach },
-          ],
-          source: {
-            name: "Miami-Dade DTPW sidewalk inventory and county Metromover stations",
-            retrieved: PEDESTRIAN_SOURCES.retrieved,
-            detail: "County sidewalk routes and stored Metromover stations. The open flag is the stored county attribute, not a live operating check.",
-          },
-          reliability: station.mappedReach === "opening"
-            ? "A mapped join of up to 11.9 ft is unverified. A larger gap stays open."
-            : station.routeFeet === null
-              ? "No county sidewalk route is stored from the parcel to this station."
-              : "The county route is from the stored sidewalk inventory. Mapped gaps stay open.",
-          gaps: [
-            ...(station.routeFeet === null ? ["No county sidewalk route is stored from the parcel to this station."] : []),
-            "The route geometry between the parcel and the station is not stored on this gap.",
-          ],
-        }));
   const baywalkFinding = siteRecord({
           id: "pedestrian:baywalk:named",
           study: studyName,
@@ -165,68 +160,149 @@ export function PedestrianResults({
     reliability: "County lines are verified. The total is not a route to one station.",
     gaps: ["No single path is stored for the county total."],
   });
-  const findings = [networkFinding, ...accessFindings, baywalkFinding, ...(mode === "network" ? stationFindings : [])];
-  const gap = `The 80 ft buffer holds ${feet(study.coastCountyNearFeet)}. The meeting sidewalks total ${feet(study.coastCountyFeet)}. Those totals are not the named Baywalk.`;
+  const findings = [networkFinding, ...accessFindings, baywalkFinding];
+  const roadsNow = roadSummary(roads);
+  const mappedFeet = mappedLinks.reduce((sum, link) => sum + pathLength(link.path), 0);
+  const roadScale = Math.max(roadsNow.local.feet, roadsNow.causeway.feet, roadsNow.expressway.feet, roadsNow.ramp.feet, 1);
+  const roadBars = [
+    { label: "Local streets", feet: roadsNow.local.feet, tone: "local" },
+    { label: "Causeways", feet: roadsNow.causeway.feet, tone: "causeway" },
+    { label: "Expressways", feet: roadsNow.expressway.feet, tone: "expressway" },
+    { label: "Ramps", feet: roadsNow.ramp.feet, tone: "ramp" },
+  ];
+  const otherApproaches = approaches.filter((approach) => approach.authority !== "county");
+  const title = mode === "access" ? "Pedestrian Access · Results" : mode === "baywalk" ? "Baywalk · Results" : "Circulation · Results";
   return (
-    <AnalysisColumnFrame findings={findings} gap={gap} inputs={inputs} onRetain={onRetain} onLive={onLive}>
-      <section className="site-block">
-        <div className="site-sun-figures">
-          <div>
-            <span>County network</span>
-            <strong>{feet(study.countyFeet)}</strong>
-            <em>{countyRoutes.length} routes, {study.mappedCrossings} mapped crossings</em>
-          </div>
-          <div>
-            <span>Northeast access</span>
-            <strong>{northeast ? feet(northeast.gapFeet) : "None"}</strong>
-            <em>{northeast ? northeast.name : "No contact within 40 ft"}</em>
-          </div>
-          <div>
-            <span>City-side access</span>
-            <strong>{city ? feet(city.gapFeet) : "None"}</strong>
-            <em>{city ? city.name : "No contact within 40 ft"}</em>
-          </div>
-        </div>
-        <div className="site-sun-figures">
-          <div>
-            <span>Named Baywalk</span>
-            <strong>{feet(study.namedBaywalkFeet)}</strong>
-            <em>{study.namedBaywalkParcelFeet === null ? "No named segment" : `${feet(study.namedBaywalkParcelFeet)} from the parcel`}</em>
-          </div>
-          <div>
-            <span>Buffer length</span>
-            <strong>{feet(study.coastCountyNearFeet)}</strong>
-            <em>inside 80 ft, not Baywalk</em>
-          </div>
-          <div>
-            <span>Museum Park</span>
-            <strong>{study.museumConnected ? "Route" : "No route"}</strong>
-            <em>{mappedOpenings.length} mapped joins stay unverified</em>
-          </div>
-        </div>
+    <AnalysisColumnFrame title={title} findings={findings} gap={null} inputs={inputs} onRetain={onRetain} onRemove={onRemove} onLive={onLive}>
+      <div className="site-walk-results">
         {mode === "network" ? (
-          <div className="site-meter-list" aria-label="Stations">
-            {study.stations.map((station) => (
-              <div key={station.name}>
-                <span>{station.name}</span>
-                <span className="site-evaluate-track"><i style={{ width: station.routeFeet === null ? "8%" : "100%" }} /></span>
-                <em>{station.routeFeet === null ? "No route" : feet(station.routeFeet)}</em>
+          <>
+            <p className="site-walk-summary">
+              <strong>{roadsNow.count.toLocaleString("en-US")}</strong>
+              <span>road centerlines</span>
+              <strong>{feet(roadsNow.feet)}</strong>
+              <span>stored centerline length</span>
+            </p>
+            <AnalysisReadout
+              titles={["/ Vehicular network", "/ Pedestrian network", "/ Transit"]}
+              condition={(
+                <ul className="site-walk-bars">
+                  {roadBars.map((bar) => (
+                    <li key={bar.tone}>
+                      <span>{bar.label}</span>
+                      <span className="site-walk-track" aria-hidden="true"><i data-tone={bar.tone} style={{ width: `${(bar.feet / roadScale) * 100}%` }} /></span>
+                      <span>{feet(bar.feet)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              input={(
+                <div className="site-walk-pair" data-contrast="sources">
+                  <p>
+                    <span>County sidewalks</span>
+                    <strong>{study.countyCount.toLocaleString("en-US")}</strong>
+                    <em>{feet(study.countyFeet)}</em>
+                    <small>Existing inventory</small>
+                  </p>
+                  <p>
+                    <span>OSM mapped</span>
+                    <strong>{mappedLinks.length.toLocaleString("en-US")}</strong>
+                    <em>{feet(mappedFeet)}</em>
+                    <small>Mapped, not surveyed</small>
+                  </p>
+                </div>
+              )}
+              response={(
+                <>
+                  <p className="site-walk-hero"><strong>{study.stations.length}</strong><span>stored Metromover station locations</span></p>
+                  <p className="site-view-caption">No transit route alignment or bicycle infrastructure stored.</p>
+                </>
+              )}
+            />
+            <p className="site-walk-foot">Full source inventories · Network classes, not traffic volumes.</p>
+          </>
+        ) : mode === "access" ? (
+          <AnalysisReadout
+            titles={["/ Parcel approaches", "/ Distance probe", "/ Network connectivity"]}
+            condition={(
+              <>
+                <div className="site-walk-pair">
+                  <p>
+                    <span>{northeast ? sourceName(northeast.name) : "Northeast"}</span>
+                    <strong>{northeast ? feet(northeast.gapFeet) : "—"}</strong>
+                    <small>Measured separation</small>
+                  </p>
+                  <p>
+                    <span>{city ? sourceName(city.name) : "City side"}</span>
+                    <strong>{city ? feet(city.gapFeet) : "—"}</strong>
+                    <small>Measured separation</small>
+                  </p>
+                </div>
+                <p className="site-view-caption">Separations to stored sidewalk lines. Not confirmed entrances.</p>
+                {otherApproaches.length > 0 ? (
+                  <ul className="site-walk-list">
+                    {otherApproaches.map((approach) => (
+                      <li key={approach.id}>
+                        <span>{feet(approach.feet)}</span>
+                        <span>{approach.name}</span>
+                        <span>{authorityLabel(approach.authority)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            )}
+            input={probe ? (
+              <>
+                <p className="site-walk-hero"><strong>{feet(probe.feet)}</strong><span>to the nearest stored line</span></p>
+                <p className="site-walk-probe"><span>{probe.name}</span><span>{authorityLabel(probe.authority)}</span></p>
+              </>
+            ) : (
+              <p className="site-view-caption">Turn on Distance to mapped line, then choose a point inside the parcel.</p>
+            )}
+            response={(
+              <>
+                <div className="site-walk-pair">
+                  <p>
+                    <span>County components</span>
+                    <strong>{study.countyComponents}</strong>
+                  </p>
+                  <p>
+                    <span>Parcel-side</span>
+                    <strong>{feet(study.parcelComponentFeet)}</strong>
+                    <small>{study.parcelComponentLinks} sidewalks</small>
+                  </p>
+                </div>
+                <p className="site-view-caption">{study.parcelComponentSnap ? "Joins of up to 12 ft are a modeling assumption." : "The parcel-side joins are shared vertices."} Proximity does not confirm pedestrian access.</p>
+              </>
+            )}
+          />
+        ) : (
+          <AnalysisReadout
+            titles={["/ Mapped Baywalk", "/ Spatial separations", "/ Mapping status"]}
+            condition={(
+              <p className="site-walk-hero"><strong>{feet(study.namedBaywalkFeet)}</strong><span>named mapped segment</span></p>
+            )}
+            input={(
+              <div className="site-walk-pair">
+                <p>
+                  <span>From parcel</span>
+                  <strong>{study.namedBaywalkParcelFeet === null ? "—" : feet(study.namedBaywalkParcelFeet)}</strong>
+                  <small>Measured separation</small>
+                </p>
+                <p>
+                  <span>Next mapped line</span>
+                  <strong>{study.namedBaywalkGapFeet === null ? "—" : feet(study.namedBaywalkGapFeet)}</strong>
+                  <small>Not a confirmed connection</small>
+                </p>
               </div>
-            ))}
-          </div>
-        ) : null}
-        <AnalysisAccuracy limits={PEDESTRIAN_LIMITS} />
-      </section>
-      <section className="site-block">
-        <h2 className="site-subtitle">Legend</h2>
-        <ul className="site-analysis-legend">
-          <li data-rank="primary"><i style={{ background: "#f4f4f0" }} /><span>{mode === "baywalk" ? "County sidewalk in the buffer. The stroke is not a surveyed width." : "County sidewalk or station. The stroke is not a surveyed width."}</span></li>
-          {mode === "baywalk" ? <li data-rank="support"><i style={{ background: "#d0d0d0" }} /><span>Named Baywalk segment, separate from the parcel</span></li> : null}
-          <li data-rank="mapped"><i style={{ background: "#7a7a7a" }} /><span>{mode === "baywalk" ? "Other mapped shoreline line, not a county survey" : "Mapped, not a county survey"}</span></li>
-          {mode === "access" ? <li data-rank="support"><i style={{ background: "#bdbdbd" }} /><span>Gap to the parcel. Unverified, not a path</span></li> : null}
-          {mode === "baywalk" ? <li data-rank="marker"><i /><span>Proposed I-395 connection is not drawn</span></li> : null}
-        </ul>
-      </section>
+            )}
+            response={(
+              <p className="site-view-caption">A continuous Baywalk connection to the parcel is not documented. The I-395 pedestrian bridge has no stored alignment.</p>
+            )}
+          />
+        )}
+      </div>
     </AnalysisColumnFrame>
   );
 }

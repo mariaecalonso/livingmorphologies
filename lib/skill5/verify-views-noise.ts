@@ -4,6 +4,7 @@ import { STUDY_LIMIT, inStudy } from "../../components/site/site-geometry";
 import { pointInRing } from "./placement";
 import { analysisTowers, keepRuns } from "./sun-analysis";
 import type { SiteBuilding, SiteContext, SiteRoad, XZ } from "./site-model";
+import { buildRoadDistanceFields, fieldSample } from "./road-distance-field";
 import {
   NOISE_LIMITS,
   VIEW_LIMITS,
@@ -256,6 +257,16 @@ assert.equal(southView.estimatedBlocks, 1);
 assert.ok(Math.abs(northMacarthur - 859.6) < 0.05);
 assert.ok(Math.abs(northExpressway - 113.7) < 0.05);
 assert.ok(Math.abs(northLocal - 48.9) < 0.05);
+const waterfrontNoise = noiseReading(waterfront, site.roads);
+assert.equal(Math.round(waterfrontNoise.macarthur.feet ?? 0), 382);
+assert.equal(Math.round(waterfrontNoise.expressway.feet ?? 0), 336);
+assert.equal(Math.round(waterfrontNoise.local.feet ?? 0), 335);
+assert.equal(waterfrontNoise.local.name, "Herald Plaza");
+const roadFields = buildRoadDistanceFields(site.site.ring, site.roads);
+const sampledMacarthur = fieldSample(roadFields.macarthur, waterfront.x, waterfront.z);
+assert.ok(sampledMacarthur !== null && Math.abs(sampledMacarthur - (waterfrontNoise.macarthur.feet ?? 0)) < 8);
+assert.equal(roadFields.macarthur.spacingFeet, 8);
+assert.ok(roadFields.macarthur.count > 3000);
 assert.equal(northNoise.expressway.name, "Venetian Way");
 assert.equal(northNoise.local.name, "Northeast 15th Street");
 const southNoise = noiseReading(south, site.roads);
