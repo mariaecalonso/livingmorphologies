@@ -84,7 +84,12 @@ for (const station of study.stations) assert.equal(station.routeFeet, null);
 const museum = study.stations.find((station) => station.name === "MUSEUM PARK");
 assert.ok(museum);
 assert.equal(museum.mappedReach, "short");
-assert.ok(museum.mappedGapFeet !== null && Math.abs(museum.mappedGapFeet - 138) < 2);
+assert.ok(museum.mappedGapFeet !== null && Math.abs(museum.mappedGapFeet - 32.8) < 1);
+assert.equal(study.countyComponents, 57);
+assert.equal(study.parcelComponentLinks, 5);
+assert.equal(Math.round(study.parcelComponentFeet), 2928);
+assert.equal(study.parcelComponentSnap, true);
+assert.ok(study.namedBaywalkGapFeet !== null && Math.abs(study.namedBaywalkGapFeet - 291.8) < 1);
 assert.match(stationAccount(museum), /stop \d[\d,]* ft short/);
 for (const name of ["ELEVENTH STREET", "SCHOOL BOARD", "ADRIENNE ARSHT CENTER"]) {
   const station = study.stations.find((item) => item.name === name);

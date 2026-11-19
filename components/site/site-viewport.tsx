@@ -15,6 +15,9 @@ import {
   PerspectiveCamera,
   Plane,
   Raycaster,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  RepeatWrapping,
   SRGBColorSpace,
   ShaderMaterial,
   TextureLoader,
@@ -34,6 +37,7 @@ import {
   inStudy,
   loopAttribute,
   pathAttribute,
+  analysisRampRoads,
   elevatedDeckGeometry,
   ringCentroid,
   displayRoads,
@@ -48,7 +52,8 @@ import {
   slabGeometry,
   studyLandRing,
 } from "./site-geometry";
-import type { SiteContext, XZ } from "@/lib/skill5/site-model";
+import type { SiteContext, SiteRoad, XZ } from "@/lib/skill5/site-model";
+import { pointInRing } from "@/lib/skill5/placement";
 import { elevatedDeckRoads } from "@/lib/skill5/deck-surface";
 import { HERALD_AERIAL } from "@/lib/skill5/aerial";
 import { designSiteFromParcel } from "@/lib/skill5/design-site";
@@ -56,13 +61,15 @@ import { SITE_GRID_FEET } from "@/lib/skill5/grid";
 import { northDegrees, placeAxon, placeModelPerspective, placePerspective, placePlan, placeSection, placeWholeSitePerspective, RENDER_GROUP_SCALE } from "@/lib/skill5/render-frame";
 import { analysisTowers, casterBox } from "@/lib/skill5/sun-analysis";
 import type { SunSample } from "@/lib/skill5/solar";
-import { studyDeckMaterial, studyMassMaterial, studyWaterMaterial, SunLight, SunShadow, sunlitLandMaterial, sunlitRoadMaterial, sunlitSiteMaterial, towerShaft } from "./sun-shadow";
-import { WindField } from "./wind-field";
-import { SightLines } from "./sight-lines";
+import { ANALYSIS_WATER, ANALYSIS_WATER_URL, applyAnalysisWaterTexture } from "./analysis-water";
+import { RampShadowCaster, measuredDeckMaterial, measuredRoadMaterial, studyDeckMaterial, studyMassMaterial, studyWaterMaterial, SunLight, SunShadow, sunlitLandMaterial, sunlitParcelMaterial, sunlitRoadMaterial, sunlitSiteMaterial, towerShaft } from "./sun-shadow";
+import { WindField, type WindOverlaySector } from "./wind-field";
+import { RoadProximityLayer, type RoadProximityView } from "./road-proximity-layer";
+import { SightLines, ViewCalloutProjector, type ViewOverlay } from "./sight-lines";
 import { WalkLines } from "./walk-lines";
+import { MovementLayer } from "./movement-layer";
 import { UseLines } from "./use-lines";
-import type { SightSegment } from "@/lib/skill5/views-noise";
-import type { WalkSegment } from "@/lib/skill5/pedestrian";
+import type { PedestrianMode, WalkSegment } from "@/lib/skill5/pedestrian";
 import type { UseSegment } from "@/lib/skill5/urban";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
 import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
@@ -440,9 +447,34 @@ const WATER = new ShaderMaterial({
 });
 
 function WaterSurface({ geometry, receive, calm = false }: { geometry: BufferGeometry; receive: boolean; calm?: boolean }) {
-  const material = receive ? studyWaterMaterial : calm ? ANALYSIS_WATER : WATER;
+  const material = calm ? ANALYSIS_WATER : receive ? studyWaterMaterial : WATER;
+  const gl = useThree((state) => state.gl);
+  useEffect(() => {
+    if (!calm) return;
+    let active = true;
+    const loader = new TextureLoader();
+    loader.load(ANALYSIS_WATER_URL, (texture) => {
+      texture.colorSpace = SRGBColorSpace;
+      texture.wrapS = RepeatWrapping;
+      texture.wrapT = RepeatWrapping;
+      texture.generateMipmaps = true;
+      texture.minFilter = LinearMipmapLinearFilter;
+      texture.magFilter = LinearFilter;
+      texture.anisotropy = gl.capabilities.getMaxAnisotropy();
+      texture.needsUpdate = true;
+      if (!active) {
+        texture.dispose();
+        return;
+      }
+      applyAnalysisWaterTexture(texture);
+    });
+    return () => {
+      active = false;
+    };
+  }, [calm, gl]);
   useFrame(({ clock }) => {
-    material.uniforms.uTime.value = clock.elapsedTime;
+    const time = material.uniforms.uTime;
+    if (time) time.value = clock.elapsedTime;
   });
   return <mesh geometry={geometry} material={material} receiveShadow={receive} raycast={skipRaycast} />;
 }
@@ -470,41 +502,31 @@ const MODEL_DECK = new ShaderMaterial({
   `,
 });
 
-/** Analysis glass. Fewer, fainter floor lines, so the façade stays quiet. */
+/** Same matte mass as the sun study, without the shadow term. */
 const ANALYSIS_MASS = new ShaderMaterial({
   side: DoubleSide,
-  transparent: true,
   depthWrite: true,
   toneMapped: false,
   vertexShader: MODEL_MASS.vertexShader,
   fragmentShader: `
     varying vec3 vWorld;
     varying vec3 vNormal;
-    float hairline(float coord, float stepSize) {
-      float cell = coord / stepSize;
-      float fw = max(fwidth(cell), 1e-4);
-      float dist = min(fract(cell), 1.0 - fract(cell));
-      return 1.0 - smoothstep(0.0, min(fw * 0.55, 0.045), dist);
-    }
     void main() {
       vec3 n = normalize(vNormal);
       vec3 viewDir = normalize(cameraPosition - vWorld);
       if (dot(n, viewDir) < 0.0) discard;
-      float up = abs(n.y);
-      float wall = 1.0 - smoothstep(0.62, 0.9, up);
-      float floors = hairline(vWorld.y, 72.0) * wall;
-      vec3 color = mix(vec3(0.30), vec3(0.42), smoothstep(0.55, 0.92, up));
-      color = mix(color, vec3(0.48), floors * 0.16);
-      float alpha = mix(0.68, 0.82, smoothstep(0.55, 0.92, up));
-      gl_FragColor = vec4(color, alpha);
+      float roof = smoothstep(0.55, 0.92, abs(n.y));
+      float form = 0.82 + 0.18 * clamp(dot(n, normalize(vec3(0.35, 0.86, 0.24))), 0.0, 1.0);
+      vec3 color = mix(vec3(0.30, 0.32, 0.33), vec3(0.40, 0.43, 0.44), roof) * form;
+      gl_FragColor = vec4(color, 1.0);
     }
   `,
 });
 
 const ANALYSIS_EDGE = new LineBasicMaterial({
-  color: "#8f8f8f",
+  color: "#6e7678",
   transparent: true,
-  opacity: 0.72,
+  opacity: 0.34,
   depthWrite: false,
   toneMapped: false,
   polygonOffset: true,
@@ -522,50 +544,59 @@ const ANALYSIS_DECK = new ShaderMaterial({
     void main() {
       vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
       float up = abs(n.y);
-      vec3 color = mix(vec3(0.24), vec3(0.58), smoothstep(0.45, 0.85, up));
+      vec3 color = mix(vec3(0.16, 0.17, 0.18), vec3(0.25, 0.27, 0.28), smoothstep(0.45, 0.85, up));
       gl_FragColor = vec4(color, 1.0);
     }
   `,
 });
 
-/** Bay with a slow, broad shade. The surface stays in place. */
-const ANALYSIS_WATER = new ShaderMaterial({
-  side: DoubleSide,
-  toneMapped: false,
-  uniforms: { uTime: { value: 0 } },
-  vertexShader: WATER.vertexShader,
-  fragmentShader: `
-    uniform float uTime;
-    varying vec3 vWorld;
-    varying float vTop;
-    float hash(vec2 p) {
-      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-    float noise(vec2 p) {
-      vec2 i = floor(p);
-      vec2 f = fract(p);
-      vec2 u = f * f * (3.0 - 2.0 * f);
-      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-    }
-    void main() {
-      if (vTop < 0.5) {
-        gl_FragColor = vec4(vec3(0.12), 1.0);
-        return;
-      }
-      vec2 p = vWorld.xz;
-      vec2 drift = vec2(uTime * 0.45, -uTime * 0.28);
-      float broad = noise(p * 0.012 + drift * 0.04);
-      vec3 color = mix(vec3(0.09), vec3(0.15), broad);
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-});
-
-const PARCEL_LINE = new MeshBasicMaterial({
-  color: "#f4f4f0",
+const ROAD_EDGE = new LineBasicMaterial({
+  color: "#8e9898",
   transparent: true,
-  opacity: 0.96,
+  opacity: 0.7,
   depthWrite: false,
+  toneMapped: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -4,
+  polygonOffsetUnits: -4,
+});
+
+/** One screen-space stroke on the measured ring. The mesh is wider than the line so the stroke stays continuous. */
+const PARCEL_LINE = new ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  depthTest: true,
+  toneMapped: false,
+  side: DoubleSide,
+  polygonOffset: true,
+  polygonOffsetFactor: -2,
+  polygonOffsetUnits: -2,
+  uniforms: { uPx: { value: 0.4 }, uColor: { value: new Vector3(0.227, 0.831, 0.847) } },
+  vertexShader: `
+    attribute float aAcross;
+    varying float vAcross;
+    void main() {
+      vAcross = aAcross;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uPx;
+    uniform vec3 uColor;
+    varying float vAcross;
+    void main() {
+      float pixels = abs(vAcross) / max(fwidth(vAcross), 1e-4);
+      float edge = uPx * 0.5;
+      float core = 1.0 - smoothstep(edge, edge + 0.15, pixels);
+      if (core < 0.04) discard;
+      gl_FragColor = vec4(uColor, core);
+    }
+  `,
+});
+
+/** Dark parcel plane. The teal line, not a wash, marks the site. */
+const ANALYSIS_SITE = new MeshBasicMaterial({
+  color: "#22282a",
   toneMapped: false,
   side: DoubleSide,
 });
@@ -575,6 +606,7 @@ function boundaryRibbon(ring: readonly XZ[], y: number, half: number) {
     ? [...ring, ring[0]]
     : ring;
   const positions: number[] = [];
+  const across: number[] = [];
   for (let index = 1; index < closed.length; index += 1) {
     const ax = closed[index - 1][0];
     const az = closed[index - 1][1];
@@ -587,9 +619,11 @@ function boundaryRibbon(ring: readonly XZ[], y: number, half: number) {
     const px = (-dz / length) * half;
     const pz = (dx / length) * half;
     positions.push(ax + px, y, az + pz, bx + px, y, bz + pz, bx - px, y, bz - pz, ax + px, y, az + pz, bx - px, y, bz - pz, ax - px, y, az - pz);
+    across.push(-1, -1, 1, -1, 1, 1);
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("aAcross", new Float32BufferAttribute(across, 1));
   return geometry;
 }
 
@@ -651,8 +685,11 @@ function SiteContent({
   presentation = "model",
   sheetsRef,
   sun,
+  sunArc = null,
   linework,
   showContext,
+  showShadows = false,
+  measuredRoads = false,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -663,8 +700,11 @@ function SiteContent({
   presentation?: "model" | "analysis";
   sheetsRef: { current: SheetSet };
   sun: SunSample | null;
+  sunArc?: { latitude: number; longitude: number; date: string } | null;
   linework: boolean;
   showContext: boolean;
+  showShadows?: boolean;
+  measuredRoads?: boolean;
 }) {
   const [aerialMap, setAerialMap] = useState<Texture | null>(null);
   useEffect(() => {
@@ -703,9 +743,19 @@ function SiteContent({
   const coastLine = look?.coast ?? COAST_LINE;
   const flatLine = look?.flat ?? FLAT_LINE;
   sheetsRef.current = sheets;
-  const parcel = useMemo(() => (focused ? boundaryRibbon(context.site.ring, 1.55, 5) : null), [context.site.ring, focused]);
+  const parcel = useMemo(() => (focused ? boundaryRibbon(context.site.ring, 2.6, 30) : null), [context.site.ring, focused]);
   useEffect(() => () => parcel?.dispose(), [parcel]);
   const sunOrigin = useMemo(() => ringCentroid(designSiteFromParcel(context.site.ring).ring), [context]);
+  const sunArcRadius = useMemo(() => {
+    let tallest = 120;
+    for (const building of context.buildings) {
+      if (building.heightFeet && building.heightFeet > tallest) tallest = building.heightFeet;
+    }
+    for (const tower of analysisTowers(context.buildings)) {
+      if (tower.heightFeet > tallest) tallest = tower.heightFeet;
+    }
+    return Math.max(420, tallest * 0.62);
+  }, [context.buildings]);
   const sunlit = Boolean(sun?.above);
   const studyHeights = sun !== null;
   const geometries = useMemo(() => {
@@ -723,9 +773,10 @@ function SiteContent({
       land: flatGeometry(studyLandRing(context.water.ring), 0),
       water: slabGeometry(clipPolygon(context.water.ring), 0.5, 0),
       siteEdge: siteEdgeSheet(design.ring, sheets.edge),
-      siteFill: study ? flatGeometry(design.ring, 0.86) : null,
+      siteFill: study ? flatGeometry(showShadows ? context.site.ring : design.ring, 0.86) : null,
       coast: lineGeometry(pathAttribute(clipPath(context.coastline.path), 0.2, false)),
-      elevated: elevatedDeckGeometry(elevatedRoads),
+      elevated: elevatedDeckGeometry(elevatedRoads, measuredRoads),
+      rampShadow: elevatedDeckGeometry(analysisRampRoads(context.roads), measuredRoads),
       guideway: metromoverGeometry(context.origin),
       groundRoads,
       roadBlocks: groundRoadBlocks(visible, context.water.ring, design.ring),
@@ -733,7 +784,7 @@ function SiteContent({
       flatEdges: lineGeometry(loopAttribute(flat.flatMap((building) => [clipPolygon(regularizeRing(building.ring)), ...(building.holes ?? []).map((hole) => clipPolygon(regularizeRing(hole)))].filter((ring) => ring.length >= 3)), 0.35)),
       grid: gridSheet(design.ring),
     };
-  }, [context, sheets.edge, study]);
+  }, [context, measuredRoads, sheets.edge, showShadows, study]);
 
   useEffect(() => () => {
     geometries.land.dispose();
@@ -742,6 +793,7 @@ function SiteContent({
     geometries.siteFill?.dispose();
     geometries.coast.dispose();
     geometries.elevated.dispose();
+    geometries.rampShadow.dispose();
     geometries.guideway.dispose();
     geometries.flatEdges.dispose();
     geometries.grid.dispose();
@@ -781,7 +833,7 @@ function SiteContent({
   useEffect(() => {
     let cancel = false;
     let installed: BufferGeometry | null = null;
-    groundRoadGeometry(geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits).then((geometry) => {
+    groundRoadGeometry(geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits, !measuredRoads).then((geometry) => {
       if (cancel) {
         geometry.dispose();
         return;
@@ -794,7 +846,7 @@ function SiteContent({
       installed?.dispose();
       setRoadMesh(null);
     };
-  }, [geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits]);
+  }, [geometries.groundRoads, geometries.roadBlocks, geometries.roadLimits, measuredRoads]);
 
   if (linework) {
     return (
@@ -861,7 +913,7 @@ function SiteContent({
         </>
       )}
       <mesh geometry={geometries.land} receiveShadow={sunlit} raycast={skipRaycast}>
-        {sunlit ? <primitive object={sunlitLandMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color="#000000" side={DoubleSide} /> : <meshBasicMaterial color="#070707" side={DoubleSide} />}
+        {sunlit ? <primitive object={sunlitLandMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color={focused ? "#1a1e20" : "#000000"} side={DoubleSide} /> : <meshBasicMaterial color="#070707" side={DoubleSide} />}
       </mesh>
       <WaterSurface geometry={geometries.water} receive={sunlit} calm={focused} />
       <lineSegments geometry={geometries.coast} material={coastLine} raycast={skipRaycast} />
@@ -874,18 +926,21 @@ function SiteContent({
         <meshBasicMaterial map={aerialMap} side={DoubleSide} />
       </mesh> : null}
       {showContext && roadMesh ? <mesh geometry={roadMesh} receiveShadow={sunlit} raycast={skipRaycast}>
-        {sunlit ? <primitive object={sunlitRoadMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color={focused ? "#3c3c3c" : "#686868"} side={DoubleSide} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
+        {measuredRoads ? <primitive object={measuredRoadMaterial} attach="material" dispose={null} /> : sunlit ? <primitive object={sunlitRoadMaterial} attach="material" dispose={null} /> : study ? <meshBasicMaterial color={focused ? "#303638" : "#686868"} side={DoubleSide} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
       </mesh> : null}
+      {measuredRoads && roadMesh ? <MassEdges geometry={roadMesh} material={ROAD_EDGE} threshold={48} /> : null}
+      {showContext && sunlit ? <RampShadowCaster geometry={geometries.rampShadow} /> : null}
       {showContext ? <mesh geometry={geometries.elevated} receiveShadow={sunlit} raycast={skipRaycast}>
-        {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
+        {measuredRoads ? <primitive object={measuredDeckMaterial} attach="material" dispose={null} /> : sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#767676" side={DoubleSide} />}
       </mesh> : null}
+      {showContext && measuredRoads ? <MassEdges geometry={geometries.elevated} material={ROAD_EDGE} threshold={48} /> : null}
       {showContext ? <mesh geometry={geometries.guideway} receiveShadow={sunlit} raycast={skipRaycast}>
         {sunlit ? <primitive object={studyDeckMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_DECK} attach="material" dispose={null} /> : study ? <primitive object={MODEL_DECK} attach="material" dispose={null} /> : <meshLambertMaterial color="#8a8a8a" side={DoubleSide} />}
       </mesh> : null}
       {geometries.siteFill ? <mesh geometry={geometries.siteFill} receiveShadow={sunlit} raycast={skipRaycast}>
-        {sunlit ? <primitive object={sunlitSiteMaterial} attach="material" dispose={null} /> : <meshBasicMaterial color="#101010" side={DoubleSide} />}
+        {sunlit ? <primitive object={showShadows ? sunlitParcelMaterial : sunlitSiteMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_SITE} attach="material" dispose={null} /> : <meshBasicMaterial color="#101010" side={DoubleSide} />}
       </mesh> : null}
-      <mesh geometry={geometries.siteEdge} material={sheets.edge} raycast={skipRaycast} />
+      {focused ? null : <mesh geometry={geometries.siteEdge} material={sheets.edge} raycast={skipRaycast} />}
       {showGrid ? <mesh geometry={geometries.grid} material={sheets.grid} raycast={skipRaycast} /> : null}
       {parcel ? <mesh geometry={parcel} material={PARCEL_LINE} renderOrder={5} raycast={skipRaycast} /> : null}
       {showContext ? <lineSegments geometry={geometries.flatEdges} material={flatLine} raycast={skipRaycast} /> : null}
@@ -894,14 +949,14 @@ function SiteContent({
           <mesh geometry={buildingMesh} renderOrder={study ? 2 : 0} castShadow={sunlit} receiveShadow={sunlit} raycast={skipRaycast}>
             {studyHeights ? <primitive object={studyMassMaterial} attach="material" dispose={null} /> : focused ? <primitive object={ANALYSIS_MASS} attach="material" dispose={null} /> : study ? <primitive object={MODEL_MASS} attach="material" dispose={null} /> : <meshLambertMaterial color="#2e2e2e" side={DoubleSide} />}
           </mesh>
-          {study ? <MassEdges geometry={buildingMesh} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 46 : 28} /> : null}
+          {study ? <MassEdges geometry={buildingMesh} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 62 : 28} /> : null}
           {towerGeometries.map((tower) => (
             <mesh key={tower.id} geometry={tower.geometry} renderOrder={2} castShadow={sunlit} receiveShadow={sunlit} raycast={skipRaycast}>
               <primitive object={studyMassMaterial} attach="material" dispose={null} />
             </mesh>
           ))}
-          {study ? towerGeometries.map((tower) => <MassEdges key={`${tower.id}-edge`} geometry={tower.geometry} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 46 : 28} />) : null}
-          {sun && showSunPath ? <SunShadow sun={sun} origin={sunOrigin} /> : null}
+          {study ? towerGeometries.map((tower) => <MassEdges key={`${tower.id}-edge`} geometry={tower.geometry} material={focused ? ANALYSIS_EDGE : MODEL_EDGE} threshold={focused ? 62 : 28} />) : null}
+          {sun && showSunPath ? <SunShadow sun={sun} origin={sunOrigin} arc={sunArc ? { ...sunArc, radius: sunArcRadius } : null} /> : null}
         </>
       ) : null}
       {ground ? <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.66, 0]} {...ground}>
@@ -1142,7 +1197,9 @@ function CameraRig({
     const canvas = gl.domElement;
     const screen = Math.max(1, displayedCanvasWidth(canvas));
     const sheets = sheetsRef.current;
-    fadeSiteGrid(visible / screen, canvas.width / screen, sheets.grid, sheets.edge, sheets.quiet, sheets.focus);
+    const pixels = canvas.width / screen;
+    fadeSiteGrid(visible / screen, pixels, sheets.grid, sheets.edge, sheets.quiet, sheets.focus);
+    if (sheets.focus) PARCEL_LINE.uniforms.uPx.value = 0.4 * pixels;
     const scaleFeet = niceScale((visible / Math.max(1, size.width)) * 220);
     const scalePx = (scaleFeet / visible) * size.width;
     const previous = readout.current;
@@ -1320,6 +1377,35 @@ function ConnectionMarks({ links }: { links: readonly { id: string; ax: number; 
   );
 }
 
+function PlaceProbe({ ring, onPlace }: { ring: readonly XZ[]; onPlace: (x: number, z: number) => void }) {
+  const { camera, gl } = useThree();
+  useEffect(() => {
+    const element = gl.domElement;
+    const raycaster = new Raycaster();
+    const pointer = new Vector2();
+    const plane = new Plane(new Vector3(0, 1, 0), 0);
+    const hit = new Vector3();
+    const down = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      const rect = element.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
+      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      if (!raycaster.ray.intersectPlane(plane, hit)) return;
+      const stored = { x: hit.x, z: -hit.z };
+      if (!pointInRing(stored.x, stored.z, ring)) return;
+      onPlace(stored.x, stored.z);
+    };
+    element.style.cursor = "crosshair";
+    element.addEventListener("pointerdown", down, true);
+    return () => {
+      element.style.cursor = "";
+      element.removeEventListener("pointerdown", down, true);
+    };
+  }, [camera, gl, onPlace, ring]);
+  return null;
+}
+
 export function SiteViewport({
   context,
   mode,
@@ -1339,9 +1425,13 @@ export function SiteViewport({
   showSunPath = true,
   showShadows = true,
   sun = null,
+  sunArc = null,
   wind = null,
   sight = null,
+  roadProximity = null,
+  placeObserver = null,
   walk = null,
+  movement = null,
   uses = null,
   onShadowTexel,
   network = null,
@@ -1372,9 +1462,21 @@ export function SiteViewport({
   showSunPath?: boolean;
   showShadows?: boolean;
   sun?: SunSample | null;
-  wind?: { fromDegrees: number; density: number; motion: number } | null;
-  sight?: readonly SightSegment[] | null;
+  sunArc?: { latitude: number; longitude: number; date: string } | null;
+  wind?: { sectors: readonly WindOverlaySector[]; movingHours: number; slow: number; fast: number; prevailingIndex: number | null } | null;
+  sight?: ViewOverlay | null;
+  roadProximity?: RoadProximityView | null;
+  placeObserver?: ((x: number, z: number) => void) | null;
   walk?: readonly WalkSegment[] | null;
+  movement?: {
+    mode: PedestrianMode;
+    roads: readonly SiteRoad[];
+    ring: readonly XZ[];
+    showRoads: boolean;
+    showWalking: boolean;
+    showStations: boolean;
+    probe: { placing: boolean; point: { x: number; z: number } | null; onPlace: (x: number, z: number) => void } | null;
+  } | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
   network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
@@ -1422,6 +1524,7 @@ export function SiteViewport({
 }) {
   const siteBounds = useMemo(() => boundsOf(context), [context]);
   const bounds = focusBounds ?? siteBounds;
+  const callouts = useRef<HTMLDivElement>(null);
   const cameraFraming = framing ?? appearance;
   const sheetsRef = useRef<SheetSet>({ grid: GRID_SHEET, edge: SITE_EDGE, quiet: false });
   const [dpr, setDpr] = useState(presentationPixelRatio);
@@ -1438,12 +1541,13 @@ export function SiteViewport({
     };
   }, []);
   return (
+    <>
     <Canvas
       className="site-canvas"
       dpr={dpr}
       gl={{ antialias: true, alpha: false }}
       onCreated={(state) => {
-        state.gl.setClearColor(new Color("#000000"));
+        state.gl.setClearColor(new Color(presentation === "analysis" ? "#050708" : "#000000"));
         state.gl.toneMapping = NoToneMapping;
         state.setEvents({
           compute(event, root) {
@@ -1457,9 +1561,13 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} wind={wind} sight={sight} walk={walk} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
+      {sight?.mode === "views" ? <ViewCalloutProjector overlay={sight} root={callouts} ring={context.site.ring} /> : null}
+      {placeObserver ? <PlaceProbe ring={context.site.ring} onPlace={placeObserver} /> : null}
     </Canvas>
+    <div ref={callouts} className="site-view-callouts" />
+    </>
   );
 }
 
@@ -1476,9 +1584,12 @@ function PlacementScene({
   presentation,
   sheetsRef,
   sun,
+  sunArc,
   wind,
   sight,
+  roadProximity = null,
   walk,
+  movement = null,
   uses,
   onShadowTexel,
   network,
@@ -1488,6 +1599,7 @@ function PlacementScene({
   joins,
   assemblyFilm,
   typology,
+  measuredRoads = false,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1501,9 +1613,20 @@ function PlacementScene({
   presentation: "model" | "analysis";
   sheetsRef: { current: SheetSet };
   sun: SunSample | null;
-  wind: { fromDegrees: number; density: number; motion: number } | null;
-  sight: readonly SightSegment[] | null;
+  sunArc: { latitude: number; longitude: number; date: string } | null;
+  wind: { sectors: readonly WindOverlaySector[]; movingHours: number; slow: number; fast: number; prevailingIndex: number | null } | null;
+  sight: ViewOverlay | null;
+  roadProximity?: RoadProximityView | null;
   walk: readonly WalkSegment[] | null;
+  movement?: {
+    mode: PedestrianMode;
+    roads: readonly SiteRoad[];
+    ring: readonly XZ[];
+    showRoads: boolean;
+    showWalking: boolean;
+    showStations: boolean;
+    probe: { placing: boolean; point: { x: number; z: number } | null; onPlace: (x: number, z: number) => void } | null;
+  } | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
   network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
@@ -1545,6 +1668,7 @@ function PlacementScene({
     onAdd: (x: number, z: number) => void;
     onMove: (id: string, x: number, z: number) => void;
   } | null;
+  measuredRoads?: boolean;
 }) {
   const pointer = useModulePointer(placement);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
@@ -1552,7 +1676,7 @@ function PlacementScene({
     <>
       {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
       <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} linework={presentation !== "analysis" && network?.studyTone !== false && network !== null} showContext={!network || network.showContext} />
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} linework={presentation !== "analysis" && network?.studyTone !== false && network !== null} showContext={!network || network.showContext} showShadows={showShadows} measuredRoads={measuredRoads} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} listen={!zoning?.active} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}
@@ -1560,9 +1684,10 @@ function PlacementScene({
       {overlay?.streets ? <OverlayLines paths={overlay.streetPaths.flatMap((path) => clipPath(path))} y={1.05} color="#8a8680" opacity={0.4} /> : null}
       {overlay?.distances ? <OverlayLines paths={overlay.leaders.flatMap((leader) => clipPath([[leader.ax, leader.az], [leader.bx, leader.bz]]))} y={1.4} color="#c8c4bc" opacity={0.75} /> : null}
       {analysis ? <SiteAnalysisLayer context={context} layers={analysis} /> : null}
-      {wind ? <WindField fromDegrees={wind.fromDegrees} density={wind.density} motion={wind.motion} /> : null}
-      {sight && sight.length > 0 ? <SightLines segments={sight} /> : null}
-      {walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
+      {wind ? <WindField ring={context.site.ring} sectors={wind.sectors} movingHours={wind.movingHours} slow={wind.slow} fast={wind.fast} prevailingIndex={wind.prevailingIndex} /> : null}
+      {sight ? <SightLines overlay={sight} /> : null}
+      {roadProximity ? <RoadProximityLayer {...roadProximity} /> : null}
+      {movement ? <MovementLayer {...movement} /> : walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
       {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} quiet={network.quiet === true} /> : null}
       {typology ? <TypologyAttractorLayer study={typology.study} points={typology.points} placing={typology.placing} visible={typology.visible} types={typology.types} selectedId={typology.selectedId} onSelect={typology.onSelect} onAdd={typology.onAdd} onMove={typology.onMove} /> : null}

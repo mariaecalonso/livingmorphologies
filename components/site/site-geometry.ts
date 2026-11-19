@@ -9,6 +9,7 @@ import {
   ShapeGeometry,
   Vector2,
 } from "three";
+import { elevatedDeckRoads } from "@/lib/skill5/deck-surface";
 import { siteGridPositions } from "@/lib/skill5/grid";
 import { projectLocal } from "@/lib/skill5/geo";
 import type { SiteBuilding, SiteRoad, XZ } from "@/lib/skill5/site-model";
@@ -706,8 +707,8 @@ function sampleAt(from: DeckSample, to: DeckSample, t: number): DeckSample {
   };
 }
 
-/** Display-only. Where a narrower deck runs through a wider one at the same level, it stops at the edge. */
-function cutCoveredDecks(runs: DeckRun[]) {
+/** Display-only. Where a narrower deck runs through a wider one at the same level, it stops at the edge. Measured decks stop when the centerline meets that edge, so the end is not left a half-width short. */
+function cutCoveredDecks(runs: DeckRun[], toEdge = false) {
   const ranked = runs.map((run, index) => ({ run, index, half: Math.max(...run.samples.map((sample) => sample.half)), length: deckLength(run) }));
   const outranks = (other: (typeof ranked)[number], item: (typeof ranked)[number]) => {
     if (other.half > item.half + 3) return true;
@@ -722,7 +723,7 @@ function cutCoveredDecks(runs: DeckRun[]) {
     if (Math.abs(hit.top - sample.top) > DECK_LEVEL_FEET) return false;
     const aligned = Math.abs(tangent[0] * hit.tx + tangent[1] * hit.tz) >= 0.7;
     if (aligned) return hit.distance < 12;
-    return hit.distance < hit.half + sample.half + 0.5;
+    return hit.distance < (toEdge ? hit.half + 0.35 : hit.half + sample.half + 0.5);
   });
   const next: DeckRun[] = [];
   for (const item of ranked) {
@@ -780,8 +781,84 @@ function deckQuad(indices: number[], a: number, b: number, c: number, d: number)
   indices.push(a, b, c, a, c, d);
 }
 
-/** Display-only. Elevated paths become continuous decks. Grade-separated crossings stay separate surfaces. */
-export function elevatedDeckGeometry(roads: readonly SiteRoad[]) {
+type DeckStation = {
+  lx: number;
+  lz: number;
+  rx: number;
+  rz: number;
+  top: number;
+  bottom: number;
+};
+
+/** Display-only. A square ramp end sits about half a width short of the deck it meets. Slide that end onto the deck edge. */
+function seatDeckEnd(stations: DeckStation[], others: readonly DeckRun[], end: number) {
+  if (stations.length < 2) return false;
+  const index = end === 0 ? 0 : stations.length - 1;
+  const previous = end === 0 ? 1 : stations.length - 2;
+  const station = stations[index];
+  const before = stations[previous];
+  const cx = (station.lx + station.rx) / 2;
+  const cz = (station.lz + station.rz) / 2;
+  const bx = (before.lx + before.rx) / 2;
+  const bz = (before.lz + before.rz) / 2;
+  const outward = deckUnit(bx, bz, cx, cz);
+  const ownHalf = Math.hypot(station.lx - station.rx, station.lz - station.rz) / 2;
+  let best: ReturnType<typeof closestDeck> | null = null;
+  for (const other of others) {
+    const hit = closestDeck(other, cx, cz);
+    if (Math.abs(hit.top - station.top) > DECK_LEVEL_FEET) continue;
+    const clearance = hit.distance - hit.half;
+    if (clearance > ownHalf + 6 || clearance < -8) continue;
+    const dx = hit.x - cx;
+    const dz = hit.z - cz;
+    const reach = Math.hypot(dx, dz) || 1;
+    const ahead = (dx * outward[0] + dz * outward[1]) / reach;
+    if (ahead < 0.05) continue;
+    if (Math.abs(outward[0] * hit.tx + outward[1] * hit.tz) > 0.82) continue;
+    if (!best || hit.distance < best.distance) best = hit;
+  }
+  if (!best) return false;
+  const bodyX = bx - best.x;
+  const bodyZ = bz - best.z;
+  let nx = -best.tz;
+  let nz = best.tx;
+  if (nx * bodyX + nz * bodyZ < 0) {
+    nx = -nx;
+    nz = -nz;
+  }
+  const edgeX = best.x + nx * (best.half + 0.05);
+  const edgeZ = best.z + nz * (best.half + 0.05);
+  const slide = (x0: number, z0: number, x1: number, z1: number) => {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const denom = dx * best.tz - dz * best.tx;
+    if (Math.abs(denom) < 1e-6) return null;
+    const t = ((edgeX - x0) * best.tz - (edgeZ - z0) * best.tx) / denom;
+    const span = Math.hypot(dx, dz) || 1;
+    const moved = (t - 1) * span;
+    if (t < 0.02 || Math.abs(moved) > ownHalf * 4 + 8) return null;
+    return { x: x0 + dx * t, z: z0 + dz * t };
+  };
+  const left = slide(before.lx, before.lz, station.lx, station.lz);
+  const right = slide(before.rx, before.rz, station.rx, station.rz);
+  if (!left || !right) return false;
+  const width = Math.hypot(left.x - right.x, left.z - right.z);
+  if (width < ownHalf * 0.75 || width > ownHalf * 6) return false;
+  station.lx = left.x;
+  station.lz = left.z;
+  station.rx = right.x;
+  station.rz = right.z;
+  return true;
+}
+
+/** The elevated ramps drawn in the study window. Shadow casting uses this same list. */
+export function analysisRampRoads(roads: readonly SiteRoad[]) {
+  const source = tidyLocalRoads(pruneContextRoads(displayRoads(roads)));
+  return elevatedDeckRoads(source).map((road) => regularizeRoad(road)).flatMap((road) => clipRoad(road)).filter((road) => road.kind === "ramp");
+}
+
+/** Display-only. Elevated paths become continuous decks. Grade-separated crossings stay separate surfaces. Measured decks keep the stored width and height. */
+export function elevatedDeckGeometry(roads: readonly SiteRoad[], measured = false) {
   const runs = joinDeckRuns(roads.filter((road) => road.path.length >= 2).map((road) => ({
     capStart: true,
     capEnd: true,
@@ -793,9 +870,9 @@ export function elevatedDeckGeometry(roads: readonly SiteRoad[]) {
     })),
   })));
   landDeckEnds(runs);
-  const opened = cutCoveredDecks(runs);
+  const opened = cutCoveredDecks(runs, measured);
   const framed = opened.map((run) => deckFrames(run.samples));
-  separateParallelDecks(framed);
+  if (!measured) separateParallelDecks(framed);
   const positions: number[] = [];
   const indices: number[] = [];
   framed.forEach((frames, runIndex) => {
@@ -811,6 +888,12 @@ export function elevatedDeckGeometry(roads: readonly SiteRoad[]) {
       };
     });
     if (stations.length < 2) return;
+    const run = opened[runIndex];
+    if (measured) {
+      const others = opened.filter((_, index) => index !== runIndex);
+      if (seatDeckEnd(stations, others, 0)) run.capStart = true;
+      if (seatDeckEnd(stations, others, 1)) run.capEnd = true;
+    }
     const leftTop = stations.map((station) => deckVertex(positions, station.lx, station.top, station.lz));
     const rightTop = stations.map((station) => deckVertex(positions, station.rx, station.top, station.rz));
     const leftBottom = stations.map((station) => deckVertex(positions, station.lx, station.bottom, station.lz));
@@ -821,7 +904,6 @@ export function elevatedDeckGeometry(roads: readonly SiteRoad[]) {
       deckQuad(indices, leftBottom[index], leftTop[index], leftTop[index + 1], leftBottom[index + 1]);
       deckQuad(indices, rightTop[index], rightBottom[index], rightBottom[index + 1], rightTop[index + 1]);
     }
-    const run = opened[runIndex];
     const first = stations[0];
     const last = stations[stations.length - 1];
     if (run.capStart) {
@@ -1531,15 +1613,15 @@ function orientRing(ring: readonly XZ[], positive: boolean): XZ[] {
 }
 
 /** A flat-capped corridor. Sharp bends bevel instead of growing a long miter. */
-function corridorRing(path: readonly XZ[], half: number): XZ[] {
+function corridorSides(path: readonly XZ[], half: number, tight: boolean) {
   const points = dedupe(path);
-  if (points.length < 2 || half <= 0) return [];
+  const left: XZ[] = [];
+  const right: XZ[] = [];
+  if (points.length < 2 || half <= 0) return { left, right };
   const direction = (from: XZ, to: XZ): XZ => {
     const length = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1;
     return [(to[0] - from[0]) / length, (to[1] - from[1]) / length];
   };
-  const left: XZ[] = [];
-  const right: XZ[] = [];
   for (let index = 0; index < points.length; index += 1) {
     const incoming = index === 0 ? direction(points[0], points[1]) : direction(points[index - 1], points[index]);
     const outgoing = index === points.length - 1 ? direction(points[index - 1], points[index]) : direction(points[index], points[index + 1]);
@@ -1550,17 +1632,84 @@ function corridorRing(path: readonly XZ[], half: number): XZ[] {
       left.push([points[index][0] + normal[0] * scale, points[index][1] + normal[1] * scale]);
       right.push([points[index][0] - normal[0] * scale, points[index][1] - normal[1] * scale]);
     };
-    if (index > 0 && index < points.length - 1 && dot < 0.25) {
+    const miter = half / Math.max(0.35, Math.sqrt((1 + dot) / 2));
+    if (index > 0 && index < points.length - 1 && (dot < 0.25 || (tight && miter > half * 1.08))) {
       push(previousNormal, half);
       push(nextNormal, half);
     } else {
       const mixed: XZ = [previousNormal[0] + nextNormal[0], previousNormal[1] + nextNormal[1]];
       const length = Math.hypot(mixed[0], mixed[1]) || 1;
-      const factor = Math.min(half * 2, half / Math.max(0.35, Math.sqrt((1 + dot) / 2)));
+      const factor = Math.min(half * 2, miter);
       push([mixed[0] / length, mixed[1] / length], factor);
     }
   }
-  return dedupe([...left, ...right.reverse()]);
+  return { left, right };
+}
+
+/** Display-only. An end cap that lands inside a cross street is pulled back to that street's edge, so the join does not leave a triangular spur. */
+function seatGroundCap(left: XZ[], right: XZ[], roads: readonly SiteRoad[], index: number, end: number) {
+  const tip = end === 0 ? 0 : left.length - 1;
+  const back = end === 0 ? 1 : left.length - 2;
+  if (left.length < 2 || right.length !== left.length || back < 0) return;
+  const cx = (left[tip][0] + right[tip][0]) / 2;
+  const cz = (left[tip][1] + right[tip][1]) / 2;
+  const bx = (left[back][0] + right[back][0]) / 2;
+  const bz = (left[back][1] + right[back][1]) / 2;
+  const outwardX = cx - bx;
+  const outwardZ = cz - bz;
+  const outward = Math.hypot(outwardX, outwardZ) || 1;
+  let best: { x: number; z: number; tx: number; tz: number; half: number; distance: number } | null = null;
+  for (let otherIndex = 0; otherIndex < roads.length; otherIndex += 1) {
+    if (otherIndex === index) continue;
+    const other = roads[otherIndex];
+    for (let cursor = 0; cursor < other.path.length - 1; cursor += 1) {
+      const start = other.path[cursor];
+      const finish = other.path[cursor + 1];
+      const dx = finish[0] - start[0];
+      const dz = finish[1] - start[1];
+      const length2 = dx * dx + dz * dz || 1;
+      const span = Math.sqrt(length2);
+      const t = Math.max(0, Math.min(1, ((cx - start[0]) * dx + (cz - start[1]) * dz) / length2));
+      const x = start[0] + dx * t;
+      const z = start[1] + dz * t;
+      const distance = Math.hypot(cx - x, cz - z);
+      if (distance > other.displayHalfWidthFeet + 4) continue;
+      const tx = dx / span;
+      const tz = dz / span;
+      if (Math.abs((outwardX / outward) * tx + (outwardZ / outward) * tz) > 0.82) continue;
+      const ahead = ((x - cx) * outwardX + (z - cz) * outwardZ) / outward;
+      if (ahead < -other.displayHalfWidthFeet) continue;
+      if (!best || distance < best.distance) best = { x, z, tx, tz, half: other.displayHalfWidthFeet, distance };
+    }
+  }
+  if (!best) return;
+  const landing = best;
+  const bodyX = bx - landing.x;
+  const bodyZ = bz - landing.z;
+  let nx = -landing.tz;
+  let nz = landing.tx;
+  if (nx * bodyX + nz * bodyZ < 0) {
+    nx = -nx;
+    nz = -nz;
+  }
+  const edgeX = landing.x + nx * Math.max(0, landing.half - 0.5);
+  const edgeZ = landing.z + nz * Math.max(0, landing.half - 0.5);
+  const slide = (x0: number, z0: number, x1: number, z1: number) => {
+    const dx = x1 - x0;
+    const dz = z1 - z0;
+    const denom = dx * landing.tz - dz * landing.tx;
+    if (Math.abs(denom) < 1e-6) return null;
+    const t = ((edgeX - x0) * landing.tz - (edgeZ - z0) * landing.tx) / denom;
+    const span = Math.hypot(dx, dz) || 1;
+    const moved = (t - 1) * span;
+    if (t < 0.02 || Math.abs(moved) > landing.half * 4 + 8) return null;
+    return [x0 + dx * t, z0 + dz * t] as XZ;
+  };
+  const nextLeft = slide(left[back][0], left[back][1], left[tip][0], left[tip][1]);
+  const nextRight = slide(right[back][0], right[back][1], right[tip][0], right[tip][1]);
+  if (!nextLeft || !nextRight) return;
+  left[tip] = nextLeft;
+  right[tip] = nextRight;
 }
 
 function outwardEnd(path: readonly XZ[], end: number): XZ {
@@ -1651,9 +1800,15 @@ function joinedGroundRoads(roads: readonly SiteRoad[], blocked: readonly (readon
   return closeGroundEnds(roads.filter((road) => !road.elevated && road.path.length >= 2), blocked, limits);
 }
 
-function groundCorridorRings(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[], limits?: readonly (readonly XZ[])[]) {
-  return joinedGroundRoads(roads, blocked, limits).flatMap((road) => {
-    const ring = corridorRing(road.path, road.displayHalfWidthFeet);
+function groundCorridorRings(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[], limits: readonly (readonly XZ[])[] | undefined, tight: boolean) {
+  const joined = joinedGroundRoads(roads, blocked, limits);
+  return joined.flatMap((road, index) => {
+    const { left, right } = corridorSides(road.path, road.displayHalfWidthFeet, tight);
+    if (tight) {
+      seatGroundCap(left, right, joined, index, 0);
+      seatGroundCap(left, right, joined, index, 1);
+    }
+    const ring = dedupe([...left, ...right.slice().reverse()]);
     return ring.length >= 3 ? [orientRing(ring, true)] : [];
   });
 }
@@ -1689,26 +1844,26 @@ const STREET_CLOSE_FEET = 16;
 /** An enclosed opening smaller than this inside the street surface is paved. A city block is far larger. */
 const STREET_NOOK_SQFT = 4000;
 
-/** Display-only. Ground streets as one surface. Outer rings are positive, block openings negative. */
-export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[]): Promise<XZ[][]> {
-  const rings = groundCorridorRings(roads, blocked, limits);
+/** Display-only. Ground streets as one surface. Outer rings are positive, block openings negative. The miter close fills gaps; the measured surface unions the stored corridors only. */
+export async function groundRoadSurface(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[], close = true): Promise<XZ[][]> {
+  const rings = groundCorridorRings(roads, blocked, limits, !close);
   if (rings.length === 0) return [];
   const wasm = await loadClipper();
   const section = new wasm.CrossSection(rings.map((ring) => ring.map((point) => [point[0], point[1]] as [number, number])));
-  const grown = section.offset(STREET_CLOSE_FEET, "Miter", 4);
-  const closed = grown.offset(-STREET_CLOSE_FEET, "Miter", 4);
+  const grown = close ? section.offset(STREET_CLOSE_FEET, "Miter", 4) : null;
+  const closed = grown ? grown.offset(-STREET_CLOSE_FEET, "Miter", 4) : section;
   const polygons = closed.toPolygons();
   section.delete();
-  grown.delete();
-  closed.delete();
+  grown?.delete();
+  if (grown) closed.delete();
   return polygons.map(openPolygon).filter((ring) => {
     const area = signedArea(ring);
     return area > 1 || area < -STREET_NOOK_SQFT;
   });
 }
 
-export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[]) {
-  const polygons = await groundRoadSurface(roads, blocked, limits);
+export async function groundRoadGeometry(roads: readonly SiteRoad[], blocked: readonly (readonly XZ[])[] = [], limits?: readonly (readonly XZ[])[], close = true) {
+  const polygons = await groundRoadSurface(roads, blocked, limits, close);
   if (polygons.length === 0) return mergeGeometries([]);
   const outers: XZ[][] = [];
   const holes: XZ[][] = [];

@@ -1,0 +1,135 @@
+{
+  "building:8630190": {
+    "identity": "Adrienne Arsht Center, Knight Concert Hall",
+    "display": true,
+    "role": "reference",
+    "summary": "Reference · CC BY 2.0",
+    "imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Adrienne_Arsht_Center_for_the_Performing_Arts_of_Miami-Dade_County_-_Flickr_-_Phillip_Pessar.jpg/960px-Adrienne_Arsht_Center_for_the_Performing_Arts_of_Miami-Dade_County_-_Flickr_-_Phillip_Pessar.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:Adrienne_Arsht_Center_for_the_Performing_Arts_of_Miami-Dade_County_-_Flickr_-_Phillip_Pessar.jpg",
+    "title": "Adrienne Arsht Center for the Performing Arts of Miami-Dade County",
+    "author": "Phillip Pessar",
+    "license": "CC BY 2.0",
+    "source": "Wikimedia Commons",
+    "captured": { "lat": 25.789358, "lon": -80.188706 },
+    "sources": [
+      {
+        "name": "Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:Adrienne_Arsht_Center_for_the_Performing_Arts_of_Miami-Dade_County_-_Flickr_-_Phillip_Pessar.jpg",
+        "license": "CC BY 2.0. Display is permitted with attribution and a link to the license.",
+        "depicts": "The Arsht Center campus, photographed from the north side of the complex rather than from the parcel observer."
+      }
+    ]
+  },
+  "building:8630120": {
+    "identity": "The Venetia, also recorded as Plaza Venetia, 555 NE 15th Street. Mapped height 336 ft matches the published 331–332 ft tower.",
+    "display": true,
+    "role": "historical",
+    "summary": "Historical reference · Public Domain Mark 1.0",
+    "imageUrl": "https://floridamemory.com/fpc/postcard/pc2170.jpg",
+    "pageUrl": "https://www.floridamemory.com/items/show/160005",
+    "title": "Plaza Venetia - Marriott - Miami",
+    "author": "State Archives of Florida, Florida Memory",
+    "license": "Public Domain Mark 1.0",
+    "source": "Florida Memory",
+    "captured": null,
+    "sources": [
+      {
+        "name": "Florida Memory",
+        "url": "https://www.floridamemory.com/items/show/160005",
+        "license": "Public Domain Mark 1.0. Florida Memory offers the images on the site under this mark. Credit the State Archives of Florida, Florida Memory, as required by section 257.35(6), Florida Statutes.",
+        "depicts": "Postcard PC2170, Plaza Venetia - Marriott - Miami, published by Gulfstream Card Co. The catalog date of circa 1900 is a placeholder; the towers date the card to after 1979. Seen from Biscayne Bay, the southern tower with yellow vertical stripes is The Venetia at 555 NE 15th Street. The white balcony tower to the north is the Miami Marriott Biscayne Bay, 1633 North Bayshore Drive, and is not The Venetia. A shorter gray tower stands between them."
+      },
+      {
+        "name": "Flickr",
+        "url": "https://www.flickr.com/photos/miamism/9687987782/",
+        "license": "CC BY 2.0, Ines Hegedus-Garcia. Display would be permitted with attribution, but this frame is an interior.",
+        "depicts": "Waterfront Venetia Condo For Sale. A furnished living room looking out through glass doors toward the bay. It does not show the exterior of 555 NE 15th Street."
+      },
+      {
+        "name": "Flickr",
+        "url": "https://www.flickr.com/photos/miamism/9403819754/",
+        "license": "CC BY 2.0, Ines Hegedus-Garcia. Display would be permitted with attribution, but this frame is not the building exterior.",
+        "depicts": "Venetia Condo by Miamism, 30 July 2013. The frame looks out from a balcony across Biscayne Bay, the Venetian Causeway, and the former Herald radio tower. It does not show the exterior of 555 NE 15th Street."
+      },
+      {
+        "name": "Apartments.com",
+        "url": "https://www.apartments.com/the-venetia-miami-fl/fkk310t/",
+        "license": "Apartments.com terms reserve the photographs and prohibit copying or republishing without prior written consent.",
+        "depicts": "The Venetia listing, including exterior photographs of 555 NE 15th Street."
+      },
+      {
+        "name": "SKYDB",
+        "url": "https://www.skydb.net/building/742977608/plaza-venetia-hotel-miami/",
+        "license": "Photographs by Jorge Molina. SKYDB requires a license that covers the intended use before publication.",
+        "depicts": "Full exterior of Plaza Venetia from the southwest, and a wider view toward Biscayne Bay."
+      }
+    ]
+  },
+  "building:8630430": {
+    "identity": "iPreparatory Academy in the former Jefferson’s department store at 1500 Biscayne Boulevard.",
+    "display": false,
+    "role": null,
+    "summary": "Building photograph found · not licensed for display",
+    "sources": [
+      {
+        "name": "The 74",
+        "url": "https://www.the74million.org/article/the-great-miami-turnaround-how-one-ambitious-schools-chief-rescued-americas-fourth-largest-district/",
+        "license": "Captioned “Photo by Jimmy Abraham, courtesy Miami-Dade Schools.” A courtesy credit to the publisher is not a license to embed the photograph here.",
+        "depicts": "The exterior of the former Jefferson’s store at 1500 Biscayne Boulevard, identified in the caption as iPreparatory Academy."
+      },
+      {
+        "name": "iPreparatory Academy",
+        "url": "https://www.ipreparatoryacademy.net/",
+        "license": "School-site images have no stated reuse license.",
+        "depicts": "The school’s own pages identify 1500 Biscayne Boulevard. They do not grant embedding."
+      }
+    ]
+  },
+  "building:4462000": {
+    "identity": "Unnamed 27.6 ft building, OpenStreetMap way 435527718, Miami building reference 20528. It stands on Northeast 16th Street, immediately south of Trinity Episcopal Cathedral and southwest of The Venetia. The mapped footprint has no name or street address.",
+    "display": false,
+    "role": null,
+    "summary": "Footprint has no named photograph",
+    "sources": [
+      {
+        "name": "OpenStreetMap",
+        "url": "https://www.openstreetmap.org/way/435527718",
+        "license": "Map data only. No photograph is attached to this way.",
+        "depicts": "The low building itself. Nearby photographs show Trinity Cathedral, about 35 m north, and were not used."
+      }
+    ]
+  },
+  "waterfront": {
+    "identity": "Open waterfront east from the parcel at One Herald Plaza.",
+    "display": true,
+    "role": "reference",
+    "summary": "Context reference · CC BY-SA 4.0",
+    "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Miami_Herald_-_Former_Site_in_Downtown_Miami_02.jpg/960px-The_Miami_Herald_-_Former_Site_in_Downtown_Miami_02.jpg",
+    "pageUrl": "https://commons.wikimedia.org/wiki/File:The_Miami_Herald_-_Former_Site_in_Downtown_Miami_02.jpg",
+    "title": "The Miami Herald – Former Site in Downtown Miami 02",
+    "author": "Daniel Di Palma",
+    "license": "CC BY-SA 4.0",
+    "source": "Wikimedia Commons",
+    "captured": null,
+    "sources": [
+      {
+        "name": "Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:The_Miami_Herald_-_Former_Site_in_Downtown_Miami_02.jpg",
+        "license": "CC BY-SA 4.0, Daniel Di Palma, 28 June 2017. Attribution and the license link are required. The file has no camera coordinates.",
+        "depicts": "Biscayne Bay at the former Miami Herald site, with the remaining radio-tower pilings. A context reference for the waterfront. The camera bearing is not recorded and is not the calculated −2° view."
+      },
+      {
+        "name": "Wikimedia Commons",
+        "url": "https://commons.wikimedia.org/wiki/File:The_Miami_Herald_-_Former_Site_in_Downtown_Miami_03.jpg",
+        "license": "CC BY-SA 4.0, Daniel Di Palma, 28 June 2017. Not displayed.",
+        "depicts": "The former Herald shoreline, mooring edge, and MacArthur Causeway. Kept as the shoreline alternative. The displayed frame is the open water."
+      },
+      {
+        "name": "Miami-Dade County",
+        "url": "https://documents.miamidade.gov/mayor/memos/10.25.22-Report-on-the-Winter-2022-Miami-International-Boat-Show.pdf",
+        "license": "The 25 October 2022 Board report is a public record. County photographs are not works of the federal government, and the report does not grant a license to extract and embed them.",
+        "depicts": "Inspection photographs of the Winter 2022 boat show at 1 Herald Plaza. They show the temporary waterfront installation, not a verified view from the parcel observer."
+      }
+    ]
+  }
+}

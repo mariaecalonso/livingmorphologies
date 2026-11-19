@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { stationAccount, type StationWalk } from "@/lib/skill5/pedestrian";
+import { SunIcon, ViewsIcon, WalkIcon, WindIcon } from "./explore-controls";
 
 /**
  * One measured finding stored for later reading.
@@ -59,10 +60,34 @@ export type SiteObservation = SiteFinding;
 const STUDY_ORDER = [
   "Sun + Shadows",
   "Wind",
+  "Views + Road Proximity",
   "Views + Noise",
   "Pedestrian Mobility + Baywalk",
+  "Pedestrian Mobility",
   "Urban Context + Land Use",
 ];
+
+export function studyLabel(study: string) {
+  if (study === "Views + Noise") return "Views + Road Proximity";
+  if (study === "Pedestrian Mobility") return "Pedestrian Mobility + Baywalk";
+  return study;
+}
+
+function findingStatus(item: SiteFinding) {
+  const text = `${item.reliability} ${item.gaps.join(" ")}`.toLowerCase();
+  if (text.includes("unverified")) return "Unverified";
+  if (text.includes("estimated") || text.includes("story count")) return "Estimated";
+  return "Measured";
+}
+
+function StudyMark({ study }: { study: string }) {
+  const label = studyLabel(study);
+  if (label.startsWith("Sun")) return <SunIcon />;
+  if (label.startsWith("Wind")) return <WindIcon />;
+  if (label.startsWith("Views")) return <ViewsIcon />;
+  if (label.startsWith("Pedestrian")) return <WalkIcon />;
+  return null;
+}
 
 const KINDS = new Set([
   "access",
@@ -332,30 +357,89 @@ export function findingReliability(item: SiteFinding) {
 }
 
 export function AnalysisColumnFrame({
+  title,
   findings,
   gap,
-  inputs,
-  onRetain,
   onLive,
   children,
+  overlay,
 }: {
+  title?: string;
   findings: readonly SiteFinding[];
   gap?: string | null;
-  inputs: readonly SiteObservation[];
-  onRetain: (finding: SiteFinding) => void;
+  inputs?: readonly SiteObservation[];
+  onRetain?: (finding: SiteFinding) => void;
+  onRemove?: (id: string) => void;
   onLive: (findings: readonly SiteFinding[]) => void;
+  tab?: "evaluate" | "inputs";
+  onTab?: (tab: "evaluate" | "inputs") => void;
   children: ReactNode;
+  overlay?: ReactNode;
 }) {
+  const signature = findings.map(observationKey).join("\n");
+  const findingsRef = useRef(findings);
+  findingsRef.current = findings;
+  useEffect(() => {
+    onLive(findingsRef.current);
+  }, [signature, onLive]);
+  useEffect(() => () => onLive([]), [onLive]);
   return (
-    <aside className="site-panel site-panel-analysis site-analysis-panel site-analysis-column" aria-label="Analysis results">
+    <aside id="site-analysis-panel" className="site-panel site-panel-analysis site-analysis-panel site-analysis-column" role="tabpanel" aria-label="Analysis results">
       <div className="site-analysis-evaluate">
         <header className="site-analysis-head">
-          <p><span>03</span> Evaluate</p>
+          {title ? <h2>{title}</h2> : null}
         </header>
         {children}
+        {gap ? <p className="site-note">{gap}</p> : null}
       </div>
-      <AnalysisSelect findings={findings} gap={gap ?? null} inputs={inputs} onRetain={onRetain} onLive={onLive} />
+      {overlay}
     </aside>
+  );
+}
+
+function SelectedInputs({
+  inputs,
+  onRemove,
+}: {
+  inputs: readonly SiteObservation[];
+  onRemove?: (id: string) => void;
+}) {
+  const groups = new Map<string, SiteObservation[]>();
+  for (const item of inputs) {
+    const label = studyLabel(item.study);
+    const list = groups.get(label) ?? [];
+    list.push(item);
+    groups.set(label, list);
+  }
+  const ordered = [...groups.keys()].sort((a, b) => {
+    const ai = STUDY_ORDER.indexOf(a);
+    const bi = STUDY_ORDER.indexOf(b);
+    return (ai === -1 ? STUDY_ORDER.length : ai) - (bi === -1 ? STUDY_ORDER.length : bi);
+  });
+  return (
+    <div className="site-selected-inputs">
+      <p className="site-note">Retained findings stay in this browser. Site Integration still reads a separate frozen file, so this list does not update that handoff. Nothing here is approved or turned into a design weight.</p>
+      {inputs.length === 0 ? <p className="site-note">No findings retained yet. Use Retain as site input on a study.</p> : (
+        ordered.map((study) => (
+          <section key={study}>
+            <h3>{study}</h3>
+            {(groups.get(study) ?? []).map((item) => (
+              <article key={item.id} className="site-input-card">
+                <header>
+                  <span className="site-input-mark" aria-hidden="true"><StudyMark study={item.study} /></span>
+                  <strong>{item.title}</strong>
+                  {onRemove ? <button type="button" onClick={() => onRemove(item.id)}>Remove</button> : null}
+                </header>
+                <p>{findingMeasurement(item)}</p>
+                <p>{findingSpace(item)}</p>
+                <p data-status={findingStatus(item)}>{findingStatus(item)}</p>
+                <p>{findingSource(item)}</p>
+              </article>
+            ))}
+          </section>
+        ))
+      )}
+    </div>
   );
 }
 
@@ -392,13 +476,15 @@ export function AnalysisSelect({
             const same = Boolean(retained && observationKey(retained) === observationKey(finding));
             const label = same ? "Retained" : retained ? "Replace" : "Retain";
             return (
-              <li key={finding.id}>
+              <li key={finding.id} data-kind={finding.kind}>
                 <div>
                   <strong>{finding.title}</strong>
                   <span>{findingMeasurement(finding)}</span>
-                  <em>{findingSpace(finding)}</em>
+                  <em title={findingSpace(finding)}>{findingSpace(finding)}</em>
                 </div>
-                <button type="button" disabled={same} onClick={() => onRetain(finding)}>{label}</button>
+                <button type="button" data-state={same ? "retained" : retained ? "replace" : "open"} aria-pressed={same} disabled={same} onClick={() => onRetain(finding)}>
+                  <span>{label}</span>
+                </button>
               </li>
             );
           })}

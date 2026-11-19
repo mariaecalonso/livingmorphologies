@@ -22,4 +22,12 @@ export function projectLocal(lon: number, lat: number, origin: GeoOrigin) {
   };
 }
 
+export function localToGeo(x: number, z: number, origin: GeoOrigin) {
+  const scale = feetPerDegree(origin.lat);
+  return {
+    lat: origin.lat + z / scale.north,
+    lon: origin.lon + x / scale.east,
+  };
+}
+
 export const METERS_TO_FEET = 1 / METERS_PER_FOOT;

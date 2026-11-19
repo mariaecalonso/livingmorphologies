@@ -85,6 +85,14 @@ export type PedestrianStudy = {
   coastMappedCount: number;
   namedBaywalkFeet: number;
   namedBaywalkParcelFeet: number | null;
+  /** Distance from the named Baywalk to the nearest other mapped line. */
+  namedBaywalkGapFeet: number | null;
+  /** County components when exact shared vertices are kept and endpoints within 12 ft are joined. */
+  countyComponents: number;
+  parcelComponentFeet: number;
+  parcelComponentLinks: number;
+  /** True when the parcel-side component uses a join longer than 0.5 ft. That join is a modeled assumption. */
+  parcelComponentSnap: boolean;
   museumConnected: boolean;
   attractors: CirculationAttractor[];
 };
@@ -108,7 +116,7 @@ export type WalkSegment = {
   tone: "county" | "mapped" | "named" | "gap" | "station";
 };
 
-type Graph = { nodes: XZ[]; next: Array<Array<[number, number]>> };
+type Graph = { nodes: XZ[]; next: Array<Array<[number, number]>>; owner: WalkLink[] };
 
 const countyLinks = network.sidewalks as WalkLink[];
 const mappedLinks = network.mapped as WalkLink[];
@@ -125,7 +133,7 @@ export const PEDESTRIAN_SOURCES = {
 export const PEDESTRIAN_LIMITS = [
   "County sidewalks are the Miami-Dade DTPW inventory, retrieved 2026-11-05. Width and ADA fields were empty on most features and are not used.",
   "OpenStreetMap sidewalks, crossings, steps, and named paths are mapped lines. They are not a county survey.",
-  "A walking distance follows county sidewalks only. Endpoints within 12 ft are joined. A longer gap is not filled in.",
+  "A walking distance follows county sidewalks only. Exact shared vertices are kept. Endpoints within 12 ft are joined, and a join that spans an opening is a modeled assumption. A longer gap is not filled in.",
   "The distance from a sidewalk to the parcel boundary is a gap, not a path.",
   "Metromover OPEN_ is the county attribute retrieved with the stations. It is not a live operating check.",
   "The I-395 Baywalk bridge is a Miami DDA proposal. No alignment was published, so no line is drawn.",
@@ -275,10 +283,12 @@ function nearParcel(path: readonly XZ[], ring: readonly XZ[]) {
 function buildGraph(links: readonly WalkLink[]): Graph {
   const nodes: XZ[] = [];
   const next: Array<Array<[number, number]>> = [];
+  const owner: WalkLink[] = [];
   const ends: number[] = [];
-  const add = (point: XZ) => {
+  const add = (point: XZ, link: WalkLink) => {
     nodes.push(point);
     next.push([]);
+    owner.push(link);
     return nodes.length - 1;
   };
   const join = (a: number, b: number, feet: number) => {
@@ -286,10 +296,10 @@ function buildGraph(links: readonly WalkLink[]): Graph {
     next[b].push([a, feet]);
   };
   for (const link of links) {
-    let previous = add(link.path[0]);
+    let previous = add(link.path[0], link);
     ends.push(previous);
     for (let index = 1; index < link.path.length; index += 1) {
-      const current = add(link.path[index]);
+      const current = add(link.path[index], link);
       join(previous, current, Math.hypot(link.path[index][0] - link.path[index - 1][0], link.path[index][1] - link.path[index - 1][1]));
       previous = current;
     }
@@ -299,10 +309,44 @@ function buildGraph(links: readonly WalkLink[]): Graph {
     for (let index = 0; index < nodes.length; index += 1) {
       if (index === end) continue;
       const feet = Math.hypot(nodes[end][0] - nodes[index][0], nodes[end][1] - nodes[index][1]);
-      if (feet > 0.5 && feet <= JOIN_FEET) join(end, index, feet);
+      if (feet <= JOIN_FEET) join(end, index, feet);
     }
   }
-  return { nodes, next };
+  return { nodes, next, owner };
+}
+
+function countyAccount(graph: Graph, parcel: readonly XZ[]) {
+  const parent = graph.nodes.map((_, index) => index);
+  const find = (index: number): number => (parent[index] === index ? index : (parent[index] = find(parent[index])));
+  for (let index = 0; index < graph.next.length; index += 1) {
+    for (const [neighbor] of graph.next[index]) {
+      const root = find(index);
+      const other = find(neighbor);
+      if (root !== other) parent[root] = other;
+    }
+  }
+  let cursor = 0;
+  const rootOf = new Map<string, number>();
+  for (const link of countyLinks) {
+    rootOf.set(link.id, find(cursor));
+    cursor += link.path.length;
+  }
+  const touching = countyLinks.filter((link) => polylineDistance(link.path, parcel).feet <= PARCEL_FEET);
+  const parcelRoots = new Set(touching.map((link) => rootOf.get(link.id)));
+  const parcelLinks = countyLinks.filter((link) => parcelRoots.has(rootOf.get(link.id)));
+  let snap = false;
+  for (let index = 0; index < graph.next.length && !snap; index += 1) {
+    if (!parcelRoots.has(find(index))) continue;
+    for (const [neighbor, weight] of graph.next[index]) {
+      if (weight > 0.5 && graph.owner[index] !== graph.owner[neighbor]) snap = true;
+    }
+  }
+  return {
+    countyComponents: new Set(rootOf.values()).size,
+    parcelComponentFeet: parcelLinks.reduce((sum, link) => sum + lengthOf(link.path), 0),
+    parcelComponentLinks: parcelLinks.length,
+    parcelComponentSnap: snap,
+  };
 }
 
 function routeFeet(graph: Graph, sources: readonly number[], target: number) {
@@ -340,6 +384,7 @@ export function pedestrianStudy(parcel: readonly XZ[], shore: readonly XZ[]): Pe
   const key = `${parcel.length}:${parcel[0]?.join(",")}:${shore.length}:${shore[0]?.join(",")}`;
   if (cached?.key === key) return cached.study;
   const graph = buildGraph(countyLinks);
+  const county = countyAccount(graph, parcel);
   const sources: number[] = [];
   for (let index = 0; index < graph.nodes.length; index += 1) {
     const [x, z] = graph.nodes[index];
@@ -389,6 +434,18 @@ export function pedestrianStudy(parcel: readonly XZ[], shore: readonly XZ[]): Pe
   const coastCounty = countyLinks.filter((link) => coastDistance(link.path, shore) <= COAST_FEET);
   const coastMapped = mappedLinks.filter((link) => coastDistance(link.path, shore) <= COAST_FEET);
   const namedBaywalk = mappedLinks.filter((link) => link.name.toLowerCase() === "baywalk");
+  let namedBaywalkGapFeet: number | null = namedBaywalk.length === 0 ? null : Infinity;
+  for (const link of namedBaywalk) {
+    for (const other of mappedLinks) {
+      if (other.id === link.id) continue;
+      for (let left = 1; left < link.path.length; left += 1) {
+        for (let right = 1; right < other.path.length; right += 1) {
+          namedBaywalkGapFeet = Math.min(namedBaywalkGapFeet ?? Infinity, segmentDistance(link.path[left - 1], link.path[left], other.path[right - 1], other.path[right]));
+        }
+      }
+    }
+  }
+  if (namedBaywalkGapFeet !== null && !Number.isFinite(namedBaywalkGapFeet)) namedBaywalkGapFeet = null;
   const attractors: CirculationAttractor[] = [
     ...access.map((item) => ({
       id: `${item.side}-${item.name}`,
@@ -423,6 +480,11 @@ export function pedestrianStudy(parcel: readonly XZ[], shore: readonly XZ[]): Pe
     coastMappedCount: coastMapped.length,
     namedBaywalkFeet: namedBaywalk.reduce((sum, link) => sum + lengthOf(link.path), 0),
     namedBaywalkParcelFeet: namedBaywalk.length === 0 ? null : Math.min(...namedBaywalk.map((link) => polylineDistance(link.path, parcel).feet)),
+    namedBaywalkGapFeet,
+    countyComponents: county.countyComponents,
+    parcelComponentFeet: county.parcelComponentFeet,
+    parcelComponentLinks: county.parcelComponentLinks,
+    parcelComponentSnap: county.parcelComponentSnap,
     museumConnected: museum?.routeFeet !== null,
     attractors,
   };
@@ -543,4 +605,75 @@ export function attractorNote(study: PedestrianStudy) {
   return `${study.attractors.length} potential Physarum attractors, unverified: ${names}. They are not confirmed entrances. Northeast 15th Street is not a Baywalk connection. No Physarum network is generated.`;
 }
 
-export { countyLinks, mappedLinks };
+export type LineApproach = {
+  id: string;
+  name: string;
+  authority: WalkLink["authority"];
+  kind: WalkLink["kind"];
+  status: WalkLink["status"];
+  feet: number;
+  boundaryX: number;
+  boundaryZ: number;
+};
+
+export type LineHit = LineApproach & { lineX: number; lineZ: number };
+
+function linkHit(path: readonly XZ[], ring: readonly XZ[]) {
+  return polylineDistance(path, ring);
+}
+
+/** Stored lines within `limit` feet of the parcel boundary. The distance is geometric. It is not an entrance. */
+export function closeApproaches(parcel: readonly XZ[], limit = 15): LineApproach[] {
+  const found: LineApproach[] = [];
+  for (const link of [...countyLinks, ...mappedLinks]) {
+    const hit = linkHit(link.path, parcel);
+    if (hit.feet > limit) continue;
+    found.push({
+      id: link.id,
+      name: link.name,
+      authority: link.authority,
+      kind: link.kind,
+      status: link.status,
+      feet: hit.feet,
+      boundaryX: hit.boundaryX,
+      boundaryZ: hit.boundaryZ,
+    });
+  }
+  return found.sort((a, b) => a.feet - b.feet || a.name.localeCompare(b.name));
+}
+
+function pointOnSegment(x: number, z: number, a: XZ, b: XZ) {
+  const ux = b[0] - a[0];
+  const uz = b[1] - a[1];
+  const span = ux * ux + uz * uz;
+  const t = span < 1e-8 ? 0 : Math.max(0, Math.min(1, ((x - a[0]) * ux + (z - a[1]) * uz) / span));
+  const lineX = a[0] + ux * t;
+  const lineZ = a[1] + uz * t;
+  return { feet: Math.hypot(x - lineX, z - lineZ), lineX, lineZ };
+}
+
+/** Nearest stored pedestrian line to a point. Geometric distance, not a route. */
+export function nearestWalkLine(x: number, z: number): LineHit | null {
+  let best: LineHit | null = null;
+  for (const link of [...countyLinks, ...mappedLinks]) {
+    for (let index = 1; index < link.path.length; index += 1) {
+      const hit = pointOnSegment(x, z, link.path[index - 1], link.path[index]);
+      if (best && hit.feet >= best.feet) continue;
+      best = {
+        id: link.id,
+        name: link.name,
+        authority: link.authority,
+        kind: link.kind,
+        status: link.status,
+        feet: hit.feet,
+        boundaryX: x,
+        boundaryZ: z,
+        lineX: hit.lineX,
+        lineZ: hit.lineZ,
+      };
+    }
+  }
+  return best;
+}
+
+export { countyLinks, mappedLinks, stops as transitStations };
