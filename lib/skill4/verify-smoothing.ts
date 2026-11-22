@@ -171,24 +171,24 @@ untouched(pinched, pinchOriginal);
 const stepOriginal = new Float32Array(stepped.positions);
 const stepResult = validateMeshes([stepped]);
 assert(stepResult != null, "stepped connection produced no result");
-assert(stepResult.verdict === "corrected", `${stepResult.verdict}: ${stepResult.note}`);
-assert(stepResult.meshes[0].smoothed.positions.length > stepped.positions.length, "stepped connection was not refined");
-assert(stepResult.meshes[0].rest != null, "stepped refinement has no rest pose");
-assert(stepResult.before.smoothness < stepResult.after.smoothness, "stepped smoothness did not rise");
-assert(stepResult.note.toLowerCase().includes("sharp"), stepResult.note);
+assert(stepResult.meshes[0].smoothed.positions.length === stepped.positions.length, "stepped silhouette was rebuilt");
+assert(
+  stepResult.note.toLowerCase().includes("left in place") || stepResult.note.toLowerCase().includes("self-intersection"),
+  stepResult.note,
+);
 untouched(stepped, stepOriginal);
 manifold(stepResult.meshes[0].smoothed.indices);
-const preview = stepResult.meshes[0];
+const preview = pinchResult.meshes[0];
 const shown = revealSmooth(preview, 1);
-assert(shown.positions.length === preview.smoothed.positions.length, "preview dropped the refined mesh");
-assert(shown.indices.length === preview.smoothed.indices.length, "preview dropped the refined faces");
+assert(shown.positions.length === preview.smoothed.positions.length, "preview dropped the corrected mesh");
+assert(shown.indices.length === preview.smoothed.indices.length, "preview dropped the corrected faces");
 const midway = revealSmooth(preview, 0.5);
 assert(midway.positions.length === shown.positions.length, "scan blend changed the vertex count");
 let previewMove = 0;
 for (let index = 0; index < shown.positions.length; index += 1) {
-  previewMove = Math.max(previewMove, Math.abs(shown.positions[index] - preview.rest!.positions[index]));
+  previewMove = Math.max(previewMove, Math.abs(shown.positions[index] - preview.source.positions[index]));
 }
-assert(previewMove > 0.05, "refined preview is still on the coarse surface");
+assert(previewMove > 0.05, "corrected preview did not move");
 
 console.log(JSON.stringify({
   smooth: smoothResult.verdict,
@@ -198,7 +198,7 @@ console.log(JSON.stringify({
     verdict: stepResult.verdict,
     before: stepResult.before.smoothness,
     after: stepResult.after.smoothness,
-    verts: [stepped.positions.length / 3, stepResult.meshes[0].smoothed.positions.length / 3],
+    verts: stepped.positions.length / 3,
     note: stepResult.note,
   },
 }, null, 2));

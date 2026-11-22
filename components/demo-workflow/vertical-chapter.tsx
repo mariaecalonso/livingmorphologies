@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import handoff from "@/data/skill3/final-selection.json";
-import { ClusteringWorkspace } from "@/components/clustering/clustering-workspace";
-import { JointDiagram } from "@/components/clustering/joint-diagram";
+import { ClusterCatalogPage, ClusteringDevelopmentPage, GraphWfcPage } from "@/components/demo-workflow/clustering-pages";
 import { FinalMorphologyCatalogue, type FinalArchiveHandoff } from "@/components/final-morphology-catalogue";
 import { takeCatalogHandoff, clearCatalogHandoff, catalogFlightActive, catalogFlightSettled } from "@/components/demo-workflow/catalog-inspection";
 import { CatalogDemonstration, ProcessDemonstration } from "@/components/demo-workflow/vertical-demonstration";
@@ -53,7 +52,7 @@ function FinalCatalogueBoard() {
   );
 }
 
-/** Chapter 03: the lab replay, the catalogues, then initial clustering. */
+/** Chapter 03: the lab replay, the catalogues, then the stored clustering experiments. */
 export function useVerticalContent(): ChapterContent {
   return useMemo(() => ({
     visuals: [],
@@ -73,11 +72,15 @@ export function useVerticalContent(): ChapterContent {
       },
       {
         layout: styles.cluster,
-        details: [<ClusteringWorkspace key="clustering" tab="initial" />],
+        details: [<ClusteringDevelopmentPage key="development" />],
       },
       {
         layout: styles.cluster,
-        details: [<JointDiagram key="joint" />],
+        details: [<GraphWfcPage key="graph-wfc" />],
+      },
+      {
+        layout: styles.cluster,
+        details: [<ClusterCatalogPage key="clusters" />],
       },
     ],
   }), []);

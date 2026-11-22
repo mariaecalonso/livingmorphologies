@@ -173,7 +173,7 @@ export function ArchitecturalDna({
         </g>
       </svg>
       <header className="site-dna-bar">
-        <button type="button" onClick={onClose}>Back to Tile Placement</button>
+        <button type="button" onClick={onClose}>Back to Cluster Placement</button>
         <button type="button" onClick={onOpenOverview}>All tiles</button>
         <p>Architectural DNA × Client compatibility</p>
       </header>

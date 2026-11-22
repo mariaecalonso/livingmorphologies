@@ -15,8 +15,16 @@ export type PlacedMesh = {
   color?: [number, number, number];
   /** Development overlap debug. Production meshes leave this unset and stay opaque. */
   opacity?: number;
+  /** Translucent volume that keeps its own color. Used by the habitable void. */
+  volume?: boolean;
+  /** Faint solid with a thin edge. Used while inspecting the habitable void. */
+  quiet?: boolean;
+  /** Opaque shaded solid, without the assembly wireframe. */
+  plain?: boolean;
   /** Aggregation-canvas hybrid only. Teal at one end, orange at the other. */
   palette?: boolean;
+  /** World-X limit. Vertices past it are not drawn. Unset draws the whole mesh. */
+  clipX?: number;
 };
 
 /** Camera pull-back used by the placed-mesh view. Previews stay at this distance. */
@@ -111,20 +119,48 @@ uniform vec3 uColor;
 uniform float uAlpha;
 uniform float uPalette;
 uniform float uStyle;
+uniform float uClip;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
 void main() {
+  if (vLocal.x > uClip) discard;
   vec3 n = normalize(vNormal);
   vec3 viewDir = vec3(0.0, 0.0, 1.0);
   float facing = dot(n, viewDir);
   if (facing < 0.0) n = -n;
   vec3 key = normalize(vec3(0.42, 0.74, 0.52));
   float lambert = clamp(dot(n, key), 0.0, 1.0);
-  float shade = 0.94 + lambert * 0.06;
+  float shade = 0.46 + lambert * 0.62;
+  float grazing = pow(1.0 - abs(facing), 1.7);
   vec3 green = vec3(0.058824, 0.450980, 0.466667);
   vec3 orange = vec3(0.780392, 0.494118, 0.372549);
   vec3 tint = mix(green, orange, clamp(vRamp, 0.0, 1.0));
-  vec3 col = uPalette > 0.5 ? tint : uColor * shade;
+  vec3 col = uPalette > 0.5 ? tint : uColor * shade * (1.0 - grazing * 0.35);
+  if (uStyle > 4.5) {
+    float shadeLit = 0.38 + lambert * 0.24;
+    vec3 body = uColor * shadeLit;
+    float crease = smoothstep(0.5, 0.95, length(fwidth(n)));
+    oColor = vec4(mix(body, vec3(0.96), crease * 0.22), uAlpha);
+    oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+    return;
+  }
+  if (uStyle > 3.5) {
+    float crease = smoothstep(0.12, 0.42, length(fwidth(n)));
+    vec3 fill = vec3(0.62, 0.64, 0.66);
+    vec3 line = vec3(0.84, 0.86, 0.88);
+    oColor = vec4(mix(fill, line, crease), uAlpha);
+    oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+    return;
+  }
+  if (uStyle > 2.5) {
+    float grazing = 1.0 - abs(facing);
+    float glow = pow(grazing, 1.8);
+    vec3 fill = uColor * (0.82 + lambert * 0.28);
+    float alpha = clamp(uAlpha * (0.9 + glow * 0.15), 0.0, 0.42);
+    oColor = vec4(fill + vec3(0.85, 0.98, 1.0) * glow * 0.18, alpha);
+    oDepth = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
   if (uStyle > 0.5) {
     float rim = pow(1.0 - abs(facing), 2.6);
     float bend = length(fwidth(n));
@@ -202,9 +238,35 @@ void main() {
   oColor = vec4(min(lit, vec3(1.0)), 1.0);
 }`;
 
-const SHADER_VERSION = 30;
+const SHADER_VERSION = 43;
 
 const expandedMeshes = new WeakMap<IsoMesh, { positions: Float32Array; normals: Float32Array }>();
+
+type KeptMesh = { position: WebGLBuffer; normal: WebGLBuffer; index: WebGLBuffer; ready: boolean };
+const keptMeshes = new WeakMap<WebGL2RenderingContext, WeakMap<IsoMesh, KeptMesh>>();
+
+function keptMesh(gl: WebGL2RenderingContext, mesh: IsoMesh): KeptMesh | null {
+  let table = keptMeshes.get(gl);
+  if (!table) {
+    table = new WeakMap();
+    keptMeshes.set(gl, table);
+  }
+  const existing = table.get(mesh);
+  if (existing) return existing;
+  const position = gl.createBuffer();
+  const normal = gl.createBuffer();
+  const index = gl.createBuffer();
+  if (!position || !normal || !index) return null;
+  gl.bindBuffer(gl.ARRAY_BUFFER, position);
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.positions, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, normal);
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+  const kept = { position, normal, index, ready: false };
+  table.set(mesh, kept);
+  return kept;
+}
 
 function expandMesh(mesh: IsoMesh) {
   const cached = expandedMeshes.get(mesh);
@@ -256,6 +318,7 @@ type Gpu = {
   uStyle: WebGLUniformLocation;
   uRampOrigin: WebGLUniformLocation;
   uRampDir: WebGLUniformLocation;
+  uClip: WebGLUniformLocation;
   uTexel: WebGLUniformLocation;
   width: number;
   height: number;
@@ -305,7 +368,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   if (existing && existing.shaderVersion === SHADER_VERSION && !existing.gl.isContextLost()) return existing;
   const gl = existing && !existing.gl.isContextLost()
     ? existing.gl
-    : canvas.getContext("webgl2", { antialias: false, alpha: false, depth: true });
+    : canvas.getContext("webgl2", { antialias: true, alpha: false, depth: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = link(gl, VERT, FRAG);
@@ -335,9 +398,10 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const uStyle = gl.getUniformLocation(meshProgram, "uStyle");
   const uRampOrigin = gl.getUniformLocation(meshProgram, "uRampOrigin");
   const uRampDir = gl.getUniformLocation(meshProgram, "uRampDir");
+  const uClip = gl.getUniformLocation(meshProgram, "uClip");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
   if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
-  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uStyle || !uRampOrigin || !uRampDir || !uTexel) return null;
+  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uStyle || !uRampOrigin || !uRampDir || !uClip || !uTexel) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -375,6 +439,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
     uStyle,
     uRampOrigin,
     uRampDir,
+    uClip,
     uTexel,
     width: 0,
     height: 0,
@@ -615,6 +680,24 @@ function rayTriangle(origin: Vec3, direction: Vec3, positions: Float32Array, a: 
  * World point under the cursor: nearest visible assembly surface, otherwise the
  * registration ground, otherwise the current orbit target.
  */
+/** Nearest triangle under the cursor, in world space. Misses stay empty. */
+export function placementSurfaceHit(
+  instances: readonly PlacedMesh[],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  center: Vec3,
+  yaw: number,
+  pitch: number,
+  fit: number,
+  eye = CANVAS_EYE,
+): Vec3 | null {
+  const ray = placementCameraRay(x, y, width, height, center, yaw, pitch, fit, eye);
+  const meshDistance = nearestMeshHit(instances, ray.origin, ray.direction);
+  return meshDistance == null ? null : pointAlong(ray.origin, ray.direction, meshDistance);
+}
+
 export function cursorZoomPoint(
   instances: readonly PlacedMesh[],
   x: number,
@@ -770,14 +853,21 @@ export function drawPlacedMeshes(
   lookAt?: Vec3,
   fill = false,
   steer = false,
+  fitOverride?: number,
+  pixelScale = 1,
+  maxPixels = 0,
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = (window.devicePixelRatio || 1) * Math.max(1, pixelScale);
   const width = Math.max(1, Math.floor(parent.clientWidth));
   const height = Math.max(1, Math.floor(parent.clientHeight));
-  const pixelsW = Math.floor(width * dpr);
-  const pixelsH = Math.floor(height * dpr);
+  const rawW = Math.floor(width * dpr);
+  const rawH = Math.floor(height * dpr);
+  const limit = maxPixels > 0 ? Math.min(4096, maxPixels) : 4096;
+  const cap = Math.min(1, limit / Math.max(rawW, rawH, 1));
+  const pixelsW = Math.max(1, Math.floor(rawW * cap));
+  const pixelsH = Math.max(1, Math.floor(rawH * cap));
   if (canvas.width !== pixelsW || canvas.height !== pixelsH) {
     canvas.width = pixelsW;
     canvas.height = pixelsH;
@@ -799,10 +889,11 @@ export function drawPlacedMeshes(
   const aspect = width / Math.max(1, height);
   const framed = fill ? frameFit(instances, aspect, eye, steer ? { yaw, pitch } : undefined) : null;
   const center = framed?.center ?? lookAt ?? placementCenter(instances);
-  const fit = framed?.fit ?? (contain ? containedFit(instances, aspect) : placementFit(span, aspect)) * fitScale;
+  const fit = fitOverride ?? (framed?.fit ?? (contain ? containedFit(instances, aspect) : placementFit(span, aspect))) * fitScale;
   const viewYaw = framed?.yaw ?? yaw;
   const viewPitch = framed?.pitch ?? pitch;
   gl.useProgram(gpu.program);
+  gl.uniform1f(gpu.uClip, 1e9);
   gl.uniform1f(gpu.uYaw, viewYaw);
   gl.uniform1f(gpu.uPitch, viewPitch);
   gl.uniform1f(gpu.uAspect, aspect);
@@ -817,6 +908,7 @@ export function drawPlacedMeshes(
   const drawInstance = (instance: PlacedMesh) => {
     if (instance.mesh.triangles < 1) return;
     const opacity = instance.opacity ?? 1;
+    if (opacity < 0.012) return;
     if (opacity < 1) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -826,16 +918,18 @@ export function drawPlacedMeshes(
       gl.depthMask(true);
     }
     gl.uniform1f(gpu.uAlpha, opacity);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gpu.position);
-    gl.bufferData(gl.ARRAY_BUFFER, instance.mesh.positions, gl.DYNAMIC_DRAW);
+    gl.uniform1f(gpu.uClip, instance.clipX ?? 1e9);
+    const kept = instance.id.startsWith("guide:") ? null : keptMesh(gl, instance.mesh);
+    gl.bindBuffer(gl.ARRAY_BUFFER, kept?.position ?? gpu.position);
+    if (!kept) gl.bufferData(gl.ARRAY_BUFFER, instance.mesh.positions, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gpu.normal);
-    gl.bufferData(gl.ARRAY_BUFFER, instance.mesh.normals, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, kept?.normal ?? gpu.normal);
+    if (!kept) gl.bufferData(gl.ARRAY_BUFFER, instance.mesh.normals, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, kept?.index ?? gpu.index);
+    if (!kept) gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
     gl.uniform3f(gpu.uTranslate, instance.translate.x, instance.translate.y, instance.translate.z);
     gl.uniformMatrix3fv(gpu.uBasis, false, new Float32Array(instance.basis ?? IDENTITY_BASIS));
     gl.uniform1f(gpu.uSpin, instance.spin ?? 0);
@@ -843,8 +937,8 @@ export function drawPlacedMeshes(
     const color = instance.color ?? [1.0, 1.0, 1.0];
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
     gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
-    const ghost = !instance.id.startsWith("guide:");
-    gl.uniform1f(gpu.uStyle, instance.palette ? 2 : ghost ? 1 : 0);
+    const ghost = !instance.volume && !instance.quiet && !instance.plain && !instance.id.startsWith("guide:");
+    gl.uniform1f(gpu.uStyle, instance.plain ? 5 : instance.quiet ? 4 : instance.volume ? 3 : instance.palette ? 2 : ghost ? 1 : 0);
     const ramp = instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
     gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
     gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
@@ -872,12 +966,23 @@ export function drawPlacedMeshes(
       gl.depthMask(true);
       return;
     }
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gpu.index);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, kept?.index ?? gpu.index);
+    if (!kept) gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
     gl.drawElements(gl.TRIANGLES, instance.mesh.indices.length, gl.UNSIGNED_INT, 0);
   };
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
   for (const instance of instances) {
-    if ((instance.opacity ?? 1) >= 1) drawInstance(instance);
+    if (instance.plain && !instance.volume && (instance.opacity ?? 1) < 1) drawInstance(instance);
+  }
+  for (const instance of instances) {
+    if (instance.volume) drawInstance(instance);
+  }
+  gl.depthMask(true);
+  gl.disable(gl.BLEND);
+  for (const instance of instances) {
+    if ((instance.opacity ?? 1) >= 1 && !instance.volume) drawInstance(instance);
   }
   for (const instance of instances) {
     if ((instance.opacity ?? 1) < 1 && instance.palette) drawInstance(instance);
@@ -891,9 +996,17 @@ export function drawPlacedMeshes(
     }
   }
   gl.disable(gl.POLYGON_OFFSET_FILL);
+  gl.depthMask(true);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthMask(false);
+  for (const instance of instances) {
+    if (instance.quiet) drawInstance(instance);
+  }
   gl.disable(gl.DEPTH_TEST);
   for (const instance of instances) {
-    if ((instance.opacity ?? 1) < 1 && !instance.palette && !instance.id.startsWith("guide:")) drawInstance(instance);
+    if ((instance.opacity ?? 1) < 1 && !instance.palette && !instance.volume && !instance.quiet && !instance.plain && !instance.id.startsWith("guide:")) drawInstance(instance);
   }
   gl.enable(gl.DEPTH_TEST);
   gl.disable(gl.BLEND);
@@ -916,8 +1029,17 @@ export function drawPlacedMeshes(
 }
 
 /** Display-only XZ lines on the registration ground. Not a placed instance, so it cannot be picked. */
+const groundLines = new WeakMap<WebGL2RenderingContext, { key: string; grid: number[]; axis: number[] }>();
+
 function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
   const bodies = instances.filter((instance) => !instance.id.startsWith("guide:"));
+  const key = bodies.map((instance) => `${instance.mesh.positions.length}:${instance.translate.x.toFixed(2)}:${instance.translate.z.toFixed(2)}:${instance.spin ?? 0}`).join("|");
+  const cached = groundLines.get(gpu.gl);
+  if (cached?.key === key) {
+    paintLines(gpu, cached.grid, GRID_COLOR);
+    paintLines(gpu, cached.axis, AXIS_COLOR);
+    return;
+  }
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
@@ -969,6 +1091,7 @@ function drawGroundGrid(gpu: Gpu, instances: readonly PlacedMesh[]) {
   for (let z = minZ; z <= maxZ + GRID_CELL * 0.25; z += GRID_CELL) {
     push(moduleLine(z) ? axis : grid, minX, z, maxX, z);
   }
+  groundLines.set(gpu.gl, { key, grid, axis });
   paintLines(gpu, grid, GRID_COLOR);
   paintLines(gpu, axis, AXIS_COLOR);
 }
@@ -992,6 +1115,7 @@ function paintLines(gpu: Gpu, positions: number[], color: [number, number, numbe
   gl.uniform1f(gpu.uMirror, 0);
   gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
   gl.uniform1f(gpu.uAlpha, 1);
+  gl.uniform1f(gpu.uClip, 1e9);
   gl.uniform1f(gpu.uPalette, 0);
   gl.uniform1f(gpu.uStyle, 0);
   gl.uniform3f(gpu.uRampOrigin, 0, 0, 0);

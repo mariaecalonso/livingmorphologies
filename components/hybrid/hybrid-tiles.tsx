@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { IconAtmospheric, IconFormal, IconSpatial } from "@/components/hud";
 import { TYPOLOGIES, ratingDescription } from "@/lib/catalog";
 import { ratingLabel } from "@/lib/physarum";
 import type { FaceId } from "@/lib/skill4/contract";
+import { FaceReadout } from "./connection-header";
 import type { TileConnection } from "@/lib/skill4/connections";
 import { resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
 import { tileBasis } from "@/lib/skill4/tile-basis";
@@ -44,10 +46,12 @@ export function geometryStatus(handoff: ModuleHandoff) {
 }
 
 export function HybridTiles({ compact = false, only, faceNote, locked = false }: { compact?: boolean; only?: string; faceNote?: string; locked?: boolean }) {
-  const { loaded, tiles, connections, selectedId, selectedConnectionId, setSelectedId, setCanvasSelection, chooseArchetype, chooseFace, syntheticMode } = useHybrid();
+  const { loaded, tiles, connections, selectedId, selectedConnectionId, setSelectedId, setCanvasSelection, chooseArchetype, chooseFace, syntheticMode, facePairs } = useHybrid();
+  const readoutConnection = connections.find((connection) => connection.id === selectedConnectionId) ?? connections[0] ?? null;
 
   return (
     <div className="hybrid-slots">
+      {readoutConnection ? <FaceReadout connection={readoutConnection} pairs={facePairs[readoutConnection.id] ?? []} /> : null}
       {tiles.filter((tile) => !only || tile.instanceId === only).map((tile) => {
         const handoff = resolveTileModule(tile.archetypeId, loaded);
         const identity = handoff.identity;
@@ -60,7 +64,6 @@ export function HybridTiles({ compact = false, only, faceNote, locked = false }:
               tile={tile}
               handoff={handoff}
               identity={identity}
-              status={status}
               active={active}
               connections={connections}
               selectedConnectionId={selectedConnectionId}
@@ -145,11 +148,108 @@ export function HybridTiles({ compact = false, only, faceNote, locked = false }:
   );
 }
 
+function ArchetypeMenu({
+  value,
+  label,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  label: string;
+  disabled: boolean;
+  onChange: (archetypeId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const name = TYPOLOGIES.flatMap((typology) => typology.archetypes).find((archetype) => archetype.id === value)?.name ?? "Select geometry";
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !rootRef.current || !listRef.current) return;
+    const trigger = rootRef.current.querySelector("button");
+    const bounds = rootRef.current.closest(".hybrid-slots")?.getBoundingClientRect();
+    if (!trigger || !bounds) return;
+    const rect = trigger.getBoundingClientRect();
+    const view = trigger.ownerDocument.defaultView;
+    const scale = rect.height / Math.max(1, trigger.offsetHeight);
+    const floor = Math.max(bounds.top, 0);
+    const ceiling = Math.min(bounds.bottom, view?.innerHeight ?? bounds.bottom);
+    const below = ceiling - rect.bottom - 10;
+    const above = rect.top - floor - 10;
+    const room = Math.max(below, above);
+    listRef.current.dataset.place = below >= above ? "below" : "above";
+    listRef.current.style.maxHeight = `${Math.max(96, room / scale)}px`;
+    listRef.current.querySelector("[data-current]")?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
+  return (
+    <div className="hybrid-archetype-menu" ref={rootRef} data-open={open || undefined}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <span>{name}</span>
+      </button>
+      {open ? (
+        <div
+          className="hybrid-archetype-list"
+          ref={listRef}
+          role="listbox"
+          aria-label={label}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" role="option" aria-selected={value === ""} data-current={value === "" || undefined} onClick={() => { onChange(""); setOpen(false); }}>
+            Select geometry
+          </button>
+          {TYPOLOGIES.map((typology) => (
+            <div key={typology.id}>
+              <p>{typology.label}</p>
+              {typology.archetypes.map((archetype) => (
+                <button
+                  key={archetype.id}
+                  type="button"
+                  role="option"
+                  aria-selected={value === archetype.id}
+                  data-current={value === archetype.id || undefined}
+                  onClick={() => { onChange(archetype.id); setOpen(false); }}
+                >
+                  {archetype.name}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function TileSelectionCard({
   tile,
   handoff,
   identity,
-  status,
   active,
   connections,
   selectedConnectionId,
@@ -162,7 +262,6 @@ function TileSelectionCard({
   tile: TileInstance;
   handoff: ModuleHandoff;
   identity: ModuleIdentity | null;
-  status: { label: string; available: boolean };
   active: boolean;
   connections: readonly TileConnection[];
   selectedConnectionId: string | null;
@@ -177,7 +276,6 @@ function TileSelectionCard({
   const activeFace = activeConnection
     ? (activeConnection.tileAId === tile.instanceId ? activeConnection.faceA : activeConnection.faceB)
     : null;
-  const testLabel = syntheticMode ? syntheticModuleLabel(handoff.status === "ready" ? handoff.moduleId : tile.moduleId) : null;
   const mesh = previewMesh(syntheticMode, tile.archetypeId, handoff);
   const coat = mesh && handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") && activeConnection?.id === selectedConnectionId && activeFace
     ? faceSurfaceHighlight(mesh, handoff.faces[activeFace])
@@ -196,31 +294,14 @@ function TileSelectionCard({
     >
       <div className="hybrid-tile-identity">
         <p className="hybrid-tile-letter">{tile.instanceId}</p>
-        <label className="hybrid-field">
-          <span className="eyebrow">Archetype</span>
-          <select
+        <div className="hybrid-field">
+          <ArchetypeMenu
             value={tile.archetypeId}
+            label={`${tile.instanceId} archetype`}
             disabled={locked}
-            onChange={(event) => onArchetype(event.target.value)}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <option value="">Select geometry</option>
-            {TYPOLOGIES.map((typology) => (
-              <optgroup key={typology.id} label={typology.label}>
-                {typology.archetypes.map((archetype) => (
-                  <option key={archetype.id} value={archetype.id}>
-                    {archetype.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        {testLabel ? <p className="hybrid-identity" data-synthetic-label={tile.instanceId}>{testLabel}</p> : identity ? <p className="hybrid-identity">{identity.name}</p> : <p className="hybrid-missing">Select geometry</p>}
-        {tile.archetypeId ? <p className="hybrid-units">{tile.moduleId}</p> : null}
-        {tile.archetypeId ? <p className="hybrid-typology">{identity?.typologyLabel ?? "Typology unavailable"}</p> : null}
-        {tile.archetypeId ? <p className="hybrid-source">{sourceLine(handoff)}</p> : null}
-        {tile.archetypeId ? <p className="hybrid-status" data-available={status.available || undefined}>{status.label}</p> : null}
+            onChange={onArchetype}
+          />
+        </div>
       </div>
       <div className="hybrid-preview" data-preview-source={previewSource(syntheticMode, handoff)} data-preview-module={handoff.status === "ready" ? handoff.moduleId : ""} data-preview-triangles={mesh?.triangles ?? 0} data-preview-typology={identity?.typologyId ?? ""} data-selected-face={activeFace ?? ""} data-preview-spin={tile.rotationQuarter}>
         {mesh ? (
@@ -228,7 +309,9 @@ function TileSelectionCard({
             mesh={mesh}
             color={active ? previewColor(identity?.typologyId) : [1, 1, 1]}
             kind={0}
-            contain
+            fill
+            steer
+            fitScale={0.82}
             guides={guides}
             yaw={0.7}
             pitch={0.35}
@@ -257,7 +340,6 @@ function TileSelectionCard({
           </button>
         ))}
       </div> : null}
-      {identity ? <CriteriaList identity={identity} /> : null}
     </article>
   );
 }

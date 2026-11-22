@@ -1,3 +1,4 @@
+import type { IsoMesh } from "../scan/isomesh";
 import { FACE_IDS, SKILL4_MODULE_CONTRACT, registrationEnvelope, VIEW_SCAN, type FaceId, type Vec3 } from "./contract";
 import { HYBRID_GAP, resolveTileModule, type TileInstance } from "./tiles";
 import { rotateByBasis, tileBasis } from "./tile-basis";
@@ -48,6 +49,10 @@ export type TileConnection = {
   candidateField: CandidateField | null;
   generatedHybridField: GeneratedHybridField | null;
   selectedMockId: string;
+  /** Placed hybrid before Skill 04 validation. Debug only. */
+  rawHybrid?: IsoMesh | null;
+  /** Validated, shrink-wrapped connection. This is the cluster solid. */
+  validatedHybrid?: IsoMesh | null;
   /** Set only while a catalog entry is opened. It does not change adjacency or generation. */
   catalogHybrid?: "snapshot" | "reconstructed" | "missing";
 };

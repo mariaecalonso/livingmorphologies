@@ -347,7 +347,7 @@ export function SiteAssemblyStep({
       </label>
       <section className="site-strategy-section" aria-label="Tile connection">
         <p className="site-strategy-note">Select two tiles, then choose a direct passage or a Skill 04 hybrid. Nothing is added until it is confirmed.</p>
-        {tiles.length < 2 ? <p className="site-strategy-note">Place at least two tiles in Tile Placement.</p> : (
+        {tiles.length < 2 ? <p className="site-strategy-note">Place at least two tiles in Cluster Placement.</p> : (
           <>
             <div className="site-run-row" role="group" aria-label="Connection kind">
               <button type="button" data-active={mode === "direct" || undefined} onClick={() => onMode("direct")}>Direct Join</button>

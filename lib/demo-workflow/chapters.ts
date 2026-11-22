@@ -1,5 +1,7 @@
 /** Demo Workflow chapters and the methodological sequence each one presents. */
 
+import { ORGANISM_INTRO_SECONDS } from "@/lib/cinematic-intro";
+
 export type DemoOperation = {
   label: string;
   /** Short verified quantity under the operation. */
@@ -147,14 +149,19 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [{ label: "Final Morphology Catalogue" }],
       },
       {
-        name: "Clustering",
-        holdMs: 36000,
-        sequence: [{ label: "Clustering", mark: "" }],
+        name: "Clustering development",
+        holdMs: 52000,
+        sequence: [{ label: "Clustering development", mark: "" }],
       },
       {
-        name: "Joint Refinement",
-        holdMs: 28000,
-        sequence: [{ label: "Joint refinement", mark: "" }],
+        name: "Graph and WFC",
+        holdMs: 48000,
+        sequence: [{ label: "Graph and WFC", mark: "" }],
+      },
+      {
+        name: "Cluster catalog",
+        holdMs: 56000,
+        sequence: [{ label: "Cluster catalog", mark: "" }],
       },
     ],
   },
@@ -283,8 +290,8 @@ export const DEMO_TIMING = {
   chapterOverviewMs: 10000,
   /** A chapter's focused explanation. */
   chapterFocusedMs: 18000,
-  /** The Physarum video between chapters 01 and 02. */
-  videoMs: 40000,
+  /** Cinematic introduction between chapters 01 and 02. The organism film only. */
+  videoMs: ORGANISM_INTRO_SECONDS * 1000,
   /** Overview-to-focused move and content reveal. */
   transitionMs: 700,
   /** An operation brightening and growing as the light reaches it, and settling after. */

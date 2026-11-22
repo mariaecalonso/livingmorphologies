@@ -39,8 +39,8 @@ export function PhysarumVideoPage() {
     <div ref={host} className={styles.host}>
       <iframe
         className={styles.sheet}
-        title="Physarum video"
-        src="/lab/physarum-video?wall=1&frame=1&embed=1"
+        title="Living Morphologies introduction"
+        src="/lab/physarum-cinematic?wall=1&frame=1&embed=1"
         style={{ transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }}
       />
     </div>

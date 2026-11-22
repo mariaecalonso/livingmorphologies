@@ -167,7 +167,7 @@ export function CompatibilityOverview({
   return (
     <section className="site-dna" aria-label="Universal DNA overview">
       <header className="site-dna-bar">
-        <button type="button" onClick={onClose}>Back to Tile Placement</button>
+        <button type="button" onClick={onClose}>Back to Cluster Placement</button>
         <p>Universal DNA Match · same typology</p>
       </header>
       {notice ? <p className="site-dna-note">{notice}</p> : null}

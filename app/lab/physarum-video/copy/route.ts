@@ -5,7 +5,7 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
-const MAX_BYTES = 80 * 1024 * 1024;
+const MAX_BYTES = 240 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const host = (request.headers.get("host") ?? "").replace(/:\d+$/, "").replace(/^\[|\]$/g, "").toLowerCase();
