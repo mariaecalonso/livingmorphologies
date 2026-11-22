@@ -1,3 +1,5 @@
+import { CLIENT_PROFILE, PLANNING_CAPACITY, PROPOSED_BUILDING, SPACE_PROGRAM } from "@/lib/client/ecologic-studio";
+
 /** Titles and descriptions for the Skill 1 and Skill 2 website workflow frames. */
 
 export type WorkflowStep = {
@@ -107,19 +109,19 @@ export const SKILL_WORKFLOW_STEPS: Record<string, readonly WorkflowStep[]> = {
     },
     {
       title: "Client Identity",
-      body: "Living Morphologies Studio. Physarum research for furniture and fashion.",
+      body: `${CLIENT_PROFILE.name}, founded in ${CLIENT_PROFILE.founded.city} in ${CLIENT_PROFILE.founded.year}. ${CLIENT_PROFILE.summary}`,
     },
     {
       title: "Work + Leisure",
-      body: "Workspace, Lobby, and Gathering.",
+      body: `${SPACE_PROGRAM.workLeisure.summary} Proposed for ${PROPOSED_BUILDING.name}.`,
     },
     {
       title: "Day + Evening Occupancy",
-      body: "Open 8 AM to 10 PM.",
+      body: `Day: ${SPACE_PROGRAM.scenarios.daytime.join(", ")}. Evening: ${SPACE_PROGRAM.scenarios.evening.join(", ")}.`,
     },
     {
       title: "Design Implications",
-      body: "Five floors at most. Work 50%, gathering 40%, lobby 10%.",
+      body: `${PLANNING_CAPACITY.daytimeOccupants} daytime occupants and ${PLANNING_CAPACITY.eventAttendees} event attendees. ${PLANNING_CAPACITY.note}`,
     },
   ],
   "skill-5": [

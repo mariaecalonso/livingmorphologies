@@ -1,8 +1,8 @@
 {
   "contract": "skill5-workplace-brief-v1",
-  "title": "Waterfront Work-Leisure Workplace",
+  "title": "ecoLogicStudio Miami Bio-Computational Design Hub",
   "site": "One Herald Plaza",
-  "role": "Studio requirements. These figures are not a calculated building-performance assessment.",
+  "role": "Proposed building brief for Living Morphologies. Occupancy figures are unverified architectural planning assumptions, not ecoLogicStudio's actual staff or event capacity, and not a calculated building-performance assessment.",
   "plan": {
     "widthFeet": 330,
     "depthFeet": 820,
@@ -10,18 +10,19 @@
     "note": "The studio site is about 270,600 square feet, 330 by 820 feet. It is not the county property area and it is not the imported parcel ring."
   },
   "programs": ["Workspace", "Lobby", "Gathering"],
-  "intention": "A workplace integrating focused work, collaborative work, and public waterfront gathering throughout the day.",
+  "intention": "Proposed work-leisure integration for the Miami hub: interdisciplinary collaboration, adaptable shared spaces, public engagement, controlled laboratory access, and a continuous relationship with Biscayne Bay.",
   "occupancy": {
     "daytimeWork": "400–500",
     "eveningGathering": "800",
     "badgeHoldersAndVisitors": "approximately 1,500",
-    "simultaneous": "The 1,500 badge holders and visitors are not assumed to be on site at the same time."
+    "simultaneous": "Retired. The earlier badge-holder figure is not a current requirement and is not shown.",
+    "assumption": "Daytime and evening figures are unverified architectural planning assumptions, not ecoLogicStudio's actual employee count or event capacity."
   },
   "operations": {
     "hours": "8 AM to 10 PM"
   },
   "limits": [
-    "Daytime work, evening gathering, and badge-holder figures are brief requirements. Skill 5 does not check whether a composition meets them.",
+    "Daytime and evening figures are unverified planning assumptions. The earlier badge-holder figure is retired. Skill 5 does not check whether a composition meets them.",
     "Module envelopes are not converted into usable floor area or occupant capacity."
   ]
 }

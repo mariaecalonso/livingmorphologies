@@ -67,14 +67,62 @@ export const CLIENT_PROFILE = {
 
 export type PracticeTone = "teal" | "copper";
 
-/** Areas of practice for architectural programming. Not official company departments. */
+/**
+ * Areas of practice for architectural programming. Not official company departments.
+ * Each summary restates the profile and the documented precedents below.
+ * `example` names one precedent and the area it links to; the pair must be a documented entry in `PRACTICE_EXCHANGES`.
+ */
 export const PRACTICE_AREAS = [
-  { id: "bio", label: "Biotechnology + Bio Research", short: "Bio Research", tone: "teal" },
-  { id: "computation", label: "Computational Design + AI", short: "Computation + AI", tone: "teal" },
-  { id: "urban", label: "Architecture + Urban Systems", short: "Urban Systems", tone: "copper" },
-  { id: "product", label: "Bio-Design + Product Development", short: "Bio-Design", tone: "copper" },
-  { id: "fabrication", label: "Digital Fabrication + Prototyping", short: "Fabrication", tone: "copper" },
-] as const satisfies readonly { id: string; label: string; short: string; tone: PracticeTone }[];
+  {
+    id: "bio",
+    label: "Biotechnology + Bio Research",
+    short: "Bio Research",
+    tone: "teal",
+    summary: "Living photosynthetic organisms, such as microalgae and cyanobacteria, cultivated as a design material.",
+    example: { precedent: "hortus-xl", with: "fabrication" },
+  },
+  {
+    id: "computation",
+    label: "Computational Design + AI",
+    short: "Computation + AI",
+    tone: "teal",
+    summary: "Computational design and artificial intelligence that learn from biological intelligence.",
+    example: { precedent: "gan-physarum", with: "bio" },
+  },
+  {
+    id: "urban",
+    label: "Architecture + Urban Systems",
+    short: "Urban Systems",
+    tone: "copper",
+    summary: "Living architecture and blue-green urban planning, including photosynthetic building cladding.",
+    example: { precedent: "photosynthetica-venture", with: "computation" },
+  },
+  {
+    id: "product",
+    label: "Bio-Design + Product Development",
+    short: "Bio-Design",
+    tone: "copper",
+    summary: "Biophilic design products made with re-metabolised algal biomass.",
+    example: { precedent: "photosynthetica-collection", with: "fabrication" },
+  },
+  {
+    id: "fabrication",
+    label: "Digital Fabrication + Prototyping",
+    short: "Fabrication",
+    tone: "copper",
+    summary: "3D printing and digital prototyping, from bio-sculpture cells to design products.",
+    example: { precedent: "hortus-xl", with: "bio" },
+  },
+] as const satisfies readonly {
+  id: string;
+  label: string;
+  short: string;
+  tone: PracticeTone;
+  summary: string;
+  example: { precedent: string; with: string };
+}[];
+
+export type PracticeAreaId = (typeof PRACTICE_AREAS)[number]["id"];
 
 export const DESIGN_DISCIPLINES = {
   id: "disciplines" as const,
@@ -92,6 +140,7 @@ export const ORGANIZATION = {
   id: "organization" as const,
   status: "documented" as const,
   verification: "Supplied in the Living Morphologies client brief. A current public staff page was not found.",
+  sourceNote: "Team roster supplied in client brief; current status not independently verified.",
   directors: ["Dr Claudia Pasquero", "Dr Marco Poletto"],
   team: {
     name: "Bio-Computational Design Team",
@@ -280,6 +329,107 @@ export const PRECEDENTS: readonly ClientPrecedent[] = [
     ],
     assets: [],
     interpretation: null,
+  },
+];
+
+/** The collaborator node in the exchange diagram. Its documented members are `ORGANIZATION.collaborationNetwork.partners`. */
+export const EXTERNAL_COLLABORATORS = {
+  id: "external" as const,
+  label: PROFESSIONAL_CATEGORIES[4],
+  short: "External",
+  tone: "teal" as const,
+};
+
+export type ExchangeNodeId = PracticeAreaId | typeof EXTERNAL_COLLABORATORS.id;
+
+export type PracticeExchange = {
+  between: readonly [ExchangeNodeId, ExchangeNodeId];
+  /** `documented` cites a precedent below. `proposed` is a working mode for the Miami hub, not a record of the studio. */
+  claim: "documented" | "proposed";
+  note: string;
+  precedent?: ClientPrecedent["id"];
+  mode?: (typeof WORKING_MODES)[number]["id"];
+};
+
+/** Exchanges between areas of practice. Not reporting lines, teams, or institutional agreements. */
+export const PRACTICE_EXCHANGES: readonly PracticeExchange[] = [
+  {
+    between: ["bio", "fabrication"],
+    claim: "documented",
+    note: "Photosynthetic cyanobacteria inoculated into a biogel in 3D-printed cells.",
+    precedent: "hortus-xl",
+  },
+  {
+    between: ["bio", "external"],
+    claim: "documented",
+    note: "Conceived with the Synthetic Landscape Lab, University of Innsbruck.",
+    precedent: "hortus-xl",
+  },
+  {
+    between: ["bio", "computation"],
+    claim: "documented",
+    note: "A generative adversarial network trained to behave like Physarum polycephalum.",
+    precedent: "gan-physarum",
+  },
+  {
+    between: ["computation", "external"],
+    claim: "documented",
+    note: "Made with the Synthetic Landscape Lab, Innsbruck, and the Urban Morphogenesis Lab, UCL.",
+    precedent: "gan-physarum",
+  },
+  {
+    between: ["bio", "product"],
+    claim: "documented",
+    note: "Biophilic products made with re-metabolised algal biomass.",
+    precedent: "photosynthetica-collection",
+  },
+  {
+    between: ["product", "fabrication"],
+    claim: "documented",
+    note: "A 3D-printed jewel made with algal biomass.",
+    precedent: "photosynthetica-collection",
+  },
+  {
+    between: ["urban", "bio"],
+    claim: "documented",
+    note: "Photosynthetic cladding for buildings.",
+    precedent: "photosynthetica-venture",
+  },
+  {
+    between: ["urban", "computation"],
+    claim: "documented",
+    note: "Photosynthetic cladding developed with related bio-digital systems.",
+    precedent: "photosynthetica-venture",
+  },
+  {
+    between: ["urban", "external"],
+    claim: "documented",
+    note: "Developed with the Urban Morphogenesis Lab, UCL, and the Synthetic Landscape Lab, Innsbruck.",
+    precedent: "photosynthetica-venture",
+  },
+  {
+    between: ["computation", "product"],
+    claim: "proposed",
+    note: "Cross-disciplinary exchange in shared studios.",
+    mode: "collaborative",
+  },
+  {
+    between: ["urban", "product"],
+    claim: "proposed",
+    note: "Cross-disciplinary exchange in shared studios.",
+    mode: "collaborative",
+  },
+  {
+    between: ["bio", "fabrication"],
+    claim: "proposed",
+    note: "Living-material cultivation and ecological testing beside digital fabrication and physical prototyping.",
+    mode: "experimental",
+  },
+  {
+    between: ["external", "urban"],
+    claim: "proposed",
+    note: "Knowledge exchange, exhibitions, and educational activities.",
+    mode: "social",
   },
 ];
 

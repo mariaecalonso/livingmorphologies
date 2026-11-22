@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "ARK-ES";
+  src: url("/fonts/ARK-ES-SolidMedium.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .page {
   position: absolute;
   inset: 0;
@@ -7,119 +15,653 @@
   opacity: var(--client-fade, 1);
 }
 
-.field {
+/* The backdrop image is 1920 × 560, the frame's own ratio, so filling the frame neither stretches nor crops it. */
+.shapes {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.pattern,
-.nav {
-  position: absolute;
-  inset: 0;
+  z-index: 0;
+  display: block;
   width: 100%;
   height: 100%;
-}
-
-.pattern {
   pointer-events: none;
   transition: opacity 320ms ease;
 }
 
-.page[data-open="true"] .pattern {
+.page[data-open="true"] .shapes {
   opacity: 0.45;
 }
 
-.nav {
-  pointer-events: none;
-}
-
-.hot {
-  pointer-events: auto;
-  cursor: pointer;
-  outline: none;
-}
-
-.membrane {
-  opacity: 0.78;
-  pointer-events: none;
-  transition: opacity 420ms ease;
-}
-
-.hot:hover .membrane,
-.hot:focus-visible .membrane,
-.hot[data-open] .membrane {
+/* The two right-hand windows stay in view, so their glow boundaries keep full strength. */
+.page:has(.panel[data-wide="true"][data-open="true"]) .shapes {
   opacity: 1;
 }
 
-.chamberLabel {
-  fill: rgba(255, 255, 255, 0.84);
-  font-family: var(--font-site-text), sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-anchor: middle;
-  paint-order: stroke;
-  stroke: rgba(0, 0, 0, 0.6);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-  pointer-events: none;
-  transition: fill 220ms ease;
-}
-
-.hot:hover .chamberLabel,
-.hot:focus-visible .chamberLabel,
-.hot[data-open] .chamberLabel {
-  fill: #ffffff;
-}
-
-.grid {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.07);
-  stroke-width: 0.6;
-}
-
-.stage {
+/* Laid over the backdrop in frame coordinates; every position below is a fraction of 1920 × 560. */
+.hero {
   position: absolute;
   inset: 0;
-  z-index: 2;
-  display: grid;
-  place-items: center;
+  z-index: 0;
+}
+
+.projects {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
 
-.title,
-.panel {
-  grid-area: 1 / 1;
-  min-width: 0;
-  min-height: 0;
+.project a {
+  position: absolute;
+  inset: 0;
+  display: block;
+  color: inherit;
+  text-decoration: none;
   pointer-events: auto;
 }
 
-.title {
-  margin: 0;
-  line-height: 0;
+.project a:focus-visible {
+  outline: none;
+}
+
+.projectMedia {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.project img {
+  position: absolute;
+  display: block;
+  object-fit: cover;
+  transition: opacity 500ms ease, filter 400ms ease;
+}
+
+.project img[data-active="false"] {
+  opacity: 0;
+}
+
+.project[data-hidden] a {
+  pointer-events: none;
+}
+
+.project img[data-invert] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.project a:hover img,
+.project a:focus-visible img {
+  filter: brightness(1.08);
+}
+
+.project a:hover img[data-invert],
+.project a:focus-visible img[data-invert] {
+  filter: invert(1) hue-rotate(180deg) brightness(1.08);
+}
+
+.hero:not([data-cycle]) .projects:has(a:hover) .project a:not(:hover) img[data-active="true"] {
+  opacity: 0.78;
+}
+
+/* The photograph is square, with two people beside the sculpture for scale. The mask follows the left field and the lower curve. */
+.project[data-project="hortus"] img {
+  top: 0;
+  left: 33.33%;
+  width: 38.23%;
+  height: 100%;
+  object-position: 50% 40%;
+  -webkit-mask-image: url("#eco-fade-hortus");
+  mask-image: url("#eco-fade-hortus");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+/* Inside the teal lobe. The mask follows the lobe curve. */
+.project[data-project="airoffice"] img {
+  top: 0;
+  left: 71.875%;
+  width: 28.125%;
+  height: 57.143%;
+  object-position: 50% 50%;
+  -webkit-mask-image: url("#eco-fade-airoffice");
+  mask-image: url("#eco-fade-airoffice");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+/* Under the copper sweep. The mask follows that membrane. */
+.project[data-project="airbubble"] img {
+  top: 51.786%;
+  left: 66.67%;
+  width: 33.33%;
+  height: 48.214%;
+  object-position: 50% 14%;
+  -webkit-mask-image: url("#eco-fade-airbubble");
+  mask-image: url("#eco-fade-airbubble");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.clips {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* A soft inner shadow along the curved seams only, so each photo darkens into the backdrop's glow instead of ending on a cut line. */
+.edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.projectLabel {
+  position: absolute;
+  display: grid;
+  gap: 0.45em;
+  padding-left: 0.9em;
+  border-left: 1px solid rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+  font-family: var(--font-site-text), sans-serif;
+  font-size: calc(var(--home-title-size) * 0.4);
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8), 0 0 12px rgba(0, 0, 0, 0.7);
+  isolation: isolate;
+  transition: opacity 500ms ease, border-color 320ms ease;
+}
+
+.projectLabel[data-active="false"] {
+  opacity: 0;
+}
+
+.projectLabel::before {
+  position: absolute;
+  inset: -1.2em -2em -1.2em -1.4em;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent);
+  content: "";
+}
+
+.projectLabel span + span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.project[data-project="hortus"] .projectLabel {
+  top: 17%;
+  left: 63.8%;
+}
+
+.project[data-project="airoffice"] .projectLabel {
+  top: 23%;
+  left: 76.5%;
+}
+
+.project[data-project="airbubble"] .projectLabel {
+  top: auto;
+  bottom: 5%;
+  left: 66.4%;
+}
+
+/* The new photograph is opaque underneath. The previous one dissolves off the top, so the pair never ghosts. */
+.hero[data-cycle] .project img {
+  opacity: 0;
+  transition: none;
+  visibility: hidden;
+}
+
+.hero[data-cycle] .project img[data-active="true"] {
+  z-index: 1;
+  opacity: 1;
+  visibility: visible;
+}
+
+.hero[data-cycle] .project img[data-leaving="true"] {
+  z-index: 2;
+  visibility: visible;
+  animation: project-dissolve 800ms ease forwards;
+}
+
+@keyframes project-dissolve {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.hero[data-cycle] .projectLabel {
+  z-index: 3;
+  max-width: 14em;
+  font-size: calc(var(--home-title-size) * 0.32);
+  letter-spacing: 0.12em;
+  white-space: normal;
+}
+
+.hero[data-cycle] .project[data-project="airbubble"] .projectLabel {
+  top: auto;
+  bottom: 5%;
+  left: 66.4%;
+}
+
+.project a:hover .projectLabel,
+.project a:focus-visible .projectLabel {
+  border-color: #ffffff;
+}
+
+.project a:focus-visible .projectLabel {
+  outline: 1px solid #8fd4d6;
+  outline-offset: 4px;
+}
+
+.bar {
+  position: absolute;
+  top: 4.5%;
+  right: 3%;
+  left: 3%;
+  z-index: 3;
+  display: flex;
+  mix-blend-mode: screen;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.brand {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1.1em;
+  font-size: calc(var(--home-title-size) * 0.36);
+}
+
+.logo {
+  display: block;
+  height: calc(var(--home-title-size) * 1.5);
+  width: auto;
+  filter: invert(1);
+  mix-blend-mode: screen;
+}
+
+.pager {
+  position: absolute;
+  bottom: 4.2%;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  gap: 0.55em;
+  transform: translateX(-50%);
+}
+
+.arrow {
+  display: grid;
+  width: calc(var(--home-title-size) * 0.72);
+  height: calc(var(--home-title-size) * 0.72);
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.arrow svg {
+  width: 62%;
+  height: 62%;
+}
+
+.arrow:hover {
+  color: #ffffff;
+}
+
+.brand:focus-visible,
+.arrow:focus-visible {
+  outline: 1px solid #8fd4d6;
+  outline-offset: 4px;
+}
+
+.sectionTitle {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.landing {
+  position: absolute;
+  top: 22.68%;
+  left: 12%;
+  z-index: 2;
+  width: 27%;
   transition: opacity 320ms ease, visibility 320ms ease;
 }
 
-.stage[data-open="true"] .title {
+.landing[data-open="true"] {
   opacity: 0;
   visibility: hidden;
 }
 
+.eyebrow {
+  margin: 0 0 1.1em;
+  color: #8fd4d6;
+  font-family: var(--font-site-text), sans-serif;
+  font-size: calc(var(--home-title-size) * 0.42);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0;
+  color: #ffffff;
+  font-family: "ARK-ES", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: calc(var(--home-title-size) * 1.55);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-transform: none;
+}
+
+.work {
+  position: relative;
+  margin-top: 0.45em;
+}
+
+.workLabel {
+  margin: 0 0 0.35em;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: var(--font-site-text), sans-serif;
+  font-size: calc(var(--home-title-size) * 0.34);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.workFlip {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 1.35em;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: #ffffff;
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-size: calc(var(--home-title-size) * 0.46);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.workIn,
+.workOut,
+.workStill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  background-image: linear-gradient(90deg, #ffffff 0%, #ffffff 62%, #8fd4d6 84%, #c77e5f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.workIn {
+  animation: work-in 620ms ease both;
+}
+
+.workOut {
+  animation: work-out 620ms ease both;
+}
+
+.workGone {
+  display: none;
+}
+
+.workFlip:focus-visible {
+  outline: 1px solid #8fd4d6;
+  outline-offset: 3px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .panel {
-  width: 40%;
-  max-height: 90%;
+  position: absolute;
+  top: 14%;
+  bottom: 2%;
+  left: 12%;
+  z-index: 2;
+  width: 28%;
   overflow: auto;
+  outline: none;
   opacity: 0;
   visibility: hidden;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  scrollbar-width: thin;
   transition: opacity 320ms ease, visibility 320ms ease;
 }
 
 .panel[data-open="true"] {
   opacity: 1;
   visibility: visible;
+}
+
+/* Design + Organization spreads over the main photograph's field and stops short of the two right-hand windows. */
+/* Starts in the dark pocket under the teal wave, on the landing title's left edge. */
+.panel[data-wide="true"] {
+  top: 19%;
+  left: 12%;
+  width: 56%;
+  overflow: visible;
+}
+
+/* Organization uses the dark field between the ribbons and stops short of the photographs. */
+.panel[data-wide="true"][data-organization="true"] {
+  top: 8%;
+  bottom: 8%;
+  left: 4.5%;
+  width: 62%;
+  overflow: visible;
+}
+
+.panel[data-wide="true"] .sheet {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Locked to the Design + Organization title: same frame position and size. */
+.panel[data-wide="true"]:not([data-organization="true"]) > .sheet > .sectionTitle {
+  position: absolute;
+  top: 1.49%;
+  left: -2.64%;
+  z-index: 3;
+  margin: 0;
+  color: #ffffff;
+  font-size: calc(var(--home-title-size) * 0.92);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-shadow: 0 0 8px #000000, 0 0 2px #000000;
+  white-space: nowrap;
+}
+
+.panel[data-wide="true"]:not([data-organization="true"]) > .sheet {
+  padding-top: calc(var(--home-title-size) * 1.7);
+}
+
+.panel[data-section="operations"] > .sheet > .kickers {
+  position: absolute;
+  top: calc(1.49% + var(--home-title-size) * 1.9);
+  left: -2.64%;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--home-title-size) * 1.8);
+  margin: 0;
+}
+
+.panel[data-section="operations"] .kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-size: calc(var(--home-title-size) * 0.44);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.panel[data-section="space-program"] .programDiagram {
+  position: absolute;
+  top: calc(var(--home-title-size) * 1.85);
+  right: 0;
+  left: 0;
+  height: calc(100% - var(--home-title-size) * 2);
+  pointer-events: none;
+}
+
+.panel[data-section="space-program"] .programDiagram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.programHead,
+.programArc {
+  fill: #ffffff;
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+
+.programWord {
+  fill: #ffffff;
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+}
+
+.programCount {
+  fill: rgba(255, 255, 255, 0.82);
+  font-family: var(--font-site-text), sans-serif;
+  letter-spacing: 0.16em;
+}
+
+.programLabel {
+  fill: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-site-text), sans-serif;
+  font-weight: 400;
+}
+
+.panel[data-section="operations"] .modesDiagram {
+  position: static;
+  margin-top: calc(var(--home-title-size) * 1.15);
+  display: block;
+  width: calc(var(--home-title-size) * 7.4);
+  height: auto;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.panel[data-section="operations"] .leisure {
+  width: calc(var(--home-title-size) * 26);
+  margin-top: calc(var(--home-title-size) * -0.68);
+  margin-left: calc(var(--home-title-size) * 0.9);
+  pointer-events: none;
+}
+
+.panel[data-section="operations"] .leisure img,
+.panel[data-section="operations"] .leisure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.leisure text {
+  font-family: var(--font-site-text), sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.leisure text.leisureTitle {
+  font-family: var(--font-site-display), "Arial Narrow", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.modesDiagram text {
+  fill: #ffffff;
+  font-family: var(--font-site-text), sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.panel[data-section="operations"] .kicker::before {
+  flex: none;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #f4f7f8 46%, #c9d0d4 100%);
+  box-shadow:
+    0 0 0.35em 0.06em rgba(255, 255, 255, 0.95),
+    0 0 0.9em 0.18em rgba(220, 230, 234, 0.7),
+    0 0 1.8em 0.4em rgba(255, 255, 255, 0.35);
+  content: "";
+}
+
+.panel[data-wide="true"] .split {
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-template-columns: none;
+}
+
+.panel[data-wide="true"] .modes {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .sheet {
@@ -184,11 +726,6 @@
   margin-top: 0.18rem;
 }
 
-.rows li {
-  padding-left: 0.7rem;
-  border-left: 1px solid rgba(143, 212, 214, 0.45);
-}
-
 .modes {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -209,6 +746,171 @@
   color: rgba(255, 255, 255, 0.62);
 }
 
+.methodCard {
+  width: 100%;
+  margin-top: 0.7em;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.stage:focus-visible {
+  outline: 1px solid #8fd4d6;
+  outline-offset: 3px;
+}
+
+.diagram {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 600 / 214;
+  margin-top: 0.15em;
+}
+
+.links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.circuit,
+.circuitGlow,
+.links path[data-link] {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.circuitGlow {
+  stroke: url("#method-stroke");
+  stroke-width: 7;
+  opacity: 0.72;
+  filter: url("#method-glow");
+}
+
+.circuit {
+  stroke: url("#method-stroke");
+  stroke-width: 2.6;
+}
+
+.links path[data-link] {
+  stroke: transparent;
+  stroke-width: 3.6;
+  transition: stroke 280ms ease;
+}
+
+.diagram[data-method-stage="bio"] .links path[data-link="bio"],
+.diagram:has([data-stage="bio"]:hover) .links path[data-link="bio"],
+.diagram:has([data-stage="bio"]:focus-visible) .links path[data-link="bio"] {
+  stroke: #c9fbff;
+}
+
+.diagram[data-method-stage="computational"] .links path[data-link="computational"],
+.diagram:has([data-stage="computational"]:hover) .links path[data-link="computational"],
+.diagram:has([data-stage="computational"]:focus-visible) .links path[data-link="computational"] {
+  stroke: #ffffff;
+}
+
+.diagram[data-method-stage="integrated"] .links path[data-link="integrated"],
+.diagram:has([data-stage="integrated"]:hover) .links path[data-link="integrated"],
+.diagram:has([data-stage="integrated"]:focus-visible) .links path[data-link="integrated"] {
+  stroke: #f0c2ae;
+}
+
+.circuitEnd {
+  fill: url("#method-stroke");
+  r: 5;
+}
+
+.stage {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 22%;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: var(--font-site-text), sans-serif;
+  text-align: center;
+  cursor: pointer;
+  transform: translate(-50%, -46%);
+}
+
+.stage[data-stage="bio"] {
+  top: 49%;
+  left: 16.7%;
+  color: #7eebef;
+}
+
+.stage[data-stage="computational"] {
+  top: 49%;
+  left: 50%;
+  color: #e7fffe;
+}
+
+.stage[data-stage="integrated"] {
+  top: 49%;
+  left: 83.3%;
+  color: #e0a88a;
+}
+
+.stageMark {
+  display: block;
+  width: calc(var(--home-title-size) * 0.54);
+  height: calc(var(--home-title-size) * 0.54);
+  margin: 0 auto 0.28em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stageMark circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+.stageTitle {
+  color: #ffffff;
+  font-size: calc(var(--home-title-size) * 0.39);
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.stage[aria-pressed="true"] .stageTitle {
+  text-shadow: 0 0 8px currentColor;
+}
+
+@keyframes work-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes work-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-110%);
+  }
+}
+
 @keyframes client-rise {
   from {
     opacity: 0;
@@ -221,23 +923,34 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .membrane,
-  .chamberLabel,
-  .pattern,
-  .title,
-  .panel {
+  .shapes,
+  .arrow,
+  .landing,
+  .panel,
+  .project img,
+  .projectLabel,
+  .methodCard,
+  .links path,
+  .stage,
+  .workIn,
+  .workOut {
     transition: none;
+  }
+
+  .workIn,
+  .workOut {
+    animation: none;
+  }
+
+  .workOut {
+    display: none;
+  }
+
+  .methodCard {
+    animation: none;
   }
 
   .sheet {
     animation: none;
   }
-}
-
-.logo {
-  display: block;
-  height: clamp(5rem, 12vw, 9rem);
-  width: auto;
-  filter: invert(1);
-  mix-blend-mode: screen;
 }

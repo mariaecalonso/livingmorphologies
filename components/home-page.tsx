@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { DemoWorkflow } from "@/components/demo-workflow/demo-workflow";
-import { HomeClient } from "@/components/home-client";
 import { HomeLabDemo } from "@/components/home-lab-demo";
 import { HomeResults } from "@/components/home-results";
 import { HomeSite } from "@/components/home-site";
@@ -38,6 +37,10 @@ export function HomePage({
   const [railIndex, setRailIndex] = useState(0);
 
   useEffect(() => {
+    if (window.location.hash === "#client") {
+      window.location.replace("/lab/client");
+      return;
+    }
     const root = rootRef.current;
     if (!root) return;
     const main = root.closest<HTMLElement>(".site-main");
@@ -206,10 +209,6 @@ export function HomePage({
             </span>
           </Link>
         </div>
-      </section>
-
-      <section className="home-overview home-client" id="client" data-rail-target="client" aria-label="Our Client">
-        <HomeClient />
       </section>
 
       {/* Kept, not shown. Remove `hidden` to put Overall Workflow back on the page. */}

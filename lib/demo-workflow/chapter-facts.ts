@@ -1,3 +1,5 @@
+import { CLIENT_PROFILE, PRACTICE_AREAS, SPACE_PROGRAM } from "@/lib/client/ecologic-studio";
+
 /**
  * Verified material for Chapters 01, 03, 04, and 05.
  * Stills in `/demo/chapters/` come from `scripts/export-demo-chapter-stills.mjs`; figures name their source file.
@@ -61,16 +63,13 @@ export const VERTICAL = {
   checks: ["One component", "Watertight", "Manifold"],
 } as const;
 
-/** Chapter 04. Studio material from `components/home-client.tsx`. The studio site is `data/skill5/workplace-brief.json`. The parcel is `data/skill5/herald-site.json`, kept for the drawn geometry. */
+/** Chapter 04. Client identity from `lib/client/ecologic-studio.ts`. The studio site is `data/skill5/workplace-brief.json`. The parcel is `data/skill5/herald-site.json`, kept for the drawn geometry. */
 export const STUDIO = {
-  name: "Living Morphologies Studio",
-  focus: "Physarum",
-  character: "Work + Leisure",
-  disciplines: [
-    { label: "Furniture", main: "/home/client/studio/furniture-main.png", details: ["/home/client/studio/furniture-detail-1.png", "/home/client/studio/furniture-detail-2.png"] },
-    { label: "Fashion", main: "/home/client/studio/fashion-main.png", details: ["/home/client/studio/fashion-detail-1.png", "/home/client/studio/fashion-detail-2.png"] },
-  ],
-  process: ["Observe", "Simulate", "Design", "Fabricate"],
+  name: CLIENT_PROFILE.name,
+  focus: CLIENT_PROFILE.focus,
+  character: SPACE_PROGRAM.workLeisure.label,
+  disciplines: PRACTICE_AREAS.map((area) => ({ label: area.label })),
+  process: PRACTICE_AREAS.map((area) => area.short),
 } as const;
 
 export const ACTIVITIES = [

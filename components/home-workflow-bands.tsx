@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { WORKFLOW_CAPTIONS } from "@/lib/client/ecologic-studio";
 
 /** Secondary network. Coordinates are percentages of the overview, clear of the eight-stage route. */
 
@@ -249,23 +250,23 @@ export function WorkflowBands() {
       </section>
       <section className="wf-rel-source is-context" data-tone="white" style={{ left: "63.8%", top: "4.4%", width: "9.4%", height: "5.2%" }}>
         <span className="wf-rel-index">06</span>
-        <span className="wf-rel-title">Living Morphology Studio</span>
+        <span className="wf-rel-title">{WORKFLOW_CAPTIONS.client}</span>
       </section>
       <section className="wf-rel-source is-child is-rule" data-tone="white" style={{ left: "64.2%", top: "10.4%", width: "7.6%", height: "4.8%" }}>
         <span className="wf-rel-title">Design focus</span>
-        <p className="wf-rel-anno">Physarum</p>
+        <p className="wf-rel-anno">{WORKFLOW_CAPTIONS.focus}</p>
       </section>
       <section className="wf-rel-source is-child is-rule" data-tone="white" style={{ left: "64.2%", top: "15.9%", width: "7.6%", height: "4.8%" }}>
         <span className="wf-rel-title">Disciplines</span>
-        <p className="wf-rel-anno">Fashion, furniture</p>
+        <p className="wf-rel-anno">{WORKFLOW_CAPTIONS.disciplines}</p>
       </section>
       <section className="wf-rel-source is-child is-rule" data-tone="white" style={{ left: "64.2%", top: "21.4%", width: "7.6%", height: "4.8%" }}>
         <span className="wf-rel-title">Character</span>
-        <p className="wf-rel-anno">Work + leisure</p>
+        <p className="wf-rel-anno">{WORKFLOW_CAPTIONS.character}</p>
       </section>
       <section className="wf-rel-source is-child is-rule" data-tone="white" style={{ left: "64.2%", top: "26.9%", width: "7.6%", height: "4.8%" }}>
         <span className="wf-rel-title">Program</span>
-        <p className="wf-rel-anno">Workspace, lobby, gathering</p>
+        <p className="wf-rel-anno">{WORKFLOW_CAPTIONS.program}</p>
       </section>
       <section className="wf-rel-source is-context" data-tone="white" style={{ left: "75.6%", top: "4.4%", width: "9.4%", height: "5.2%" }}>
         <span className="wf-rel-index">07</span>
