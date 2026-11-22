@@ -7,6 +7,7 @@ import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
 import { LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
+import { CINEMATIC_INTRO } from "@/lib/cinematic-intro";
 import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
 type NavItem = { href: string; label: string };
@@ -22,6 +23,16 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: readonly
     href: TEMP_PHYSARUM_VIDEO.href,
     label: TEMP_PHYSARUM_VIDEO.label,
     active: (pathname: string) => pathname === TEMP_PHYSARUM_VIDEO.href,
+  },
+  {
+    href: CINEMATIC_INTRO.href,
+    label: CINEMATIC_INTRO.label,
+    active: (pathname: string) => pathname === CINEMATIC_INTRO.href,
+  },
+  {
+    href: "/lab/physarum-study",
+    label: "GROWTH",
+    active: (pathname: string) => pathname === "/lab/physarum-study",
   },
 ];
 

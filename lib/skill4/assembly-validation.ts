@@ -1,6 +1,5 @@
 import type { IsoMesh } from "../scan/isomesh";
 import { HABITABLE_CLEARANCE } from "./architectural-integration";
-import { easeRidges, refineSharpRegions, settleRemainingCreases } from "./assembly-refine";
 import type { Vec3 } from "./contract";
 
 export type ValidationMetrics = {
@@ -166,7 +165,6 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
     pinEnds(next, source, count, frame);
     limitDrift(next, source, count, frame);
     pinEnds(next, source, count, frame);
-    keepPass(next, count, frame, mesh.indices, beforeDefects, "edge", () => roundSharpEdges(next, mesh.indices));
   }
 
   if (circulation && beforeDefects.narrow > 0) {
@@ -186,63 +184,12 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
   const after = metricsOf(afterDefects, degenerateRatio({ ...mesh, positions: next }));
   if (score(after) < score(before) + 0.01 || regressed(afterDefects, beforeDefects)) restore(next, source);
 
-  let indices = mesh.indices;
-  let rest: IsoMesh | undefined;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const currentDefects = readDefects(next, next.length / 3, frame, indices);
-    if (currentDefects.edge < 0.72) break;
-    const beforeEdge = currentDefects.edge;
-    const refined = refineSharpRegions({ positions: next, normals: mesh.normals, indices, triangles: indices.length / 3 });
-    if (refined) {
-      const refinedDefects = readDefects(refined.positions, refined.positions.length / 3, frame, refined.indices);
-      if (refinementHelps(refinedDefects, currentDefects) && refinedDefects.edge < beforeEdge - 0.012) {
-        next = new Float32Array(refined.positions);
-        indices = refined.indices;
-        rest = {
-          positions: refined.rest,
-          normals: faceNormals(refined.rest, refined.indices),
-          indices: refined.indices,
-          triangles: refined.triangles,
-        };
-      }
-    }
-    const eased = new Float32Array(next);
-    roundSharpEdges(eased, indices);
-    const easedDefects = readDefects(eased, eased.length / 3, frame, indices);
-    const held = readDefects(next, next.length / 3, frame, indices);
-    if (refinementHelps(easedDefects, held) && easedDefects.edge < held.edge - 0.012) next = eased;
-    const settled = settleRemainingCreases(next, indices);
-    if (settled) {
-      const settledDefects = readDefects(settled.positions, settled.positions.length / 3, frame, settled.indices);
-      const heldNow = readDefects(next, next.length / 3, frame, indices);
-      if (refinementHelps(settledDefects, heldNow)) {
-        next = new Float32Array(settled.positions);
-        indices = settled.indices;
-        if (settled.rest) {
-          rest = {
-            positions: settled.rest,
-            normals: faceNormals(settled.rest, settled.indices),
-            indices: settled.indices,
-            triangles: settled.indices.length / 3,
-          };
-        }
-      }
-    }
-    const ridged = easeRidges(next, indices);
-    if (ridged) {
-      const ridgeDefects = readDefects(ridged, ridged.length / 3, frame, indices);
-      const heldRidge = readDefects(next, next.length / 3, frame, indices);
-      if (refinementHelps(ridgeDefects, heldRidge) && ridgeDefects.edge < heldRidge.edge - 0.012) next = new Float32Array(ridged);
-    }
-    const afterEdge = readDefects(next, next.length / 3, frame, indices).edge;
-    if (afterEdge > beforeEdge - 0.012) break;
-  }
+  const indices = mesh.indices;
   const skipped = new Set<string>();
   for (let round = 0; round < 8; round += 1) {
     const open = readDefects(next, next.length / 3, frame, indices);
     if (!hasGeometricDefect(open)) break;
-    const issue = open.edge >= 0.72 && !skipped.has("edge") ? "edge"
-      : open.gap > 0 && !skipped.has("gap") ? "gap"
+    const issue = open.gap > 0 && !skipped.has("gap") ? "gap"
       : (open.kink >= KINK_LIMIT || open.seam >= KINK_LIMIT) && !skipped.has("kink") ? "kink"
       : open.twist >= TWIST_LIMIT && !skipped.has("twist") ? "twist"
       : open.pinch > 0.02 && !skipped.has("pinch") ? "pinch"
@@ -250,25 +197,7 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
       : "";
     if (!issue) break;
     const snapshot = new Float32Array(next);
-    const snapshotIndices = indices;
-    const snapshotRest = rest;
-    if (issue === "edge") {
-      const settled = settleRemainingCreases(next, indices);
-      if (settled) {
-        next = new Float32Array(settled.positions);
-        indices = settled.indices;
-        if (settled.rest) {
-          rest = {
-            positions: settled.rest,
-            normals: faceNormals(settled.rest, settled.indices),
-            indices: settled.indices,
-            triangles: settled.indices.length / 3,
-          };
-        }
-      }
-      const ridged = easeRidges(next, indices);
-      if (ridged) next = new Float32Array(ridged);
-    } else if (issue === "gap") closeGap(next, next.length / 3, frame);
+    if (issue === "gap") closeGap(next, next.length / 3, frame);
     else if (issue === "kink") applyKinks(next, next.length / 3, frame);
     else if (issue === "twist") applyTwist(next, next.length / 3, frame);
     else if (issue === "pinch") applyPinch(next, next.length / 3, frame);
@@ -276,52 +205,33 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
     const closed = readDefects(next, next.length / 3, frame, indices);
     if (!refinementHelps(closed, open)) {
       next = snapshot;
-      indices = snapshotIndices;
-      rest = snapshotRest;
       skipped.add(issue);
       continue;
     }
     skipped.clear();
   }
 
-  if (readDefects(next, next.length / 3, frame, indices).edge >= 0.72) {
-    const opened = openSharpRidges(source, mesh.indices, frame);
-    if (opened) {
-      const openedDefects = readDefects(opened, opened.length / 3, frame, mesh.indices);
-      const held = readDefects(next, next.length / 3, frame, indices);
-      if (openedDefects.edge < 0.72 && keepsCleared(openedDefects, held)) {
-        next = new Float32Array(opened);
-        indices = mesh.indices;
-        rest = undefined;
-      }
-    }
-  }
-
   const finalCount = next.length / 3;
   const finalDefects = readDefects(next, finalCount, frame, indices);
-  const finalMove = rest ? refinementDrift(source, next, rest.positions) : maxDrift(source, next);
-  const remaining = hasGeometricDefect(finalDefects) || (circulation && finalDefects.narrow > 0);
+  const finalMove = maxDrift(source, next);
+  const faults = criticalFaults({ positions: next, normals: mesh.normals, indices, triangles: indices.length / 3 });
+  const remaining = hasGeometricDefect(finalDefects) || (circulation && finalDefects.narrow > 0) || faults.length > 0;
   let verdict: ValidationVerdict = "clear";
-  if (!hasGeometricDefect(beforeDefects) && !(circulation && beforeDefects.narrow > 0)) verdict = "clear";
+  if (!hasGeometricDefect(beforeDefects) && !(circulation && beforeDefects.narrow > 0) && faults.length === 0) verdict = "clear";
   else if (!remaining && finalMove > 1e-3) verdict = "corrected";
   else if (remaining) verdict = "unresolved";
   else verdict = finalMove > 1e-3 ? "corrected" : "clear";
 
-  if (verdict === "unresolved") notes.unshift(failureNote(finalDefects, circulation, next, indices, frame));
-  else if (verdict === "corrected" && beforeDefects.edge >= 0.72) notes.unshift(`Sharp edges rounded. Largest correction ${finalMove.toFixed(2)} cells.`);
+  if (faults.length > 0) notes.unshift(`Critical mesh fault: ${faults.join(", ")}.`);
+  else if (verdict === "unresolved") notes.unshift(failureNote(finalDefects, circulation, next, indices, frame));
   else if (verdict === "corrected") notes.unshift(`Largest correction ${finalMove.toFixed(2)} cells.`);
+  if (finalDefects.edge >= 0.72 && faults.length === 0) notes.push("Localized sharp section changes were left in place.");
 
   const weights = new Float32Array(finalCount);
   const span = Math.max(frame.span, 1e-4);
   for (let index = 0; index < count; index += 1) {
     const drift = vertexDrift(source, next, index);
     weights[index] = drift > END_DRIFT ? clamp(drift / (span * 0.04), 0, 1) : 0;
-  }
-  if (rest) {
-    for (let index = count; index < finalCount; index += 1) {
-      const drift = vertexDrift(rest.positions, next, index);
-      weights[index] = drift > END_DRIFT ? clamp(drift / (span * 0.04), 0, 1) : 0;
-    }
   }
   const issues = issuePoints(source, count, frame, beforeDefects);
   if (beforeDefects.edge >= 0.72) {
@@ -352,7 +262,6 @@ function correctMesh(mesh: IsoMesh, circulation: boolean): MeshReport | null {
       smoothed,
       weights,
       issues,
-      rest,
     },
     before,
     after: verdict === "clear" && finalMove <= 1e-3 ? before : metricsOf(finalDefects, degenerateRatio(smoothed)),
@@ -480,26 +389,6 @@ function easeOneKink(positions: Float32Array, count: number, frame: Frame, stren
     eased = true;
   }
   return eased;
-}
-
-function openSharpRidges(source: Float32Array, indices: Uint32Array, frame: Frame) {
-  const opened = easeRidges(source, indices);
-  if (!opened) return null;
-  const count = opened.length / 3;
-  const candidate = new Float32Array(opened);
-  const beforeCenter = readDefects(candidate, count, frame, indices);
-  if (beforeCenter.kink < KINK_LIMIT && beforeCenter.seam < KINK_LIMIT) return candidate;
-  for (const strength of [1.1, 1.25, 1.4, 1.6]) {
-    const trial = new Float32Array(opened);
-    easeOneKink(trial, count, frame, strength);
-    for (const scale of [0.35, 0.5, 0.7]) {
-      const again = easeRidges(trial, indices, scale);
-      const finalPositions = again ?? trial;
-      const after = readDefects(finalPositions, count, frame, indices);
-      if (after.edge < 0.72 && after.kink <= KINK_LIMIT && after.seam <= KINK_LIMIT && after.bump < SPIKE_RATIO && after.twist < TWIST_LIMIT && after.pinch <= 0.02 && after.gap <= 0) return finalPositions;
-    }
-  }
-  return null;
 }
 
 function closeGap(positions: Float32Array, count: number, frame: Frame) {
@@ -657,52 +546,6 @@ function edgeScore(positions: Float32Array, indices: Uint32Array) {
   return sample.reduce((sum, value) => sum + value, 0) / sample.length;
 }
 
-function roundSharpEdges(positions: Float32Array, indices: Uint32Array) {
-  if (edgeScore(positions, indices) < 0.72) return;
-  const count = positions.length / 3;
-  const pitch = edgePitch(positions, indices);
-  const cap = pitch * 1.35;
-  const origin = new Float32Array(positions);
-  const links = vertexLinks(indices, count);
-  for (let pass = 0; pass < 10; pass += 1) {
-    const crease = vertexCrease(positions, indices);
-    const next = new Float32Array(positions);
-    for (let index = 0; index < count; index += 1) {
-      const around = links[index];
-      if (!around || around.length < 2 || crease[index] < 0.5) continue;
-      let ax = 0;
-      let ay = 0;
-      let az = 0;
-      around.forEach((other) => {
-        ax += positions[other * 3];
-        ay += positions[other * 3 + 1];
-        az += positions[other * 3 + 2];
-      });
-      const gain = 0.24 + 0.4 * clamp((crease[index] - 0.5) / 0.45, 0, 1);
-      let dx = (ax / around.length - positions[index * 3]) * gain;
-      let dy = (ay / around.length - positions[index * 3 + 1]) * gain;
-      let dz = (az / around.length - positions[index * 3 + 2]) * gain;
-      const step = Math.hypot(dx, dy, dz);
-      const stepCap = pitch * 0.32;
-      if (step > stepCap && step > 0) {
-        const scale = stepCap / step;
-        dx *= scale;
-        dy *= scale;
-        dz *= scale;
-      }
-      const ox = positions[index * 3] + dx - origin[index * 3];
-      const oy = positions[index * 3 + 1] + dy - origin[index * 3 + 1];
-      const oz = positions[index * 3 + 2] + dz - origin[index * 3 + 2];
-      const total = Math.hypot(ox, oy, oz);
-      const pull = total > cap && total > 0 ? cap / total : 1;
-      next[index * 3] = origin[index * 3] + ox * pull;
-      next[index * 3 + 1] = origin[index * 3 + 1] + oy * pull;
-      next[index * 3 + 2] = origin[index * 3 + 2] + oz * pull;
-    }
-    positions.set(next);
-  }
-}
-
 function vertexCrease(positions: Float32Array, indices: Uint32Array) {
   const crease = new Float32Array(positions.length / 3);
   const faces = new Map<string, number[]>();
@@ -737,17 +580,6 @@ function vertexCrease(positions: Float32Array, indices: Uint32Array) {
     });
   });
   return crease;
-}
-
-function edgePitch(positions: Float32Array, indices: Uint32Array) {
-  const edges: number[] = [];
-  const count = Math.min(indices.length, 2400);
-  for (let triangle = 0; triangle < count; triangle += 3) {
-    const a = indices[triangle] * 3;
-    const b = indices[triangle + 1] * 3;
-    edges.push(Math.hypot(positions[b] - positions[a], positions[b + 1] - positions[a + 1], positions[b + 2] - positions[a + 2]));
-  }
-  return Math.max(median(edges), 1e-4);
 }
 
 function readDefects(positions: Float32Array, count: number, frame: Frame, indices: Uint32Array): Defects {
@@ -785,7 +617,71 @@ function readDefects(positions: Float32Array, count: number, frame: Frame, indic
 }
 
 function hasGeometricDefect(defects: Defects) {
-  return defects.twist >= TWIST_LIMIT || defects.pinch > 0.02 || defects.bump >= SPIKE_RATIO || defects.edge >= 0.72 || defects.kink >= KINK_LIMIT || defects.seam >= KINK_LIMIT || defects.gap > 0;
+  return defects.twist >= TWIST_LIMIT || defects.pinch > 0.02 || defects.bump >= SPIKE_RATIO || defects.kink >= KINK_LIMIT || defects.seam >= KINK_LIMIT || defects.gap > 0;
+}
+
+/** Failures that are not an intentional change of section shape. Sharp dihedral is reported separately and is not deformed away. */
+function criticalFaults(mesh: IsoMesh): string[] {
+  const faults: string[] = [];
+  const edges = new Map<string, number>();
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const tri = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    for (let edge = 0; edge < 3; edge += 1) {
+      const a = tri[edge];
+      const b = tri[(edge + 1) % 3];
+      const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+      edges.set(key, (edges.get(key) ?? 0) + 1);
+    }
+  }
+  let nonManifold = 0;
+  edges.forEach((count) => {
+    if (count !== 1 && count !== 2) nonManifold += 1;
+  });
+  if (nonManifold > 0) faults.push("non-manifold geometry");
+  if (degenerateRatio(mesh) > 0.02) faults.push("collapsed faces");
+  if (mesh.triangles > 0 && mesh.triangles <= 1600 && piercingPairs(mesh) > 0) faults.push("self-intersection");
+  return faults;
+}
+
+function piercingPairs(mesh: IsoMesh) {
+  const tris: { ids: number[]; points: Vec3[] }[] = [];
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    tris.push({
+      ids,
+      points: ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] })),
+    });
+  }
+  let count = 0;
+  for (let left = 0; left < tris.length; left += 1) {
+    for (let right = left + 1; right < tris.length; right += 1) {
+      if (tris[left].ids.some((id) => tris[right].ids.includes(id))) continue;
+      if (edgeHitsTriangle(tris[left].points, tris[right].points) || edgeHitsTriangle(tris[right].points, tris[left].points)) count += 1;
+    }
+  }
+  return count;
+}
+
+function edgeHitsTriangle(source: Vec3[], target: Vec3[]) {
+  for (let index = 0; index < 3; index += 1) {
+    const origin = source[index];
+    const direction = { x: source[(index + 1) % 3].x - origin.x, y: source[(index + 1) % 3].y - origin.y, z: source[(index + 1) % 3].z - origin.z };
+    const edge1 = { x: target[1].x - target[0].x, y: target[1].y - target[0].y, z: target[1].z - target[0].z };
+    const edge2 = { x: target[2].x - target[0].x, y: target[2].y - target[0].y, z: target[2].z - target[0].z };
+    const pvec = cross(direction, edge2);
+    const det = edge1.x * pvec.x + edge1.y * pvec.y + edge1.z * pvec.z;
+    if (Math.abs(det) < 1e-8) continue;
+    const inverse = 1 / det;
+    const tvec = { x: origin.x - target[0].x, y: origin.y - target[0].y, z: origin.z - target[0].z };
+    const u = (tvec.x * pvec.x + tvec.y * pvec.y + tvec.z * pvec.z) * inverse;
+    if (u < -1e-5 || u > 1.00001) continue;
+    const qvec = cross(tvec, edge1);
+    const v = (direction.x * qvec.x + direction.y * qvec.y + direction.z * qvec.z) * inverse;
+    if (v < -1e-5 || u + v > 1.00001) continue;
+    const t = (edge2.x * qvec.x + edge2.y * qvec.y + edge2.z * qvec.z) * inverse;
+    if (t > 1e-3 && t < 1 - 1e-3) return true;
+  }
+  return false;
 }
 
 function limitOf(key: keyof Defects) {
@@ -798,14 +694,8 @@ function limitOf(key: keyof Defects) {
   return Infinity;
 }
 
-function keepsCleared(after: Defects, before: Defects) {
-  const keys: (keyof Defects)[] = ["twist", "pinch", "bump", "kink", "seam", "gap"];
-  return keys.every((key) => !(before[key] <= limitOf(key) && after[key] > limitOf(key)));
-}
-
-/** Keep a local remesh when it reduces a failing check and does not create a new one. */
 function refinementHelps(after: Defects, before: Defects) {
-  const keys: (keyof Defects)[] = ["twist", "pinch", "bump", "edge", "kink", "seam", "gap"];
+  const keys: (keyof Defects)[] = ["twist", "pinch", "bump", "kink", "seam", "gap"];
   let reduced = false;
   for (const key of keys) {
     const limit = limitOf(key);
@@ -843,7 +733,6 @@ function failureNote(defects: Defects, circulation: boolean, positions: Float32A
   if (defects.pinch > 0.02) return `Geometry integrity is still low ${place}. A pinched passage remains that could not be opened safely.`;
   if (defects.kink >= KINK_LIMIT) return `Continuity is still low ${place}. A sharp change in direction remains.`;
   if (defects.seam >= KINK_LIMIT) return `Junction fit is still low ${place}. A sharp change in direction remains at the connection.`;
-  if (defects.edge >= 0.72) return `Surface smoothness is still low ${place}. Sharp folds remain after local refinement.`;
   if (defects.bump >= SPIKE_RATIO) return `Surface smoothness is still low ${place}. Irregular surface regions remain.`;
   if (circulation && defects.narrow > 0) return "The passage is still narrower than the existing clearance.";
   return "The remaining problem could not be corrected safely.";
@@ -864,14 +753,6 @@ function foldPlace(positions: Float32Array, indices: Uint32Array, frame: Frame) 
   if (station < 0.33) return "near the start of the connection";
   if (station > 0.67) return "near the end of the connection";
   return "through the middle of the connection";
-}
-
-function refinementDrift(source: Float32Array, next: Float32Array, rest: Float32Array) {
-  let peak = 0;
-  const shared = Math.min(source.length, next.length) / 3;
-  for (let index = 0; index < shared; index += 1) peak = Math.max(peak, vertexDrift(source, next, index));
-  for (let index = shared; index < next.length / 3; index += 1) peak = Math.max(peak, vertexDrift(rest, next, index));
-  return peak;
 }
 
 function issuePoints(positions: Float32Array, count: number, frame: Frame, defects: Defects): ValidationIssue[] {

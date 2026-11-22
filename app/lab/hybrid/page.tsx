@@ -1,13 +1,18 @@
-import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
-import { labWorkspace } from "@/lib/site-map";
+import { redirect } from "next/navigation";
 
-const workspace = labWorkspace("hybrid");
-const tab = workspace.tabs[0];
-
-export const metadata = {
-  title: `${tab.label} -+ ${workspace.label} -+ Living Morphologies`,
-};
-
-export default function HybridPage() {
-  return <HybridAssembly view="process" />;
+/** The connection workflow lives in Cluster Placement. Catalog routes stay on this workspace. */
+export default async function HybridPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const next = new URLSearchParams();
+  next.set("sheet", "placement");
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || key === "sheet") continue;
+    if (Array.isArray(value)) value.forEach((item) => next.append(key, item));
+    else next.set(key, value);
+  }
+  redirect(`/lab/site?${next.toString()}`);
 }

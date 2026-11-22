@@ -258,7 +258,7 @@ export function SomCandidateFacts({
         {generated ? <p className="hybrid-units">{`Vertices ${generated.vertexCount} · triangles ${generated.triangleCount}`}</p> : null}
       </div>
       <div className="hybrid-som-facts-preview">
-        <MeshPreview mesh={selected.mesh} kind={1} contain fitScale={1.45} yaw={0.9} pitch={0.28} />
+        <MeshPreview mesh={selected.mesh} kind={1} contain fitScale={2.6} yaw={0.9} pitch={0.28} />
       </div>
     </aside>
   );

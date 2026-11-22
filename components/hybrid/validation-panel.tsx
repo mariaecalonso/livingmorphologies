@@ -5,6 +5,7 @@ import type { IsoMesh } from "@/lib/scan/isomesh";
 import { revealSmooth, validateMeshes, type AssemblyValidation } from "@/lib/skill4/assembly-validation";
 import type { Vec3 } from "@/lib/skill4/contract";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
+import { runAssemblyShrinkwrap } from "@/lib/skill4/assembly-shrinkwrap";
 import { filmWrapAssembly, type FilmWrap } from "@/lib/skill4/film-wrap";
 import { IDENTITY_BASIS, rotateByBasis } from "@/lib/skill4/tile-basis";
 
@@ -219,11 +220,14 @@ export function useAssemblyFilm(assembly: readonly PlacedMesh[], keepFilm = fals
       }
       const targets = targetsOf(source);
       const worlds = source.map(worldOf);
-      let film: FilmWrap | null = null;
-      try {
-        film = filmWrapAssembly(worlds);
-      } catch {
-        film = null;
+      let film: FilmWrap | null = runAssemblyShrinkwrap(worlds);
+      if (!film && keepFilm) {
+        try {
+          const raw = filmWrapAssembly(worlds);
+          film = raw && raw.mesh.triangles > 4 ? raw : null;
+        } catch {
+          film = null;
+        }
       }
       if (cancel) return;
       const bounds = boundsRef.current;

@@ -37,6 +37,14 @@ export type SectionReport = {
   fromB: string;
   recombined: string;
   dropped: string;
+  /** Piercings after adaptive correspondence, before a failure repair is kept. */
+  initialPiercings: number;
+  /** Failure repairs kept for this connector, in the order they were accepted. */
+  repairs: string;
+  /** Piercing count just before a kept section-overlap repair. -1 when that repair was not kept. */
+  overlapBefore: number;
+  /** Piercing count just before a kept open-cap repair. -1 when that repair was not kept. */
+  capBefore: number;
 };
 
 export type SectionGuide = {
@@ -124,7 +132,7 @@ export function generateSectionalCandidate(
 ): GeneratedHybridCandidate {
   const study = studyFor(request.moduleA, request.faceA, request.moduleB, request.faceB);
   if (!study) return failed(candidate, "The sectional cuts did not produce an outer loop on both selected faces.");
-  return buildCandidate(study, candidate);
+  return buildCandidate(study, candidate, terminalSectionPair(request.moduleA, request.faceA, request.moduleB, request.faceB));
 }
 
 export function parentSectionGuides(module: ReadyModule, face: FaceId, label: string): SectionGuide[] {
@@ -732,12 +740,17 @@ function classifyOpenings(sections: SectionCut[]) {
   });
 }
 
-function buildCandidate(study: SectionStudy, candidate: HybridCandidate): GeneratedHybridCandidate {
+function buildCandidate(
+  study: SectionStudy,
+  candidate: HybridCandidate,
+  ends: { a: Vec3[]; b: Vec3[] } | null = null,
+): GeneratedHybridCandidate {
   const chainA = sectionChain(study.dnaA.sections, 0);
   const chainB = sectionChain(study.dnaB.sections, study.shift);
   if (!chainA || !chainB) return failed(candidate, "A near-face section is missing.");
   const designed = designHybrid(chainA, chainB, study.dnaA.sections, study.dnaB.sections, study.shift, candidate.column, candidate.row, study.hybridT, study.anchorA, study.anchorB);
-  const settled = settleRings(designed.rings);
+  const generated = generateThenRepair(designed.rings, designed.openings, ends);
+  const settled = { ok: true, rings: generated.rings, openings: generated.openings };
   const report: SectionReport = {
     sectionsA: study.dnaA.sections.filter((section) => section.outer).length,
     sectionsB: study.dnaB.sections.filter((section) => section.outer).length,
@@ -749,6 +762,10 @@ function buildCandidate(study: SectionStudy, candidate: HybridCandidate): Genera
     fromB: designed.fromB,
     recombined: designed.recombined,
     dropped: designed.dropped,
+    initialPiercings: generated.initialPiercings,
+    repairs: generated.repairs.join(", ") || "none",
+    overlapBefore: generated.overlapBefore,
+    capBefore: generated.capBefore,
   };
   if (!settled.ok) {
     return { ...failed(candidate, "Section correspondence did not settle. The loft was not built."), sectionReport: report };
@@ -766,7 +783,7 @@ function buildCandidate(study: SectionStudy, candidate: HybridCandidate): Genera
     openings: report.nearOpeningsA + report.nearOpeningsB > 0 ? 1 : 0,
     sectionReport: report,
     loftRings: settled.rings.map((ring) => ring.map((point) => ({ x: point.x, y: point.y, z: point.z }))),
-    loftOpenings: designed.openings,
+    loftOpenings: settled.openings,
   };
 }
 
@@ -851,6 +868,752 @@ function designHybrid(
     openings: openingRings,
     ...inheritance,
   };
+}
+
+type FailureKind = "rotation" | "end-cap" | "fold" | "scale" | "open-cap";
+
+/** Builds the connector with adaptive correspondence, then keeps at most the one repair that matches the current failure. A kept repair is checked again, so a second, different failure can be repaired. A repair that does not lower the piercing count is discarded. */
+function generateThenRepair(rings: Vec3[][], openings: Vec3[][][], ends: { a: Vec3[]; b: Vec3[] } | null) {
+  const repairs: string[] = [];
+  const closed = closeOpeningGradually(rings, openings);
+  const openingChanged = closed.rings !== rings;
+  const plain = resolveCorrespondence(rings, openings, ends);
+  let current = plain;
+  let initialPiercings = piercingCount(plain.rings);
+  if (openingChanged) {
+    const trial = resolveCorrespondence(closed.rings, closed.openings, ends);
+    const nextCount = piercingCount(trial.rings);
+    if (nextCount < initialPiercings) {
+      current = trial;
+      repairs.push("opening-close");
+    }
+  }
+  const used = new Set<FailureKind>();
+  let overlapBefore = -1;
+  let capBefore = -1;
+  for (let pass = 0; pass < 5; pass += 1) {
+    const failures = rankFailures(current.rings, used);
+    const pending = failures.filter((failure) => !used.has(failure.kind));
+    if (pending.length === 0) break;
+    let applied = false;
+    for (const failure of pending) {
+      used.add(failure.kind);
+      const trial = applyFailure(current.rings, current.openings, failure);
+      if (!trial) continue;
+      if (trial.repair === "section-overlap") overlapBefore = trial.beforeCount;
+      if (trial.repair === "open-cap") capBefore = trial.beforeCount;
+      current = trial;
+      repairs.push(trial.repair);
+      applied = true;
+      break;
+    }
+    if (!applied) continue;
+  }
+  return { rings: current.rings, openings: current.openings, repairs, initialPiercings, overlapBefore, capBefore };
+}
+
+function piercingCount(rings: Vec3[][]) {
+  const samples = rings[0]?.length ?? 0;
+  if (rings.length < 2 || samples < 3) return 0;
+  return bandTotal(piercingBands(loftSectionRings(rings), rings.length, samples));
+}
+
+function rankFailures(rings: Vec3[][], used: Set<FailureKind>) {
+  const count = rings.length;
+  const samples = rings[0]?.length ?? 0;
+  const found: { kind: FailureKind; station: number; score: number }[] = [];
+  if (count < 3 || samples < 3) return found;
+  const mesh = loftSectionRings(rings);
+  const turns = rings.slice(0, -1).map((ring, index) => sectionTurn(ring, rings[index + 1]));
+  let rotationScore = 0;
+  let rotationStation = -1;
+  turns.forEach((turn, index) => {
+    if (Math.abs(turn) <= 90) return;
+    const crossings = stripCrossings(mesh, index, samples);
+    if (crossings > rotationScore) {
+      rotationScore = crossings;
+      rotationStation = index;
+    }
+  });
+  if (rotationScore > 0) found.push({ kind: "rotation", station: rotationStation, score: rotationScore });
+  const capScore = capClashCount(mesh, count - 1, samples);
+  if (capScore > 0) found.push({ kind: "end-cap", station: count - 2, score: capScore });
+  let foldScore = 0;
+  let foldStation = -1;
+  for (let station = 0; station < count - 1; station += 1) {
+    if (Math.abs(turns[station] ?? 0) > 90) continue;
+    if (!foldCluster(rings, mesh, station, samples)) continue;
+    const crossings = stripCrossings(mesh, station, samples);
+    if (crossings > foldScore) {
+      foldScore = crossings;
+      foldStation = station;
+    }
+  }
+  if (foldScore > 0) found.push({ kind: "fold", station: foldStation, score: foldScore });
+  const settled = found.every((failure) => used.has(failure.kind));
+  if (settled && !used.has("scale")) {
+    let scaleScore = 0;
+    let scaleStation = -1;
+    for (let station = 0; station < count - 1; station += 1) {
+      const ratio = meanRadius(rings[station + 1]) / Math.max(1e-6, meanRadius(rings[station]));
+      if (ratio >= 0.62 && ratio <= 1 / 0.62) continue;
+      const crossings = stripCrossings(mesh, station, samples);
+      if (crossings <= scaleScore) continue;
+      scaleScore = crossings;
+      scaleStation = station;
+    }
+    if (scaleScore > 0) found.push({ kind: "scale", station: scaleStation, score: scaleScore });
+  }
+  if (settled && !used.has("open-cap")) {
+    const openScore = capClashCount(mesh, 0, samples);
+    if (openScore > 0) found.push({ kind: "open-cap", station: 0, score: openScore });
+  }
+  const order: Record<FailureKind, number> = { fold: 0, "end-cap": 1, rotation: 2, scale: 3, "open-cap": 4 };
+  return found.sort((left, right) => right.score - left.score || order[left.kind] - order[right.kind]);
+}
+
+function applyFailure(rings: Vec3[][], openings: Vec3[][][], failure: { kind: FailureKind; station: number }) {
+  if (failure.kind === "rotation") {
+    const turned = chooseTurnRepair(rings, openings);
+    if (!turned.repair) return null;
+    return { rings: turned.rings, openings: turned.openings, repair: turned.repair };
+  }
+  if (failure.kind === "end-cap") {
+    const separated = separateEndCap(rings, openings);
+    if (separated.rings === rings) return null;
+    return { rings: separated.rings, openings: separated.openings, repair: "end-cap" };
+  }
+  if (failure.kind === "scale") {
+    const eased = easeScaleJump(rings, openings, failure.station);
+    if (eased.rings === rings) return null;
+    return { rings: eased.rings, openings: eased.openings, repair: "section-overlap", beforeCount: eased.beforeCount };
+  }
+  if (failure.kind === "open-cap") {
+    const eased = easeOpenCap(rings, openings);
+    if (eased.rings === rings) return null;
+    return { rings: eased.rings, openings: eased.openings, repair: "open-cap", beforeCount: eased.beforeCount };
+  }
+  const folded = easeStripFold(rings, openings, failure.station);
+  if (folded.rings === rings) return null;
+  return { rings: folded.rings, openings: folded.openings, repair: "fold" };
+}
+
+/** Eases a self-crossing strip whose width or height jumps. Each ring scales about its centroid, and only on the axis that jumped. */
+function easeScaleJump(rings: Vec3[][], openings: Vec3[][][], station: number) {
+  const count = rings.length;
+  const samples = rings[0]?.length ?? 0;
+  const ratio = meanRadius(rings[station + 1]) / Math.max(1e-6, meanRadius(rings[station]));
+  if (count < 3 || samples < 3 || (ratio >= 0.62 && ratio <= 1 / 0.62)) return { rings, openings, beforeCount: 0 };
+  const mesh = loftSectionRings(rings);
+  if (stripCrossings(mesh, station, samples) === 0) return { rings, openings, beforeCount: 0 };
+  const before = piercingBands(mesh, count, samples);
+  const basis = sectionPlane(rings[station]);
+  const prevBox = planeExtent(rings[station], basis.u, basis.v);
+  const nextBox = planeExtent(rings[station + 1], basis.u, basis.v);
+  const width = splitExtent(prevBox.width, nextBox.width);
+  const height = splitExtent(prevBox.height, nextBox.height);
+  const idle = [width[0], width[1], height[0], height[1]].every((factor) => Math.abs(factor - 1) < 0.02);
+  if (idle) return { rings, openings, beforeCount: 0 };
+  const nextRings = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const nextOpenings = openings.map((loops) => loops.map((loop) => loop.map((point) => ({ ...point }))));
+  nextRings[station] = scaleInPlane(rings[station], width[0], height[0]);
+  nextRings[station + 1] = scaleInPlane(rings[station + 1], width[1], height[1]);
+  nextOpenings[station] = (openings[station] ?? []).map((loop) => scaleInPlane(loop, width[0], height[0]));
+  nextOpenings[station + 1] = (openings[station + 1] ?? []).map((loop) => scaleInPlane(loop, width[1], height[1]));
+  const after = piercingBands(loftSectionRings(nextRings), count, samples);
+  const key = `${station}-${station + 1} x ${station}-${station + 1}`;
+  if (bandTotal(after) >= bandTotal(before) || !foldBandsAccept(before, after, key)) return { rings, openings, beforeCount: 0 };
+  return { rings: nextRings, openings: nextOpenings, beforeCount: bandTotal(before) };
+}
+
+function splitExtent(prev: number, next: number) {
+  const ratio = next / Math.max(1e-6, prev);
+  if (ratio >= 0.62 && ratio <= 1 / 0.62) return [1, 1];
+  const eased = Math.sqrt(ratio);
+  const newPrev = Math.sqrt(Math.max(1e-6, prev) * Math.max(1e-6, next) / eased);
+  return [newPrev / Math.max(1e-6, prev), (newPrev * eased) / Math.max(1e-6, next)];
+}
+
+function sectionPlane(ring: Vec3[]) {
+  const normal = sectionAxis(ring);
+  let u = cross({ x: 0, y: 1, z: 0 }, normal);
+  if (length(u) < 1e-4) u = { x: 1, y: 0, z: 0 };
+  u = normalize(u);
+  return { u, v: cross(normal, u) };
+}
+
+function planeExtent(ring: Vec3[], u: Vec3, v: Vec3) {
+  const origin = average(ring);
+  let minU = Infinity;
+  let maxU = -Infinity;
+  let minV = Infinity;
+  let maxV = -Infinity;
+  ring.forEach((point) => {
+    const delta = sub(point, origin);
+    const du = dot(delta, u);
+    const dv = dot(delta, v);
+    minU = Math.min(minU, du);
+    maxU = Math.max(maxU, du);
+    minV = Math.min(minV, dv);
+    maxV = Math.max(maxV, dv);
+  });
+  return { width: Math.max(1e-6, maxU - minU), height: Math.max(1e-6, maxV - minV) };
+}
+
+function scaleInPlane(points: Vec3[], factorU: number, factorV: number) {
+  if (points.length < 3) return points.map((point) => ({ ...point }));
+  const origin = average(points);
+  const { u, v } = sectionPlane(points);
+  const normal = sectionAxis(points);
+  return points.map((point) => {
+    const delta = sub(point, origin);
+    return add(origin, add(scale(normal, dot(delta, normal)), add(scale(u, dot(delta, u) * factorU), scale(v, dot(delta, v) * factorV))));
+  });
+}
+
+/** When a clear opening collapses in one station and the section pinches, then rebounds, close that opening across the remaining stations. */
+function closeOpeningGradually(rings: Vec3[][], openings: Vec3[][][]) {
+  const areaOf = (loop: Vec3[]) => {
+    const origin = average(loop);
+    let sum = 0;
+    for (let index = 0; index < loop.length; index += 1) {
+      const next = loop[(index + 1) % loop.length];
+      const left = sub(loop[index], origin);
+      const right = sub(next, origin);
+      sum += length(cross(left, right));
+    }
+    return sum * 0.5;
+  };
+  const areas = openings.map((station) => station.reduce((max, loop) => Math.max(max, areaOf(loop)), 0));
+  const peak = Math.max(...areas, 0);
+  let clear = -1;
+  areas.forEach((area, index) => {
+    if (area >= peak * 0.35) clear = index;
+  });
+  const end = rings.length - 1;
+  const collapsed = clear >= 0 ? areas[clear + 1] ?? 0 : peak;
+  const radii = rings.map((ring) => meanRadius(ring));
+  const pinched = clear >= 0 && clear + 1 <= end && radii[clear + 1] < radii[clear] * 0.72;
+  const rebound = clear >= 0 && radii.slice(clear + 2).some((radius) => radius > radii[clear + 1] * 1.35);
+  if (peak < 1 || clear < 1 || clear >= end - 1 || collapsed > areas[clear] * 0.3 || !pinched || !rebound) return { rings, openings };
+  const nextRings = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const nextOpenings = openings.map((station) => station.map((loop) => loop.map((point) => ({ ...point }))));
+  const source = openings[clear].reduce((best, loop) => areaOf(loop) > areaOf(best) ? loop : best);
+  const sourceCenter = average(source);
+  const sourceOffset = sub(sourceCenter, average(rings[clear]));
+  for (let station = clear + 1; station < end; station += 1) {
+    const t = (station - clear) / (end - clear);
+    const gain = 1 - t;
+    const center = add(average(rings[station]), scale(sourceOffset, gain));
+    nextOpenings[station] = [source.map((point) => add(center, scale(sub(point, sourceCenter), gain)))];
+    const origin = average(rings[station]);
+    const blended = rings[clear].map((point, index) => {
+      const toward = rings[end][index];
+      return {
+        x: point.x + (toward.x - point.x) * t,
+        y: point.y + (toward.y - point.y) * t,
+        z: point.z + (toward.z - point.z) * t,
+      };
+    });
+    const shift = sub(origin, average(blended));
+    nextRings[station] = blended.map((point) => add(point, shift));
+  }
+  return { rings: nextRings, openings: nextOpenings };
+}
+
+/** Pulls the section before the end cap back behind that cap when the cap cuts an earlier wall. The centroid stays. The pull is kept only when the connector has fewer piercings and strips away from the cap do not get worse. */
+function separateEndCap(rings: Vec3[][], openings: Vec3[][][]) {
+  const count = rings.length;
+  const samples = rings[0]?.length ?? 0;
+  if (count < 3 || samples < 3) return { rings, openings };
+  const mesh = loftSectionRings(rings);
+  if (capClashCount(mesh, count - 1, samples) === 0) return { rings, openings };
+  const before = piercingBands(mesh, count, samples);
+  const trial = pullSectionOffCap(rings, openings);
+  if (!trial) return { rings, openings };
+  const after = piercingBands(loftSectionRings(trial.rings), count, samples);
+  if (bandTotal(after) >= bandTotal(before)) return { rings, openings };
+  if (!endBandsAccept(before, after, count - 1)) return { rings, openings };
+  return trial;
+}
+
+function pullSectionOffCap(rings: Vec3[][], openings: Vec3[][][]) {
+  const last = rings.length - 1;
+  const station = last - 1;
+  const end = average(rings[last]);
+  let normal = sectionAxis(rings[last]);
+  if (dot(sub(average(rings[station]), end), normal) > 0) normal = scale(normal, -1);
+  const gap = Math.abs(dot(sub(average(rings[station]), end), normal));
+  const clearance = Math.max(0.04, gap * 0.08);
+  const pulled = seatBehindCap(rings[station], end, normal, clearance);
+  if (!pulled) return null;
+  const nextRings = rings.map((ring) => ring.map((point) => ({ ...point })));
+  nextRings[station] = pulled;
+  const nextOpenings = openings.map((loops) => loops.map((loop) => loop.map((point) => ({ ...point }))));
+  nextOpenings[station] = (openings[station] ?? []).map((loop) => seatBehindCap(loop, end, normal, clearance) ?? loop);
+  return { rings: nextRings, openings: nextOpenings };
+}
+
+function seatBehindCap(ring: Vec3[], end: Vec3, normal: Vec3, clearance: number) {
+  const origin = average(ring);
+  if (!ring.some((point) => dot(sub(point, end), normal) > -clearance)) return null;
+  let current = ring.map((point) => ({ ...point }));
+  for (let pass = 0; pass < 6; pass += 1) {
+    current = current.map((point) => {
+      const depth = dot(sub(point, end), normal);
+      if (depth <= -clearance) return point;
+      return add(point, scale(normal, -clearance - depth));
+    });
+    const shift = sub(origin, average(current));
+    const along = dot(shift, normal);
+    const spare = current.map((point) => Math.max(0, -clearance - dot(sub(point, end), normal)));
+    const room = spare.reduce((sum, value) => sum + value, 0);
+    const lateral = sub(shift, scale(normal, along));
+    current = current.map((point, index) => {
+      const wanted = room > 1e-6 ? along * (spare[index] / room) * current.length : 0;
+      const share = along > 0 ? Math.min(wanted, spare[index]) : wanted;
+      return add(add(point, lateral), scale(normal, share));
+    });
+  }
+  const drift = length(sub(origin, average(current)));
+  if (drift > 0.02) return null;
+  return current;
+}
+
+function capClashCount(mesh: IsoMesh, last: number, count: number) {
+  const cap: { ids: number[]; points: Vec3[] }[] = [];
+  const other: { ids: number[]; points: Vec3[] }[] = [];
+  const start = last * count;
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    const points = ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] }));
+    const onCap = ids.every((id) => id >= start && id < start + count);
+    if (onCap) cap.push({ ids, points });
+    else other.push({ ids, points });
+  }
+  let clashes = 0;
+  for (const face of cap) {
+    for (const wall of other) {
+      if (face.ids.some((id) => wall.ids.includes(id))) continue;
+      if (segmentHits(face.points, wall.points) || segmentHits(wall.points, face.points)) clashes += 1;
+    }
+  }
+  return clashes;
+}
+
+/** Pulls only the wall vertices that cut the open-end cap, along the cap normal. The cap ring and its opening stay put. Kept only when the connector has fewer piercings and every non-cap band stays at least as clean. */
+function easeOpenCap(rings: Vec3[][], openings: Vec3[][][]) {
+  const count = rings.length;
+  const samples = rings[0]?.length ?? 0;
+  if (count < 3 || samples < 3) return { rings, openings, beforeCount: 0 };
+  const mesh = loftSectionRings(rings);
+  if (capClashCount(mesh, 0, samples) === 0) return { rings, openings, beforeCount: 0 };
+  const before = piercingBands(mesh, count, samples);
+  const support = capSupportSamples(mesh, samples);
+  if (support.size === 0) return { rings, openings, beforeCount: 0 };
+  const end = average(rings[0]);
+  let normal = sectionAxis(rings[0]);
+  if (dot(sub(average(rings[1]), end), normal) < 0) normal = scale(normal, -1);
+  const gap = Math.abs(dot(sub(average(rings[1]), end), normal));
+  const clearances = [0.05, 0.1, 0.18, 0.32].map((fraction) => Math.max(0.04, gap * fraction));
+  const beforeTotal = bandTotal(before);
+  for (const clearance of clearances) {
+    const trial = seatCapSupport(rings, openings, support, end, normal, clearance);
+    if (!trial) continue;
+    const after = piercingBands(loftSectionRings(trial.rings), count, samples);
+    if (bandTotal(after) >= beforeTotal || !endBandsAccept(before, after, 0)) continue;
+    return { rings: trial.rings, openings: trial.openings, beforeCount: beforeTotal };
+  }
+  return { rings, openings, beforeCount: 0 };
+}
+
+function capSupportSamples(mesh: IsoMesh, count: number) {
+  const cap: { ids: number[]; points: Vec3[] }[] = [];
+  const other: { ids: number[]; points: Vec3[] }[] = [];
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    const points = ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] }));
+    if (ids.every((id) => id < count)) cap.push({ ids, points });
+    else other.push({ ids, points });
+  }
+  const support = new Map<number, Set<number>>();
+  for (const face of cap) {
+    for (const wall of other) {
+      if (face.ids.some((id) => wall.ids.includes(id))) continue;
+      if (!segmentHits(face.points, wall.points) && !segmentHits(wall.points, face.points)) continue;
+      wall.ids.forEach((id) => {
+        const station = Math.floor(id / count);
+        if (station < 1 || station > 3) return;
+        const samples = support.get(station) ?? new Set<number>();
+        samples.add(id % count);
+        support.set(station, samples);
+      });
+    }
+  }
+  return support;
+}
+
+function seatCapSupport(
+  rings: Vec3[][],
+  openings: Vec3[][][],
+  support: Map<number, Set<number>>,
+  end: Vec3,
+  normal: Vec3,
+  clearance: number,
+) {
+  const nextRings = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const nextOpenings = openings.map((loops) => loops.map((loop) => loop.map((point) => ({ ...point }))));
+  let moved = false;
+  for (const [station, samples] of support) {
+    const ring = rings[station];
+    const origin = average(ring);
+    const locked = new Set<number>();
+    const seated = ring.map((point, index) => {
+      if (!samples.has(index)) return { ...point };
+      const depth = dot(sub(point, end), normal);
+      if (depth >= clearance) return { ...point };
+      locked.add(index);
+      moved = true;
+      return add(point, scale(normal, clearance - depth));
+    });
+    if (locked.size === 0) continue;
+    if (locked.size > ring.length * 0.5) return null;
+    if (!restoreOffCap(seated, origin, end, normal, clearance, locked)) return null;
+    nextRings[station] = seated;
+    nextOpenings[station] = (openings[station] ?? []).map((loop) => {
+      if (loop.length !== ring.length) return loop.map((point) => ({ ...point }));
+      const center = average(loop);
+      const eased = loop.map((point, index) => locked.has(index) ? add(point, sub(seated[index], ring[index])) : { ...point });
+      const correction = sub(center, average(eased));
+      return eased.map((point) => add(point, correction));
+    });
+  }
+  if (!moved) return null;
+  return { rings: nextRings, openings: nextOpenings };
+}
+
+function restoreOffCap(ring: Vec3[], origin: Vec3, end: Vec3, normal: Vec3, clearance: number, locked: Set<number>) {
+  const shift = sub(origin, average(ring));
+  const donors: number[] = [];
+  ring.forEach((_, index) => {
+    if (!locked.has(index)) donors.push(index);
+  });
+  if (donors.length === 0) return length(shift) <= 0.05;
+  const share = scale(shift, ring.length / donors.length);
+  const along = dot(share, normal);
+  donors.forEach((index) => {
+    let delta = share;
+    if (along < 0) {
+      const room = Math.max(0, dot(sub(ring[index], end), normal) - clearance);
+      const take = Math.min(-along, room);
+      delta = add(sub(share, scale(normal, along)), scale(normal, -take));
+    }
+    ring[index] = add(ring[index], delta);
+  });
+  return length(sub(origin, average(ring))) <= 0.08;
+}
+
+/** Flattens a short self-crossing kink on one section of that strip. The centroid stays. The ease is kept only when piercings fall and every other strip stays at least as clean. */
+function easeStripFold(rings: Vec3[][], openings: Vec3[][][], onlyStation = -1) {
+  const count = rings.length;
+  const samples = rings[0]?.length ?? 0;
+  if (count < 2 || samples < 6) return { rings, openings };
+  const mesh = loftSectionRings(rings);
+  const hot = rings.slice(0, -1).map((_, station) => stripCrossings(mesh, station, samples) > 0);
+  if (!hot.some(Boolean)) return { rings, openings };
+  const before = piercingBands(mesh, count, samples);
+  const beforeTotal = bandTotal(before);
+  for (let station = 0; station < hot.length; station += 1) {
+    if (onlyStation >= 0 && station !== onlyStation) continue;
+    if (!hot[station]) continue;
+    const cluster = foldCluster(rings, mesh, station, samples);
+    if (!cluster) continue;
+    const key = `${station}-${station + 1} x ${station}-${station + 1}`;
+    let best: { rings: Vec3[][]; openings: Vec3[][][] } | null = null;
+    let bestTotal = beforeTotal;
+    for (const blend of [0.25, 0.32, 0.4]) {
+      const trial = flattenFold(rings, openings, cluster.station, cluster.samples, blend);
+      const after = piercingBands(loftSectionRings(trial.rings), count, samples);
+      const total = bandTotal(after);
+      if (total >= bestTotal || !foldBandsAccept(before, after, key)) continue;
+      best = trial;
+      bestTotal = total;
+      if (bestTotal === 0) break;
+    }
+    if (best) return best;
+  }
+  return { rings, openings };
+}
+
+function foldCluster(rings: Vec3[][], mesh: IsoMesh, station: number, count: number) {
+  const start = station * count * 6;
+  const end = start + count * 6;
+  const tris: { ids: number[]; points: Vec3[] }[] = [];
+  for (let index = start; index < end; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    tris.push({ ids, points: ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] })) });
+  }
+  const involved = new Set<number>();
+  for (let left = 0; left < tris.length; left += 1) {
+    for (let right = left + 1; right < tris.length; right += 1) {
+      if (tris[left].ids.some((id) => tris[right].ids.includes(id))) continue;
+      if (!segmentHits(tris[left].points, tris[right].points) && !segmentHits(tris[right].points, tris[left].points)) continue;
+      tris[left].ids.forEach((id) => involved.add(id));
+      tris[right].ids.forEach((id) => involved.add(id));
+    }
+  }
+  const perStation = [new Set<number>(), new Set<number>()];
+  involved.forEach((id) => {
+    const ring = Math.floor(id / count);
+    if (ring === station) perStation[0].add(id % count);
+    else if (ring === station + 1) perStation[1].add(id % count);
+  });
+  if ([...perStation[0]].length === 0 || circularSpan([...perStation[0]], count) > 5 || circularSpan([...perStation[1]], count) > 5) return null;
+  const scored = [station, station + 1].map((index, side) => {
+    const offsets = [...perStation[side]].map((sample) => ({ sample, offset: chordOffset(rings[index], sample) }));
+    return { index, offsets, peak: Math.max(0, ...offsets.map((item) => item.offset)) };
+  });
+  const chosen = scored[0].peak >= scored[1].peak ? scored[0] : scored[1];
+  if (chosen.peak < 0.04) return null;
+  const samples = chosen.offsets.filter((item) => item.offset >= chosen.peak * 0.5).map((item) => item.sample);
+  if (samples.length === 0 || samples.length > 3) return null;
+  return { station: chosen.index, samples };
+}
+
+function circularSpan(samples: number[], count: number) {
+  const unique = [...new Set(samples)].sort((left, right) => left - right);
+  if (unique.length === 0) return count;
+  let gap = unique[0] + count - unique[unique.length - 1];
+  for (let index = 1; index < unique.length; index += 1) gap = Math.max(gap, unique[index] - unique[index - 1]);
+  return count - gap;
+}
+
+function chordOffset(ring: Vec3[], sample: number) {
+  const previous = ring[(sample + ring.length - 1) % ring.length];
+  const next = ring[(sample + 1) % ring.length];
+  const chord = scale(add(previous, next), 0.5);
+  return length(sub(ring[sample], chord));
+}
+
+function flattenFold(rings: Vec3[][], openings: Vec3[][][], station: number, samples: number[], blend: number) {
+  const ring = rings[station];
+  const origin = average(ring);
+  const nextRing = ring.map((point) => ({ ...point }));
+  samples.forEach((sample) => {
+    const previous = ring[(sample + ring.length - 1) % ring.length];
+    const next = ring[(sample + 1) % ring.length];
+    const chord = scale(add(previous, next), 0.5);
+    const point = ring[sample];
+    nextRing[sample] = {
+      x: point.x + (chord.x - point.x) * blend,
+      y: point.y + (chord.y - point.y) * blend,
+      z: point.z + (chord.z - point.z) * blend,
+    };
+  });
+  const shift = sub(origin, average(nextRing));
+  const seated = nextRing.map((point) => add(point, shift));
+  const nextRings = rings.map((item) => item.map((point) => ({ ...point })));
+  nextRings[station] = seated;
+  const nextOpenings = openings.map((loops) => loops.map((loop) => loop.map((point) => ({ ...point }))));
+  nextOpenings[station] = (openings[station] ?? []).map((loop) => {
+    if (loop.length !== ring.length) return loop.map((point) => ({ ...point }));
+    const center = average(loop);
+    const eased = loop.map((point, index) => samples.includes(index) ? add(point, sub(seated[index], ring[index])) : { ...point });
+    const correction = sub(center, average(eased));
+    return eased.map((point) => add(point, correction));
+  });
+  return { rings: nextRings, openings: nextOpenings };
+}
+
+function foldBandsAccept(before: Map<string, number>, after: Map<string, number>, key: string) {
+  for (const [band, value] of after) {
+    if (band === key) continue;
+    if (value > (before.get(band) ?? 0)) return false;
+  }
+  return true;
+}
+
+function endBandsAccept(before: Map<string, number>, after: Map<string, number>, last: number) {
+  const cap = String(last);
+  for (const [key, value] of after) {
+    if (key.split(" x ").includes(cap)) continue;
+    if (value > (before.get(key) ?? 0)) return false;
+  }
+  return true;
+}
+
+/** Spreads a piercing turn above a right angle, then keeps that version only when the whole connector has fewer piercings and no other strip gets worse. */
+function chooseTurnRepair(rings: Vec3[][], openings: Vec3[][][]) {
+  const count = rings.length;
+  if (count < 3) return { rings, openings, repair: null as string | null };
+  const turns = rings.slice(0, -1).map((ring, index) => sectionTurn(ring, rings[index + 1]));
+  if (!turns.some((turn) => Math.abs(turn) > 90)) return { rings, openings, repair: null as string | null };
+  const samples = rings[0]?.length ?? 0;
+  const originalMesh = loftSectionRings(rings);
+  const hot = turns.map((turn, index) => Math.abs(turn) > 90 && stripCrossings(originalMesh, index, samples) > 0);
+  if (!hot.some(Boolean)) return { rings, openings, repair: null as string | null };
+  const repaired = spreadHotTurns(rings, openings, turns, hot);
+  if (!repaired) return { rings, openings, repair: null as string | null };
+  const before = piercingBands(originalMesh, count, samples);
+  const spreadMesh = loftSectionRings(repaired.rings);
+  if (turnBandsAccept(before, piercingBands(spreadMesh, count, samples), hot)) return { rings: repaired.rings, openings: repaired.openings, repair: "rotation-spread" };
+  const restrained = restrainSpillover(rings, openings, repaired.spins, before, count, samples);
+  if (!restrained) return { rings, openings, repair: null as string | null };
+  if (!turnBandsAccept(before, piercingBands(loftSectionRings(restrained.rings), count, samples), hot)) return { rings, openings, repair: null as string | null };
+  return { rings: restrained.rings, openings: restrained.openings, repair: "spillover-safe" };
+}
+
+function turnBandsAccept(before: Map<string, number>, after: Map<string, number>, hot: boolean[]) {
+  if (bandTotal(after) >= bandTotal(before)) return false;
+  for (const [key, value] of after) {
+    const self = hot.some((flag, index) => flag && key === `${index}-${index + 1} x ${index}-${index + 1}`);
+    if (!self && value > (before.get(key) ?? 0)) return false;
+  }
+  return true;
+}
+
+function spreadHotTurns(rings: Vec3[][], openings: Vec3[][][], turns: number[], hot: boolean[]) {
+  const count = rings.length;
+  const spins: { station: number; delta: number }[] = [];
+  hot.forEach((flag, index) => {
+    if (!flag) return;
+    let end = index + 1;
+    while (end < count - 1 && end < index + 3 && Math.abs(turns[end] ?? 0) < 35) end += 1;
+    if (end - index < 2) return;
+    const total = turns.slice(index, end).reduce((sum, value) => sum + value, 0);
+    for (let station = index + 1; station < end; station += 1) {
+      const current = turns.slice(index, station).reduce((sum, value) => sum + value, 0);
+      const delta = (total * (station - index)) / (end - index) - current;
+      if (Math.abs(delta) >= 1) spins.push({ station, delta });
+    }
+  });
+  if (spins.length === 0) return null;
+  return { ...applyTurnSpins(rings, openings, spins), spins };
+}
+
+/** Pulls only the last spread section back toward the fixed neighbor until that downstream strip is no worse than before. */
+function restrainSpillover(
+  rings: Vec3[][],
+  openings: Vec3[][][],
+  spins: { station: number; delta: number }[],
+  before: Map<string, number>,
+  ringCount: number,
+  samples: number,
+) {
+  const last = spins[spins.length - 1];
+  if (!last || last.station >= ringCount - 1) return null;
+  const tag = `${last.station}-${last.station + 1}`;
+  const limit = downstreamCount(before, tag);
+  let best = 0;
+  let low = 0;
+  let high = 1;
+  for (let step = 0; step < 6; step += 1) {
+    const mid = (low + high) / 2;
+    const trial = applyTurnSpins(rings, openings, spins.map((spin) => spin.station === last.station ? { ...spin, delta: spin.delta * mid } : spin));
+    const load = downstreamCount(piercingBands(loftSectionRings(trial.rings), ringCount, samples), tag);
+    if (load <= limit) {
+      best = mid;
+      low = mid;
+    } else high = mid;
+  }
+  if (best <= 0.02) return null;
+  return applyTurnSpins(rings, openings, spins.map((spin) => spin.station === last.station ? { ...spin, delta: spin.delta * best } : spin));
+}
+
+function downstreamCount(bands: Map<string, number>, tag: string) {
+  let total = 0;
+  bands.forEach((value, key) => {
+    if (key.includes(tag)) total += value;
+  });
+  return total;
+}
+
+function applyTurnSpins(rings: Vec3[][], openings: Vec3[][][], spins: { station: number; delta: number }[]) {
+  const nextRings = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const nextOpenings = openings.map((station) => station.map((loop) => loop.map((point) => ({ ...point }))));
+  spins.forEach((spin) => {
+    const origin = average(rings[spin.station]);
+    const axis = sectionAxis(rings[spin.station]);
+    nextRings[spin.station] = spinAbout(rings[spin.station], origin, axis, spin.delta);
+    nextOpenings[spin.station] = (openings[spin.station] ?? []).map((loop) => spinAbout(loop, origin, axis, spin.delta));
+  });
+  return { rings: nextRings, openings: nextOpenings };
+}
+
+function sectionTurn(previous: Vec3[], next: Vec3[]) {
+  const normal = sectionAxis(next);
+  const carried = planeDirection(previous[0], average(previous), normal);
+  const current = planeDirection(next[0], average(next), normal);
+  if (!carried || !current) return 0;
+  const cosine = Math.max(-1, Math.min(1, dot(carried, current)));
+  const sign = Math.sign(dot(normal, cross(carried, current))) || 1;
+  return Math.acos(cosine) * 180 / Math.PI * sign;
+}
+
+function planeDirection(point: Vec3, origin: Vec3, normal: Vec3) {
+  const offset = sub(point, origin);
+  const projected = sub(offset, scale(normal, dot(offset, normal)));
+  const magnitude = length(projected);
+  return magnitude < 1e-6 ? null : scale(projected, 1 / magnitude);
+}
+
+function spinAbout(points: Vec3[], origin: Vec3, axis: Vec3, degrees: number) {
+  const radians = degrees * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  return points.map((point) => {
+    const offset = sub(point, origin);
+    const along = scale(axis, dot(offset, axis));
+    const perp = sub(offset, along);
+    return add(origin, add(along, add(scale(perp, cosine), scale(cross(axis, perp), sine))));
+  });
+}
+
+function stripCrossings(mesh: IsoMesh, station: number, count: number) {
+  const start = station * count * 6;
+  const end = start + count * 6;
+  if (count < 3 || end > mesh.indices.length) return 0;
+  const tris: { ids: number[]; points: Vec3[] }[] = [];
+  for (let index = start; index < end; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    tris.push({ ids, points: ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] })) });
+  }
+  let crossings = 0;
+  for (let left = 0; left < tris.length; left += 1) {
+    for (let right = left + 1; right < tris.length; right += 1) {
+      if (tris[left].ids.some((id) => tris[right].ids.includes(id))) continue;
+      if (segmentHits(tris[left].points, tris[right].points) || segmentHits(tris[right].points, tris[left].points)) crossings += 1;
+    }
+  }
+  return crossings;
+}
+
+function piercingBands(mesh: IsoMesh, ringCount: number, count: number) {
+  const bands = new Map<string, number>();
+  const tris: { ids: number[]; points: Vec3[]; station: string }[] = [];
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    tris.push({
+      ids,
+      station: [...new Set(ids.map((id) => Math.min(ringCount - 1, Math.floor(id / count))))].sort((left, right) => left - right).join("-"),
+      points: ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] })),
+    });
+  }
+  for (let left = 0; left < tris.length; left += 1) {
+    for (let right = left + 1; right < tris.length; right += 1) {
+      if (tris[left].ids.some((id) => tris[right].ids.includes(id))) continue;
+      if (!segmentHits(tris[left].points, tris[right].points) && !segmentHits(tris[right].points, tris[left].points)) continue;
+      const key = [tris[left].station, tris[right].station].sort().join(" x ");
+      bands.set(key, (bands.get(key) ?? 0) + 1);
+    }
+  }
+  return bands;
+}
+
+function bandTotal(bands: Map<string, number>) {
+  let total = 0;
+  bands.forEach((value) => { total += value; });
+  return total;
 }
 
 /** Read the real cut chain. A degenerate face sliver cannot outvote a larger section behind it. */
@@ -1571,28 +2334,323 @@ function orientFrame(frame: ReturnType<typeof loopFrame>, travel: Vec3) {
   };
 }
 
-function slerp(a: Vec3, b: Vec3, t: number) {
-  const left = normalize(a);
-  const right = normalize(b);
-  const cosine = Math.max(-1, Math.min(1, dot(left, right)));
-  const angle = Math.acos(cosine);
-  if (angle < 1e-4) return normalize(lerp(left, right, t));
-  const sine = Math.sin(angle);
-  return add(scale(left, Math.sin((1 - t) * angle) / sine), scale(right, Math.sin(t * angle) / sine));
+type RingOp = { kind: "reverse" } | { kind: "rotate"; station: number; shift: number };
+type CorrespondenceMethod = "capped" | "lock";
+
+/**
+ * Lofts the capped settle and the unrestricted lock, then keeps the chain with fewer critical faults.
+ * A sharp dihedral does not outrank a self-intersection. Opening loops receive the same reverse and cyclic shift as their outer ring.
+ */
+function resolveCorrespondence(
+  rings: Vec3[][],
+  openings: Vec3[][][],
+  ends: { a: Vec3[]; b: Vec3[] } | null,
+) {
+  const capped = applyRingOps(rings, openings, cappedOps(rings));
+  const lock = applyRingOps(rings, openings, lockOps(rings, ends?.a ?? null, ends?.b ?? null));
+  const cappedScore = correspondenceScore(capped.rings, capped.openings);
+  const lockScore = correspondenceScore(lock.rings, lock.openings);
+  const method: CorrespondenceMethod = compareCorrespondence(lockScore, cappedScore) < 0 ? "lock" : "capped";
+  const chosen = method === "lock" ? lock : capped;
+  const drift = Math.max(...chosen.rings.map((ring, index) => length(sub(average(ring), average(rings[index])))));
+  return { ...chosen, method, capped: cappedScore, lock: lockScore, lockOps: lock.ops, cappedOps: capped.ops, sourceOpenings: openings, spineDrift: drift };
 }
 
-function settleRings(rings: Vec3[][]): { ok: boolean; rings: Vec3[][] } {
-  const next = rings.map((ring) => ring.slice());
+/** Previous behavior. A cyclic shift is kept only when it is at most 18% of the ring. */
+function cappedOps(rings: Vec3[][]): RingOp[] {
+  const next = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const ops: RingOp[] = [];
   const count = next[0]?.length ?? 1;
   for (let station = 1; station < next.length; station += 1) {
     const span = sub(average(next[station]), average(next[station - 1]));
     if (length(span) < 1e-4) continue;
     const shift = bestShift3D(next[station - 1], next[station], normalize(span));
     const wrapped = Math.min(shift, count - shift);
-    if (wrapped > 0 && wrapped <= count * 0.18) next[station] = rotateRing(next[station], shift);
+    if (wrapped > 0 && wrapped <= count * 0.18) {
+      ops.push({ kind: "rotate", station, shift });
+      next[station] = rotateRing(next[station], shift);
+    }
   }
-  return { ok: true, rings: next };
+  return ops;
 }
+
+/** Unrestricted cyclic lock. The chain reverses only when that matches boundary A. The last stations then share boundary B's residual shift. */
+function lockOps(rings: Vec3[][], boundaryA: Vec3[] | null, boundaryB: Vec3[] | null): RingOp[] {
+  const next = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const ops: RingOp[] = [];
+  const count = next[0]?.length ?? 0;
+  if (count < 3) return ops;
+  if (boundaryA && boundaryA.length === count) {
+    const direct = pairCost(next[0], boundaryA, false);
+    const flipped = pairCost(next[0], boundaryA, true);
+    if (flipped.cost < direct.cost) {
+      ops.push({ kind: "reverse" });
+      for (let station = 0; station < next.length; station += 1) next[station] = [...next[station]].reverse();
+    }
+    const shift = bestShift3D(boundaryA, next[0], sectionAxis(next[0]));
+    if (shift) {
+      ops.push({ kind: "rotate", station: 0, shift });
+      next[0] = rotateRing(next[0], shift);
+    }
+  }
+  for (let station = 1; station < next.length; station += 1) {
+    const span = sub(average(next[station]), average(next[station - 1]));
+    const axis = length(span) > 1e-4 ? normalize(span) : sectionAxis(next[station]);
+    const shift = bestShift3D(next[station - 1], next[station], axis);
+    if (shift) {
+      ops.push({ kind: "rotate", station, shift });
+      next[station] = rotateRing(next[station], shift);
+    }
+  }
+  if (boundaryB && boundaryB.length === count && next.length > 1) {
+    const tail = next.length - 1;
+    const shift = bestShift3D(boundaryB, next[tail], sectionAxis(next[tail]));
+    const start = Math.max(1, tail - 2);
+    if (shift) {
+      for (let station = start; station <= tail; station += 1) {
+        ops.push({ kind: "rotate", station, shift });
+        next[station] = rotateRing(next[station], shift);
+      }
+    }
+  }
+  return ops;
+}
+
+function applyRingOps(rings: Vec3[][], openings: Vec3[][][], ops: RingOp[]) {
+  const next = rings.map((ring) => ring.map((point) => ({ ...point })));
+  const loops = openings.map((station) => station.map((loop) => loop.map((point) => ({ ...point }))));
+  const count = next[0]?.length ?? 1;
+  ops.forEach((op) => {
+    if (op.kind === "reverse") {
+      for (let station = 0; station < next.length; station += 1) {
+        next[station] = [...next[station]].reverse();
+        loops[station] = (loops[station] ?? []).map((loop) => [...loop].reverse());
+      }
+      return;
+    }
+    if (!op.shift) return;
+    next[op.station] = rotateRing(next[op.station], op.shift);
+    loops[op.station] = (loops[op.station] ?? []).map((loop) => rotateRing(loop, scaleShift(op.shift, count, loop.length)));
+  });
+  return { rings: next, openings: loops, ops };
+}
+
+function scaleShift(shift: number, from: number, to: number) {
+  if (to <= 1 || from <= 1) return 0;
+  const wrapped = ((shift % from) + from) % from;
+  const scaled = Math.round((wrapped * to) / from);
+  return ((scaled % to) + to) % to;
+}
+
+type CorrespondenceScore = {
+  nonManifold: number;
+  inverted: number;
+  piercings: number;
+  windingReversals: number;
+  openingBreaks: number;
+  pinches: number;
+  excessRotation: number;
+  maxDihedral: number;
+};
+
+function compareCorrespondence(left: CorrespondenceScore, right: CorrespondenceScore) {
+  const keys: (keyof CorrespondenceScore)[] = ["nonManifold", "inverted", "piercings", "windingReversals", "openingBreaks", "pinches", "excessRotation", "maxDihedral"];
+  for (const key of keys) {
+    if (left[key] !== right[key]) return left[key] - right[key];
+  }
+  return 0;
+}
+
+function correspondenceScore(rings: Vec3[][], openings: Vec3[][][]): CorrespondenceScore {
+  const mesh = loftSectionRings(rings);
+  let maxDihedral = 0;
+  let inverted = 0;
+  let windingReversals = 0;
+  let pinches = 0;
+  let excessRotation = 0;
+  for (let index = 0; index < rings.length - 1; index += 1) {
+    const hinge = ringHinge(rings[index], rings[index + 1]);
+    maxDihedral = Math.max(maxDihedral, hinge.dihedral);
+    inverted += hinge.inverted;
+    const previous = ringNormal(rings[index]);
+    const next = ringNormal(rings[index + 1]);
+    if (dot(previous, next) < 0) windingReversals += 1;
+    const radiusA = meanRadius(rings[index]);
+    const radiusB = meanRadius(rings[index + 1]);
+    const ratio = radiusB / Math.max(radiusA, 1e-4);
+    if (ratio < 0.45 || ratio > 2.2) pinches += 1;
+    if (ringRotation(rings[index], rings[index + 1]) > 90) excessRotation += 1;
+  }
+  return {
+    nonManifold: nonManifoldEdges(mesh),
+    inverted,
+    piercings: piercingPairs(mesh),
+    windingReversals,
+    openingBreaks: openingBreaks(rings, openings),
+    pinches,
+    excessRotation,
+    maxDihedral,
+  };
+}
+
+function openingBreaks(rings: Vec3[][], openings: Vec3[][][]) {
+  let breaks = 0;
+  const count = rings[0]?.length ?? 1;
+  for (let station = 1; station < rings.length; station += 1) {
+    const previous = openings[station - 1] ?? [];
+    const next = openings[station] ?? [];
+    if (previous.length !== next.length) breaks += Math.abs(previous.length - next.length);
+    const used = new Set<number>();
+    previous.forEach((loop) => {
+      let match = -1;
+      let best = Infinity;
+      next.forEach((candidate, index) => {
+        if (used.has(index)) return;
+        const gap = length(sub(average(loop), average(candidate)));
+        if (gap < best) {
+          best = gap;
+          match = index;
+        }
+      });
+      if (match < 0) return;
+      used.add(match);
+      const other = next[match];
+      if (dot(ringNormal(loop), ringNormal(other)) < 0) breaks += 1;
+      const shift = bestShift3D(loop, other, ringNormal(other));
+      const wrapped = Math.min(shift, other.length - shift);
+      const outer = bestShift3D(rings[station - 1], rings[station], ringNormal(rings[station]));
+      const outerWrapped = Math.min(outer, count - outer);
+      if (wrapped > other.length * 0.18 && Math.abs(wrapped - outerWrapped) > 1) breaks += 1;
+    });
+  }
+  return breaks;
+}
+
+function meanRadius(ring: Vec3[]) {
+  const origin = average(ring);
+  return ring.reduce((sum, point) => sum + length(sub(point, origin)), 0) / Math.max(1, ring.length);
+}
+
+function ringNormal(ring: Vec3[]) {
+  return sectionAxis(ring);
+}
+
+function ringRotation(previous: Vec3[], next: Vec3[]) {
+  const normal = ringNormal(next);
+  const from = average(previous);
+  const to = average(next);
+  let carried = sub(previous[0], from);
+  carried = sub(carried, scale(normal, dot(carried, normal)));
+  let current = sub(next[0], to);
+  current = sub(current, scale(normal, dot(current, normal)));
+  if (length(carried) < 1e-6 || length(current) < 1e-6) return 0;
+  const cosine = Math.max(-1, Math.min(1, dot(scale(carried, 1 / length(carried)), scale(current, 1 / length(current)))));
+  return Math.acos(cosine) * 180 / Math.PI;
+}
+
+function ringHinge(ring: Vec3[], next: Vec3[]) {
+  let dihedral = 0;
+  let inverted = 0;
+  for (let index = 0; index < ring.length; index += 1) {
+    const ahead = (index + 1) % ring.length;
+    const after = (ahead + 1) % ring.length;
+    const left = cross(sub(ring[ahead], ring[index]), sub(next[index], ring[index]));
+    const right = cross(sub(ring[after], ring[ahead]), sub(next[ahead], ring[ahead]));
+    const quad = cross(sub(next[ahead], ring[ahead]), sub(next[index], ring[ahead]));
+    if (length(left) < 1e-6) inverted += 1;
+    if (length(quad) < 1e-6) inverted += 1;
+    if (length(left) > 1e-8 && length(right) > 1e-8) {
+      dihedral = Math.max(dihedral, Math.acos(Math.max(-1, Math.min(1, dot(scale(left, 1 / length(left)), scale(right, 1 / length(right)))))) * 180 / Math.PI);
+    }
+  }
+  return { dihedral, inverted };
+}
+
+function nonManifoldEdges(mesh: IsoMesh) {
+  const edges = new Map<string, number>();
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const tri = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    for (let edge = 0; edge < 3; edge += 1) {
+      const a = tri[edge];
+      const b = tri[(edge + 1) % 3];
+      const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+      edges.set(key, (edges.get(key) ?? 0) + 1);
+    }
+  }
+  let count = 0;
+  edges.forEach((uses) => {
+    if (uses !== 1 && uses !== 2) count += 1;
+  });
+  return count;
+}
+
+function piercingPairs(mesh: IsoMesh) {
+  if (mesh.triangles <= 0 || mesh.triangles > 1600) return 0;
+  const tris: { ids: number[]; points: Vec3[] }[] = [];
+  for (let index = 0; index < mesh.indices.length; index += 3) {
+    const ids = [mesh.indices[index], mesh.indices[index + 1], mesh.indices[index + 2]];
+    tris.push({ ids, points: ids.map((id) => ({ x: mesh.positions[id * 3], y: mesh.positions[id * 3 + 1], z: mesh.positions[id * 3 + 2] })) });
+  }
+  let count = 0;
+  for (let left = 0; left < tris.length; left += 1) {
+    for (let right = left + 1; right < tris.length; right += 1) {
+      if (tris[left].ids.some((id) => tris[right].ids.includes(id))) continue;
+      if (segmentHits(tris[left].points, tris[right].points) || segmentHits(tris[right].points, tris[left].points)) count += 1;
+    }
+  }
+  return count;
+}
+
+function segmentHits(source: Vec3[], target: Vec3[]) {
+  for (let index = 0; index < 3; index += 1) {
+    const origin = source[index];
+    const direction = sub(source[(index + 1) % 3], origin);
+    const edge1 = sub(target[1], target[0]);
+    const edge2 = sub(target[2], target[0]);
+    const pvec = cross(direction, edge2);
+    const det = dot(edge1, pvec);
+    if (Math.abs(det) < 1e-8) continue;
+    const inverse = 1 / det;
+    const u = dot(sub(origin, target[0]), pvec) * inverse;
+    if (u < -1e-5 || u > 1.00001) continue;
+    const qvec = cross(sub(origin, target[0]), edge1);
+    const v = dot(direction, qvec) * inverse;
+    if (v < -1e-5 || u + v > 1.00001) continue;
+    const t = dot(edge2, qvec) * inverse;
+    if (t > 1e-3 && t < 1 - 1e-3) return true;
+  }
+  return false;
+}
+
+function pairCost(source: Vec3[], reference: Vec3[], reverse: boolean) {
+  let best = 0;
+  let bestCost = Infinity;
+  for (let shift = 0; shift < source.length; shift += 1) {
+    let cost = 0;
+    for (let index = 0; index < source.length; index += 1) {
+      const point = reverse
+        ? source[(shift - index + source.length) % source.length]
+        : source[(index + shift) % source.length];
+      const target = reference[index];
+      cost += (point.x - target.x) ** 2 + (point.y - target.y) ** 2 + (point.z - target.z) ** 2;
+    }
+    if (cost < bestCost) {
+      bestCost = cost;
+      best = shift;
+    }
+  }
+  return { shift: best, cost: bestCost };
+}
+
+function sectionAxis(ring: Vec3[]) {
+  const origin = average(ring);
+  let normal = { x: 0, y: 0, z: 0 };
+  for (let index = 0; index < ring.length; index += 1) {
+    normal = add(normal, cross(sub(ring[index], origin), sub(ring[(index + 1) % ring.length], origin)));
+  }
+  return length(normal) > 1e-8 ? normalize(normal) : { x: 0, y: 0, z: 1 };
+}
+
 
 function blendT(t: number, column: number) {
   const exp = [1.85, 1.4, 1, 1.4, 1.85][clampIndex(column)];

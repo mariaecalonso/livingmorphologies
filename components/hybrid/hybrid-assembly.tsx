@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { evaluateAggregation } from "@/lib/skill4/aggregation";
 import { evaluateBooleanReadiness, inspectBooleanReadiness, type BooleanReadiness } from "@/lib/skill4/boolean-conditioning";
@@ -9,10 +9,14 @@ import { buildBooleanPlan } from "@/lib/skill4/boolean-plan";
 import { buildInterlocks } from "@/lib/skill4/interlock";
 import { CONNECTION_DEBUG_STAGE } from "@/lib/skill4/connection-debug";
 import { resolveAssemblyHybrid } from "@/lib/skill4/assembly-hybrid";
+import { analyzeShrinkwrapVoid, placeTileMesh, type ShrinkwrapVoidReport } from "@/lib/skill4/cluster-void";
+import { currentGeneratedField } from "@/lib/skill4/hybrid-display";
 import { growConnectionPair } from "@/lib/skill4/parent-transition";
 import { gridShape } from "@/lib/skill4/assembly-layout";
 import { geometryStatus, HybridTiles } from "./hybrid-tiles";
-import { detectAdjacencies } from "@/lib/skill4/connections";
+import { detectAdjacencies, type TileConnection } from "@/lib/skill4/connections";
+import type { Vec3 } from "@/lib/skill4/contract";
+import { modelUnitsToFeet } from "@/lib/skill4/scale";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
 import { generationStatusLabel } from "@/lib/skill4/hybrid-display";
@@ -27,6 +31,7 @@ import { AggregationView } from "./aggregation-view";
 import { MockMatrix } from "./mock-matrix";
 import { SomCandidateFacts } from "./som-inspect";
 import { ProcessRow } from "./process-row";
+import { useAssemblyFilm } from "./validation-panel";
 import { useHybrid } from "./hybrid-state";
 import { HybridCatalog } from "./hybrid-catalog";
 import { SyntheticTestToggle } from "./synthetic-test-toggle";
@@ -34,6 +39,50 @@ import { captureCatalogEntry, nextCatalogId } from "@/lib/skill4/catalog";
 import { readCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
 
 const CANVAS_WHITE: [number, number, number] = [1, 1, 1];
+const VOID_CYAN: [number, number, number] = [0.29, 0.84, 0.87];
+
+function meshBounds(mesh: IsoMesh) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  const positions = mesh.positions;
+  for (let index = 0; index < positions.length; index += 3) {
+    minX = Math.min(minX, positions[index]);
+    minY = Math.min(minY, positions[index + 1]);
+    minZ = Math.min(minZ, positions[index + 2]);
+    maxX = Math.max(maxX, positions[index]);
+    maxY = Math.max(maxY, positions[index + 1]);
+    maxZ = Math.max(maxZ, positions[index + 2]);
+  }
+  return { minX, minY, minZ, maxX, maxY, maxZ };
+}
+
+function unionBounds(boxes: readonly { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number }[]) {
+  return boxes.reduce((box, item) => ({
+    minX: Math.min(box.minX, item.minX),
+    minY: Math.min(box.minY, item.minY),
+    minZ: Math.min(box.minZ, item.minZ),
+    maxX: Math.max(box.maxX, item.maxX),
+    maxY: Math.max(box.maxY, item.maxY),
+    maxZ: Math.max(box.maxZ, item.maxZ),
+  }), boxes[0]);
+}
+
+function clusterMeasureLabel(
+  bounds: { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number } | null,
+  report: ShrinkwrapVoidReport | null,
+) {
+  if (!bounds) return "";
+  const width = modelUnitsToFeet(bounds.maxX - bounds.minX);
+  const depth = modelUnitsToFeet(bounds.maxZ - bounds.minZ);
+  const height = modelUnitsToFeet(bounds.maxY - bounds.minY);
+  const cluster = `Cluster: ${width.toFixed(1)}' × ${depth.toFixed(1)}' × ${height.toFixed(1)}'`;
+  if (!report) return cluster;
+  return `${cluster} · Main void ${Math.round(report.floorSquareFeet)} sf · ${Math.round(report.volumeCubicFeet)} cf · ${Math.round(report.maxHeightFeet)} ft high · ${Math.round(report.widthFeet)} × ${Math.round(report.depthFeet)} ft · regions ${report.regionsBefore} → ${report.regionsRetained}`;
+}
 
 function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHandoff>): TypologyId | null {
   return resolveTileModule(archetypeId, loaded).identity?.typologyId ?? null;
@@ -41,7 +90,7 @@ function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHando
 
 export type HybridLabFrame = "tile" | "canvas" | "som" | "clipping" | "descendant";
 
-export function HybridAssembly({ view = "process", frame, presentation = false }: { view?: "process" | "catalog" | "final-catalog"; frame?: HybridLabFrame; presentation?: boolean }) {
+export function HybridAssembly({ view = "process", frame, presentation = false, assemblyFilm = null, assemblyTiles: _assemblyTiles = null, assemblyConnections: _assemblyConnections = null, clusterValidated = false }: { view?: "process" | "catalog" | "final-catalog"; frame?: HybridLabFrame; presentation?: boolean; assemblyFilm?: IsoMesh | null; assemblyTiles?: readonly TileInstance[] | null; assemblyConnections?: readonly TileConnection[] | null; clusterValidated?: boolean }) {
   if (view === "catalog") return <HybridCatalog />;
   if (view === "final-catalog") return <HybridCatalog final />;
   const {
@@ -67,16 +116,25 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
     syntheticMode,
     canvasSelection,
     setCanvasSelection,
+    cluster,
   } = useHybrid();
   const width = envelopeWidth();
   const shape = gridShape(count, arrangement);
-  const span = tileStep(width) * (Math.max(shape.columns, shape.rows) - 1) + width;
+  const span = cluster
+    ? Math.max(width, ...tiles.flatMap((tile) => [Math.abs(tile.transform.x), Math.abs(tile.transform.y), Math.abs(tile.transform.z)])) * 2 + width
+    : tileStep(width) * (Math.max(shape.columns, shape.rows) - 1) + width;
   const detected = detectAdjacencies(tiles);
   const aggregation = evaluateAggregation(connections, tiles, loaded);
   const interlocks = buildInterlocks(aggregation, tiles, loaded);
   const booleanPlan = buildBooleanPlan(interlocks);
   const executionKey = booleanExecutionKey(booleanPlan, tiles);
   const [execution, setExecution] = useState<BooleanExecutionResult | null>(null);
+  const [showVoid, setShowVoid] = useState(false);
+  const [voidView, setVoidView] = useState<"solid" | "void" | "combined" | "debug" | "section">("combined");
+  const [sectionHeight, setSectionHeight] = useState(0.45);
+  const [measuring, setMeasuring] = useState(false);
+  const [measurePending, setMeasurePending] = useState<Vec3 | null>(null);
+  const [measures, setMeasures] = useState<Array<{ id: string; a: Vec3; b: Vec3 }>>([]);
   const [generationNotice, setGenerationNotice] = useState<string | null>(null);
   const executionInput = useRef({ booleanPlan, tiles, loaded });
   executionInput.current = { booleanPlan, tiles, loaded };
@@ -127,12 +185,24 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
   const grownCache = useRef(new Map<string, { mesh: IsoMesh; parents: [string, IsoMesh, string, IsoMesh]; connector: IsoMesh }>());
   const liveHybrids = connections.map((connection) => {
     const preview = growth && growth.connectionId === connection.id && growth.candidateId === connection.selectedMockId ? growth : null;
-    return { connection, preview, hybrid: resolveAssemblyHybrid(connection, tiles, loaded, preview?.mesh) };
+    const validated = connection.validatedHybrid;
+    const hybrid = validated && validated.triangles > 0
+      ? {
+        source: "real" as const,
+        candidateId: connection.selectedMockId,
+        geometry: validated,
+        status: "ready" as const,
+        placement: "placed-faces" as const,
+        translate: { x: 0, y: 0, z: 0 },
+        spin: 0,
+      }
+      : resolveAssemblyHybrid(connection, tiles, loaded, preview?.mesh);
+    return { connection, preview, hybrid };
   });
   const grownParents = new Map<string, IsoMesh>();
   const grownConnectors = new Map<string, IsoMesh>();
   for (const item of liveHybrids) {
-    if (presentation || item.connection.generationStatus === "generating") continue;
+    if (presentation || item.connection.generationStatus === "generating" || item.connection.validatedHybrid) continue;
     if (!item.hybrid.geometry || item.hybrid.source === "mock") continue;
     const tileA = tiles.find((tile) => tile.instanceId === item.connection.tileAId);
     const tileB = tiles.find((tile) => tile.instanceId === item.connection.tileBId);
@@ -172,7 +242,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
       const handoffMesh = handoff.status === "ready" && (syntheticMode || handoff.source === "skill03") ? handoff.geometry : null;
       if (!handoffMesh) return [];
       const chosen = tile.instanceId === canvasSelection;
-      const color = chosen ? TYPOLOGY_COLOR[handoff.identity.typologyId] : CANVAS_WHITE;
+      const color = !chosen ? CANVAS_WHITE : TYPOLOGY_COLOR[handoff.identity.typologyId];
       const shift = developmentShift(tile.instanceId);
       const pose = {
         translate: shift
@@ -209,7 +279,8 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
       return solids;
     }),
     ...liveHybrids.flatMap(({ connection, preview, hybrid }) => {
-      if (!connection.selectedMockId) return [];
+      const seated = (connection.validatedHybrid?.triangles ?? 0) > 0;
+      if (!connection.selectedMockId && !seated) return [];
       if (!hybrid.geometry || hybrid.source === "mock") return [];
       const id = `${hybrid.source}:${connection.id}`;
       return [{
@@ -242,6 +313,133 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
       color: CANVAS_WHITE,
     });
   }
+  const film = useAssemblyFilm(placed);
+  const adoptedFilm = assemblyFilm ? [{
+    id: "film-wrap",
+    mesh: assemblyFilm,
+    translate: { x: 0, y: 0, z: 0 },
+    selected: false,
+    color: [0.78, 0.94, 0.93] as [number, number, number],
+  }] : null;
+  const bodySolids = adoptedFilm ?? placed.filter((instance) => !instance.id.startsWith("guide:") && !instance.id.startsWith("contact:") && instance.mesh.triangles > 0);
+  const hybridSolids = useMemo(() => connections.flatMap((connection) => {
+    if (connection.validatedHybrid && connection.validatedHybrid.triangles > 0) return [connection.validatedHybrid];
+    if (connection.rawHybrid) return [];
+    if (!currentGeneratedField(connection)) return [];
+    const hybrid = resolveAssemblyHybrid(connection, tiles, loaded);
+    return hybrid.source === "real" && hybrid.geometry ? [hybrid.geometry] : [];
+  }), [connections, loaded, tiles]);
+  const voidSolids = useMemo(() => {
+    const meshes = tiles.flatMap((tile) => {
+      const geometry = resolveTileModule(tile.archetypeId, loaded).geometry;
+      return geometry ? [placeTileMesh(tile, geometry)] : [];
+    });
+    return [...meshes, ...hybridSolids];
+  }, [hybridSolids, loaded, tiles]);
+  const clusterBounds = useMemo(() => {
+    if (assemblyFilm && assemblyFilm.triangles > 0) return meshBounds(assemblyFilm);
+    const boxes = voidSolids.filter((mesh) => mesh.triangles > 0).map(meshBounds);
+    return boxes.length > 0 ? unionBounds(boxes) : null;
+  }, [assemblyFilm, voidSolids]);
+  const measureMarks = measures.map((item) => ({
+    ...item,
+    label: `${modelUnitsToFeet(Math.hypot(item.b.x - item.a.x, item.b.y - item.a.y, item.b.z - item.a.z)).toFixed(1)} ft`,
+  }));
+  const addMeasurePoint = (point: Vec3) => {
+    if (!measurePending) {
+      setMeasurePending(point);
+      return;
+    }
+    setMeasures((current) => [...current, { id: `measure-${current.length + 1}`, a: measurePending, b: point }]);
+    setMeasurePending(null);
+  };
+  const filmKey = assemblyFilm ? `${assemblyFilm.triangles}:${assemblyFilm.positions.length}:${assemblyFilm.positions[0] ?? 0}:${assemblyFilm.positions[assemblyFilm.positions.length - 1] ?? 0}` : "";
+  const voidKey = `${filmKey}:field2`;
+  const voidCache = useRef<{ key: string; report: ShrinkwrapVoidReport } | null>(null);
+  const filmRef = useRef(assemblyFilm);
+  filmRef.current = assemblyFilm;
+  const [voidVersion, setVoidVersion] = useState(0);
+  useEffect(() => {
+    const filmMesh = filmRef.current;
+    if (!showVoid || voidView === "solid" || !filmMesh || voidCache.current?.key === voidKey) return;
+    let cancel = false;
+    const timer = window.setTimeout(() => {
+      if (cancel || voidCache.current?.key === voidKey || !filmRef.current) return;
+      const report = analyzeShrinkwrapVoid(filmRef.current);
+      voidCache.current = { key: voidKey, report };
+      setVoidVersion((version) => version + 1);
+    }, 0);
+    return () => {
+      cancel = true;
+      window.clearTimeout(timer);
+    };
+  }, [showVoid, voidKey, voidView]);
+  const voidReport = voidVersion >= 0 && voidCache.current?.key === voidKey ? voidCache.current.report : null;
+  const voidMesh = voidReport?.mesh ?? null;
+  const voidOpacity = voidView === "combined" ? 0.34 : voidView === "debug" ? 0.4 : 0.26;
+  const voidInstance = voidMesh ? {
+    id: "habitable-void",
+    mesh: voidMesh,
+    translate: { x: 0, y: 0, z: 0 },
+    selected: false,
+    kind: 0 as const,
+    color: VOID_CYAN,
+    opacity: voidOpacity,
+    volume: true,
+  } : null;
+  const pocketInstances = voidView === "debug" && voidReport?.pocketsMesh ? [{
+    id: "void-pockets",
+    mesh: voidReport.pocketsMesh,
+    translate: { x: 0, y: 0, z: 0 },
+    selected: false,
+    kind: 0 as const,
+    color: [0.84, 0.28, 0.62] as [number, number, number],
+    opacity: 0.22,
+    volume: true,
+  }] : [];
+  const sectionCut = voidView === "section" && voidReport ? voidReport.section(sectionHeight) : null;
+  const sectionInstances = sectionCut ? [
+    ...(sectionCut.solid ? [{
+      id: "void-section-solid",
+      mesh: sectionCut.solid,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      kind: 0 as const,
+      color: CANVAS_WHITE,
+      opacity: 1,
+      plain: true,
+    }] : []),
+    ...(sectionCut.void ? [{
+      id: "void-section-void",
+      mesh: sectionCut.void,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      kind: 0 as const,
+      color: VOID_CYAN,
+      opacity: 1,
+      plain: true,
+    }] : []),
+  ] : [];
+  const plainSolid = bodySolids.map((instance) => ({ ...instance, opacity: 1, palette: false as const, plain: true, quiet: false }));
+  const faintSolid = plainSolid.map((instance) => ({
+    ...instance,
+    plain: true,
+    quiet: false,
+    opacity: voidView === "debug" ? 0.34 : 0.32,
+    color: [0.82, 0.84, 0.86] as [number, number, number],
+  }));
+  const voidRoom = voidInstance && voidInstance.mesh.triangles > 4 ? voidInstance : null;
+  const canvasInstances = !showVoid
+    ? (adoptedFilm ?? film.instances)
+    : voidView === "section"
+      ? sectionInstances
+      : voidView === "void"
+        ? (voidRoom ? [voidRoom] : [])
+        : voidView === "solid"
+          ? plainSolid
+          : voidView === "debug"
+            ? [...faintSolid, ...(voidRoom ? [voidRoom] : []), ...pocketInstances]
+            : [...faintSolid, ...(voidRoom ? [voidRoom] : [])];
   const canvasDebugKey = placed.map((item) => `${item.id}:${item.mesh.triangles}:${item.mesh.positions.length}:${item.palette ? "hybrid" : "solid"}`).join("|");
   useEffect(() => {
     const rows = placed.map((item) => {
@@ -328,12 +526,14 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
         <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
           <AggregationView
             initialPitch={presentation ? -1.15 : undefined}
-            instances={placed}
+            instances={canvasInstances}
             selectedId={canvasSelection ?? ""}
             onSelect={(id) => {
-              if (!id) {
-                setCanvasSelection(null);
-                setSelectedId("");
+              if (!id || id === "film-wrap" || id === "guide:film-wrap" || id === "guide:veil") {
+                if (!id) {
+                  setCanvasSelection(null);
+                  setSelectedId("");
+                }
                 return;
               }
               setCanvasSelection(id);
@@ -352,8 +552,50 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
             })}
             onSelectConnection={focusConnection}
             span={span}
+            sweep={film.sweep}
+            onSweepDone={film.finishSweep}
+            measuring={measuring}
+            measures={measureMarks}
+            pendingPoint={measurePending}
+            onMeasurePoint={addMeasurePoint}
           />
-          {presentation ? null : <SaveCurrentAssembly />}
+          <div className="hybrid-layout-controls hybrid-stage-save" data-save-assembly="">
+            <button type="button" className="hybrid-validate-run" data-validation={film.phase} disabled={!film.ready || film.running} onClick={film.start}>
+              {film.running ? "Running" : "Run validation"}
+            </button>
+            {adoptedFilm || clusterValidated ? <p className="hybrid-validate-badge" data-state="clear">VALIDATED</p> : film.status ? <p className="hybrid-validate-badge" data-state={film.status === "VALIDATED" ? "clear" : "unresolved"}>{film.status}</p> : null}
+            <button type="button" data-show-void="" data-active={showVoid || undefined} onClick={() => setShowVoid((current) => !current)}>
+              Show habitable void
+            </button>
+            <button type="button" data-void-view="solid" data-active={showVoid && voidView === "solid" || undefined} onClick={() => { setVoidView("solid"); setShowVoid(true); }}>
+              Solid
+            </button>
+            <button type="button" data-void-view="void" data-active={showVoid && voidView === "void" || undefined} onClick={() => { setVoidView("void"); setShowVoid(true); }}>
+              Void
+            </button>
+            <button type="button" data-void-view="combined" data-active={showVoid && voidView === "combined" || undefined} onClick={() => { setVoidView("combined"); setShowVoid(true); }}>
+              Combined
+            </button>
+            <button type="button" data-void-view="debug" data-active={showVoid && voidView === "debug" || undefined} onClick={() => { setVoidView("debug"); setShowVoid(true); }}>
+              Void Debug
+            </button>
+            <button type="button" data-void-view="section" data-active={showVoid && voidView === "section" || undefined} onClick={() => { setVoidView("section"); setShowVoid(true); }}>
+              Void Section
+            </button>
+            {showVoid && voidView === "section" ? (
+              <input type="range" min={0} max={1} step={0.01} value={sectionHeight} aria-label="Void section height" onChange={(event) => setSectionHeight(Number(event.target.value))} />
+            ) : null}
+            <button type="button" data-measure="" data-active={measuring || undefined} onClick={() => { setMeasuring((current) => !current); setMeasurePending(null); }}>
+              MEASURE
+            </button>
+            <button type="button" data-measure-clear="" onClick={() => { setMeasures([]); setMeasurePending(null); }}>
+              Clear
+            </button>
+            <p className="hybrid-units" data-cluster-measure="">
+              {clusterMeasureLabel(clusterBounds, voidReport)}
+            </p>
+            {presentation ? null : <SaveCurrentAssembly />}
+          </div>
           <div className="hybrid-stage-keys">
             {tiles.map((tile) => {
               const handoff = resolveTileModule(tile.archetypeId, loaded);
@@ -378,12 +620,13 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
             const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
             const colorA = TYPOLOGY_COLOR[resolveTileModule(tileA?.archetypeId ?? "", loaded).identity?.typologyId ?? "lobby"];
             const colorB = TYPOLOGY_COLOR[resolveTileModule(tileB?.archetypeId ?? "", loaded).identity?.typologyId ?? "lobby"];
+            const detailed = connection.id === (selectedConnectionId || connections[0]?.id);
             return (
               <article key={connection.id} className="hybrid-som-mini">
                 <button type="button" className="hybrid-connection-label" onClick={() => focusConnection(connection.id)}>
                   {connection.tileAId}:{connection.faceA} ↔ {connection.tileBId}:{connection.faceB}
                 </button>
-                {connection.generatedHybridField || connection.generationStatus === "generating" ? <MockMatrix
+                {detailed && (connection.generatedHybridField || connection.generationStatus === "generating") ? <MockMatrix
                   signature={connection.signature}
                   selectedId={connection.selectedMockId}
                   generatedField={connection.generatedHybridField ?? {
@@ -423,7 +666,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
                   </button>
                 </div>}
                 <p className="hybrid-units">{generationStatusLabel(connection.generationStatus)}</p>
-                <SomCandidateFacts
+                {detailed ? <SomCandidateFacts
                   connection={{
                     id: connection.id,
                     signature: connection.signature,
@@ -436,7 +679,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
                     selectedId: connection.selectedMockId,
                     generatedField: connection.generatedHybridField,
                   }}
-                />
+                /> : null}
               </article>
             );
           })}
@@ -450,7 +693,6 @@ export function HybridAssembly({ view = "process", frame, presentation = false }
         growth={growth}
         sectionPlay={sectionPlay}
         part={frame === "descendant" ? "descendant" : frame === "clipping" ? "clipping" : "all"}
-        assembly={placed}
       /> : null}
     </main>
   );
@@ -474,7 +716,7 @@ function SaveCurrentAssembly() {
     }
   };
   return (
-    <div className="hybrid-layout-controls hybrid-stage-save" data-save-assembly="">
+    <>
       <button type="button" className="hybrid-generate" onClick={save}>
         Save assembly
       </button>
@@ -484,6 +726,6 @@ function SaveCurrentAssembly() {
           <Link href="/lab/hybrid/catalog" className="hybrid-generate">View catalog</Link>
         </>
       ) : null}
-    </div>
+    </>
   );
 }

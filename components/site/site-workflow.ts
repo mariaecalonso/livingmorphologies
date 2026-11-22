@@ -8,7 +8,7 @@ export const SITE_WORKFLOW = [
   { id: "analysis", label: "Site Analysis" },
   { id: "strategy", label: "Site Strategy" },
   { id: "zoning", label: "Zoning" },
-  { id: "placement", label: "Tile Placement" },
+  { id: "placement", label: "Cluster Placement" },
   { id: "assembly", label: "Assembly" },
 ] as const;
 

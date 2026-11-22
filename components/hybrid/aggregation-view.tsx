@@ -1,16 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CANVAS_EYE, cursorZoomPoint, drawPlacedMeshes, MIN_CAMERA_DISTANCE, placementCenter, placementFit, projectPlacement, type PlacedMesh } from "@/lib/skill4/draw-placed";
+import { CANVAS_EYE, cursorZoomPoint, drawPlacedMeshes, MIN_CAMERA_DISTANCE, placementCenter, placementFit, placementSurfaceHit, projectPlacement, type PlacedMesh } from "@/lib/skill4/draw-placed";
 import type { Vec3 } from "@/lib/skill4/contract";
+import { filmSweepFrame, SWEEP_MS, type FilmSweep } from "./validation-panel";
 
-const MAX_ZOOM_OUT_MULTIPLIER = 1.2;
+const MAX_ZOOM_OUT_MULTIPLIER = 2.6;
 
 type CanvasLink = {
   id: string;
   label: string;
   point: Vec3;
   active: boolean;
+};
+
+type MeasureSegment = {
+  id: string;
+  a: Vec3;
+  b: Vec3;
+  label: string;
 };
 
 export function AggregationView({
@@ -22,6 +30,12 @@ export function AggregationView({
   span,
   anchorIds,
   initialPitch = 0.35,
+  sweep = null,
+  onSweepDone,
+  measuring = false,
+  measures = [],
+  pendingPoint = null,
+  onMeasurePoint,
 }: {
   instances: readonly PlacedMesh[];
   selectedId: string;
@@ -29,6 +43,12 @@ export function AggregationView({
   links: readonly CanvasLink[];
   onSelectConnection: (id: string) => void;
   span: number;
+  sweep?: FilmSweep | null;
+  onSweepDone?: () => void;
+  measuring?: boolean;
+  measures?: readonly MeasureSegment[];
+  pendingPoint?: Vec3 | null;
+  onMeasurePoint?: (point: Vec3) => void;
   /** Camera frames these instances. Other meshes, such as a swapped connector, do not move it. */
   anchorIds?: readonly string[];
   /** Radians. Negative looks down from above the ground grid. */
@@ -44,7 +64,12 @@ export function AggregationView({
   const eyeRef = useRef(CANVAS_EYE);
   const focusRef = useRef<Vec3>({ x: 0, y: 0, z: 0 });
   const fitEyeRef = useRef(CANVAS_EYE);
+  const sweepClock = useRef({ id: -1, start: 0, done: false });
+  const sweepDoneRef = useRef(onSweepDone);
+  sweepDoneRef.current = onSweepDone;
   const [markers, setMarkers] = useState<Array<{ id: string; label: string; active: boolean; x: number; y: number }>>([]);
+  const [measureOverlay, setMeasureOverlay] = useState<Array<{ id: string; ax: number; ay: number; bx: number; by: number; label: string }>>([]);
+  const [pendingOverlay, setPendingOverlay] = useState<{ x: number; y: number } | null>(null);
   const framed = anchorIds?.length ? instances.filter((item) => anchorIds.includes(item.id)) : instances;
   const base = placementCenter(framed.length ? framed : instances);
   const lookAt = { x: base.x + focus.x, y: base.y + focus.y, z: base.z + focus.z };
@@ -52,10 +77,18 @@ export function AggregationView({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const paint = () => {
-      const frame = drawPlacedMeshes(canvas, instances, yaw, pitch, span, false, eye, true, 1, lookAt);
+    if (sweep && sweepClock.current.id !== sweep.id) sweepClock.current = { id: sweep.id, start: performance.now(), done: false };
+    let frameId = 0;
+    const paint = (now?: number) => {
+      const clock = sweepClock.current;
+      const duration = sweep?.duration ?? SWEEP_MS;
+      const t = sweep && clock.id === sweep.id ? Math.min(1, ((now ?? performance.now()) - clock.start) / duration) : 1;
+      const drawn = sweep && clock.id === sweep.id ? filmSweepFrame(instances, sweep, t) : instances;
+      const frame = drawPlacedMeshes(canvas, drawn, yaw, pitch, span, false, eye, drawn.some((item) => !item.volume), 1, lookAt);
       if (!frame) {
         setMarkers((current) => (current.length === 0 ? current : []));
+        setMeasureOverlay((current) => (current.length === 0 ? current : []));
+        setPendingOverlay((current) => (current == null ? current : null));
         return;
       }
       const next = links.flatMap((link) => {
@@ -74,14 +107,41 @@ export function AggregationView({
           return item.id === marker.id && item.label === marker.label && item.active === marker.active && Math.abs(item.x - marker.x) < 0.5 && Math.abs(item.y - marker.y) < 0.5;
         }) ? current : next
       ));
+      const project = (point: Vec3) => projectPlacement(point, frame.center, yaw, pitch, frame.fit, frame.width, frame.height, eye);
+      const overlay = measures.map((item) => {
+        const a = project(item.a);
+        const b = project(item.b);
+        return { id: item.id, ax: a.x, ay: a.y, bx: b.x, by: b.y, label: item.label };
+      });
+      setMeasureOverlay((current) => (
+        current.length === overlay.length && current.every((item, index) => {
+          const nextItem = overlay[index];
+          return item.id === nextItem.id && item.label === nextItem.label && Math.abs(item.ax - nextItem.ax) < 0.5 && Math.abs(item.ay - nextItem.ay) < 0.5 && Math.abs(item.bx - nextItem.bx) < 0.5 && Math.abs(item.by - nextItem.by) < 0.5;
+        }) ? current : overlay
+      ));
+      const pending = pendingPoint ? project(pendingPoint) : null;
+      setPendingOverlay((current) => (
+        pending && current && Math.abs(current.x - pending.x) < 0.5 && Math.abs(current.y - pending.y) < 0.5 ? current : pending
+      ));
+      if (!sweep || t >= 1) {
+        if (sweep && t >= 1 && !clock.done) {
+          clock.done = true;
+          sweepDoneRef.current?.();
+        }
+        return;
+      }
+      frameId = requestAnimationFrame(paint);
     };
     paint();
     const parent = canvas.parentElement;
     if (!parent) return;
-    const observer = new ResizeObserver(paint);
+    const observer = new ResizeObserver(() => paint());
     observer.observe(parent);
-    return () => observer.disconnect();
-  }, [eye, instances, links, lookAt, pitch, span, yaw]);
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [eye, instances, links, lookAt, measures, pendingPoint, pitch, span, sweep, yaw]);
 
   useEffect(() => {
     fitEyeRef.current = CANVAS_EYE;
@@ -151,6 +211,11 @@ export function AggregationView({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const center = lookAt;
+    if (measuring && onMeasurePoint) {
+      const hit = placementSurfaceHit(instances, x, y, rect.width, rect.height, center, yaw, pitch, placementFit(span, rect.width / Math.max(1, rect.height)), eye);
+      if (hit) onMeasurePoint(hit);
+      return;
+    }
     const aspect = rect.width / Math.max(1, rect.height);
     const fit = placementFit(span, aspect);
     let best = instances.find((instance) => !instance.id.startsWith("guide:")) ?? null;
@@ -218,8 +283,18 @@ export function AggregationView({
         data-eye-min={MIN_CAMERA_DISTANCE}
         data-eye-max={CANVAS_EYE * MAX_ZOOM_OUT_MULTIPLIER}
         data-ground="registration"
+        data-measuring={measuring || undefined}
         aria-label={`Aggregation canvas, ${selectedId} selected`}
       />
+      <svg className="hybrid-measure" aria-hidden="true">
+        {measureOverlay.map((item) => (
+          <g key={item.id}>
+            <line x1={item.ax} y1={item.ay} x2={item.bx} y2={item.by} />
+            <text x={(item.ax + item.bx) / 2} y={(item.ay + item.by) / 2 - 8}>{item.label}</text>
+          </g>
+        ))}
+        {pendingOverlay ? <circle cx={pendingOverlay.x} cy={pendingOverlay.y} r="3" /> : null}
+      </svg>
       {markers.map((marker) => (
         <button
           key={marker.id}

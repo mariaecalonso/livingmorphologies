@@ -9,7 +9,9 @@ import {
   adjacencyMarker,
   assignGeneratedHybridField,
   connectionBlocked,
+  connectionInputSignature,
   reconcileConnections,
+  syncConnectionInputs,
   type TileConnection,
 } from "@/lib/skill4/connections";
 import { generateCandidateField } from "@/lib/skill4/candidate-field";
@@ -23,6 +25,7 @@ import type { ModuleHandoff } from "@/lib/skill4/adapt";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import { HYBRID_GENERATOR_SETTINGS } from "@/lib/skill4/hybrid-generator";
 import { revealHybridField } from "@/lib/skill4/generated-hybrid-field";
+import type { CompatibleFacePair } from "@/lib/skill4/face-pair";
 
 type HybridStateValue = {
   loaded: ReadonlyMap<string, ModuleHandoff>;
@@ -37,6 +40,8 @@ type HybridStateValue = {
   selectConnection: (id: string) => void;
   chooseArchetype: (instanceId: string, archetypeId: string) => void;
   chooseFace: (connectionId: string, side: "faceA" | "faceB", face: FaceId) => void;
+  /** Ranked Skill 6 face pairs for each connection, highest contact area first. */
+  facePairs: Readonly<Record<string, readonly CompatibleFacePair[]>>;
   generateInputs: (connectionId: string) => string | null;
   generateHybridFieldForConnection: (connectionId: string, replay?: boolean) => string | null;
   focusConnection: (id: string) => void;
@@ -58,6 +63,8 @@ type HybridStateValue = {
   syntheticError: string | null;
   toggleSyntheticTest: () => void;
   ensureArchetypes: (ids: readonly string[]) => void;
+  cluster: boolean;
+  loadCluster: (tiles: TileInstance[], connections: TileConnection[]) => void;
 };
 
 function freshBoard() {
@@ -108,8 +115,10 @@ function settle(
   arrangement: AssemblyArrangement,
   loaded: ReadonlyMap<string, ModuleHandoff>,
   focusConnectionId?: string,
+  preserveSlots = false,
 ) {
-  const slots = layoutTiles(count, arrangement, tiles).map((tile) => {
+  const source = preserveSlots ? tiles : layoutTiles(count, arrangement, tiles);
+  const slots = source.map((tile) => {
     const prior = tiles.find((item) => item.instanceId === tile.instanceId);
     return {
       ...tile,
@@ -118,6 +127,23 @@ function settle(
       manualMirror: prior?.manualMirror ?? null,
     };
   });
+  if (preserveSlots) {
+    const lifted = liftConnectedToGround(slots, connections, (tile) => {
+      const handoff = resolveTileModule(tile.archetypeId, loaded);
+      const positions = handoff.status === "ready" ? handoff.geometry?.positions : undefined;
+      return placedBoundsMinY({ ...tile, moduleId: tile.moduleId || handoff.moduleId }, positions);
+    }).map((tile) => ({
+      ...tile,
+      moduleId: tile.moduleId || resolveTileModule(tile.archetypeId, loaded).moduleId,
+    }));
+    return {
+      tiles: lifted,
+      connections: connections.map((connection) => ({
+        ...syncConnectionInputs(connection, connectionInputSignature(connection, lifted, loaded)),
+        orientation: "ready" as const,
+      })),
+    };
+  }
   const oriented = orientTiles(slots, connections, focusConnectionId, (tileId, face) => {
     const tile = slots.find((item) => item.instanceId === tileId);
     if (!tile) return null;
@@ -133,9 +159,10 @@ function settle(
     ...tile,
     moduleId: tile.moduleId || resolveTileModule(tile.archetypeId, loaded).moduleId,
   }));
+  const nextConnections = openConnections(connections, nextTiles, loaded, count, arrangement, slots);
   return {
     tiles: nextTiles,
-    connections: openConnections(connections, nextTiles, loaded, count, arrangement, slots).map((connection) => ({
+    connections: nextConnections.map((connection) => ({
       ...connection,
       orientation: oriented.unresolved.has(connection.id) ? "unresolved" as const : "ready" as const,
     })),
@@ -147,6 +174,8 @@ type AssemblyBoard = {
   connections: TileConnection[];
   count: AssemblyCount;
   arrangement: AssemblyArrangement;
+  /** A generated cluster keeps its own tiles. The manual grid layout stays untouched. */
+  cluster?: boolean;
 };
 
 function connectionSpan(connection: TileConnection, slots: readonly TileInstance[], loaded: ReadonlyMap<string, ModuleHandoff>) {
@@ -244,6 +273,10 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         return { ...tile, moduleId: handoff.moduleId };
       });
       if (!changed) return current;
+      if (current.cluster) {
+        const connections = current.connections.map((connection) => syncConnectionInputs(connection, connectionInputSignature(connection, tiles, provisional)));
+        return { ...current, tiles, connections };
+      }
       return { ...current, tiles, connections: openConnections(current.connections, tiles, provisional, current.count, current.arrangement) };
     });
   }, [provisional, syntheticMode]);
@@ -252,6 +285,11 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
   const [canvasSelection, setCanvasSelection] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
+  const [facePairs, setFacePairs] = useState<Record<string, CompatibleFacePair[]>>({});
+  const loadedRef = useRef(loaded);
+  loadedRef.current = loaded;
+  const boardRef = useRef(board);
+  boardRef.current = board;
   const [growth, setGrowth] = useState<HybridStateValue["growth"]>(null);
   const [sectionPlay, setSectionPlay] = useState<HybridStateValue["sectionPlay"]>(null);
   const playback = useRef(0);
@@ -263,10 +301,66 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
       const tiles = current.tiles.map((tile) =>
         tile.instanceId === instanceId ? { ...tile, archetypeId, moduleId: handoff.moduleId } : tile,
       );
-      return { ...current, tiles, connections: openConnections(current.connections, tiles, loaded, current.count, current.arrangement) };
+      const opened = openConnections(current.connections, tiles, loaded, current.count, current.arrangement);
+      const connections = opened.map((connection) => (
+        connection.tileAId === instanceId || connection.tileBId === instanceId
+          ? { ...connection, faceSelection: "suggested" as const }
+          : connection
+      ));
+      return { ...current, tiles, connections };
     });
     setSelectedId(instanceId);
   };
+
+  const facePairKey = board.connections.map((connection) => {
+    const tileA = board.tiles.find((tile) => tile.instanceId === connection.tileAId);
+    const tileB = board.tiles.find((tile) => tile.instanceId === connection.tileBId);
+    return `${connection.id}:${tileA?.archetypeId ?? ""}:${tileB?.archetypeId ?? ""}`;
+  }).join("|");
+  useEffect(() => {
+    const currentBoard = boardRef.current;
+    const requests = currentBoard.connections.flatMap((connection) => {
+      const tileA = currentBoard.tiles.find((tile) => tile.instanceId === connection.tileAId);
+      const tileB = currentBoard.tiles.find((tile) => tile.instanceId === connection.tileBId);
+      if (!tileA?.archetypeId || !tileB?.archetypeId) return [];
+      return [{ id: connection.id, a: tileA.archetypeId, b: tileB.archetypeId }];
+    });
+    if (requests.length === 0) {
+      setFacePairs({});
+      return;
+    }
+    let cancel = false;
+    void Promise.all(requests.map(async (request) => {
+      const response = await fetch(`/api/skill4/face-pair?a=${encodeURIComponent(request.a)}&b=${encodeURIComponent(request.b)}`);
+      if (!response.ok) return { ...request, pairs: [] as CompatibleFacePair[] };
+      const body = await response.json() as { pairs?: CompatibleFacePair[] };
+      return { ...request, pairs: body.pairs ?? [] };
+    })).then((results) => {
+      if (cancel) return;
+      setFacePairs(Object.fromEntries(results.map((item) => [item.id, item.pairs])));
+      setBoard((current) => {
+        let changed = false;
+        const connections = current.connections.map((connection) => {
+          const found = results.find((item) => item.id === connection.id);
+          const best = found?.pairs[0];
+          if (!found || !best || connection.faceSelection === "user") return connection;
+          const tileA = current.tiles.find((tile) => tile.instanceId === connection.tileAId);
+          const tileB = current.tiles.find((tile) => tile.instanceId === connection.tileBId);
+          if (!tileA || !tileB || tileA.archetypeId !== found.a || tileB.archetypeId !== found.b) return connection;
+          if (connection.faceA === best.faceA && connection.faceB === best.faceB) return connection;
+          changed = true;
+          return { ...connection, faceA: best.faceA, faceB: best.faceB };
+        });
+        if (!changed) return current;
+        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loadedRef.current, undefined, current.cluster) };
+      });
+    }).catch(() => {
+      if (!cancel) setFacePairs({});
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [facePairKey]);
 
   const chooseFace = (connectionId: string, side: "faceA" | "faceB", face: FaceId) => {
     setSelectedConnectionId(connectionId);
@@ -274,7 +368,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
       const connections = current.connections.map((connection) => (
         connection.id === connectionId ? { ...connection, [side]: face, faceSelection: "user" as const } : connection
       ));
-      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId, current.cluster) };
     });
   };
 
@@ -359,7 +453,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         const connections = current.connections.map((item) => (
           item.id === connectionId ? assignGeneratedHybridField(item, finished) : item
         ));
-        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId, current.cluster) };
       });
       return null;
     }
@@ -412,7 +506,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
           return next;
         });
         if (!seat) return { ...current, connections };
-        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+        return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId, current.cluster) };
       });
     }, () => !live(), async (candidateId, rings, shown) => {
       if (!live()) return;
@@ -462,7 +556,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         const manualQuarter = ((tile.manualQuarter ?? 0) + 1) % 4 as 0 | 1 | 2 | 3;
         return { ...tile, manualQuarter };
       });
-      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded) };
+      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded, undefined, current.cluster) };
     });
   };
 
@@ -473,7 +567,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         const manualMirror = (tile.manualMirror ?? null) === axis ? null : axis;
         return { ...tile, manualMirror };
       });
-      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded) };
+      return { ...current, ...settle(tiles, current.connections, current.count, current.arrangement, loaded, undefined, current.cluster) };
     });
   };
 
@@ -492,7 +586,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
       const connections = current.connections.map((connection) =>
         connection.id === connectionId ? { ...connection, selectedMockId: mockId } : connection,
       );
-      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId) };
+      return { ...current, ...settle(current.tiles, connections, current.count, current.arrangement, loaded, connectionId, current.cluster) };
     });
   };
 
@@ -524,6 +618,20 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
     });
   };
 
+  const loadCluster = (tiles: TileInstance[], connections: TileConnection[]) => {
+    ensureArchetypes(tiles.map((tile) => tile.archetypeId));
+    setBoard((current) => ({
+      ...settle(tiles, connections, current.count, current.arrangement, loaded, undefined, true),
+      count: current.count,
+      arrangement: current.arrangement,
+      cluster: true,
+    }));
+    setSelectedId(tiles[0]?.instanceId ?? "A");
+    setCanvasSelection(tiles[0]?.instanceId ?? null);
+    setSelectedConnectionId(connections[0]?.id ?? null);
+    setCatalogNotice(null);
+  };
+
   const restoreAssembly = (entry: CatalogEntry) => {
     const tiles = tilesFromCatalog(entry);
     const connections = connectionsFromCatalog(entry, tiles, loaded);
@@ -553,6 +661,7 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         selectConnection: setSelectedConnectionId,
         chooseArchetype,
         chooseFace,
+        facePairs,
         generateInputs,
         generateHybridFieldForConnection,
         focusConnection,
@@ -572,6 +681,8 @@ export function HybridState({ children, syntheticStorage = true }: { children: R
         syntheticError,
         toggleSyntheticTest,
         ensureArchetypes,
+        cluster: board.cluster === true,
+        loadCluster,
       }}
     >
       {children}
