@@ -190,8 +190,8 @@ function ProcessSetup() {
             <p className="eyebrow">01</p>
             <h2 className="panel-title">Start</h2>
           </header>
-          <p className="process-sentence">A verified Skill 2 state begins the sequence.</p>
-          <p className="process-cue">Vertical Void</p>
+          <p className="process-sentence">This demonstration follows Vertical Void, candidate 351, continuation N24.</p>
+          <p className="process-cue">Vertical Void · 351 · N24</p>
         </div>
         <ProcessStartField plate={plate} />
       </section>
@@ -208,7 +208,7 @@ function ProcessSetup() {
           <p className="eyebrow">03</p>
           <h2 className="panel-title">Continue</h2>
         </header>
-        <p className="process-sentence">Twenty-four continuations grow from one verified state.</p>
+        <p className="process-sentence">Twenty-four continuations grow from one verified state. N24 is this example. Other archetypes keep other continuations.</p>
         <ContinueFamilyFan groups={GROUPS} activeFocus="Formal + Spatial + Atmospheric" selectedId="N24" stance="final" plate={plate} />
       </section>
     </div>
@@ -686,7 +686,7 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
               <p className="eyebrow">08</p>
               <h2 className="panel-title">Choose</h2>
             </header>
-            <p className="process-sentence">One continuation is chosen from the field.</p>
+            <p className="process-sentence">The designer selects one continuation for each archetype.</p>
             <div className="process-choose-board">
               <div className="process-choose-field" role="list" aria-label="Stored continuations">
                 {GROUPS.map((item) => (
@@ -749,7 +749,7 @@ export function ProcessDemonstration({ focus }: { focus?: ProcessFocus }) {
               <p className="eyebrow">10</p>
               <h2 className="panel-title">Hand off</h2>
             </header>
-            <p className="process-sentence">The validated module is ready for the next skill.</p>
+            <p className="process-sentence">These validated modules are assembled next, before design context.</p>
             <div className="process-handoff-body">
               <div className="process-final-mesh">
                 {finalMesh ? <ProcessMorphology mesh={finalMesh} cacheIdentity="vertical-void:handoff:N24" frame="module" /> : null}

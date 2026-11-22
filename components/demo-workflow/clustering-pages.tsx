@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { assemblyFor, refinedFor, seatedTilesOf } from "@/components/clustering/card-view";
+import { refinedFor, seatedTilesOf } from "@/components/clustering/card-view";
 import { ClusterView, loadArchetypeGeometry, poseMatrix, type ViewArchetype, type ViewExtra } from "@/components/clustering/cluster-view";
 import { Unavailable, useJson } from "@/components/demo-workflow/chapter-kit";
 import type { ClusterEngine, ClusterMorphology, ClusterRecord } from "@/lib/skill6/contract";
@@ -25,12 +25,13 @@ const LOGICS: { id: ClusterEngine; label: string }[] = [
   { id: "wave-function-collapse", label: "WFC" },
 ];
 
-const REFINE: { id: string; label: string; shown: string[]; hideTiles: boolean }[] = [
-  { id: "tiles", label: "Placed", shown: [], hideTiles: false },
-  { id: "patches", label: "Patched", shown: ["patch"], hideTiles: false },
-  { id: "union", label: "Union", shown: ["union"], hideTiles: true },
-  { id: "refined", label: "Smoothed", shown: ["refined"], hideTiles: true },
-];
+const JOINT_PLAY = [
+  { id: "placed", label: "Tiles placed", plate: "/clustering/joint/01-tiles.webp" },
+  { id: "contact", label: "Contact region", plate: "/clustering/joint/02-contact.webp" },
+  { id: "patch", label: "Patch", plate: "/clustering/joint/03-patch.webp" },
+  { id: "union", label: "Raw union", plate: "/clustering/joint/04-union.webp" },
+  { id: "refined", label: "Refined", plate: "/clustering/joint/05-refined.webp" },
+] as const;
 
 function isCatalog(value: unknown): value is CatalogBody {
   if (!value || typeof value !== "object") return false;
@@ -116,14 +117,46 @@ function useSharedSpan(fit: number) {
   return [span, report] as const;
 }
 
-function stepLine(engine: ClusterEngine, placement: string | undefined, direction: string | null | undefined, index: number, total: number) {
+function titleOf(id: string) {
+  return id.replace(/-/g, " ");
+}
+
+function logicRule(engine: ClusterEngine, record: ClusterRecord | null) {
+  if (engine === "rule-based") return "Passing poses are scored. One is seated.";
+  if (engine === "graph-based") {
+    const withdrawn = record?.search?.backtracks;
+    return withdrawn ? `The tree is planned, then realized. ${withdrawn} edges were withdrawn.` : "The tree is planned, then realized.";
+  }
+  const trace = record?.search?.trace ?? "";
+  const propagations = trace.match(/(\d[\d,]*)\s+propagations/)?.[1];
+  const solutions = trace.match(/(\d+)\s+solutions/)?.[1];
+  const backtracks = record?.search?.backtracks;
+  if (propagations && backtracks != null) return `Lowest entropy collapses. ${propagations} propagations, ${backtracks} backtracks${solutions ? `, ${solutions} solutions` : ""}.`;
+  return "Lowest entropy collapses. A contradiction reopens the slot.";
+}
+
+function stepLine(engine: ClusterEngine, record: ClusterRecord | null, step: { archetypeId: string; hostInstanceId: string | null; direction: string | null; placement: string } | undefined, index: number, total: number) {
   const count = `${index} of ${total}`;
-  if (!placement) return "No stored growth";
-  if (placement === "seed") return `${count} · Seed`;
-  const way = direction ?? "next";
-  if (engine === "rule-based") return `${count} · Scored ${way}`;
-  if (engine === "graph-based") return `${count} · Tree ${way}`;
-  return `${count} · Collapsed ${way}`;
+  if (!step) return "No stored growth";
+  if (step.placement === "seed") {
+    if (engine === "rule-based") return `${count} · Seed. Scoring starts next.`;
+    if (engine === "graph-based") return `${count} · Seed. The plan grows from here.`;
+    return `${count} · Seed. The first slot is fixed.`;
+  }
+  const guest = titleOf(step.archetypeId);
+  const way = step.direction ?? "next";
+  if (engine === "rule-based") {
+    const places = record?.search?.placements ?? [];
+    const match = [...places].reverse().find((item) => item.chosen.startsWith(step.archetypeId));
+    const passed = match ? match.alternatives.length + 1 : null;
+    return passed ? `${count} · ${passed} passed. ${guest} seated ${way}.` : `${count} · ${guest} seated ${way}.`;
+  }
+  if (engine === "graph-based") {
+    const host = record?.assembly?.growth.find((item) => item.instanceId === step.hostInstanceId);
+    const from = host ? titleOf(host.archetypeId) : "seed";
+    return `${count} · ${from} → ${guest}, ${way}.`;
+  }
+  return `${count} · Slot ${index} collapsed. ${guest}, ${way}.`;
 }
 
 function seatedSteps(record: ClusterRecord | null) {
@@ -134,15 +167,10 @@ function seatedSteps(record: ClusterRecord | null) {
 }
 
 /** The chosen pass at each step, taken from the stored scored selection. */
-function ScoreLogic({ record }: { record: ClusterRecord | null }) {
+function ScoreLogic({ record, active }: { record: ClusterRecord | null; active: number }) {
   const steps = useMemo(() => seatedSteps(record), [record]);
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    if (steps.length === 0) return;
-    const timer = window.setInterval(() => setActive((value) => (value + 1) % steps.length), 1100);
-    return () => window.clearInterval(timer);
-  }, [steps.length]);
   if (steps.length === 0) return <p className={styles.gap}>No stored scores</p>;
+  const marked = active % steps.length;
   return (
     <svg className={styles.diagram} viewBox="0 0 120 168" role="img" aria-label="Scored selection">
       {steps.map((step, index) => {
@@ -157,11 +185,11 @@ function ScoreLogic({ record }: { record: ClusterRecord | null }) {
               return (
                 <g key={dot}>
                   <circle cx={cx} cy={y} r="3.2" fill={chosen ? "#49d7de" : "rgba(242,242,238,0.28)"} />
-                  {chosen && index === active ? <circle cx={cx} cy={y} r="6" fill="none" stroke="#49d7de" strokeWidth="1.2" /> : null}
+                  {chosen && index === marked ? <circle cx={cx} cy={y} r="6" fill="none" stroke="#49d7de" strokeWidth="1.2" /> : null}
                 </g>
               );
             })}
-            {index === active ? <text x="96" y={y + 3} className={styles.diagramText}>Chosen</text> : null}
+            {index === marked ? <text x="96" y={y + 3} className={styles.diagramText}>Chosen</text> : null}
           </g>
         );
       })}
@@ -172,7 +200,7 @@ function ScoreLogic({ record }: { record: ClusterRecord | null }) {
 const TILE_TONE: Record<string, string> = { lobby: "#c77e5f", workspace: "#f2f2ee", gathering: "#7db8b8" };
 
 /** The stored growth tree, drawn in the order it was seated. */
-function TreeLogic({ record }: { record: ClusterRecord | null }) {
+function TreeLogic({ record, grown }: { record: ClusterRecord | null; grown: number }) {
   const layout = useMemo(() => {
     const growth = record?.assembly?.growth ?? [];
     const tone = new Map(record?.tiles.map((tile) => [tile.instanceId, TILE_TONE[tile.typologyId] ?? "#f2f2ee"]) ?? []);
@@ -186,12 +214,6 @@ function TreeLogic({ record }: { record: ClusterRecord | null }) {
       return { id: step.instanceId, host: step.hostInstanceId, depth, row, color: tone.get(step.instanceId) ?? "#f2f2ee", direction: step.direction };
     });
   }, [record]);
-  const [grown, setGrown] = useState(1);
-  useEffect(() => {
-    if (layout.length < 2) return;
-    const timer = window.setInterval(() => setGrown((value) => value >= layout.length ? 1 : value + 1), 900);
-    return () => window.clearInterval(timer);
-  }, [layout.length]);
   if (layout.length === 0) return <p className={styles.gap}>No stored tree</p>;
   const at = new Map(layout.map((node) => [node.id, node]));
   const columns = Math.max(...layout.map((node) => node.depth), 1);
@@ -249,60 +271,66 @@ function CollapseLogic({ record }: { record: ClusterRecord | null }) {
   );
 }
 
-/** Adds one stored tile at a time, in the order that engine seated it. */
-function Formation({ record, archetypes, engine }: { record: ClusterRecord | null; archetypes: readonly ViewArchetype[]; engine: ClusterEngine }) {
+/** The diagram for one engine. The cluster it is seating is drawn in Runs. */
+function Formation({ record, engine, shown }: { record: ClusterRecord | null; engine: ClusterEngine; shown: number }) {
   const order = record?.assembly?.growth ?? [];
-  const [step, setStep] = useState(1);
-  const [span, setSpan] = useState<number>();
-  const report = useCallback((value: number) => {
-    const next = value * 1.85;
-    setSpan((current) => current != null && Math.abs(current - next) < 0.3 ? current : next);
-  }, []);
-  useEffect(() => {
-    if (order.length < 2) return;
-    const timer = window.setInterval(() => setStep((value) => value >= order.length ? 1 : value + 1), 1400);
-    return () => window.clearInterval(timer);
-  }, [order.length]);
-  const shown = Math.min(step, Math.max(order.length, 1));
-  const current = order[shown - 1];
-  const shownIds = useMemo(() => order.slice(0, shown).map((item) => item.instanceId), [order, shown]);
   if (order.length === 0) return <p className={styles.gap}>No stored growth</p>;
-  const diagram = engine === "rule-based" ? <ScoreLogic record={record} /> : engine === "graph-based" ? <TreeLogic record={record} /> : <CollapseLogic record={record} />;
+  const count = Math.min(shown, order.length);
+  const current = order[count - 1];
+  const diagram = engine === "rule-based"
+    ? <ScoreLogic record={record} active={count - 2} />
+    : engine === "graph-based"
+      ? <TreeLogic record={record} grown={count} />
+      : <CollapseLogic record={record} />;
   return (
     <>
-      <div className={styles.logicSplit}>
-        {diagram}
-        <Reading record={record} archetypes={archetypes} interactive={false} shownIds={shownIds} selectedId={current?.instanceId ?? null} fixedSpan={span} onSpan={report} />
-      </div>
-      <p className={styles.method}>{stepLine(engine, current?.placement, current?.direction, shown, order.length)}</p>
+      <p className={styles.rule}>{logicRule(engine, record)}</p>
+      {diagram}
+      <p className={styles.method}>{stepLine(engine, record, current, count, order.length)}</p>
     </>
+  );
+}
+
+/** Compact run, revealing tiles in the same order as that engine's diagram. */
+function GrowingRun({ record, archetypes, built, fixedSpan, onSpan }: {
+  record: ClusterRecord | null;
+  archetypes: readonly ViewArchetype[];
+  built: number;
+  fixedSpan?: number;
+  onSpan?: (span: number) => void;
+}) {
+  const order = record?.assembly?.growth ?? [];
+  const count = Math.min(built, Math.max(order.length, 1));
+  const shownIds = useMemo(() => order.slice(0, count).map((item) => item.instanceId), [order, count]);
+  const current = order[count - 1];
+  return (
+    <Reading
+      record={record}
+      archetypes={archetypes}
+      interactive={false}
+      shownIds={order.length > 0 ? shownIds : undefined}
+      selectedId={current?.instanceId ?? null}
+      fixedSpan={fixedSpan}
+      onSpan={onSpan}
+    />
   );
 }
 
 /** Three tested searches, the compact and branching runs, then patching and smoothing. */
 export function ClusteringDevelopmentPage() {
   const load = useJson(`/api/clustering/catalog?collection=${encodeURIComponent(COLLECTION)}`, isCatalog);
-  const sample = load.status === "ready" ? findCluster(load.data.clusters, "graph-based", "compact", 4) : null;
-  const [extras, setExtras] = useState<ViewExtra[] | null>(null);
-  useEffect(() => {
-    if (!sample) return;
-    let live = true;
-    void assemblyFor(sample.id, COLLECTION).then((list) => {
-      if (live) setExtras(list.map((extra) => extra.id === "patch" ? { ...extra, color: "#8d8d8d" } : extra));
-    }).catch(() => undefined);
-    return () => { live = false; };
-  }, [sample]);
   const [runSpan, reportRun] = useSharedSpan(1.72);
-  const joint = useMemo(() => {
-    const joints = (sample?.assembly?.joints ?? []).filter((item) => item.primary && item.classification === "patched-near-contact" && item.patch?.footprint);
-    const seam = joints.map((item) => {
-      const extent = item.patch?.footprint?.extent ?? [0, 0, 0];
-      return { item, thin: Math.min(...extent), wide: Math.max(...extent) };
-    }).filter((item) => item.wide >= 4).sort((left, right) => left.thin - right.thin || left.wide - right.wide);
-    return seam[0]?.item ?? joints[0] ?? null;
-  }, [sample]);
-  const jointFocus = joint?.patch?.footprint?.center;
-  const jointSpan = joint?.patch?.footprint ? Math.max(...joint.patch.footprint.extent, 1) * 2.6 : undefined;
+  const [play, setPlay] = useState({ built: 1, refineAt: 0 });
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPlay((current) => {
+        if (current.built < 4) return { built: current.built + 1, refineAt: 0 };
+        if (current.refineAt < JOINT_PLAY.length - 1) return { built: 4, refineAt: current.refineAt + 1 };
+        return { built: 1, refineAt: 0 };
+      });
+    }, 1400);
+    return () => window.clearInterval(timer);
+  }, []);
   if (load.status !== "ready") return <Unavailable status={load.status} what="the clustering engines" />;
   const { archetypes, clusters } = load.data;
   const shown = (engine: ClusterEngine, morphology: ClusterMorphology) => findCluster(clusters, engine, morphology, 4);
@@ -314,12 +342,12 @@ export function ClusteringDevelopmentPage() {
             <p className={styles.index}>01</p>
             <p className={styles.kicker}>Logics</p>
           </header>
-          <p className={styles.sentence}>Each search seats one tile at a time. Full Build scores the next tile, Graph follows the tree, and WFC collapses the next slot.</p>
+          <p className={styles.sentence}>Each search seats one tile. The cluster builds in Runs.</p>
           <div className={styles.logicRow}>
             {LOGICS.map((logic) => (
               <article key={logic.id} className={styles.logic}>
                 <p className={styles.kicker}>{logic.label}</p>
-                <Formation record={shown(logic.id, "compact")} archetypes={archetypes} engine={logic.id} />
+                <Formation record={shown(logic.id, "compact")} engine={logic.id} shown={play.built} />
               </article>
             ))}
           </div>
@@ -329,7 +357,7 @@ export function ClusteringDevelopmentPage() {
             <p className={styles.index}>02</p>
             <p className={styles.kicker}>Runs</p>
           </header>
-          <p className={styles.sentence}>Full Build lost branching at four tiles. Graph and WFC held both morphologies through seven. Compact stays gathered. Branching spreads.</p>
+          <p className={styles.sentence}>Compact follows the diagram. Branching is the finished cluster. Full Build lost branching at four tiles.</p>
           <div className={styles.runBoard}>
             <span />
             {LOGICS.map((logic) => (
@@ -345,7 +373,9 @@ export function ClusteringDevelopmentPage() {
                   const record = shown(logic.id, morphology);
                   return (
                     <div key={logic.id} className={styles.run} data-status={record?.status ?? "missing"}>
-                      <Reading record={record} archetypes={archetypes} interactive={false} fixedSpan={runSpan} onSpan={(value) => reportRun(`${logic.id}-${morphology}`, value)} />
+                      {morphology === "compact"
+                        ? <GrowingRun record={record} archetypes={archetypes} built={play.built} fixedSpan={runSpan} onSpan={(value) => reportRun(`${logic.id}-${morphology}`, value)} />
+                        : <Reading record={record} archetypes={archetypes} interactive={false} fixedSpan={runSpan} onSpan={(value) => reportRun(`${logic.id}-${morphology}`, value)} />}
                       {record?.status === "unsuccessful" ? <p className={styles.fail}>Failed</p> : null}
                     </div>
                   );
@@ -364,14 +394,9 @@ export function ClusteringDevelopmentPage() {
             <p className={styles.index}>03</p>
             <p className={styles.kicker}>Refine</p>
           </header>
-          <p className={styles.sentence}>One joint, from the placed gap through the patch, the union, and the smoothed seam.</p>
-          <div className={styles.refineGrid}>
-            {REFINE.map((step) => (
-              <article key={step.id} className={styles.logic}>
-                <p className={styles.kicker}>{step.label}</p>
-                <Reading record={sample} archetypes={archetypes} extras={extras ?? undefined} shown={step.shown} hideTiles={Boolean(extras) && step.hideTiles} interactive={false} fixedSpan={jointSpan} focus={jointFocus} />
-              </article>
-            ))}
+          <p className={styles.sentence}>{JOINT_PLAY[play.refineAt].label}. Flat deep plan × inserted horizontal plate.</p>
+          <div className={styles.refinePlay}>
+            <img src={JOINT_PLAY[play.refineAt].plate} alt={JOINT_PLAY[play.refineAt].label} />
           </div>
           <ul className={styles.legend}>
             <li><i data-tone="patch" />Patch</li>

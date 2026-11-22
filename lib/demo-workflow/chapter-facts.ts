@@ -54,7 +54,7 @@ export const PHYSARUM = {
   src: `${STILL}/physarum-behavior.webp`,
   strengths: ["Form-finding processes", "Multi-criteria networks"],
   behavior: ["Explore", "Sense", "Move", "Reinforcement", "Adapt", "Repeat"],
-  question: "How are descriptors and criteria translated into behavioral language?",
+  question: "Ratings become simulation parameters. Descriptors stay stored names. Each archetype also has an authored spatial recipe.",
 } as const;
 
 /** Chapter 03. The published Vertical Void example (`scripts/export-skill3-workflow-summary.ts`). */

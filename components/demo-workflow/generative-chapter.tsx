@@ -6,11 +6,13 @@ import { ratingLabel } from "@/lib/physarum";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import { LabRun } from "@/components/demo-workflow/lab-run";
 import { MooIntro } from "@/components/demo-workflow/moo-intro";
+import { MooMorphologyStudy } from "@/components/demo-workflow/moo-morphology";
+import { MooCombinedPresentation } from "@/components/demo-workflow/moo-combined";
 import { CatalogSelection } from "@/components/demo-workflow/catalog-selection";
 import { OptimizationStage } from "@/components/demo-workflow/optimization-stage";
+import { AgentBehaviorAlternative } from "@/components/demo-workflow/agent-behavior";
 import { SimulationParameters } from "@/components/demo-workflow/simulation-logic";
 import { ArchetypeReading } from "@/components/demo-workflow/archetype-reading";
-import { SelectedCatalog } from "@/components/demo-workflow/selected-catalog";
 import styles from "@/components/demo-workflow/generative-chapter.module.css";
 
 const ARCHETYPE = "vertical-void";
@@ -152,7 +154,7 @@ function FirstPopulation() {
       <div className={styles.catalogHead}>
         <p className={styles.catalogIdentity}>
           {active.name}
-          <span>{visible.length ? `${visible.length} iterations` : status === "missing" ? "Catalog plates are not stored" : "Loading saved plates"}</span>
+          <span>{visible.length ? `${visible.length} Skill 1 iterations` : status === "missing" ? "Catalog plates are not stored" : "Loading saved plates"}</span>
         </p>
         <div className={styles.catalogTabs}>
           {TYPOLOGIES.map((typology) => (
@@ -178,7 +180,7 @@ function FirstPopulation() {
   );
 }
 
-/** Chapter 02: the simulation rule, the lab, the first population, the search, then the selected candidates. */
+/** Chapter 02: the simulation rule, the lab, the Skill 1 catalog, the search, then the selected candidates. */
 export function useGenerativeContent(): ChapterContent {
   return useMemo(() => ({
     visuals: [],
@@ -187,6 +189,10 @@ export function useGenerativeContent(): ChapterContent {
       {
         layout: styles.open,
         details: [<SimulationParameters key="logic-parameters" />],
+      },
+      {
+        layout: styles.open,
+        details: [<AgentBehaviorAlternative key="agent-behavior" />],
       },
       {
         layout: styles.logic,
@@ -207,6 +213,14 @@ export function useGenerativeContent(): ChapterContent {
         details: [<MooIntro key="moo" />],
       },
       {
+        layout: styles.open,
+        details: [<MooMorphologyStudy key="moo-morphology" />],
+      },
+      {
+        layout: styles.open,
+        details: [<MooCombinedPresentation key="moo-combined" />],
+      },
+      {
         layout: styles.optPage,
         details: [<OptimizationStage key="optimization" />],
       },
@@ -216,11 +230,7 @@ export function useGenerativeContent(): ChapterContent {
       },
       {
         layout: styles.optPage,
-        details: [<SelectedCatalog key="selected" />],
-      },
-      {
-        layout: styles.optPage,
-        details: [<ArchetypeReading key="reading" />],
+        details: [<ArchetypeReading key="selected" />],
       },
     ],
   }), []);

@@ -15,13 +15,15 @@
 .head,
 .catalogHead,
 .detail header,
-.role,
+.generation,
+.roles,
+.analysis,
+.reading,
 .note,
 .empty,
 .commit,
 .pager,
-.meta,
-.criteria {
+.meta {
   margin: 0;
   font-size: 11px;
   letter-spacing: 0.12em;
@@ -171,6 +173,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 0 8px 8px;
+  overflow: auto;
 }
 
 .detail header p {
@@ -181,8 +184,42 @@
   color: #49d7de;
 }
 
+.identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.generation {
+  margin: 0;
+  color: #49d7de;
+}
+
+.roles {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.roles span {
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.roles span[data-on] {
+  border-color: #49d7de;
+  color: #49d7de;
+}
+
+.roles span[data-on]:last-child {
+  border-color: #c77e5f;
+  color: #c77e5f;
+}
+
 .preview {
-  flex: 1 1 42%;
+  flex: 0 0 64px;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -219,31 +256,98 @@
   text-align: right;
 }
 
-.role,
 .note,
 .empty {
   color: rgba(255, 255, 255, 0.62);
 }
 
-.criteria {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px 12px;
-  margin: 0;
+.labFrame {
+  flex: 1 1 auto;
+  min-height: 220px;
+  height: 248px;
 }
 
-.criteria div {
+.labFrame > section {
+  height: 100%;
+}
+
+.reading[data-span="dna"] {
+  grid-column: 1;
+  grid-row: 1 / span 4;
+}
+
+.reading {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.criteria dt {
-  color: rgba(255, 255, 255, 0.48);
+.reading b {
+  font-weight: 500;
+  color: #f2f2ee;
 }
 
-.criteria dd {
+.meters {
+  display: grid;
+  gap: 2px;
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meters li {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 28px;
+  gap: 4px;
+  align-items: center;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.meters i {
+  display: block;
+  height: 2px;
+  background: #49d7de;
+}
+
+.meters em {
+  font-style: normal;
+  text-align: right;
+}
+
+.gens {
+  display: flex;
+  gap: 4px;
+}
+
+.gens span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.gens span[data-on] {
+  border-color: #49d7de;
+  color: #49d7de;
+}
+
+.field {
+  display: block;
+  height: 42px;
+  background: #000000;
+}
+
+.field img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .commit {

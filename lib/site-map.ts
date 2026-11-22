@@ -71,9 +71,10 @@ export const LAB_WORKSPACES = [
     workflowStage: "clustering",
     resultId: null,
     tabs: [
-      { href: "/lab/clustering/process", label: "Process" },
       { href: "/lab/clustering", label: "Initial Cluster" },
-      { href: "/lab/clustering/refined", label: "Refined Cluster" },
+      { href: "/lab/clustering/process", label: "Engines" },
+      { href: "/lab/clustering/catalog", label: "Catalog" },
+      { href: "/lab/clustering/refined", label: "Refine" },
     ],
   },
   {

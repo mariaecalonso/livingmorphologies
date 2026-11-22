@@ -631,20 +631,45 @@
 .watch {
   position: relative;
   display: grid;
-  grid-template-columns: 13.2rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 8.4rem) 29.25rem;
   grid-template-areas: "settings field";
-  gap: 0.65rem;
+  gap: 0.45rem;
+  width: max-content;
+  max-width: none;
   height: 100%;
   min-height: 0;
 }
 
-.watch > .area:nth-child(1) { grid-area: settings; }
+.watch > .area:nth-child(1) {
+  grid-area: settings;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.watch .slider {
+  min-width: 0;
+}
+
+.watch .slider span {
+  min-width: 0;
+}
 .watch > .area:nth-child(2) { grid-area: field; }
 
+.watch > .area:nth-child(2) .areaHead {
+  justify-content: center;
+}
+
 .watch .settings {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   align-content: space-between;
+  width: 8.4rem;
+  min-width: 0;
   height: 100%;
+}
+
+.watch .simulation {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.28rem 0.4rem;
 }
 
 .watch .group > p {
@@ -693,25 +718,131 @@
 
 .watch .fieldRow {
   flex: 1 1 auto;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: auto;
   gap: 0.4rem;
-  align-items: stretch;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  container-type: size;
 }
 
 .watch .field {
+  width: 100cqh;
+  height: 100cqh;
+  max-width: none;
+  max-height: 100%;
+  aspect-ratio: 1;
+  align-self: center;
+  justify-self: center;
+  margin-right: 0;
+}
+
+.watch .run {
+  margin-right: 0;
+}
+
+.placed.live {
+  min-height: 0;
+  align-items: center;
+}
+
+.placed.live .areaHead {
+  justify-content: center;
+}
+
+.placed.live .board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.45rem 0.7rem;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.placed.live .panel[data-kind="dna"] {
+  grid-row: 1 / span 2;
+}
+
+.placed.live .panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.placed.live .panelTitle {
+  margin: 0;
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+
+.placed.live .view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  grid-template-columns: none;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 0.28rem;
+  width: auto;
+  min-height: 0;
+  animation: none;
+}
+
+.placed.live .view > :not(.diagram) {
+  width: auto;
+  max-width: none;
+  justify-self: stretch;
+}
+
+.placed.live .diagram,
+.placed.live .growthChart {
   width: auto;
   height: auto;
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 1;
-  align-self: end;
-  justify-self: end;
-  margin-right: 0.85rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: center;
+  justify-self: center;
+  box-shadow: none;
 }
 
-.watch .run {
-  margin-right: 0.85rem;
+.placed.live .key {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.12rem 0.45rem;
+  margin: 0;
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+}
+
+.placed.live .key p {
+  justify-content: center;
+  gap: 0.2rem 0.45rem;
+}
+
+.placed.live .reading {
+  margin: 0;
+  text-align: center;
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.placed.live .panel[data-kind="dna"] .diagram {
+  width: min(100%, 42rem);
+  height: auto;
+  max-height: 100%;
+  aspect-ratio: 4 / 3;
 }
 
 .watch .fieldSide {
@@ -778,6 +909,21 @@
 .placed .growthChart {
   width: 20.625rem;
   height: 20.625rem;
+}
+
+.placed.live canvas.diagram,
+.placed.live .growthChart {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  min-height: 0;
+}
+
+.placed.live .panel[data-kind="dna"] .diagram {
+  width: min(100%, 42rem);
+  height: auto;
+  max-height: 100%;
 }
 
 .placed .metrics {

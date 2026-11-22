@@ -415,14 +415,14 @@ export function OptimizationStage() {
 
   return (
     <div className={styles.stage} data-playing={reduced ? undefined : ""} data-focus={story.focus}>
-      <section className={styles.input} aria-label="Initial population">
+      <section className={styles.input} aria-label="Skill 1 morphology samples">
         <header>
           <h3>Input</h3>
         </header>
         <div className={styles.inputs}>
           {inputs.map((src) => <span key={src}><Plate src={src} /></span>)}
         </div>
-        {inputStatus === "ready" ? null : <p>{inputStatus === "missing" ? "First-population plates are not stored." : "Loading."}</p>}
+        {inputStatus === "ready" ? null : <p>{inputStatus === "missing" ? "Skill 1 plates are not stored." : "Loading."}</p>}
       </section>
 
       <section className={`${styles.panel} ${styles.work}`} data-focus={story.focus === "process" || story.revealed > 0 ? "" : undefined} aria-label="Evolutionary optimization">
@@ -801,10 +801,10 @@ function ParetoSpace({
           line.setAttribute("x2", to.x.toFixed(1));
           line.setAttribute("y2", to.y.toFixed(1));
           if (glow) line.setAttribute("data-glow", "");
-          line.setAttribute("stroke", glow ? "#49d7de" : "#f4feff");
-          line.setAttribute("stroke-width", glow ? "3.6" : "1.15");
+          line.setAttribute("stroke", "#d7fbff");
+          line.setAttribute("stroke-width", "0.7");
           const lift = Math.max(0, Math.min(1, (from.depth + to.depth) / 2 + 0.35));
-          line.setAttribute("stroke-opacity", (glow ? 0.16 + lift * 0.2 : 0.42 + lift * 0.4).toFixed(2));
+          line.setAttribute("stroke-opacity", (0.3 + lift * 0.28).toFixed(2));
           mesh.appendChild(line);
         };
         fieldMesh.faces.forEach(([a, b, c]) => {
@@ -812,13 +812,12 @@ function ParetoSpace({
           polygon.setAttribute("points", [front[a], front[b], front[c]].map((item) => `${item.x.toFixed(1)},${item.y.toFixed(1)}`).join(" "));
           const lift = Math.max(0, Math.min(1, (front[a].depth + front[b].depth + front[c].depth) / 3 + 0.35));
           polygon.setAttribute("fill", "#49d7de");
-          polygon.setAttribute("fill-opacity", (0.08 + lift * 0.1).toFixed(2));
-          polygon.setAttribute("stroke", "#9af7ff");
-          polygon.setAttribute("stroke-width", "0.7");
+          polygon.setAttribute("fill-opacity", (0.58 + lift * 0.2).toFixed(2));
+          polygon.setAttribute("stroke", "#bff8ff");
+          polygon.setAttribute("stroke-width", "0.6");
           mesh.appendChild(polygon);
         });
         fieldMesh.edges.forEach(([a, b]) => {
-          addLine(front[a], front[b], true);
           addLine(front[a], front[b], false);
         });
       }
@@ -842,10 +841,10 @@ function ParetoSpace({
         });
       }
       const slots = [
-        { x: 14, y: 16 },
-        { x: 86, y: 70 },
-        { x: 86, y: 16 },
-        { x: 14, y: 70 },
+        { x: 8, y: 14 },
+        { x: 92, y: 84 },
+        { x: 92, y: 14 },
+        { x: 8, y: 84 },
       ];
       node.querySelectorAll<HTMLElement>("[data-f]").forEach((mark) => {
         const point = svgPoint(Number(mark.dataset.f), Number(mark.dataset.s), Number(mark.dataset.a));
@@ -886,15 +885,16 @@ function ParetoSpace({
   }, [spin, bounds, candidates, thumbs]);
 
   const tips = [
-    { name: "Formal", letter: "F", f: bounds.f1, s: bounds.s0, a: bounds.a0 },
-    { name: "Spatial", letter: "S", f: bounds.f0, s: bounds.s1, a: bounds.a0 },
-    { name: "Atmospheric", letter: "A", f: bounds.f0, s: bounds.s0, a: bounds.a1 },
+    { name: "Formal", letter: "Formal", f: bounds.f1, s: bounds.s0, a: bounds.a0 },
+    { name: "Spatial", letter: "Spatial", f: bounds.f0, s: bounds.s1, a: bounds.a0 },
+    { name: "Atmospheric", letter: "Atmospheric", f: bounds.f0, s: bounds.s0, a: bounds.a1 },
   ];
 
   return (
     <section className={`${styles.panel} ${styles.fieldPanel}`} data-focus={focus ? "" : undefined} aria-label="Pareto space">
       <header>
         <h3>Pareto Space</h3>
+        <p>Points are stored candidates. The surface only connects them.</p>
       </header>
       <div className={styles.field} ref={field}>
         <svg aria-hidden="true">
@@ -917,6 +917,7 @@ function ParetoSpace({
             data-pareto={item.pareto || undefined}
             data-active={item.generation === activeGeneration || undefined}
             data-pick={item.id === pickId || undefined}
+            data-on={item.id === selectedId || undefined}
             aria-label={`Candidate ${item.id}`}
             onClick={() => onSelect(selectedId === item.id ? null : item.id)}
           />

@@ -87,6 +87,15 @@
   color: #f2f2ee;
 }
 
+.rule {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--wf-meta);
+  letter-spacing: var(--wf-meta-tracking);
+  line-height: var(--wf-meta-line);
+  color: rgba(242, 242, 238, 0.82);
+}
+
 .method {
   margin: 0;
   font-size: var(--wf-meta);
@@ -207,7 +216,7 @@
 
 .progress {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.38fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.4fr) minmax(0, 0.85fr);
   gap: 0.7rem;
   flex: 1 1 auto;
   min-height: 0;
@@ -335,6 +344,10 @@
   color: #c77e5f;
 }
 
+.logic > .method {
+  flex: 0 0 auto;
+}
+
 .logicSplit {
   display: grid;
   grid-template-rows: minmax(0, 0.92fr) minmax(0, 1.08fr);
@@ -356,13 +369,19 @@
   min-height: 0;
 }
 
-.refineGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.28rem;
+.refinePlay {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.refinePlay img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 74%;
 }
 
 .engines,

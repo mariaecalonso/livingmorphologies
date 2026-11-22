@@ -7,11 +7,14 @@ import { PLANNING_CAPACITY } from "@/lib/client/ecologic-studio";
 import { FLOOR_SHARES, SHARE_LEGEND, SITE, STUDIO } from "@/lib/demo-workflow/chapter-facts";
 import { Caption, Chips, Img, Kicker } from "@/components/demo-workflow/chapter-kit";
 import { ClusteringWorkspace, PendingFrame } from "@/components/clustering/clustering-workspace";
-import { HomeClient } from "@/components/stored/home-client";
+import { HomeClient } from "@/components/home-client";
+import "@/app/lab/client/client-lab.css";
+import { SiteAnalysisPlayback } from "@/components/demo-workflow/site-analysis-playback";
 import { SiteAnalysisWorkspace } from "@/components/site/site-analysis-workspace";
 import { SiteWorkspace } from "@/components/site/site-workspace";
 import type { SiteWorkflowId } from "@/components/site/site-workflow";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
+import { CLUSTERING_REFINEMENT_ARCHIVED } from "@/lib/demo-workflow/chapters";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/context-chapter.module.css";
 
@@ -20,17 +23,21 @@ function WorkflowHost({ part, children }: { part: "client" | "analysis" | "site"
 }
 
 /** The client page, Site Analysis, and the Site Integration lab, fitted to the chapter frame. */
-export function ContextWorkflow({ part }: { part: "client" | "analysis" | "site" }) {
+export function ContextWorkflow({ part, play = false }: { part: "client" | "analysis" | "site"; play?: boolean }) {
   if (part === "client") {
     return (
       <WorkflowHost part="client">
-        <div className={styles.clientStage} data-client-stage="">
-          <HomeClient />
+        <div className="lab-client-stage">
+          <div className="lab-client-frame">
+            <HomeClient />
+          </div>
         </div>
       </WorkflowHost>
     );
   }
-  if (part === "analysis") return <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
+  if (part === "analysis") {
+    return play ? <SiteAnalysisPlayback /> : <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
+  }
   return <WorkflowHost part="site"><SiteWorkspace /></WorkflowHost>;
 }
 
@@ -249,26 +256,15 @@ export const CONTEXT_CONTENT: ChapterContent = {
   layout: styles.composed,
   boards: [
     { layout: styles.sheet, details: [<ContextWorkflow key="client" part="client" />] },
-    { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" />] },
-    {
-      layout: styles.sheet,
-      details: [
-        <PendingFrame
-          key="conclusion"
-          kicker="Chapter 04"
-          title="Design Context Conclusion"
-          body="The conclusion is still open."
-        />,
-      ],
-    },
-    {
+    { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" play />] },
+    ...(CLUSTERING_REFINEMENT_ARCHIVED ? [] : [{
       layout: styles.sheet,
       details: [
         <WorkflowHost key="refined" part="site">
           <ClusteringWorkspace tab="refined" frame={false} />
         </WorkflowHost>,
       ],
-    },
+    }]),
   ],
   feature: {
     operation: 1,

@@ -64,7 +64,7 @@ function signed(value: number) {
   return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}`;
 }
 
-/** Empty presentation canvas. Process and Refined Cluster are reserved; their working views are not built here. */
+/** Empty presentation canvas. */
 export function ClusteringPlaceholder({ title }: { title: string }) {
   return (
     <div className={styles.canvas} data-clustering="placeholder">

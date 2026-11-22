@@ -22,13 +22,30 @@
 
 .frame header h3,
 .group h4,
-.row figcaption b,
-.plates figcaption b {
+.row figcaption b {
   margin: 0;
   font-size: 0.58rem;
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.plates figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  padding: 0.16rem 0.28rem 0.2rem;
+  font-size: 0.42rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 238, 0.66);
+}
+
+.plates figcaption b {
+  font-size: 0.42rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #f2f2ee;
 }
 
 .frame header p,
@@ -158,6 +175,13 @@
 .plate img {
   display: block;
   object-fit: contain;
+}
+
+.plates .plate img {
+  filter: brightness(calc(1 - var(--reading, 0) * 0.38));
+}
+
+.row .plate img {
   filter: brightness(0.62);
 }
 
@@ -166,6 +190,14 @@
   object-fit: contain;
   overflow: visible;
   pointer-events: none;
+}
+
+.plates .plate svg {
+  opacity: var(--reading, 0);
+}
+
+.row .plate svg {
+  opacity: 1;
 }
 
 .plate svg[data-detail="brief"] .glow {

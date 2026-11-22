@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { BRANCHES } from "@/lib/catalog";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { TYPOLOGIES } from "@/lib/catalog";
+import type { LabRunData } from "@/lib/demo-workflow/lab-run";
+import { extractTopology } from "@/lib/skill1/analysis";
 import { formatCandidateId, formatGeneration } from "@/components/evolution/evolution-data";
 import { formatMatch } from "@/components/evolution/format-match";
 import { useExplainTime } from "@/components/demo-workflow/explain-clock";
+import { PhysarumAnalysisFrame } from "@/components/demo-workflow/lab-run";
 import styles from "@/components/demo-workflow/catalog-selection.module.css";
 
 const ARCHETYPE = "vertical-void";
@@ -37,6 +40,7 @@ type Candidate = {
   atmospheric: number;
   pareto: boolean;
   diversity: string;
+  parentId: number | null;
   image: string;
   observed: Record<string, number>;
 };
@@ -67,13 +71,16 @@ const STEPS: Step[] = [
   { at: 31.7, page: 2, focus: 351, chosen: true, aim: { kind: "commit" }, press: false },
 ];
 
-const CRITERIA = BRANCHES.flatMap((branch) =>
-  [...branch.shared, branch.specific.lobby].map((criterion) => ({
-    id: criterion.id,
-    label: criterion.label,
-    branch: branch.title,
-  })),
-);
+const FIELD = 20;
+const DNA = [
+  ["centrality", "Centrality", "centrality"],
+  ["connectivity", "Connectivity", "connectivity"],
+  ["openness", "Openness", "openness"],
+  ["directionality", "Directionality", "directionality"],
+  ["visibility", "Visibility", "visibility"],
+  ["immersion", "Immersion", "immersive"],
+] as const;
+const VOID_RATINGS = TYPOLOGIES.flatMap((group) => group.archetypes).find((item) => item.id === ARCHETYPE)?.ratings ?? {};
 
 function stepAt(time: number) {
   let index = 0;
@@ -96,11 +103,14 @@ function aimPoint(board: HTMLElement, aim: Aim) {
   };
 }
 
-function roleLabel(candidate: Candidate) {
-  if (candidate.diversity === "tag") return "Diversity tag";
-  if (candidate.diversity === "rescue") return "Diversity rescue";
-  if (candidate.pareto) return "Nondominated";
-  return "Evaluated";
+/** Birth role is separate from the archive. No parent means the search introduced it as an explorer. */
+function roles(candidate: Candidate) {
+  const diversity = candidate.diversity === "tag" || candidate.diversity === "rescue";
+  return [
+    { id: "pareto", label: "Nondominated", on: candidate.pareto },
+    { id: "explorer", label: "Explorer", on: candidate.parentId == null },
+    { id: "diversity", label: candidate.diversity === "tag" ? "Diversity tag" : candidate.diversity === "rescue" ? "Diversity rescue" : "Diversity", on: diversity },
+  ];
 }
 
 /** A replay of reading the Vertical Void catalog. It does not write a lab selection. */
@@ -117,7 +127,7 @@ export function CatalogSelection() {
         const response = await fetch("/demo/skill2/catalog.json", { signal: controller.signal });
         if (!response.ok) throw new Error(String(response.status));
         const catalog = (await response.json()) as {
-          archetypes: { archetypeId: string; candidates: (Candidate & { catalogVisible?: boolean; image: string | null; observed?: Record<string, number> })[] }[];
+          archetypes: { archetypeId: string; candidates: (Candidate & { catalogVisible?: boolean; image: string | null; observed?: Record<string, number>; parentId?: number | null })[] }[];
         };
         const archetype = catalog.archetypes.find((item) => item.archetypeId === ARCHETYPE);
         const visible = (archetype?.candidates ?? []).filter((item) => item.catalogVisible !== false && item.image);
@@ -133,6 +143,7 @@ export function CatalogSelection() {
           atmospheric: item.atmospheric,
           pareto: Boolean(item.pareto),
           diversity: item.diversity || "none",
+          parentId: typeof item.parentId === "number" ? item.parentId : null,
           image: item.image,
           observed: item.observed ?? {},
         })));
@@ -167,7 +178,13 @@ export function CatalogSelection() {
 
   return (
     <article ref={ref} className={styles.board} data-explain="">
-      <CatalogView candidates={candidates} status={status} view={view} />
+      <CatalogView
+        candidates={candidates}
+        status={status}
+        view={view}
+        onPage={(page) => setView((current) => ({ ...current, page }))}
+        onSelect={(id) => setView((current) => ({ ...current, focus: id }))}
+      />
       <span className={styles.cursor} data-pointer="" data-hidden="true" aria-hidden="true">
         <svg viewBox="0 0 12 16"><path d="M1 1 L1 13 L4.2 10.2 L7.2 15 L9 14.2 L6 9.4 L11 9.2 Z" /></svg>
       </span>
@@ -179,10 +196,14 @@ function CatalogView({
   candidates,
   status,
   view,
+  onPage,
+  onSelect,
 }: {
   candidates: Candidate[] | null;
   status: "loading" | "ready" | "missing";
   view: View;
+  onPage: (page: number) => void;
+  onSelect: (id: number) => void;
 }) {
   const list = candidates ?? [];
   const pageCount = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
@@ -204,9 +225,9 @@ function CatalogView({
               <span>{status === "ready" ? `${list.length} drawings` : status === "missing" ? "Catalog missing" : "Loading"}</span>
             </p>
             <div className={styles.pager}>
-              <button type="button" data-aim="prev" aria-label="Previous page" tabIndex={-1}>‹</button>
+              <button type="button" data-aim="prev" aria-label="Previous page" tabIndex={-1} onClick={() => onPage(Math.max(0, page - 1))}>‹</button>
               <span>{page + 1} / {pageCount}</span>
-              <button type="button" data-aim="next" aria-label="Next page" tabIndex={-1}>›</button>
+              <button type="button" data-aim="next" aria-label="Next page" tabIndex={-1} onClick={() => onPage(Math.min(pageCount - 1, page + 1))}>›</button>
             </div>
           </div>
           <div className={styles.grid}>
@@ -219,6 +240,7 @@ function CatalogView({
                 data-active={candidate.id === view.focus || undefined}
                 data-chosen={view.chosen && candidate.id === 351 ? "" : undefined}
                 tabIndex={-1}
+                onClick={() => onSelect(candidate.id)}
               >
                 {view.chosen && candidate.id === 351 ? <span className={styles.badge}>Selected</span> : null}
                 <span className={styles.image}>
@@ -239,15 +261,133 @@ function CatalogView({
   );
 }
 
+function plateField(src: string) {
+  return new Promise<number[]>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = FIELD;
+      canvas.height = FIELD;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        reject(new Error("canvas"));
+        return;
+      }
+      ctx.drawImage(image, 0, 0, FIELD, FIELD);
+      const pixels = ctx.getImageData(0, 0, FIELD, FIELD).data;
+      const trail = new Array<number>(FIELD * FIELD).fill(0);
+      for (let y = 0; y < FIELD; y += 1) {
+        const fieldY = FIELD - 1 - y;
+        for (let x = 0; x < FIELD; x += 1) {
+          const pixel = (y * FIELD + x) * 4;
+          trail[fieldY * FIELD + x] = (pixels[pixel] + pixels[pixel + 1] + pixels[pixel + 2]) / (255 * 3);
+        }
+      }
+      resolve(trail);
+    };
+    image.onerror = () => reject(new Error("image"));
+    image.src = src;
+  });
+}
+
+function analysisOf(candidate: Candidate, trail: number[]): LabRunData {
+  const topology = extractTopology(trail, FIELD);
+  const zeros = new Array<number>(FIELD * FIELD).fill(0);
+  return {
+    run: candidate.id,
+    seed: 0,
+    agents: 0,
+    iterations: 0,
+    archetypeName: "Vertical Void",
+    plate: candidate.image,
+    recording: "",
+    settings: {
+      sensorDistance: 0,
+      sensorAngle: 0,
+      turnAngle: 0,
+      moveDistance: 0,
+      deposit: 0,
+      diffusion: 0,
+      diffusionUsed: 0,
+      trailInfluence: 0,
+      resistance: 0,
+      fieldSize: FIELD,
+      attractors: [],
+    },
+    marks: [],
+    sampleInterval: 0,
+    dna: DNA.map(([id, label, key]) => {
+      const rating = VOID_RATINGS[key];
+      const target = typeof rating === "number" ? rating / 2 : null;
+      const generated = candidate.observed[key];
+      const value = Number.isFinite(generated) ? generated : null;
+      return { id, label, target, generated: value, difference: target == null || value == null ? null : value - target };
+    }),
+    growth: [],
+    topology: {
+      size: topology.size,
+      mask: topology.mask,
+      skeleton: topology.skeleton,
+      endpoints: topology.endpoints,
+      branches: topology.branches,
+      branchCount: topology.branchCount,
+      endpointCount: topology.endpointCount,
+      componentCount: topology.componentCount,
+      connectivity: topology.connectivity,
+      cycleRank: topology.cycleRank,
+      averagePathLength: topology.averagePathLength,
+      diameter: topology.diameter,
+    },
+    density: { size: FIELD, trail },
+    direction: {
+      bins: new Array<number>(16).fill(0),
+      coherence: null,
+      bias: null,
+      meanSegmentLength: null,
+      x: zeros,
+      y: zeros,
+      count: zeros,
+    },
+  };
+}
+
 function Inspection({ candidate, chosen }: { candidate: Candidate | null; chosen: boolean }) {
+  const [field, setField] = useState<{ id: number; trail: number[] } | null>(null);
+  useEffect(() => {
+    if (!candidate) return;
+    const id = candidate.id;
+    let cancel = false;
+    plateField(candidate.image).then(
+      (next) => {
+        if (!cancel) setField({ id, trail: next });
+      },
+      () => undefined,
+    );
+    return () => {
+      cancel = true;
+    };
+  }, [candidate]);
+  const trail = field && candidate && field.id === candidate.id ? field.trail : null;
+  const analysis = useMemo(
+    () => (candidate ? analysisOf(candidate, trail ?? new Array<number>(FIELD * FIELD).fill(0)) : null),
+    [candidate, trail],
+  );
   return (
     <section className={styles.detail} aria-label="Inspected candidate">
       <header>
         <p>{chosen ? "Selected for propagation" : "Candidate"}</p>
-        <p>{candidate ? `Vertical Void · ${formatCandidateId(candidate.id)} · ${formatGeneration(candidate.generation)}` : "Vertical Void"}</p>
+        <p>{candidate ? `Vertical Void · ${formatCandidateId(candidate.id)}` : "Vertical Void"}</p>
       </header>
       {candidate ? (
         <>
+          <div className={styles.identity}>
+            <p className={styles.generation}>Generation {candidate.generation}</p>
+            <div className={styles.roles}>
+              {roles(candidate).map((role) => (
+                <span key={role.id} data-on={role.on ? "" : undefined}>{role.label}</span>
+              ))}
+            </div>
+          </div>
           <div className={styles.preview} data-chosen={chosen || undefined}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={candidate.image} alt="" />
@@ -267,15 +407,11 @@ function Inspection({ candidate, chosen }: { candidate: Candidate | null; chosen
               </li>
             ))}
           </ul>
-          <p className={styles.role}>{roleLabel(candidate)}</p>
-          <dl className={styles.criteria}>
-            {CRITERIA.map((criterion) => (
-              <div key={criterion.id}>
-                <dt>{criterion.label}</dt>
-                <dd>{formatMatch(candidate.observed[criterion.id])}</dd>
-              </div>
-            ))}
-          </dl>
+          {analysis ? (
+            <div className={styles.labFrame}>
+              <PhysarumAnalysisFrame data={analysis} />
+            </div>
+          ) : null}
           <button type="button" className={styles.commit} data-aim="commit" data-chosen={chosen || undefined} tabIndex={-1}>
             {chosen ? "Selected" : "Select morphology"}
           </button>
