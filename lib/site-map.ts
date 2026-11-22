@@ -77,6 +77,14 @@ export const LAB_WORKSPACES = [
     ],
   },
   {
+    id: "interpretation",
+    href: "/lab/interpretation",
+    label: "Architectural Interpretation",
+    workflowStage: "interpretation",
+    resultId: null,
+    tabs: [],
+  },
+  {
     id: "hybrid",
     href: "/lab/hybrid",
     label: "Hybrid Connection",
