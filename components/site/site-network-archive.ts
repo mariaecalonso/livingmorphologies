@@ -1,4 +1,5 @@
 import { readArchitecturalRecord } from "@/lib/skill5/architectural-strategy";
+import { missingPublishedIterations, publishedZoning } from "@/lib/skill5/strategy-archive";
 import { readNetworkNode, type NetworkIteration, type NetworkNode } from "./site-network";
 
 const DB_NAME = "living-morphologies";
@@ -84,6 +85,18 @@ function readBranches(value: unknown) {
     branches.push({ x0, z0, x1, z1, conductivity });
   }
   return branches.length > 0 ? branches : undefined;
+}
+
+export async function installPublishedStrategy() {
+  const response = await fetch("/api/site/strategy-archive");
+  if (!response.ok) return null;
+  const body = await response.json() as unknown;
+  const zoning = publishedZoning(body);
+  if (!zoning) return null;
+  const local = await loadNetworkIterations();
+  const missing = missingPublishedIterations(body, new Set(local.map((item) => item.id)));
+  for (const iteration of missing) await saveNetworkIteration(iteration);
+  return zoning;
 }
 
 export async function loadNetworkIterations(): Promise<NetworkIteration[]> {

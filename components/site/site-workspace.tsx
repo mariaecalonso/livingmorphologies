@@ -48,7 +48,7 @@ import type { SiteContext } from "@/lib/skill5/site-model";
 import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
 import { clipPolygon } from "./site-geometry";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
-import { loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
+import { installPublishedStrategy, loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
 import { analyzeNetwork, networkFigures, type NetworkAnalysisMode } from "./site-network-analysis";
 import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
 import { captureNetworkIteration, createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
@@ -1143,9 +1143,18 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   iterationsRef.current = iterations;
   useEffect(() => {
     let cancel = false;
-    loadNetworkIterations().then((rows) => {
-      if (!cancel) setIterations(rows);
-    }).catch(() => {});
+    (async () => {
+      const published = await installPublishedStrategy();
+      const rows = await loadNetworkIterations();
+      if (cancel) return;
+      setIterations(rows);
+      if (!published?.massingNetworkId) return;
+      const stored = readSiteWorkflowState();
+      if (stored.massingNetworkId) return;
+      writeSiteWorkflowState({ ...stored, massingNetworkId: published.massingNetworkId, zoningShortlist: published.zoningShortlist });
+      setMassingId(published.massingNetworkId);
+      setZoningShortlist(published.zoningShortlist);
+    })().catch(() => {});
     return () => {
       cancel = true;
     };
