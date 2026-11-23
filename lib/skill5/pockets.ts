@@ -1,5 +1,5 @@
 import type { XZ } from "./site-model";
-import { polygonCentroid, type ZonePoint } from "./zoning";
+import { polygonAreaSqFt, polygonCentroid, type ZonePoint } from "./zoning";
 
 export type NetworkBranch = {
   x0: number;
@@ -286,4 +286,71 @@ export function detectPockets(branches: readonly NetworkBranch[], parcel: readon
     if (!uniquePockets.has(pocket.id)) uniquePockets.set(pocket.id, pocket);
   }
   return { pockets: [...uniquePockets.values()], openSegments };
+}
+
+export type PocketBand = "north" | "central" | "south";
+
+/** Measurements of one enclosed face. Widths are the bounding box, not an inscribed clearance. */
+export type PocketReading = {
+  id: string;
+  areaSqFt: number;
+  spanEastFt: number;
+  spanNorthFt: number;
+  band: PocketBand;
+  eastGapFt: number;
+  sourceFt: number | null;
+  attractorFt: number | null;
+};
+
+type PocketTerminal = { kind: "source" | "attractor"; x: number; z: number };
+
+function bandOf(z: number, minZ: number, span: number): PocketBand {
+  if (z >= minZ + (2 * span) / 3) return "north";
+  if (z >= minZ + span / 3) return "central";
+  return "south";
+}
+
+function nearestFeet(x: number, z: number, nodes: readonly PocketTerminal[], kind: PocketTerminal["kind"]) {
+  let best = Infinity;
+  for (const node of nodes) {
+    if (node.kind !== kind) continue;
+    best = Math.min(best, Math.hypot(node.x - x, node.z - z));
+  }
+  return Number.isFinite(best) ? best : null;
+}
+
+/** Reads each face against the parcel and the network's own sources and attractors. */
+export function readPockets(pockets: readonly NetworkPocket[], parcel: readonly XZ[], nodes: readonly PocketTerminal[]): PocketReading[] {
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let maxX = -Infinity;
+  for (const [x, z] of parcel) {
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+    maxX = Math.max(maxX, x);
+  }
+  const span = Math.max(1, maxZ - minZ);
+  return pockets.map((pocket) => {
+    const center = polygonCentroid(pocket.points);
+    let east0 = Infinity;
+    let east1 = -Infinity;
+    let north0 = Infinity;
+    let north1 = -Infinity;
+    for (const point of pocket.points) {
+      east0 = Math.min(east0, point.x);
+      east1 = Math.max(east1, point.x);
+      north0 = Math.min(north0, point.z);
+      north1 = Math.max(north1, point.z);
+    }
+    return {
+      id: pocket.id,
+      areaSqFt: polygonAreaSqFt(pocket.points),
+      spanEastFt: east1 - east0,
+      spanNorthFt: north1 - north0,
+      band: bandOf(center.z, minZ, span),
+      eastGapFt: Math.max(0, maxX - east1),
+      sourceFt: nearestFeet(center.x, center.z, nodes, "source"),
+      attractorFt: nearestFeet(center.x, center.z, nodes, "attractor"),
+    };
+  });
 }

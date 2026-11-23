@@ -6,39 +6,61 @@ import type { DisplayMode } from "@/components/display-mode-toggle";
 import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
-import { CLIENT_LAB, LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
+import { CINEMATIC_STAGE_ARCHIVED, CLIENT_LAB, GROWTH_STAGE_ARCHIVED, LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
 import { CINEMATIC_INTRO } from "@/lib/cinematic-intro";
 import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
 type NavItem = { href: string; label: string };
 
-const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: readonly NavItem[] })[] = [
-  ...LAB_WORKSPACES.map((workspace) => ({
-    href: workspace.href,
-    label: workspace.label,
-    active: (pathname: string) => pathname === workspace.href || pathname.startsWith(`${workspace.href}/`),
-    sub: workspace.tabs,
-  })),
-  {
-    href: CLIENT_LAB.href,
-    label: CLIENT_LAB.label,
-    active: (pathname: string) => pathname === CLIENT_LAB.href || pathname.startsWith(`${CLIENT_LAB.href}/`),
-  },
+const CLUSTER_SHEETS = new Set(["placement", "assembly", "configurations"]);
+
+function workspaceActive(id: string, href: string, pathname: string, sheet: string | null) {
+  if (id === "site") {
+    if (pathname === "/lab/site/analysis" || pathname.startsWith("/lab/site/analysis/")) return true;
+    if (pathname !== "/lab/site") return false;
+    return !CLUSTER_SHEETS.has(sheet ?? "");
+  }
+  if (id === "cluster-integration") {
+    return pathname === "/lab/site" && CLUSTER_SHEETS.has(sheet ?? "");
+  }
+  const path = href.split("?")[0];
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+const workspaceStages = LAB_WORKSPACES.map((workspace) => ({
+  href: workspace.href,
+  label: workspace.label,
+  active: (pathname: string, sheet: string | null) => workspaceActive(workspace.id, workspace.href, pathname, sheet),
+  sub: workspace.tabs,
+}));
+
+const clientStage = {
+  href: CLIENT_LAB.href,
+  label: CLIENT_LAB.label,
+  active: (pathname: string) => pathname === CLIENT_LAB.href || pathname.startsWith(`${CLIENT_LAB.href}/`),
+};
+
+const clusteringAt = workspaceStages.findIndex((stage) => stage.href === "/lab/clustering");
+
+const STAGES: (NavItem & { active: (pathname: string, sheet: string | null) => boolean; sub?: readonly NavItem[] })[] = [
+  ...workspaceStages.slice(0, clusteringAt + 1),
+  clientStage,
+  ...workspaceStages.slice(clusteringAt + 1),
   {
     href: TEMP_PHYSARUM_VIDEO.href,
     label: TEMP_PHYSARUM_VIDEO.label,
     active: (pathname: string) => pathname === TEMP_PHYSARUM_VIDEO.href,
   },
-  {
+  ...(CINEMATIC_STAGE_ARCHIVED ? [] : [{
     href: CINEMATIC_INTRO.href,
     label: CINEMATIC_INTRO.label,
     active: (pathname: string) => pathname === CINEMATIC_INTRO.href,
-  },
-  {
+  }]),
+  ...(GROWTH_STAGE_ARCHIVED ? [] : [{
     href: "/lab/physarum-study",
     label: "GROWTH",
     active: (pathname: string) => pathname === "/lab/physarum-study",
-  },
+  }]),
 ];
 
 export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; presentationFrame: boolean }) {
@@ -46,9 +68,10 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
   const search = useSearchParams();
   const wall = search.get("wall") === "1";
   const suffix = stageFrameSuffix(wall, presentationFrame);
-  const activeStage = STAGES.find((stage) => stage.active(pathname));
+  const sheet = search.get("sheet");
+  const activeStage = STAGES.find((stage) => stage.active(pathname, sheet));
 
-  const tabHref = (href: string) => {
+  const withFrame = (href: string) => {
     if (href.startsWith("/lab/vertical")) {
       const params = new URLSearchParams(search.toString());
       const query = params.toString();
@@ -115,7 +138,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
             <span key={stage.href} className="stage-nav-stage-wrap">
               {index > 0 ? <span className="stage-nav-sep" aria-hidden="true">›</span> : null}
               <Link
-                href={`${stage.href}${suffix}`}
+                href={withFrame(stage.href)}
                 aria-current={active ? "page" : undefined}
                 className="stage-nav-stage"
                 data-active={active || undefined}
@@ -134,7 +157,7 @@ export function StageNav({ mode, presentationFrame }: { mode: DisplayMode; prese
               return (
                 <Link
                   key={item.href}
-                  href={tabHref(item.href)}
+                  href={withFrame(item.href)}
                   aria-current={active ? "page" : undefined}
                   className="stage-nav-subitem"
                   data-active={active || undefined}

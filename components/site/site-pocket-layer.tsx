@@ -3,8 +3,16 @@
 import { useEffect, useMemo } from "react";
 import { DoubleSide, Shape, ShapeGeometry } from "three";
 import type { NetworkPocket } from "@/lib/skill5/pockets";
+import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneKind } from "@/lib/skill5/zoning";
 import { ZONE_COLOR } from "./site-zone-layer";
+
+const FIT_COLOR: Record<PocketFit, string> = {
+  plausible: "#c77e5f",
+  marginal: "#c77e5f",
+  unsuitable: "#f2f2ee",
+  remainder: "#49d7de",
+};
 
 function outlinePositions(points: NetworkPocket["points"], y: number) {
   const positions: number[] = [];
@@ -19,6 +27,7 @@ function outlinePositions(points: NetworkPocket["points"], y: number) {
 function PocketFill({
   pocket,
   kind,
+  fit,
   hovered,
   selected,
   onHover,
@@ -28,6 +37,7 @@ function PocketFill({
 }: {
   pocket: NetworkPocket;
   kind: ZoneKind | null;
+  fit: PocketFit | null;
   hovered: boolean;
   selected: boolean;
   onHover: (id: string | null) => void;
@@ -47,7 +57,16 @@ function PocketFill({
   }, [pocket.points]);
   const line = useMemo(() => outlinePositions(pocket.points, selected || hovered ? 1.15 : 0.7), [hovered, pocket.points, selected]);
   useEffect(() => () => geometry.dispose(), [geometry]);
-  const color = kind ? ZONE_COLOR[kind] : "#f2f2ee";
+  const color = kind ? ZONE_COLOR[kind] : FIT_COLOR[fit ?? "unsuitable"];
+  const fill = kind
+    ? (selected ? 0.42 : hovered ? 0.3 : 0.22)
+    : fit === "plausible"
+      ? (selected ? 0.55 : hovered ? 0.42 : 0.4)
+      : fit === "marginal"
+        ? (selected ? 0.2 : 0.1)
+        : fit === "remainder"
+          ? 0.08
+          : 0.03;
   return (
     <group>
       <mesh
@@ -79,6 +98,7 @@ function PocketFill({
 export function SitePocketLayer({
   pockets,
   kinds,
+  fits,
   hoverId,
   selectedIds,
   onHover,
@@ -88,6 +108,7 @@ export function SitePocketLayer({
 }: {
   pockets: readonly NetworkPocket[];
   kinds: Readonly<Record<string, ZoneKind | null>>;
+  fits?: Readonly<Record<string, PocketFit>>;
   hoverId: string | null;
   selectedIds: readonly string[];
   onHover: (id: string | null) => void;
@@ -102,6 +123,7 @@ export function SitePocketLayer({
           key={pocket.id}
           pocket={pocket}
           kind={kinds[pocket.id] ?? null}
+          fit={fits?.[pocket.id] ?? null}
           hovered={pocket.id === hoverId}
           selected={selectedIds.includes(pocket.id)}
           onHover={onHover}

@@ -61,6 +61,8 @@ export type PlacedModule = Skill5Instance & {
   mirror?: "x" | "y" | "z" | null;
   /** Zones whose footprint and elevation range meet this tile. */
   zoneIds?: string[];
+  /** Network iteration these tiles were drawn with. Untagged tiles stay visible. */
+  networkId?: string | null;
   /**
    * Extra pose for this copy only. The source mesh is not changed.
    * Pitch and roll are radians. Scale is a multiplier on the original module.

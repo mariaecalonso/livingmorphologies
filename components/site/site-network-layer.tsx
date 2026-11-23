@@ -114,15 +114,20 @@ function NodeMark({
   reached,
   visiting,
   onPointerDown,
+  onDelete,
   interactive,
+  showGlow = true,
 }: {
   node: NetworkNode;
   selected: boolean;
   reached: boolean;
   visiting: boolean;
   onPointerDown: (node: NetworkNode, event: { stopPropagation: () => void; nativeEvent: PointerEvent }) => void;
+  onDelete: (id: string) => void;
   interactive: boolean;
+  showGlow?: boolean;
 }) {
+  const [hot, setHot] = useState(false);
   const water = node.surface === "water";
   const color = node.kind === "source" ? SOURCE : water ? WATER : ATTRACTOR;
   const label = node.kind === "source" ? "Source" : water ? "Water" : "Attractor";
@@ -147,15 +152,30 @@ function NodeMark({
   }, [ring, material, sprite, glow]);
   return (
     <group position={[node.x, MARK_Y, node.z]}>
-      <sprite material={glow} scale={[selected ? 92 : 74, selected ? 92 : 74, 1]} raycast={skipRaycast} />
-      <sprite material={glow} scale={[selected ? 46 : 34, selected ? 46 : 34, 1]} raycast={skipRaycast} />
+      {showGlow ? <sprite material={glow} scale={[selected ? 92 : 74, selected ? 92 : 74, 1]} raycast={skipRaycast} /> : null}
+      {showGlow ? <sprite material={glow} scale={[selected ? 46 : 34, selected ? 46 : 34, 1]} raycast={skipRaycast} /> : null}
       <mesh
         geometry={ring}
         material={material}
         rotation={[-Math.PI / 2, 0, 0]}
         raycast={interactive ? undefined : skipRaycast}
+        onPointerOver={interactive ? (event) => { event.stopPropagation(); setHot(true); } : undefined}
+        onPointerOut={interactive ? () => setHot(false) : undefined}
         onPointerDown={interactive ? (event) => onPointerDown(node, event) : undefined}
       />
+      {interactive && (hot || selected) ? (
+        <mesh
+          position={[12, 4, 0]}
+          onPointerOver={(event) => { event.stopPropagation(); setHot(true); }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            onDelete(node.id);
+          }}
+        >
+          <boxGeometry args={[5, 1.2, 5]} />
+          <meshBasicMaterial color="#c77e5f" depthWrite={false} toneMapped={false} />
+        </mesh>
+      ) : null}
       <mesh rotation={[-Math.PI / 2, 0, node.kind === "source" ? Math.PI / 4 : 0]} raycast={skipRaycast}>
         {node.kind === "source" ? <circleGeometry args={[2.1, 4]} /> : <circleGeometry args={[2.2, 28]} />}
         <meshBasicMaterial color={color} depthWrite={false} toneMapped={false} side={DoubleSide} />
@@ -194,6 +214,7 @@ export function SiteNetworkLayer({
   branches = null,
   interactive = true,
   quiet = false,
+  glow = true,
 }: {
   study: SiteNetworkStudy;
   running: boolean;
@@ -209,6 +230,8 @@ export function SiteNetworkLayer({
   interactive?: boolean;
   /** Massing views keep the network, drawn lighter so the building reads first. */
   quiet?: boolean;
+  /** Strategy and Zoning keep the branch core and drop the additive halo. */
+  glow?: boolean;
 }) {
   const told = useRef(false);
   const seen = useRef(-1);
@@ -457,7 +480,7 @@ export function SiteNetworkLayer({
   return (
     <group>
       {showField ? <InfluenceField study={study} nodes={edit.nodes} /> : null}
-      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} quiet={quiet} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
+      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} quiet={quiet} showGlow={glow} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
       <mesh
         visible={showTrails && !(branches && branches.length > 0) && (study.generator !== "flow" || preview != null || colored != null)}
         position={[(minX + maxX) / 2, TRAIL_Y, (minZ + maxZ) / 2]}
@@ -501,7 +524,7 @@ export function SiteNetworkLayer({
         return <GrowthZone key={`zone-${node.id}`} ring={ring} />;
       }) : null}
       {showTrails || interactive ? edit.nodes.map((node) => (
-        <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} interactive={interactive} />
+        <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} onDelete={(id) => study.remove(id)} interactive={interactive} showGlow={glow} />
       )) : null}
       {interactive ? edit.nodes.map((node) => node.water && node.id === edit.selectedId ? (
         <mesh
@@ -720,7 +743,7 @@ function buildTube(edges: ReturnType<SiteNetworkStudy["flowAppearance"]>, widthS
   return geometry;
 }
 
-function TubeMeshes({ edges, quiet = false }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]>; quiet?: boolean }) {
+function TubeMeshes({ edges, quiet = false, showGlow = true }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]>; quiet?: boolean; showGlow?: boolean }) {
   const glow = useMemo(() => buildTube(edges, 2.6, 1.52), [edges]);
   const core = useMemo(() => buildTube(edges, 1, 1.7), [edges]);
   const glowMaterial = useMemo(() => new ShaderMaterial({
@@ -757,7 +780,7 @@ function TubeMeshes({ edges, quiet = false }: { edges: ReturnType<SiteNetworkStu
   if (core.getAttribute("position").count === 0) return null;
   return (
     <group>
-      <mesh geometry={glow} material={glowMaterial} visible={!quiet} renderOrder={5} raycast={skipRaycast} />
+      <mesh geometry={glow} material={glowMaterial} visible={showGlow && !quiet} renderOrder={5} raycast={skipRaycast} />
       <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />
     </group>
   );

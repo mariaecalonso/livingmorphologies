@@ -21,9 +21,9 @@ const PLANE_Y = 1.12;
 const MARK_Y = 2.55;
 
 export const TYPOLOGY_COLOR: Record<TypologyIntent, string> = {
-  lobby: "#a07a68",
-  gathering: "#5d7c79",
-  workspace: "#7f96a8",
+  lobby: "#b07be0",
+  workspace: "#6d97e0",
+  gathering: "#e7a0c0",
 };
 
 const TYPOLOGY_LABEL: Record<TypologyIntent, string> = {

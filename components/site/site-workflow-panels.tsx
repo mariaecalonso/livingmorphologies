@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
+import { fitLabel } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneFacing } from "@/lib/skill5/zoning";
 import { polygonAreaSqFt } from "@/lib/skill5/zoning";
 import { SITE_WORKFLOW, siteStepHref, ZONE_KINDS, type SiteConnection, type SiteStepId, type SiteWorkflowId, type SiteZone, type SiteZoneKind } from "./site-workflow";
@@ -74,6 +76,7 @@ export function SiteZoningPanel({
   onAddLevel,
   onConsolidate,
   consolidateNote,
+  preview,
 }: {
   kind: SiteZoneKind;
   onKind: (kind: SiteZoneKind) => void;
@@ -95,7 +98,7 @@ export function SiteZoningPanel({
   onConfirmDelete: (id: string) => void;
   onCancelDelete: () => void;
   onStrategy: () => void;
-  pockets: readonly { id: string; area: number; kind: SiteZoneKind | null; levels: number }[];
+  pockets: readonly { id: string; area: number; kind: SiteZoneKind | null; levels: number; band: string; spanEastFt: number; spanNorthFt: number; eastGapFt: number; sourceFt: number | null; attractorFt: number | null; fit: PocketFit; suggestion: string; footprints: number; lobby: "room" | "threshold" | null }[];
   pocketSelection: readonly string[];
   openSegments: number;
   branchNote: string | null;
@@ -106,60 +109,69 @@ export function SiteZoningPanel({
   onAddLevel: () => void;
   onConsolidate: () => void;
   consolidateNote: string | null;
+  preview: { index: number; title: string } | null;
 }) {
   const active = ZONE_KINDS.find((item) => item.id === kind) ?? ZONE_KINDS[0];
   return (
     <div className="site-strategy-panel">
-      <section className="site-strategy-section" aria-label="Zone type">
-        {hasNetwork ? <p className="site-strategy-note">Network in view: {networkLabel}. Pockets come from this network. A typology is assigned when you save the selection.</p> : (
-          <p className="site-strategy-note">No massing network yet. In Site Strategy, select an iteration and choose Use Network for Massing. Existing regions stay.</p>
+      <section className="site-strategy-section" aria-label="Program">
+        {preview ? <p className="site-strategy-note" title={preview.title}>Preview {preview.index}. Zoning network stays {networkLabel.split(" · ")[0]}.</p> : hasNetwork ? <p className="site-strategy-note" title={networkLabel}>Zoning {networkLabel.split(" · ")[0]}</p> : (
+          <p className="site-strategy-note">No massing network.</p>
         )}
         {!hasNetwork ? <button type="button" onClick={onStrategy}>Site Strategy</button> : null}
+        <h3>Program</h3>
         <div className="site-kind-toggle site-zone-kinds" role="group" aria-label="Program">
           {ZONE_KINDS.map((item) => (
-            <button key={item.id} type="button" data-kind={item.id} aria-pressed={kind === item.id} data-active={kind === item.id || undefined} onClick={() => onChooseKind(item.id)}>
+            <button key={item.id} type="button" data-kind={item.id} title={item.note} aria-pressed={kind === item.id} data-active={kind === item.id || undefined} onClick={() => onChooseKind(item.id)}>
               {item.label}
             </button>
           ))}
         </div>
-        <p className="site-strategy-note">{active.note} Click pockets to select more than one. Save assigns {active.label} to the selection.</p>
-        <p className="site-strategy-note">{pocketSelection.length} selected</p>
+      </section>
+      <section className="site-strategy-section" aria-label="Pockets">
+        <h3>Pockets</h3>
         {branchNote ? <p className="site-strategy-note">{branchNote}</p> : null}
-        {pockets.length > 0 ? <p className="site-strategy-note">{pockets.length} pockets from this network. Pockets stay as the network faces.{openSegments > 0 ? ` ${openSegments} open branches were left open.` : ""}</p> : null}
-        {consolidateNote ? <p className="site-strategy-note">{consolidateNote}</p> : null}
-        <div className="site-zone-edit">
-          <button type="button" disabled={pockets.length === 0} onClick={onConsolidate}>Consolidate</button>
-        </div>
-        <div className="site-zone-edit">
-          <button type="button" disabled={pocketSelection.length === 0} onClick={onClearPockets}>Clear</button>
-          <button type="button" disabled={pocketSelection.length === 0} onClick={onAddLevel}>Add level</button>
-          <button type="button" disabled={pocketSelection.length === 0} onClick={() => onAssign(kind)}>Save</button>
-        </div>
+        <p className="site-strategy-note" title="Copper fits a validated plan. A copper outline is marginal. White does not fit. Cyan is a parcel remainder.">{pockets.length} · {pocketSelection.length} selected{openSegments > 0 ? ` · ${openSegments} open` : ""}</p>
         {pockets.length > 0 ? (
           <ul className="site-strategy-nodes">
-            {pockets.map((pocket, index) => (
-              <li key={pocket.id}>
-                <button type="button" data-kind={pocket.kind ?? undefined} data-active={pocketSelection.includes(pocket.id) || undefined} onClick={() => onPickPocket(pocket.id, true)}>
-                  <i />
-                  <b>Pocket {index + 1}</b>
-                  <span>{pocket.kind ? ZONE_KINDS.find((item) => item.id === pocket.kind)?.label : "Open"} · {Math.round(pocket.area).toLocaleString("en-US")} ft²{pocket.levels > 1 ? ` · ${pocket.levels} levels` : ""}</span>
-                </button>
-              </li>
-            ))}
+            {pockets.map((pocket, index) => {
+              const program = pocket.kind ? ZONE_KINDS.find((item) => item.id === pocket.kind)?.label : null;
+              const selected = pocketSelection.includes(pocket.id);
+              const reading = program ?? [fitLabel(pocket.fit), pocket.suggestion].filter(Boolean).join(" · ");
+              return (
+                <li key={pocket.id}>
+                  <button type="button" data-kind={pocket.kind ?? "pocket"} data-fit={pocket.kind ? undefined : pocket.fit} data-active={selected || undefined} onClick={() => onPickPocket(pocket.id, true)}>
+                    <i />
+                    <b>{program ?? `Pocket ${index + 1}`}</b>
+                    <span>{Math.round(pocket.area).toLocaleString("en-US")} ft² · {reading}{pocket.levels > 1 ? ` · ${pocket.levels} levels` : ""}</span>
+                  </button>
+                  {selected ? <p className="site-strategy-note">{Math.round(pocket.spanEastFt)} × {Math.round(pocket.spanNorthFt)} ft. {pocket.footprints === 0 ? "No validated plan fits." : pocket.footprints === 1 ? "1 plan fits." : `${pocket.footprints} plans fit.`} {pocket.lobby === "room" ? "Lobby can be a room." : pocket.lobby === "threshold" ? "Lobby threshold only." : ""}</p> : null}
+                </li>
+              );
+            })}
           </ul>
         ) : null}
       </section>
+      <section className="site-strategy-section" aria-label="Pocket actions">
+        <h3>Actions</h3>
+        {consolidateNote ? <p className="site-strategy-note">{consolidateNote}</p> : null}
+        <div className="site-zone-actions">
+          <button type="button" title={preview ? "Preview only. The zoning network is unchanged." : "Remove zones on the selected faces."} disabled={preview !== null || pocketSelection.length === 0} onClick={onClearPockets}>Clear</button>
+          <button type="button" title={preview ? "Preview only. The zoning network is unchanged." : "Stack another zone on the selected faces."} disabled={preview !== null || pocketSelection.length === 0} onClick={onAddLevel}>Add level</button>
+          <button type="button" title={preview ? "Preview only. The zoning network is unchanged." : `Assign ${active.label}. Also writes the configuration.`} disabled={preview !== null || pocketSelection.length === 0} onClick={() => onAssign(kind)}>Save</button>
+        </div>
+        <div className="site-zone-actions">
+          <button type="button" title={preview ? "Preview only. The zoning network is unchanged." : "Join faces that already have a program. Drawn outlines stay."} disabled={preview !== null || pockets.length === 0} onClick={onConsolidate}>Consolidate</button>
+        </div>
+      </section>
       <section className="site-strategy-section" aria-label="Outline tools">
-        <div className="site-kind-toggle site-zone-tools" role="group" aria-label="Zoning tool">
+        <div className="site-kind-toggle site-zone-tools" role="group" aria-label="Zoning tool" title={plan ? "Click the site to add corners. Double-click, Enter, or Finish closes the outline." : "Outline edits stay in Plan."}>
           {ZONE_TOOLS.map((item) => (
-            <button key={item.id} type="button" aria-pressed={tool === item.id} data-active={tool === item.id || undefined} disabled={item.id === "draw" && !hasNetwork} onClick={() => { onKind(kind); onTool(item.id); }}>
+            <button key={item.id} type="button" aria-pressed={tool === item.id} data-active={tool === item.id || undefined} disabled={preview !== null || (item.id === "draw" && !hasNetwork)} onClick={() => { onKind(kind); onTool(item.id); }}>
               {item.label}
             </button>
           ))}
         </div>
-        <p className="site-strategy-note">
-          {plan ? "Outline is the secondary tool. Click the site to add corners. Double-click, Enter, or Finish closes it." : "Outline edits stay in Plan. Perspective and axon show the volumes."}
-        </p>
         {tool === "draw" ? <button type="button" disabled={!canFinish} onClick={onFinish}>Finish</button> : null}
         {notice ? <p className="site-strategy-note">{notice}</p> : null}
       </section>
@@ -235,7 +247,7 @@ export function SiteZoningInspector({
   return (
     <section className="site-block site-specs" aria-label="Zoning">
       <h2 className="site-subtitle">Zoning</h2>
-      <p className="site-note">Reference network: {networkLabel}</p>
+      <p className="site-note">Zoning network: {networkLabel}</p>
       {zone ? (
         <>
           <label className="site-connection-field">

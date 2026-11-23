@@ -1,4 +1,4 @@
-import type { NetworkIteration, NetworkNode } from "./site-network";
+import { readNetworkNode, type NetworkIteration, type NetworkNode } from "./site-network";
 
 const DB_NAME = "living-morphologies";
 const STORE = "site-network-iterations";
@@ -21,15 +21,10 @@ function openArchive() {
 
 function asNodes(value: unknown): NetworkNode[] {
   if (!Array.isArray(value)) return [];
-  const nodes: NetworkNode[] = [];
-  for (const item of value) {
-    if (!item || typeof item !== "object") continue;
-    const record = item as Partial<NetworkNode>;
-    if (record.kind !== "source" && record.kind !== "attractor") continue;
-    if (typeof record.id !== "string" || typeof record.x !== "number" || typeof record.z !== "number") continue;
-    nodes.push({ id: record.id, kind: record.kind, x: record.x, z: record.z });
-  }
-  return nodes;
+  return value.flatMap((item) => {
+    const node = readNetworkNode(item);
+    return node ? [node] : [];
+  });
 }
 
 function readTrails(value: unknown, inkSize: number): Float32Array | null {
@@ -64,6 +59,11 @@ function readIteration(value: unknown): NetworkIteration | null {
     cellFeet: record.cellFeet,
     generator: record.generator === "flow" || record.generator === "agents" ? record.generator : undefined,
     branches: readBranches(record.branches),
+    layoutId: typeof record.layoutId === "string" ? record.layoutId : undefined,
+    layoutTitle: typeof record.layoutTitle === "string" ? record.layoutTitle : undefined,
+    layoutFamily: record.layoutFamily === "waterfront" || record.layoutFamily === "internal" || record.layoutFamily === "road-buffered" || record.layoutFamily === "sketch" ? record.layoutFamily : undefined,
+    spacingFeet: typeof record.spacingFeet === "number" && Number.isFinite(record.spacingFeet) ? record.spacingFeet : undefined,
+    windFromDegrees: typeof record.windFromDegrees === "number" && Number.isFinite(record.windFromDegrees) ? record.windFromDegrees : record.windFromDegrees === null ? null : undefined,
   };
 }
 

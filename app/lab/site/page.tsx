@@ -4,8 +4,18 @@ import { SiteWorkspace } from "@/components/site/site-workspace";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("site");
-const tab = workspace.tabs[1];
-const MODEL_SHEETS = new Set(["strategy", "zoning", "placement", "assembly"]);
+const clusterWorkspace = labWorkspace("cluster-integration");
+const MODEL_SHEETS = new Set(["strategy", "zoning", "placement", "assembly", "configurations"]);
+const SHEET_TITLE: Record<string, string> = {
+  strategy: "Site Strategy",
+  zoning: "Zoning",
+  placement: "Cluster Placement",
+  assembly: "Assembly",
+  configurations: "Configurations",
+  compatibility: "Tile Compatibility",
+  catalog: "Cluster Catalog",
+  morphology: "Morphology Review",
+};
 
 export async function generateMetadata({
   searchParams,
@@ -14,8 +24,9 @@ export async function generateMetadata({
 }) {
   const params = await searchParams;
   const sheet = Array.isArray(params.sheet) ? params.sheet[0] : params.sheet;
-  const title = sheet === "compatibility" ? "Tile Compatibility" : sheet === "morphology" ? "Morphology Review" : sheet === "placement" ? "Cluster Placement" : tab.label;
-  return { title: `${title} -+ ${workspace.label} -+ Living Morphologies` };
+  const title = (sheet && SHEET_TITLE[sheet]) || "Site Strategy";
+  const stage = sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? clusterWorkspace.label : workspace.label;
+  return { title: `${title} -+ ${stage} -+ Living Morphologies` };
 }
 
 export default async function SitePage({

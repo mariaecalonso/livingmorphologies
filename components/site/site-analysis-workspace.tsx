@@ -53,7 +53,6 @@ import { AnalysisReadout } from "./analysis-readout";
 import { ExposureComparison, ShadeFrequency, SolarPosition } from "./sun-results";
 import { buildSiteAnalysisBundle, generatedBundleReady, writeSiteAnalysisBundle, type SiteAnalysisBundle, type SiteAnalysisStoreState } from "@/lib/skill5/site-analysis-bundle";
 import { SiteViewport, type SiteFit, type SiteReadout, type SiteViewMode } from "./site-viewport";
-import { SiteWorkflowNav } from "./site-workflow-panels";
 import { displayedMph, seasonalComparison, stationDistanceKm, WIND_SOURCE, windSummary, type WindCondition, type WindSummary } from "@/lib/skill5/wind";
 
 const site = context as SiteContext;
@@ -2543,7 +2542,6 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
 
   return (
     <main className="site-view" data-panels={panels}>
-      {panels === "analysis" ? <SiteWorkflowNav step="analysis" /> : null}
       {panels === "analysis" ? (
         <>
           <AnalysisColumn side="library" {...analysisProps} />

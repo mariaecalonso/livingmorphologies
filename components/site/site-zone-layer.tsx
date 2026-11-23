@@ -8,9 +8,9 @@ import { cleanedRing, polygonCentroid, polygonIssue, type ZoneKind, type ZonePoi
 import type { SiteViewMode } from "./site-viewport";
 
 export const ZONE_COLOR: Record<ZoneKind, string> = {
-  lobby: "#c77e5f",
-  gathering: "#49d7de",
-  workspace: "#7f96a8",
+  lobby: "#b07be0",
+  workspace: "#6d97e0",
+  gathering: "#e7a0c0",
 };
 
 export type ZoneTool = "draw" | "select" | "edit" | "move";

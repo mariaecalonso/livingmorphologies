@@ -10,6 +10,7 @@ export const SITE_WORKFLOW = [
   { id: "zoning", label: "Zoning" },
   { id: "placement", label: "Cluster Placement" },
   { id: "assembly", label: "Assembly" },
+  { id: "configurations", label: "Configurations" },
 ] as const;
 
 export type SiteStepId = (typeof SITE_WORKFLOW)[number]["id"];

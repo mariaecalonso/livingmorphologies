@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import context from "@/data/skill5/herald-site.json";
+import { assessPockets } from "@/lib/skill5/pocket-feasibility";
+import { detectPockets } from "@/lib/skill5/pockets";
+import type { SiteContext } from "@/lib/skill5/site-model";
 import type { NetworkFrame, NetworkIteration, SiteNetworkStudy } from "./site-network";
+import type { LayoutEvaluation, NetworkEvaluation } from "@/lib/skill5/strategy-evaluation";
 import { FLOW_SURVIVE } from "./site-network-flow";
 
 const EMPTY_NODES = { nodes: [] as NetworkIteration["nodes"], selectedId: null as string | null, candidates: [], selectedCandidateId: null };
@@ -235,6 +240,97 @@ export type IterationBatch = {
   step: number;
 };
 
+function paintPlan(canvas: HTMLCanvasElement, iteration: NetworkIteration, parcel: readonly (readonly [number, number])[]) {
+  const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
+  const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
+  if (cssWidth < 8 || cssHeight < 8) return false;
+  const branches = iteration.branches ?? [];
+  if (branches.length === 0 || parcel.length < 3) return false;
+  const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+  const width = Math.max(1, Math.round(cssWidth * pixelRatio));
+  const height = Math.max(1, Math.round(cssHeight * pixelRatio));
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return false;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [x, z] of parcel) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  const spanX = Math.max(1, maxX - minX);
+  const spanZ = Math.max(1, maxZ - minZ);
+  const pad = 0.08;
+  const fitX = spanX * (1 + pad * 2);
+  const fitZ = spanZ * (1 + pad * 2);
+  const scale = Math.min(width / fitX, height / fitZ);
+  const originX = (width - spanX * scale) / 2;
+  const originY = (height - spanZ * scale) / 2;
+  const map = (x: number, z: number) => ({
+    x: originX + (x - minX) * scale,
+    y: originY + (maxZ - z) * scale,
+  });
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, width, height);
+  const pockets = detectPockets(branches, parcel).pockets;
+  ctx.fillStyle = "rgba(199, 126, 95, 0.28)";
+  for (const pocket of pockets) {
+    if (pocket.points.length < 3) continue;
+    ctx.beginPath();
+    pocket.points.forEach((point, index) => {
+      const mapped = map(point.x, point.z);
+      if (index === 0) ctx.moveTo(mapped.x, mapped.y);
+      else ctx.lineTo(mapped.x, mapped.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.beginPath();
+  parcel.forEach(([x, z], index) => {
+    const mapped = map(x, z);
+    if (index === 0) ctx.moveTo(mapped.x, mapped.y);
+    else ctx.lineTo(mapped.x, mapped.y);
+  });
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(73, 215, 222, 0.7)";
+  ctx.lineWidth = Math.max(1, pixelRatio);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.lineWidth = Math.max(1.25, Math.min(width, height) * 0.006);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  for (const branch of branches) {
+    const start = map(branch.x0, branch.z0);
+    const end = map(branch.x1, branch.z1);
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+  }
+  ctx.stroke();
+  const mark = Math.max(2.4, Math.min(width, height) * 0.012);
+  for (const node of iteration.nodes) {
+    const point = map(node.x, node.z);
+    ctx.fillStyle = node.kind === "source" ? "rgb(199, 126, 95)" : "rgb(73, 215, 222)";
+    ctx.beginPath();
+    if (node.kind === "source") {
+      ctx.save();
+      ctx.translate(point.x, point.y);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-mark, -mark, mark * 2, mark * 2);
+      ctx.restore();
+    } else {
+      ctx.arc(point.x, point.y, mark, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  return true;
+}
+
 function paintIteration(canvas: HTMLCanvasElement, iteration: NetworkIteration, frame: NetworkFrame) {
   const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
   const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
@@ -364,6 +460,12 @@ function IterationCanvas({
     const paint = () => {
       const key = `${canvas.clientWidth}x${canvas.clientHeight}`;
       if (key === painted) return;
+      const parcel = (context as SiteContext).site.ring;
+      if (paintPlan(canvas, iteration, parcel)) {
+        painted = key;
+        return;
+      }
+      if (canvas.clientWidth < 8 || canvas.clientHeight < 8) return;
       painted = key;
       paintIteration(canvas, iteration, frame);
     };
@@ -375,25 +477,102 @@ function IterationCanvas({
   return <canvas ref={ref} aria-label={label} />;
 }
 
+function architectureLabel(layoutId: string, title: string) {
+  const labels: Record<string, string> = {
+    "measured-herald-waterfront": "Waterfront rooms",
+    "measured-both-waterfront": "Waterfront rooms",
+    "mapped-waterfront": "Mapped approaches",
+    "measured-northeast-internal": "Inland rooms",
+    "city-edge-internal": "Inland rooms",
+    "city-edge-road": "Road-buffered rooms",
+    "measured-both-road": "Road-buffered rooms",
+    "sketch-with-northeast": "Central and southern gathering",
+    "sketch-without-northeast": "Central and southern gathering",
+    "sketch-north-distinct-with": "Distinct northern gathering",
+    "sketch-north-distinct-without": "Distinct northern gathering",
+    "sketch-north-continuous-with": "Continuous gathering",
+    "sketch-north-continuous-without": "Continuous gathering",
+  };
+  return labels[layoutId] ?? title;
+}
+
+function percent(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function feetSpan(spread: { min: number; median: number; max: number }) {
+  return `${Math.round(spread.min)}–${Math.round(spread.median)}–${Math.round(spread.max)} ft`;
+}
+
+function shareSpan(spread: { min: number; median: number; max: number }) {
+  return `${percent(spread.min)} / ${percent(spread.median)} / ${percent(spread.max)}`;
+}
+
+function span(values: readonly number[]) {
+  if (values.length === 0) return "none";
+  const low = Math.round(Math.min(...values));
+  const high = Math.round(Math.max(...values));
+  return low === high ? `${low} ft` : `${low}–${high} ft`;
+}
+
+function metricSummary(evaluation: NetworkEvaluation) {
+  const pockets = evaluation.pockets;
+  const pocket = pockets.count === 0
+    ? "No pockets"
+    : `${pockets.count} pockets, ${Math.round(pockets.areaSqFt).toLocaleString("en-US")} ft²`;
+  return `${evaluation.status} · reach ${percent(evaluation.reachShare)} · ${evaluation.connectedAttractors}/${evaluation.attractors} attractors · ${pocket}`;
+}
+
+function MetricLines({ evaluation }: { evaluation: NetworkEvaluation }) {
+  const sun = evaluation.sunMeasured
+    ? `${evaluation.attractorReadings.filter((item) => item.exposed).length} exposed, ${evaluation.attractorReadings.filter((item) => item.shaded).length} shaded`
+    : "not measured";
+  const pockets = evaluation.pockets;
+  return (
+    <>
+      <p className="site-note">
+        {evaluation.status}. Network reach {percent(evaluation.reachShare)} of open land within {evaluation.reachFeet.toFixed(1)} ft. {evaluation.connectedAttractors} of {evaluation.attractors} attractors, {evaluation.sources} sources. {evaluation.components} components, {evaluation.junctions} junctions, {Math.round(evaluation.branchFeet)} ft. North {Math.round(evaluation.northFeet)} ft, south {Math.round(evaluation.southFeet)} ft. City side {Math.round(evaluation.cityFeet)} ft, water side {Math.round(evaluation.waterSideFeet)} ft. Sun {sun}. Wind {evaluation.windFromDegrees === null ? "not measured" : `${evaluation.windFromDegrees.toFixed(1)}° from north`}.
+      </p>
+      <p className="site-note">
+        {pockets.count === 0
+          ? "No enclosed pockets."
+          : `${pockets.count} enclosed pockets, ${Math.round(pockets.areaSqFt).toLocaleString("en-US")} ft². North ${pockets.north}, central ${pockets.central}, south ${pockets.south}. East-west ${span(pockets.readings.map((item) => item.spanEastFt))}, north-south ${span(pockets.readings.map((item) => item.spanNorthFt))}. Closest face ${Math.round(pockets.eastGapFt ?? 0)} ft from the east edge.`}
+      </p>
+    </>
+  );
+}
+
 export function SiteNetworkIterations({
   study,
   iterations,
+  evaluations,
+  layouts,
   viewId,
+  massingId,
   compareIds,
   batch,
   onGenerate,
+  onSimulateLayouts,
+  onSimulateSketch,
   onView,
+  onUse,
   onToggleCompare,
   onRegenerate,
   onClear,
 }: {
   study: SiteNetworkStudy;
   iterations: readonly NetworkIteration[];
+  evaluations: readonly NetworkEvaluation[];
+  layouts: readonly LayoutEvaluation[];
   viewId: string | null;
+  massingId: string | null;
   compareIds: readonly string[];
   batch: IterationBatch | null;
   onGenerate: (count: 10 | 20 | 30) => void;
+  onSimulateLayouts: () => void;
+  onSimulateSketch: () => void;
   onView: (id: string | null) => void;
+  onUse: (id: string) => void;
   onToggleCompare: (id: string) => void;
   onRegenerate: (id: string) => void;
   onClear: () => void;
@@ -405,74 +584,167 @@ export function SiteNetworkIterations({
   );
   const frame: NetworkFrame = study.frame;
   const ready = edit.nodes.some((node) => node.kind === "source") && edit.nodes.some((node) => node.kind === "attractor");
-  const compared = iterations.filter((item) => compareIds.includes(item.id));
+  const compared = iterations.filter((item) => compareIds.includes(item.id)).slice(0, 2);
   const showing = iterations.find((item) => item.id === viewId) ?? null;
+  const showingEvaluation = evaluations.find((item) => item.id === viewId) ?? null;
+  const manual = iterations.filter((item) => !item.layoutId);
+  const massing = iterations.find((item) => item.id === massingId) ?? null;
+  const [sort, setSort] = useState<"connectivity" | "pockets" | "area" | "plans">("connectivity");
+  const [fits, setFits] = useState<Record<string, number>>({});
+  const measured = useRef<Record<string, number>>({});
+  useEffect(() => {
+    const site = context as SiteContext;
+    const pending = iterations.filter((item) => measured.current[item.id] == null && (item.branches?.length ?? 0) > 0);
+    if (pending.length === 0) return;
+    let index = 0;
+    let cancel = false;
+    const step = () => {
+      if (cancel) return;
+      const item = pending[index];
+      index += 1;
+      if (!item) return;
+      const pockets = detectPockets(item.branches ?? [], site.site.ring);
+      const rows = assessPockets(
+        pockets.pockets,
+        item.nodes.map((node) => ({ kind: node.kind, x: node.x, z: node.z, note: node.strategy?.note ?? null })),
+        item.branches ?? [],
+      );
+      const plans = rows.filter((row) => row.fit === "plausible").length;
+      measured.current[item.id] = plans;
+      setFits((current) => ({ ...current, [item.id]: plans }));
+      if (index < pending.length) window.setTimeout(step, 0);
+    };
+    const timer = window.setTimeout(step, 0);
+    return () => {
+      cancel = true;
+      window.clearTimeout(timer);
+    };
+  }, [iterations]);
+  const order = (runs: NetworkIteration[]) => [...runs].sort((a, b) => {
+    const left = evaluations.find((item) => item.id === a.id);
+    const right = evaluations.find((item) => item.id === b.id);
+    const value = (item: NetworkIteration, evaluation: typeof left) => {
+      if (sort === "pockets") return evaluation?.pockets.count ?? 0;
+      if (sort === "area") return evaluation?.pockets.areaSqFt ?? 0;
+      if (sort === "plans") return fits[item.id] ?? -1;
+      return evaluation && evaluation.attractors > 0 ? evaluation.connectedAttractors / evaluation.attractors : 0;
+    };
+    return value(b, right) - value(a, left);
+  });
+  const card = (item: NetworkIteration) => {
+    const evaluation = evaluations.find((entry) => entry.id === item.id);
+    const unsuccessful = evaluation ? evaluation.status !== "connected" : item.total > 0 && item.reached < item.total;
+    return (
+      <article key={item.id} className="site-iteration-card" data-active={item.id === viewId || undefined} data-massing={item.id === massingId || undefined}>
+        <button type="button" aria-pressed={item.id === viewId} title={item.id === massingId ? "Zoning network" : "Preview this network"} onClick={() => onView(item.id)}>
+          <IterationCanvas iteration={item} frame={frame} label={`Iteration ${item.index}`} />
+          <span className="site-iteration-meta" data-short={unsuccessful || undefined} title={evaluation?.statusNote ?? "Attractors on the surviving network"}>
+            <b>{item.index} · {item.id === massingId ? "Zoning" : item.id === viewId ? "Preview" : "Saved"}</b>
+            <b>{evaluation ? `${evaluation.connectedAttractors}/${evaluation.attractors}` : `${item.reached}/${item.total}`}</b>
+          </span>
+          <span className="site-iteration-meta">
+            <b>{evaluation ? `${evaluation.pockets.north}/${evaluation.pockets.central}/${evaluation.pockets.south}` : "—"}</b>
+            <b>{fits[item.id] == null ? "Plans …" : `${fits[item.id]} plans`}</b>
+          </span>
+        </button>
+        <div className="site-modes">
+          <button type="button" disabled={item.id === massingId} onClick={() => onUse(item.id)}>Use for Zoning</button>
+          <button type="button" data-active={compareIds.includes(item.id) || undefined} onClick={() => onToggleCompare(item.id)}>Compare</button>
+        </div>
+      </article>
+    );
+  };
   return (
     <section className="site-block site-specs" aria-label="Network iterations">
-      <h2 className="site-subtitle">Iterations {iterations.length > 0 ? <span>{iterations.length}</span> : null}</h2>
-      <div className="site-modes site-network-controls" role="group" aria-label="Iteration batch">
-        {BATCHES.map((count) => (
-          <button key={count} type="button" disabled={!ready || batch !== null} onClick={() => onGenerate(count)}>
-            {count}
-          </button>
+      <h2 className="site-subtitle">Networks {iterations.length > 0 ? <span>{iterations.length}</span> : null}</h2>
+      <p className="site-note">{massing ? `Zoning network ${massing.index}${massing.layoutTitle ? ` · ${massing.layoutTitle}` : ""}` : "No zoning network"}</p>
+      <div className="site-modes site-network-controls" role="group" aria-label="Sort">
+        {(["connectivity", "pockets", "area", "plans"] as const).map((item) => (
+          <button key={item} type="button" aria-pressed={sort === item} data-active={sort === item || undefined} onClick={() => setSort(item)}>{item === "plans" ? "Plans" : item === "pockets" ? "Pockets" : item === "area" ? "Area" : "Connected"}</button>
         ))}
       </div>
-      {batch ? (
-        <p className="site-note" role="status">
-          {batch.done + 1}/{batch.total} · step {batch.step}
-        </p>
+      {batch ? <p className="site-note" role="status">{batch.done + 1}/{batch.total} · step {batch.step}</p> : null}
+      <p className="site-note">{showing ? `Preview ${showing.index}${showing.layoutTitle ? ` · ${showing.layoutTitle}` : ""}` : "Live simulation"}</p>
+      {showing && showing.id !== massingId ? <p className="site-note">Preview. The zoning network stays.</p> : null}
+      <details className="site-network-eval">
+        <summary>Runs</summary>
+        <div className="site-modes site-network-controls" role="group" aria-label="New runs">
+          {BATCHES.map((count) => (
+            <button key={count} type="button" disabled={!ready || batch !== null} onClick={() => onGenerate(count)}>{count}</button>
+          ))}
+          <button type="button" disabled={batch !== null} onClick={onSimulateLayouts}>Layouts</button>
+          <button type="button" disabled={batch !== null} onClick={onSimulateSketch}>Sketch</button>
+          <button type="button" data-active={viewId === null || undefined} onClick={() => onView(null)}>Live</button>
+          <button type="button" disabled={!showing || batch !== null} onClick={() => {
+            if (!showing || !window.confirm(`Replace iteration ${showing.index} with a new seed? The saved run is overwritten.`)) return;
+            onRegenerate(showing.id);
+          }}>Regenerate</button>
+          <button type="button" disabled={iterations.length === 0 || batch !== null} onClick={() => {
+            if (!window.confirm(`Delete all ${iterations.length} saved iterations? This cannot be undone.`)) return;
+            onClear();
+          }}>Clear</button>
+        </div>
+      </details>
+      {showingEvaluation ? (
+        <details className="site-network-eval">
+          <summary>{metricSummary(showingEvaluation)}</summary>
+          <MetricLines evaluation={showingEvaluation} />
+        </details>
       ) : null}
-      {!ready ? (
-        <p className="site-note">Place a source and an attractor.</p>
+      <div className="site-iteration-scroll">
+      {layouts.some((layout) => layout.family !== "sketch" && iterations.some((item) => item.layoutId === layout.layoutId)) ? <h3 className="site-subtitle">Exploratory</h3> : null}
+      {layouts.filter((layout) => layout.family !== "sketch").map((layout) => {
+        const runs = iterations.filter((item) => item.layoutId === layout.layoutId);
+        if (runs.length === 0) return null;
+        return (
+          <section key={layout.layoutId} aria-label={layout.title}>
+            <h3 className="site-subtitle" title={`${layout.connectedRuns} of ${layout.runs} connected. Reach ${shareSpan(layout.reachShare)}. Branches ${feetSpan(layout.branchFeet)}.`}>{architectureLabel(layout.layoutId, layout.title)}</h3>
+            <div className="site-iteration-grid">
+              {order(runs).map(card)}
+            </div>
+          </section>
+        );
+      })}
+      {layouts.some((layout) => layout.family === "sketch" && iterations.some((item) => item.layoutId === layout.layoutId)) ? <h3 className="site-subtitle">Sketch</h3> : null}
+      {layouts.filter((layout) => layout.family === "sketch").map((layout) => {
+        const runs = iterations.filter((item) => item.layoutId === layout.layoutId);
+        if (runs.length === 0) return null;
+        return (
+          <section key={layout.layoutId} aria-label={layout.title}>
+            <h3 className="site-subtitle" title={`${layout.connectedRuns} of ${layout.runs} connected. Reach ${shareSpan(layout.reachShare)}. Branches ${feetSpan(layout.branchFeet)}.`}>{architectureLabel(layout.layoutId, layout.title)}</h3>
+            <div className="site-iteration-grid">
+              {order(runs).map(card)}
+            </div>
+          </section>
+        );
+      })}
+      {manual.length > 0 ? (
+        <section aria-label="Editor iterations">
+          <h3 className="site-subtitle" title="Runs saved from the editor, not from a generated layout.">Editor</h3>
+          <div className="site-iteration-grid">
+            {order(manual).map(card)}
+          </div>
+        </section>
+      ) : iterations.length === 0 ? (
+        <p className="site-note">None saved.</p>
       ) : null}
-      <div className="site-modes site-network-controls">
-        <button type="button" data-active={viewId === null || undefined} onClick={() => onView(null)}>Live</button>
-        <button type="button" disabled={!showing || batch !== null} onClick={() => showing && onRegenerate(showing.id)}>Regenerate</button>
-        <button type="button" disabled={iterations.length === 0 || batch !== null} onClick={onClear}>Clear</button>
-      </div>
-      {showing ? (
-        <p className="site-note">
-          {showing.index} · seed {showing.seed} · {showing.generator === "flow" ? `${showing.reached}/${showing.total} stable links` : `${showing.reached}/${showing.total}`} · step {showing.step}
-          {showing.note ? ` · ${showing.note}` : ""}
-        </p>
-      ) : (
-        <p className="site-note">Live</p>
-      )}
-      {iterations.length > 0 ? (
-        <div className="site-iteration-grid">
-          {iterations.map((item) => {
-            const short = item.total > 0 && item.reached < item.total;
+      {compared.length >= 2 ? (
+        <div className="site-iteration-compare" aria-label="Compared iterations">
+          {compared.map((item) => {
+            const evaluation = evaluations.find((entry) => entry.id === item.id);
             return (
-              <article key={item.id} className="site-iteration-card" data-active={item.id === viewId || undefined}>
-                <button type="button" aria-pressed={item.id === viewId} onClick={() => onView(item.id)}>
-                  <IterationCanvas iteration={item} frame={frame} label={`Iteration ${item.index}`} />
-                  <span className="site-iteration-meta" data-short={short || undefined} title={item.generator === "flow" ? "Stable conductivity links" : "Persistent connections"}>
-                    <b>{item.index}</b>
-                    <b>{item.reached}/{item.total}</b>
-                  </span>
-                </button>
-                <button type="button" data-active={compareIds.includes(item.id) || undefined} onClick={() => onToggleCompare(item.id)}>
-                  Compare
-                </button>
-              </article>
+              <figure key={item.id}>
+                <IterationCanvas iteration={item} frame={frame} label={`Compare iteration ${item.index}`} />
+                <figcaption className="site-note">
+                  {item.index} · {evaluation?.status ?? `${item.reached}/${item.total}`}
+                </figcaption>
+                {evaluation ? <p className="site-note">{metricSummary(evaluation)}</p> : null}
+              </figure>
             );
           })}
         </div>
-      ) : (
-        <p className="site-note">None saved.</p>
-      )}
-      {compared.length >= 2 ? (
-        <div className="site-iteration-compare" aria-label="Compared iterations">
-          {compared.map((item) => (
-            <figure key={item.id}>
-              <IterationCanvas iteration={item} frame={frame} label={`Compare iteration ${item.index}`} />
-              <figcaption className="site-note">
-                {item.index} · {item.reached}/{item.total}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
       ) : null}
+      </div>
     </section>
   );
 }

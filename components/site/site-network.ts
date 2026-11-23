@@ -15,6 +15,7 @@ import {
   auditFlowMask,
   createFlowGraph,
   createFlowState,
+  FLOW_SPACING_FEET,
   FLOW_SURVIVE,
   flowSettled,
   rasterFlow,
@@ -102,6 +103,27 @@ export type NetworkNode = {
   surface?: "water";
   /** Permitted growth region. Null means the zone was removed and the bay around this node stays closed. */
   water?: WaterGrowth | null;
+  /** Provenance for a generated proposal. Manual nodes leave this unset. */
+  strategy?: StrategyNodeTrace;
+};
+
+export type StrategyOrigin = "measured-access" | "city-edge" | "mapped-approach" | "waterfront" | "internal" | "road-buffered";
+
+/** Measurements recorded with a generated node. They are not a combined score. */
+export type StrategyNodeTrace = {
+  layoutId: string;
+  origin: StrategyOrigin;
+  /** True for a measured access gap. A design proposal stays false. */
+  unverified: boolean;
+  note: string;
+  /** Nearest open sightline to the coastline, in feet. Null when none is open. */
+  shoreFeet: number | null;
+  /** Nearest distance to the coastline, in feet. Null on records saved before this field. */
+  waterfrontFeet: number | null;
+  openRays: number | null;
+  macarthurFeet: number | null;
+  exposed: boolean | null;
+  shaded: boolean | null;
 };
 
 export type NetworkCandidate = PedestrianCandidate & {
@@ -195,6 +217,14 @@ export type NetworkIteration = {
   generator?: "flow" | "agents";
   /** Surviving adaptive-flow branches, in site feet. Absent on older saved iterations. */
   branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[];
+  /** Generated layout that supplied the nodes. Manual runs leave this unset. */
+  layoutId?: string;
+  layoutTitle?: string;
+  layoutFamily?: "waterfront" | "internal" | "road-buffered" | "sketch";
+  /** Flow-graph spacing used for the run, in site feet. */
+  spacingFeet?: number;
+  /** Airport wind direction, stored only when the layout measured it. */
+  windFromDegrees?: number | null;
 };
 
 type StudyInit = {
@@ -209,6 +239,8 @@ type StudyInit = {
   slime?: Partial<SlimeControls>;
   /** Field-unit spread of every attractor. The live study uses the distance rule instead. */
   attractorSpread?: number;
+  /** Flow-graph spacing in site feet. The live study keeps 15. */
+  spacingFeet?: number;
   /** Adaptive flow is the live generator. `agents` keeps the previous stepper for rollback. */
   generator?: "flow" | "agents";
 };
@@ -431,7 +463,52 @@ function readWater(value: unknown): WaterGrowth | null | undefined {
 }
 
 function copyNode(node: NetworkNode): NetworkNode {
-  return { ...node, water: node.water ? { ...node.water } : node.water };
+  return { ...node, water: node.water ? { ...node.water } : node.water, strategy: node.strategy ? { ...node.strategy } : node.strategy };
+}
+
+function readStrategy(value: unknown): StrategyNodeTrace | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Partial<StrategyNodeTrace>;
+  const origins: StrategyOrigin[] = ["measured-access", "city-edge", "mapped-approach", "waterfront", "internal", "road-buffered"];
+  if (typeof record.layoutId !== "string" || typeof record.note !== "string") return undefined;
+  if (!origins.includes(record.origin as StrategyOrigin)) return undefined;
+  const numberOrNull = (item: unknown) => (typeof item === "number" && Number.isFinite(item) ? item : null);
+  const booleanOrNull = (item: unknown) => (typeof item === "boolean" ? item : null);
+  return {
+    layoutId: record.layoutId,
+    origin: record.origin as StrategyOrigin,
+    unverified: record.unverified === true,
+    note: record.note,
+    shoreFeet: numberOrNull(record.shoreFeet),
+    waterfrontFeet: numberOrNull(record.waterfrontFeet),
+    openRays: numberOrNull(record.openRays),
+    macarthurFeet: numberOrNull(record.macarthurFeet),
+    exposed: booleanOrNull(record.exposed),
+    shaded: booleanOrNull(record.shaded),
+  };
+}
+
+/** Reads one stored node, including water and strategy fields when they are present. */
+export function readNetworkNode(value: unknown): NetworkNode | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Partial<NetworkNode> & { water?: unknown; strategy?: unknown };
+  if (record.kind !== "source" && record.kind !== "attractor") return null;
+  if (typeof record.id !== "string" || typeof record.x !== "number" || typeof record.z !== "number") return null;
+  if (!Number.isFinite(record.x) || !Number.isFinite(record.z)) return null;
+  const node: NetworkNode = { id: record.id, kind: record.kind, x: record.x, z: record.z };
+  if (typeof record.recordId === "string") node.recordId = record.recordId;
+  if (typeof record.measuredX === "number" && typeof record.measuredZ === "number") {
+    node.measuredX = record.measuredX;
+    node.measuredZ = record.measuredZ;
+  }
+  const water = readWater(record.water);
+  if (record.surface === "water" || water !== undefined) {
+    if (node.kind === "attractor") node.surface = "water";
+    if (water !== undefined) node.water = water;
+  }
+  const strategy = readStrategy(record.strategy);
+  if (strategy) node.strategy = strategy;
+  return node;
 }
 
 function readStored(): NetworkNode[] {
@@ -441,23 +518,8 @@ function readStored(): NetworkNode[] {
     if (!Array.isArray(parsed)) return [];
     const nodes: NetworkNode[] = [];
     for (const item of parsed) {
-      if (!item || typeof item !== "object") continue;
-      const record = item as Partial<NetworkNode> & { water?: unknown };
-      if (record.kind !== "source" && record.kind !== "attractor") continue;
-      if (typeof record.id !== "string" || typeof record.x !== "number" || typeof record.z !== "number") continue;
-      if (!Number.isFinite(record.x) || !Number.isFinite(record.z)) continue;
-      const node: NetworkNode = { id: record.id, kind: record.kind, x: record.x, z: record.z };
-      if (typeof record.recordId === "string") node.recordId = record.recordId;
-      if (typeof record.measuredX === "number" && typeof record.measuredZ === "number") {
-        node.measuredX = record.measuredX;
-        node.measuredZ = record.measuredZ;
-      }
-      const water = readWater(record.water);
-      if (record.surface === "water" || water !== undefined) {
-        if (node.kind === "attractor") node.surface = "water";
-        if (water !== undefined) node.water = water;
-      }
-      nodes.push(node);
+      const node = readNetworkNode(item);
+      if (node) nodes.push(node);
     }
     return nodes;
   } catch {
@@ -506,6 +568,7 @@ export class SiteNetworkStudy {
   private readonly waterRing: readonly XZ[];
   private readonly footprints: readonly NetworkFootprint[];
   private readonly legacyOverWater: readonly XZ[] | null;
+  private readonly spacingFeet: number;
 
   constructor(parcel: readonly XZ[], water: readonly XZ[], init?: StudyInit) {
     this.persistEnabled = init?.persist !== false;
@@ -515,6 +578,7 @@ export class SiteNetworkStudy {
     this.waterRing = water;
     this.footprints = init?.buildings ?? [];
     this.legacyOverWater = init?.overWater ?? null;
+    this.spacingFeet = init?.spacingFeet ?? FLOW_SPACING_FEET;
     this.frame = frameAround(parcel);
     this.rng = mulberry32(this.seed ^ 0x51e7);
     this.inkSize = FIELD_SIZE * SITE_TRAIL_SCALE;
@@ -619,6 +683,25 @@ export class SiteNetworkStudy {
   canPlace(kind: NetworkNodeKind, x: number, z: number) {
     if (kind === "source") return this.onOpenLand(x, z);
     return this.onOpenLand(x, z) || (this.onWater(x, z) && this.inFrame(x, z));
+  }
+
+  /**
+   * Replaces the nodes in the editor with a generated layout.
+   * Saved iterations and configurations are not touched.
+   */
+  installProposal(nodes: readonly NetworkNode[]) {
+    const kept = nodes.map((node) => copyNode(node)).filter((node) => this.keeps(node));
+    let serial = 1;
+    for (const node of kept) {
+      const match = /^n(\d+)$/.exec(node.id);
+      if (match) serial = Math.max(serial, Number(match[1]) + 1);
+    }
+    this.serial = serial;
+    this.installDomain(kept);
+    this.replace(kept, null, null);
+    this.persist();
+    this.applyTargets(false);
+    return kept.length;
   }
 
   place(kind: NetworkNodeKind, x: number, z: number) {
@@ -809,7 +892,7 @@ export class SiteNetworkStudy {
     const terminals = this.editState.nodes
       .filter((node) => this.insideField(node.x, node.z))
       .map((node) => ({ id: node.id, kind: node.kind, x: node.x, z: node.z }));
-    const graph = createFlowGraph(terminals, 15, this.cellFeet, this.frame, this.inkSize, this.open, this.flowRng);
+    const graph = createFlowGraph(terminals, this.spacingFeet, this.cellFeet, this.frame, this.inkSize, this.open, this.flowRng);
     this.flow = createFlowState(graph);
     return this.flow;
   }
@@ -1116,6 +1199,7 @@ export class SiteNetworkStudy {
       ...(node.surface === "water"
         ? { surface: "water" as const, water: node.water ? { ...node.water } : null }
         : {}),
+      ...(node.strategy ? { strategy: { ...node.strategy } } : {}),
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
   }

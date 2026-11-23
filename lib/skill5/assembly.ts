@@ -81,6 +81,8 @@ export type SiteAssembly = {
   baseline: AssemblyBaseline;
   members: AssemblyMember[];
   connectors: AssemblyConnector[];
+  /** Network iteration this assembly was placed with. Untagged assemblies stay visible. */
+  networkId?: string | null;
 };
 
 export function cellToFeet(value: number) {

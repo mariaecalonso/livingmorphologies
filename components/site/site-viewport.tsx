@@ -80,6 +80,7 @@ import type { TypologyAttractor, TypologyIntent } from "./typology-attractors";
 import { SitePocketLayer } from "./site-pocket-layer";
 import { SiteZoneLayer, type ZoneTool } from "./site-zone-layer";
 import type { NetworkPocket } from "@/lib/skill5/pockets";
+import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneKind, ZonePoint, ZoningRegion } from "@/lib/skill5/zoning";
 
 export type SiteViewMode = "perspective" | "plan" | "axon" | "section";
@@ -1479,7 +1480,7 @@ export function SiteViewport({
   } | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
   zones?: readonly ZoningRegion[] | null;
   zoning?: {
     tool: ZoneTool;
@@ -1496,6 +1497,7 @@ export function SiteViewport({
     pockets?: {
       items: readonly NetworkPocket[];
       kinds: Readonly<Record<string, ZoneKind | null>>;
+      fits?: Readonly<Record<string, PocketFit>>;
       hoverId: string | null;
       selectedIds: readonly string[];
       onHover: (id: string | null) => void;
@@ -1629,7 +1631,7 @@ function PlacementScene({
   } | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean } | null;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
   zones: readonly ZoningRegion[] | null;
   zoning: {
     tool: ZoneTool;
@@ -1646,6 +1648,7 @@ function PlacementScene({
     pockets?: {
       items: readonly NetworkPocket[];
       kinds: Readonly<Record<string, ZoneKind | null>>;
+      fits?: Readonly<Record<string, PocketFit>>;
       hoverId: string | null;
       selectedIds: readonly string[];
       onHover: (id: string | null) => void;
@@ -1689,12 +1692,13 @@ function PlacementScene({
       {roadProximity ? <RoadProximityLayer {...roadProximity} /> : null}
       {movement ? <MovementLayer {...movement} /> : walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
-      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} quiet={network.quiet === true} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} quiet={network.quiet === true} glow={network.glow !== false} /> : null}
       {typology ? <TypologyAttractorLayer study={typology.study} points={typology.points} placing={typology.placing} visible={typology.visible} types={typology.types} selectedId={typology.selectedId} onSelect={typology.onSelect} onAdd={typology.onAdd} onMove={typology.onMove} /> : null}
       {zoning?.pockets && (zoning.tool !== "draw" || !zoning.active) ? (
         <SitePocketLayer
           pockets={zoning.pockets.items}
           kinds={zoning.pockets.kinds}
+          fits={zoning.pockets.fits}
           hoverId={zoning.pockets.hoverId}
           selectedIds={zoning.pockets.selectedIds}
           onHover={zoning.pockets.onHover}

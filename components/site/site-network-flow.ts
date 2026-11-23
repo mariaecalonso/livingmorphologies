@@ -17,7 +17,7 @@ const FLOW_SHEET = 0.32;
 /** A short filament ahead of the sheet. */
 const FLOW_HAIR = 0.13;
 const FLOW_STABLE_STEPS = 20;
-const FLOW_MAX_STEPS = 360;
+export const FLOW_MAX_STEPS = 360;
 const SOLVER_ITERATIONS = 40;
 /** Edges opened in one step while the organism is still searching. */
 const GROW_EDGES = 48;

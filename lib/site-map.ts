@@ -24,6 +24,12 @@ export const LAB_ENTRY = { href: "/lab/physarum", label: "Explore Lab" } as cons
 /** The client page lives in the lab as its own stage. */
 export const CLIENT_LAB = { href: "/lab/client", label: "Client" } as const;
 
+/** Kept off the stage bar. The page stays at /lab/physarum-cinematic. */
+export const CINEMATIC_STAGE_ARCHIVED = true;
+
+/** Kept off the stage bar. The page stays at /lab/physarum-study. */
+export const GROWTH_STAGE_ARCHIVED = true;
+
 /**
  * Lab workspaces. Overall Workflow and Results read these names.
  * Change a label here and the stage bar, the workflow zoom, and the results preview follow.
@@ -67,7 +73,7 @@ export const LAB_WORKSPACES = [
   {
     id: "clustering",
     href: "/lab/clustering",
-    label: "Clustering",
+    label: "Initial Cluster",
     workflowStage: "clustering",
     resultId: null,
     tabs: [
@@ -78,17 +84,21 @@ export const LAB_WORKSPACES = [
     ],
   },
   {
-    id: "interpretation",
-    href: "/lab/interpretation",
-    label: "Architectural Interpretation",
-    workflowStage: "interpretation",
+    id: "site",
+    href: "/lab/site",
+    label: "Site Integration",
+    workflowStage: "skill-5",
     resultId: null,
-    tabs: [],
+    tabs: [
+      { href: "/lab/site/analysis", label: "Site Analysis" },
+      { href: "/lab/site?sheet=strategy", label: "Site Strategy" },
+      { href: "/lab/site?sheet=zoning", label: "Zoning" },
+    ],
   },
   {
     id: "hybrid",
     href: "/lab/hybrid",
-    label: "Hybrid Connection",
+    label: "Hybrid Cluster",
     workflowStage: "recombination",
     resultId: null,
     tabs: [
@@ -98,16 +108,24 @@ export const LAB_WORKSPACES = [
     ],
   },
   {
-    id: "site",
-    href: "/lab/site",
-    label: "Site Integration",
-    workflowStage: "skill-5",
+    id: "cluster-integration",
+    href: "/lab/site?sheet=placement",
+    label: "Cluster Integration",
+    workflowStage: "cluster-integration",
     resultId: null,
     tabs: [
-      { href: "/lab/site/analysis", label: "Site Analysis" },
-      { href: "/lab/site?sheet=strategy", label: "Site Model" },
-      { href: "/lab/site/configurations", label: "Configurations" },
+      { href: "/lab/site?sheet=placement", label: "Cluster Placement" },
+      { href: "/lab/site?sheet=assembly", label: "Assembly" },
+      { href: "/lab/site?sheet=configurations", label: "Configurations" },
     ],
+  },
+  {
+    id: "interpretation",
+    href: "/lab/interpretation",
+    label: "Architectural Interpretation",
+    workflowStage: "interpretation",
+    resultId: null,
+    tabs: [],
   },
 ] as const;
 
