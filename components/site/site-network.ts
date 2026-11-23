@@ -105,6 +105,53 @@ export type NetworkNode = {
   water?: WaterGrowth | null;
   /** Provenance for a generated proposal. Manual nodes leave this unset. */
   strategy?: StrategyNodeTrace;
+  /** Architectural role for one strategy arrangement. Older nodes leave this unset. */
+  architecture?: NodeArchitecture;
+};
+
+export const ARCHITECTURAL_ROLES = [
+  "primary-lobby",
+  "private-lobby",
+  "north-lobby",
+  "central-gathering",
+  "private-gathering",
+  "north-gathering",
+  "workspace",
+] as const;
+
+export type ArchitecturalRole = (typeof ARCHITECTURAL_ROLES)[number];
+
+export type EvidenceProvenance = {
+  class: "measured" | "proposed";
+  unverified: boolean;
+  evidenceId: string | null;
+};
+
+export type NodeArchitecture = {
+  role: ArchitecturalRole;
+  provenance: EvidenceProvenance;
+};
+
+export type ExperimentalLobbyCondition = "city-side-measured" | "northeast-measured" | "northwest-proposed" | "absent";
+
+/** Recorded on each arrangement. The field name stays so earlier runs still load. */
+export type ArrangementParameters = {
+  experimentalLobby: ExperimentalLobbyCondition;
+  publicLobby: "central-west" | "central-west-north";
+  privateLobby: "southwest-end" | "southwest-inset";
+  gathering: "distinct" | "continuous";
+  workspace: "spread" | "single-south";
+  recessionFt: number;
+  seeds: readonly number[];
+};
+
+export type ArchitecturalRecord = {
+  strategyId: "herald-arrival-v1";
+  arrangementId: string;
+  relationships: readonly { from: ArchitecturalRole; to: ArchitecturalRole; statement: string }[];
+  /** Stored name for the Experimental Lobby condition. */
+  northLobby: ExperimentalLobbyCondition;
+  parameters?: ArrangementParameters;
 };
 
 export type StrategyOrigin = "measured-access" | "city-edge" | "mapped-approach" | "waterfront" | "internal" | "road-buffered";
@@ -220,11 +267,13 @@ export type NetworkIteration = {
   /** Generated layout that supplied the nodes. Manual runs leave this unset. */
   layoutId?: string;
   layoutTitle?: string;
-  layoutFamily?: "waterfront" | "internal" | "road-buffered" | "sketch";
+  layoutFamily?: "waterfront" | "internal" | "road-buffered" | "sketch" | "strategy";
   /** Flow-graph spacing used for the run, in site feet. */
   spacingFeet?: number;
   /** Airport wind direction, stored only when the layout measured it. */
   windFromDegrees?: number | null;
+  /** Strategy that produced this run. Older saved iterations leave this unset. */
+  architectureRecord?: ArchitecturalRecord;
 };
 
 type StudyInit = {
@@ -463,7 +512,12 @@ function readWater(value: unknown): WaterGrowth | null | undefined {
 }
 
 function copyNode(node: NetworkNode): NetworkNode {
-  return { ...node, water: node.water ? { ...node.water } : node.water, strategy: node.strategy ? { ...node.strategy } : node.strategy };
+  return {
+    ...node,
+    water: node.water ? { ...node.water } : node.water,
+    strategy: node.strategy ? { ...node.strategy } : node.strategy,
+    architecture: node.architecture ? { ...node.architecture, provenance: { ...node.architecture.provenance } } : node.architecture,
+  };
 }
 
 function readStrategy(value: unknown): StrategyNodeTrace | undefined {
@@ -508,7 +562,26 @@ export function readNetworkNode(value: unknown): NetworkNode | null {
   }
   const strategy = readStrategy(record.strategy);
   if (strategy) node.strategy = strategy;
+  const architecture = readNodeArchitecture(record.architecture);
+  if (architecture) node.architecture = architecture;
   return node;
+}
+
+function readNodeArchitecture(value: unknown): NodeArchitecture | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as { role?: unknown; provenance?: unknown };
+  if (typeof record.role !== "string" || !(ARCHITECTURAL_ROLES as readonly string[]).includes(record.role)) return undefined;
+  if (!record.provenance || typeof record.provenance !== "object") return undefined;
+  const provenance = record.provenance as { class?: unknown; unverified?: unknown; evidenceId?: unknown };
+  if (provenance.class !== "measured" && provenance.class !== "proposed") return undefined;
+  return {
+    role: record.role as ArchitecturalRole,
+    provenance: {
+      class: provenance.class,
+      unverified: provenance.unverified === true,
+      evidenceId: typeof provenance.evidenceId === "string" ? provenance.evidenceId : null,
+    },
+  };
 }
 
 function readStored(): NetworkNode[] {

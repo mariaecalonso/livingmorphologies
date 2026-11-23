@@ -12,6 +12,17 @@ export const PROGRAM_FT = 40;
 /** A participating source this close is a lobby threshold. */
 export const THRESHOLD_FT = 30;
 const REMAINDER_AREA = 80_000;
+
+/** A face this large is the parcel remainder, not an enclosed room. */
+export function isParcelRemainder(areaSqFt: number, spanEastFt: number, spanNorthFt: number) {
+  return areaSqFt >= REMAINDER_AREA || (spanEastFt >= 200 && spanNorthFt >= 200);
+}
+
+/** The face can hold a clear square. This is not a cluster-library match. */
+export function holdsClearSquare(points: readonly ZonePoint[]) {
+  const field = clearanceOf(points);
+  return squareFits(points, field.samples, SMALLEST_CLEARANCE_FT);
+}
 const STEP_FT = 4;
 const ANGLES = Array.from({ length: 24 }, (_, index) => (index * Math.PI) / 12);
 
@@ -25,7 +36,7 @@ export type PocketAssessment = {
   lobby: "room" | "threshold" | null;
 };
 
-type PlanNode = { kind: "source" | "attractor"; x: number; z: number; note?: string | null };
+type PlanNode = { kind: "source" | "attractor"; x: number; z: number; note?: string | null; program?: SuggestionKind | null };
 
 const prepared = CLUSTER_FOOTPRINTS.map((footprint) => {
   let diameter = 0;
@@ -192,6 +203,11 @@ function roleOf(note: string | null | undefined): SuggestionKind | null {
   return null;
 }
 
+function programOf(node: PlanNode): SuggestionKind | null {
+  if (node.program === "lobby" || node.program === "gathering" || node.program === "workspace") return node.program;
+  return roleOf(node.note);
+}
+
 function spans(points: readonly ZonePoint[]) {
   let east = 0;
   let north = 0;
@@ -233,18 +249,18 @@ function countFits(pocket: NetworkPocket, area: number) {
  */
 export function assessPockets(pockets: readonly NetworkPocket[], nodes: readonly PlanNode[], branches: readonly NetworkBranch[]): PocketAssessment[] {
   const sources = participating(nodes, branches);
-  const attractors = nodes.filter((node) => node.kind === "attractor" && roleOf(node.note));
+  const attractors = nodes.filter((node) => node.kind === "attractor" && programOf(node));
   return pockets.map((pocket) => {
     const area = polygonAreaSqFt(pocket.points);
     const span = spans(pocket.points);
-    const remainder = area >= REMAINDER_AREA || (span.east >= 200 && span.north >= 200);
+    const remainder = isParcelRemainder(area, span.east, span.north);
     const counted = countFits(pocket, area);
     const fit: PocketFit = remainder ? "remainder" : counted.footprints > 0 ? "plausible" : counted.square ? "marginal" : "unsuitable";
     const placeable = fit === "plausible" || fit === "marginal";
     const suggestions = new Set<SuggestionKind>();
     if (placeable) {
       for (const attractor of attractors) {
-        const role = roleOf(attractor.note);
+        const role = programOf(attractor);
         if (!role) continue;
         if (boundaryDistance(attractor.x, attractor.z, pocket.points) <= PROGRAM_FT) suggestions.add(role);
       }

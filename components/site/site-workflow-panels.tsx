@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { displayRelationship } from "@/lib/skill5/architectural-strategy";
 import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
 import { fitLabel } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneFacing } from "@/lib/skill5/zoning";
@@ -77,6 +78,10 @@ export function SiteZoningPanel({
   onConsolidate,
   consolidateNote,
   preview,
+  strategy,
+  shortlist,
+  onPreviewShortlist,
+  onUseShortlist,
 }: {
   kind: SiteZoneKind;
   onKind: (kind: SiteZoneKind) => void;
@@ -110,6 +115,10 @@ export function SiteZoningPanel({
   onConsolidate: () => void;
   consolidateNote: string | null;
   preview: { index: number; title: string } | null;
+  strategy: { strategyId: string; arrangementId: string; relationships: readonly { statement: string }[] } | null;
+  shortlist: readonly { id: string; index: number; title: string; active: boolean }[];
+  onPreviewShortlist: (id: string) => void;
+  onUseShortlist: (id: string) => void;
 }) {
   const active = ZONE_KINDS.find((item) => item.id === kind) ?? ZONE_KINDS[0];
   return (
@@ -119,6 +128,26 @@ export function SiteZoningPanel({
           <p className="site-strategy-note">No massing network.</p>
         )}
         {!hasNetwork ? <button type="button" onClick={onStrategy}>Site Strategy</button> : null}
+        {strategy ? (
+          <>
+            <p className="site-strategy-note">{strategy.strategyId} · {strategy.arrangementId}</p>
+            {strategy.relationships.map((item) => <p key={item.statement} className="site-strategy-note">{displayRelationship(item.statement)}</p>)}
+          </>
+        ) : null}
+        <h3>Shortlist</h3>
+        {shortlist.length === 0 ? <p className="site-strategy-note">No networks shortlisted. Zoning keeps one active network.</p> : (
+          <ul className="site-strategy-nodes">
+            {shortlist.map((item) => (
+              <li key={item.id}>
+                <button type="button" data-active={item.active || undefined} onClick={() => onPreviewShortlist(item.id)}>
+                  <b>{item.index}</b>
+                  <span>{item.active ? "Zoning network" : "Preview"} · {item.title}</span>
+                </button>
+                <button type="button" disabled={item.active} onClick={() => onUseShortlist(item.id)}>Use for Zoning</button>
+              </li>
+            ))}
+          </ul>
+        )}
         <h3>Program</h3>
         <div className="site-kind-toggle site-zone-kinds" role="group" aria-label="Program">
           {ZONE_KINDS.map((item) => (

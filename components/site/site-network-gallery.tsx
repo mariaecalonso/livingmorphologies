@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import context from "@/data/skill5/herald-site.json";
-import { assessPockets } from "@/lib/skill5/pocket-feasibility";
+import { ARRANGEMENT_FAMILY, ROLE_LABEL } from "@/lib/skill5/architectural-strategy";
+import { assessPockets, isParcelRemainder, PARTICIPATE_FT } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets } from "@/lib/skill5/pockets";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import type { NetworkFrame, NetworkIteration, SiteNetworkStudy } from "./site-network";
 import type { LayoutEvaluation, NetworkEvaluation } from "@/lib/skill5/strategy-evaluation";
 import { FLOW_SURVIVE } from "./site-network-flow";
-
-const EMPTY_NODES = { nodes: [] as NetworkIteration["nodes"], selectedId: null as string | null, candidates: [], selectedCandidateId: null };
 
 const SOURCE_RGB: [number, number, number] = [199, 126, 95];
 const ATTRACTOR_RGB: [number, number, number] = [73, 215, 222];
@@ -232,7 +231,13 @@ function pigmentGlow(ctx: CanvasRenderingContext2D, x: number, y: number, radius
   ctx.fill();
 }
 
-const BATCHES = [10, 20, 30] as const;
+function pointOnBranch(x: number, z: number, branch: { x0: number; z0: number; x1: number; z1: number }) {
+  const dx = branch.x1 - branch.x0;
+  const dz = branch.z1 - branch.z0;
+  const length = dx * dx + dz * dz;
+  const t = length < 1e-8 ? 0 : Math.max(0, Math.min(1, ((x - branch.x0) * dx + (z - branch.z0) * dz) / length));
+  return Math.hypot(x - (branch.x0 + dx * t), z - (branch.z0 + dz * t));
+}
 
 export type IterationBatch = {
   done: number;
@@ -492,6 +497,7 @@ function architectureLabel(layoutId: string, title: string) {
     "sketch-north-distinct-without": "Distinct northern gathering",
     "sketch-north-continuous-with": "Continuous gathering",
     "sketch-north-continuous-without": "Continuous gathering",
+    "arrival-city-north-v1": "Architectural strategy",
   };
   return labels[layoutId] ?? title;
 }
@@ -516,28 +522,53 @@ function span(values: readonly number[]) {
 }
 
 function metricSummary(evaluation: NetworkEvaluation) {
-  const pockets = evaluation.pockets;
-  const pocket = pockets.count === 0
-    ? "No pockets"
-    : `${pockets.count} pockets, ${Math.round(pockets.areaSqFt).toLocaleString("en-US")} ft²`;
-  return `${evaluation.status} · reach ${percent(evaluation.reachShare)} · ${evaluation.connectedAttractors}/${evaluation.attractors} attractors · ${pocket}`;
+  return `${evaluation.connectedAttractors}/${evaluation.attractors} · usable ${percent(evaluation.occupation.usableShare)}`;
 }
 
-function MetricLines({ evaluation }: { evaluation: NetworkEvaluation }) {
-  const sun = evaluation.sunMeasured
-    ? `${evaluation.attractorReadings.filter((item) => item.exposed).length} exposed, ${evaluation.attractorReadings.filter((item) => item.shaded).length} shaded`
-    : "not measured";
+function arrivalState(iteration: NetworkIteration, role: "primary-lobby" | "private-lobby" | "north-lobby") {
+  const node = iteration.nodes.find((item) => item.kind === "source" && item.architecture?.role === role);
+  if (!node) return "absent";
+  const on = (iteration.branches ?? []).some((branch) => pointOnBranch(node.x, node.z, branch) <= PARTICIPATE_FT);
+  return on ? "yes" : "no";
+}
+
+function cardWarnings(evaluation: NetworkEvaluation, iteration: NetworkIteration) {
+  const warnings: string[] = [];
+  if (evaluation.status === "unconverged") warnings.push("Step cap");
+  if (evaluation.status === "disconnected" || evaluation.status === "failed") warnings.push("Disconnected");
+  const remainders = evaluation.pockets.readings.filter((item) => isParcelRemainder(item.areaSqFt, item.spanEastFt, item.spanNorthFt)).length;
+  if (remainders > 0) warnings.push("Remainder");
+  const arrival = (["primary-lobby", "private-lobby", "north-lobby"] as const).filter((role) => arrivalState(iteration, role) === "no");
+  if (arrival.length > 0) warnings.push("Arrival off the network");
+  return warnings;
+}
+
+function MetricLines({ evaluation, iteration, plans }: { evaluation: NetworkEvaluation; iteration: NetworkIteration; plans: number | null }) {
   const pockets = evaluation.pockets;
+  const rooms = pockets.readings.filter((item) => !isParcelRemainder(item.areaSqFt, item.spanEastFt, item.spanNorthFt));
+  const remainders = pockets.readings.length - rooms.length;
+  const bands = evaluation.occupation.usableBands;
+  const central = iteration.nodes.find((node) => node.architecture?.role === "central-gathering");
+  const centralWater = typeof central?.strategy?.waterfrontFeet === "number" ? central.strategy.waterfrontFeet : null;
+  const northern = iteration.nodes.find((node) => node.architecture?.role === "north-gathering");
+  const northernWater = typeof northern?.strategy?.waterfrontFeet === "number" ? northern.strategy.waterfrontFeet : null;
+  const warnings = cardWarnings(evaluation, iteration);
+  const arrival = (["primary-lobby", "private-lobby", "north-lobby"] as const).map((role) => `${ROLE_LABEL[role]} ${arrivalState(iteration, role)}`).join(". ");
   return (
     <>
-      <p className="site-note">
-        {evaluation.status}. Network reach {percent(evaluation.reachShare)} of open land within {evaluation.reachFeet.toFixed(1)} ft. {evaluation.connectedAttractors} of {evaluation.attractors} attractors, {evaluation.sources} sources. {evaluation.components} components, {evaluation.junctions} junctions, {Math.round(evaluation.branchFeet)} ft. North {Math.round(evaluation.northFeet)} ft, south {Math.round(evaluation.southFeet)} ft. City side {Math.round(evaluation.cityFeet)} ft, water side {Math.round(evaluation.waterSideFeet)} ft. Sun {sun}. Wind {evaluation.windFromDegrees === null ? "not measured" : `${evaluation.windFromDegrees.toFixed(1)}° from north`}.
-      </p>
-      <p className="site-note">
-        {pockets.count === 0
-          ? "No enclosed pockets."
-          : `${pockets.count} enclosed pockets, ${Math.round(pockets.areaSqFt).toLocaleString("en-US")} ft². North ${pockets.north}, central ${pockets.central}, south ${pockets.south}. East-west ${span(pockets.readings.map((item) => item.spanEastFt))}, north-south ${span(pockets.readings.map((item) => item.spanNorthFt))}. Closest face ${Math.round(pockets.eastGapFt ?? 0)} ft from the east edge.`}
-      </p>
+      {warnings.length > 0 ? <p className="site-note">{warnings.join(". ")}. These are warnings, not a ranking.</p> : null}
+      <p className="site-note">Connectivity. {evaluation.status}. {evaluation.connectedAttractors} of {evaluation.attractors} attractors.</p>
+      <p className="site-note">Arrival participation. {arrival}.</p>
+      <p className="site-note">Geometrically usable occupation. {percent(evaluation.occupation.usableShare)} of parcel area. This is not a cluster match.</p>
+      <p className="site-note">Spatial distribution. Usable pockets: north {bands.north}, central {bands.central}, south {bands.south}.</p>
+      <p className="site-note">{centralWater === null ? "Waterfront relationship. Central gathering coastline distance is not stored." : `Waterfront relationship. Central gathering ${Math.round(centralWater)} ft from the bay.${northernWater === null ? "" : ` Northern gathering ${Math.round(northernWater)} ft.`} Network north ${Math.round(evaluation.northFeet)} ft, south ${Math.round(evaluation.southFeet)} ft.`}</p>
+      <p className="site-note">Network reach. {percent(evaluation.reachShare)} of open land within {evaluation.reachFeet.toFixed(1)} ft. City side {Math.round(evaluation.cityFeet)} ft, water side {Math.round(evaluation.waterSideFeet)} ft.</p>
+      <p className="site-note">Enclosed occupation. {percent(evaluation.occupation.enclosedShare)} of parcel area, excluding parcel remainders.</p>
+      {rooms.length === 0 ? <p className="site-note">No enclosed room to measure.</p> : rooms.map((item) => (
+        <p key={item.id} className="site-note">{item.band}. {Math.round(item.areaSqFt).toLocaleString("en-US")} ft². East-west {Math.round(item.spanEastFt)} ft, north-south {Math.round(item.spanNorthFt)} ft. Narrow side {Math.round(Math.min(item.spanEastFt, item.spanNorthFt))} ft.</p>
+      ))}
+      {remainders > 0 ? <p className="site-note">Parcel remainder. {remainders === 1 ? "1 face" : `${remainders} faces`} excluded from occupation.</p> : null}
+      {plans != null ? <p className="site-note">Temporary plan diagnostic. {plans} clear faces fit a recorded footprint. This is not a cluster match.</p> : null}
     </>
   );
 }
@@ -550,15 +581,12 @@ export function SiteNetworkIterations({
   viewId,
   massingId,
   compareIds,
+  shortlistIds,
   batch,
-  onGenerate,
-  onSimulateLayouts,
-  onSimulateSketch,
   onView,
   onUse,
   onToggleCompare,
-  onRegenerate,
-  onClear,
+  onToggleShortlist,
 }: {
   study: SiteNetworkStudy;
   iterations: readonly NetworkIteration[];
@@ -567,23 +595,14 @@ export function SiteNetworkIterations({
   viewId: string | null;
   massingId: string | null;
   compareIds: readonly string[];
+  shortlistIds: readonly string[];
   batch: IterationBatch | null;
-  onGenerate: (count: 10 | 20 | 30) => void;
-  onSimulateLayouts: () => void;
-  onSimulateSketch: () => void;
   onView: (id: string | null) => void;
   onUse: (id: string) => void;
   onToggleCompare: (id: string) => void;
-  onRegenerate: (id: string) => void;
-  onClear: () => void;
+  onToggleShortlist: (id: string) => void;
 }) {
-  const edit = useSyncExternalStore(
-    (listener) => study.subscribe(listener),
-    () => study.edit,
-    () => EMPTY_NODES,
-  );
   const frame: NetworkFrame = study.frame;
-  const ready = edit.nodes.some((node) => node.kind === "source") && edit.nodes.some((node) => node.kind === "attractor");
   const compared = iterations.filter((item) => compareIds.includes(item.id)).slice(0, 2);
   const showing = iterations.find((item) => item.id === viewId) ?? null;
   const showingEvaluation = evaluations.find((item) => item.id === viewId) ?? null;
@@ -638,17 +657,34 @@ export function SiteNetworkIterations({
       <article key={item.id} className="site-iteration-card" data-active={item.id === viewId || undefined} data-massing={item.id === massingId || undefined}>
         <button type="button" aria-pressed={item.id === viewId} title={item.id === massingId ? "Zoning network" : "Preview this network"} onClick={() => onView(item.id)}>
           <IterationCanvas iteration={item} frame={frame} label={`Iteration ${item.index}`} />
-          <span className="site-iteration-meta" data-short={unsuccessful || undefined} title={evaluation?.statusNote ?? "Attractors on the surviving network"}>
+          <span className="site-iteration-meta">
             <b>{item.index} · {item.id === massingId ? "Zoning" : item.id === viewId ? "Preview" : "Saved"}</b>
+          </span>
+          <span className="site-iteration-meta" data-short={unsuccessful || undefined} title={evaluation?.statusNote ?? "Attractors on the surviving network"}>
+            <b>Connectivity</b>
             <b>{evaluation ? `${evaluation.connectedAttractors}/${evaluation.attractors}` : `${item.reached}/${item.total}`}</b>
           </span>
-          <span className="site-iteration-meta">
-            <b>{evaluation ? `${evaluation.pockets.north}/${evaluation.pockets.central}/${evaluation.pockets.south}` : "—"}</b>
-            <b>{fits[item.id] == null ? "Plans …" : `${fits[item.id]} plans`}</b>
+          <span className="site-iteration-meta" title="Public, Private, and Experimental Lobby. Y is on the surviving network. N is not. A means that lobby is absent.">
+            <b>Arrivals</b>
+            <b>{evaluation ? `${arrivalState(item, "primary-lobby").slice(0, 1)} ${arrivalState(item, "private-lobby").slice(0, 1)} ${arrivalState(item, "north-lobby").slice(0, 1)}` : "—"}</b>
           </span>
+          <span className="site-iteration-meta">
+            <b>Usable</b>
+            <b>{evaluation ? percent(evaluation.occupation.usableShare) : "—"}</b>
+          </span>
+          <span className="site-iteration-meta">
+            <b>Distribution</b>
+            <b>{evaluation ? `${evaluation.occupation.usableBands.north}/${evaluation.occupation.usableBands.central}/${evaluation.occupation.usableBands.south}` : "—"}</b>
+          </span>
+          <span className="site-iteration-meta" title="Central gathering distance to the bay.">
+            <b>Waterfront</b>
+            <b>{(() => { const feet = item.nodes.find((node) => node.architecture?.role === "central-gathering")?.strategy?.waterfrontFeet; return typeof feet === "number" ? `${Math.round(feet)} ft` : "—"; })()}</b>
+          </span>
+          {evaluation && cardWarnings(evaluation, item).length > 0 ? <span className="site-iteration-meta" data-short="true"><b>{cardWarnings(evaluation, item).join(" · ")}</b></span> : null}
         </button>
         <div className="site-modes">
           <button type="button" disabled={item.id === massingId} onClick={() => onUse(item.id)}>Use for Zoning</button>
+          <button type="button" aria-pressed={shortlistIds.includes(item.id)} data-active={shortlistIds.includes(item.id) || undefined} disabled={!shortlistIds.includes(item.id) && shortlistIds.length >= 3} title={shortlistIds.length >= 3 && !shortlistIds.includes(item.id) ? "The shortlist holds three networks." : "Hold this network for Zoning investigation. The active zoning network stays."} onClick={() => onToggleShortlist(item.id)}>Shortlist</button>
           <button type="button" data-active={compareIds.includes(item.id) || undefined} onClick={() => onToggleCompare(item.id)}>Compare</button>
         </div>
       </article>
@@ -658,6 +694,7 @@ export function SiteNetworkIterations({
     <section className="site-block site-specs" aria-label="Network iterations">
       <h2 className="site-subtitle">Networks {iterations.length > 0 ? <span>{iterations.length}</span> : null}</h2>
       <p className="site-note">{massing ? `Zoning network ${massing.index}${massing.layoutTitle ? ` · ${massing.layoutTitle}` : ""}` : "No zoning network"}</p>
+      <p className="site-note">Shortlist {shortlistIds.length} of 3.</p>
       <div className="site-modes site-network-controls" role="group" aria-label="Sort">
         {(["connectivity", "pockets", "area", "plans"] as const).map((item) => (
           <button key={item} type="button" aria-pressed={sort === item} data-active={sort === item || undefined} onClick={() => setSort(item)}>{item === "plans" ? "Plans" : item === "pockets" ? "Pockets" : item === "area" ? "Area" : "Connected"}</button>
@@ -666,34 +703,31 @@ export function SiteNetworkIterations({
       {batch ? <p className="site-note" role="status">{batch.done + 1}/{batch.total} · step {batch.step}</p> : null}
       <p className="site-note">{showing ? `Preview ${showing.index}${showing.layoutTitle ? ` · ${showing.layoutTitle}` : ""}` : "Live simulation"}</p>
       {showing && showing.id !== massingId ? <p className="site-note">Preview. The zoning network stays.</p> : null}
-      <details className="site-network-eval">
-        <summary>Runs</summary>
-        <div className="site-modes site-network-controls" role="group" aria-label="New runs">
-          {BATCHES.map((count) => (
-            <button key={count} type="button" disabled={!ready || batch !== null} onClick={() => onGenerate(count)}>{count}</button>
-          ))}
-          <button type="button" disabled={batch !== null} onClick={onSimulateLayouts}>Layouts</button>
-          <button type="button" disabled={batch !== null} onClick={onSimulateSketch}>Sketch</button>
-          <button type="button" data-active={viewId === null || undefined} onClick={() => onView(null)}>Live</button>
-          <button type="button" disabled={!showing || batch !== null} onClick={() => {
-            if (!showing || !window.confirm(`Replace iteration ${showing.index} with a new seed? The saved run is overwritten.`)) return;
-            onRegenerate(showing.id);
-          }}>Regenerate</button>
-          <button type="button" disabled={iterations.length === 0 || batch !== null} onClick={() => {
-            if (!window.confirm(`Delete all ${iterations.length} saved iterations? This cannot be undone.`)) return;
-            onClear();
-          }}>Clear</button>
-        </div>
-      </details>
-      {showingEvaluation ? (
+      <div className="site-modes site-network-controls">
+        <button type="button" data-active={viewId === null || undefined} onClick={() => onView(null)}>Live</button>
+      </div>
+      {showing && showingEvaluation ? (
         <details className="site-network-eval">
           <summary>{metricSummary(showingEvaluation)}</summary>
-          <MetricLines evaluation={showingEvaluation} />
+          <MetricLines evaluation={showingEvaluation} iteration={showing} plans={fits[showing.id] ?? null} />
         </details>
       ) : null}
       <div className="site-iteration-scroll">
-      {layouts.some((layout) => layout.family !== "sketch" && iterations.some((item) => item.layoutId === layout.layoutId)) ? <h3 className="site-subtitle">Exploratory</h3> : null}
-      {layouts.filter((layout) => layout.family !== "sketch").map((layout) => {
+      {layouts.some((layout) => layout.family === "strategy" && iterations.some((item) => item.layoutId === layout.layoutId)) ? <h3 className="site-subtitle">Architectural strategy</h3> : null}
+      {layouts.filter((layout) => layout.family === "strategy").map((layout) => {
+        const runs = iterations.filter((item) => item.layoutId === layout.layoutId);
+        if (runs.length === 0) return null;
+        return (
+          <section key={layout.layoutId} aria-label={layout.title}>
+            <h3 className="site-subtitle" title={layout.layoutId}>{ARRANGEMENT_FAMILY.find((item) => item.id === layout.layoutId)?.title ?? layout.title}</h3>
+            <div className="site-iteration-grid">
+              {order(runs).map(card)}
+            </div>
+          </section>
+        );
+      })}
+      {layouts.some((layout) => layout.family !== "sketch" && layout.family !== "strategy" && iterations.some((item) => item.layoutId === layout.layoutId)) ? <h3 className="site-subtitle">Exploratory</h3> : null}
+      {layouts.filter((layout) => layout.family !== "sketch" && layout.family !== "strategy").map((layout) => {
         const runs = iterations.filter((item) => item.layoutId === layout.layoutId);
         if (runs.length === 0) return null;
         return (

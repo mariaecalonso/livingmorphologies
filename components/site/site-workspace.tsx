@@ -48,7 +48,7 @@ import type { SiteContext } from "@/lib/skill5/site-model";
 import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
 import { clipPolygon } from "./site-geometry";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
-import { clearNetworkIterations, loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
+import { loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
 import { analyzeNetwork, networkFigures, type NetworkAnalysisMode } from "./site-network-analysis";
 import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
 import { captureNetworkIteration, createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
@@ -62,15 +62,15 @@ import { useAssemblyFilm } from "@/components/hybrid/validation-panel";
 import { ArchitecturalDna } from "./architectural-dna";
 import { CompatibilityOverview } from "./client-compatibility-panel";
 import { CriteriaDefinitionsModal } from "./criteria-definitions";
+import { buildArrivalFamily, programForRole } from "@/lib/skill5/architectural-strategy";
 import { assessPockets, suggestionLabel } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets, readPockets } from "@/lib/skill5/pockets";
 import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
 import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SPACING_FEET, FLOW_SURVIVE } from "./site-network-flow";
-import { STRATEGY_LAYOUT_DEFAULTS, buildStrategyLayouts, type StrategyLayout } from "@/lib/skill5/strategy-layouts";
 import { evaluateLayouts, evaluateNetwork, openNetworkField } from "@/lib/skill5/strategy-evaluation";
-import { SKETCH_LAYOUT_KEY, STRATEGY_LAYOUT_KEY, SiteStrategyAnalysis, SiteStrategyPanel, STRATEGY_MODES, type StrategyMode } from "./site-strategy";
+import { SiteStrategyPanel } from "./site-strategy";
 
 const site = context as SiteContext;
 /** The same afternoon light Site Analysis uses for the model, so the site reads the same way. */
@@ -105,11 +105,6 @@ const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "section", label: "Side" },
   { id: "axon", label: "Axonometric" },
 ];
-
-/** Site Network opens in plan. Assembly Network opens in perspective. Axonometric stays available from the camera control. */
-function strategyCamera(mode: StrategyMode): SiteViewMode {
-  return mode === "assemblies-network" ? "perspective" : "plan";
-}
 
 const ORTHO_VIEWS = [
   { id: "top", label: "Top" },
@@ -1120,7 +1115,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const zoneSerial = useRef(1);
   const connectionSerial = useRef(1);
   const joinPickAt = useRef(0);
-  const [strategyMode, setStrategyMode] = useState<StrategyMode>("site-network");
   const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(null);
   const [networkRunning, setNetworkRunning] = useState(false);
   const [networkTool, setNetworkTool] = useState<NetworkNodeKind>("source");
@@ -1134,6 +1128,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [iterationView, setIterationView] = useState<string | null>(null);
   const [massingId, setMassingId] = useState<string | null>(null);
   const [iterationCompare, setIterationCompare] = useState<string[]>([]);
+  const [zoningShortlist, setZoningShortlist] = useState<string[]>([]);
+  const [strategyNotice, setStrategyNotice] = useState<string | null>(null);
   const [iterationBatch, setIterationBatch] = useState<IterationBatch | null>(null);
   const [analysisMode, setAnalysisMode] = useState<NetworkAnalysisMode>("density");
   const [analysisOn, setAnalysisOn] = useState(false);
@@ -1161,8 +1157,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const workflowBoot = useRef(false);
   useEffect(() => {
     if (!workflowReady) return;
-    writeSiteWorkflowState({ zones, connections, massingNetworkId: massingId });
-  }, [connections, massingId, workflowReady, zones]);
+    writeSiteWorkflowState({ zones, connections, massingNetworkId: massingId, zoningShortlist });
+  }, [connections, massingId, workflowReady, zones, zoningShortlist]);
   const [mode, setMode] = useState<SiteViewMode>(() => ((initialSheet ?? sheetFromSearch(search)) === "strategy" ? "plan" : "perspective"));
   const sheetQuery = search.get("sheet");
   useEffect(() => {
@@ -1280,6 +1276,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     const stored = readSiteWorkflowState();
     setConnections(stored.connections);
     setMassingId(stored.massingNetworkId);
+    setZoningShortlist(stored.zoningShortlist);
     for (const zone of stored.zones) {
       const match = /^z(\d+)$/.exec(zone.id);
       if (match) zoneSerial.current = Math.max(zoneSerial.current, Number(match[1]) + 1);
@@ -2274,35 +2271,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const chooseMode = (next: SiteViewMode) => {
     setMode(next);
   };
-  const clearField = () => {
-    const present = historyRef.current.present;
-    const made = present.zones.length > 0 || present.instances.length > 0 || present.assemblies.length > 0 || present.annotations.length > 0 || connections.length > 0;
-    if (!made) return;
-    if (!window.confirm("Clear the zones, tiles, and connections on this site? The site strategy network stays.")) return;
-    publish(emptyEditHistory());
-    setConnections([]);
-    setZoneDraft([]);
-    setZoneSelection(null);
-    setPocketSelection([]);
-    setPocketHover(null);
-    setZoneNotice(null);
-    setSelectedId(null);
-    setMemberEditId(null);
-    setArmedId(null);
-    setManualPose(null);
-    setFaceMatch(null);
-    setLinkA("");
-    setLinkB("");
-    setSelectedJoin(null);
-    setHybridOffer(null);
-    setHybridPlacement(null);
-    setHybridCandidate(null);
-    setHybridNote("Choose the two faces, then find the Skill 04 hybrids.");
-    setCirculationStart(null);
-    setCurrentConfigId(null);
-    setConfigName("Untitled");
-    setConfigNotice(null);
-  };
   const chooseSheet = (next: SiteWorkflowId) => {
     if (next === sheet) return;
     const href = siteStepHref(next, window.location.search);
@@ -2557,11 +2525,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     setHybridOffer(null);
     setHybridPlacement(null);
   };
-  const chooseStrategyMode = (next: StrategyMode) => {
-    if (next !== "site-network") setNetworkRunning(false);
-    setStrategyMode(next);
-    setMode(strategyCamera(next));
-  };
   const runNetwork = () => {
     const study = networkStudy;
     if (!study || !study.canRun) return;
@@ -2573,7 +2536,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     networkStudy?.reset();
     setNetworkRunning(false);
   };
-  const clearNetworkNodes = () => networkStudy?.clearNodes();
   const deleteNetworkNode = () => {
     const selected = networkStudy?.edit.selectedId;
     if (selected) networkStudy?.remove(selected);
@@ -2656,140 +2618,49 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     setPocketSelection([]);
     setPocketHover(null);
   }, [massingId]);
-  const generateIterations = async (count: 10 | 20 | 30) => {
-    const study = networkStudy;
-    if (!study || !study.canRun || iterationBatch) return;
-    const token = iterationToken.current + 1;
-    iterationToken.current = token;
-    const nodes = study.edit.nodes.map((node) => ({ ...node }));
-    const start = iterationsRef.current.reduce((max, item) => Math.max(max, item.index), 0);
-    setIterationBatch({ done: 0, total: count, step: 0 });
-    for (let n = 0; n < count; n += 1) {
-      if (iterationToken.current !== token) return;
-      const seed = (20261105 + (start + n + 1) * 104729) >>> 0;
-      const iteration = await runNetworkIteration(site.site.ring, site.water.ring, nodes, seed, (step) => {
-        if (iterationToken.current === token) setIterationBatch({ done: n, total: count, step });
-      }, site.buildings);
-      if (iterationToken.current !== token) return;
-      iteration.index = start + n + 1;
-      iteration.id = `i${iteration.index}-${seed}`;
-      rememberIteration(iteration);
-      setIterationBatch({ done: n + 1, total: count, step: iteration.step });
-      if (n === count - 1 && iterationToken.current === token) setIterationView(iteration.id);
-    }
-    if (iterationToken.current === token) setIterationBatch(null);
-  };
-  const simulateLayouts = async () => {
+  const generateArrival = async () => {
     if (iterationBatch) return;
-    let layouts: StrategyLayout[] = [];
-    try {
-      const parsed = JSON.parse(window.localStorage.getItem(STRATEGY_LAYOUT_KEY) ?? "null") as { layouts?: StrategyLayout[] } | null;
-      if (parsed?.layouts?.length) layouts = parsed.layouts;
-    } catch {
-      layouts = [];
+    const family = buildArrivalFamily(site);
+    const jobs = family.flatMap((arrangement) => arrangement.seeds.map((seed) => ({ arrangement, seed }))).filter((job) => !iterationsRef.current.some((item) => item.layoutFamily === "strategy" && item.layoutId === job.arrangement.arrangementId && item.seed === job.seed));
+    if (family.length === 0) {
+      setStrategyNotice("The arrangement family could not be placed from the site evidence.");
+      return;
     }
-    if (layouts.length === 0) layouts = buildStrategyLayouts(site, STRATEGY_LAYOUT_DEFAULTS);
-    const jobs = layouts.flatMap((layout) => layout.seeds.map((seed) => ({ layout, seed })));
-    const token = iterationToken.current + 1;
-    iterationToken.current = token;
-    const start = iterationsRef.current.reduce((max, item) => Math.max(max, item.index), 0);
-    setIterationBatch({ done: 0, total: jobs.length, step: 0 });
-    const started = performance.now();
-    for (let n = 0; n < jobs.length; n += 1) {
-      if (iterationToken.current !== token) return;
-      const { layout, seed } = jobs[n];
-      const id = `layout-${layout.id}-${seed}`;
-      if (iterationsRef.current.some((item) => item.id === id)) {
-        setIterationBatch({ done: n + 1, total: jobs.length, step: 0 });
-        continue;
-      }
-      const iteration = await runNetworkIteration(site.site.ring, site.water.ring, layout.nodes.map((node) => ({ ...node })), seed, (step) => {
-        if (iterationToken.current === token) setIterationBatch({ done: n, total: jobs.length, step });
-      }, site.buildings);
-      if (iterationToken.current !== token) return;
-      iteration.index = start + n + 1;
-      iteration.id = id;
-      iteration.layoutId = layout.id;
-      iteration.layoutTitle = layout.title;
-      iteration.layoutFamily = layout.family;
-      iteration.spacingFeet = FLOW_SPACING_FEET;
-      iteration.windFromDegrees = layout.windFromDegrees;
-      rememberIteration(iteration);
-      setIterationBatch({ done: n + 1, total: jobs.length, step: iteration.step });
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    if (jobs.length === 0) {
+      setStrategyNotice("The arrangement family is already archived. The zoning network stays.");
+      return;
     }
-    if (iterationToken.current === token) {
-      setIterationBatch(null);
-      console.info(`Site strategy layouts: ${jobs.length} runs in ${Math.round(performance.now() - started)} ms`);
-    }
-  };
-  const simulateSketch = async () => {
-    if (iterationBatch) return;
-    let layouts: StrategyLayout[] = [];
-    try {
-      const parsed = JSON.parse(window.localStorage.getItem(SKETCH_LAYOUT_KEY) ?? "null") as { layouts?: StrategyLayout[] } | null;
-      if (parsed?.layouts?.length) layouts = parsed.layouts.filter((layout) => layout.family === "sketch");
-    } catch {
-      layouts = [];
-    }
-    if (layouts.length === 0) return;
-    const jobs = layouts.flatMap((layout) => layout.seeds.map((seed) => ({ layout, seed })));
-    const token = iterationToken.current + 1;
-    iterationToken.current = token;
-    const start = iterationsRef.current.reduce((max, item) => Math.max(max, item.index), 0);
-    setIterationBatch({ done: 0, total: jobs.length, step: 0 });
-    for (let n = 0; n < jobs.length; n += 1) {
-      if (iterationToken.current !== token) return;
-      const { layout, seed } = jobs[n];
-      const id = `sketch-${layout.id}-${seed}`;
-      if (iterationsRef.current.some((item) => item.id === id)) {
-        setIterationBatch({ done: n + 1, total: jobs.length, step: 0 });
-        continue;
-      }
-      const iteration = await runNetworkIteration(site.site.ring, site.water.ring, layout.nodes.map((node) => ({ ...node })), seed, (step) => {
-        if (iterationToken.current === token) setIterationBatch({ done: n, total: jobs.length, step });
-      }, site.buildings);
-      if (iterationToken.current !== token) return;
-      const previous = iterationsRef.current.find((item) => item.id === id);
-      iteration.index = previous?.index ?? start + n + 1;
-      iteration.id = id;
-      iteration.layoutId = layout.id;
-      iteration.layoutTitle = layout.title;
-      iteration.layoutFamily = "sketch";
-      iteration.spacingFeet = FLOW_SPACING_FEET;
-      iteration.windFromDegrees = null;
-      rememberIteration(iteration);
-      setIterationBatch({ done: n + 1, total: jobs.length, step: iteration.step });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    if (iterationToken.current === token) setIterationBatch(null);
-  };
-  const generateIntent = async (layout: StrategyLayout) => {
-    if (iterationBatch || layout.seeds.length === 0) return;
+    setStrategyNotice(`${family[0].strategyId}. ${jobs.length} networks across ${new Set(jobs.map((job) => job.arrangement.arrangementId)).size} arrangements. The zoning network stays.`);
     const token = iterationToken.current + 1;
     iterationToken.current = token;
     const stamp = Date.now().toString(36);
     const start = iterationsRef.current.reduce((max, item) => Math.max(max, item.index), 0);
-    const nodes = layout.nodes.map((node) => ({ ...node }));
-    setIterationBatch({ done: 0, total: layout.seeds.length, step: 0 });
+    setIterationBatch({ done: 0, total: jobs.length, step: 0 });
     let firstId: string | null = null;
-    for (let n = 0; n < layout.seeds.length; n += 1) {
+    for (let n = 0; n < jobs.length; n += 1) {
       if (iterationToken.current !== token) return;
-      const seed = layout.seeds[n];
+      const { arrangement, seed } = jobs[n];
+      const nodes = arrangement.nodes.map((node) => ({ ...node, architecture: node.architecture ? { ...node.architecture, provenance: { ...node.architecture.provenance } } : undefined }));
       const iteration = await runNetworkIteration(site.site.ring, site.water.ring, nodes, seed, (step) => {
-        if (iterationToken.current === token) setIterationBatch({ done: n, total: layout.seeds.length, step });
+        if (iterationToken.current === token) setIterationBatch({ done: n, total: jobs.length, step });
       }, site.buildings);
       if (iterationToken.current !== token) return;
       iteration.index = start + n + 1;
-      iteration.id = `batch-${stamp}-${layout.id}-${seed}`;
-      iteration.layoutId = layout.id;
-      iteration.layoutTitle = layout.title;
-      iteration.layoutFamily = layout.family;
+      iteration.id = `batch-${stamp}-${arrangement.arrangementId}-${seed}`;
+      iteration.layoutId = arrangement.arrangementId;
+      iteration.layoutTitle = arrangement.title;
+      iteration.layoutFamily = "strategy";
       iteration.spacingFeet = FLOW_SPACING_FEET;
-      iteration.windFromDegrees = layout.windFromDegrees;
+      iteration.architectureRecord = {
+        strategyId: arrangement.strategyId,
+        arrangementId: arrangement.arrangementId,
+        relationships: arrangement.relationships,
+        northLobby: arrangement.northLobby,
+        parameters: arrangement.parameters,
+      };
       rememberIteration(iteration);
       firstId ??= iteration.id;
-      setIterationBatch({ done: n + 1, total: layout.seeds.length, step: iteration.step });
+      setIterationBatch({ done: n + 1, total: jobs.length, step: iteration.step });
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
     if (iterationToken.current === token) {
@@ -2797,43 +2668,19 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       if (firstId) setIterationView(firstId);
     }
   };
-  const regenerateIteration = async (id: string) => {
-    const current = iterations.find((item) => item.id === id);
-    if (!current || iterationBatch) return;
-    const token = iterationToken.current + 1;
-    iterationToken.current = token;
-    const used = new Set(iterations.map((item) => item.seed));
-    let seed = (current.seed + 104729) >>> 0;
-    while (used.has(seed)) seed = (seed + 104729) >>> 0;
-    setIterationBatch({ done: 0, total: 1, step: 0 });
-    const iteration = await runNetworkIteration(site.site.ring, site.water.ring, current.nodes, seed, (step) => {
-      if (iterationToken.current === token) setIterationBatch({ done: 0, total: 1, step });
-    }, site.buildings);
-    if (iterationToken.current !== token) return;
-    iteration.id = current.id;
-    iteration.index = current.index;
-    iteration.layoutId = current.layoutId;
-    iteration.layoutTitle = current.layoutTitle;
-    iteration.layoutFamily = current.layoutFamily;
-    iteration.spacingFeet = current.spacingFeet ?? FLOW_SPACING_FEET;
-    iteration.windFromDegrees = current.windFromDegrees;
-    rememberIteration(iteration);
-    setIterationBatch(null);
-  };
   const toggleIterationCompare = (id: string) => {
     setIterationCompare((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id].slice(-2));
+  };
+  const toggleZoningShortlist = (id: string) => {
+    setZoningShortlist((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (current.length >= 3) return current;
+      return [...current, id];
+    });
   };
   const networkField = useMemo(() => openNetworkField(site), []);
   const networkEvaluations = useMemo(() => iterations.map((item) => evaluateNetwork(item, networkField)), [iterations, networkField]);
   const layoutEvaluations = useMemo(() => evaluateLayouts(iterations, networkEvaluations), [iterations, networkEvaluations]);
-  const clearIterations = () => {
-    iterationToken.current += 1;
-    setIterations([]);
-    setIterationView(null);
-    setIterationCompare([]);
-    setIterationBatch(null);
-    clearNetworkIterations().catch(() => {});
-  };
 
   const networkAnalysis = useMemo(() => {
     if (!analysisOn || !networkStudy) return null;
@@ -2853,7 +2700,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   }, [networkStudy, iterations, iterationView]);
   useEffect(() => {
     const view = networkView.current;
-    if (!view || sheet !== "strategy" || strategyMode !== "site-network") {
+    if (!view || sheet !== "strategy") {
       view?.style.removeProperty("--network-overlap");
       view?.style.removeProperty("--network-panel-scale");
       return;
@@ -2878,7 +2725,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     const observer = new ResizeObserver(measure);
     observer.observe(view);
     return () => observer.disconnect();
-  }, [sheet, strategyMode]);
+  }, [sheet]);
 
   const analysisNotice = !analysisOn
     ? null
@@ -2958,7 +2805,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     if (!reviewReport || !reviewIteration) return [];
     return assessPockets(
       reviewReport.pockets,
-      reviewIteration.nodes.map((node) => ({ kind: node.kind, x: node.x, z: node.z, note: node.strategy?.note ?? null })),
+      reviewIteration.nodes.map((node) => ({ kind: node.kind, x: node.x, z: node.z, note: node.strategy?.note ?? null, program: node.architecture ? programForRole(node.architecture.role) : null })),
       reviewIteration.branches ?? [],
     );
   }, [reviewIteration, reviewReport]);
@@ -3211,16 +3058,12 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       ref={networkView}
       className="site-view"
       data-panels="model"
-      data-sheet={sheet === "strategy" && strategyMode === "site-network" ? "network" : sheet}
+      data-sheet={sheet === "strategy" ? "network" : sheet}
     >
       <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : sheet === "zoning" ? "Zoning" : sheet === "assembly" ? "Assembly" : sheet === "configurations" ? "Configurations" : "Library and project"}>
             {sheet === "strategy" ? (
-              <div className={strategyMode === "site-network" ? "site-strategy-body" : "site-sim"}>
+              <div className="site-strategy-body">
               <SiteStrategyPanel
-                mode={strategyMode}
-                onMode={chooseStrategyMode}
-                canClear={zones.length > 0 || instances.length > 0 || assemblies.length > 0 || annotations.length > 0 || connections.length > 0}
-                onClearField={clearField}
                 network={{
                   study: networkStudy,
                   running: networkRunning,
@@ -3229,11 +3072,11 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                   onRun: runNetwork,
                   onPause: pauseNetwork,
                   onReset: resetNetwork,
-                  onClear: clearNetworkNodes,
                   onDelete: deleteNetworkNode,
                   onSelect: selectNetworkNode,
-                  onGenerate: (layout) => { void generateIntent(layout); },
+                  onGenerateStrategy: () => { void generateArrival(); },
                   generating: iterationBatch !== null,
+                  notice: strategyNotice,
                 }}
                 typology={{
                   points: intentPoints,
@@ -3318,6 +3161,13 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                   onConsolidate={consolidateNetwork}
                   consolidateNote={zoneNotice}
                   preview={previewIteration ? { index: previewIteration.index, title: previewIteration.layoutTitle ?? previewIteration.id } : null}
+                  strategy={reviewIteration?.architectureRecord ?? null}
+                  shortlist={zoningShortlist.flatMap((id) => {
+                    const item = iterations.find((iteration) => iteration.id === id);
+                    return item ? [{ id: item.id, index: item.index, title: item.architectureRecord?.arrangementId ?? item.layoutTitle ?? item.id, active: item.id === massingId }] : [];
+                  })}
+                  onPreviewShortlist={setIterationView}
+                  onUseShortlist={(id) => useNetworkForMassing(id)}
                 />
               </div>
             ) : sheet === "configurations" ? (
@@ -3446,12 +3296,10 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
           <header className="site-frame-bar">
             {sheet === "strategy" ? (
               <div className="site-frame-name site-sim">
-                <h2 className="site-subtitle">{strategyMode === "site-network" ? "Site network" : STRATEGY_MODES.find((item) => item.id === strategyMode)?.title}</h2>
-                {strategyMode === "site-network" ? (
-                  <div className="site-modes">
-                    <button type="button" disabled={!networkStudy && !strategyIteration} title={!networkStudy && !strategyIteration ? "Run the network, or select a saved iteration." : undefined} aria-pressed={strategyIteration?.id === massingId || liveAlreadySent} data-active={strategyIteration?.id === massingId || liveAlreadySent || undefined} onClick={() => useNetworkForMassing()}>Use for Zoning</button>
-                  </div>
-                ) : null}
+                <h2 className="site-subtitle">Site network</h2>
+                <div className="site-modes">
+                  <button type="button" disabled={!networkStudy && !strategyIteration} title={!networkStudy && !strategyIteration ? "Run the network, or select a saved iteration." : undefined} aria-pressed={strategyIteration?.id === massingId || liveAlreadySent} data-active={strategyIteration?.id === massingId || liveAlreadySent || undefined} onClick={() => useNetworkForMassing()}>Use for Zoning</button>
+                </div>
                 {massingLabel ? <p className="site-note">Zoning network {massingLabel}</p> : null}
               </div>
             ) : sheet === "zoning" ? (
@@ -3774,9 +3622,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     
       <aside className="site-panel site-panel-analysis">
             {sheet === "strategy" ? (
-              <div className={strategyMode === "site-network" ? "site-network-side" : "site-sim"}>
-                {strategyMode === "site-network" && networkStudy ? (
-                  <>
+              <div className="site-network-side">
+                {networkStudy ? (
                   <SiteNetworkIterations
                     study={networkStudy}
                     iterations={iterations}
@@ -3785,20 +3632,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                     viewId={iterationView}
                     massingId={massingId}
                     compareIds={iterationCompare}
+                    shortlistIds={zoningShortlist}
                     batch={iterationBatch}
-                    onGenerate={(count) => { void generateIterations(count); }}
-                    onSimulateLayouts={() => { void simulateLayouts(); }}
-                    onSimulateSketch={() => { void simulateSketch(); }}
                     onView={setIterationView}
                     onUse={(id) => useNetworkForMassing(id)}
                     onToggleCompare={toggleIterationCompare}
-                    onRegenerate={(id) => { void regenerateIteration(id); }}
-                    onClear={clearIterations}
+                    onToggleShortlist={toggleZoningShortlist}
                   />
-                  </>
-                ) : (
-                  <SiteStrategyAnalysis mode={strategyMode} />
-                )}
+                ) : null}
               </div>
             ) : sheet === "placement" ? (
             <>

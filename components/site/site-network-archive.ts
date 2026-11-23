@@ -1,3 +1,4 @@
+import { readArchitecturalRecord } from "@/lib/skill5/architectural-strategy";
 import { readNetworkNode, type NetworkIteration, type NetworkNode } from "./site-network";
 
 const DB_NAME = "living-morphologies";
@@ -61,7 +62,8 @@ function readIteration(value: unknown): NetworkIteration | null {
     branches: readBranches(record.branches),
     layoutId: typeof record.layoutId === "string" ? record.layoutId : undefined,
     layoutTitle: typeof record.layoutTitle === "string" ? record.layoutTitle : undefined,
-    layoutFamily: record.layoutFamily === "waterfront" || record.layoutFamily === "internal" || record.layoutFamily === "road-buffered" || record.layoutFamily === "sketch" ? record.layoutFamily : undefined,
+    layoutFamily: record.layoutFamily === "waterfront" || record.layoutFamily === "internal" || record.layoutFamily === "road-buffered" || record.layoutFamily === "sketch" || record.layoutFamily === "strategy" ? record.layoutFamily : undefined,
+    architectureRecord: readArchitecturalRecord(record.architectureRecord),
     spacingFeet: typeof record.spacingFeet === "number" && Number.isFinite(record.spacingFeet) ? record.spacingFeet : undefined,
     windFromDegrees: typeof record.windFromDegrees === "number" && Number.isFinite(record.windFromDegrees) ? record.windFromDegrees : record.windFromDegrees === null ? null : undefined,
   };

@@ -62,9 +62,16 @@ export type SiteWorkflowState = {
   connections: SiteConnection[];
   /** Iteration sent to Zoning, Tile Placement, and Assembly. */
   massingNetworkId: string | null;
+  /** Up to three networks held for Zoning investigation. This does not select the zoning network. */
+  zoningShortlist: string[];
 };
 
-const EMPTY: SiteWorkflowState = { zones: [], connections: [], massingNetworkId: null };
+const EMPTY: SiteWorkflowState = { zones: [], connections: [], massingNetworkId: null, zoningShortlist: [] };
+
+function readShortlist(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.length > 0).slice(0, 3);
+}
 
 function readPassage(value: unknown): SiteConnection["passage"] {
   if (!value || typeof value !== "object") return null;
@@ -85,7 +92,7 @@ export function readSiteWorkflowState(): SiteWorkflowState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY;
-    const body = JSON.parse(raw) as { zones?: unknown; connections?: unknown; massingNetworkId?: unknown };
+    const body = JSON.parse(raw) as { zones?: unknown; connections?: unknown; massingNetworkId?: unknown; zoningShortlist?: unknown };
     const zones = readZoningList(body.zones);
     const connections = Array.isArray(body.connections) ? body.connections.flatMap((item): SiteConnection[] => {
       if (!item || typeof item !== "object") return [];
@@ -109,7 +116,7 @@ export function readSiteWorkflowState(): SiteWorkflowState {
         review: typeof link.review === "string" ? link.review : undefined,
       }];
     }) : [];
-    return { zones, connections, massingNetworkId: typeof body.massingNetworkId === "string" ? body.massingNetworkId : null };
+    return { zones, connections, massingNetworkId: typeof body.massingNetworkId === "string" ? body.massingNetworkId : null, zoningShortlist: readShortlist(body.zoningShortlist) };
   } catch {
     return EMPTY;
   }

@@ -2,7 +2,9 @@ import { assessNetworkDomain, rasterNetworkMask } from "@/components/site/site-n
 import { FLOW_MAX_STEPS, FLOW_SURVIVE } from "@/components/site/site-network-flow";
 import { createSiteNetworkStudy, reachFeet, type NetworkFrame, type NetworkIteration } from "@/components/site/site-network";
 import { detectPockets, readPockets, type PocketReading } from "@/lib/skill5/pockets";
+import { holdsClearSquare, isParcelRemainder } from "@/lib/skill5/pocket-feasibility";
 import type { SiteContext, XZ } from "@/lib/skill5/site-model";
+import { polygonAreaSqFt } from "@/lib/skill5/zoning";
 
 export type NetworkRunStatus = "connected" | "disconnected" | "unconverged" | "failed";
 
@@ -48,6 +50,20 @@ export type NetworkEvaluation = {
   windFromDegrees: number | null;
   /** Enclosed faces of the surviving branches. Separate from reach and connection. */
   pockets: PocketEvaluation;
+  /** Parcel-area shares. Separate from network reach, and not combined. */
+  occupation: OccupationReading;
+};
+
+export type OccupationReading = {
+  parcelSqFt: number;
+  /** Enclosed pocket area, excluding parcel-scale remainder faces. */
+  enclosedSqFt: number;
+  /** Pockets that hold a clear square, excluding remainder faces. Not a cluster-library match. */
+  usableSqFt: number;
+  enclosedShare: number;
+  usableShare: number;
+  /** Geometrically usable pockets by parcel third. Not a ranking score. */
+  usableBands: { north: number; central: number; south: number };
 };
 
 export type PocketEvaluation = {
@@ -240,6 +256,28 @@ export function evaluateNetwork(iteration: NetworkIteration, field: NetworkField
     eastGapFt: pocketReadings.length === 0 ? null : Math.min(...pocketReadings.map((item) => item.eastGapFt)),
     readings: pocketReadings,
   };
+  const parcelSqFt = Math.abs(polygonAreaSqFt(field.parcel.map(([x, z]) => ({ x, z }))));
+  const rooms = faces.pockets.filter((pocket) => {
+    const reading = pocketReadings.find((item) => item.id === pocket.id);
+    return reading ? !isParcelRemainder(reading.areaSqFt, reading.spanEastFt, reading.spanNorthFt) : false;
+  });
+  const enclosedSqFt = rooms.reduce((sum, pocket) => sum + Math.abs(polygonAreaSqFt(pocket.points)), 0);
+  const usableBands = { north: 0, central: 0, south: 0 };
+  let usableSqFt = 0;
+  for (const pocket of rooms) {
+    if (!holdsClearSquare(pocket.points)) continue;
+    usableSqFt += Math.abs(polygonAreaSqFt(pocket.points));
+    const band = pocketReadings.find((item) => item.id === pocket.id)?.band;
+    if (band) usableBands[band] += 1;
+  }
+  const occupation = {
+    parcelSqFt,
+    enclosedSqFt,
+    usableSqFt,
+    enclosedShare: parcelSqFt > 0 ? enclosedSqFt / parcelSqFt : 0,
+    usableShare: parcelSqFt > 0 ? usableSqFt / parcelSqFt : 0,
+    usableBands,
+  };
   const readings: AttractorReading[] = attractors.map((node) => ({
     id: node.id,
     connected: connectedIds.has(node.id),
@@ -272,6 +310,7 @@ export function evaluateNetwork(iteration: NetworkIteration, field: NetworkField
     sunMeasured: readings.some((item) => item.exposed !== null),
     windFromDegrees: iteration.windFromDegrees ?? null,
     pockets,
+    occupation,
   };
 }
 
