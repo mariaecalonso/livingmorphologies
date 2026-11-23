@@ -18,7 +18,6 @@ import { tileStep, type TileInstance } from "@/lib/skill4/tiles";
 import { areaStandingLabel } from "@/lib/skill4/program-area";
 import { restoreStoredCatalog, type StoredIteration, type StoredProgramCatalog } from "@/lib/skill4/program-catalog";
 import { finishForCatalog, useCatalogIterations, useCatalogStatus } from "./cluster-catalog";
-import { FinishedCatalogView } from "./finished-catalog-view";
 import { MorphologyReview } from "./morphology-review";
 import { HybridAssembly } from "./hybrid-assembly";
 import { HybridState, useHybrid } from "./hybrid-state";
@@ -26,7 +25,6 @@ import { HybridState, useHybrid } from "./hybrid-state";
 const CLUSTER_STEPS = [
   { id: "compatibility", label: "Tile Compatibility" },
   { id: "placement", label: "Cluster Placement" },
-  { id: "catalog", label: "Cluster Catalog" },
   { id: "morphology", label: "Morphology Review" },
 ] as const;
 
@@ -100,7 +98,9 @@ function ClusterThumb({ tiles, connections = [], film = null }: { tiles: readonl
         mesh: film,
         translate: { x: 0, y: 0, z: 0 },
         selected: false,
-        color: [0.78, 0.94, 0.93] as [number, number, number],
+        color: [1, 1, 1] as [number, number, number],
+        opacity: 1,
+        plain: true,
       }], 0.8, -1.05, reach * 2 + tileStep(), false, 4.2, false, 1, undefined, false, false, undefined, 1, 480);
       return;
     }
@@ -629,14 +629,12 @@ export function ClusterPlacement({ sheet = "placement" }: { sheet?: ClusterStepI
           <>
             <div className="cluster-catalog-band">
               <ProgramRuleReadout />
-              <FinishedCatalogView embedded />
             </div>
             <div className="cluster-placement-work">
               <HybridAssembly view="process" />
             </div>
           </>
         ) : null}
-        {sheet === "catalog" ? <FinishedCatalogView /> : null}
         {sheet === "morphology" ? <MorphologyReview /> : null}
       </div>
     </HybridState>

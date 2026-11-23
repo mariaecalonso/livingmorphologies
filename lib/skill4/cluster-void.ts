@@ -1869,7 +1869,7 @@ function surfaceNets(
         const b = at(x + 1, y, z);
         if ((a >= iso) === (b >= iso)) continue;
         if (exteriorCap(mask, minDist, (z * ny + y) * nx + x, (z * ny + y) * nx + x + 1, far)) continue;
-        pushQuad([[x, y - 1, z - 1], [x, y, z - 1], [x, y, z], [x, y - 1, z]], a >= iso && b < iso);
+        pushQuad([[x, y - 1, z - 1], [x, y, z - 1], [x, y, z], [x, y - 1, z]], a < iso);
       }
     }
   }
@@ -1891,7 +1891,7 @@ function surfaceNets(
         const b = at(x, y, z + 1);
         if ((a >= iso) === (b >= iso)) continue;
         if (exteriorCap(mask, minDist, (z * ny + y) * nx + x, ((z + 1) * ny + y) * nx + x, far)) continue;
-        pushQuad([[x - 1, y - 1, z], [x, y - 1, z], [x, y, z], [x - 1, y, z]], a >= iso && b < iso);
+        pushQuad([[x - 1, y - 1, z], [x, y - 1, z], [x, y, z], [x - 1, y, z]], a < iso);
       }
     }
   }
@@ -1902,6 +1902,42 @@ function surfaceNets(
 function exteriorCap(mask: Uint8Array, minDist: Float32Array, a: number, b: number, far: number) {
   const crosses = mask[a] !== mask[b];
   return crosses && Math.min(minDist[a], minDist[b]) > far;
+}
+
+/** Softens cell-sized bumps and keeps the larger form in place. */
+function calmSurface(mesh: IsoMesh): IsoMesh {
+  const count = mesh.positions.length / 3;
+  const positions = new Float32Array(mesh.positions);
+  const sums = new Float64Array(mesh.positions.length);
+  const weights = new Float64Array(count);
+  const step = (scale: number) => {
+    sums.fill(0);
+    weights.fill(0);
+    for (let i = 0; i < mesh.indices.length; i += 3) {
+      const tri = [mesh.indices[i], mesh.indices[i + 1], mesh.indices[i + 2]];
+      for (let a = 0; a < 3; a += 1) {
+        const b = tri[(a + 1) % 3];
+        const c = tri[(a + 2) % 3];
+        const at = tri[a] * 3;
+        sums[at] += positions[b * 3] + positions[c * 3];
+        sums[at + 1] += positions[b * 3 + 1] + positions[c * 3 + 1];
+        sums[at + 2] += positions[b * 3 + 2] + positions[c * 3 + 2];
+        weights[tri[a]] += 2;
+      }
+    }
+    for (let i = 0; i < count; i += 1) {
+      if (!weights[i]) continue;
+      const at = i * 3;
+      positions[at] += (sums[at] / weights[i] - positions[at]) * scale;
+      positions[at + 1] += (sums[at + 1] / weights[i] - positions[at + 1]) * scale;
+      positions[at + 2] += (sums[at + 2] / weights[i] - positions[at + 2]) * scale;
+    }
+  };
+  for (let pass = 0; pass < 16; pass += 1) {
+    step(0.5);
+    step(-0.53);
+  }
+  return withNormals(Array.from(positions), Array.from(mesh.indices));
 }
 
 /** A few light moves toward neighbor averages. Cell steps soften; the larger curves stay. */
@@ -2050,7 +2086,9 @@ const EMPTY_SHRINKWRAP_VOID: ShrinkwrapVoidReport = {
  * Habitable void of one adopted shrinkwrap.
  * The solid is the interior of that skin. Air connected to the outside stays exterior.
  * Air held from more than one side is kept even when the room is open.
- * Only the largest remaining field is the main void.
+ * The standoff from the skin is short, and a sheltered court grows into
+ * corners and across the open side of a bend. Only the largest remaining
+ * field is the main void.
  */
 export function analyzeShrinkwrapVoid(mesh: IsoMesh): ShrinkwrapVoidReport {
   if (!mesh || mesh.triangles < 4 || mesh.indices.length < 9) return EMPTY_SHRINKWRAP_VOID;
@@ -2149,10 +2187,11 @@ export function analyzeShrinkwrapVoid(mesh: IsoMesh): ShrinkwrapVoidReport {
       tail += 1;
     }
   }
-  const hold = Math.min(36, Math.max(18, span * 0.34));
+  const hold = Math.min(44, Math.max(20, span * 0.4));
   const steps = Math.max(2, Math.ceil(hold / cell));
-  const minRoom = 2.4;
+  const minRoom = 1.25;
   const sheltered = new Uint8Array(count);
+  const facing = new Uint8Array(count);
   for (let index = 0; index < count; index += 1) {
     if (solid[index] || clearance[index] < minRoom || clearance[index] > hold) continue;
     const x = index % nx;
@@ -2185,7 +2224,42 @@ export function analyzeShrinkwrapVoid(mesh: IsoMesh): ShrinkwrapVoidReport {
     if (px && nxHit) pairs += 1;
     if (py && nyHit) pairs += 1;
     if (pz && nzHit) pairs += 1;
+    facing[index] = hits;
     if (pairs >= 2 || (pairs >= 1 && hits >= 3)) sheltered[index] = 1;
+  }
+  const growReach = 8;
+  const grow = new Int32Array(count);
+  const growDist = new Int16Array(count);
+  growDist.fill(-1);
+  let growTail = 0;
+  for (let index = 0; index < count; index += 1) {
+    if (!sheltered[index]) continue;
+    grow[growTail] = index;
+    growDist[index] = 0;
+    growTail += 1;
+  }
+  for (let head = 0; head < growTail; head += 1) {
+    const index = grow[head];
+    const dist = growDist[index];
+    if (dist >= growReach) continue;
+    const x = index % nx;
+    const y = Math.floor(index / nx) % ny;
+    const z = Math.floor(index / stride);
+    const neighbors = [
+      x > 0 ? index - 1 : -1,
+      x + 1 < nx ? index + 1 : -1,
+      y > 0 ? index - nx : -1,
+      y + 1 < ny ? index + nx : -1,
+      z > 0 ? index - stride : -1,
+      z + 1 < nz ? index + stride : -1,
+    ];
+    for (const next of neighbors) {
+      if (next < 0 || sheltered[next] || facing[next] < 2) continue;
+      sheltered[next] = 1;
+      growDist[next] = dist + 1;
+      grow[growTail] = next;
+      growTail += 1;
+    }
   }
   const openAir = new Uint8Array(count);
   for (let index = 0; index < count; index += 1) {
@@ -2214,9 +2288,9 @@ export function analyzeShrinkwrapVoid(mesh: IsoMesh): ShrinkwrapVoidReport {
   }
   const field = blurMask(main, nx, ny, nz);
   const distances = clearance;
-  const voidMesh = surfaceNets(field, distances, main, nx, ny, nz, 0.42, originX, originY, originZ, cell, cell, cell, 1e9);
+  const voidMesh = surfaceNets(field, distances, main, nx, ny, nz, 0.34, originX, originY, originZ, cell, cell, cell, 1e9);
   const pocketField = blurMask(pockets, nx, ny, nz);
-  const pocketMesh = surfaceNets(pocketField, distances, pockets, nx, ny, nz, 0.42, originX, originY, originZ, cell, cell, cell, 1e9);
+  const pocketMesh = surfaceNets(pocketField, distances, pockets, nx, ny, nz, 0.34, originX, originY, originZ, cell, cell, cell, 1e9);
   let lowX = nx;
   let highX = -1;
   let lowY = ny;
@@ -2242,8 +2316,8 @@ export function analyzeShrinkwrapVoid(mesh: IsoMesh): ShrinkwrapVoidReport {
       if (column) plates += 1;
     }
   }
-  const smooth = voidMesh.triangles > 4 ? keepLargestIsland(relax(relax(voidMesh))) : null;
-  const pocketSkin = pocketMesh.triangles > 4 ? relax(pocketMesh) : null;
+  const smooth = voidMesh.triangles > 4 ? keepLargestIsland(calmSurface(voidMesh)) : null;
+  const pocketSkin = pocketMesh.triangles > 4 ? calmSurface(pocketMesh) : null;
   return {
     mesh: smooth,
     pocketsMesh: pocketSkin,

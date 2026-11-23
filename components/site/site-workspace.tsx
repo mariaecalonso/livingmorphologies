@@ -23,7 +23,7 @@ import { loadFiledFinalCatalog, mergeFinalCatalog } from "@/lib/skill4/final-cat
 import { localOnAssembly, worldAnnotations, type SiteAnnotation } from "@/lib/skill5/annotations";
 import { assemblyWorldModules, cellToFeet, earlierProposals, explodeShifts, findSentProposal, importAssembly, keepAssemblyInSkill5, markAssemblySent, proposalCatalogEntry, reconcileSentAssemblies, reviseAssemblyMembers, worldToAssemblyLocal, type SiteAssembly } from "@/lib/skill5/assembly";
 import brief from "@/data/skill5/workplace-brief.json";
-import { PROGRAM_LABEL, SITE_ARCHETYPES, SITE_PROGRAMS, type SiteArchetype } from "@/lib/skill5/catalog";
+import { PROGRAM_LABEL, SITE_ARCHETYPES, type SiteArchetype } from "@/lib/skill5/catalog";
 import { isSkill5MockAssembly } from "@/lib/skill5/mock-assemblies";
 import { localDemonstrationBridge, worldSourceBridge } from "@/lib/skill5/mock-bridge";
 import { CONFIGURATION_CONTRACT, nextConfigurationId, referenceForModule, type ComparisonPriority, type ConfigurationDocument, type ConfigurationView, type SiteConfiguration } from "@/lib/skill5/configurations";
@@ -42,7 +42,7 @@ import type { FaceMatch, TilePose } from "@/lib/skill5/face-match";
 import { poseOf, reviewJoins, tileAabb, tileDistorted, tileFootprint, tilePoint, type AxisSpace, type GumballPose } from "@/lib/skill5/gumball";
 import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, boundsOf, placementWarnings, pointInRing, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
 import { reportTiles } from "@/lib/skill5/tile-placement";
-import { facesMeetingJoin, hasSideOpening } from "@/lib/skill5/connection-faces";
+import { ClusterInspect, ClusterPlacementLibrary } from "./cluster-placement-library";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
@@ -800,11 +800,6 @@ function GlassThumb({ mesh, interactive = true, fitRadius, spin = false, tone = 
   );
 }
 
-function ModuleThumb({ mesh }: { mesh: PreviewMesh }) {
-  const ready = mesh && mesh !== "missing" && mesh.triangles > 0 ? mesh : null;
-  return <GlassThumb mesh={ready} />;
-}
-
 const ASSEMBLY_PAGE_SIZE = 10;
 
 function AssemblyThumb({ entry, meshes }: { entry: CatalogEntry; meshes: Record<string, PreviewMesh> }) {
@@ -1098,7 +1093,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [pocketHover, setPocketHover] = useState<string | null>(null);
   const [branchNote, setBranchNote] = useState<string | null>(null);
   const branchMiss = useRef(new Set<string>());
-  const [libraryAll, setLibraryAll] = useState(false);
   const [zoneOpacity, setZoneOpacity] = useState(0.22);
   const placementYRef = useRef(MODULE_GROUND_Y);
   const tileReportRef = useRef<ReturnType<typeof reportTiles>>({});
@@ -1139,6 +1133,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [iterationBatch, setIterationBatch] = useState<IterationBatch | null>(null);
   const [analysisMode, setAnalysisMode] = useState<NetworkAnalysisMode>("density");
   const [analysisOn, setAnalysisOn] = useState(false);
+  const [clusterInspect, setClusterInspect] = useState<{ programId: string; clusterId: string } | null>(null);
   const [showField, setShowField] = useState(true);
   const networkView = useRef<HTMLElement>(null);
   const [showTrails, setShowTrails] = useState(true);
@@ -2795,6 +2790,13 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     ?? visibleZones.filter((zone) => zone.pocketId && pocketSelection.includes(zone.pocketId)).sort((a, b) => a.baseFt - b.baseFt)[0]
     ?? null;
   placementYRef.current = MODULE_GROUND_Y + (placementZone?.baseFt ?? 0);
+  const focusProgramZone = (kind: SiteZoneKind) => {
+    const matches = visibleZones.filter((zone) => zone.kind === kind);
+    if (matches.length === 0) return;
+    const chosen = matches.find((zone) => zone.id === placementZone?.id) ?? [...matches].sort((left, right) => left.baseFt - right.baseFt)[0];
+    setZoneSelection(chosen.id);
+    setPocketSelection(chosen.pocketId ? [chosen.pocketId] : []);
+  };
   const tileReports = useMemo(() => reportTiles(sceneInstances, visibleZones), [sceneInstances, visibleZones]);
   tileReportRef.current = tileReports;
   const shownWarnings = useMemo(() => {
@@ -3014,7 +3016,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       data-sheet={sheet === "strategy" && strategyMode === "site-network" ? "network" : sheet}
     >
       <SiteWorkflowNav step={sheet} onChange={chooseSheet} />
-      <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : sheet === "zoning" ? "Zoning" : sheet === "assembly" ? "Assembly" : "Library and project"}>
+      <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : sheet === "zoning" ? "Zoning" : sheet === "assembly" ? "Assembly" : "Cluster placement"}>
             {sheet === "strategy" ? (
               <div className={strategyMode === "site-network" ? "site-strategy-body" : "site-sim"}>
               <SiteStrategyPanel
@@ -3167,7 +3169,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               </div>
             ) : (
             <section className="site-block">
-              <h2 className="site-subtitle">Geometry Library</h2>
+              <ClusterPlacementLibrary zones={visibleZones} selectedZoneId={placementZone?.id ?? null} onSelectZone={focusProgramZone} onInspect={(programId, clusterId) => setClusterInspect({ programId, clusterId })} />
               <h3 className="site-subtitle">Assemblies</h3>
               {catalog.length === 0 ? <p className="site-note">No assemblies are selected in Hybrid Connection. Select one there to import it here.</p> : (
                 <>
@@ -3190,7 +3192,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               )}
               <h3 className="site-subtitle">Zones</h3>
               {pocketReport.pockets.every((pocket) => !visibleZones.some((zone) => zone.pocketId === pocket.id)) ? (
-                <p className="site-note">No zone is selected. The full library stays open.</p>
+                <p className="site-note">No pocket zone is assigned.</p>
               ) : (
                 <ul className="site-strategy-nodes">
                   {pocketReport.pockets.flatMap((pocket) => {
@@ -3219,65 +3221,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 Zone opacity
                 <input aria-label="Zone opacity" type="range" min={0} max={0.6} step={0.02} value={zoneOpacity} onChange={(event) => setZoneOpacity(Number(event.target.value))} />
               </label>
-              <div className="site-library-head">
-                <h3 className="site-subtitle">Modules</h3>
-                <div>
-                  <button type="button" className="site-criteria-open" onClick={() => setDefinitionsOpen(true)}>Criteria Definitions</button>
-                  <button type="button" className="site-criteria-open" onClick={() => { setCompatibilityOpen(true); setDnaId(null); }}>Compatibility</button>
-                </div>
-              </div>
-              {placementZone ? (
-                <button type="button" aria-pressed={libraryAll} data-active={libraryAll || undefined} onClick={() => setLibraryAll((value) => !value)}>
-                  {libraryAll ? "Showing every program" : `Filtered to ${ZONE_KINDS.find((item) => item.id === placementZone.kind)?.label}`}
-                </button>
-              ) : null}
-              <p className="site-note">Face counts are mesh openings, not the compatibility score. A direct join needs two opening cells on both facing sides.</p>
-              {armed && placementZone && armed.program && armed.program !== placementZone.kind ? (
-                <p className="site-note site-alert">{PROGRAM_LABEL[armed.program]} does not match this {PROGRAM_LABEL[placementZone.kind]} zone. Placement stays available.</p>
-              ) : null}
-              <div className="site-module-rows">
-              {SITE_PROGRAMS.map((program) => {
-                const entries = SITE_ARCHETYPES.filter((entry) => entry.program === program && (libraryAll || !placementZone || program === placementZone.kind));
-                const ordered = [...entries].sort((a, b) => {
-                  const rank = (item: typeof a) => {
-                    const mesh = meshes[item.moduleId];
-                    return mesh && mesh !== "missing" && hasSideOpening(mesh.positions) ? 0 : 1;
-                  };
-                  return rank(a) - rank(b);
-                });
-                if (ordered.length === 0) return null;
-                return (
-                  <div key={program}>
-                    <h4 className="site-gallery-label">{PROGRAM_LABEL[program]}</h4>
-                    <div className="site-gallery site-gallery-modules">
-                      {ordered.map((entry) => {
-                        const stored = meshes[entry.moduleId];
-                        const missing = stored === "missing";
-                        const openings = stored && stored !== "missing" ? facesMeetingJoin(stored.positions) : [];
-                        return (
-                          <div key={entry.moduleId} className="site-module-card">
-                            <button
-                              type="button"
-                              data-active={armedId === entry.archetypeId || undefined}
-                              onClick={() => armModule(entry)}
-                            >
-                              <ModuleThumb mesh={stored} />
-                              <span>{entry.name}</span>
-                              {stored && stored !== "missing" ? <em>{openings.length > 0 ? openings.map((face) => `${face.id} ${face.openings}`).join(" ") : "No two-cell opening"}</em> : null}
-                              {missing ? <em>Unavailable</em> : null}
-                            </button>
-                            <button type="button" className="site-dna-open" aria-label={`Architectural DNA, ${entry.name}`} onClick={() => setDnaId(entry.archetypeId)}>+ / DNA</button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-              </div>
-              {armed && meshes[armed.moduleId] === "missing" ? (
-                <p className="site-note site-alert">This mesh is not stored. Another archetype is not substituted.</p>
-              ) : null}
             </section>
             )}
 
@@ -3319,7 +3262,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
             ) : (
             <>
             <div className="site-frame-name">
-              <h2 className="site-subtitle">Current configuration</h2>
+              <h2 className="site-subtitle">Cluster Placement</h2>
               <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
               {armed && faceMatch?.valid ? <p className="site-note">{autoMatch ? "Auto-match" : "Manual"} {faceMatch.rank}/{faceMatch.total} · {faceMatch.pair} · {faceMatch.score >= 8 ? "Good" : "Partial"}{faceMatch.neighborName ? ` · ${faceMatch.neighborName}` : ""}</p> : null}
               {armed && faceMatch && !faceMatch.valid && faceMatch.warning ? <p className="site-note site-alert">{faceMatch.warning}</p> : null}
@@ -3995,6 +3938,9 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
           onClose={() => setDnaId(null)}
           onOpenOverview={() => setCompatibilityOpen(true)}
         />
+      ) : null}
+      {sheet === "placement" && clusterInspect ? (
+        <ClusterInspect programId={clusterInspect.programId} clusterId={clusterInspect.clusterId} onClose={() => setClusterInspect(null)} />
       ) : null}
     </main>
   );

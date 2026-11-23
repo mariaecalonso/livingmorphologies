@@ -36,6 +36,7 @@ export function AggregationView({
   measures = [],
   pendingPoint = null,
   onMeasurePoint,
+  zoomOut = MAX_ZOOM_OUT_MULTIPLIER,
 }: {
   instances: readonly PlacedMesh[];
   selectedId: string;
@@ -53,6 +54,8 @@ export function AggregationView({
   anchorIds?: readonly string[];
   /** Radians. Negative looks down from above the ground grid. */
   initialPitch?: number;
+  /** How far the wheel can pull back, as a multiple of the resting camera. */
+  zoomOut?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
@@ -158,7 +161,7 @@ export function AggregationView({
       const currentFocus = focusRef.current;
       const factor = Math.exp(event.deltaY * 0.0012);
       const fit = fitEyeRef.current;
-      const limit = fit * MAX_ZOOM_OUT_MULTIPLIER;
+      const limit = fit * zoomOut;
       if (factor > 1) {
         if (currentEye >= limit - 1e-3) return;
         const nextEye = Math.min(limit, currentEye * factor);
@@ -202,7 +205,7 @@ export function AggregationView({
     };
     stage.addEventListener("wheel", onWheel, { passive: false });
     return () => stage.removeEventListener("wheel", onWheel);
-  }, [framed, instances, pitch, span, yaw]);
+  }, [framed, instances, pitch, span, yaw, zoomOut]);
 
   const pick = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -281,7 +284,7 @@ export function AggregationView({
         data-camera-eye={eye.toFixed(3)}
         data-camera-target={`${lookAt.x.toFixed(3)},${lookAt.y.toFixed(3)},${lookAt.z.toFixed(3)}`}
         data-eye-min={MIN_CAMERA_DISTANCE}
-        data-eye-max={CANVAS_EYE * MAX_ZOOM_OUT_MULTIPLIER}
+        data-eye-max={CANVAS_EYE * zoomOut}
         data-ground="registration"
         data-measuring={measuring || undefined}
         aria-label={`Aggregation canvas, ${selectedId} selected`}

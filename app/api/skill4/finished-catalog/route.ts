@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { rankProgramClusters } from "@/lib/skill4/cluster-placement-rank";
 import { CLUSTER_PROGRAMS } from "@/lib/skill4/program-tiles";
 import type { FinishedCatalog, FinishedProgram } from "@/lib/skill4/finished-catalog";
 
@@ -72,6 +73,10 @@ export function GET(request: Request) {
     const catalog = readCatalog();
     if (programId) {
       const program = catalog.programs.find((item) => item.programId === programId) ?? null;
+      if (url.searchParams.get("view") === "placement") {
+        if (!program) return Response.json(null);
+        return Response.json(rankProgramClusters(program.programId, program.name, program.iterations));
+      }
       return Response.json(program);
     }
     return Response.json({

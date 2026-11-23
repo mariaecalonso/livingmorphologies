@@ -14,7 +14,7 @@ export async function generateMetadata({
 }) {
   const params = await searchParams;
   const sheet = Array.isArray(params.sheet) ? params.sheet[0] : params.sheet;
-  const title = sheet === "compatibility" ? "Tile Compatibility" : sheet === "catalog" ? "Cluster Catalog" : sheet === "morphology" ? "Morphology Review" : sheet === "placement" ? "Cluster Placement" : tab.label;
+  const title = sheet === "compatibility" ? "Tile Compatibility" : sheet === "morphology" ? "Morphology Review" : sheet === "placement" ? "Cluster Placement" : tab.label;
   return { title: `${title} -+ ${workspace.label} -+ Living Morphologies` };
 }
 
@@ -25,7 +25,17 @@ export default async function SitePage({
 }) {
   const params = await searchParams;
   const sheet = Array.isArray(params.sheet) ? params.sheet[0] : params.sheet;
-  if (sheet === "compatibility" || sheet === "placement" || sheet === "catalog" || sheet === "morphology") {
+  if (sheet === "catalog") {
+    const next = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (key === "sheet" || value == null) continue;
+      if (Array.isArray(value)) value.forEach((item) => next.append(key, item));
+      else next.set(key, value);
+    }
+    next.set("sheet", "placement");
+    redirect(`/lab/site?${next.toString()}`);
+  }
+  if (sheet === "compatibility" || sheet === "morphology") {
     return <ClusterPlacement sheet={sheet} />;
   }
   if (!sheet || !MODEL_SHEETS.has(sheet)) {

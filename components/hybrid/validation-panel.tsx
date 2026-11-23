@@ -419,7 +419,7 @@ function filmPlace(film: FilmWrap, opacity: number): PlacedMesh {
     mesh: film.mesh,
     translate: { x: 0, y: 0, z: 0 },
     selected: false,
-    color: [0.78, 0.94, 0.93],
+    color: [1, 1, 1],
     opacity,
   };
 }

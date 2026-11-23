@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { evaluateAggregation } from "@/lib/skill4/aggregation";
 import { evaluateBooleanReadiness, inspectBooleanReadiness, type BooleanReadiness } from "@/lib/skill4/boolean-conditioning";
@@ -18,7 +18,10 @@ import { detectAdjacencies, type TileConnection } from "@/lib/skill4/connections
 import type { Vec3 } from "@/lib/skill4/contract";
 import { modelUnitsToFeet } from "@/lib/skill4/scale";
 import type { IsoMesh } from "@/lib/scan/isomesh";
+import type { FinishedIteration } from "@/lib/skill4/finished-catalog";
+import { ClusterCriteriaView } from "./cluster-analysis-view";
 import type { PlacedMesh } from "@/lib/skill4/draw-placed";
+import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
 import { generationStatusLabel } from "@/lib/skill4/hybrid-display";
 import type { ModuleHandoff } from "@/lib/skill4/adapt";
 import type { TypologyId } from "@/lib/types";
@@ -39,7 +42,62 @@ import { captureCatalogEntry, nextCatalogId } from "@/lib/skill4/catalog";
 import { readCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
 
 const CANVAS_WHITE: [number, number, number] = [1, 1, 1];
-const VOID_CYAN: [number, number, number] = [0.29, 0.84, 0.87];
+const VOID_TEAL: [number, number, number] = [0.22, 0.42, 0.36];
+const VOID_ALPHA = 0.46;
+/**
+ * Void graphic under test.
+ * Style A is the saved shell: plain shading, VOID_TEAL, opacity 0.46, outer faces only, no crease lines.
+ * Style B is the kept glow: terracotta at the base, teal above, soft falloff. The solid stays white.
+ */
+const VOID_STYLE: "A" | "B" = "B";
+const VOID_LOOK = VOID_STYLE === "A"
+  ? { color: VOID_TEAL, opacity: VOID_ALPHA, plain: true as const }
+  : { color: VOID_TEAL, opacity: 1, glow: true as const };
+
+function StudyHead({ mark, title, aside }: { mark: string; title: string; aside?: ReactNode }) {
+  return (
+    <header className="panel-header cluster-study-head">
+      <div className="panel-header-content">
+        <p className="eyebrow">{mark}</p>
+        <h2 className="panel-title">{title}</h2>
+      </div>
+      {aside ? <div className="panel-header-aside">{aside}</div> : null}
+    </header>
+  );
+}
+
+function StudyView({ instances, span, yaw = 0.9, pitch = -0.48 }: { instances: readonly PlacedMesh[]; span: number; yaw?: number; pitch?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fitCache = useRef<{ width: number; height: number; signature: string; fit: number; center: { x: number; y: number; z: number } } | null>(null);
+  const key = `${span}:${yaw}:${pitch}:${instances.map((instance) => `${instance.id}:${instance.opacity ?? 1}:${instance.hold ? "hold" : "draw"}:${instance.mesh.triangles}`).join("|")}`;
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const parent = canvas?.parentElement;
+    if (!canvas || !parent) return;
+    const signature = `${span}:${yaw}:${pitch}:${instances.map((instance) => `${instance.id}:${instance.mesh.triangles}`).join("|")}`;
+    const draw = () => {
+      const width = parent.clientWidth;
+      const height = parent.clientHeight;
+      if (width < 8 || height < 8) return;
+      const cached = fitCache.current;
+      if (cached && cached.width === width && cached.height === height && cached.signature === signature) {
+        drawPlacedMeshes(canvas, instances, yaw, pitch, Math.max(8, span), false, 4.2, false, 1, cached.center, false, false, cached.fit, 1, 960);
+        return;
+      }
+      const frame = drawPlacedMeshes(canvas, instances, yaw, pitch, Math.max(8, span), false, 4.2, false, 0.92, undefined, true, true, undefined, 1, 960);
+      if (frame) fitCache.current = { width, height, signature, fit: frame.fit, center: frame.center };
+    };
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [instances, key, span, yaw, pitch]);
+  return (
+    <div className="cluster-study-view">
+      <canvas ref={canvasRef} className="hybrid-stage-canvas" />
+    </div>
+  );
+}
 
 function meshBounds(mesh: IsoMesh) {
   let minX = Infinity;
@@ -90,7 +148,7 @@ function typologyOf(archetypeId: string, loaded: ReadonlyMap<string, ModuleHando
 
 export type HybridLabFrame = "tile" | "canvas" | "som" | "clipping" | "descendant";
 
-export function HybridAssembly({ view = "process", frame, presentation = false, assemblyFilm = null, assemblyTiles: _assemblyTiles = null, assemblyConnections: _assemblyConnections = null, clusterValidated = false }: { view?: "process" | "catalog" | "final-catalog"; frame?: HybridLabFrame; presentation?: boolean; assemblyFilm?: IsoMesh | null; assemblyTiles?: readonly TileInstance[] | null; assemblyConnections?: readonly TileConnection[] | null; clusterValidated?: boolean }) {
+export function HybridAssembly({ view = "process", frame, presentation = false, assemblyFilm = null, assemblyTiles: _assemblyTiles = null, assemblyConnections: _assemblyConnections = null, clusterValidated = false, studyProgramId = "", studyIteration = null }: { view?: "process" | "catalog" | "final-catalog"; frame?: HybridLabFrame; presentation?: boolean; assemblyFilm?: IsoMesh | null; assemblyTiles?: readonly TileInstance[] | null; assemblyConnections?: readonly TileConnection[] | null; clusterValidated?: boolean; studyProgramId?: string; studyIteration?: FinishedIteration | null }) {
   if (view === "catalog") return <HybridCatalog />;
   if (view === "final-catalog") return <HybridCatalog final />;
   const {
@@ -129,8 +187,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
   const booleanPlan = buildBooleanPlan(interlocks);
   const executionKey = booleanExecutionKey(booleanPlan, tiles);
   const [execution, setExecution] = useState<BooleanExecutionResult | null>(null);
-  const [showVoid, setShowVoid] = useState(false);
-  const [voidView, setVoidView] = useState<"solid" | "void" | "combined" | "debug" | "section">("combined");
+  const [voidView, setVoidView] = useState<"solid" | "void" | "section">("solid");
   const [sectionHeight, setSectionHeight] = useState(0.45);
   const [measuring, setMeasuring] = useState(false);
   const [measurePending, setMeasurePending] = useState<Vec3 | null>(null);
@@ -319,7 +376,9 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
     mesh: assemblyFilm,
     translate: { x: 0, y: 0, z: 0 },
     selected: false,
-    color: [0.78, 0.94, 0.93] as [number, number, number],
+    color: CANVAS_WHITE,
+    opacity: 1,
+    plain: true,
   }] : null;
   const bodySolids = adoptedFilm ?? placed.filter((instance) => !instance.id.startsWith("guide:") && !instance.id.startsWith("contact:") && instance.mesh.triangles > 0);
   const hybridSolids = useMemo(() => connections.flatMap((connection) => {
@@ -354,14 +413,14 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
     setMeasurePending(null);
   };
   const filmKey = assemblyFilm ? `${assemblyFilm.triangles}:${assemblyFilm.positions.length}:${assemblyFilm.positions[0] ?? 0}:${assemblyFilm.positions[assemblyFilm.positions.length - 1] ?? 0}` : "";
-  const voidKey = `${filmKey}:field2`;
+  const voidKey = `${filmKey}:field6`;
   const voidCache = useRef<{ key: string; report: ShrinkwrapVoidReport } | null>(null);
   const filmRef = useRef(assemblyFilm);
   filmRef.current = assemblyFilm;
   const [voidVersion, setVoidVersion] = useState(0);
   useEffect(() => {
     const filmMesh = filmRef.current;
-    if (!showVoid || voidView === "solid" || !filmMesh || voidCache.current?.key === voidKey) return;
+    if (!filmMesh || voidCache.current?.key === voidKey) return;
     let cancel = false;
     const timer = window.setTimeout(() => {
       if (cancel || voidCache.current?.key === voidKey || !filmRef.current) return;
@@ -373,30 +432,32 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
       cancel = true;
       window.clearTimeout(timer);
     };
-  }, [showVoid, voidKey, voidView]);
+  }, [voidKey]);
   const voidReport = voidVersion >= 0 && voidCache.current?.key === voidKey ? voidCache.current.report : null;
   const voidMesh = voidReport?.mesh ?? null;
-  const voidOpacity = voidView === "combined" ? 0.34 : voidView === "debug" ? 0.4 : 0.26;
   const voidInstance = voidMesh ? {
     id: "habitable-void",
     mesh: voidMesh,
     translate: { x: 0, y: 0, z: 0 },
     selected: false,
     kind: 0 as const,
-    color: VOID_CYAN,
-    opacity: voidOpacity,
-    volume: true,
+    color: VOID_LOOK.color,
+    opacity: VOID_LOOK.opacity,
+    plain: "plain" in VOID_LOOK ? VOID_LOOK.plain : undefined,
+    glow: "glow" in VOID_LOOK ? VOID_LOOK.glow : undefined,
   } : null;
-  const pocketInstances = voidView === "debug" && voidReport?.pocketsMesh ? [{
+  const pocketInstance = voidReport?.pocketsMesh && voidReport.pocketsMesh.triangles > 4 ? {
     id: "void-pockets",
     mesh: voidReport.pocketsMesh,
     translate: { x: 0, y: 0, z: 0 },
     selected: false,
     kind: 0 as const,
-    color: [0.84, 0.28, 0.62] as [number, number, number],
-    opacity: 0.22,
-    volume: true,
-  }] : [];
+    color: VOID_LOOK.color,
+    opacity: VOID_LOOK.opacity,
+    plain: "plain" in VOID_LOOK ? VOID_LOOK.plain : undefined,
+    glow: "glow" in VOID_LOOK ? VOID_LOOK.glow : undefined,
+  } : null;
+  const pocketInstances = voidView === "void" && pocketInstance ? [pocketInstance] : [];
   const sectionCut = voidView === "section" && voidReport ? voidReport.section(sectionHeight) : null;
   const sectionInstances = sectionCut ? [
     ...(sectionCut.solid ? [{
@@ -415,31 +476,115 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
       translate: { x: 0, y: 0, z: 0 },
       selected: false,
       kind: 0 as const,
-      color: VOID_CYAN,
-      opacity: 1,
-      plain: true,
+      color: VOID_LOOK.color,
+      opacity: VOID_LOOK.opacity,
+      plain: "plain" in VOID_LOOK ? VOID_LOOK.plain : undefined,
+      glow: "glow" in VOID_LOOK ? VOID_LOOK.glow : undefined,
     }] : []),
   ] : [];
   const plainSolid = bodySolids.map((instance) => ({ ...instance, opacity: 1, palette: false as const, plain: true, quiet: false }));
-  const faintSolid = plainSolid.map((instance) => ({
-    ...instance,
-    plain: true,
-    quiet: false,
-    opacity: voidView === "debug" ? 0.34 : 0.32,
-    color: [0.82, 0.84, 0.86] as [number, number, number],
-  }));
   const voidRoom = voidInstance && voidInstance.mesh.triangles > 4 ? voidInstance : null;
-  const canvasInstances = !showVoid
-    ? (adoptedFilm ?? film.instances)
+  const withVoid = [...plainSolid, ...(voidRoom ? [voidRoom] : [])];
+  const canvasInstances = assemblyFilm
+    ? [...withVoid, ...(pocketInstance ? [pocketInstance] : [])]
     : voidView === "section"
       ? sectionInstances
       : voidView === "void"
-        ? (voidRoom ? [voidRoom] : [])
-        : voidView === "solid"
-          ? plainSolid
-          : voidView === "debug"
-            ? [...faintSolid, ...(voidRoom ? [voidRoom] : []), ...pocketInstances]
-            : [...faintSolid, ...(voidRoom ? [voidRoom] : [])];
+        ? [...withVoid, ...pocketInstances]
+        : plainSolid;
+  const studySpan = useMemo(() => {
+    if (!assemblyFilm || assemblyFilm.triangles < 4) return span;
+    const box = meshBounds(assemblyFilm);
+    return Math.max(box.maxX - box.minX, box.maxY - box.minY, box.maxZ - box.minZ, 8);
+  }, [assemblyFilm, span]);
+  const studyPlates = useMemo(() => {
+    if (!assemblyFilm || !voidReport) return [];
+    const seen = new Set<number>();
+    const plates: Array<{ solid: IsoMesh | null; void: IsoMesh | null }> = [];
+    const samples = 18;
+    for (let index = 0; index < samples; index += 1) {
+      const cut = voidReport.section(index / (samples - 1));
+      const mark = cut.void?.positions[1] ?? cut.solid?.positions[1];
+      const key = mark === undefined ? -1 : Math.round(mark * 20);
+      if (key < 0 || seen.has(key)) continue;
+      seen.add(key);
+      plates.push(cut);
+    }
+    return plates;
+  }, [assemblyFilm, voidReport]);
+  const [stackCount, setStackCount] = useState(0);
+  useEffect(() => {
+    if (!studyPlates.length) return;
+    let count = 0;
+    let hold = 0;
+    const timer = window.setInterval(() => {
+      if (hold > 0) {
+        hold -= 1;
+        if (hold === 0) {
+          count = 0;
+          setStackCount(0);
+        }
+        return;
+      }
+      count += 1;
+      setStackCount(count);
+      if (count >= studyPlates.length) hold = 6;
+    }, 520);
+    return () => window.clearInterval(timer);
+  }, [studyPlates]);
+  const isolatedVoid = useMemo((): PlacedMesh[] => {
+    if (!voidReport?.mesh || voidReport.mesh.triangles <= 4) return [];
+    const room: PlacedMesh = {
+      id: "study-void",
+      mesh: voidReport.mesh,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      ...VOID_LOOK,
+    };
+    if (!voidReport.pocketsMesh || voidReport.pocketsMesh.triangles <= 4) return [room];
+    return [room, {
+      id: "study-pockets",
+      mesh: voidReport.pocketsMesh,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      ...VOID_LOOK,
+    }];
+  }, [voidReport]);
+  const isolatedSolid = useMemo((): PlacedMesh[] => {
+    if (!assemblyFilm || assemblyFilm.triangles <= 4) return [];
+    return [{
+      id: "study-solid",
+      mesh: assemblyFilm,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      color: CANVAS_WHITE,
+      opacity: 1,
+      plain: true,
+    }];
+  }, [assemblyFilm]);
+  const stackInstances = useMemo(() => studyPlates.flatMap((plate, index) => {
+    const visible = index < stackCount;
+    const items: PlacedMesh[] = [];
+    if (plate.solid && plate.solid.triangles > 0) items.push({
+      id: `stack-solid-${index}`,
+      mesh: plate.solid,
+      translate: { x: 0, y: 0, z: 0 },
+      selected: false,
+      color: CANVAS_WHITE,
+      opacity: 1,
+      plain: true,
+      hold: !visible,
+    });
+    if (plate.void && plate.void.triangles > 0) items.push({
+      id: `stack-void-${index}`,
+      mesh: plate.void,
+      selected: false,
+      ...VOID_LOOK,
+      translate: { x: 0, y: 0.45, z: 0 },
+      hold: !visible,
+    });
+    return items;
+  }), [studyPlates, stackCount]);
   const canvasDebugKey = placed.map((item) => `${item.id}:${item.mesh.triangles}:${item.mesh.positions.length}:${item.palette ? "hybrid" : "solid"}`).join("|");
   useEffect(() => {
     const rows = placed.map((item) => {
@@ -523,7 +668,10 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
       </Panel> : null}
       {!frame || frame === "canvas" ? <Panel className="hybrid-canvas major-section-frame">
         <PanelHeader mark="02" title="Aggregation Canvas" />
-        <div className="hybrid-stage" data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
+        <div className={assemblyFilm ? "cluster-study-row" : "cluster-study-plain"}>
+        <div className={assemblyFilm ? "cluster-study-lead" : "cluster-study-plain"}>
+        {assemblyFilm ? <StudyHead mark="01" title="Solid and void" /> : null}
+        <div className={assemblyFilm ? "hybrid-stage frame-primary" : "hybrid-stage"} data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
           <AggregationView
             initialPitch={presentation ? -1.15 : undefined}
             instances={canvasInstances}
@@ -551,7 +699,8 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
               }];
             })}
             onSelectConnection={focusConnection}
-            span={span}
+            span={assemblyFilm ? span * 1.6 : span}
+            zoomOut={assemblyFilm ? 6 : undefined}
             sweep={film.sweep}
             onSweepDone={film.finishSweep}
             measuring={measuring}
@@ -564,27 +713,22 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
               {film.running ? "Running" : "Run validation"}
             </button>
             {adoptedFilm || clusterValidated ? <p className="hybrid-validate-badge" data-state="clear">VALIDATED</p> : film.status ? <p className="hybrid-validate-badge" data-state={film.status === "VALIDATED" ? "clear" : "unresolved"}>{film.status}</p> : null}
-            <button type="button" data-show-void="" data-active={showVoid || undefined} onClick={() => setShowVoid((current) => !current)}>
-              Show habitable void
-            </button>
-            <button type="button" data-void-view="solid" data-active={showVoid && voidView === "solid" || undefined} onClick={() => { setVoidView("solid"); setShowVoid(true); }}>
-              Solid
-            </button>
-            <button type="button" data-void-view="void" data-active={showVoid && voidView === "void" || undefined} onClick={() => { setVoidView("void"); setShowVoid(true); }}>
-              Void
-            </button>
-            <button type="button" data-void-view="combined" data-active={showVoid && voidView === "combined" || undefined} onClick={() => { setVoidView("combined"); setShowVoid(true); }}>
-              Combined
-            </button>
-            <button type="button" data-void-view="debug" data-active={showVoid && voidView === "debug" || undefined} onClick={() => { setVoidView("debug"); setShowVoid(true); }}>
-              Void Debug
-            </button>
-            <button type="button" data-void-view="section" data-active={showVoid && voidView === "section" || undefined} onClick={() => { setVoidView("section"); setShowVoid(true); }}>
-              Void Section
-            </button>
-            {showVoid && voidView === "section" ? (
-              <input type="range" min={0} max={1} step={0.01} value={sectionHeight} aria-label="Void section height" onChange={(event) => setSectionHeight(Number(event.target.value))} />
-            ) : null}
+            {assemblyFilm ? null : (
+              <>
+                <button type="button" data-void-view="solid" data-active={voidView === "solid" || undefined} onClick={() => setVoidView("solid")}>
+                  Solid
+                </button>
+                <button type="button" data-void-view="void" data-active={voidView === "void" || undefined} onClick={() => setVoidView("void")}>
+                  Habitable Void
+                </button>
+                <button type="button" data-void-view="section" data-active={voidView === "section" || undefined} onClick={() => setVoidView("section")}>
+                  Void Section
+                </button>
+                {voidView === "section" ? (
+                  <input type="range" min={0} max={1} step={0.01} value={sectionHeight} aria-label="Void section height" onChange={(event) => setSectionHeight(Number(event.target.value))} />
+                ) : null}
+              </>
+            )}
             <button type="button" data-measure="" data-active={measuring || undefined} onClick={() => { setMeasuring((current) => !current); setMeasurePending(null); }}>
               MEASURE
             </button>
@@ -609,6 +753,42 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
               );
             })}
           </div>
+        </div>
+        </div>
+        {assemblyFilm ? (
+          <aside className="cluster-study" data-cluster-study="">
+            <div className="cluster-study-group">
+              <div className="cluster-study-slot">
+                <StudyHead mark="02" title="Habitable void" aside={voidReport && voidReport.floorSquareFeet > 0 ? <span>{Math.round(voidReport.floorSquareFeet).toLocaleString("en-US")} sf</span> : null} />
+                <figure className="frame-teal">
+                  <StudyView instances={isolatedVoid} span={studySpan} />
+                </figure>
+              </div>
+              <div className="cluster-study-slot">
+                <StudyHead mark="03" title="Solid" />
+                <figure>
+                  <StudyView instances={isolatedSolid} span={studySpan} />
+                </figure>
+              </div>
+            </div>
+            <div className="cluster-study-group cluster-study-group-secondary">
+              <div className="cluster-study-slot">
+                <StudyHead mark="04" title="Void section" />
+                <figure>
+                  <StudyView instances={stackInstances} span={studySpan} />
+                </figure>
+              </div>
+              {studyIteration && studyProgramId ? (
+                <div className="cluster-study-slot">
+                  <StudyHead mark="05" title="Criteria" aside={<p className="cluster-study-key"><span data-relation="meets">Meets</span><span data-relation="above">Above</span><span data-relation="below">Below</span></p>} />
+                  <figure className="frame-copper">
+                    <ClusterCriteriaView programId={studyProgramId} item={studyIteration} mesh={assemblyFilm} span={studySpan} />
+                  </figure>
+                </div>
+              ) : null}
+            </div>
+          </aside>
+        ) : null}
         </div>
       </Panel> : null}
       {!frame || frame === "som" ? <Panel className="hybrid-som major-section-frame">

@@ -207,7 +207,7 @@ function shellMaterial() {
     vertexShader: SHELL_VERT,
     fragmentShader: SHELL_FRAG,
     uniforms: {
-      uColor: { value: new Color(0.78, 0.94, 0.93) },
+      uColor: { value: new Color(1, 1, 1) },
       uAlpha: { value: 1 },
     },
     transparent: true,
@@ -318,7 +318,7 @@ function writeMesh(mesh: Mesh, item: PlacedMesh, shell: boolean) {
     geometry.setAttribute("bary", new BufferAttribute(flat.bary, 3));
     geometry.setIndex(null);
     const material = mesh.material as ShaderMaterial;
-    const color = item.color ?? [0.78, 0.94, 0.93];
+    const color = item.color ?? [1, 1, 1];
     material.uniforms.uColor.value.setRGB(color[0], color[1], color[2]);
     material.uniforms.uAlpha.value = item.opacity ?? 1;
     return;

@@ -21,10 +21,15 @@ export type PlacedMesh = {
   quiet?: boolean;
   /** Opaque shaded solid, without the assembly wireframe. */
   plain?: boolean;
+  /**
+   * Style B void. Soft emissive gradient, terracotta below and teal above.
+   * Style A leaves this unset and uses the plain shell.
+   */
+  glow?: boolean;
   /** Aggregation-canvas hybrid only. Teal at one end, orange at the other. */
   palette?: boolean;
-  /** World-X limit. Vertices past it are not drawn. Unset draws the whole mesh. */
-  clipX?: number;
+  /** Included in the frame, not drawn. Keeps a building stack from changing scale. */
+  hold?: boolean;
 };
 
 /** Camera pull-back used by the placed-mesh view. Previews stay at this distance. */
@@ -35,7 +40,7 @@ export const CANVAS_EYE_MAX = 8.4;
 /** Closest Aggregation Canvas pull-back. About 35% of the previous 2.05 limit. */
 export const MIN_CAMERA_DISTANCE = 0.72;
 const NEAR_PLANE = 0.35;
-const FAR_PLANE = 14;
+const FAR_PLANE = 36;
 
 const VERT = `#version 300 es
 layout(location = 0) in vec3 aPos;
@@ -136,11 +141,23 @@ void main() {
   vec3 orange = vec3(0.780392, 0.494118, 0.372549);
   vec3 tint = mix(green, orange, clamp(vRamp, 0.0, 1.0));
   vec3 col = uPalette > 0.5 ? tint : uColor * shade * (1.0 - grazing * 0.35);
+  if (uStyle > 5.5) {
+    float height = clamp(vRamp, 0.0, 1.0);
+    vec3 teal = vec3(0.058824, 0.450980, 0.466667);
+    vec3 clay = vec3(0.780392, 0.494118, 0.372549);
+    float warm = 1.0 - smoothstep(0.08, 0.82, height);
+    vec3 hue = mix(teal, clay, warm);
+    float alpha = mix(0.78, 0.9, warm) * uAlpha;
+    vec3 emit = hue * 0.42;
+    oColor = vec4(emit, clamp(alpha, 0.0, 0.92));
+    oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
+    return;
+  }
   if (uStyle > 4.5) {
     float shadeLit = 0.38 + lambert * 0.24;
     vec3 body = uColor * shadeLit;
-    float crease = smoothstep(0.5, 0.95, length(fwidth(n)));
-    oColor = vec4(mix(body, vec3(0.96), crease * 0.22), uAlpha);
+    float crease = uAlpha > 0.999 ? smoothstep(0.5, 0.95, length(fwidth(n))) * 0.22 : 0.0;
+    oColor = vec4(mix(body, vec3(0.96), crease), uAlpha);
     oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
     return;
   }
@@ -235,10 +252,10 @@ void main() {
   float strength = max(col.r, max(col.g, col.b));
   vec3 hue = strength > 0.05 ? col / strength : vec3(0.95, 0.96, 0.95);
   vec3 lit = col + bloom * mix(0.16, 0.04, inside) + hue * contour * 0.55;
-  oColor = vec4(min(lit, vec3(1.0)), 1.0);
+  oColor = vec4(min(lit, vec3(1.0)), texture(uColor, vUv).a);
 }`;
 
-const SHADER_VERSION = 43;
+const SHADER_VERSION = 47;
 
 const expandedMeshes = new WeakMap<IsoMesh, { positions: Float32Array; normals: Float32Array }>();
 
@@ -732,6 +749,21 @@ function pointAlong(origin: Vec3, direction: Vec3, distance: number): Vec3 {
   };
 }
 
+function verticalRamp(mesh: IsoMesh, translate: Vec3) {
+  let minY = Infinity;
+  let maxY = -Infinity;
+  const positions = mesh.positions;
+  for (let index = 1; index < positions.length; index += 3) {
+    minY = Math.min(minY, positions[index]);
+    maxY = Math.max(maxY, positions[index]);
+  }
+  const span = Math.max(maxY - minY, 1e-4);
+  return {
+    origin: { x: translate.x, y: minY + translate.y, z: translate.z },
+    dir: { x: 0, y: 1 / span, z: 0 },
+  };
+}
+
 function meshRamp(mesh: IsoMesh, translate: Vec3) {
   let minX = Infinity;
   let minY = Infinity;
@@ -856,6 +888,7 @@ export function drawPlacedMeshes(
   fitOverride?: number,
   pixelScale = 1,
   maxPixels = 0,
+  clear: readonly [number, number, number, number] = [0, 0, 0, 1],
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
@@ -880,7 +913,7 @@ export function drawPlacedMeshes(
   resize(gpu, pixelsW, pixelsH);
   gl.bindFramebuffer(gl.FRAMEBUFFER, gpu.fbo);
   gl.viewport(0, 0, pixelsW, pixelsH);
-  gl.clearColor(0, 0, 0, 1);
+  gl.clearColor(clear[0], clear[1], clear[2], clear[3]);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -906,7 +939,7 @@ export function drawPlacedMeshes(
   gl.depthMask(true);
   gl.disable(gl.BLEND);
   const drawInstance = (instance: PlacedMesh) => {
-    if (instance.mesh.triangles < 1) return;
+    if (instance.hold || instance.mesh.triangles < 1) return;
     const opacity = instance.opacity ?? 1;
     if (opacity < 0.012) return;
     if (opacity < 1) {
@@ -938,8 +971,8 @@ export function drawPlacedMeshes(
     gl.uniform3f(gpu.uColor, color[0], color[1], color[2]);
     gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
     const ghost = !instance.volume && !instance.quiet && !instance.plain && !instance.id.startsWith("guide:");
-    gl.uniform1f(gpu.uStyle, instance.plain ? 5 : instance.quiet ? 4 : instance.volume ? 3 : instance.palette ? 2 : ghost ? 1 : 0);
-    const ramp = instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
+    gl.uniform1f(gpu.uStyle, instance.glow ? 6 : instance.plain ? 5 : instance.quiet ? 4 : instance.volume ? 3 : instance.palette ? 2 : ghost ? 1 : 0);
+    const ramp = instance.glow ? verticalRamp(instance.mesh, instance.translate) : instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
     gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
     gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
     if (ghost) {
@@ -970,20 +1003,36 @@ export function drawPlacedMeshes(
     if (!kept) gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, instance.mesh.indices, gl.DYNAMIC_DRAW);
     gl.drawElements(gl.TRIANGLES, instance.mesh.indices.length, gl.UNSIGNED_INT, 0);
   };
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  gl.depthMask(false);
-  for (const instance of instances) {
-    if (instance.plain && !instance.volume && (instance.opacity ?? 1) < 1) drawInstance(instance);
-  }
+  gl.depthMask(true);
+  gl.depthFunc(gl.LEQUAL);
   for (const instance of instances) {
     if (instance.volume) drawInstance(instance);
   }
-  gl.depthMask(true);
   gl.disable(gl.BLEND);
   for (const instance of instances) {
-    if ((instance.opacity ?? 1) >= 1 && !instance.volume) drawInstance(instance);
+    if ((instance.opacity ?? 1) >= 1 && !instance.volume && !instance.glow) drawInstance(instance);
   }
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  gl.disable(gl.CULL_FACE);
+  for (const instance of instances) {
+    if (instance.glow) drawInstance(instance);
+  }
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.depthMask(false);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  for (const instance of instances) {
+    if (!(instance.plain && !instance.volume && (instance.opacity ?? 1) < 1)) continue;
+    const shell = instance.id === "habitable-void" || instance.id === "void-pockets";
+    if (shell) gl.enable(gl.CULL_FACE);
+    else gl.disable(gl.CULL_FACE);
+    drawInstance(instance);
+  }
+  gl.disable(gl.CULL_FACE);
+  gl.depthMask(true);
   for (const instance of instances) {
     if ((instance.opacity ?? 1) < 1 && instance.palette) drawInstance(instance);
   }
