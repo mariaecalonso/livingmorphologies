@@ -93,14 +93,14 @@ function useRecording(src: string | null) {
 }
 
 const SLIDERS = 8;
-const SLIDER_BEAT = 1500;
+const SLIDER_BEAT = 1200;
 const WATCH_AIM = 1400;
 
 function script(delays: number[], watch: boolean): Beat[] {
   const aim = watch ? WATCH_AIM : AIM;
   const sliders: Beat[] = watch
     ? Array.from({ length: SLIDERS }, (_, slider) => [
-        { aim: `s${slider}` as const, press: false, drag: false, frame: 0 as Frame, tab: null, ms: 900 },
+        { aim: `s${slider}` as const, press: false, drag: false, frame: 0 as Frame, tab: null, ms: 720 },
         { aim: `s${slider}` as const, press: true, drag: true, frame: 0 as Frame, tab: null, ms: SLIDER_BEAT },
       ]).flat()
     : Array.from({ length: SLIDERS }, (_, slider): Beat => ({ aim: `s${slider}`, press: false, drag: false, frame: 0, tab: null, ms: 420 }));
@@ -111,10 +111,12 @@ function script(delays: number[], watch: boolean): Beat[] {
     ...delays.map((ms, frame): Beat => ({ aim: null, press: false, drag: false, frame, tab: null, ms })),
     { aim: null, press: false, drag: false, frame: "saved", tab: null, ms: SAVED_HOLD },
   ];
-  ANALYSIS_TABS.forEach((_, tab) => {
-    beats.push({ aim: tab, press: false, drag: false, frame: "saved", tab: tab ? tab - 1 : null, ms: aim });
-    beats.push({ aim: tab, press: true, drag: false, frame: "saved", tab, ms: TAB_HOLD });
-  });
+  if (!watch) {
+    ANALYSIS_TABS.forEach((_, tab) => {
+      beats.push({ aim: tab, press: false, drag: false, frame: "saved", tab: tab ? tab - 1 : null, ms: aim });
+      beats.push({ aim: tab, press: true, drag: false, frame: "saved", tab, ms: TAB_HOLD });
+    });
+  }
   return beats;
 }
 
@@ -202,6 +204,46 @@ function Settings({ data, amount }: { data: LabRunData; amount: (index: number) 
             <dd>{data.seed.toLocaleString("en-US")}</dd>
           </div>
         </dl>
+      </div>
+    </section>
+  );
+}
+
+export function PhysarumAnalysisFrame({ data }: { data: LabRunData }) {
+  return (
+    <section className={`${styles.area} ${styles.placed} ${styles.live}`} aria-label="Physarum analysis">
+      <div className={styles.board}>
+        <div className={styles.panel} data-kind="dna">
+          <p className={styles.panelTitle}>Architectural DNA</p>
+          <div className={styles.view}>
+            <DnaRadar data={data} />
+            <Legend row items={[["#c77e5f", "Target"], ["#0f7377", "Generated"]]} />
+          </div>
+        </div>
+        <div className={styles.panel} data-kind="growth">
+          <p className={styles.panelTitle}>Growth Evolution</p>
+          <div className={styles.view}>
+            <GrowthChart data={data} />
+          </div>
+        </div>
+        <div className={styles.panel} data-kind="topology">
+          <p className={styles.panelTitle}>Network Topology</p>
+          <div className={styles.view}>
+            <TopologyField data={data} />
+          </div>
+        </div>
+        <div className={styles.panel} data-kind="density">
+          <p className={styles.panelTitle}>Spatial Density</p>
+          <div className={styles.view}>
+            <DensityField data={data} />
+          </div>
+        </div>
+        <div className={styles.panel} data-kind="direction">
+          <p className={styles.panelTitle}>Directionality</p>
+          <div className={styles.view}>
+            <DirectionField data={data} />
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -320,11 +362,22 @@ const GROWTH_SERIES = [
   { id: "stable", label: "Network stabilization", color: "#b7b7b2", absolute: true, dash: "5 4", read: (s: LabRunData["growth"][number]) => s.stabilization },
 ] as const;
 
-function GrowthChart({ data }: { data: LabRunData }) {
+const GROWTH_KEY: Record<(typeof GROWTH_SERIES)[number]["id"], string> = {
+  occupied: "Occupied",
+  branches: "Branches",
+  trail: "Trail",
+  stable: "Stabilization",
+};
+
+function GrowthChart({ data, through }: { data: LabRunData; through?: number }) {
   const [width, height, left, right, top, bottom] = [300, 300, 28, 8, 14, 26];
   const plotW = width - left - right;
   const plotH = height - top - bottom;
   const samples = data.growth;
+  if (!samples.length) {
+    return <svg className={`${styles.diagram} ${styles.growthChart}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Recorded growth metrics by iteration" />;
+  }
+  const drawn = through == null ? samples.length : samples.filter((sample) => sample.iteration <= through).length;
   const x = (index: number) => left + (samples.length > 1 ? index / (samples.length - 1) : 0.5) * plotW;
   return (
     <svg className={`${styles.diagram} ${styles.growthChart}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Recorded growth metrics by iteration">
@@ -352,6 +405,7 @@ function GrowthChart({ data }: { data: LabRunData }) {
         const paths: string[] = [];
         let run = "";
         values.forEach((value, index) => {
+          if (index >= drawn) return;
           if (value == null) {
             if (run) paths.push(run);
             run = "";
@@ -456,6 +510,17 @@ function DirectionField({ data }: { data: LabRunData }) {
         });
         ctx.lineWidth = 1.3;
         ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(242,242,238,0.18)";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        for (let i = 0; i <= n; i += 1) {
+          ctx.moveTo(i * cell, 0);
+          ctx.lineTo(i * cell, size);
+          ctx.moveTo(0, i * cell);
+          ctx.lineTo(size, i * cell);
+        }
+        ctx.stroke();
+        ctx.lineWidth = 1.3;
         for (let y = 0; y < n; y += 1) {
           for (let x = 0; x < n; x += 1) {
             const index = y * n + x;
@@ -491,10 +556,10 @@ function DirectionField({ data }: { data: LabRunData }) {
   return <canvas ref={ref} className={styles.diagram} role="img" aria-label="Accumulated movement direction in each field cell" />;
 }
 
-function Legend({ items, splitAfter }: { items: Array<[string, string]>; splitAfter?: number }) {
+function Legend({ items, splitAfter, row = false }: { items: Array<[string, string]>; splitAfter?: number; row?: boolean }) {
   const lines = splitAfter == null ? [items] : [items.slice(0, splitAfter), items.slice(splitAfter)];
   return (
-    <div className={styles.legend}>
+    <div className={row ? `${styles.legend} ${styles.key}` : styles.legend}>
       {lines.map((line) => (
         <p key={line[0]?.[1] ?? "legend"}>
           {line.map(([color, label]) => (
@@ -535,9 +600,39 @@ function Metrics({ rows }: { rows: Array<[string, string] | string> }) {
   );
 }
 
-function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
+function sampleAt(data: LabRunData, through?: number) {
+  if (through == null) return data.growth[data.growth.length - 1];
+  let last = data.growth[0];
+  for (const sample of data.growth) {
+    if (sample.iteration <= through) last = sample;
+    else break;
+  }
+  return last;
+}
+
+/** The Lab frame recorded at this iteration. Without samples, the stored ending stays in place. */
+function frameAt(data: LabRunData, through: number | null) {
+  const frames = data.frames;
+  if (through == null || !frames?.length) return data;
+  let frame = frames[0];
+  for (const item of frames) {
+    if (item.iteration <= through) frame = item;
+    else break;
+  }
+  return { ...data, iterations: frame.iteration, dna: frame.dna, topology: frame.topology, density: frame.density, direction: frame.direction };
+}
+
+function AnalysisView({ data, tab, through, bare = false }: { data: LabRunData; tab: number; through?: number; bare?: boolean }) {
   const id = ANALYSIS_TABS[tab]?.id;
   if (id === "dna") {
+    if (bare) {
+      return (
+        <>
+          <DnaRadar data={data} />
+          <Legend row items={[["#c77e5f", "Target"], ["#0f7377", "Generated"]]} />
+        </>
+      );
+    }
     return (
       <>
         <DnaRadar data={data} />
@@ -557,10 +652,18 @@ function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
     );
   }
   if (id === "growth") {
-    const last = data.growth[data.growth.length - 1];
+    const last = sampleAt(data, through);
+    if (bare) {
+      return (
+        <>
+          <GrowthChart data={data} through={through} />
+          <Legend row items={GROWTH_SERIES.map((series): [string, string] => [series.color, GROWTH_KEY[series.id]])} />
+        </>
+      );
+    }
     return (
       <>
-        <GrowthChart data={data} />
+        <GrowthChart data={data} through={through} />
         <div>
           <Metrics
             rows={[
@@ -579,6 +682,15 @@ function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
   }
   if (id === "topology") {
     const t = data.topology;
+    if (bare) {
+      const count = t.componentCount;
+      return (
+        <>
+          <TopologyField data={data} />
+          <p className={styles.reading}>{count == null ? "N/A" : `${fixed(t.connectivity, 2)} · ${count} ${count === 1 ? "component" : "components"}`}</p>
+        </>
+      );
+    }
     return (
       <>
         <TopologyField data={data} />
@@ -607,6 +719,14 @@ function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
     const max = Math.max(...trail);
     const mean = trail.reduce((sum, value) => sum + value, 0) / trail.length;
     const occupied = max > 0 ? trail.filter((value) => value >= max * OCCUPANCY_THRESHOLD_RATIO).length / trail.length : 0;
+    if (bare) {
+      return (
+        <>
+          <DensityField data={data} />
+          <p className={styles.reading}>Mean trail {trail.length ? mean.toFixed(2) : "N/A"}</p>
+        </>
+      );
+    }
     return (
       <>
         <DensityField data={data} />
@@ -630,6 +750,14 @@ function AnalysisView({ data, tab }: { data: LabRunData; tab: number }) {
   }
   const d = data.direction;
   const dominant = dominantBin(d.bins);
+  if (bare) {
+    return (
+      <>
+        <DirectionField data={data} />
+        <p className={styles.reading}>Coherence {fixed(d.coherence, 2)}</p>
+      </>
+    );
+  }
   return (
     <>
       <DirectionField data={data} />
@@ -750,7 +878,27 @@ export function LabRun({ recorder = false, stage = false, watch = false }: { rec
   const running = !saved && beat.aim === null && typeof frame === "number";
   const frameCount = decoded?.frames.length ?? RECORDED_FRAMES;
   const shownFrames = typeof frame === "number" ? frame + 1 : frameCount;
-  const analysis = (
+  const fieldFrame = typeof frame === "number" ? frame : frameCount - 1;
+  const through = saved ? data.iterations : Math.round((fieldFrame / Math.max(1, frameCount - 1)) * data.iterations);
+  const live = frameAt(data, through);
+  const analysis = watch ? (
+    <section className={`${styles.area} ${styles.placed} ${styles.live}`} aria-label="Analysis">
+      <header className={styles.areaHead}>
+        <p className={styles.title}>Analysis · Physarum logic</p>
+        <span className={styles.badge}>{saved ? `Held · iteration ${data.iterations}` : running ? `Live · iteration ${live.iterations}` : `Base · iteration ${live.iterations}`}</span>
+      </header>
+      <div className={styles.board}>
+        {ANALYSIS_TABS.map((item, position) => (
+          <div key={item.id} className={styles.panel} data-kind={item.id}>
+            <p className={styles.panelTitle}>{item.label}</p>
+            <div className={styles.view}>
+              <AnalysisView data={live} tab={position} through={through} bare />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  ) : (
     <section className={analysisSlot ? `${styles.area} ${styles.placed}` : styles.area} aria-label="Analysis">
       <header className={styles.areaHead}>
         <p className={styles.title}>Analysis · Physarum logic</p>

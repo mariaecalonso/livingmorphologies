@@ -3,14 +3,18 @@
 import type { ReactNode } from "react";
 import "@/app/lab/site/site-interface.css";
 import brief from "@/data/skill5/workplace-brief.json";
+import { PLANNING_CAPACITY } from "@/lib/client/ecologic-studio";
 import { FLOOR_SHARES, SHARE_LEGEND, SITE, STUDIO } from "@/lib/demo-workflow/chapter-facts";
 import { Caption, Chips, Img, Kicker } from "@/components/demo-workflow/chapter-kit";
 import { ClusteringWorkspace, PendingFrame } from "@/components/clustering/clustering-workspace";
 import { HomeClient } from "@/components/home-client";
+import "@/app/lab/client/client-lab.css";
+import { SiteAnalysisPlayback } from "@/components/demo-workflow/site-analysis-playback";
 import { SiteAnalysisWorkspace } from "@/components/site/site-analysis-workspace";
 import { SiteWorkspace } from "@/components/site/site-workspace";
 import type { SiteWorkflowId } from "@/components/site/site-workflow";
 import { PresentationReel } from "@/components/demo-workflow/presentation-reel";
+import { CLUSTERING_REFINEMENT_ARCHIVED } from "@/lib/demo-workflow/chapters";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import styles from "@/components/demo-workflow/context-chapter.module.css";
 
@@ -19,17 +23,21 @@ function WorkflowHost({ part, children }: { part: "client" | "analysis" | "site"
 }
 
 /** The client page, Site Analysis, and the Site Integration lab, fitted to the chapter frame. */
-export function ContextWorkflow({ part }: { part: "client" | "analysis" | "site" }) {
+export function ContextWorkflow({ part, play = false }: { part: "client" | "analysis" | "site"; play?: boolean }) {
   if (part === "client") {
     return (
       <WorkflowHost part="client">
-        <div className={styles.clientStage} data-client-stage="">
-          <HomeClient />
+        <div className="lab-client-stage">
+          <div className="lab-client-frame">
+            <HomeClient />
+          </div>
         </div>
       </WorkflowHost>
     );
   }
-  if (part === "analysis") return <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
+  if (part === "analysis") {
+    return play ? <SiteAnalysisPlayback /> : <WorkflowHost part="analysis"><SiteAnalysisWorkspace /></WorkflowHost>;
+  }
   return <WorkflowHost part="site"><SiteWorkspace /></WorkflowHost>;
 }
 
@@ -52,13 +60,13 @@ function Occupancy() {
   const top = 14;
   const base = 70;
   const rise = (count: number) => base - ((base - top) * count) / peak;
-  const { daytimeWork, eveningGathering, badgeHoldersAndVisitors } = brief.occupancy;
+  const { daytimeWork, eveningGathering } = brief.occupancy;
   return (
     <svg
       className={styles.chart}
       viewBox="0 0 200 82"
       role="img"
-      aria-label={`On site at the same time: ${daytimeWork} during the day, ${eveningGathering} in the evening. ${badgeHoldersAndVisitors} badge holders and visitors, not at once.`}
+      aria-label={`${PLANNING_CAPACITY.shortNote}. ${daytimeWork} daytime occupants, ${eveningGathering} event attendees.`}
     >
       <rect className={styles.day} x="14" y={rise(500)} width="76" height={base - rise(500)} />
       <rect className={styles.range} x="14" y={rise(500)} width="76" height={rise(400) - rise(500)} />
@@ -118,7 +126,7 @@ const REQUIREMENTS = [
   { value: brief.plan.areaSqFt.toLocaleString("en-US"), label: "Square feet" },
   { value: brief.operations.hours.replace(" to ", " – "), label: "Open" },
   { value: `${brief.occupancy.daytimeWork} · ${brief.occupancy.eveningGathering}`, label: "Day · evening on site" },
-  { value: "About 1,500", label: "Badge holders + visitors, not at once" },
+  { value: "Planning assumption", label: "Not actual staff or event capacity" },
 ] as const;
 
 function Requirements({ detail }: { detail?: boolean }) {
@@ -143,7 +151,6 @@ export const CONTEXT_CONTENT: ChapterContent = {
           <div className={styles.studio}>
             {STUDIO.disciplines.map((item) => (
               <figure key={item.label}>
-                <Img className={styles.studioPlate} src={item.main} />
                 <figcaption>{item.label}</figcaption>
               </figure>
             ))}
@@ -200,12 +207,6 @@ export const CONTEXT_CONTENT: ChapterContent = {
       <div className={styles.disciplines}>
         {STUDIO.disciplines.map((item) => (
           <figure key={item.label}>
-            <Img className={styles.studioPlate} src={item.main} />
-            <div className={styles.details}>
-              {item.details.map((src) => (
-                <Img key={src} className={styles.studioPlate} src={src} />
-              ))}
-            </div>
             <figcaption>{item.label}</figcaption>
           </figure>
         ))}
@@ -221,7 +222,7 @@ export const CONTEXT_CONTENT: ChapterContent = {
     <div key="program" className={styles.column}>
       <Kicker>On site at once · {brief.operations.hours}</Kicker>
       <Occupancy />
-      <Caption align="start">{brief.occupancy.badgeHoldersAndVisitors} badge holders + visitors · not on site at once</Caption>
+      <Caption align="start">{PLANNING_CAPACITY.note}</Caption>
     </div>,
     <div key="site" className={styles.column}>
       <div className={styles.siteViews}>
@@ -255,26 +256,15 @@ export const CONTEXT_CONTENT: ChapterContent = {
   layout: styles.composed,
   boards: [
     { layout: styles.sheet, details: [<ContextWorkflow key="client" part="client" />] },
-    { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" />] },
-    {
-      layout: styles.sheet,
-      details: [
-        <PendingFrame
-          key="conclusion"
-          kicker="Chapter 04"
-          title="Design Context Conclusion"
-          body="The conclusion is still open."
-        />,
-      ],
-    },
-    {
+    { layout: styles.sheet, details: [<ContextWorkflow key="analysis" part="analysis" play />] },
+    ...(CLUSTERING_REFINEMENT_ARCHIVED ? [] : [{
       layout: styles.sheet,
       details: [
         <WorkflowHost key="refined" part="site">
           <ClusteringWorkspace tab="refined" frame={false} />
         </WorkflowHost>,
       ],
-    },
+    }]),
   ],
   feature: {
     operation: 1,

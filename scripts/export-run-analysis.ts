@@ -13,7 +13,8 @@ import { translateArchetype } from "../lib/skill1/translate";
 import { createAnalysisSession, DEFAULT_SAMPLE_INTERVAL, recordAnalysisSample } from "../lib/skill1/analysis";
 import { mulberry32 } from "../lib/physarum";
 import type { AttractorKind, BiologicalBehavior, BiologicalParams, BiologicalTranslation, SpatialRecipe, TopologyKind } from "../lib/skill1/types";
-import type { LabRunData } from "../lib/demo-workflow/lab-run";
+import type { AnalysisFrame } from "../lib/skill1/analysis";
+import type { LabRunData, LabRunFrame } from "../lib/demo-workflow/lab-run";
 
 const RUN = 23;
 const RUN_TRAIL_SCALE = 8;
@@ -66,6 +67,10 @@ const input = {
   isolationRadius: translation.recipe.isolationRadius,
   attractors: (translation.recipe.attractors ?? []).map((item) => ({ x: item.x, y: item.y })),
 };
+const round = (value: number) => Number(value.toPrecision(5));
+const maybe = (value: number | null) => (value == null ? null : round(value));
+const list = (values: ArrayLike<number>) => Array.from(values, round);
+
 let session = createAnalysisSession({
   simulationId: `${translation.archetypeId}:${entry.seed}:run-${RUN}`,
   seed: entry.seed,
@@ -73,17 +78,47 @@ let session = createAnalysisSession({
   archetypeName: translation.archetypeName,
   typologyId: translation.typologyId,
 });
+const frames: LabRunFrame[] = [];
+const keep = (frame: AnalysisFrame | null) => {
+  if (!frame) return;
+  frames.push({
+    iteration: frame.iteration,
+    dna: frame.dna.map((axis) => ({ id: axis.id, label: axis.label, target: maybe(axis.target), generated: maybe(axis.generated), difference: maybe(axis.difference) })),
+    topology: {
+      size: frame.topology.size,
+      mask: Array.from(frame.topology.mask),
+      skeleton: Array.from(frame.topology.skeleton),
+      endpoints: frame.topology.endpoints.slice(),
+      branches: frame.topology.branches.slice(),
+      branchCount: frame.topology.branchCount,
+      endpointCount: frame.topology.endpointCount,
+      componentCount: frame.topology.componentCount,
+      connectivity: maybe(frame.topology.connectivity),
+      cycleRank: frame.topology.cycleRank,
+      averagePathLength: maybe(frame.topology.averagePathLength),
+      diameter: frame.topology.diameter,
+    },
+    density: { size: frame.density.size, trail: list(frame.density.trailDensity) },
+    direction: {
+      bins: frame.direction.accumulatedBins.slice(),
+      coherence: maybe(frame.direction.accumulatedCoherence),
+      bias: maybe(frame.direction.accumulatedBias),
+      meanSegmentLength: maybe(frame.direction.meanSegmentLength),
+      x: list(frame.direction.sumX),
+      y: list(frame.direction.sumY),
+      count: Array.from(frame.direction.sumCount),
+    },
+  });
+};
 session = recordAnalysisSample(session, state, input, { force: true });
+keep(session.latest);
 while (state.iteration < DISPLAY_ITERATIONS && !state.converged) {
   stepMany(state, translation, rng, Math.min(DEFAULT_SAMPLE_INTERVAL, DISPLAY_ITERATIONS - state.iteration), slime.decay, slime);
   session = recordAnalysisSample(session, state, input, { force: state.iteration >= DISPLAY_ITERATIONS || state.converged });
+  keep(session.latest);
 }
 const frame = session.latest;
 if (!frame) throw new Error("no analysis frame");
-
-const round = (value: number) => Number(value.toPrecision(5));
-const maybe = (value: number | null) => (value == null ? null : round(value));
-const list = (values: ArrayLike<number>) => Array.from(values, round);
 
 const data: LabRunData = {
   run: RUN,
@@ -147,7 +182,8 @@ const data: LabRunData = {
     y: list(frame.direction.sumY),
     count: Array.from(frame.direction.sumCount),
   },
+  frames,
 };
 
 writeFileSync(OUT, JSON.stringify(data));
-console.log(OUT, `iteration ${frame.iteration}`, `${session.samples.length} samples`);
+console.log(OUT, `iteration ${frame.iteration}`, `${session.samples.length} samples`, `${frames.length} frames`);

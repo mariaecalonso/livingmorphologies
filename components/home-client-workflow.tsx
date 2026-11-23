@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import brief from "@/data/skill5/workplace-brief.json";
+import { CLIENT_PROFILE, PLANNING_CAPACITY, PRACTICE_AREAS } from "@/lib/client/ecologic-studio";
 import { useMeshes } from "@/components/home-site-workflow";
 import { ModuleGlassPreview, clayPreviewRadius } from "@/components/site/site-workspace";
 import { useRevealed } from "@/components/workflow-present";
@@ -17,15 +18,11 @@ const PROGRAM_ROWS = SITE_PROGRAMS.map((program) => ({
   modules: SITE_ARCHETYPES.filter((entry) => entry.program === program),
 }));
 
-const STUDIO = [
-  { label: "Furniture", src: "/home/client/studio/furniture-main.png" },
-  { label: "Fashion", src: "/home/client/studio/fashion-main.png" },
-] as const;
-
 const ACTIVITIES = [
-  { label: "Focused work", tone: "copper" },
-  { label: "Collaborative work", tone: "white" },
-  { label: "Waterfront gathering", tone: "teal" },
+  { label: "Focused", tone: "copper" },
+  { label: "Collaborative", tone: "white" },
+  { label: "Experimental", tone: "teal" },
+  { label: "Social", tone: "copper" },
 ] as const;
 
 function useClientLayout(svgRef: React.RefObject<SVGSVGElement | null>) {
@@ -112,12 +109,11 @@ function ModuleGrid() {
 function StudioIdentity() {
   return (
     <div className="wf-cli-studio">
-      <p className="wf-cli-kicker">Design focus · <b>Physarum</b></p>
+      <p className="wf-cli-kicker">{CLIENT_PROFILE.name}</p>
       <div className="wf-cli-studio-row">
-        {STUDIO.map((item) => (
-          <figure key={item.label}>
-            <img src={item.src} alt="" draggable={false} loading="lazy" decoding="async" />
-            <figcaption>{item.label}</figcaption>
+        {PRACTICE_AREAS.map((area) => (
+          <figure key={area.id}>
+            <figcaption>{area.short}</figcaption>
           </figure>
         ))}
       </div>
@@ -154,7 +150,7 @@ function OccupancyDiagram() {
   const rise = (count: number) => base - ((base - top) * count) / peak;
   return (
     <div className="wf-cli-occupancy">
-      <svg viewBox="0 0 200 112" role="img" aria-label={`On site at the same time: ${brief.occupancy.daytimeWork} during the day, ${brief.occupancy.eveningGathering} in the evening. ${brief.occupancy.badgeHoldersAndVisitors} badge holders and visitors, not on site at the same time.`}>
+      <svg viewBox="0 0 200 112" role="img" aria-label={`Planning assumption, not staff or event capacity. ${brief.occupancy.daytimeWork} daytime occupants, ${brief.occupancy.eveningGathering} event attendees.`}>
         <text className="wf-cli-svg-kicker" x="4" y="8">On site at once</text>
         <rect className="wf-cli-bar is-day" x="8" y={rise(500)} width="86" height={base - rise(500)} />
         <rect className="wf-cli-bar-range" x="8" y={rise(500)} width="86" height={rise(400) - rise(500)} />
@@ -165,7 +161,7 @@ function OccupancyDiagram() {
         <text className="wf-cli-svg-label" x="8" y={base + 9}>8 AM · Day work</text>
         <text className="wf-cli-svg-label" x="192" y={base + 9} textAnchor="end">Evening gathering · 10 PM</text>
         <rect className="wf-cli-total" x="8" y="96" width="184" height="12" />
-        <text className="wf-cli-svg-label" x="100" y="104.5" textAnchor="middle">{brief.occupancy.badgeHoldersAndVisitors} badge holders + visitors · not at once</text>
+        <text className="wf-cli-svg-label" x="100" y="104.5" textAnchor="middle">{PLANNING_CAPACITY.shortNote}</text>
       </svg>
     </div>
   );

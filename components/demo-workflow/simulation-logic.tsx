@@ -815,7 +815,7 @@ function paint(ctx: CanvasRenderingContext2D, time: number, width: number, heigh
   text(ctx, variant !== "parameter" && growthFrames?.length ? "Vertical Void · run 23" : "Vertical Void", 24, 28, CYAN, 13);
   text(
     ctx,
-    variant === "parameter" ? "The rating selects the parameter" : "The behaviour is the parameter it sets",
+    variant === "parameter" ? "Ratings write parameters. Descriptors are names." : "The behaviour is the parameter it sets",
     1760 - 24,
     28,
     DIM,
@@ -880,6 +880,9 @@ function paint(ctx: CanvasRenderingContext2D, time: number, width: number, heigh
       ctx.restore();
     });
   });
+  if (variant === "parameter") {
+    text(ctx, "The spatial recipe is authored for each archetype. It is not computed from the descriptor.", 24, 478, DIM, 11);
+  }
   ctx.restore();
 }
 
@@ -910,7 +913,7 @@ export function SimulationParameters() {
   const summary = TRACES.map((trace) => `${trace.criterion} ${trace.ratingLabel} selects ${parameterFor(trace)}.`).join(" ");
   return (
     <article className={styles.board} data-explain="">
-      <canvas ref={ref} role="img" aria-label={`Parameter map for Vertical Void. ${summary}`} />
+      <canvas ref={ref} role="img" aria-label={`Parameter map for Vertical Void. Ratings write the biological parameters. Descriptors are stored names. The spatial recipe is authored separately. ${summary}`} />
     </article>
   );
 }

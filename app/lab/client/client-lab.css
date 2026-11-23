@@ -1,0 +1,18 @@
+/* Hosts the client page at its 1920 × 560 frame, fitted inside the lab stage. */
+.lab-client-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000000;
+  container-type: size;
+}
+
+.lab-client-frame {
+  position: relative;
+  aspect-ratio: 1920 / 560;
+  width: min(100cqi, calc(100cqb * 1920 / 560));
+  --font-site-display: var(--font-neuropol), "Arial Narrow", Helvetica, Arial, sans-serif;
+  --font-site-text: "acumin-variable", sans-serif;
+  --home-title-size: calc(0.05 * min(100cqb, 100cqi * 560 / 1920));
+}

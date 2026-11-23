@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { TYPOLOGIES } from "@/lib/catalog";
 import { propagatedCandidate, propagatedPreview } from "@/lib/demo-workflow/propagated-candidates";
+import { ramp, useExplainTime } from "@/components/demo-workflow/explain-clock";
 import styles from "@/components/demo-workflow/archetype-reading.module.css";
 
 type Mode =
@@ -2180,8 +2181,8 @@ function ReadingPlate({ src, mode, detail = false }: { src: string; mode: Mode; 
   );
 }
 
-/** The propagated candidates again, each plate read for the spatial condition its archetype asks for. */
-export function ArchetypeReading() {
+/** The selected catalog. The reading layer lights on the same plates, and a typology opens in place. */
+export function ArchetypeReading({ delayReading = true }: { delayReading?: boolean }) {
   const groups = useMemo(() => TYPOLOGIES.map((typology) => ({
     label: typology.label,
     plates: typology.archetypes.map((archetype) => {
@@ -2204,17 +2205,26 @@ export function ArchetypeReading() {
   const plates = groups.flatMap((group) => group.plates);
   const [groupIndex, setGroupIndex] = useState<number | null>(null);
   const selected = groupIndex == null ? null : groups[groupIndex] ?? null;
-  const ready = plates.every((plate) => plate.candidateId != null);
+  const stored = plates.filter((plate) => plate.candidateId != null);
+  const ready = stored.length === plates.length;
+  const boardRef = useExplainTime(8, (time, node) => {
+    node.style.setProperty("--reading", delayReading ? ramp(time, 4, 6).toFixed(3) : "1");
+  });
 
   return (
-    <section className={styles.frame} aria-label="Archetype reading">
+    <section
+      ref={boardRef}
+      className={styles.frame}
+      aria-label="Selected for vertical propagation"
+      style={delayReading ? undefined : ({ "--reading": 1 } as CSSProperties)}
+    >
       <header>
         <div>
-          <h3>{selected ? selected.label : "Archetype reading"}</h3>
+          <h3>{selected ? selected.label : "Selected for vertical propagation"}</h3>
           <p>
             {selected
               ? "Five candidates, read together"
-              : ready ? "Each propagated candidate, and the spatial condition it holds" : "The propagated candidates are not stored."}
+              : ready ? `${stored.length} morphologies · the designer selected one per archetype` : "The propagated candidates are not stored."}
           </p>
         </div>
         {selected ? (
@@ -2246,7 +2256,8 @@ export function ArchetypeReading() {
                 <button type="button" className={styles.open} onClick={() => setGroupIndex(index)}>
                   {plate.image ? <ReadingPlate src={plate.image} mode={plate.mode} /> : <span className={styles.missing}>Not stored</span>}
                   <figcaption>
-                    <b>{plate.name}</b>
+                    <span>{plate.name}</span>
+                    <b>{plate.candidateId ?? "—"}</b>
                   </figcaption>
                 </button>
               </figure>

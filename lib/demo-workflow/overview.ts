@@ -36,6 +36,7 @@ export const OVERVIEW_STILLS = {
    */
   voidContinuations: Array.from({ length: 24 }, (_, index) => `${STILL}/void-continuation-${String(index + 1).padStart(2, "0")}.png`),
   voidSelected: 23,
+  /** Retired fictional studio stills. Not ecoLogicStudio work, and not used by the current client page. */
   client: [`${STILL}/client-fashion.webp`, `${STILL}/client-furniture.webp`],
   sitePlan: `${STILL}/site-plan.webp`,
   /** Site Integration lab model. The parcel outline and grid are picked out in copper. */

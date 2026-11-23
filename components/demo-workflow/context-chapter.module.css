@@ -395,18 +395,51 @@
   min-height: 0;
 }
 
-/* The client webpage, laid out on the classroom sheet and scaled into the chapter. */
-.clientStage {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1920px;
-  height: 560px;
-  transform: translate(-50%, -50%) scale(0.8893);
+/* The live Client lab. The board is a little wider than 1920 × 560, so the frame covers it and the host clips the extra height. */
+.host[data-part="client"] :global(.lab-client-stage) {
+  background: transparent;
 }
 
-.host[data-part="client"] :global([class*="board"]) {
-  opacity: 1;
+.host[data-part="client"] :global(.lab-client-frame) {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: auto;
+  transform: translateY(-50%);
+}
+
+.host[data-part="analysis"] {
+  position: absolute;
+  inset: 0;
+}
+
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 18px;
+  height: 22px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+  transition: transform 0.7s cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.cursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cursor path {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 1;
+}
+
+.cursor[data-hidden="true"] {
+  opacity: 0;
 }
 
 /* Site Analysis and Site Integration, same labs, type and gaps brought down to the chapter. */

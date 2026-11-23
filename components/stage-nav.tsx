@@ -6,7 +6,7 @@ import type { DisplayMode } from "@/components/display-mode-toggle";
 import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
-import { LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
+import { CLIENT_LAB, LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
 import { CINEMATIC_INTRO } from "@/lib/cinematic-intro";
 import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
@@ -19,6 +19,11 @@ const STAGES: (NavItem & { active: (pathname: string) => boolean; sub?: readonly
     active: (pathname: string) => pathname === workspace.href || pathname.startsWith(`${workspace.href}/`),
     sub: workspace.tabs,
   })),
+  {
+    href: CLIENT_LAB.href,
+    label: CLIENT_LAB.label,
+    active: (pathname: string) => pathname === CLIENT_LAB.href || pathname.startsWith(`${CLIENT_LAB.href}/`),
+  },
   {
     href: TEMP_PHYSARUM_VIDEO.href,
     label: TEMP_PHYSARUM_VIDEO.label,

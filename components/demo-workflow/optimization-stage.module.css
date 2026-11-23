@@ -571,19 +571,14 @@
 .field [data-axes] line { fill: none; }
 
 .field [data-mesh] polygon {
-  fill: rgba(73, 215, 222, 0.16);
-  stroke: rgba(154, 247, 255, 0.35);
-  stroke-width: 0.6;
+  fill: rgba(73, 215, 222, 0.22);
+  stroke: rgba(191, 248, 255, 0.5);
+  stroke-width: 0.45;
 }
 
 .field [data-mesh] line {
-  stroke: #d8fbff;
-  stroke-width: 0.9;
-}
-
-.field [data-mesh] line[data-glow] {
-  stroke: #49d7de;
-  stroke-width: 3.4;
+  stroke: rgba(215, 251, 255, 0.55);
+  stroke-width: 0.55;
 }
 
 .field [data-leaders] line {
@@ -617,7 +612,7 @@
 .legend span[data-g="3"]::before { background: #d4d4cc; }
 .legend span[data-front]::before {
   background: #f7fffe;
-  box-shadow: 0 0 0 1px #9af7ff, 0 0 6px rgba(73, 215, 222, 0.9);
+  box-shadow: 0 0 0 1px #49d7de;
 }
 
 .axisName,
@@ -628,7 +623,8 @@
 }
 
 .axisName {
-  font-size: 0.47rem;
+  z-index: 40;
+  font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(242, 242, 238, 0.72);
@@ -651,11 +647,16 @@
 }
 
 .dot {
-  width: 0.52rem;
-  height: 0.52rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 50%;
   background: #f2f2ee;
-  opacity: 0.85;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+.dot[data-active] {
+  opacity: 1;
 }
 
 .dot[data-g="1"] { background: #6e6e68; }
@@ -664,8 +665,16 @@
 .dot[data-g="4"] { background: #f7f7f2; }
 
 .dot[data-pareto] {
+  width: 0.5rem;
+  height: 0.5rem;
   background: #f7fffe;
-  box-shadow: 0 0 0 1px #9af7ff, 0 0 7px rgba(73, 215, 222, 0.95);
+  box-shadow: 0 0 0 1px #49d7de;
+}
+
+.dot[data-on] {
+  width: 0.58rem;
+  height: 0.58rem;
+  box-shadow: 0 0 0 1.5px #c77e5f;
 }
 
 .dot[data-g="1"] { --dot: #6e6e68; }
@@ -680,8 +689,8 @@
 }
 
 .thumb {
-  width: 5.7rem;
-  height: 5.7rem;
+  width: 2.7rem;
+  height: 2.7rem;
   overflow: hidden;
   border: 1.5px solid transparent;
   border-radius: 0.62rem;

@@ -103,7 +103,7 @@ function Generative() {
     <>
       <PhaseList x={240} y={122} names={steps(1)} tone="glow" width={210} />
       <div className={`${styles.at} ${styles.readingLab}`} style={place(240, 198, 210, 96)}>
-        <ArchetypeReading />
+        <ArchetypeReading delayReading={false} />
       </div>
     </>
   );

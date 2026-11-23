@@ -2,6 +2,9 @@
 
 import { ORGANISM_INTRO_SECONDS } from "@/lib/cinematic-intro";
 
+/** Chapter 04 keeps the refined clustering board, and leaves it off the live pages. Set this to false to restore it. */
+export const CLUSTERING_REFINEMENT_ARCHIVED = true;
+
 export type DemoOperation = {
   label: string;
   /** Short verified quantity under the operation. */
@@ -79,6 +82,11 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [{ label: "Parameter Map", mark: "" }],
       },
       {
+        name: "Agent Behavior — Alternative",
+        holdMs: 48000,
+        sequence: [{ label: "Agent Behavior — Alternative", mark: "" }],
+      },
+      {
         name: "Lab Simulation",
         holdMs: 64000,
         sequence: [
@@ -88,14 +96,24 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         ],
       },
       {
-        name: "First Population",
+        name: "Initial Morphology Catalog",
         holdMs: 56000,
-        sequence: [{ label: "First Population", mark: "03" }],
+        sequence: [{ label: "Initial Morphology Catalog", mark: "03" }],
       },
       {
         name: "Multiobjective Optimization",
         holdMs: 64000,
         sequence: [{ label: "Multiobjective Optimization", mark: "" }],
+      },
+      {
+        name: "MOO Morphology Study",
+        holdMs: 74000,
+        sequence: [{ label: "MOO Morphology Study", mark: "" }],
+      },
+      {
+        name: "MOO Combined Presentation",
+        holdMs: 88000,
+        sequence: [{ label: "MOO Combined Presentation", mark: "" }],
       },
       {
         name: "Optimization",
@@ -109,13 +127,8 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
       },
       {
         name: "Selected Candidates",
-        holdMs: 28000,
+        holdMs: 40000,
         sequence: [{ label: "Selected for vertical propagation", mark: "" }],
-      },
-      {
-        name: "Archetype Reading",
-        holdMs: 36000,
-        sequence: [{ label: "Archetype reading", mark: "" }],
       },
     ],
   },
@@ -169,12 +182,11 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
     id: "context",
     index: "04",
     title: "Design Context",
-    stages: ["The Client", "Site Analysis", "Clustering"],
+    stages: CLUSTERING_REFINEMENT_ARCHIVED ? ["The Client", "Site Analysis"] : ["The Client", "Site Analysis", "Clustering"],
     sequence: [
       { label: "Client" },
       { label: "Site Analysis" },
-      { label: "Design Context Conclusion" },
-      { label: "Clustering Refinement" },
+      ...(CLUSTERING_REFINEMENT_ARCHIVED ? [] : [{ label: "Clustering Refinement" }]),
     ],
     pages: [
       {
@@ -187,16 +199,11 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         holdMs: 42000,
         sequence: [{ label: "Site Analysis", mark: "" }],
       },
-      {
-        name: "Design Context Conclusion",
-        holdMs: 28000,
-        sequence: [{ label: "Design context conclusion", mark: "" }],
-      },
-      {
+      ...(CLUSTERING_REFINEMENT_ARCHIVED ? [] : [{
         name: "Clustering Refinement",
         holdMs: 36000,
         sequence: [{ label: "Clustering refinement", mark: "" }],
-      },
+      }]),
     ],
   },
   {

@@ -29,7 +29,7 @@
   --frame-glow-soft: 0 0 6px rgba(242, 242, 238, 0.06), 0 0 14px rgba(242, 242, 238, 0.025);
   /* How much the frame holding the light grows; connectors read it too. */
   --grow: 1.06;
-  /* Same column as Our Client: titles and frames. Supporting graphics may leave it. */
+  /* Same column as the client page: titles and frames. Supporting graphics may leave it. */
   --demo-pad-left: var(--home-pad-left);
   --demo-pad-right: var(--home-overview-pad-right);
   display: flex;

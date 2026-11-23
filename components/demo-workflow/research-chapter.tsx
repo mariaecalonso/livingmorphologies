@@ -30,7 +30,7 @@ function CriteriaExtract() {
           </ul>
         </div>
       ))}
-      <p className={styles.extractNote}>Two criteria are shared in each group. The third changes with the typology. Each group names one descriptor.</p>
+      <p className={styles.extractNote}>Two criteria are shared in each group. The third changes with the typology. Ratings become simulation parameters. The descriptor is a stored name, not the spatial recipe.</p>
     </div>
   );
 }

@@ -81,4 +81,14 @@ export type LabRunData = {
     y: number[];
     count: number[];
   };
+  /** Lab analysis sampled while the run advances. The fields above stay the final iteration. */
+  frames?: LabRunFrame[];
+};
+
+export type LabRunFrame = {
+  iteration: number;
+  dna: LabRunAxis[];
+  topology: LabRunData["topology"];
+  density: LabRunData["density"];
+  direction: LabRunData["direction"];
 };
