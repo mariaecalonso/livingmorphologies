@@ -253,6 +253,10 @@ function mergeCatalog(): FinishedCatalog {
   return { scale: "1 model unit = 1 foot", programs };
 }
 
+function writeCatalogIndex() {
+  writeJson(CATALOG, { scale: "1 model unit = 1 foot", programs: [], batch: { running: false, phase: "" }, storedIn: "finished-programs" });
+}
+
 function launch() {
   mkdirSync(PROGRAMS, { recursive: true });
   mkdirSync(MESHES, { recursive: true });
@@ -265,7 +269,7 @@ function launch() {
     return saved.finished < FINISHED_REQUESTED && !saved.reason;
   });
   if (pending.length === 0) {
-    writeJson(CATALOG, { ...mergeCatalog(), batch: { running: false, phase: "" } });
+    writeCatalogIndex();
     writeJson(BATCH, { running: false, phase: "" });
     return;
   }
@@ -287,7 +291,7 @@ function launch() {
   });
   void Promise.all(children).then(() => {
     const catalog = mergeCatalog();
-    writeJson(CATALOG, { ...catalog, batch: { running: false, phase: "" } });
+    writeCatalogIndex();
     writeJson(BATCH, { running: false, phase: "" });
     console.log("BATCH COMPLETE");
     for (const program of catalog.programs) {
