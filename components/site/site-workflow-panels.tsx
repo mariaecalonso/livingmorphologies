@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { displayRelationship } from "@/lib/skill5/architectural-strategy";
+import { ARRANGEMENT_FAMILY } from "@/lib/skill5/architectural-strategy";
 import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
 import { fitLabel } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneFacing } from "@/lib/skill5/zoning";
@@ -124,18 +124,14 @@ export function SiteZoningPanel({
   return (
     <div className="site-strategy-panel">
       <section className="site-strategy-section" aria-label="Program">
-        {preview ? <p className="site-strategy-note" title={preview.title}>Preview {preview.index}. Zoning network stays {networkLabel.split(" · ")[0]}.</p> : hasNetwork ? <p className="site-strategy-note" title={networkLabel}>Zoning {networkLabel.split(" · ")[0]}</p> : (
+        {preview ? <p className="site-strategy-note" title={`${preview.title}. Zoning stays ${networkLabel}.`}>Preview {preview.index}</p> : hasNetwork ? <p className="site-strategy-note" title={networkLabel}>Zoning {networkLabel.split(" · ")[0]}</p> : (
           <p className="site-strategy-note">No massing network.</p>
         )}
         {!hasNetwork ? <button type="button" onClick={onStrategy}>Site Strategy</button> : null}
-        {strategy ? (
+        {strategy ? <p className="site-strategy-note">{ARRANGEMENT_FAMILY.find((item) => item.id === strategy.arrangementId)?.title ?? strategy.arrangementId}</p> : null}
+        {shortlist.length > 0 ? (
           <>
-            <p className="site-strategy-note">{strategy.strategyId} · {strategy.arrangementId}</p>
-            {strategy.relationships.map((item) => <p key={item.statement} className="site-strategy-note">{displayRelationship(item.statement)}</p>)}
-          </>
-        ) : null}
         <h3>Shortlist</h3>
-        {shortlist.length === 0 ? <p className="site-strategy-note">No networks shortlisted. Zoning keeps one active network.</p> : (
           <ul className="site-strategy-nodes">
             {shortlist.map((item) => (
               <li key={item.id}>
@@ -147,7 +143,8 @@ export function SiteZoningPanel({
               </li>
             ))}
           </ul>
-        )}
+          </>
+        ) : null}
         <h3>Program</h3>
         <div className="site-kind-toggle site-zone-kinds" role="group" aria-label="Program">
           {ZONE_KINDS.map((item) => (
@@ -174,7 +171,7 @@ export function SiteZoningPanel({
                     <b>{program ?? `Pocket ${index + 1}`}</b>
                     <span>{Math.round(pocket.area).toLocaleString("en-US")} ft² · {reading}{pocket.levels > 1 ? ` · ${pocket.levels} levels` : ""}</span>
                   </button>
-                  {selected ? <p className="site-strategy-note">{Math.round(pocket.spanEastFt)} × {Math.round(pocket.spanNorthFt)} ft. {pocket.footprints === 0 ? "No validated plan fits." : pocket.footprints === 1 ? "1 plan fits." : `${pocket.footprints} plans fit.`} {pocket.lobby === "room" ? "Lobby can be a room." : pocket.lobby === "threshold" ? "Lobby threshold only." : ""}</p> : null}
+                  {selected ? <p className="site-strategy-note">{Math.round(pocket.spanEastFt)} × {Math.round(pocket.spanNorthFt)} ft</p> : null}
                 </li>
               );
             })}

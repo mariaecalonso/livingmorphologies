@@ -62,7 +62,7 @@ import { useAssemblyFilm } from "@/components/hybrid/validation-panel";
 import { ArchitecturalDna } from "./architectural-dna";
 import { CompatibilityOverview } from "./client-compatibility-panel";
 import { CriteriaDefinitionsModal } from "./criteria-definitions";
-import { buildArrivalFamily, programForRole } from "@/lib/skill5/architectural-strategy";
+import { ARRANGEMENT_FAMILY, buildArrivalFamily, programForRole } from "@/lib/skill5/architectural-strategy";
 import { assessPockets, suggestionLabel } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets, readPockets } from "@/lib/skill5/pockets";
 import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
@@ -3164,7 +3164,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                   strategy={reviewIteration?.architectureRecord ?? null}
                   shortlist={zoningShortlist.flatMap((id) => {
                     const item = iterations.find((iteration) => iteration.id === id);
-                    return item ? [{ id: item.id, index: item.index, title: item.architectureRecord?.arrangementId ?? item.layoutTitle ?? item.id, active: item.id === massingId }] : [];
+                    return item ? [{ id: item.id, index: item.index, title: ARRANGEMENT_FAMILY.find((entry) => entry.id === item.architectureRecord?.arrangementId)?.title ?? item.layoutTitle ?? item.id, active: item.id === massingId }] : [];
                   })}
                   onPreviewShortlist={setIterationView}
                   onUseShortlist={(id) => useNetworkForMassing(id)}
@@ -3395,8 +3395,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 streetPaths: spatial.streetPaths,
                 leaders,
               }}
-              zones={showZones && !(previewIteration && (sheet === "strategy" || sheet === "zoning")) ? visibleZones : []}
-                zoning={sheet === "zoning" || sheet === "placement" || sheet === "assembly" || sheet === "configurations" || (sheet === "strategy" && reviewReport) ? {
+              zones={showZones && sheet !== "strategy" && !(previewIteration && sheet === "zoning") ? visibleZones : []}
+                zoning={sheet === "zoning" || sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? {
                 tool: zoneTool,
                 mode,
                 active: sheet === "zoning" && previewIteration === null,
@@ -3455,7 +3455,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               }
               typology={sheet === "strategy" && networkStudy ? {
                 study: networkStudy,
-                points: intentPoints,
+                points: intentPoints.filter((point) => !point.id.startsWith("intent-mz") && !point.id.startsWith("intent-b3z")),
                 placing: intentPlacing,
                 visible: intentVisible,
                 types: intentTypes,
@@ -3634,6 +3634,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                     compareIds={iterationCompare}
                     shortlistIds={zoningShortlist}
                     batch={iterationBatch}
+                    generating={iterationBatch !== null}
+                    onGenerate={() => { void generateArrival(); }}
                     onView={setIterationView}
                     onUse={(id) => useNetworkForMassing(id)}
                     onToggleCompare={toggleIterationCompare}

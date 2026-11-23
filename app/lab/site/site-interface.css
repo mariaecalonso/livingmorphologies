@@ -1359,9 +1359,13 @@
   line-height: 1.3;
 }
 
+[data-view-mode="presentation"] .site-view[data-sheet="network"][data-panels="model"] {
+  --analysis-right: min(44em, 28vw);
+}
+
 .site-view[data-sheet="network"] .site-iteration-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.4rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(9.2rem, 1fr));
   grid-auto-rows: auto;
   gap: 0.45rem;
   width: 100%;

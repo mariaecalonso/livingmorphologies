@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { ARCHITECTURAL_STRATEGY_ID, ARRANGEMENT_FAMILY, COMPARISON_SEEDS, STRATEGY_RELATIONSHIPS } from "@/lib/skill5/architectural-strategy";
+import { ARCHITECTURAL_STRATEGY_ID, ARRANGEMENT_FAMILY } from "@/lib/skill5/architectural-strategy";
 import { pedestrianCandidates } from "./site-network-candidates";
 import type { NetworkNodeKind, SiteNetworkStudy, StrategyOrigin } from "./site-network";
 import { TYPOLOGY_INTENTS, type TypologyAttractor, type TypologyIntent } from "./typology-attractors";
@@ -126,29 +126,24 @@ export function SiteStrategyPanel({
       <section className="site-strategy-section" aria-label="Site conclusions">
         <h3>Site conclusions</h3>
         {access.map((candidate) => (
-          <p key={candidate.id} className="site-strategy-note">
-            {candidate.title}. Unverified. {candidate.gapFeet == null ? "No gap is stored." : `Gap ${candidate.gapFeet.toFixed(1)} ft.`} A measured contact is not a lobby.
+          <p key={candidate.id} className="site-strategy-note" title={candidate.gapFeet == null ? "No gap is stored." : `Gap ${candidate.gapFeet.toFixed(1)} ft.`}>
+            {candidate.title}. Unverified.
           </p>
         ))}
-        <p className="site-strategy-note">Views are recorded on each node. Placement uses coastline distance or MacArthur distance. Sun and wind do not move nodes. Baywalk is not a source.</p>
       </section>
-      <section className="site-strategy-section" aria-label="Architectural strategy">
-        <h3>Architectural strategy</h3>
-        <p className="site-strategy-note">{ARCHITECTURAL_STRATEGY_ID}</p>
-        {STRATEGY_RELATIONSHIPS.map((item) => <p key={item.statement} className="site-strategy-note">{item.statement}</p>)}
-        <p className="site-strategy-note">Public Lobby and Private Lobby are proposed. Experimental Lobby is tested by arrangement. A measured contact stays unverified, and a proposed source stays a proposal.</p>
+      <section className="site-strategy-section" aria-label="Architectural strategy" title={ARCHITECTURAL_STRATEGY_ID}>
+        <h3>Herald arrival</h3>
+        <p className="site-strategy-note">Public → central gathering</p>
+        <p className="site-strategy-note">Private → workspace, private gathering</p>
+        <p className="site-strategy-note">Experimental → northern gathering</p>
         <h3>Arrangements</h3>
         <ul className="site-strategy-nodes">
           {ARRANGEMENT_FAMILY.map((item) => (
             <li key={item.id}>
-              <p className="site-strategy-note"><b>{item.title}</b> {item.reason}</p>
+              <p className="site-strategy-note" title={item.reason}>{item.title}</p>
             </li>
           ))}
         </ul>
-        <details>
-          <summary>Arrangement parameters</summary>
-          <p className="site-strategy-note">Every arrangement uses the same seeds, {COMPARISON_SEEDS.join(" and ")}. One condition changes from the city-side arrangement. The recorded parameters are the experimental lobby, the public and private positions, the gathering organization, the workspace count, and the recession.</p>
-        </details>
       </section>
       {network ? (
         <section className="site-strategy-section" aria-label="Generation">
