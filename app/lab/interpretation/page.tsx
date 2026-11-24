@@ -1,4 +1,4 @@
-import { InterpretationLab } from "@/components/interpretation/interpretation-lab";
+import { InterpretationReading } from "@/components/interpretation/interpretation-reading";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("interpretation");
@@ -8,5 +8,5 @@ export const metadata = {
 };
 
 export default function ArchitecturalInterpretationPage() {
-  return <InterpretationLab />;
+  return <InterpretationReading />;
 }

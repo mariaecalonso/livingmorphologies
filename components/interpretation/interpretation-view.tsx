@@ -12,6 +12,8 @@ export type ViewPart = {
   color: string;
   opacity: number;
   selectable: boolean;
+  /** Paint the same stored triangles in front of the mass. Not a new solid. */
+  mark?: boolean;
 };
 
 export type Orbit = {
@@ -98,16 +100,22 @@ export function InterpretationView({
       geometry.computeVertexNormals();
       const material = new THREE.MeshStandardMaterial({
         color: part.color,
-        roughness: 0.62,
+        roughness: part.mark ? 0.46 : 0.62,
         metalness: 0.02,
         transparent: part.opacity < 1,
         opacity: part.opacity,
         depthWrite: part.opacity >= 0.7,
         side: THREE.DoubleSide,
+        polygonOffset: Boolean(part.mark),
+        polygonOffsetFactor: part.mark ? -2 : 0,
+        polygonOffsetUnits: part.mark ? -2 : 0,
+        emissive: part.mark ? 0x0c4c50 : 0x000000,
       });
       const mesh = new THREE.Mesh(geometry, material);
+      mesh.renderOrder = part.mark ? 2 : 1;
       mesh.userData.id = part.id;
       mesh.userData.selectable = part.selectable;
+      mesh.userData.mark = Boolean(part.mark);
       if (!part.selectable) mesh.raycast = () => {};
       root.add(mesh);
       meshes.push(mesh);
@@ -173,7 +181,7 @@ export function InterpretationView({
     const paint = () => {
       for (const mesh of meshes) {
         const material = mesh.material as THREE.MeshStandardMaterial;
-        material.emissive.set(mesh.userData.id === selectedRef.current ? 0x123436 : 0x000000);
+        material.emissive.set(mesh.userData.mark ? 0x0c4c50 : mesh.userData.id === selectedRef.current ? 0x123436 : 0x000000);
       }
       placeCamera();
       renderer.render(scene, camera);
