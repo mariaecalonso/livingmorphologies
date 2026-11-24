@@ -115,6 +115,7 @@ export const LAB_WORKSPACES = [
     resultId: null,
     tabs: [
       { href: "/lab/site?sheet=placement", label: "Cluster Placement" },
+      { href: "/lab/site?sheet=cluster-assembly", label: "Cluster Assembly" },
       { href: "/lab/site?sheet=assembly", label: "Assembly" },
       { href: "/lab/site?sheet=configurations", label: "Configurations" },
     ],

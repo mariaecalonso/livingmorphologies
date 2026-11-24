@@ -12,7 +12,7 @@ import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
 type NavItem = { href: string; label: string };
 
-const CLUSTER_SHEETS = new Set(["placement", "assembly", "configurations"]);
+const CLUSTER_SHEETS = new Set(["placement", "cluster-assembly", "assembly", "configurations"]);
 
 function workspaceActive(id: string, href: string, pathname: string, sheet: string | null) {
   if (id === "site") {

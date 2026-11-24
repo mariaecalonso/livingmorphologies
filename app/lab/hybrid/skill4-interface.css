@@ -3319,6 +3319,11 @@
   min-height: 0;
 }
 
+.cluster-analysis-frame .cluster-study-criteria {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .cluster-study-criteria canvas {
   position: absolute;
   inset: 0;
@@ -3330,6 +3335,461 @@
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.cluster-analysis {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 2px 10px 8px;
+}
+
+.cluster-analysis-title {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  gap: 0.8vw;
+  min-height: 3.4vw;
+  padding: 0 0.2vw 0.15vw;
+  overflow: hidden;
+}
+
+.cluster-analysis-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vw;
+}
+
+.cluster-analysis-title h2 {
+  margin: 0;
+  color: #f4f4f0;
+  font-size: 1.28vw;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-title .eyebrow {
+  margin: 0;
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.46vw;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-id,
+.cluster-analysis-kind {
+  margin: 0 0 0.2vw;
+  font-size: 0.5vw;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-id {
+  padding: 0.28vw 0.5vw 0.24vw;
+  border: 1px solid rgba(73, 215, 222, 0.72);
+  border-radius: 2px;
+  color: #49d7de;
+  box-shadow: 0 0 10px rgba(73, 215, 222, 0.16);
+}
+
+.cluster-analysis-kind {
+  color: #c77e5f;
+}
+
+.cluster-analysis-wave {
+  position: absolute;
+  top: 0.1vw;
+  right: 0;
+  width: min(48%, 42vw);
+  height: 2.6vw;
+  pointer-events: none;
+}
+
+.cluster-analysis-wave path {
+  fill: none;
+  stroke-width: 1.1;
+}
+
+.cluster-analysis-wave path:nth-child(1) {
+  stroke: #c77e5f;
+  opacity: 0.9;
+}
+
+.cluster-analysis-wave path:nth-child(2) {
+  stroke: #49d7de;
+  opacity: 0.72;
+}
+
+.cluster-analysis-wave path:nth-child(3) {
+  stroke: #c77e5f;
+  opacity: 0.4;
+}
+
+.cluster-analysis-board {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 2.1vw minmax(0, 1.48fr) minmax(0, 0.7fr) minmax(0, 0.7fr) minmax(0, 0.96fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.cluster-analysis-tools {
+  display: flex;
+  grid-row: 1 / span 2;
+  grid-column: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7vw;
+}
+
+.cluster-analysis-tools span {
+  display: grid;
+  width: 1.7vw;
+  height: 1.7vw;
+  place-items: center;
+  border: 1px solid rgba(242, 242, 238, 0.28);
+  border-radius: 0.2vw;
+  color: rgba(242, 242, 238, 0.88);
+}
+
+.cluster-analysis-tools svg {
+  width: 1vw;
+  height: 1vw;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.2;
+}
+
+.cluster-analysis-hero,
+.cluster-analysis-frame {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(242, 242, 238, 0.34);
+  border-radius: 7px;
+  background: #000000;
+}
+
+.cluster-analysis-hero {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.cluster-analysis-criteria-frame {
+  grid-column: 5;
+  grid-row: 1 / span 2;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(155deg, #10282a 0%, #070d0f 46%, #241814 100%) padding-box,
+    linear-gradient(155deg, rgba(20, 150, 155, 0.7), rgba(255, 255, 255, 0.2) 46%, rgba(224, 138, 100, 0.7)) border-box;
+}
+
+.cluster-analysis-criteria-frame .cluster-analysis-label {
+  font-size: 0.48vw;
+}
+
+.cluster-analysis-criteria-frame .cluster-analysis-rank span {
+  font-size: 0.38vw;
+}
+
+.cluster-analysis-criteria-frame .cluster-analysis-rank b {
+  font-size: 0.4vw;
+}
+
+.cluster-analysis-criteria-frame .cluster-analysis-bar {
+  height: 0.26vw;
+}
+
+.cluster-analysis-criteria-frame .cluster-analysis-rank {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.45vw;
+  border-bottom: 0;
+  background-image: linear-gradient(90deg, #0f7377, #c77e5f);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+.cluster-analysis-criteria-frame .cluster-study-criteria canvas {
+  transform: scale(1.08);
+  transform-origin: center center;
+}
+
+.cluster-analysis-stage,
+.cluster-analysis-frame .cluster-study-view {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.cluster-analysis-stage {
+  display: flex;
+  flex-direction: column;
+}
+
+.cluster-analysis-stage > .cluster-study-view {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.cluster-analysis-stage .hybrid-stage-canvas,
+.cluster-analysis-frame .hybrid-stage-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cluster-analysis-stage .hybrid-stage-canvas {
+  cursor: grab;
+  touch-action: none;
+}
+
+.cluster-analysis-stage .hybrid-stage-canvas:active {
+  cursor: grabbing;
+}
+
+.cluster-analysis-label {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45vw;
+  margin: 0;
+  padding: 0.45vw 0.6vw 0;
+  color: #f3f3ee;
+  font-size: 0.58vw;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-label::before {
+  content: "";
+  width: 0.7vw;
+  height: 2px;
+  background: #c77e5f;
+  box-shadow: 0 0 6px rgba(199, 126, 95, 0.8);
+}
+
+.cluster-analysis-caption {
+  position: absolute;
+  left: 0.7vw;
+  bottom: 0.5vw;
+  margin: 0;
+  color: rgba(242, 242, 238, 0.78);
+  font-size: 0.48vw;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-caption span {
+  color: #49d7de;
+}
+
+.cluster-analysis-axis {
+  position: absolute;
+  right: 0.8vw;
+  bottom: 0.7vw;
+  z-index: 1;
+  width: 1.8vw;
+  height: 1.8vw;
+  pointer-events: none;
+}
+
+.cluster-analysis-axis svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 1.2;
+}
+
+.cluster-analysis-axis path:nth-child(1) {
+  stroke: #49d7de;
+}
+
+.cluster-analysis-axis path:nth-child(2) {
+  stroke: #c77e5f;
+}
+
+.cluster-analysis-axis path:nth-child(3) {
+  stroke: rgba(242, 242, 238, 0.72);
+}
+
+.cluster-analysis-rank {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 12px 8px;
+  list-style: none;
+  overflow: auto;
+}
+
+.cluster-analysis-rank li {
+  display: grid;
+  grid-template-columns: minmax(4.2vw, 0.95fr) minmax(0, 1.45fr) 2.4vw;
+  gap: 0.45vw;
+  align-items: center;
+}
+
+.cluster-analysis-rank span {
+  color: rgba(242, 242, 238, 0.78);
+  font-size: 0.46vw;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-bar {
+  display: block;
+  height: 0.38vw;
+  border-radius: 1px;
+  background: rgba(242, 242, 238, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(242, 242, 238, 0.05);
+}
+
+.cluster-analysis-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #49d7de 0%, #7ec8c0 34%, #d7a07a 70%, #c77e5f 100%);
+  box-shadow: 0 0 8px rgba(73, 215, 222, 0.45);
+}
+
+.cluster-analysis-rank b {
+  color: rgba(242, 242, 238, 0.92);
+  font-size: 0.5vw;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  text-align: right;
+}
+
+.cluster-analysis-plates {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 4px 10px 8px;
+  list-style: none;
+}
+
+.cluster-analysis-plates li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.4vw;
+  gap: 8px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.cluster-analysis-plates .cluster-study-view {
+  height: 100%;
+  min-height: 0;
+}
+
+.cluster-analysis-plates span {
+  align-self: center;
+  color: #c77e5f;
+  font-size: 0.48vw;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cluster-analysis-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px 0;
+}
+
+.cluster-analysis-metrics dt {
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.42rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-metrics dd {
+  margin: 3px 0 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+}
+
+.cluster-analysis-metrics small {
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.46rem;
+  letter-spacing: 0.08em;
+}
+
+.cluster-analysis-metrics-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 4px 10px;
+  align-items: end;
+  margin-top: auto;
+  padding: 6px 12px 8px;
+}
+
+.cluster-analysis-metrics-foot p {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.cluster-analysis-metrics-foot span {
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.42rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cluster-analysis-metrics-foot strong {
+  font-size: 0.58rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.cluster-analysis-metrics-foot .cluster-study-view {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  min-height: 48px;
+}
+
+.cluster-analysis-wait {
+  margin: 12px;
+  color: rgba(242, 242, 238, 0.55);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3488,6 +3948,61 @@
 
 [data-view-mode="presentation"] .cluster-placement > [data-cluster-catalog] [data-catalog-card] {
   font-size: 26px;
+}
+
+.diff-review {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  padding: 16px 18px 18px;
+  box-sizing: border-box;
+  background: #000000;
+}
+
+.diff-review figure {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  background: #000000;
+}
+
+.diff-review figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: #9b9b98;
+}
+
+.diff-review figcaption b {
+  color: #f2f2ee;
+  font-weight: 500;
+}
+
+.diff-review .hybrid-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+.diff-review-wait {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #9b9b98;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 11px;
 }
 
 

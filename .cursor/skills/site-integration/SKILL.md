@@ -14,7 +14,9 @@ description: >-
 This is the project-level skill for Skill 5 in the shared repository `livingmorphologies`.
 Apply it when placing work on the site or reading the site. Do not apply it to architectural translation, 2D generation, vertical propagation, or generating a new connector.
 
-The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Saved configurations are `/lab/site/configurations`. The work lives in `lib/skill5/` and `components/site/`.
+The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Cluster Assembly is a Cluster Integration tab at `/lab/site?sheet=cluster-assembly`. Saved configurations are `/lab/site/configurations`. The work lives in `lib/skill5/` and `components/site/`.
+
+Cluster Assembly places one catalog cluster for each program inside a zoning iteration 101 pocket of the same program and joins them into one mass. A lobby cluster stays in a lobby pocket, a gathering cluster in a gathering pocket, and a workspace cluster in a workspace pocket. It uses the highest-ranked cluster from that program's catalog that fits inside such a pocket. Placed clusters use the catalog solid: opaque white, the same shaded body as the catalog thumbnail. The Void control reads each cluster's habitable void from the same shrinkwrap measurement as the catalog plus icon. The catalog is the same ranked list as the Cluster Placement panel. The placed clusters keep their own shrinkwrap. Where two clusters do not already touch, the same hybrid shrinkwrap fills only that gap. It does not cover the cluster. It does not change cluster generation, the finished catalog, tile-to-tile hybrids, or the stored site network.
 
 ## Purpose
 

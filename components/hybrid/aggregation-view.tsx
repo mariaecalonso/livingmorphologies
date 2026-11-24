@@ -30,6 +30,7 @@ export function AggregationView({
   span,
   anchorIds,
   initialPitch = 0.35,
+  initialYaw = 0.7,
   sweep = null,
   onSweepDone,
   measuring = false,
@@ -54,13 +55,15 @@ export function AggregationView({
   anchorIds?: readonly string[];
   /** Radians. Negative looks down from above the ground grid. */
   initialPitch?: number;
+  /** Radians around the vertical axis. The ground plane stays horizontal. */
+  initialYaw?: number;
   /** How far the wheel can pull back, as a multiple of the resting camera. */
   zoomOut?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
   const movedRef = useRef(false);
-  const [yaw, setYaw] = useState(0.7);
+  const [yaw, setYaw] = useState(initialYaw);
   const [pitch, setPitch] = useState(initialPitch);
   const [eye, setEye] = useState(CANVAS_EYE);
   const [focus, setFocus] = useState<Vec3>({ x: 0, y: 0, z: 0 });

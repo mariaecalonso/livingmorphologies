@@ -309,6 +309,7 @@ function expandMesh(mesh: IsoMesh) {
 type Gpu = {
   gl: WebGL2RenderingContext;
   shaderVersion: number;
+  transparent: boolean;
   program: WebGLProgram;
   aoProgram: WebGLProgram;
   position: WebGLBuffer;
@@ -380,12 +381,10 @@ function tex(gl: WebGL2RenderingContext, internal: number, format: number, type:
   return texture;
 }
 
-function setup(canvas: HTMLCanvasElement): Gpu | null {
+function setup(canvas: HTMLCanvasElement, transparent = false): Gpu | null {
   const existing = cache.get(canvas);
-  if (existing && existing.shaderVersion === SHADER_VERSION && !existing.gl.isContextLost()) return existing;
-  const gl = existing && !existing.gl.isContextLost()
-    ? existing.gl
-    : canvas.getContext("webgl2", { antialias: true, alpha: false, depth: true });
+  if (existing && existing.shaderVersion === SHADER_VERSION && existing.transparent === transparent && !existing.gl.isContextLost()) return existing;
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: transparent, premultipliedAlpha: !transparent, depth: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = link(gl, VERT, FRAG);
@@ -430,6 +429,7 @@ function setup(canvas: HTMLCanvasElement): Gpu | null {
   const gpu: Gpu = {
     gl,
     shaderVersion: SHADER_VERSION,
+    transparent,
     program: meshProgram,
     aoProgram,
     position,
@@ -907,7 +907,7 @@ export function drawPlacedMeshes(
   }
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  const gpu = setup(canvas);
+  const gpu = setup(canvas, clear[3] < 1);
   if (!gpu) return null;
   const { gl } = gpu;
   resize(gpu, pixelsW, pixelsH);

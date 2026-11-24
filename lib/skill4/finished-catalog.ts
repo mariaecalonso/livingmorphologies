@@ -32,6 +32,8 @@ export type FinishedIteration = {
     voidHeight: number;
     voidWidth: number;
     voidDepth: number;
+    verticalTransitionCount?: number;
+    upperMassSupportedBySingleStem?: boolean;
   };
 };
 

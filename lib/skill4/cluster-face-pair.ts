@@ -73,24 +73,28 @@ function addPoses(pairs: Map<string, CompatibleFacePair>, poses: readonly KnownA
   }
 }
 
-/** Direct Skill 6 seating first. A verified hybrid bridge is used only when that seating has no pose. */
+/** Direct Skill 6 seating first. A verified hybrid fills only a face that has no direct pose. */
 export function rankCompatibleFaces(archetypeA: string, archetypeB: string): CompatibleFacePair[] {
   if (!archetypeA || !archetypeB) return [];
   const known = cache();
   const pairs = new Map<string, CompatibleFacePair>();
   addPoses(pairs, known.poses(archetypeA, archetypeB), true);
   addPoses(pairs, known.poses(archetypeB, archetypeA), false);
-  if (pairs.size === 0) addHybridPoses(pairs, archetypeA, archetypeB);
+  addHybridPoses(pairs, archetypeA, archetypeB);
   return [...pairs.values()].sort((left, right) => right.score - left.score);
 }
 
 function addHybridPoses(pairs: Map<string, CompatibleFacePair>, archetypeA: string, archetypeB: string) {
-  for (const pair of readHybridConnectable().pairs) {
+  const file = readHybridConnectable();
+  const hasDirect = pairs.size > 0;
+  for (const pair of [...file.pairs, ...file.workspaceVertical]) {
     const forward = pair.archetypeA === archetypeA && pair.archetypeB === archetypeB;
     const reverse = pair.archetypeA === archetypeB && pair.archetypeB === archetypeA;
     if (!forward && !reverse) continue;
     if (!pair.validation || !pair.shrinkwrap || pair.triangles <= 4) continue;
-    if (forward) consider(pairs, pair.faceA, pair.faceB, pair.triangles);
-    else consider(pairs, pair.faceB, pair.faceA, pair.triangles);
+    const faceA = forward ? pair.faceA : pair.faceB;
+    const faceB = forward ? pair.faceB : pair.faceA;
+    if (pairs.has(`${faceA}:${faceB}`)) continue;
+    consider(pairs, faceA, faceB, hasDirect ? 0 : pair.triangles);
   }
 }

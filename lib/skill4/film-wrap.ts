@@ -27,13 +27,15 @@ const CLOSE = 2;
  * The source meshes are only read. A small closing bridges gaps of a few cells
  * and leaves passages wider than that open to the outside.
  */
-export function filmWrapAssembly(meshes: readonly WorldMesh[]): FilmWrap | null {
+export function filmWrapAssembly(meshes: readonly WorldMesh[], cellSize?: number, closePasses?: number, erodePasses?: number): FilmWrap | null {
   const bounds = boundsOf(meshes);
   if (!bounds) return null;
   const span = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY, bounds.maxZ - bounds.minZ);
   if (span < 1e-4) return null;
-  const cell = span / AXIS;
-  const pad = CLOSE + 3;
+  const cell = cellSize && cellSize > 0 ? cellSize : span / AXIS;
+  const close = closePasses && closePasses > 0 ? Math.round(closePasses) : CLOSE;
+  const erodeCount = erodePasses && erodePasses > 0 ? Math.min(close, Math.round(erodePasses)) : close;
+  const pad = close + 3;
   const nx = cells(bounds.maxX - bounds.minX, cell, pad);
   const ny = cells(bounds.maxY - bounds.minY, cell, pad);
   const nz = cells(bounds.maxZ - bounds.minZ, cell, pad);
@@ -45,8 +47,8 @@ export function filmWrapAssembly(meshes: readonly WorldMesh[]): FilmWrap | null 
   if (!solid.some((value) => value === 1)) return null;
   const beforeAir = floodExterior(solid, nx, ny, nz);
   let closed = solid;
-  for (let pass = 0; pass < CLOSE; pass += 1) closed = dilate(closed, nx, ny, nz);
-  for (let pass = 0; pass < CLOSE; pass += 1) closed = erode(closed, nx, ny, nz);
+  for (let pass = 0; pass < close; pass += 1) closed = dilate(closed, nx, ny, nz);
+  for (let pass = 0; pass < erodeCount; pass += 1) closed = erode(closed, nx, ny, nz);
   const afterAir = floodExterior(closed, nx, ny, nz);
   const interior = new Uint8Array(solid.length);
   for (let index = 0; index < interior.length; index += 1) {

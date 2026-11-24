@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 const ROOT = path.join(process.cwd(), "data", "skill4");
 const PROGRAMS = path.join(ROOT, "finished-programs");
+const TEST_PROGRAMS = path.join(ROOT, "differentiation-test", "programs");
 const CATALOG = path.join(ROOT, "finished-catalog.json");
 const BATCH = path.join(ROOT, "finished-batch.json");
 
@@ -37,6 +38,29 @@ function summarize(program: FinishedProgram): FinishedProgram {
     ...program,
     iterations: program.iterations.map(({ tiles: _tiles, connections: _connections, ...summary }) => summary),
   } as FinishedProgram;
+}
+
+function withTestClusters(program: FinishedProgram): FinishedProgram {
+  const file = path.join(TEST_PROGRAMS, `${program.programId}.json`);
+  if (!existsSync(file)) return program;
+  try {
+    const test = JSON.parse(readFileSync(file, "utf8")) as FinishedProgram;
+    const present = new Set(program.iterations.map((item) => item.id));
+    const extra = test.iterations.flatMap((item, index) => {
+      const id = `${program.programId}:test-${index}`;
+      if (present.has(id)) return [];
+      return [{ ...item, id, iteration: program.iterations.length + index + 1 }];
+    });
+    if (extra.length === 0) return program;
+    return {
+      ...program,
+      finished: program.iterations.length + extra.length,
+      persisted: program.iterations.length + extra.length,
+      iterations: [...program.iterations, ...extra],
+    };
+  } catch {
+    return program;
+  }
 }
 
 function readCatalog(): FinishedCatalog {
@@ -72,7 +96,8 @@ export function GET(request: Request) {
     const programId = url.searchParams.get("program") ?? "";
     const catalog = readCatalog();
     if (programId) {
-      const program = catalog.programs.find((item) => item.programId === programId) ?? null;
+      const stored = catalog.programs.find((item) => item.programId === programId) ?? null;
+      const program = stored ? withTestClusters(stored) : null;
       if (url.searchParams.get("view") === "placement") {
         if (!program) return Response.json(null);
         return Response.json(rankProgramClusters(program.programId, program.name, program.iterations));

@@ -79,6 +79,7 @@ import { TypologyAttractorLayer } from "./typology-attractor-layer";
 import type { TypologyAttractor, TypologyIntent } from "./typology-attractors";
 import { SitePocketLayer } from "./site-pocket-layer";
 import { SiteZoneLayer, type ZoneTool } from "./site-zone-layer";
+import { ClusterAssemblyLayer, type ClusterAssemblyModel } from "./cluster-assembly-layer";
 import type { NetworkPocket } from "@/lib/skill5/pockets";
 import type { PocketFit } from "@/lib/skill5/pocket-feasibility";
 import type { ZoneKind, ZonePoint, ZoningRegion } from "@/lib/skill5/zoning";
@@ -1443,6 +1444,7 @@ export function SiteViewport({
   assemblyFilm = null,
   typology = null,
   focusBounds = null,
+  clusterAssembly = null,
   onReadout,
 }: {
   context: SiteContext;
@@ -1523,6 +1525,7 @@ export function SiteViewport({
   onReadout: (readout: SiteReadout) => void;
   /** When set, the camera frames the building instead of the whole parcel. */
   focusBounds?: Bounds | null;
+  clusterAssembly?: ClusterAssemblyModel | null;
 }) {
   const siteBounds = useMemo(() => boundsOf(context), [context]);
   const bounds = focusBounds ?? siteBounds;
@@ -1563,7 +1566,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
       {sight?.mode === "views" ? <ViewCalloutProjector overlay={sight} root={callouts} ring={context.site.ring} /> : null}
       {placeObserver ? <PlaceProbe ring={context.site.ring} onPlace={placeObserver} /> : null}
@@ -1602,6 +1605,7 @@ function PlacementScene({
   assemblyFilm,
   typology,
   measuredRoads = false,
+  clusterAssembly = null,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1672,6 +1676,7 @@ function PlacementScene({
     onMove: (id: string, x: number, z: number) => void;
   } | null;
   measuredRoads?: boolean;
+  clusterAssembly?: ClusterAssemblyModel | null;
 }) {
   const pointer = useModulePointer(placement);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
@@ -1726,6 +1731,7 @@ function PlacementScene({
       {connections ? <ConnectionMarks links={connections} /> : null}
       {joins ? <JoinOverlay highlights={joins.highlights} passages={joins.passages} /> : null}
       {assemblyFilm ? <AssemblyFilmLayer assembly={assemblyFilm.assembly} sweep={assemblyFilm.sweep} skins={assemblyFilm.skins} onSweepDone={assemblyFilm.onSweepDone} /> : null}
+      {clusterAssembly ? <ClusterAssemblyLayer model={clusterAssembly} /> : null}
       </group>
     </>
   );

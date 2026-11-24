@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const runtime = "nodejs";
@@ -12,7 +12,13 @@ export function GET(request: Request) {
     return Response.json(null);
   }
   try {
-    const file = path.join(process.cwd(), "data", "skill4", "finished", program, `${id.replaceAll(":", "__")}.json`);
+    const finished = path.join(process.cwd(), "data", "skill4", "finished", program, `${id.replaceAll(":", "__")}.json`);
+    const testIndex = id.match(/:test-(\d+)$/);
+    const test = testIndex
+      ? path.join(process.cwd(), "data", "skill4", "differentiation-test", "meshes", program, `${program}__${testIndex[1]}.json`)
+      : "";
+    const file = existsSync(finished) ? finished : test;
+    if (!file) return Response.json(null);
     return Response.json(JSON.parse(readFileSync(file, "utf8")));
   } catch {
     return Response.json(null);

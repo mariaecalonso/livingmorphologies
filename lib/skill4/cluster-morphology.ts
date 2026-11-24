@@ -9,6 +9,7 @@ export const ONE_MODULE_DEEP_CHAIN = "ONE_MODULE_DEEP_CHAIN";
 export const PLAN_SPREAD_TOO_LOW = "PLAN_SPREAD_TOO_LOW";
 export const DOMINANT_SPINE = "DOMINANT_SPINE";
 export const NO_MEANINGFUL_VOID_DEFINITION = "NO_MEANINGFUL_VOID_DEFINITION";
+export const SINGLE_VERTICAL_STEM = "SINGLE_VERTICAL_STEM";
 
 export type MorphologyReport = {
   score: number;
@@ -35,6 +36,10 @@ export type MorphologyReport = {
   compactness: number;
   vertical: number;
   program: number;
+  /** Distinct plan columns that carry the same upper group. */
+  verticalTransitionCount: number;
+  /** A wide upper group still hangs from one narrow rise. */
+  upperMassSupportedBySingleStem: boolean;
 };
 
 type Vec3 = { x: number; y: number; z: number };
@@ -303,6 +308,103 @@ function verticalLevelsOf(tiles: readonly TileInstance[]) {
   return new Set(tiles.map((tile) => Math.round(tile.transform.y / band))).size;
 }
 
+function distinctPlanColumns(points: readonly { x: number; z: number }[], radius: number) {
+  const kept: { x: number; z: number }[] = [];
+  for (const point of points) {
+    if (kept.some((item) => Math.hypot(item.x - point.x, item.z - point.z) < radius)) continue;
+    kept.push(point);
+  }
+  return kept.length;
+}
+
+/**
+ * Breadth of the rise into one upper group.
+ * The graph stays a tree. Two relationships are two plan columns of vertical steps
+ * that reach the same elevated component, including a path that rises, shifts, and rises again.
+ * A single raised tile, or a tower with no plan width, is not an upper mass.
+ */
+export function readVerticalSupport(tiles: readonly TileInstance[], connections: readonly TileConnection[]) {
+  const empty = { verticalTransitionCount: 0, upperMassSupportedBySingleStem: false, developedSingleStem: false, elevatedTiles: 0 };
+  if (tiles.length < 2) return empty;
+  const module = envelopeWidth();
+  let minY = Infinity;
+  for (const tile of tiles) if (tile.transform.y < minY) minY = tile.transform.y;
+  const at = new Map(tiles.map((tile) => [tile.instanceId, tile.transform]));
+  const elevated = tiles.filter((tile) => tile.transform.y > minY + module * 0.7);
+  if (elevated.length === 0) return empty;
+  const elevatedIds = new Set(elevated.map((tile) => tile.instanceId));
+  const neighbors = neighborsOf(tiles, connections);
+  const seen = new Set<string>();
+  let narrowest = Infinity;
+  let anySubstantial = false;
+  let single = false;
+  let developed = false;
+  let widest = 0;
+  for (const start of elevated) {
+    if (seen.has(start.instanceId)) continue;
+    const component: string[] = [];
+    const queue = [start.instanceId];
+    seen.add(start.instanceId);
+    while (queue.length > 0) {
+      const id = queue.pop();
+      if (!id) break;
+      component.push(id);
+      for (const next of neighbors.get(id) ?? []) {
+        if (!elevatedIds.has(next) || seen.has(next)) continue;
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+    const member = new Set(component);
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const id of component) {
+      const point = at.get(id);
+      if (!point) continue;
+      if (point.x < minX) minX = point.x;
+      if (point.x > maxX) maxX = point.x;
+      if (point.z < minZ) minZ = point.z;
+      if (point.z > maxZ) maxZ = point.z;
+    }
+    const span = Math.max(maxX - minX, maxZ - minZ);
+    const wide = span >= module * 0.85;
+    const substantial = component.length >= 2 && wide;
+    const portals: { x: number; z: number }[] = [];
+    const counted = new Set<string>();
+    for (const id of component) {
+      const here = at.get(id);
+      if (!here) continue;
+      for (const next of neighbors.get(id) ?? []) {
+        const key = id < next ? `${id}:${next}` : `${next}:${id}`;
+        if (counted.has(key)) continue;
+        counted.add(key);
+        const other = at.get(next);
+        if (!other) continue;
+        if (Math.abs(here.y - other.y) < module * 0.55) continue;
+        const upper = here.y >= other.y ? here : other;
+        const touches = member.has(id) && (member.has(next) || !elevatedIds.has(next));
+        if (!touches) continue;
+        portals.push({ x: upper.x, z: upper.z });
+      }
+    }
+    const count = distinctPlanColumns(portals, module * 0.75);
+    if (substantial) {
+      anySubstantial = true;
+      if (count < narrowest) narrowest = count;
+      if (count < 2) single = true;
+      if (count < 2 && component.length >= 3) developed = true;
+    } else if (count > widest) widest = count;
+  }
+  return {
+    verticalTransitionCount: anySubstantial && narrowest < Infinity ? narrowest : widest,
+    upperMassSupportedBySingleStem: single,
+    developedSingleStem: developed,
+    elevatedTiles: elevated.length,
+  };
+}
+
 function markSolid(solids: readonly IsoMesh[]) {
   const cell = envelopeWidth() * 0.4;
   const occupied = new Set<string>();
@@ -454,6 +556,11 @@ export function evaluateClusterMorphology(
     flags.push(DOMINANT_SPINE);
     reasons.push("Most tiles sit on one path, and the side branches are only one tile deep.");
   }
+  const support = readVerticalSupport(tiles, connections);
+  if (support.upperMassSupportedBySingleStem) {
+    flags.push(SINGLE_VERTICAL_STEM);
+    reasons.push("A wide upper group is carried by one narrow vertical path.");
+  }
   const enclosed = voidMesh && enclosureDirections >= profile.minEnclosureDirections;
   if (solids && tiles.length >= 4 && !enclosed) {
     flags.push(NO_MEANINGFUL_VOID_DEFINITION);
@@ -504,6 +611,8 @@ export function evaluateClusterMorphology(
     compactness: spreadPoints,
     vertical: verticalPoints,
     program: programPoints,
+    verticalTransitionCount: support.verticalTransitionCount,
+    upperMassSupportedBySingleStem: support.upperMassSupportedBySingleStem,
   };
 }
 

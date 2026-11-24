@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ClusterPlacement } from "@/components/hybrid/cluster-placement";
+import { ClusterAssemblyView } from "@/components/site/cluster-assembly-view";
 import { SiteWorkspace } from "@/components/site/site-workspace";
 import { labWorkspace } from "@/lib/site-map";
 
@@ -11,6 +12,7 @@ const SHEET_TITLE: Record<string, string> = {
   zoning: "Zoning",
   placement: "Cluster Placement",
   assembly: "Assembly",
+  "cluster-assembly": "Cluster Assembly",
   configurations: "Configurations",
   compatibility: "Tile Compatibility",
   catalog: "Cluster Catalog",
@@ -25,7 +27,7 @@ export async function generateMetadata({
   const params = await searchParams;
   const sheet = Array.isArray(params.sheet) ? params.sheet[0] : params.sheet;
   const title = (sheet && SHEET_TITLE[sheet]) || "Site Strategy";
-  const stage = sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? clusterWorkspace.label : workspace.label;
+  const stage = sheet === "placement" || sheet === "cluster-assembly" || sheet === "assembly" || sheet === "configurations" ? clusterWorkspace.label : workspace.label;
   return { title: `${title} -+ ${stage} -+ Living Morphologies` };
 }
 
@@ -49,6 +51,7 @@ export default async function SitePage({
   if (sheet === "compatibility" || sheet === "morphology") {
     return <ClusterPlacement sheet={sheet} />;
   }
+  if (sheet === "cluster-assembly") return <ClusterAssemblyView />;
   if (!sheet || !MODEL_SHEETS.has(sheet)) {
     const next = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {

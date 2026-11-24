@@ -37,6 +37,7 @@ import { ProcessRow } from "./process-row";
 import { useAssemblyFilm } from "./validation-panel";
 import { useHybrid } from "./hybrid-state";
 import { HybridCatalog } from "./hybrid-catalog";
+import { ClusterAnalysisBoard } from "./cluster-analysis-board";
 import { SyntheticTestToggle } from "./synthetic-test-toggle";
 import { captureCatalogEntry, nextCatalogId } from "@/lib/skill4/catalog";
 import { readCatalog, writeCatalog } from "@/lib/skill4/catalog-store";
@@ -667,8 +668,22 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
         </div>}
       </Panel> : null}
       {!frame || frame === "canvas" ? <Panel className="hybrid-canvas major-section-frame">
+        {assemblyFilm ? (
+          <ClusterAnalysisBoard
+            instances={canvasInstances}
+            voidInstances={isolatedVoid}
+            solidInstances={isolatedSolid}
+            plates={studyPlates}
+            stackInstances={stackInstances}
+            span={studySpan}
+            iteration={studyIteration}
+            programId={studyProgramId}
+            solidMesh={assemblyFilm}
+            voidReport={voidReport}
+          />
+        ) : <>
         <PanelHeader mark="02" title="Aggregation Canvas" />
-        <div className={assemblyFilm ? "cluster-study-row" : "cluster-study-plain"}>
+        <div className="cluster-study-plain">
         <div className={assemblyFilm ? "cluster-study-lead" : "cluster-study-plain"}>
         {assemblyFilm ? <StudyHead mark="01" title="Solid and void" /> : null}
         <div className={assemblyFilm ? "hybrid-stage frame-primary" : "hybrid-stage"} data-canvas-source={canvasSource} data-canvas-modules={canvasModules} data-canvas-selection={canvasSelection ?? ""} data-tile-pose={tiles.map((tile) => `${tile.instanceId}:${tile.rotationQuarter}:${tile.mirror ?? "none"}:${tile.transform.x.toFixed(2)},${tile.transform.y.toFixed(2)},${tile.transform.z.toFixed(2)}:${(tile.rotation ?? tileBasis(tile)).map((value) => value.toFixed(2)).join(",")}`).join("|")}>
@@ -790,6 +805,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
           </aside>
         ) : null}
         </div>
+        </>}
       </Panel> : null}
       {!frame || frame === "som" ? <Panel className="hybrid-som major-section-frame">
         <PanelHeader mark="03" title="Hybrid SOM Matrices" />

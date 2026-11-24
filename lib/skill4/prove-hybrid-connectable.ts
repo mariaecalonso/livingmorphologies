@@ -9,6 +9,7 @@ import { placeTileMesh } from "./cluster-void";
 import { connectionId, type TileConnection } from "./connections";
 import { DEFAULT_SELECTED_HYBRID_ID } from "./connections";
 import type { FaceId } from "./contract";
+import { sampleFace } from "./face-sample";
 import { HYBRID_CONNECTABLE_PATH, readHybridConnectable, type HybridConnectablePair } from "./hybrid-connectable";
 import { spacingProfile } from "./program-spacing";
 import { loadSkill3HandoffRecords } from "./skill3-handoff";
@@ -207,23 +208,141 @@ function prove(
   return film ? record : null;
 }
 
+const WORKSPACE = [
+  "open-hall",
+  "terraced",
+  "flat-deep-plan",
+  "void-edge",
+  "undulated",
+];
+const WORKSPACE_SPACING_PROGRAM = "biological-research-lab";
+
+function usableVerticalFace(module: ReturnType<typeof adaptModule>, face: "T" | "B") {
+  if (module.status !== "ready") return false;
+  const sample = sampleFace(module.geometry, face, module.faces[face]);
+  return sample.status === "occupied" && sample.sampleCount > 0;
+}
+
+function proveVertical(
+  hostArchetype: string,
+  guestArchetype: string,
+  loaded: Map<string, ReturnType<typeof adaptModule>>,
+  spacing: number,
+): HybridConnectablePair | "orientation" | "intersect" | "validation" | "shrinkwrap" {
+  const placed = placePair(hostArchetype, guestArchetype, "T", "B", spacing);
+  if (!placed) return "orientation";
+  if (!separated(placed.tiles, loaded)) return "intersect";
+  const connected = connectClusterHybrid(placed.connection, placed.tiles, loaded);
+  const hybridReady = (connected.validatedHybrid?.triangles ?? 0) > 4;
+  if (!hybridReady || !connected.validatedHybrid) return "validation";
+  const worlds = [
+    ...placed.tiles.flatMap((tile) => {
+      const geometry = resolveTileModule(tile.archetypeId, loaded).geometry;
+      if (!geometry) return [];
+      const mesh = placeTileMesh(tile, geometry);
+      return [{ positions: mesh.positions, indices: mesh.indices }];
+    }),
+    { positions: connected.validatedHybrid.positions, indices: connected.validatedHybrid.indices },
+  ];
+  const film = worlds.length === 3 ? runAssemblyShrinkwrap(worlds) : null;
+  if (!film) return "shrinkwrap";
+  const archetypeA = hostArchetype < guestArchetype ? hostArchetype : guestArchetype;
+  const archetypeB = hostArchetype < guestArchetype ? guestArchetype : hostArchetype;
+  return {
+    archetypeA,
+    archetypeB,
+    faceA: placed.faceA,
+    faceB: placed.faceB,
+    approach: "Top/Bottom",
+    spacingProgram: WORKSPACE_SPACING_PROGRAM,
+    spacing,
+    validation: true,
+    shrinkwrap: true,
+    triangles: film.mesh.triangles,
+  };
+}
+
+function proveWorkspaceVertical(loaded: Map<string, ReturnType<typeof adaptModule>>) {
+  const profile = spacingProfile(WORKSPACE_SPACING_PROGRAM);
+  if (!profile) return;
+  const preferred = profile.min + 0.84 * (profile.max - profile.min);
+  const saved = readHybridConnectable();
+  const vertical: HybridConnectablePair[] = [];
+  const pairs = WORKSPACE.flatMap((left, index) => WORKSPACE.slice(index).map((right) => [left, right] as const));
+  for (const [left, right] of pairs) {
+    const hostModule = loaded.get(left);
+    const guestModule = loaded.get(right);
+    const leftTop = hostModule ? usableVerticalFace(hostModule, "T") : false;
+    const rightBottom = guestModule ? usableVerticalFace(guestModule, "B") : false;
+    const rightTop = guestModule ? usableVerticalFace(guestModule, "T") : false;
+    const leftBottom = hostModule ? usableVerticalFace(hostModule, "B") : false;
+    const attempts: [string, string][] = [];
+    if (leftTop && rightBottom) attempts.push([left, right]);
+    if (left !== right && rightTop && leftBottom) attempts.push([right, left]);
+    if (attempts.length === 0) {
+      console.log(`${left} | ${right} | no | no Top/Bottom surface | no validation | no shrinkwrap`);
+      continue;
+    }
+    let stored: HybridConnectablePair | null = null;
+    let failure: "orientation" | "intersect" | "validation" | "shrinkwrap" = "validation";
+    for (const [host, guest] of attempts) {
+      let result = proveVertical(host, guest, loaded, preferred);
+      if (result === "intersect") result = proveVertical(host, guest, loaded, profile.max);
+      if (typeof result === "string") {
+        failure = result;
+        continue;
+      }
+      stored = result;
+      break;
+    }
+    if (!stored) {
+      const validation = failure === "shrinkwrap" ? "validation" : "no validation";
+      console.log(`${left} | ${right} | no | Top/Bottom | ${validation} | no shrinkwrap | ${failure}`);
+      continue;
+    }
+    vertical.push(stored);
+    console.log(`${stored.archetypeA} | ${stored.archetypeB} | yes | Top/Bottom | validation | shrinkwrap ${stored.triangles}`);
+    mkdirSync(path.dirname(HYBRID_CONNECTABLE_PATH), { recursive: true });
+    writeFileSync(HYBRID_CONNECTABLE_PATH, JSON.stringify({
+      version: 1,
+      pairs: saved.pairs,
+      workspaceVertical: vertical,
+    }));
+  }
+  mkdirSync(path.dirname(HYBRID_CONNECTABLE_PATH), { recursive: true });
+  writeFileSync(HYBRID_CONNECTABLE_PATH, JSON.stringify({
+    version: 1,
+    pairs: saved.pairs,
+    workspaceVertical: vertical,
+  }));
+  console.log(`workspace vertical stored ${vertical.length}`);
+}
+
 const records = loadSkill3HandoffRecords();
 const loaded = new Map(records.map((record) => [record.archetypeId, adaptModule(record)] as const));
-const pairs = GATHERING.flatMap((left, index) => GATHERING.slice(index).map((right) => [left, right] as const));
-const only = process.argv.includes("--all")
-  ? pairs
-  : process.argv.includes("--self")
-    ? pairs.filter(([left, right]) => left === right)
-    : [["stepped-amphitheater", "void-field"] as const];
-const saved = readHybridConnectable();
-const next = saved.pairs.slice();
-for (const [left, right] of only) {
-  const record = prove(left, right, loaded);
-  if (!record) continue;
-  const index = next.findIndex((pair) => pair.archetypeA === record.archetypeA && pair.archetypeB === record.archetypeB);
-  if (index >= 0) next[index] = record;
-  else next.push(record);
+if (process.argv.includes("--workspace-vertical")) {
+  proveWorkspaceVertical(loaded);
+} else {
+  const pairs = GATHERING.flatMap((left, index) => GATHERING.slice(index).map((right) => [left, right] as const));
+  const only = process.argv.includes("--all")
+    ? pairs
+    : process.argv.includes("--self")
+      ? pairs.filter(([left, right]) => left === right)
+      : [["stepped-amphitheater", "void-field"] as const];
+  const saved = readHybridConnectable();
+  const next = saved.pairs.slice();
+  for (const [left, right] of only) {
+    const record = prove(left, right, loaded);
+    if (!record) continue;
+    const index = next.findIndex((pair) => pair.archetypeA === record.archetypeA && pair.archetypeB === record.archetypeB);
+    if (index >= 0) next[index] = record;
+    else next.push(record);
+  }
+  mkdirSync(path.dirname(HYBRID_CONNECTABLE_PATH), { recursive: true });
+  writeFileSync(HYBRID_CONNECTABLE_PATH, JSON.stringify({
+    version: 1,
+    pairs: next,
+    workspaceVertical: saved.workspaceVertical,
+  }));
+  console.log(`stored ${next.length}`);
 }
-mkdirSync(path.dirname(HYBRID_CONNECTABLE_PATH), { recursive: true });
-writeFileSync(HYBRID_CONNECTABLE_PATH, JSON.stringify({ version: 1, pairs: next }));
-console.log(`stored ${next.length}`);

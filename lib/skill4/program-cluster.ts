@@ -1,9 +1,10 @@
 import { TILE_IDS } from "./assembly-layout";
 import { rankCompatibleFaces } from "./cluster-face-pair";
-import { DOMINANT_SPINE, evaluateClusterMorphology, ONE_MODULE_DEEP_CHAIN, PLAN_SPREAD_TOO_LOW, placementBias, spineEndIds } from "./cluster-morphology";
+import { DOMINANT_SPINE, evaluateClusterMorphology, ONE_MODULE_DEEP_CHAIN, PLAN_SPREAD_TOO_LOW, placementBias, readVerticalSupport, SINGLE_VERTICAL_STEM, spineEndIds } from "./cluster-morphology";
 import { ADJACENCY_TOLERANCE, connectionId, tileBounds, type TileConnection } from "./connections";
 import type { FaceId } from "./contract";
 import { programMorphologyProfile } from "./program-morphology";
+import { programNudgeFactor } from "./program-placement-nudges";
 import { dominantTile, rankedEligibleTiles } from "./program-tiles";
 import { spacingProfile, type SpacingProfile } from "./program-spacing";
 import { faceWorldNormal, orientTiles } from "./tile-orientation";
@@ -334,6 +335,35 @@ function voidBias(before: readonly TileInstance[], after: readonly TileInstance[
   return 0.86;
 }
 
+function addsOffsetUpper(beforeTiles: readonly TileInstance[], afterTiles: readonly TileInstance[]) {
+  const module = envelopeWidth();
+  const minY = Math.min(...beforeTiles.map((tile) => tile.transform.y));
+  const prior = beforeTiles.filter((tile) => tile.transform.y > minY + module * 0.7);
+  if (prior.length === 0) return false;
+  const added = afterTiles.find((tile) => !beforeTiles.some((item) => item.instanceId === tile.instanceId));
+  if (!added || added.transform.y <= minY + module * 0.7) return false;
+  return prior.every((tile) => Math.hypot(tile.transform.x - added.transform.x, tile.transform.z - added.transform.z) >= module * 0.75);
+}
+
+function stemFactor(programId: string, beforeTiles: readonly TileInstance[], beforeConnections: readonly TileConnection[], afterTiles: readonly TileInstance[], afterConnections: readonly TileConnection[]) {
+  const before = readVerticalSupport(beforeTiles, beforeConnections);
+  const after = readVerticalSupport(afterTiles, afterConnections);
+  if (after.developedSingleStem) return 0.08;
+  const vertical = programMorphologyProfile(programId).vertical;
+  const repairs = before.elevatedTiles >= 1 && before.verticalTransitionCount < 2 && after.verticalTransitionCount >= 2;
+  if (repairs && vertical !== "limited" && vertical !== "secondary") return 2.4;
+  if (vertical === "strong" && addsOffsetUpper(beforeTiles, afterTiles) && !after.developedSingleStem) return 1.85;
+  return 1;
+}
+
+function attachmentScore(base: number, programId: string, frame: SearchFrame, fit: Attachment, random: () => number) {
+  const next = [...frame.connections, fit.connection];
+  const factor = programNudgeFactor(programId, frame.tiles, frame.connections, fit.tiles, next, fit.spacing);
+  const stem = stemFactor(programId, frame.tiles, frame.connections, fit.tiles, next);
+  const variation = (random() - 0.5) * 0.06 * Math.max(base, 0.15);
+  return Math.max(0.02, base * factor * stem + variation);
+}
+
 function extend(
   frame: SearchFrame,
   ranked: ReturnType<typeof rankedEligibleTiles>,
@@ -364,7 +394,7 @@ function extend(
           candidates.push({
             fit,
             hostId: host.instanceId,
-            bias: placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * lift * (0.7 + random()),
+            bias: attachmentScore(placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * lift * (0.7 + random()), programId, frame, fit, random),
           });
           if (candidates.length >= 3) break;
         }
@@ -385,7 +415,7 @@ function extend(
       candidates.push({
         fit,
         hostId: host.instanceId,
-        bias: placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * 1.8 * (0.65 + random()),
+        bias: attachmentScore(placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * 1.8 * (0.65 + random()), programId, frame, fit, random),
       });
       break;
     }
@@ -395,7 +425,7 @@ function extend(
     for (const host of hosts) {
       for (const fit of collectAttachments(frame.tiles, frame.connections, frame.occupied, frame.gaps, guest, host.instanceId, host.archetypeId, blocked, profile, random, 2)) {
         const next = [...frame.connections, fit.connection];
-        const bias = placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * (0.55 + random());
+        const bias = attachmentScore(placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * (0.55 + random()), programId, frame, fit, random);
         candidates.push({ fit, hostId: host.instanceId, bias });
         if (candidates.length >= 10) break;
       }
@@ -403,11 +433,45 @@ function extend(
     }
     if (candidates.length >= 10) break;
   }
+  const beforeSupport = readVerticalSupport(frame.tiles, frame.connections);
+  const kept: typeof candidates = [];
+  if ((morphology.vertical === "strong" || morphology.vertical === "moderate") && beforeSupport.elevatedTiles >= 1 && beforeSupport.verticalTransitionCount < 2) {
+    const floor = Math.min(...frame.tiles.map((tile) => tile.transform.y));
+    const repairHosts = hosts.filter((host) => host.transform.y > floor + envelopeWidth() * 0.7);
+    let repairs = 0;
+    for (const host of (repairHosts.length > 0 ? repairHosts : hosts)) {
+      for (const choice of ranked) {
+        const guest = blankTile(guestId, choice.id);
+        for (const fit of collectAttachments(frame.tiles, frame.connections, frame.occupied, frame.gaps, guest, host.instanceId, host.archetypeId, blocked, profile, random, 3)) {
+          const after = readVerticalSupport(fit.tiles, [...frame.connections, fit.connection]);
+          if (after.developedSingleStem) continue;
+          const second = after.verticalTransitionCount >= 2;
+          const offset = morphology.vertical === "strong" && addsOffsetUpper(frame.tiles, fit.tiles);
+          if (!second && !offset) continue;
+          const next = [...frame.connections, fit.connection];
+          const lift = second ? 2.2 : 1.7;
+          const candidate = {
+            fit,
+            hostId: host.instanceId,
+            bias: attachmentScore(placementBias(frame.tiles, frame.connections, fit.tiles, next, morphology) * voidBias(frame.tiles, fit.tiles) * lift * (0.55 + random()), programId, frame, fit, random),
+          };
+          candidates.push(candidate);
+          kept.push(candidate);
+          repairs += 1;
+          if (repairs >= 4) break;
+        }
+        if (repairs >= 4) break;
+      }
+      if (repairs >= 4) break;
+    }
+  }
   const opening = candidates.filter((candidate) => {
     const afterMinor = Math.min(rangeOf(candidate.fit.tiles.map((tile) => tile.transform.x)), rangeOf(candidate.fit.tiles.map((tile) => tile.transform.z)));
     return afterMinor > beforeMinor + envelopeWidth() * 0.2;
   });
-  const pool = beforeMinor <= envelopeWidth() * 1.35 && opening.length > 0 ? opening : candidates;
+  const widened = beforeMinor <= envelopeWidth() * 1.35 && opening.length > 0 ? opening : candidates;
+  const pool = widened.slice();
+  for (const candidate of kept) if (!pool.includes(candidate)) pool.push(candidate);
   const picked = pickWeighted(pool.map((candidate) => ({ ...candidate, score: candidate.bias })), random);
   if (!picked) return null;
   const fit = picked.fit;
@@ -472,7 +536,7 @@ function grow(
   const spacings = frame.connections.map((connection) => frame.gaps.get(connection.id) ?? profile.min);
   const usedIds = frame.tiles.map((tile) => tile.archetypeId);
   const organization = evaluateClusterMorphology(frame.tiles, frame.connections, programId);
-  const chain = organization.flags.includes(ONE_MODULE_DEEP_CHAIN) || organization.flags.includes(PLAN_SPREAD_TOO_LOW) || organization.flags.includes(DOMINANT_SPINE);
+  const chain = organization.flags.includes(ONE_MODULE_DEEP_CHAIN) || organization.flags.includes(PLAN_SPREAD_TOO_LOW) || organization.flags.includes(DOMINANT_SPINE) || organization.flags.includes(SINGLE_VERTICAL_STEM);
   return {
     id: `${programId}:${index}`,
     programId,
