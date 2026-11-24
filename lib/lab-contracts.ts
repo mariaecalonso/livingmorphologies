@@ -89,6 +89,7 @@ export const CLUSTER_PLACEMENT_CONTRACT: LabContract = {
   href: "/lab/site?sheet=placement",
   kind: "single-working-stage",
   inputs: [
+    { type: "Authoritative Site / Urban Context", source: LAB_AUTHORITIES.siteContext },
     { type: "Selected Site Strategy Network", source: LAB_AUTHORITIES.selectedSiteNetwork },
     { type: "Designer Zoning for that network", source: LAB_AUTHORITIES.designerZoning },
     { type: "Finished Program Cluster catalog", source: LAB_AUTHORITIES.finishedProgramClusters },
@@ -102,7 +103,7 @@ export const CLUSTER_PLACEMENT_CONTRACT: LabContract = {
     selectionRequired: false,
   },
   downstream: ["cluster-assembly-catalog"],
-  methodologyNote: "One zone → one finished cluster → one site pose. Working occupancy is not the development selection.",
+  methodologyNote: "One zone → one finished cluster → one site pose. Occupancy / PlacedCluster is the data contract passed to Cluster Assembly Catalog, not a separate Lab stage. Working occupancy is not the development selection. Spatial context is the existing Authoritative Site Model.",
   catalogFutureCompatible: true,
 };
 
@@ -254,7 +255,7 @@ export const SITE_CONTEXT_SOURCE: SharedSource = {
   displayName: "Authoritative Site / Urban Context",
   kind: "shared-source",
   source: LAB_AUTHORITIES.siteContext,
-  consumers: ["site-analysis", "site-strategy", "drawing", "rendering"],
+  consumers: ["site-analysis", "site-strategy", "cluster-placement", "drawing", "rendering"],
 };
 
 export const PIPELINE_CHECKPOINTS = [FINAL_ENCLOSED_MODEL_CHECKPOINT] as const;
@@ -270,14 +271,14 @@ export const SHARED_SOURCES = [SITE_CONTEXT_SOURCE] as const;
  * Rendering remains last in the stage bar even though it branches from the
  * Final Enclosed Model, not from Drawing.
  */
-export const LAB_NAVIGATION_NOTE = "Top-level stage-bar order is lib/site-map.ts. Cluster Integration contains Cluster Placement, Cluster Assembly Catalog, then legacy Tile Assembly and Configurations (not checkpoints). Architectural Interpretation is the next top-level Lab; it does not branch from Cluster Integration. Computational handoff is Cluster Placement → Zone Occupancy → Cluster Assembly Catalog → Send for Development → Selected Assembly for Development → Architectural Interpretation. Computational dependency is LAB_COMPUTATIONAL_EDGES. Do not reorder tabs to match the graph.";
+export const LAB_NAVIGATION_NOTE = "Top-level stage-bar order is lib/site-map.ts. Cluster Integration contains Cluster Placement, Cluster Assembly Catalog, then legacy Tile Assembly and Configurations (not checkpoints). Architectural Interpretation is the next top-level Lab; it does not branch from Cluster Integration. Computational handoff is Cluster Placement → Cluster Assembly Catalog → Send for Development → Selected Assembly for Development → Architectural Interpretation. Occupancy / PlacedCluster is the data passed between Placement and the Catalog, not a stage. Computational dependency is LAB_COMPUTATIONAL_EDGES. Do not reorder tabs to match the graph.";
 
 export const LAB_COMPUTATIONAL_EDGES = [
+  { from: "site-context", to: "cluster-placement" },
   { from: "selected-site-strategy-network", to: "cluster-placement" },
   { from: "designer-zoning", to: "cluster-placement" },
   { from: "finished-program-clusters", to: "cluster-placement" },
-  { from: "cluster-placement", to: "zone-occupancy" },
-  { from: "zone-occupancy", to: "cluster-assembly-catalog" },
+  { from: "cluster-placement", to: "cluster-assembly-catalog" },
   { from: "cluster-assembly-catalog", to: "selected-assembly-for-development" },
   { from: "selected-assembly-for-development", to: "interpretation" },
   { from: "interpretation", to: "current-integrated-architectural-model" },

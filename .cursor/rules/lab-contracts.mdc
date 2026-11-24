@@ -18,6 +18,11 @@ Every Lab follows **authoritative input → methodology → authoritative output
 - Architectural Interpretation readings are not the Current Integrated Architectural Model.
 - Enclosure consumes only a complete Current Integrated Architectural Model.
 - Drawing and Rendering share `lib/skill5/site-context-source.ts`. Do not copy the Site Model into those labs.
+- Cluster Placement also uses that same Site Model as spatial context. Do not add a second Site Model loader.
+- Initial Cluster is the Skill 6 clustering system. Compatibility / pair-pose is internal to it, not a peer methodology stage.
+- Hybrid Cluster SYSTEM (`connectClusterHybrid` and Initial Cluster face pairing) feeds Finished Program Cluster generation. The browser Hybrid Cluster catalog does not.
+- `data/skill5/site-inputs-v1.json` is the durable verified output of Site Analysis. Site Strategy reads that file plus the Site Model. The live browser Analysis bundle is not a Strategy runtime input.
+- Occupancy / PlacedCluster is the data contract between Cluster Placement and Cluster Assembly Catalog. It is not a Lab stage.
 - Navigation order may differ from computational order. Do not reorder the stage bar to match the graph. Rendering stays last in navigation even though it branches from the Final Enclosed Model.
 - If a Lab later becomes a catalog, downstream still consumes one explicit selected output. Do not force downstream Labs to read catalog internals.
 - Architectural Interpretation and Enclosure are single working stages today. Do not create catalogs for them in this pass.

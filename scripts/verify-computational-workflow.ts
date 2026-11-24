@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { DESIGNER_AUTHORITIES, HUMAN_AUTHORED_INPUTS, HUMAN_CHECKPOINTS, WORKFLOW_EDGES, WORKFLOW_STAGES, computationalGraphMermaid, navigationHierarchyMermaid } from "@/lib/computational-workflow";
+import { DESIGNER_AUTHORITIES, HUMAN_AUTHORED_INPUTS, HUMAN_CHECKPOINTS, IMPLEMENTATION_EDGES, WORKFLOW_EDGES, WORKFLOW_IMPLEMENTATION_DETAILS, WORKFLOW_STAGES, computationalGraphMermaid, implementationGraphMermaid, navigationHierarchyMermaid } from "@/lib/computational-workflow";
 import { PUBLICATION_SOURCES, publicationGraphMermaid } from "@/lib/publication-sources";
 import { INTERPRETATION_LAB_CONTRACT, ENCLOSURE_LAB_CONTRACT, DRAWING_LAB_CONTRACT, SITE_CONTEXT_SOURCE } from "@/lib/lab-contracts";
 import { readFinalSelection } from "@/lib/skill3/final-selection";
@@ -41,19 +41,16 @@ const requiredStageIds = [
   "vertical-propagation",
   "selected-3d",
   "initial-cluster",
-  "skill6-compatibility",
-  "hybrid-connectable",
-  "client",
   "hybrid-cluster",
+  "client",
   "finished-program-clusters",
   "site-model",
-  "site-strategy-inputs",
   "site-analysis",
+  "verified-site-analysis-conclusions",
   "site-strategy",
   "selected-site-network",
   "designer-zoning",
   "cluster-placement",
-  "zone-occupancy",
   "cluster-assembly-catalog",
   "selected-assembly-for-development",
   "interpretation",
@@ -64,12 +61,20 @@ const requiredStageIds = [
   "drawing",
   "rendering",
 ];
+const hiddenFromMethodology = ["skill6-compatibility", "hybrid-connectable", "zone-occupancy", "site-strategy-inputs"];
+const requiredDetails = ["skill6-compatibility", "hybrid-connectable", "zone-occupancy"];
 
 const stageIds = WORKFLOW_STAGES.map((item) => item.id);
-if (requiredStageIds.every((id) => stageIds.includes(id))) {
-  pass("registry", "Whole-workflow registry names every required stage");
+const detailIds = WORKFLOW_IMPLEMENTATION_DETAILS.map((item) => item.id);
+if (
+  requiredStageIds.every((id) => stageIds.includes(id))
+  && hiddenFromMethodology.every((id) => !stageIds.includes(id))
+  && requiredDetails.every((id) => detailIds.includes(id))
+  && WORKFLOW_STAGES.every((item) => item.layer === "methodology")
+) {
+  pass("registry", "Methodology stages named; compatibility, hybrid-connectable, and occupancy kept as implementation details");
 } else {
-  fail("registry", `Missing ${requiredStageIds.filter((id) => !stageIds.includes(id)).join(",")}`);
+  fail("registry", `Missing ${requiredStageIds.filter((id) => !stageIds.includes(id)).join(",")} hidden=${hiddenFromMethodology.filter((id) => stageIds.includes(id)).join(",")} details=${detailIds.join(",")}`);
 }
 
 const selections = JSON.parse(read("data/skill2/pareto-catalog/selections.json")) as Record<string, unknown>;
@@ -101,14 +106,16 @@ const hybridConnectable = read("lib/skill4/cluster-face-pair.ts").includes("read
   && read("lib/skill4/cluster-face-pair.ts").includes("readCompatibility");
 const catalogStoreNotInProgram = !read("lib/skill4/program-cluster.ts").includes("catalog-store")
   && !read("lib/skill4/generate-finished-catalog.ts").includes("catalog-store");
-if (assembledNotInterpretation && pair.length >= 0 && hybridConnectable && catalogStoreNotInProgram) {
-  pass("C", "Skill 6 assembled catalog is not Interpretation production; compatibility + pair-pose + hybrid-connectable are the Skill 4 consumers");
-} else fail("C", `C failed assembled=${assembledNotInterpretation} hybridConnectable=${hybridConnectable}`);
+const finishedUsesHybrid = read("lib/skill4/generate-finished-catalog.ts").includes("connectClusterHybrid")
+  && read("lib/skill4/program-cluster.ts").includes("rankCompatibleFaces");
+if (assembledNotInterpretation && pair.length >= 0 && hybridConnectable && catalogStoreNotInProgram && finishedUsesHybrid) {
+  pass("C", "Finished Program Clusters use Hybrid Cluster machinery (connectClusterHybrid + rankCompatibleFaces); Skill 6 assembled catalog is not Interpretation production");
+} else fail("C", `C failed assembled=${assembledNotInterpretation} hybridConnectable=${hybridConnectable} finishedUsesHybrid=${finishedUsesHybrid}`);
 
-const hybridToFinished = WORKFLOW_EDGES.some((edge) => edge.from === "hybrid-cluster" && (edge.to === "finished-program-clusters" || edge.to === "cluster-placement"));
-if (!hybridToFinished && catalogStoreNotInProgram && hybridConnectable) {
-  pass("D", "Hybrid Cluster catalog is not a Finished Program Cluster or Placement dependency; hybrid-connectable.json is a derived fallback cache");
-} else fail("D", "D failed: Hybrid Cluster catalog still appears as a Program Cluster dependency");
+const hybridSystemToFinished = WORKFLOW_EDGES.some((edge) => edge.from === "hybrid-cluster" && edge.to === "finished-program-clusters" && edge.kind === "implemented-production");
+if (hybridSystemToFinished && catalogStoreNotInProgram && hybridConnectable) {
+  pass("D", "Hybrid Cluster SYSTEM feeds Finished Program Clusters; browser catalog-store is not consumed");
+} else fail("D", "D failed: Hybrid Cluster system/catalog relationship is wrong");
 
 const generationUsesClient = read("lib/skill4/program-cluster.ts").includes("loadClientActivitiesRecord")
   && read("lib/skill4/program-cluster.ts").includes("loadArchitecturalDnaRecord")
@@ -132,8 +139,10 @@ const analysisBundleImporters = [
 const strategyUsesFrozen = read("lib/skill5/strategy-layouts.ts").includes("site-inputs-v1.json")
   && read("components/site/site-network-candidates.ts").includes("site-inputs-v1.json");
 const noAnalysisToStrategy = !WORKFLOW_EDGES.some((edge) => edge.from === "site-analysis" && edge.to === "site-strategy");
-if (analysisBundleImporters.length === 0 && strategyUsesFrozen && noAnalysisToStrategy) {
-  pass("F", "Live Site Analysis bundle is not a Strategy runtime input; Strategy uses herald-site.json + site-inputs-v1.json");
+const analysisToConclusions = WORKFLOW_EDGES.some((edge) => edge.from === "site-analysis" && edge.to === "verified-site-analysis-conclusions");
+const conclusionsToStrategy = WORKFLOW_EDGES.some((edge) => edge.from === "verified-site-analysis-conclusions" && edge.to === "site-strategy");
+if (analysisBundleImporters.length === 0 && strategyUsesFrozen && noAnalysisToStrategy && analysisToConclusions && conclusionsToStrategy) {
+  pass("F", "Site Analysis → verified site-inputs-v1.json → Site Strategy; live Analysis bundle is not a Strategy runtime input");
 } else fail("F", `F failed importers=${analysisBundleImporters.join(",")}`);
 
 const published = readPublishedSelectedNetwork();
@@ -228,10 +237,12 @@ else fail("M", "M failed future contracts look implemented");
 
 const siteShared = SITE_CONTEXT_SOURCE.consumers.includes("site-analysis")
   && SITE_CONTEXT_SOURCE.consumers.includes("site-strategy")
+  && SITE_CONTEXT_SOURCE.consumers.includes("cluster-placement")
   && SITE_CONTEXT_SOURCE.consumers.includes("drawing")
   && SITE_CONTEXT_SOURCE.consumers.includes("rendering")
-  && DRAWING_LAB_CONTRACT.methodologyNote?.includes("supporting");
-if (siteShared) pass("site-model", "Authoritative Site Model is shared Analysis / Strategy / Drawing / Rendering context");
+  && DRAWING_LAB_CONTRACT.methodologyNote?.includes("supporting")
+  && WORKFLOW_EDGES.some((edge) => edge.from === "site-model" && edge.to === "cluster-placement" && edge.kind === "supporting-input");
+if (siteShared) pass("site-model", "Authoritative Site Model is shared Analysis / Strategy / Placement / Drawing / Rendering context");
 else fail("site-model", "site-model consumers incomplete");
 
 const expectedCheckpoints = [
@@ -252,27 +263,44 @@ function stageOf(id: string) {
 }
 const initial = stageOf("initial-cluster");
 const hybrid = stageOf("hybrid-cluster");
-const connectable = stageOf("hybrid-connectable");
+const connectable = WORKFLOW_IMPLEMENTATION_DETAILS.find((item) => item.id === "hybrid-connectable");
+const occupancy = WORKFLOW_IMPLEMENTATION_DETAILS.find((item) => item.id === "zone-occupancy");
+const compatibility = WORKFLOW_IMPLEMENTATION_DETAILS.find((item) => item.id === "skill6-compatibility");
 const typology = stageOf("typology-analysis");
 const client = stageOf("client");
 const zoning = stageOf("designer-zoning");
 const siteAnalysisEdge = WORKFLOW_EDGES.find((edge) => edge.from === "site-model" && edge.to === "site-analysis");
 const plates = PUBLICATION_SOURCES.find((item) => item.id === "presentation-plates-unused");
 const mermaid = computationalGraphMermaid();
+const implMermaid = implementationGraphMermaid();
 const pubMermaid = publicationGraphMermaid();
-if (initial?.role === "implemented-research" && initial.checkpoint === false && !WORKFLOW_EDGES.some((edge) => edge.from === "initial-cluster" && (edge.to === "interpretation" || edge.to === "cluster-placement"))) {
-  pass("sem-A", "Initial Cluster is implemented-research, current, not on the production spine");
+if (
+  initial?.role === "algorithm"
+  && initial.checkpoint === false
+  && WORKFLOW_EDGES.some((edge) => edge.from === "selected-3d" && edge.to === "initial-cluster" && edge.kind === "implemented-production")
+  && WORKFLOW_EDGES.some((edge) => edge.from === "initial-cluster" && edge.to === "hybrid-cluster")
+  && compatibility?.parentStage === "initial-cluster"
+  && !mermaid.includes("Skill 6 compatibility")
+) {
+  pass("sem-A", "Initial Cluster is the Skill 6 clustering system on the production spine; compatibility is internal");
 } else fail("sem-A", "Initial Cluster classification is wrong");
-if (hybrid?.displayName === "Hybrid Cluster" && hybrid.role === "implemented-research" && hybrid.checkpoint === false && !hybridToFinished) {
-  pass("sem-B", "Hybrid Cluster is implemented-research and not a Finished Cluster / Placement dependency");
+if (
+  hybrid?.displayName === "Hybrid Cluster"
+  && hybrid.role === "algorithm"
+  && hybridSystemToFinished
+  && catalogStoreNotInProgram
+  && hybrid.note?.includes("catalog")
+) {
+  pass("sem-B", "Hybrid Cluster SYSTEM is production; browser catalog is not consumed");
 } else fail("sem-B", `Hybrid Cluster classification is wrong (${hybrid?.displayName} ${hybrid?.role})`);
 if (
-  WORKFLOW_EDGES.some((edge) => edge.from === "skill6-compatibility" && edge.to === "finished-program-clusters" && edge.kind === "implemented-production")
-  && WORKFLOW_EDGES.some((edge) => edge.from === "skill6-compatibility" && edge.to === "hybrid-cluster" && edge.kind === "implemented-research")
+  compatibility?.layer === "implementation-detail"
+  && IMPLEMENTATION_EDGES.some((edge) => edge.from === "skill6-compatibility" && edge.to === "hybrid-cluster")
   && hybridConnectable
+  && read("lib/skill6/engines/pool.ts").includes('source: "compatibility"')
 ) {
-  pass("sem-C", "Skill 6 compatibility remains shared production infrastructure");
-} else fail("sem-C", "Skill 6 compatibility edges are wrong");
+  pass("sem-C", "Compatibility / pair-pose is internal Initial Cluster infrastructure used by Hybrid Cluster pairing");
+} else fail("sem-C", "Skill 6 compatibility detail edges are wrong");
 if (typology?.role === "human-input" && typology.checkpoint === false && client?.role === "human-input" && client.checkpoint === false && HUMAN_AUTHORED_INPUTS.join(",") === "typology-analysis,client") {
   pass("sem-D", "Typology and Client are human-authored authoritative inputs, not checkpoints");
 } else fail("sem-D", "Typology/Client classification is wrong");
@@ -282,9 +310,17 @@ if (zoning?.role === "designer-authority" && zoning.checkpoint === false && DESI
 if (siteAnalysisEdge?.kind === "implemented-production") {
   pass("sem-G", "Site Model → Site Analysis is implemented computation");
 } else fail("sem-G", `Site Analysis edge is ${siteAnalysisEdge?.kind}`);
-if (connectable?.role === "derived-cache" && WORKFLOW_EDGES.filter((edge) => edge.from === "hybrid-connectable" || edge.to === "hybrid-connectable").every((edge) => edge.kind === "derived-cache")) {
-  pass("sem-I", "hybrid-connectable is a derived production cache / fallback");
-} else fail("sem-I", `hybrid-connectable role=${connectable?.role}`);
+if (
+  connectable?.role === "derived-cache"
+  && connectable.layer === "implementation-detail"
+  && IMPLEMENTATION_EDGES.filter((edge) => edge.from === "hybrid-connectable" || edge.to === "hybrid-connectable").every((edge) => edge.kind === "derived-cache")
+  && !mermaid.includes("hybrid-connectable")
+  && occupancy?.layer === "implementation-detail"
+  && !mermaid.includes("Zone Occupancy")
+  && implMermaid.includes("PlacedCluster")
+) {
+  pass("sem-I", "hybrid-connectable and occupancy are implementation details, not methodology stages");
+} else fail("sem-I", `hybrid-connectable role=${connectable?.role} occupancy=${occupancy?.layer}`);
 if (plates?.consumedByWebsite === false && plates.class === "legacy" && !pubMermaid.includes("presentation-plates-unused --> website")) {
   pass("sem-J", "presentation.plates is legacy/orphaned with no Website consumption arrow");
 } else fail("sem-J", "presentation.plates still implies Website consumption");
@@ -354,6 +390,7 @@ async function main() {
     excludedTestIds: testIds,
     mermaid: {
       computational: computationalGraphMermaid(),
+      implementation: implementationGraphMermaid(),
       publication: publicationGraphMermaid(),
       navigation: navigationHierarchyMermaid(),
     },
