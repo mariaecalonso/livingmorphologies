@@ -66,7 +66,12 @@ function verticalPlates(): HomeResultPreview[] {
   return [];
 }
 
-/** Real plates for the Results preview. */
+/**
+ * Real plates for the Results preview.
+ * Skill 1: published-snapshot from public/shared-catalog.
+ * Skill 2: live pick ids from selections.json, published-snapshot preview images from public/demo.
+ * Skill 3: live modules drawn by the Results frame; this array stays empty.
+ */
 export function loadHomeResultPlates(): HomeResultPlates {
   return {
     "skill-1": physarumPlates(),

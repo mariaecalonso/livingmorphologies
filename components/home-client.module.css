@@ -12,7 +12,6 @@
   overflow: hidden;
   background: #000000;
   color: #ffffff;
-  opacity: var(--client-fade, 1);
 }
 
 /* The backdrop image is 1920 × 560, the frame's own ratio, so filling the frame neither stretches nor crops it. */

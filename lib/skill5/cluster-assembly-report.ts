@@ -13,6 +13,7 @@ export type ClusterAssemblyReport = {
   iteration: number;
   seed: number;
   networkId: string;
+  zoningSource: "designer";
   arrangement: string;
   scale: "1 model unit = 1 foot";
   anchors: { id: string; role: string; label: string; x: number; z: number }[];

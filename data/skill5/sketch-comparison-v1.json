@@ -1,0 +1,1338 @@
+{
+  "id": "sketch-comparison-v1",
+  "recessionFt": 80,
+  "seeds": [
+    20365850,
+    20470579,
+    20575308,
+    20680037
+  ],
+  "added": [
+    "sketch-pair-sketch-with-northeast-20680037",
+    "sketch-pair-sketch-without-northeast-20365850"
+  ],
+  "runs": [
+    {
+      "id": "layout-measured-both-waterfront-20575292",
+      "title": "Iteration 7 · both contacts, waterfront",
+      "seed": 20575292,
+      "newRun": false,
+      "status": "connected",
+      "step": 240,
+      "settled": true,
+      "connectedAttractors": 4,
+      "attractors": 4,
+      "reachShare": 0.18373820853159697,
+      "pockets": {
+        "count": 13,
+        "areaSqFt": 57827,
+        "byBand": {
+          "north": 3,
+          "central": 10,
+          "south": 0
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 4388,
+            "boundingEastFt": 105,
+            "boundingNorthFt": 75,
+            "chordMinFt": 43,
+            "chordMedianFt": 70,
+            "eastGapFt": 178,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 25,
+            "eastGapFt": 208,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4050,
+            "boundingEastFt": 105,
+            "boundingNorthFt": 120,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "eastGapFt": 103,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 900,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "eastGapFt": 193,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 8888,
+            "boundingEastFt": 150,
+            "boundingNorthFt": 105,
+            "chordMinFt": 75,
+            "chordMedianFt": 110,
+            "eastGapFt": 118,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4500,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 75,
+            "eastGapFt": 238,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1913,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "eastGapFt": 118,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3600,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 53,
+            "eastGapFt": 148,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2250,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 38,
+            "eastGapFt": 238,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2475,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 60,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "eastGapFt": 223,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "north",
+            "areaSqFt": 11925,
+            "boundingEastFt": 180,
+            "boundingNorthFt": 240,
+            "chordMinFt": 45,
+            "chordMedianFt": 55,
+            "eastGapFt": 58,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1350,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "eastGapFt": 193,
+            "gatheringFt": null,
+            "workspaceFt": null
+          },
+          {
+            "band": "north",
+            "areaSqFt": 10913,
+            "boundingEastFt": 180,
+            "boundingNorthFt": 225,
+            "chordMinFt": 38,
+            "chordMedianFt": 60,
+            "eastGapFt": 88,
+            "gatheringFt": null,
+            "workspaceFt": null
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 1349,
+          "shoreFt": 37,
+          "eastGapFt": 43,
+          "pocketEdgeFt": 939
+        },
+        "central": {
+          "lengthFt": 1964,
+          "shoreFt": 97,
+          "eastGapFt": 103,
+          "pocketEdgeFt": 1949
+        },
+        "south": {
+          "lengthFt": 117,
+          "shoreFt": 208,
+          "eastGapFt": 216,
+          "pocketEdgeFt": 117
+        }
+      },
+      "centralAttractor": null,
+      "northeastSource": {
+        "x": 202.30354285871462,
+        "z": 229.37931467408868,
+        "shoreFt": 48.24378507963673,
+        "nearestBranchFt": 4,
+        "northBranchShoreFtExcludingSource": 37
+      }
+    },
+    {
+      "id": "sketch-sketch-with-northeast-20365850",
+      "title": "With northeast · seed 20365850",
+      "seed": 20365850,
+      "newRun": false,
+      "status": "connected",
+      "step": 261,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.24926955505467902,
+      "pockets": {
+        "count": 15,
+        "areaSqFt": 38030,
+        "byBand": {
+          "north": 0,
+          "central": 6,
+          "south": 9
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 4950,
+            "boundingEastFt": 135,
+            "boundingNorthFt": 150,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 163,
+            "gatheringFt": 206,
+            "workspaceFt": 105
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 60,
+            "chordMinFt": 10,
+            "chordMedianFt": 40,
+            "eastGapFt": 103,
+            "gatheringFt": 128,
+            "workspaceFt": 29
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "boundingEastFt": 30,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 73,
+            "gatheringFt": 136,
+            "workspaceFt": 22
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5738,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 135,
+            "chordMinFt": 23,
+            "chordMedianFt": 53,
+            "eastGapFt": 28,
+            "gatheringFt": 60,
+            "workspaceFt": 102
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1800,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 45,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "eastGapFt": 103,
+            "gatheringFt": 91,
+            "workspaceFt": 70
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3713,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 53,
+            "eastGapFt": 103,
+            "gatheringFt": 55,
+            "workspaceFt": 107
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3038,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 55,
+            "eastGapFt": 133,
+            "gatheringFt": 72,
+            "workspaceFt": 89
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2925,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 38,
+            "eastGapFt": 163,
+            "gatheringFt": 96,
+            "workspaceFt": 72
+          },
+          {
+            "band": "south",
+            "areaSqFt": 675,
+            "boundingEastFt": 30,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "eastGapFt": 73,
+            "gatheringFt": 21,
+            "workspaceFt": 84
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "eastGapFt": 103,
+            "gatheringFt": 48,
+            "workspaceFt": 28
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1688,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 60,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "eastGapFt": 88,
+            "gatheringFt": 25,
+            "workspaceFt": 58
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "eastGapFt": 58,
+            "gatheringFt": 72,
+            "workspaceFt": 71
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1688,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 60,
+            "chordMinFt": 10,
+            "chordMedianFt": 45,
+            "eastGapFt": 73,
+            "gatheringFt": 85,
+            "workspaceFt": 56
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3488,
+            "boundingEastFt": 120,
+            "boundingNorthFt": 75,
+            "chordMinFt": 15,
+            "chordMedianFt": 53,
+            "eastGapFt": 13,
+            "gatheringFt": 72,
+            "workspaceFt": 100
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1913,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "eastGapFt": 13,
+            "gatheringFt": 51,
+            "workspaceFt": 125
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 1050,
+          "shoreFt": 82,
+          "eastGapFt": 88,
+          "pocketEdgeFt": 0
+        },
+        "central": {
+          "lengthFt": 1510,
+          "shoreFt": 7,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 916
+        },
+        "south": {
+          "lengthFt": 2088,
+          "shoreFt": 19,
+          "eastGapFt": 28,
+          "pocketEdgeFt": 1907
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": {
+        "x": 202.30354285871462,
+        "z": 229.37931467408868,
+        "shoreFt": 48.24378507963673,
+        "nearestBranchFt": 185,
+        "northBranchShoreFtExcludingSource": 82
+      }
+    },
+    {
+      "id": "sketch-sketch-with-northeast-20470579",
+      "title": "With northeast · seed 20470579",
+      "seed": 20470579,
+      "newRun": false,
+      "status": "connected",
+      "step": 234,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.13605754514845425,
+      "pockets": {
+        "count": 7,
+        "areaSqFt": 27227,
+        "byBand": {
+          "north": 0,
+          "central": 4,
+          "south": 3
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 9675,
+            "boundingEastFt": 180,
+            "boundingNorthFt": 120,
+            "chordMinFt": 45,
+            "chordMedianFt": 95,
+            "eastGapFt": 118,
+            "gatheringFt": 211,
+            "workspaceFt": 106
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7650,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 150,
+            "chordMinFt": 30,
+            "chordMedianFt": 60,
+            "eastGapFt": 88,
+            "gatheringFt": 82,
+            "workspaceFt": 73
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3938,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 60,
+            "eastGapFt": 103,
+            "gatheringFt": 38,
+            "workspaceFt": 67
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "eastGapFt": 73,
+            "gatheringFt": 69,
+            "workspaceFt": 43
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "eastGapFt": 43,
+            "gatheringFt": 83,
+            "workspaceFt": 94
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1013,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 15,
+            "chordMedianFt": 23,
+            "eastGapFt": 88,
+            "gatheringFt": 96,
+            "workspaceFt": 55
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "eastGapFt": 13,
+            "gatheringFt": 25,
+            "workspaceFt": 148
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 171,
+          "shoreFt": 232,
+          "eastGapFt": 238,
+          "pocketEdgeFt": 0
+        },
+        "central": {
+          "lengthFt": 1008,
+          "shoreFt": 7,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 687
+        },
+        "south": {
+          "lengthFt": 1287,
+          "shoreFt": 79,
+          "eastGapFt": 88,
+          "pocketEdgeFt": 1090
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": {
+        "x": 202.30354285871462,
+        "z": 229.37931467408868,
+        "shoreFt": 48.24378507963673,
+        "nearestBranchFt": 300,
+        "northBranchShoreFtExcludingSource": 232
+      }
+    },
+    {
+      "id": "sketch-sketch-with-northeast-20575308",
+      "title": "With northeast · seed 20575308",
+      "seed": 20575308,
+      "newRun": false,
+      "status": "connected",
+      "step": 242,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.13991151181233827,
+      "pockets": {
+        "count": 2,
+        "areaSqFt": 18563,
+        "byBand": {
+          "north": 0,
+          "central": 1,
+          "south": 1
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 43,
+            "gatheringFt": 126,
+            "workspaceFt": 48
+          },
+          {
+            "band": "central",
+            "areaSqFt": 17775,
+            "boundingEastFt": 150,
+            "boundingNorthFt": 225,
+            "chordMinFt": 45,
+            "chordMedianFt": 105,
+            "eastGapFt": 13,
+            "gatheringFt": 49,
+            "workspaceFt": 75
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 156,
+          "shoreFt": 262,
+          "eastGapFt": 268,
+          "pocketEdgeFt": 0
+        },
+        "central": {
+          "lengthFt": 966,
+          "shoreFt": 6,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 497
+        },
+        "south": {
+          "lengthFt": 1371,
+          "shoreFt": 19,
+          "eastGapFt": 28,
+          "pocketEdgeFt": 583
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": {
+        "x": 202.30354285871462,
+        "z": 229.37931467408868,
+        "shoreFt": 48.24378507963673,
+        "nearestBranchFt": 291,
+        "northBranchShoreFtExcludingSource": 262
+      }
+    },
+    {
+      "id": "sketch-pair-sketch-with-northeast-20680037",
+      "title": "With northeast · seed 20680037",
+      "seed": 20680037,
+      "newRun": true,
+      "status": "connected",
+      "step": 269,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.21241339009934052,
+      "pockets": {
+        "count": 7,
+        "areaSqFt": 254485,
+        "byBand": {
+          "north": 0,
+          "central": 5,
+          "south": 2
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 222983,
+            "boundingEastFt": 332,
+            "boundingNorthFt": 830,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "eastGapFt": 0,
+            "gatheringFt": 149,
+            "workspaceFt": 103
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 58,
+            "gatheringFt": 158,
+            "workspaceFt": 30
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "boundingEastFt": 30,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "eastGapFt": 13,
+            "gatheringFt": 114,
+            "workspaceFt": 103
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3150,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "eastGapFt": 103,
+            "gatheringFt": 45,
+            "workspaceFt": 38
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "eastGapFt": 73,
+            "gatheringFt": 66,
+            "workspaceFt": 47
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2588,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 75,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "eastGapFt": 43,
+            "gatheringFt": 71,
+            "workspaceFt": 100
+          },
+          {
+            "band": "central",
+            "areaSqFt": 21038,
+            "boundingEastFt": 195,
+            "boundingNorthFt": 225,
+            "chordMinFt": 90,
+            "chordMedianFt": 90,
+            "eastGapFt": 43,
+            "gatheringFt": 148,
+            "workspaceFt": 197
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 1181,
+          "shoreFt": 67,
+          "eastGapFt": 73,
+          "pocketEdgeFt": 1181
+        },
+        "central": {
+          "lengthFt": 1260,
+          "shoreFt": 5,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 1260
+        },
+        "south": {
+          "lengthFt": 1443,
+          "shoreFt": 4,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 1443
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": {
+        "x": 202.30354285871462,
+        "z": 229.37931467408868,
+        "shoreFt": 48.24378507963673,
+        "nearestBranchFt": 162,
+        "northBranchShoreFtExcludingSource": 67
+      }
+    },
+    {
+      "id": "sketch-pair-sketch-without-northeast-20365850",
+      "title": "Without northeast · seed 20365850",
+      "seed": 20365850,
+      "newRun": true,
+      "status": "connected",
+      "step": 258,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.13200879316581796,
+      "pockets": {
+        "count": 3,
+        "areaSqFt": 12376,
+        "byBand": {
+          "north": 0,
+          "central": 2,
+          "south": 1
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 4950,
+            "boundingEastFt": 135,
+            "boundingNorthFt": 150,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 163,
+            "gatheringFt": 206,
+            "workspaceFt": 105
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4838,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "eastGapFt": 88,
+            "gatheringFt": 40,
+            "workspaceFt": 35
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2588,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 120,
+            "chordMinFt": 15,
+            "chordMedianFt": 25,
+            "eastGapFt": 13,
+            "gatheringFt": 73,
+            "workspaceFt": 106
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 0,
+          "shoreFt": null,
+          "eastGapFt": null,
+          "pocketEdgeFt": 0
+        },
+        "central": {
+          "lengthFt": 788,
+          "shoreFt": 7,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 566
+        },
+        "south": {
+          "lengthFt": 1555,
+          "shoreFt": 19,
+          "eastGapFt": 28,
+          "pocketEdgeFt": 697
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": null
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20470579",
+      "title": "Without northeast · seed 20470579",
+      "seed": 20470579,
+      "newRun": false,
+      "status": "connected",
+      "step": 220,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.17451373236497203,
+      "pockets": {
+        "count": 9,
+        "areaSqFt": 41516,
+        "byBand": {
+          "north": 0,
+          "central": 4,
+          "south": 5
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 9675,
+            "boundingEastFt": 180,
+            "boundingNorthFt": 120,
+            "chordMinFt": 45,
+            "chordMedianFt": 95,
+            "eastGapFt": 118,
+            "gatheringFt": 211,
+            "workspaceFt": 106
+          },
+          {
+            "band": "south",
+            "areaSqFt": 6413,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 120,
+            "chordMinFt": 60,
+            "chordMedianFt": 65,
+            "eastGapFt": 88,
+            "gatheringFt": 98,
+            "workspaceFt": 61
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 15,
+            "chordMedianFt": 23,
+            "eastGapFt": 163,
+            "gatheringFt": 126,
+            "workspaceFt": 87
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3938,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 60,
+            "eastGapFt": 103,
+            "gatheringFt": 38,
+            "workspaceFt": 67
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 45,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "eastGapFt": 88,
+            "gatheringFt": 30,
+            "workspaceFt": 93
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "boundingEastFt": 75,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "eastGapFt": 73,
+            "gatheringFt": 69,
+            "workspaceFt": 43
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "eastGapFt": 43,
+            "gatheringFt": 83,
+            "workspaceFt": 94
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "eastGapFt": 13,
+            "gatheringFt": 25,
+            "workspaceFt": 148
+          },
+          {
+            "band": "central",
+            "areaSqFt": 14288,
+            "boundingEastFt": 120,
+            "boundingNorthFt": 195,
+            "chordMinFt": 60,
+            "chordMedianFt": 78,
+            "eastGapFt": 148,
+            "gatheringFt": 212,
+            "workspaceFt": 190
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 532,
+          "shoreFt": 172,
+          "eastGapFt": 178,
+          "pocketEdgeFt": 205
+        },
+        "central": {
+          "lengthFt": 1188,
+          "shoreFt": 7,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 1113
+        },
+        "south": {
+          "lengthFt": 1449,
+          "shoreFt": 79,
+          "eastGapFt": 88,
+          "pocketEdgeFt": 1208
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": null
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20575308",
+      "title": "Without northeast · seed 20575308",
+      "seed": 20575308,
+      "newRun": false,
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.19424270250716533,
+      "pockets": {
+        "count": 10,
+        "areaSqFt": 49277,
+        "byBand": {
+          "north": 0,
+          "central": 5,
+          "south": 5
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 43,
+            "gatheringFt": 126,
+            "workspaceFt": 48
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2250,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 60,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "eastGapFt": 73,
+            "gatheringFt": 67,
+            "workspaceFt": 84
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 23,
+            "eastGapFt": 88,
+            "gatheringFt": 42,
+            "workspaceFt": 107
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "eastGapFt": 28,
+            "gatheringFt": 69,
+            "workspaceFt": 121
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5063,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 60,
+            "eastGapFt": 43,
+            "gatheringFt": 20,
+            "workspaceFt": 87
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1800,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 75,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "eastGapFt": 118,
+            "gatheringFt": 46,
+            "workspaceFt": 29
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5400,
+            "boundingEastFt": 105,
+            "boundingNorthFt": 135,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "eastGapFt": 13,
+            "gatheringFt": 93,
+            "workspaceFt": 95
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3713,
+            "boundingEastFt": 120,
+            "boundingNorthFt": 120,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 13,
+            "gatheringFt": 84,
+            "workspaceFt": 88
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3375,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 90,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "eastGapFt": 43,
+            "gatheringFt": 62,
+            "workspaceFt": 118
+          },
+          {
+            "band": "central",
+            "areaSqFt": 24975,
+            "boundingEastFt": 255,
+            "boundingNorthFt": 210,
+            "chordMinFt": 105,
+            "chordMedianFt": 165,
+            "eastGapFt": 58,
+            "gatheringFt": 208,
+            "workspaceFt": 235
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 514,
+          "shoreFt": 97,
+          "eastGapFt": 103,
+          "pocketEdgeFt": 514
+        },
+        "central": {
+          "lengthFt": 1544,
+          "shoreFt": 6,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 1508
+        },
+        "south": {
+          "lengthFt": 1530,
+          "shoreFt": 19,
+          "eastGapFt": 28,
+          "pocketEdgeFt": 900
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": null
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20680037",
+      "title": "Without northeast · seed 20680037",
+      "seed": 20680037,
+      "newRun": false,
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "reachShare": 0.19720622199961044,
+      "pockets": {
+        "count": 11,
+        "areaSqFt": 47366,
+        "byBand": {
+          "north": 2,
+          "central": 5,
+          "south": 4
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 58,
+            "gatheringFt": 158,
+            "workspaceFt": 30
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "boundingEastFt": 30,
+            "boundingNorthFt": 45,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "eastGapFt": 13,
+            "gatheringFt": 114,
+            "workspaceFt": 103
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5738,
+            "boundingEastFt": 120,
+            "boundingNorthFt": 135,
+            "chordMinFt": 23,
+            "chordMedianFt": 45,
+            "eastGapFt": 103,
+            "gatheringFt": 56,
+            "workspaceFt": 60
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "eastGapFt": 28,
+            "gatheringFt": 66,
+            "workspaceFt": 131
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1013,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "eastGapFt": 58,
+            "gatheringFt": 37,
+            "workspaceFt": 82
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3263,
+            "boundingEastFt": 90,
+            "boundingNorthFt": 75,
+            "chordMinFt": 43,
+            "chordMedianFt": 45,
+            "eastGapFt": 13,
+            "gatheringFt": 69,
+            "workspaceFt": 96
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 75,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "eastGapFt": 73,
+            "gatheringFt": 65,
+            "workspaceFt": 48
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2588,
+            "boundingEastFt": 60,
+            "boundingNorthFt": 75,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "eastGapFt": 43,
+            "gatheringFt": 71,
+            "workspaceFt": 100
+          },
+          {
+            "band": "north",
+            "areaSqFt": 26775,
+            "boundingEastFt": 255,
+            "boundingNorthFt": 255,
+            "chordMinFt": 45,
+            "chordMedianFt": 105,
+            "eastGapFt": 58,
+            "gatheringFt": 188,
+            "workspaceFt": 234
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "boundingEastFt": 30,
+            "boundingNorthFt": 60,
+            "chordMinFt": 10,
+            "chordMedianFt": 25,
+            "eastGapFt": 43,
+            "gatheringFt": 40,
+            "workspaceFt": 137
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1125,
+            "boundingEastFt": 45,
+            "boundingNorthFt": 30,
+            "chordMinFt": 35,
+            "chordMedianFt": 40,
+            "eastGapFt": 238,
+            "gatheringFt": 340,
+            "workspaceFt": 359
+          }
+        ]
+      },
+      "branches": {
+        "north": {
+          "lengthFt": 761,
+          "shoreFt": 52,
+          "eastGapFt": 58,
+          "pocketEdgeFt": 761
+        },
+        "central": {
+          "lengthFt": 1437,
+          "shoreFt": 5,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 1386
+        },
+        "south": {
+          "lengthFt": 1438,
+          "shoreFt": 4,
+          "eastGapFt": 13,
+          "pocketEdgeFt": 958
+        }
+      },
+      "centralAttractor": {
+        "x": 239.49,
+        "z": -172.37,
+        "shoreFt": 10.750733928712599,
+        "nearestBranchFt": 3
+      },
+      "northeastSource": null
+    }
+  ]
+}

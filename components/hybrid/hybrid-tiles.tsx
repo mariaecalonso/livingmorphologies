@@ -37,7 +37,7 @@ export function geometryStatus(handoff: ModuleHandoff) {
     return { label: "Test data", available: true };
   }
   if (handoff.status === "ready" && handoff.source === "skill03" && handoff.selectedFinal) {
-    return { label: "Skill 03 handoff", available: true };
+    return { label: "Skill 3 Final Handoff", available: true };
   }
   if (handoff.status === "ready" && handoff.source === "mock" && handoff.provisional) {
     return { label: "Provisional mock", available: true };
@@ -399,7 +399,7 @@ function previewCaption(syntheticMode: boolean, handoff: ModuleHandoff, typology
 
 function sourceLine(handoff: ModuleHandoff) {
   if (handoff.status === "ready" && handoff.source === "skill03" && handoff.selectedFinal) {
-    return `Source: Skill 03 handoff · ${handoff.moduleId}`;
+    return `Source: Skill 3 Final Handoff · ${handoff.moduleId}`;
   }
   if (handoff.status === "ready" && handoff.provisional) return "Source · provisional";
   if (handoff.status !== "ready") return "Geometry unavailable";

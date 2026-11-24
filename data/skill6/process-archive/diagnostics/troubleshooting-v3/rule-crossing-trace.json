@@ -1,0 +1,233 @@
+{
+  "provenance": "Original stored mesh and stored poses of on-rule-branching-4. Triangle sources are matched from those poses and the stored patch meshes. The tiles-only union is a reconstruction.",
+  "id": "on-rule-branching-4",
+  "sameTriangleIndices": false,
+  "rawTriangles": 96454,
+  "refinedTriangles": 92790,
+  "refinedPenetrations": 2,
+  "refinedMax": 0.0354,
+  "pairs": [
+    {
+      "index": 0,
+      "depth": 0.0354,
+      "triangles": [
+        63548,
+        87973
+      ],
+      "centroid": [
+        -10.15,
+        9.94,
+        14.4
+      ],
+      "indexIdentity": false,
+      "rawDepth": null,
+      "existedBeforeRefinement": true,
+      "aroseDuringRefinement": false,
+      "nearestRawPenetration": {
+        "distance": 0.2285,
+        "depth": 0.0543,
+        "within1": 41,
+        "maxDepthWithin1": 0.1314
+      },
+      "centroidMove": null,
+      "nearestContact": {
+        "id": "t01-t02",
+        "host": "t01",
+        "guest": "t02",
+        "distance": 1.9372
+      },
+      "sources": {
+        "first": [
+          {
+            "name": "patch 1",
+            "kind": "patch",
+            "distance": 0.0452
+          },
+          {
+            "name": "t03 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.0726
+          },
+          {
+            "name": "t02 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.1497
+          },
+          {
+            "name": "t01 linear-edge-gallery",
+            "kind": "tile",
+            "distance": 0.2987
+          }
+        ],
+        "second": [
+          {
+            "name": "t03 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.0349
+          },
+          {
+            "name": "patch 1",
+            "kind": "patch",
+            "distance": 0.044
+          },
+          {
+            "name": "t02 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.1743
+          },
+          {
+            "name": "t01 linear-edge-gallery",
+            "kind": "tile",
+            "distance": 0.2836
+          }
+        ]
+      }
+    },
+    {
+      "index": 1,
+      "depth": 0.0256,
+      "triangles": [
+        64504,
+        91449
+      ],
+      "centroid": [
+        -10.21,
+        12.72,
+        21.84
+      ],
+      "indexIdentity": false,
+      "rawDepth": null,
+      "existedBeforeRefinement": true,
+      "aroseDuringRefinement": false,
+      "nearestRawPenetration": {
+        "distance": 0.4654,
+        "depth": 0.12,
+        "within1": 15,
+        "maxDepthWithin1": 0.12
+      },
+      "centroidMove": null,
+      "nearestContact": {
+        "id": "t01-t02",
+        "host": "t01",
+        "guest": "t02",
+        "distance": 9.1343
+      },
+      "sources": {
+        "first": [
+          {
+            "name": "t02 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.1262
+          },
+          {
+            "name": "t03 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.1262
+          }
+        ],
+        "second": [
+          {
+            "name": "t03 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.0963
+          },
+          {
+            "name": "t02 compressed-sequential",
+            "kind": "tile",
+            "distance": 0.0965
+          }
+        ]
+      }
+    }
+  ],
+  "tilesOnlyReconstruction": {
+    "penetrations": 7,
+    "maxPenetration": 0.1077
+  },
+  "successfulComparison": [
+    {
+      "id": "on-rule-compact-5",
+      "validated": true,
+      "refinedPenetrations": 0,
+      "refinedMax": 0.019786666834348654,
+      "measuredMaxPositiveDepth": 0.0198,
+      "archetypePair": [
+        {
+          "defect": 0.0354,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        },
+        {
+          "defect": 0.0256,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        }
+      ]
+    },
+    {
+      "id": "on-rule-branching-5",
+      "validated": true,
+      "refinedPenetrations": 0,
+      "refinedMax": 0.019797013818899385,
+      "measuredMaxPositiveDepth": 0.0198,
+      "archetypePair": [
+        {
+          "defect": 0.0354,
+          "sameArchetypePair": true,
+          "contactArea": 32.76,
+          "rigidCrossing": 0
+        },
+        {
+          "defect": 0.0256,
+          "sameArchetypePair": true,
+          "contactArea": 32.76,
+          "rigidCrossing": 0
+        }
+      ]
+    },
+    {
+      "id": "on-graph-branching-5",
+      "validated": true,
+      "refinedPenetrations": 0,
+      "refinedMax": 0.019946936828851406,
+      "measuredMaxPositiveDepth": 0.0199,
+      "archetypePair": [
+        {
+          "defect": 0.0354,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        },
+        {
+          "defect": 0.0256,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        }
+      ]
+    },
+    {
+      "id": "on-wfc-branching-5",
+      "validated": true,
+      "refinedPenetrations": 0,
+      "refinedMax": 0.017538448804250328,
+      "measuredMaxPositiveDepth": 0.0175,
+      "archetypePair": [
+        {
+          "defect": 0.0354,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        },
+        {
+          "defect": 0.0256,
+          "sameArchetypePair": false,
+          "contactArea": null,
+          "rigidCrossing": null
+        }
+      ]
+    }
+  ]
+}

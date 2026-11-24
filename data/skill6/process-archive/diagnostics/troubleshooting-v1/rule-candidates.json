@@ -1,0 +1,222 @@
+{
+  "note": "The ranked winner is first. A later candidate is assembled only when it also places four tiles. Incomplete candidates are recorded and not treated as a repair.",
+  "completeCandidates": 1,
+  "candidates": [
+    {
+      "id": "diag-rule-branching-4",
+      "tiles": 4,
+      "complete": true,
+      "reason": null,
+      "trace": "aggregateCoverage portfolio on the checked pool, 480 evaluations, chosen branching rules: branching rules 4/4 · branching rules, tabu 1 3/4",
+      "samePlacementAsStored": true,
+      "sequence": [
+        "open-hall",
+        "linear-edge-gallery",
+        "compressed-sequential",
+        "compressed-sequential"
+      ],
+      "shape": {
+        "compact": 0.366,
+        "branching": 0.467,
+        "vertical": 0.57,
+        "quality": 0.925,
+        "balanced": 0.366,
+        "depth": 3,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 2,
+        "directions": [
+          "+X",
+          "+Y",
+          "-X"
+        ],
+        "minJointArea": 26.12,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "solid": 4989.8,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "linear-edge-gallery",
+          "area": 26.12,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.185
+        },
+        {
+          "host": "t01",
+          "guest": "t02",
+          "archetype": "compressed-sequential",
+          "area": 32.76,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.272
+        },
+        {
+          "host": "t02",
+          "guest": "t03",
+          "archetype": "compressed-sequential",
+          "area": 164.08,
+          "rigidCrossing": 0.0062,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.272
+        }
+      ],
+      "stages": {
+        "label": "Recomputed from the reproduced poses with the unchanged patch, union, and refinement settings. This is not the stored overnight mesh.",
+        "rigid": {
+          "contactsOver002": 0,
+          "maxCrossing": 0.0062
+        },
+        "patch": {
+          "selfIntersections": [
+            0,
+            0,
+            0
+          ],
+          "crossing": [
+            {
+              "penetrations": 0,
+              "grazes": 0,
+              "maxPenetration": 0
+            },
+            {
+              "penetrations": 0,
+              "grazes": 0,
+              "maxPenetration": 0
+            },
+            {
+              "penetrations": 0,
+              "grazes": 0,
+              "maxPenetration": 0
+            }
+          ]
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. The historical record has no tiles-only union.",
+          "status": "NoError",
+          "crossing": {
+            "penetrations": 7,
+            "grazes": 437,
+            "maxPenetration": 0.1077
+          }
+        },
+        "rawUnion": {
+          "penetrations": 856,
+          "grazes": 837,
+          "maxPenetration": 0.329
+        },
+        "refined": {
+          "penetrations": 2,
+          "grazes": 2280,
+          "maxPenetration": 0.0354
+        },
+        "firstFailingStage": "tiles-only union",
+        "assembly": {
+          "lift": 0,
+          "growth": [
+            {
+              "step": 0,
+              "instanceId": "t00",
+              "archetypeId": "open-hall",
+              "hostInstanceId": null,
+              "direction": null,
+              "placement": "seed",
+              "depth": 0
+            },
+            {
+              "step": 1,
+              "instanceId": "t01",
+              "archetypeId": "linear-edge-gallery",
+              "hostInstanceId": "t00",
+              "direction": "-X",
+              "placement": "lateral",
+              "depth": 1
+            },
+            {
+              "step": 2,
+              "instanceId": "t02",
+              "archetypeId": "compressed-sequential",
+              "hostInstanceId": "t01",
+              "direction": "+Y",
+              "placement": "lateral",
+              "depth": 2
+            },
+            {
+              "step": 3,
+              "instanceId": "t03",
+              "archetypeId": "compressed-sequential",
+              "hostInstanceId": "t02",
+              "direction": "+X",
+              "placement": "lateral",
+              "depth": 3
+            }
+          ],
+          "branchPoints": [],
+          "refinedPenetrations": 2,
+          "refinedMax": 0.03543472145341715
+        }
+      }
+    },
+    {
+      "id": "diag-rule-branching-4-alt1",
+      "tiles": 3,
+      "complete": false,
+      "reason": "Search budget exhausted at 3 tiles after 361 evaluations and 7 backtracks. 18 candidates were not evaluated. 135 evaluated candidates were rejected geometrically (135 intersections, 0 containments, 0 contact failures).",
+      "trace": "aggregateCoverage portfolio on the checked pool, 480 evaluations, chosen branching rules, tabu 1: branching rules 4/4 · branching rules, tabu 1 3/4",
+      "samePlacementAsStored": false,
+      "sequence": [
+        "open-hall",
+        "terraced",
+        "topographic-ground-field"
+      ],
+      "shape": {
+        "compact": 0.415,
+        "branching": 0.617,
+        "vertical": 0.77,
+        "quality": 1,
+        "balanced": 0.415,
+        "depth": 1,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 44.881,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "solid": 5011.1,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "terraced",
+          "area": 44.88,
+          "rigidCrossing": 0.0024,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.383
+        },
+        {
+          "host": "t00",
+          "guest": "t02",
+          "archetype": "topographic-ground-field",
+          "area": 115.96,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.348
+        }
+      ],
+      "stages": null
+    }
+  ]
+}

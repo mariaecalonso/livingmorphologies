@@ -1,0 +1,12 @@
+{
+  "id": "troubleshooting-v4",
+  "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v3",
+  "graphCollection": "data/skill6/experiments/clustering-graph-budget-v1",
+  "rule": "rule-local-correction.json",
+  "unchanged": [
+    "clustering-overnight-v1",
+    "default 210-test share",
+    "CLUSTER_REFINEMENT",
+    "thresholds"
+  ]
+}

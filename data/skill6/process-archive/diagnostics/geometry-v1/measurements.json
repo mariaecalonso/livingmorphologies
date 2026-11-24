@@ -1,0 +1,1731 @@
+{
+  "version": "skill6-geometry-diagnostic-v1",
+  "source": "data/skill6/experiments/clustering-overnight-v1",
+  "archive": "data/skill6/process-archive/v1.json",
+  "note": "Measurements are read from the stored records, or computed from the stored poses and the unchanged Skill 3 meshes. Images are views of those stored meshes. No union was rebuilt.",
+  "clusters": [
+    {
+      "id": "on-rule-compact-5",
+      "requested": "compact",
+      "validated": true,
+      "status": "accepted",
+      "trace": "aggregateCoverage portfolio on the checked pool, 600 evaluations, chosen compact rules: compact rules 5/5 · compact rules, tabu 1 3/5 · reused ex-rule-compact-5; rechecked, not regenerated · reused ft-rule-compact-5; not regenerated",
+      "score": {
+        "branchPoints": 1,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 2,
+        "depth": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "primaryEdges": 4,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0.15,
+          "leaves": 0.125,
+          "depth": 0.25,
+          "directions": 0.133
+        },
+        "storedScore": {
+          "compact": 0.403,
+          "branching": 0.658,
+          "vertical": 0.729,
+          "quality": 0.884,
+          "balanced": 0.403,
+          "depth": 3,
+          "leaves": 2,
+          "branchPoints": 1,
+          "levels": 3,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X"
+          ],
+          "minJointArea": 14.211,
+          "groundSeams": 0,
+          "unique": 5
+        },
+        "occupancy": 0.119,
+        "gyration": 0.675
+      },
+      "mass": {
+        "extent": [
+          34.76,
+          36.97,
+          35.94
+        ],
+        "solidVolume": 5496.3,
+        "boundingVolume": 46178.8,
+        "clusterVoidFraction": 0.881,
+        "centroidZ": 16.71,
+        "height": 35.94,
+        "centroidHeightShare": 0.465,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.246,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.263,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 57.34,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "continuous-hall",
+          "solidVolume": 860.9,
+          "shareOfSolid": 0.157,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.381,
+          "centroidZ": 28.16,
+          "reachesGroundBand": false,
+          "jointArea": 78.17,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.185,
+          "outsidePreviousBounds": 0.794,
+          "minZ": 9.614,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.21,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "void-edge",
+          "solidVolume": 827.4,
+          "shareOfSolid": 0.151,
+          "outsidePreviousBounds": 0.973,
+          "minZ": 20.371,
+          "centroidZ": 25.06,
+          "reachesGroundBand": false,
+          "jointArea": 46.5,
+          "jointDirection": "+Z"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 57.34,
+          "gap": 0.177,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 12.72,
+          "bridgeThickness": 1.08,
+          "patchVolume": 43.8
+        },
+        {
+          "id": "t00-t02",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 78.17,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 11.88,
+          "bridgeThickness": 0.96,
+          "patchVolume": 61.7
+        },
+        {
+          "id": "t01-t03",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.21,
+          "gap": 0.173,
+          "rigidCrossing": 0.0157,
+          "bridgePlanMin": 5.04,
+          "bridgeThickness": 0.96,
+          "patchVolume": 11
+        },
+        {
+          "id": "t03-t04",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 46.5,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 7.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 39.3
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 22,
+        "refinedCavities": 0,
+        "cavitiesFilled": 45,
+        "penetrations": 0,
+        "maxPenetration": 0.0198,
+        "grazes": 421,
+        "maxShift": 0.77,
+        "meanShift": 0.057,
+        "verticesRestored": 72,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-rule-compact-5-refined.png",
+        "rigid": "on-rule-compact-5-rigid.png",
+        "contacts": "on-rule-compact-5-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-rule-compact-6",
+      "requested": "compact",
+      "validated": true,
+      "status": "accepted",
+      "trace": "aggregateCoverage portfolio on the checked pool, 720 evaluations, chosen compact rules: compact rules 6/6 · compact rules, tabu 1 3/6",
+      "score": {
+        "branchPoints": 2,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 3,
+        "depth": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "primaryEdges": 5,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0.3,
+          "leaves": 0.15,
+          "depth": 0.25,
+          "directions": 0.133
+        },
+        "storedScore": {
+          "compact": 0.422,
+          "branching": 0.833,
+          "vertical": 0.679,
+          "quality": 0.676,
+          "balanced": 0.422,
+          "depth": 3,
+          "leaves": 3,
+          "branchPoints": 2,
+          "levels": 3,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X"
+          ],
+          "minJointArea": 3.776,
+          "groundSeams": 0,
+          "unique": 6
+        },
+        "occupancy": 0.133,
+        "gyration": 0.713
+      },
+      "mass": {
+        "extent": [
+          40.76,
+          37.93,
+          35.94
+        ],
+        "solidVolume": 7415.2,
+        "boundingVolume": 55561.1,
+        "clusterVoidFraction": 0.867,
+        "centroidZ": 14.69,
+        "height": 35.94,
+        "centroidHeightShare": 0.409,
+        "groundTiles": [
+          "t00",
+          "t05"
+        ],
+        "lift": 0.000797271728515625
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.182,
+          "outsidePreviousBounds": 1,
+          "minZ": 0.001,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.195,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.45,
+          "centroidZ": 12.42,
+          "reachesGroundBand": false,
+          "jointArea": 57.34,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "continuous-hall",
+          "solidVolume": 860.9,
+          "shareOfSolid": 0.116,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.382,
+          "centroidZ": 28.16,
+          "reachesGroundBand": false,
+          "jointArea": 78.17,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.137,
+          "outsidePreviousBounds": 0.794,
+          "minZ": 9.615,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.21,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "void-edge",
+          "solidVolume": 827.4,
+          "shareOfSolid": 0.112,
+          "outsidePreviousBounds": 0.973,
+          "minZ": 20.372,
+          "centroidZ": 25.06,
+          "reachesGroundBand": false,
+          "jointArea": 46.5,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 5,
+          "instanceId": "t05",
+          "archetypeId": "terraced",
+          "solidVolume": 1918.9,
+          "shareOfSolid": 0.259,
+          "outsidePreviousBounds": 0.888,
+          "minZ": 0,
+          "centroidZ": 8.88,
+          "reachesGroundBand": true,
+          "jointArea": 3.78,
+          "jointDirection": "+Y"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 57.34,
+          "gap": 0.177,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 12.72,
+          "bridgeThickness": 1.08,
+          "patchVolume": 43.8
+        },
+        {
+          "id": "t00-t02",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 78.17,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 11.88,
+          "bridgeThickness": 0.96,
+          "patchVolume": 61.7
+        },
+        {
+          "id": "t01-t03",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.21,
+          "gap": 0.173,
+          "rigidCrossing": 0.0157,
+          "bridgePlanMin": 5.04,
+          "bridgeThickness": 0.96,
+          "patchVolume": 11
+        },
+        {
+          "id": "t03-t04",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 46.5,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 7.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 39.3
+        },
+        {
+          "id": "t01-t05",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 3.78,
+          "gap": 0.158,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 1.56,
+          "bridgeThickness": 1.56,
+          "patchVolume": 1.2
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 22,
+        "refinedCavities": 0,
+        "cavitiesFilled": 45,
+        "penetrations": 0,
+        "maxPenetration": 0.0198,
+        "grazes": 604,
+        "maxShift": 0.77,
+        "meanShift": 0.047,
+        "verticesRestored": 99,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-rule-compact-6-refined.png",
+        "rigid": "on-rule-compact-6-rigid.png",
+        "contacts": "on-rule-compact-6-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-rule-branching-5",
+      "requested": "branching",
+      "validated": true,
+      "status": "accepted",
+      "trace": "aggregateCoverage portfolio on the checked pool, 600 evaluations, chosen branching rules: branching rules 5/5 · branching rules, tabu 1 3/5 · reused ft-rule-branching-5; not regenerated",
+      "score": {
+        "branchPoints": 0,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 1,
+        "depth": 4,
+        "directions": [
+          "+X",
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "primaryEdges": 4,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0,
+          "leaves": 0.063,
+          "depth": 0.25,
+          "directions": 0.2
+        },
+        "storedScore": {
+          "compact": 0.348,
+          "branching": 0.512,
+          "vertical": 0.836,
+          "quality": 0.94,
+          "balanced": 0.348,
+          "depth": 4,
+          "leaves": 1,
+          "branchPoints": 0,
+          "levels": 3,
+          "directions": [
+            "+X",
+            "+Y",
+            "+Z",
+            "-X"
+          ],
+          "minJointArea": 26.12,
+          "groundSeams": 0,
+          "unique": 4
+        },
+        "occupancy": 0.085,
+        "gyration": 0.741
+      },
+      "mass": {
+        "extent": [
+          40.33,
+          38.88,
+          50.65
+        ],
+        "solidVolume": 6723.7,
+        "boundingVolume": 79437.3,
+        "clusterVoidFraction": 0.915,
+        "centroidZ": 22.6,
+        "height": 50.65,
+        "centroidHeightShare": 0.446,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.201,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-edge-gallery",
+          "solidVolume": 922.6,
+          "shareOfSolid": 0.137,
+          "outsidePreviousBounds": 1,
+          "minZ": 3.017,
+          "centroidZ": 13.94,
+          "reachesGroundBand": false,
+          "jointArea": 26.12,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "compressed-sequential",
+          "solidVolume": 1358.3,
+          "shareOfSolid": 0.202,
+          "outsidePreviousBounds": 0.626,
+          "minZ": 8.935,
+          "centroidZ": 22.42,
+          "reachesGroundBand": false,
+          "jointArea": 32.76,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.201,
+          "outsidePreviousBounds": 0.997,
+          "minZ": 8.98,
+          "centroidZ": 21.76,
+          "reachesGroundBand": false,
+          "jointArea": 250.93,
+          "jointDirection": "+X"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "topographic-ground-field",
+          "solidVolume": 1741.6,
+          "shareOfSolid": 0.259,
+          "outsidePreviousBounds": 0.718,
+          "minZ": 24.553,
+          "centroidZ": 37.6,
+          "reachesGroundBand": false,
+          "jointArea": 115.96,
+          "jointDirection": "+Z"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 26.12,
+          "gap": 0.171,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 5.16,
+          "bridgeThickness": 0.96,
+          "patchVolume": 17.4
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 32.76,
+          "gap": 0.178,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 3.84,
+          "bridgeThickness": 3.36,
+          "patchVolume": 6.6
+        },
+        {
+          "id": "t02-t03",
+          "primary": true,
+          "direction": "+X",
+          "classification": "patched-near-contact",
+          "area": 250.93,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 15.84,
+          "bridgeThickness": 0.84,
+          "patchVolume": 46.5
+        },
+        {
+          "id": "t03-t04",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 115.96,
+          "gap": 0.176,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 10.32,
+          "bridgeThickness": 8.76,
+          "patchVolume": 70.3
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 52,
+        "refinedCavities": 0,
+        "cavitiesFilled": 117,
+        "penetrations": 0,
+        "maxPenetration": 0.0198,
+        "grazes": 6581,
+        "maxShift": 0.9,
+        "meanShift": 0.068,
+        "verticesRestored": 484,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-rule-branching-5-refined.png",
+        "rigid": "on-rule-branching-5-rigid.png",
+        "contacts": "on-rule-branching-5-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-graph-branching-5",
+      "requested": "branching",
+      "validated": true,
+      "status": "accepted",
+      "trace": "graph plans then realize, 391 tests, 35 backtracks: paired generations 3/5 · widening 5/5 · wide fan 3/5 · chain 5/5 · reused ft-graph-branching-5; not regenerated",
+      "score": {
+        "branchPoints": 1,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 2,
+        "depth": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "primaryEdges": 4,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0.15,
+          "leaves": 0.125,
+          "depth": 0.25,
+          "directions": 0.133
+        },
+        "storedScore": {
+          "compact": 0.374,
+          "branching": 0.658,
+          "vertical": 0.563,
+          "quality": 0.691,
+          "balanced": 0.374,
+          "depth": 3,
+          "leaves": 2,
+          "branchPoints": 1,
+          "levels": 3,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X"
+          ],
+          "minJointArea": 7.552,
+          "groundSeams": 0,
+          "unique": 4
+        },
+        "occupancy": 0.098,
+        "gyration": 0.697
+      },
+      "mass": {
+        "extent": [
+          50.76,
+          41.06,
+          29.75
+        ],
+        "solidVolume": 6078.3,
+        "boundingVolume": 62008.7,
+        "clusterVoidFraction": 0.902,
+        "centroidZ": 14.07,
+        "height": 29.75,
+        "centroidHeightShare": 0.473,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.222,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.237,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 66.49,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.167,
+          "outsidePreviousBounds": 0.813,
+          "minZ": 9.614,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.43,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.237,
+          "outsidePreviousBounds": 0.694,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 7.55,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "void-edge",
+          "solidVolume": 827.4,
+          "shareOfSolid": 0.136,
+          "outsidePreviousBounds": 0.973,
+          "minZ": 20.371,
+          "centroidZ": 25.06,
+          "reachesGroundBand": false,
+          "jointArea": 46.5,
+          "jointDirection": "+Z"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 66.49,
+          "gap": 0.174,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 10.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 47.6
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.43,
+          "gap": 0.17,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 4.56,
+          "bridgeThickness": 0.96,
+          "patchVolume": 12.3
+        },
+        {
+          "id": "t01-t03",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 7.55,
+          "gap": 0.162,
+          "rigidCrossing": 0.0189,
+          "bridgePlanMin": 3.12,
+          "bridgeThickness": 2.76,
+          "patchVolume": 5.3
+        },
+        {
+          "id": "t02-t04",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 46.5,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 7.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 39.3
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 29,
+        "refinedCavities": 0,
+        "cavitiesFilled": 64,
+        "penetrations": 0,
+        "maxPenetration": 0.0199,
+        "grazes": 441,
+        "maxShift": 0.77,
+        "meanShift": 0.044,
+        "verticesRestored": 118,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-graph-branching-5-refined.png",
+        "rigid": "on-graph-branching-5-rigid.png",
+        "contacts": "on-graph-branching-5-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-graph-branching-7",
+      "requested": "branching",
+      "validated": true,
+      "status": "accepted",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · widening 6/7 (8 deeper) · wide fan 6/7 (4 deeper) · chain 7/7",
+      "score": {
+        "branchPoints": 0,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 1,
+        "depth": 6,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "primaryEdges": 6,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0,
+          "leaves": 0.042,
+          "depth": 0.25,
+          "directions": 0.2
+        },
+        "storedScore": {
+          "compact": 0.288,
+          "branching": 0.492,
+          "vertical": 0.663,
+          "quality": 0.645,
+          "balanced": 0.288,
+          "depth": 6,
+          "leaves": 1,
+          "branchPoints": 0,
+          "levels": 4,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X",
+            "-Y"
+          ],
+          "minJointArea": 4.373,
+          "groundSeams": 0,
+          "unique": 6
+        },
+        "occupancy": 0.058,
+        "gyration": 0.988
+      },
+      "mass": {
+        "extent": [
+          64.47,
+          40.59,
+          56.32
+        ],
+        "solidVolume": 8581.7,
+        "boundingVolume": 147380.8,
+        "clusterVoidFraction": 0.942,
+        "centroidZ": 23.84,
+        "height": 56.32,
+        "centroidHeightShare": 0.423,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.157,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.168,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 66.49,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.118,
+          "outsidePreviousBounds": 0.813,
+          "minZ": 9.614,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.43,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "contained-room-within-volume",
+          "solidVolume": 551,
+          "shareOfSolid": 0.064,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.377,
+          "centroidZ": 25.1,
+          "reachesGroundBand": false,
+          "jointArea": 46.41,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.168,
+          "outsidePreviousBounds": 0.944,
+          "minZ": 20.377,
+          "centroidZ": 28.34,
+          "reachesGroundBand": false,
+          "jointArea": 69.96,
+          "jointDirection": "-Y"
+        },
+        {
+          "step": 5,
+          "instanceId": "t05",
+          "archetypeId": "terraced",
+          "solidVolume": 1918.9,
+          "shareOfSolid": 0.224,
+          "outsidePreviousBounds": 0.932,
+          "minZ": 22.997,
+          "centroidZ": 31.88,
+          "reachesGroundBand": false,
+          "jointArea": 4.37,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 6,
+          "instanceId": "t06",
+          "archetypeId": "continuous-hall",
+          "solidVolume": 860.9,
+          "shareOfSolid": 0.1,
+          "outsidePreviousBounds": 1,
+          "minZ": 40.764,
+          "centroidZ": 48.54,
+          "reachesGroundBand": false,
+          "jointArea": 44.6,
+          "jointDirection": "+Z"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 66.49,
+          "gap": 0.174,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 10.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 47.6
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.43,
+          "gap": 0.17,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 4.56,
+          "bridgeThickness": 0.96,
+          "patchVolume": 12.3
+        },
+        {
+          "id": "t02-t03",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 46.41,
+          "gap": 0.179,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 8.4,
+          "bridgeThickness": 0.96,
+          "patchVolume": 44.1
+        },
+        {
+          "id": "t03-t04",
+          "primary": true,
+          "direction": "-Y",
+          "classification": "patched-near-contact",
+          "area": 69.96,
+          "gap": 0.175,
+          "rigidCrossing": 0.0066,
+          "bridgePlanMin": 9.6,
+          "bridgeThickness": 1.08,
+          "patchVolume": 52.7
+        },
+        {
+          "id": "t04-t05",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 4.37,
+          "gap": 0.159,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 1.92,
+          "bridgeThickness": 1.8,
+          "patchVolume": 1.7
+        },
+        {
+          "id": "t05-t06",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 44.6,
+          "gap": 0.169,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 8.64,
+          "bridgeThickness": 0.96,
+          "patchVolume": 35.8
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 37,
+        "refinedCavities": 0,
+        "cavitiesFilled": 121,
+        "penetrations": 0,
+        "maxPenetration": 0.0194,
+        "grazes": 765,
+        "maxShift": 0.657,
+        "meanShift": 0.049,
+        "verticesRestored": 140,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-graph-branching-7-refined.png",
+        "rigid": "on-graph-branching-7-rigid.png",
+        "contacts": "on-graph-branching-7-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-wfc-branching-5",
+      "requested": "branching",
+      "validated": true,
+      "status": "accepted",
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 90 propagations, 22 backtracks, 60 tests; pruned support 4987, socket 538, cardinality 9, spatial 580 · reused ft-wfc-branching-5; not regenerated",
+      "score": {
+        "branchPoints": 2,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 3,
+        "depth": 2,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "primaryEdges": 4,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0.3,
+          "leaves": 0.188,
+          "depth": 0.125,
+          "directions": 0.133
+        },
+        "storedScore": {
+          "compact": 0.339,
+          "branching": 0.746,
+          "vertical": 0.603,
+          "quality": 0.691,
+          "balanced": 0.339,
+          "depth": 2,
+          "leaves": 3,
+          "branchPoints": 2,
+          "levels": 3,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X"
+          ],
+          "minJointArea": 7.552,
+          "groundSeams": 0,
+          "unique": 4
+        },
+        "occupancy": 0.082,
+        "gyration": 0.772
+      },
+      "mass": {
+        "extent": [
+          50.76,
+          41.06,
+          35.94
+        ],
+        "solidVolume": 6111.8,
+        "boundingVolume": 74895.6,
+        "clusterVoidFraction": 0.918,
+        "centroidZ": 14.57,
+        "height": 35.94,
+        "centroidHeightShare": 0.405,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.221,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.236,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 66.49,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "continuous-hall",
+          "solidVolume": 860.9,
+          "shareOfSolid": 0.141,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.381,
+          "centroidZ": 28.16,
+          "reachesGroundBand": false,
+          "jointArea": 78.17,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.236,
+          "outsidePreviousBounds": 0.708,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 7.55,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.166,
+          "outsidePreviousBounds": 0.754,
+          "minZ": 9.614,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.43,
+          "jointDirection": "+Y"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 66.49,
+          "gap": 0.174,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 10.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 47.6
+        },
+        {
+          "id": "t00-t02",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 78.17,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 11.88,
+          "bridgeThickness": 0.96,
+          "patchVolume": 61.7
+        },
+        {
+          "id": "t01-t03",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 7.55,
+          "gap": 0.162,
+          "rigidCrossing": 0.0189,
+          "bridgePlanMin": 3.12,
+          "bridgeThickness": 2.76,
+          "patchVolume": 5.3
+        },
+        {
+          "id": "t01-t04",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.43,
+          "gap": 0.17,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 4.56,
+          "bridgeThickness": 0.96,
+          "patchVolume": 12.3
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 29,
+        "refinedCavities": 0,
+        "cavitiesFilled": 64,
+        "penetrations": 0,
+        "maxPenetration": 0.0175,
+        "grazes": 441,
+        "maxShift": 0.762,
+        "meanShift": 0.043,
+        "verticesRestored": 88,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-wfc-branching-5-refined.png",
+        "rigid": "on-wfc-branching-5-rigid.png",
+        "contacts": "on-wfc-branching-5-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-wfc-branching-7",
+      "requested": "branching",
+      "validated": true,
+      "status": "accepted",
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 235 propagations, 70 backtracks, 131 tests; pruned support 31820, socket 1886, cardinality 0, spatial 3093",
+      "score": {
+        "branchPoints": 2,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 3,
+        "depth": 4,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "primaryEdges": 6,
+        "extraContacts": 2,
+        "branchingTerms": {
+          "branchPoints": 0.2,
+          "leaves": 0.125,
+          "depth": 0.25,
+          "directions": 0.2
+        },
+        "storedScore": {
+          "compact": 0.489,
+          "branching": 0.775,
+          "vertical": 0.639,
+          "quality": 0.665,
+          "balanced": 0.489,
+          "depth": 4,
+          "leaves": 3,
+          "branchPoints": 2,
+          "levels": 3,
+          "directions": [
+            "+Y",
+            "+Z",
+            "-X",
+            "-Y"
+          ],
+          "minJointArea": 7.552,
+          "groundSeams": 0,
+          "unique": 5
+        },
+        "occupancy": 0.109,
+        "gyration": 0.772
+      },
+      "mass": {
+        "extent": [
+          50.76,
+          41.06,
+          40.76
+        ],
+        "solidVolume": 9285.1,
+        "boundingVolume": 84941,
+        "clusterVoidFraction": 0.891,
+        "centroidZ": 19.81,
+        "height": 40.76,
+        "centroidHeightShare": 0.486,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.145,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "topographic-ground-field",
+          "solidVolume": 1741.6,
+          "shareOfSolid": 0.188,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.382,
+          "centroidZ": 29.91,
+          "reachesGroundBand": false,
+          "jointArea": 115.96,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.155,
+          "outsidePreviousBounds": 1,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 66.49,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "solidVolume": 1442.9,
+          "shareOfSolid": 0.155,
+          "outsidePreviousBounds": 0.708,
+          "minZ": 4.449,
+          "centroidZ": 12.41,
+          "reachesGroundBand": false,
+          "jointArea": 7.55,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "undulated",
+          "solidVolume": 1014.5,
+          "shareOfSolid": 0.109,
+          "outsidePreviousBounds": 0.754,
+          "minZ": 9.614,
+          "centroidZ": 15,
+          "reachesGroundBand": false,
+          "jointArea": 14.43,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 5,
+          "instanceId": "t05",
+          "archetypeId": "contained-room-within-volume",
+          "solidVolume": 551,
+          "shareOfSolid": 0.059,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.377,
+          "centroidZ": 25.1,
+          "reachesGroundBand": false,
+          "jointArea": 41.38,
+          "jointDirection": "+Z"
+        },
+        {
+          "step": 6,
+          "instanceId": "t06",
+          "archetypeId": "topographic-ground-field",
+          "solidVolume": 1741.6,
+          "shareOfSolid": 0.188,
+          "outsidePreviousBounds": 1,
+          "minZ": 20.379,
+          "centroidZ": 30.57,
+          "reachesGroundBand": false,
+          "jointArea": 57.32,
+          "jointDirection": "-Y"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 115.96,
+          "gap": 0.176,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 13.2,
+          "bridgeThickness": 0.96,
+          "patchVolume": 70.1
+        },
+        {
+          "id": "t00-t02",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 66.49,
+          "gap": 0.174,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 10.44,
+          "bridgeThickness": 0.96,
+          "patchVolume": 47.6
+        },
+        {
+          "id": "t02-t03",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 7.55,
+          "gap": 0.162,
+          "rigidCrossing": 0.0189,
+          "bridgePlanMin": 3.12,
+          "bridgeThickness": 2.76,
+          "patchVolume": 5.3
+        },
+        {
+          "id": "t02-t04",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 14.43,
+          "gap": 0.17,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 4.56,
+          "bridgeThickness": 0.96,
+          "patchVolume": 12.3
+        },
+        {
+          "id": "t04-t05",
+          "primary": true,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 41.38,
+          "gap": 0.178,
+          "rigidCrossing": 0.0038,
+          "bridgePlanMin": 8.4,
+          "bridgeThickness": 0.96,
+          "patchVolume": 39.4
+        },
+        {
+          "id": "t05-t06",
+          "primary": true,
+          "direction": "-Y",
+          "classification": "patched-near-contact",
+          "area": 57.32,
+          "gap": 0.18,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 9.84,
+          "bridgeThickness": 0.96,
+          "patchVolume": 35.4
+        },
+        {
+          "id": "t02-t06",
+          "primary": false,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 18.15,
+          "gap": 0.167,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 5.28,
+          "bridgeThickness": 0.96,
+          "patchVolume": 13.1
+        },
+        {
+          "id": "t03-t06",
+          "primary": false,
+          "direction": "+Z",
+          "classification": "patched-near-contact",
+          "area": 21.41,
+          "gap": 0.152,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 7.08,
+          "bridgeThickness": 0.96,
+          "patchVolume": 13.7
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 97,
+        "refinedCavities": 0,
+        "cavitiesFilled": 188,
+        "penetrations": 0,
+        "maxPenetration": 0.0186,
+        "grazes": 949,
+        "maxShift": 0.827,
+        "meanShift": 0.062,
+        "verticesRestored": 176,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-wfc-branching-7-refined.png",
+        "rigid": "on-wfc-branching-7-rigid.png",
+        "contacts": "on-wfc-branching-7-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    },
+    {
+      "id": "on-rule-branching-4",
+      "requested": "branching",
+      "validated": false,
+      "status": "unsuccessful",
+      "trace": "aggregateCoverage portfolio on the checked pool, 480 evaluations, chosen branching rules: branching rules 4/4 · branching rules, tabu 1 3/4",
+      "score": {
+        "branchPoints": 0,
+        "definition": "A branch point is a tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. Later contacts raise degree and compactness, and they do not add a branch point.",
+        "leaves": 1,
+        "depth": 3,
+        "directions": [
+          "+X",
+          "+Y",
+          "-X"
+        ],
+        "primaryEdges": 3,
+        "extraContacts": 0,
+        "branchingTerms": {
+          "branchPoints": 0,
+          "leaves": 0.083,
+          "depth": 0.25,
+          "directions": 0.133
+        },
+        "storedScore": {
+          "compact": 0.366,
+          "branching": 0.467,
+          "vertical": 0.57,
+          "quality": 0.925,
+          "balanced": 0.366,
+          "depth": 3,
+          "leaves": 1,
+          "branchPoints": 0,
+          "levels": 2,
+          "directions": [
+            "+X",
+            "+Y",
+            "-X"
+          ],
+          "minJointArea": 26.12,
+          "groundSeams": 0,
+          "unique": 3
+        },
+        "occupancy": 0.091,
+        "gyration": 0.629
+      },
+      "mass": {
+        "extent": [
+          40.33,
+          38.03,
+          35.91
+        ],
+        "solidVolume": 4989.8,
+        "boundingVolume": 55070.6,
+        "clusterVoidFraction": 0.909,
+        "centroidZ": 17.29,
+        "height": 35.91,
+        "centroidHeightShare": 0.481,
+        "groundTiles": [
+          "t00"
+        ],
+        "lift": 0
+      },
+      "tiles": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "solidVolume": 1350.6,
+          "shareOfSolid": 0.271,
+          "outsidePreviousBounds": 1,
+          "minZ": 0,
+          "centroidZ": 10.19,
+          "reachesGroundBand": true,
+          "jointArea": null,
+          "jointDirection": null
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-edge-gallery",
+          "solidVolume": 922.6,
+          "shareOfSolid": 0.185,
+          "outsidePreviousBounds": 1,
+          "minZ": 3.017,
+          "centroidZ": 13.94,
+          "reachesGroundBand": false,
+          "jointArea": 26.12,
+          "jointDirection": "-X"
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "compressed-sequential",
+          "solidVolume": 1358.3,
+          "shareOfSolid": 0.272,
+          "outsidePreviousBounds": 0.626,
+          "minZ": 8.935,
+          "centroidZ": 22.42,
+          "reachesGroundBand": false,
+          "jointArea": 32.76,
+          "jointDirection": "+Y"
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "compressed-sequential",
+          "solidVolume": 1358.3,
+          "shareOfSolid": 0.272,
+          "outsidePreviousBounds": 0.941,
+          "minZ": 8.935,
+          "centroidZ": 21.49,
+          "reachesGroundBand": false,
+          "jointArea": 164.08,
+          "jointDirection": "+X"
+        }
+      ],
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "classification": "patched-near-contact",
+          "area": 26.12,
+          "gap": 0.171,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 5.16,
+          "bridgeThickness": 0.96,
+          "patchVolume": 17.4
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "classification": "patched-near-contact",
+          "area": 32.76,
+          "gap": 0.178,
+          "rigidCrossing": 0,
+          "bridgePlanMin": 3.84,
+          "bridgeThickness": 3.36,
+          "patchVolume": 6.6
+        },
+        {
+          "id": "t02-t03",
+          "primary": true,
+          "direction": "+X",
+          "classification": "patched-near-contact",
+          "area": 164.08,
+          "gap": 0.177,
+          "rigidCrossing": 0.0062,
+          "bridgePlanMin": 12,
+          "bridgeThickness": 0.84,
+          "patchVolume": 28
+        }
+      ],
+      "pipeline": {
+        "unionCavities": 9,
+        "refinedCavities": 0,
+        "cavitiesFilled": 17,
+        "penetrations": 2,
+        "maxPenetration": 0.0354,
+        "grazes": 2280,
+        "maxShift": 0.9,
+        "meanShift": 0.045,
+        "verticesRestored": 187,
+        "fillCavityVolume": 1
+      },
+      "images": {
+        "refined": "on-rule-branching-4-refined.png",
+        "rigid": "on-rule-branching-4-rigid.png",
+        "contacts": "on-rule-branching-4-contacts.svg",
+        "label": "Rendered views of stored meshes and stored seated poses. No intermediate union was reconstructed."
+      }
+    }
+  ]
+}

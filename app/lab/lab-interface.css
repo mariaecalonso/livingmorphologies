@@ -1234,9 +1234,9 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-page .frame-title .panel-title,
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-detail .panel-title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 400;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.04em;
 }
 
 [data-view-mode="presentation"] .runs-wall .pareto-catalog-page .frame-title .eyebrow {
@@ -2757,8 +2757,9 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 .final-summary-count strong {
   color: #ffffff;
-  font-size: 2.7em;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
   letter-spacing: 0.04em;
   line-height: 1;
 }
@@ -2805,7 +2806,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 .final-summary li[data-tone="workspace"],
 .final-index > div[data-tone="workspace"] { --tone: var(--text); }
 .final-summary li[data-tone="gathering"],
-.final-index > div[data-tone="gathering"] { --tone: var(--cyan-hot); }
+.final-index > div[data-tone="gathering"] { --tone: var(--cyan); }
 
 .final-index {
   display: grid;
@@ -2890,9 +2891,9 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 .final-row[data-tone="gathering"] {
-  --rail: rgba(125, 184, 184, 0.95);
-  --rail-soft: rgba(125, 184, 184, 0.34);
-  --tone: var(--cyan-hot);
+  --rail: rgba(15, 115, 119, 0.95);
+  --rail-soft: rgba(15, 115, 119, 0.34);
+  --tone: var(--cyan);
 }
 
 .final-stage {
@@ -2909,16 +2910,18 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
   left: 0.35em;
   z-index: 9;
   margin: 0;
-  color: var(--tone);
-  font-size: 1.72em;
-  letter-spacing: 0.16em;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .final-row-name strong {
-  font-weight: 500;
-  text-shadow: 0 0 0.4em color-mix(in srgb, var(--tone) 40%, transparent);
+  font-weight: 400;
+  text-shadow: none;
 }
 
 .final-row-name span {
@@ -3158,11 +3161,13 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 .final-detail .panel-title {
   margin: 0;
   padding-bottom: 0.28em;
-  border-bottom: 1px solid rgba(15, 115, 119, 0.4);
-  color: var(--tone, #ffffff);
-  font-size: 1.55em;
-  text-shadow: 0 0 0.45em color-mix(in srgb, var(--tone) 35%, transparent);
-  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--frame-edge);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  text-shadow: none;
+  letter-spacing: 0.04em;
   line-height: 1.05;
 }
 
@@ -3738,11 +3743,9 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
   padding: 20px 46px 20px 22px;
   border: 1px solid var(--frame-edge);
   border-radius: var(--frame-radius);
-  background: linear-gradient(180deg, #0b191b 0%, #0e1719 32%, #111314 55%, #1a1615 78%, #261c19 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    var(--frame-glow-soft);
-  backdrop-filter: blur(14px);
+  background: #000000;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group .space-y-1 {
@@ -3766,17 +3769,17 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group > div:first-child p:last-child,
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group .criteria-scale,
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group p[class*="border-t"] span {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.2;
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group .space-y-1 span {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1.2;
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .criteria-group p[class*="border-t"] {
-  font-size: 16px;
+  font-size: 22px;
   line-height: 1.2;
 }
 
@@ -3905,7 +3908,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
   border: 1px solid var(--frame-edge);
   border-radius: var(--frame-radius);
   background: #000000;
-  box-shadow: var(--frame-glow-soft);
+  box-shadow: none;
 }
 
 [data-view-mode="presentation"] .living-instrument-shell .agent-information {
@@ -3976,9 +3979,9 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 [data-view-mode="presentation"] .living-instrument-shell .criteria-region .frame-title .panel-title,
 [data-view-mode="presentation"] .living-instrument-shell .agent-system-region .frame-title .panel-title {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 400;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.04em;
   line-height: 1.2;
 }
 
@@ -4092,7 +4095,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 .final-detail[data-tone="lobby"] { --tone: var(--orange); }
 .final-detail[data-tone="workspace"] { --tone: var(--text); }
-.final-detail[data-tone="gathering"] { --tone: var(--cyan-hot); }
+.final-detail[data-tone="gathering"] { --tone: var(--cyan); }
 
 .final-detail-status {
   margin: 0;
@@ -4196,7 +4199,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 
 .vertical-catalogue[data-tone="workspace"] { --catalogue-tone: #f2f2ee; }
 
-.vertical-catalogue[data-tone="gathering"] { --catalogue-tone: #7db8b8; }
+.vertical-catalogue[data-tone="gathering"] { --catalogue-tone: var(--cyan); }
 
 .vertical-catalogue[data-tone] .vertical-catalogue-card .panel-title {
   color: var(--catalogue-tone);
@@ -4228,28 +4231,30 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 .vertical-catalogue-side:first-child .vertical-catalogue-figure {
-  font-size: 2.6em;
-  text-shadow: 0 0 16px rgba(15, 115, 119, 0.28);
+  font-size: 28px;
+  text-shadow: none;
 }
 
 .vertical-catalogue-side:first-child .vertical-process-note {
   margin-bottom: 0.45em;
-  font-size: 0.78em;
+  font-size: 13px;
   letter-spacing: 0.08em;
 }
 
 .vertical-catalogue-side:first-child .panel-title,
 .vertical-catalogue-side:last-child .panel-title {
-  font-size: 0.72em;
-  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   padding-bottom: 0.28em;
-  border-bottom: 1px solid rgba(15, 115, 119, 0.4);
+  border-bottom: 1px solid var(--frame-edge);
 }
 
 .vertical-catalogue-side:last-child .vertical-process-note,
 .vertical-catalogue-side:last-child .vertical-catalogue-facts,
 .vertical-catalogue-side:last-child .vertical-catalogue-reset {
-  font-size: 0.72em;
+  font-size: 13px;
 }
 
 .vertical-catalogue-side:first-child .vertical-catalogue-choices {
@@ -4257,7 +4262,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 .vertical-catalogue-side:first-child .vertical-catalogue-choices button {
-  font-size: 0.78em;
+  font-size: 22px;
   padding: 0.32em 0.55em;
   border-left-width: 3px;
   border-radius: var(--frame-radius);
@@ -5331,7 +5336,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
   border-color: var(--frame-edge);
   border-radius: var(--frame-radius);
   background: #000000;
-  box-shadow: var(--frame-glow);
+  box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -6354,17 +6359,17 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 .process-canvas .inherit-chart-names span[data-family="formal"],
 .process-canvas .inherit-lane[data-family="formal"],
 .process-canvas .inherit-meter[data-family="formal"] {
-  --trace: #7ec8c6;
+  --trace: #0f7377;
   --glow: rgba(15, 115, 119, 0.9);
-  --bloom: rgba(126, 200, 198, 0.95);
+  --bloom: rgba(15, 115, 119, 0.95);
 }
 
 .process-canvas .inherit-chart-names span[data-family="spatial"],
 .process-canvas .inherit-lane[data-family="spatial"],
 .process-canvas .inherit-meter[data-family="spatial"] {
-  --trace: #e0a080;
+  --trace: #c77e5f;
   --glow: rgba(199, 126, 95, 0.9);
-  --bloom: rgba(224, 160, 128, 0.95);
+  --bloom: rgba(199, 126, 95, 0.95);
 }
 
 .process-canvas .inherit-chart-names span[data-family="atmospheric"],
@@ -6411,7 +6416,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 .process-canvas .inherit-chart-scale span {
   position: absolute;
   top: 0;
-  color: rgba(242, 242, 238, 0.62);
+  color: var(--orange);
   font-size: 1.15cqw;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -6544,7 +6549,7 @@ body:has(.stage-shell[data-presentation-frame="on"]) {
 }
 
 .process-canvas .inherit-meter-value span:last-child {
-  color: rgba(242, 242, 238, 0.62);
+  color: var(--orange);
   font-size: 1.1cqw;
   letter-spacing: 0.12em;
   text-transform: uppercase;

@@ -1,0 +1,65 @@
+{
+  "id": "troubleshooting-v3",
+  "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v2",
+  "changed": "Nothing in the active engines, ranking, thresholds, default budgets, or refinement. The stored chain was not replaced.",
+  "graph": {
+    "method": "The same branching realization. Widening ran on a fresh board and its placement at 210 tests matches the stored six-tile plan. Wide fan ran after paired generations and widening had each spent 210 tests, because that cache is what the original budget split leaves behind. Its placement at 210 tests matches the other stored six-tile plan.",
+    "results": [
+      {
+        "plan": "widening",
+        "tests": 286,
+        "allowance": 420,
+        "milliseconds": 4912,
+        "seventhTile": true,
+        "validated": true,
+        "branchPoint": "t01",
+        "branching": 0.633,
+        "depth": 5,
+        "minJointArea": 7.552,
+        "sameAsChain": false,
+        "note": "The seventh tile is a later branch. It does not extend the stored six-tile sequence."
+      },
+      {
+        "plan": "wide fan",
+        "tests": 362,
+        "allowance": 420,
+        "milliseconds": 1389,
+        "seventhTile": true,
+        "validated": true,
+        "branchPoint": "t00",
+        "branching": 0.633,
+        "depth": 5,
+        "minJointArea": 14.431,
+        "sameAsChain": false,
+        "note": "The seventh tile is a later branch. It does not extend the stored six-tile sequence."
+      }
+    ],
+    "comparison": "The stored chain remains the ranked winner: 7 tiles, 0 branch points, branching 0.492. Both new sevens have 1 branch point and branching 0.633. Both stored six-tile alternatives score 0.700. Under the current ranking a seven-tile score of 0.633 would outrank the chain, so the higher allowance stays outside the default search."
+  },
+  "rule": {
+    "source": "Original on-rule-branching-4 mesh. Refined triangles do not keep raw indices: 96454 raw triangles, 92790 refined.",
+    "pairs": [
+      {
+        "depth": 0.0354,
+        "at": [-10.15, 9.94, 14.4],
+        "contactDistance": 1.94,
+        "contact": "t01-t02",
+        "sources": "patch 1 and the two compressed-sequential tiles, t02 and t03",
+        "beforeRefinement": "41 raw penetrations within 1, max 0.131. Nearest is 0.23 away at depth 0.054."
+      },
+      {
+        "depth": 0.0256,
+        "at": [-10.21, 12.72, 21.84],
+        "contactDistance": 9.13,
+        "contact": "nearest sample is still t01-t02; the crossing is not on that joint",
+        "sources": "t02 and t03 only. No patch within 0.35.",
+        "beforeRefinement": "15 raw penetrations within 1, max 0.12. Nearest is 0.47 away at depth 0.12."
+      }
+    ],
+    "successes": "Rule Branching 5 uses the same gallery-to-compressed-sequential pair, area 32.76, rigid crossing 0, refined max 0.0198. Rule Compact 5, Graph Branching 5, and WFC Branching 5 have no refined penetration. Their deepest positive crossing is a graze."
+  },
+  "recommendation": {
+    "graph": "Leave the default 210-test share in place. Both plans can validate a different seven-tile assembly at 420 tests, and saving those inside the normal search would replace the chain.",
+    "rule": "Separate the two surviving t02–t03 triangle neighborhoods, including the patch-1 neighborhood of the deeper pair. Do not change the refinement settings, and do not reject a tiles-only or patched union for its intermediate crossings."
+  }
+}

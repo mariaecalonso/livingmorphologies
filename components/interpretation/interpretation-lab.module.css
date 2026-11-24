@@ -122,6 +122,19 @@
   min-height: 0;
 }
 
+.source {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--u));
+  padding-bottom: calc(8px * var(--u));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.source h2 {
+  margin: 0;
+}
+
 .tools section:first-child,
 .info section {
   flex: 0 0 auto;

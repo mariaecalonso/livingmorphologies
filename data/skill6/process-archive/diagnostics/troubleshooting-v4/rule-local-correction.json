@@ -1,0 +1,274 @@
+{
+  "provenance": "Original stored refined mesh of on-rule-branching-4. The overnight file is unchanged. Global refinement settings were not used for this pass.",
+  "before": {
+    "penetrations": 2,
+    "maxPenetration": 0.0354,
+    "solid": {
+      "status": "NoError",
+      "components": 1,
+      "cavities": 0,
+      "volume": 4972.967547126227
+    },
+    "minZ": 0
+  },
+  "neighborhoods": [
+    {
+      "name": "patch-neighborhood",
+      "expectedDepth": 0.0354,
+      "triangles": [
+        63548,
+        87973
+      ],
+      "depth": 0.0354,
+      "trials": [
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 1,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0,
+          "maxShift": 0.0022,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 1,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0,
+          "maxShift": 0.0044,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0,
+          "maxShift": 0.0065,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "normal split of the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0,
+          "maxShift": 0.0087,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid split of the two triangles",
+          "penetrations": 3,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0,
+          "maxShift": 0.0087,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid split across one adjacent ring",
+          "penetrations": 2,
+          "maxPenetration": 0.0256,
+          "pairDepth": 0.0235,
+          "maxShift": 0.0087,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        }
+      ],
+      "clearedAlone": "centroid steps on the two triangles",
+      "remainingAfterChosen": [
+        {
+          "depth": 0.0256,
+          "centroid": [
+            -10.21,
+            12.72,
+            21.84
+          ],
+          "triangles": [
+            64504,
+            91449
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tile-neighborhood",
+      "expectedDepth": 0.0256,
+      "triangles": [
+        64504,
+        91449
+      ],
+      "depth": 0.0256,
+      "trials": [
+        {
+          "operation": "normal split of the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0,
+          "maxShift": 0.0038,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid split of the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.024,
+          "maxShift": 0.0038,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.024,
+          "maxShift": 0.0038,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid split across one adjacent ring",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.024,
+          "maxShift": 0.0038,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.0244,
+          "maxShift": 0.0029,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.0248,
+          "maxShift": 0.0019,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        },
+        {
+          "operation": "centroid steps on the two triangles",
+          "penetrations": 2,
+          "maxPenetration": 0.0354,
+          "pairDepth": 0.0252,
+          "maxShift": 0.001,
+          "verticesOutside": 0,
+          "outsideMax": 0
+        }
+      ],
+      "clearedAlone": "normal split of the two triangles",
+      "remainingAfterChosen": [
+        {
+          "depth": 0.0354,
+          "centroid": [
+            -10.15,
+            9.94,
+            14.4
+          ],
+          "triangles": [
+            63548,
+            87973
+          ]
+        },
+        {
+          "depth": 0.0262,
+          "centroid": [
+            -10.21,
+            12.71,
+            21.85
+          ],
+          "triangles": [
+            64504,
+            91451
+          ]
+        }
+      ]
+    }
+  ],
+  "combined": {
+    "penetrations": 1,
+    "maxPenetration": 0.0262,
+    "maxShift": 0.0038,
+    "verticesOutside": 0,
+    "remaining": [
+      {
+        "depth": 0.0262,
+        "centroid": [
+          -10.21,
+          12.71,
+          21.85
+        ],
+        "triangles": [
+          64504,
+          91451
+        ]
+      }
+    ]
+  },
+  "afterSolid": null,
+  "contacts": "Stored contacts and the ground lift were not moved. Only refined-surface vertices in a cleared neighborhood move.",
+  "tileNormalSweep": [
+    {
+      "distance": 0.01,
+      "penetrations": 3,
+      "maxPenetration": 0.0354,
+      "pairDepth": 0,
+      "maxShift": 0.005,
+      "remaining": [
+        0.0354,
+        0.0263,
+        0.0307
+      ]
+    },
+    {
+      "distance": 0.02,
+      "penetrations": 2,
+      "maxPenetration": 0.0354,
+      "pairDepth": 0,
+      "maxShift": 0.01,
+      "remaining": [
+        0.0354,
+        0.0318
+      ]
+    },
+    {
+      "distance": 0.04,
+      "penetrations": 2,
+      "maxPenetration": 0.0401,
+      "pairDepth": 0,
+      "maxShift": 0.02,
+      "remaining": [
+        0.0354,
+        0.0401
+      ]
+    },
+    {
+      "distance": 0.08,
+      "penetrations": 6,
+      "maxPenetration": 0.0654,
+      "pairDepth": 0,
+      "maxShift": 0.04,
+      "remaining": [
+        0.0354,
+        0.0282,
+        0.0471,
+        0.0394,
+        0.0254,
+        0.0654
+      ]
+    }
+  ],
+  "validated": false,
+  "reasons": [
+    "the two neighborhoods were not both cleared without a new penetration"
+  ]
+}

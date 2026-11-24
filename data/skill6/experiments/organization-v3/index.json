@@ -1,0 +1,1323 @@
+{
+ "version": 1,
+ "note": "Profile 3 adds upright surface seats and dual-tile slides, then rescores cohesion. Compared with organization-v2. Integrated is not implemented. Not promoted.",
+ "fieldVerticalDiagnosis": {
+  "classified": "not-validated",
+  "reason": "The refined surface exceeds the penetration limit. The search acceptance is not a validated cluster.",
+  "sequence": [
+   {
+    "archetypeId": "topographic-ground-field",
+    "up": 1,
+    "note": "seed"
+   },
+   {
+    "archetypeId": "linear-edge-gallery",
+    "up": 0.766,
+    "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+   },
+   {
+    "archetypeId": "compressed-sequential",
+    "up": 0.766,
+    "note": "atlas adaptive-seating-v1 -Y gap 0.30"
+   },
+   {
+    "archetypeId": "continuous-hall",
+    "up": 0,
+    "note": "+Y yaw 270 pitch 0 roll 90 gap 0.1 shift -9.0,0.0,0.0"
+   }
+  ],
+  "tilePairs": [
+   {
+    "host": "topographic-ground-field",
+    "guest": "linear-edge-gallery",
+    "count": 0,
+    "deepest": 0
+   },
+   {
+    "host": "topographic-ground-field",
+    "guest": "compressed-sequential",
+    "count": 0,
+    "deepest": 0
+   },
+   {
+    "host": "linear-edge-gallery",
+    "guest": "compressed-sequential",
+    "count": 0,
+    "deepest": 0
+   },
+   {
+    "host": "topographic-ground-field",
+    "guest": "continuous-hall",
+    "count": 0,
+    "deepest": 0
+   },
+   {
+    "host": "linear-edge-gallery",
+    "guest": "continuous-hall",
+    "count": 0,
+    "deepest": 0
+   },
+   {
+    "host": "compressed-sequential",
+    "guest": "continuous-hall",
+    "count": 0,
+    "deepest": 0
+   }
+  ],
+  "rawPenetrations": 563,
+  "rawMax": 0.188,
+  "refinedPenetrations": 3,
+  "refinedMax": 0.175,
+  "assemblyPenetrations": 3,
+  "assemblyMax": 0.17546198906938273
+ },
+ "upright": {
+  "offered": 4,
+  "stack": 0,
+  "side": 4,
+  "directions": {
+   "+Y": 1,
+   "+X": 3
+  }
+ },
+ "budget": {
+  "evaluations": 700,
+  "backtracks": 12,
+  "triesPerDepth": 64
+ },
+ "rows": [
+  {
+   "id": "org3-compact-hall-3-101",
+   "strategy": "compact",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": false,
+   "penetrationFlag": true,
+   "penetrations": 3,
+   "maxPenetration": 0.034037563134943875,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "vertical-void atlas up 1",
+    "topographic-ground-field +Z up 0"
+   ],
+   "hosts": 1,
+   "contacts": 3,
+   "multiContact": true,
+   "height": 39.4,
+   "footprint": 42.5,
+   "occupancy": 0.166,
+   "maxTilt": 90,
+   "uprightTiles": 2,
+   "invertedTiles": 0,
+   "atlasJoints": 1,
+   "uprightJoints": 0,
+   "dualJoints": 2,
+   "passedDirections": {
+    "+Z": 4,
+    "-X": 6
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 29843
+  },
+  {
+   "id": "org3-compact-hall-4-101",
+   "strategy": "compact",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01961592825851711,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "linear-gallery atlas up 0",
+    "continuous-hall +Z up -1",
+    "terraced -Z up 0"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "multiContact": false,
+   "height": 35.9,
+   "footprint": 61.7,
+   "occupancy": 0.082,
+   "maxTilt": 180,
+   "uprightTiles": 1,
+   "invertedTiles": 1,
+   "atlasJoints": 1,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Z": 5,
+    "-X": 6,
+    "+Y": 2
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 23886
+  },
+  {
+   "id": "org3-compact-field-3-101",
+   "strategy": "compact",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019505256384255834,
+   "directions": [
+    "seed",
+    "+Y",
+    "+Z"
+   ],
+   "sequence": [
+    "topographic-ground-field seed up 1",
+    "undulated atlas up 1",
+    "linear-gallery atlas up 1"
+   ],
+   "hosts": 2,
+   "contacts": 2,
+   "multiContact": false,
+   "height": 37,
+   "footprint": 44.4,
+   "occupancy": 0.141,
+   "maxTilt": 0,
+   "uprightTiles": 3,
+   "invertedTiles": 0,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Y": 14,
+    "+X": 1,
+    "+Z": 1
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 0,
+   "milliseconds": 8184
+  },
+  {
+   "id": "org3-compact-field-4-101",
+   "strategy": "compact",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "unsuccessful",
+   "validated": false,
+   "reason": "Search budget exhausted at 3 tiles after 700 evaluations and 9 backtracks. 3289 candidates were not evaluated. 404 evaluated candidates were rejected geometrically (400 intersections, 0 containments, 4 contact failures).",
+   "search": {
+    "evaluations": 700,
+    "acceptedPoses": 10,
+    "backtracks": 9,
+    "milliseconds": 3301,
+    "exhausted": true,
+    "truncated": true,
+    "untried": 3289,
+    "geometricRejections": 404,
+    "rejectionCounts": {
+     "intersection": 400,
+     "containment": 0,
+     "contact": 4
+    },
+    "depthLimit": 64,
+    "stop": "exhausted",
+    "directionRejections": 220,
+    "organization": "compact",
+    "profile": 3,
+    "passedDirections": {
+     "+Y": 19,
+     "+X": 1,
+     "+Z": 1
+    },
+    "atlasAccepted": 11,
+    "uprightAccepted": 0,
+    "dualAccepted": 0,
+    "placements": [
+     {
+      "step": 1,
+      "chosen": "undulated +Y 4.11 atlas adaptive-seating-v1 +Y gap 0.26",
+      "score": 4.11,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 2.55,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1"
+       },
+       {
+        "world": "+X",
+        "score": 2.15,
+        "note": "+X reseat +Y yaw 90 pitch 0 roll 0 gap 0.1 shift 6.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 2.07,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 1.62,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1 shift 0.0,0.0,3.0"
+       },
+       {
+        "world": "+Y",
+        "score": 1.03,
+        "note": "+Y yaw 180 pitch 0 roll 0 gap 0.1 mirror shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 0.82,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.08,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": -3.04,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "linear-gallery +Z 0.22 atlas adaptive-seating-v1 +Z gap 0.42",
+      "score": 0.22,
+      "world": "+Z",
+      "alternatives": []
+     },
+     {
+      "step": 1,
+      "chosen": "inserted-horizontal-plate +Y 2.55 +Y yaw 90 pitch 40 roll 0 gap 0.1",
+      "score": 2.55,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 4.11,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+X",
+        "score": 2.15,
+        "note": "+X reseat +Y yaw 90 pitch 0 roll 0 gap 0.1 shift 6.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 2.07,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 1.62,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1 shift 0.0,0.0,3.0"
+       },
+       {
+        "world": "+Y",
+        "score": 1.03,
+        "note": "+Y yaw 180 pitch 0 roll 0 gap 0.1 mirror shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 0.82,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.08,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": -3.04,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       }
+      ]
+     },
+     {
+      "step": 1,
+      "chosen": "inserted-horizontal-plate +X 2.15 +X reseat +Y yaw 90 pitch 0 roll 0 gap 0.1 shift",
+      "score": 2.15,
+      "world": "+X",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 4.11,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 2.55,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1"
+       },
+       {
+        "world": "+Y",
+        "score": 2.07,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 1.62,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1 shift 0.0,0.0,3.0"
+       },
+       {
+        "world": "+Y",
+        "score": 1.03,
+        "note": "+Y yaw 180 pitch 0 roll 0 gap 0.1 mirror shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 0.82,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.08,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": -3.04,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "undulated +Y 7.16 atlas adaptive-seating-v1 +Y gap 0.26",
+      "score": 7.16,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 6.88,
+        "note": "+Y yaw 90 pitch 0 roll 0 gap 0.1 shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 4.74,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 3.65,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.85,
+        "note": "+Y yaw 180 pitch 0 roll 90 gap 0.1"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "inserted-horizontal-plate +Y 6.88 +Y yaw 90 pitch 0 roll 0 gap 0.1 shift 3.0,0.0,0",
+      "score": 6.88,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 7.16,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 4.74,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 3.65,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.85,
+        "note": "+Y yaw 180 pitch 0 roll 90 gap 0.1"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "vertical-void +Y 4.74 atlas adaptive-seating-v1 +Y gap 0.30",
+      "score": 4.74,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 7.16,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 6.88,
+        "note": "+Y yaw 90 pitch 0 roll 0 gap 0.1 shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 3.65,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.85,
+        "note": "+Y yaw 180 pitch 0 roll 90 gap 0.1"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "linear-gallery +Y 3.65 atlas adaptive-seating-v1 +Y gap 0.30",
+      "score": 3.65,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 7.16,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 6.88,
+        "note": "+Y yaw 90 pitch 0 roll 0 gap 0.1 shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 4.74,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.85,
+        "note": "+Y yaw 180 pitch 0 roll 90 gap 0.1"
+       }
+      ]
+     },
+     {
+      "step": 2,
+      "chosen": "topographic-ground-field +Y 0.85 +Y yaw 180 pitch 0 roll 90 gap 0.1",
+      "score": 0.85,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 7.16,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 6.88,
+        "note": "+Y yaw 90 pitch 0 roll 0 gap 0.1 shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 4.74,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 3.65,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       }
+      ]
+     },
+     {
+      "step": 1,
+      "chosen": "vertical-void +Y 2.07 atlas adaptive-seating-v1 +Y gap 0.30",
+      "score": 2.07,
+      "world": "+Y",
+      "alternatives": [
+       {
+        "world": "+Y",
+        "score": 4.11,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.26"
+       },
+       {
+        "world": "+Y",
+        "score": 2.55,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1"
+       },
+       {
+        "world": "+X",
+        "score": 2.15,
+        "note": "+X reseat +Y yaw 90 pitch 0 roll 0 gap 0.1 shift 6.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 1.62,
+        "note": "+Y yaw 90 pitch 40 roll 0 gap 0.1 shift 0.0,0.0,3.0"
+       },
+       {
+        "world": "+Y",
+        "score": 1.03,
+        "note": "+Y yaw 180 pitch 0 roll 0 gap 0.1 mirror shift 3.0,0.0,0.0"
+       },
+       {
+        "world": "+Y",
+        "score": 0.82,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": 0.08,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       },
+       {
+        "world": "+Y",
+        "score": -3.04,
+        "note": "atlas adaptive-seating-v1 +Y gap 0.30"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "org3-branching-hall-3-101",
+   "strategy": "branching",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": false,
+   "penetrationFlag": true,
+   "penetrations": 3,
+   "maxPenetration": 0.034037563134943875,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "vertical-void atlas up 1",
+    "topographic-ground-field +Z up 0"
+   ],
+   "hosts": 1,
+   "contacts": 3,
+   "multiContact": true,
+   "height": 39.4,
+   "footprint": 42.5,
+   "occupancy": 0.166,
+   "maxTilt": 90,
+   "uprightTiles": 2,
+   "invertedTiles": 0,
+   "atlasJoints": 1,
+   "uprightJoints": 0,
+   "dualJoints": 2,
+   "passedDirections": {
+    "+Z": 4,
+    "-X": 6
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 28638
+  },
+  {
+   "id": "org3-branching-hall-4-101",
+   "strategy": "branching",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.018423674020500054,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "linear-edge-gallery atlas up 0.766",
+    "continuous-hall +Z up -1",
+    "compressed-sequential atlas up 0.766"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "multiContact": false,
+   "height": 35.9,
+   "footprint": 55.4,
+   "occupancy": 0.082,
+   "maxTilt": 180,
+   "uprightTiles": 3,
+   "invertedTiles": 1,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Z": 7,
+    "-X": 6,
+    "+Y": 2
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 21343
+  },
+  {
+   "id": "org3-branching-field-3-101",
+   "strategy": "branching",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019505256384255834,
+   "directions": [
+    "seed",
+    "+Y",
+    "+Z"
+   ],
+   "sequence": [
+    "topographic-ground-field seed up 1",
+    "undulated atlas up 1",
+    "linear-gallery atlas up 1"
+   ],
+   "hosts": 2,
+   "contacts": 2,
+   "multiContact": false,
+   "height": 37,
+   "footprint": 44.4,
+   "occupancy": 0.141,
+   "maxTilt": 0,
+   "uprightTiles": 3,
+   "invertedTiles": 0,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Y": 14,
+    "+X": 1,
+    "+Z": 1
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 0,
+   "milliseconds": 9419
+  },
+  {
+   "id": "org3-branching-field-4-101",
+   "strategy": "branching",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01842496675107603,
+   "directions": [
+    "seed",
+    "+Y",
+    "+X",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed up 1",
+    "linear-edge-gallery atlas up 0.766",
+    "compressed-sequential atlas up 0.766",
+    "continuous-hall +Y up 0"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "multiContact": false,
+   "height": 35.9,
+   "footprint": 58.4,
+   "occupancy": 0.08,
+   "maxTilt": 90,
+   "uprightTiles": 3,
+   "invertedTiles": 0,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Y": 15,
+    "+X": 2,
+    "+Z": 2
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 0,
+   "milliseconds": 34710
+  },
+  {
+   "id": "org3-vertical-hall-3-101",
+   "strategy": "vertical",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.017738036900689765,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "vertical-void atlas up 1",
+    "topographic-ground-field +Z up 0"
+   ],
+   "hosts": 1,
+   "contacts": 2,
+   "multiContact": false,
+   "height": 39.4,
+   "footprint": 42.5,
+   "occupancy": 0.166,
+   "maxTilt": 90,
+   "uprightTiles": 2,
+   "invertedTiles": 0,
+   "atlasJoints": 1,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Z": 4,
+    "-X": 6
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 25327
+  },
+  {
+   "id": "org3-vertical-hall-4-101",
+   "strategy": "vertical",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019707117596548997,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed up 1",
+    "linear-edge-gallery atlas up 0.766",
+    "continuous-hall +Z up -1",
+    "compressed-sequential atlas up 0.766"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "multiContact": false,
+   "height": 42.8,
+   "footprint": 51.6,
+   "occupancy": 0.081,
+   "maxTilt": 180,
+   "uprightTiles": 3,
+   "invertedTiles": 1,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Z": 7,
+    "-X": 6,
+    "+Y": 2
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 1,
+   "milliseconds": 23944
+  },
+  {
+   "id": "org3-vertical-field-3-101",
+   "strategy": "vertical",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "validated": true,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019505256384255834,
+   "directions": [
+    "seed",
+    "+Y",
+    "+Z"
+   ],
+   "sequence": [
+    "topographic-ground-field seed up 1",
+    "undulated atlas up 1",
+    "linear-gallery atlas up 1"
+   ],
+   "hosts": 2,
+   "contacts": 2,
+   "multiContact": false,
+   "height": 37,
+   "footprint": 44.4,
+   "occupancy": 0.141,
+   "maxTilt": 0,
+   "uprightTiles": 3,
+   "invertedTiles": 0,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Y": 14,
+    "+X": 1,
+    "+Z": 1
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 0,
+   "milliseconds": 9731
+  },
+  {
+   "id": "org3-vertical-field-4-101",
+   "strategy": "vertical",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "accepted",
+   "validated": false,
+   "penetrationFlag": true,
+   "penetrations": 3,
+   "maxPenetration": 0.17546198906938273,
+   "directions": [
+    "seed",
+    "+Y",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed up 1",
+    "linear-edge-gallery atlas up 0.766",
+    "compressed-sequential atlas up 0.766",
+    "continuous-hall +Y up 0"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "multiContact": false,
+   "height": 42.8,
+   "footprint": 54.2,
+   "occupancy": 0.078,
+   "maxTilt": 90,
+   "uprightTiles": 3,
+   "invertedTiles": 0,
+   "atlasJoints": 2,
+   "uprightJoints": 0,
+   "dualJoints": 0,
+   "passedDirections": {
+    "+Y": 15,
+    "+X": 2,
+    "+Z": 2
+   },
+   "uprightAccepted": 0,
+   "dualAccepted": 0,
+   "milliseconds": 42565
+  }
+ ],
+ "comparison": [
+  {
+   "id": "org3-compact-hall-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z"
+    ],
+    "height": 40.8,
+    "maxTilt": 90,
+    "occupancy": 0.1,
+    "hosts": 1,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z"
+    ],
+    "height": 39.4,
+    "maxTilt": 90,
+    "occupancy": 0.166,
+    "hosts": 1,
+    "contacts": 3,
+    "uprightTiles": 2,
+    "invertedTiles": 0,
+    "penetrationFlag": true,
+    "validated": false
+   }
+  },
+  {
+   "id": "org3-compact-hall-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 180,
+    "occupancy": 0.082,
+    "hosts": 2,
+    "contacts": 3,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 180,
+    "occupancy": 0.082,
+    "hosts": 2,
+    "contacts": 3,
+    "uprightTiles": 1,
+    "invertedTiles": 1,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-compact-field-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+X",
+     "+Y"
+    ],
+    "height": 20.4,
+    "maxTilt": 0,
+    "occupancy": 0.222,
+    "hosts": 1,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+Z"
+    ],
+    "height": 37,
+    "maxTilt": 0,
+    "occupancy": 0.141,
+    "hosts": 2,
+    "contacts": 2,
+    "uprightTiles": 3,
+    "invertedTiles": 0,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-compact-field-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+X",
+     "+Y",
+     "+Y"
+    ],
+    "height": 24.9,
+    "maxTilt": 90,
+    "occupancy": 0.141,
+    "hosts": 1,
+    "contacts": 3,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "validated": false
+   }
+  },
+  {
+   "id": "org3-branching-hall-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 40,
+    "occupancy": 0.066,
+    "hosts": 2,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z"
+    ],
+    "height": 39.4,
+    "maxTilt": 90,
+    "occupancy": 0.166,
+    "hosts": 1,
+    "contacts": 3,
+    "uprightTiles": 2,
+    "invertedTiles": 0,
+    "penetrationFlag": true,
+    "validated": false
+   }
+  },
+  {
+   "id": "org3-branching-hall-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 180,
+    "occupancy": 0.082,
+    "hosts": 2,
+    "contacts": 3,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 180,
+    "occupancy": 0.082,
+    "hosts": 2,
+    "contacts": 3,
+    "uprightTiles": 3,
+    "invertedTiles": 1,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-branching-field-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+X"
+    ],
+    "height": 35.9,
+    "maxTilt": 40,
+    "occupancy": 0.075,
+    "hosts": 2,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+Z"
+    ],
+    "height": 37,
+    "maxTilt": 0,
+    "occupancy": 0.141,
+    "hosts": 2,
+    "contacts": 2,
+    "uprightTiles": 3,
+    "invertedTiles": 0,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-branching-field-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+X",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 90,
+    "occupancy": 0.08,
+    "hosts": 2,
+    "contacts": 3,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+X",
+     "+Y"
+    ],
+    "height": 35.9,
+    "maxTilt": 90,
+    "occupancy": 0.08,
+    "hosts": 2,
+    "contacts": 3,
+    "uprightTiles": 3,
+    "invertedTiles": 0,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-vertical-hall-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z"
+    ],
+    "height": 42.8,
+    "maxTilt": 40,
+    "occupancy": 0.065,
+    "hosts": 2,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z"
+    ],
+    "height": 39.4,
+    "maxTilt": 90,
+    "occupancy": 0.166,
+    "hosts": 1,
+    "contacts": 2,
+    "uprightTiles": 2,
+    "invertedTiles": 0,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-vertical-hall-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Z"
+    ],
+    "height": 42.8,
+    "maxTilt": 180,
+    "occupancy": 0.081,
+    "hosts": 2,
+    "contacts": 3,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "-X",
+     "+Z",
+     "+Z"
+    ],
+    "height": 42.8,
+    "maxTilt": 180,
+    "occupancy": 0.081,
+    "hosts": 2,
+    "contacts": 3,
+    "uprightTiles": 3,
+    "invertedTiles": 1,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-vertical-field-3-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+X"
+    ],
+    "height": 27.5,
+    "maxTilt": 40,
+    "occupancy": 0.15,
+    "hosts": 1,
+    "contacts": 2,
+    "penetrationFlag": false,
+    "validated": true
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+Z"
+    ],
+    "height": 37,
+    "maxTilt": 0,
+    "occupancy": 0.141,
+    "hosts": 2,
+    "contacts": 2,
+    "uprightTiles": 3,
+    "invertedTiles": 0,
+    "penetrationFlag": false,
+    "validated": true
+   }
+  },
+  {
+   "id": "org3-vertical-field-4-101",
+   "before": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+Z",
+     "+Y"
+    ],
+    "height": 42.8,
+    "maxTilt": 90,
+    "occupancy": 0.078,
+    "hosts": 2,
+    "contacts": 3,
+    "penetrationFlag": true,
+    "validated": false
+   },
+   "after": {
+    "directions": [
+     "seed",
+     "+Y",
+     "+Z",
+     "+Y"
+    ],
+    "height": 42.8,
+    "maxTilt": 90,
+    "occupancy": 0.078,
+    "hosts": 2,
+    "contacts": 3,
+    "uprightTiles": 3,
+    "invertedTiles": 0,
+    "penetrationFlag": true,
+    "validated": false
+   }
+  }
+ ],
+ "validated": 8
+}

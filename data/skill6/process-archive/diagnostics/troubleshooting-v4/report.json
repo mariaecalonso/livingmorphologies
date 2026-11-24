@@ -1,0 +1,11 @@
+{
+  "id": "troubleshooting-v4",
+  "graph": "clustering-graph-budget-v1 holds the two validated seven-tile alternatives. The overnight chain and the 210-test share are unchanged.",
+  "rule": {
+    "validated": false,
+    "patchNeighborhood": "One centroid step of 0.0022 on the two triangles clears the 0.0354 crossing and leaves the original 0.0256 crossing. No vertex outside those triangles moves.",
+    "tileNeighborhood": "A normal split of 0.0038 makes that triangle pair report depth 0 and opens an adjacent pair at 0.0262. Larger splits of 0.01, 0.02, 0.04, and 0.08 deepen the overlap.",
+    "combined": "One penetration remains, depth 0.0262, maximum shift 0.0038.",
+    "generalize": "Do not add the move to the shared refiner. It clears an isolated pair and transfers a stacked overlap onto the next triangle."
+  }
+}

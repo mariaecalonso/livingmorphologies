@@ -42,13 +42,16 @@ import type { FaceMatch, TilePose } from "@/lib/skill5/face-match";
 import { poseOf, reviewJoins, tileAabb, tileDistorted, tileFootprint, tilePoint, type AxisSpace, type GumballPose } from "@/lib/skill5/gumball";
 import { MODULE_GROUND_Y, MODULE_HEIGHT_FT, boundsOf, placementWarnings, pointInRing, settleMove, snapModuleOrigin, type PlacedModule } from "@/lib/skill5/placement";
 import { reportTiles } from "@/lib/skill5/tile-placement";
+import { announceWorkingOccupancy, placeOccupancy, readWorkingOccupancy, runAutomaticInitialPlacement, saveClusterAssemblyRecord } from "./cluster-assembly-catalog";
+import type { ClusterAssemblyModel } from "./cluster-assembly-layer";
 import { ClusterInspect, ClusterPlacementLibrary } from "./cluster-placement-library";
+import { fetchOccupancyMesh, occupancyMeshKey, occupancyModel } from "./occupancy-solids";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
 import { clipPolygon } from "./site-geometry";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
-import { installPublishedStrategy, loadNetworkIterations, saveNetworkIteration } from "./site-network-archive";
+import { installPublishedStrategy, loadDesignerZoning, loadNetworkIterations, persistDesignerZoning, persistPublishedSelection, saveNetworkIteration } from "./site-network-archive";
 import { analyzeNetwork, networkFigures, type NetworkAnalysisMode } from "./site-network-analysis";
 import { SiteNetworkIterations, type IterationBatch } from "./site-network-gallery";
 import { captureNetworkIteration, createSiteNetworkStudy, runNetworkIteration, type NetworkIteration, type NetworkNodeKind, type SiteNetworkStudy } from "./site-network";
@@ -66,7 +69,8 @@ import { ARRANGEMENT_FAMILY, buildArrivalFamily, programForRole } from "@/lib/sk
 import { assessPockets, suggestionLabel } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets, readPockets } from "@/lib/skill5/pockets";
 import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
-import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
+import { occupancyInZone, readOccupancyList, replaceZoneOccupancy, rotateOccupancy, type OccupancyProvenance, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, readZoningList, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SPACING_FEET, FLOW_SURVIVE } from "./site-network-flow";
 import { evaluateLayouts, evaluateNetwork, openNetworkField } from "@/lib/skill5/strategy-evaluation";
@@ -1127,6 +1131,9 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [iterations, setIterations] = useState<NetworkIteration[]>([]);
   const [iterationView, setIterationView] = useState<string | null>(null);
   const [massingId, setMassingId] = useState<string | null>(null);
+  const [selectedNetworkId, setSelectedNetworkId] = useState<string | null>(null);
+  const viewingHistoricalRef = useRef(false);
+  const zoningHydrated = useRef(false);
   const [iterationCompare, setIterationCompare] = useState<string[]>([]);
   const [zoningShortlist, setZoningShortlist] = useState<string[]>([]);
   const [strategyNotice, setStrategyNotice] = useState<string | null>(null);
@@ -1150,11 +1157,30 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       setIterations(rows);
       if (!published?.massingNetworkId) return;
       const stored = readSiteWorkflowState();
-      if (stored.massingNetworkId) return;
-      writeSiteWorkflowState({ ...stored, massingNetworkId: published.massingNetworkId, zoningShortlist: published.zoningShortlist });
-      setMassingId(published.massingNetworkId);
-      setZoningShortlist(published.zoningShortlist);
-    })().catch(() => {});
+      setSelectedNetworkId(published.massingNetworkId);
+      if (!viewingHistoricalRef.current) setMassingId(published.massingNetworkId);
+      writeSiteWorkflowState({
+        ...stored,
+        massingNetworkId: published.massingNetworkId,
+        zoningShortlist: stored.zoningShortlist.length > 0 ? stored.zoningShortlist : published.zoningShortlist,
+      });
+      if (stored.zoningShortlist.length === 0) setZoningShortlist(published.zoningShortlist);
+      const diskZones = readZoningList(await loadDesignerZoning());
+      if (cancel) return;
+      if (diskZones.length > 0) {
+        publish(adoptPresent(historyRef.current, { ...historyRef.current.present, zones: diskZones }));
+        writeSiteWorkflowState({
+          ...readSiteWorkflowState(),
+          massingNetworkId: published.massingNetworkId,
+          zones: diskZones,
+        });
+      } else if (stored.zones.length > 0) {
+        void persistDesignerZoning(stored.zones);
+      }
+      zoningHydrated.current = true;
+    })().catch(() => {
+      zoningHydrated.current = true;
+    });
     return () => {
       cancel = true;
     };
@@ -1166,8 +1192,11 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const workflowBoot = useRef(false);
   useEffect(() => {
     if (!workflowReady) return;
-    writeSiteWorkflowState({ zones, connections, massingNetworkId: massingId, zoningShortlist });
-  }, [connections, massingId, workflowReady, zones, zoningShortlist]);
+    if (!selectedNetworkId) return;
+    if (viewingHistoricalRef.current) return;
+    writeSiteWorkflowState({ zones, connections, massingNetworkId: selectedNetworkId, zoningShortlist });
+    if (zoningHydrated.current) void persistDesignerZoning(zones);
+  }, [connections, selectedNetworkId, workflowReady, zones, zoningShortlist]);
   const [mode, setMode] = useState<SiteViewMode>(() => ((initialSheet ?? sheetFromSearch(search)) === "strategy" ? "plan" : "perspective"));
   const sheetQuery = search.get("sheet");
   useEffect(() => {
@@ -1212,6 +1241,11 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [meshes, setMeshes] = useState<Record<string, IsoMesh | "missing">>({});
   const [, setLoadingId] = useState<string | null>(null);
   const [instances, setInstances] = useState<PlacedModule[]>([]);
+  const [occupancy, setOccupancy] = useState<PlacedCluster[]>([]);
+  const [occupancyMeshes, setOccupancyMeshes] = useState<Record<string, { positions: Float32Array; indices: Uint32Array } | null>>({});
+  const [placementAssist, setPlacementAssist] = useState<"manual" | "ranked" | "automatic">("manual");
+  const [occupancyNotice, setOccupancyNotice] = useState("");
+  const occupancyHydrated = useRef(false);
   const [assemblies, setAssemblies] = useState<SiteAssembly[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [memberEditId, setMemberEditId] = useState<string | null>(null);
@@ -1238,6 +1272,35 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     const final = mergeFinalCatalog(filedFinal, savedFinal, hiddenFinal).filter((entry) => chosen.has(entry.id) && !ids.has(entry.id));
     return [...final, ...working];
   }, [storedCatalog, filedFinal, savedFinal, hiddenFinal, selectedFinal]);
+  useEffect(() => {
+    setOccupancy(readOccupancyList(readWorkingOccupancy()));
+    occupancyHydrated.current = true;
+  }, []);
+  useEffect(() => {
+    if (!occupancyHydrated.current) return;
+    announceWorkingOccupancy(occupancy);
+  }, [occupancy]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const missing = occupancy.filter((record) => occupancyMeshes[occupancyMeshKey(record)] === undefined);
+    if (missing.length === 0) return;
+    void (async () => {
+      for (const record of missing) {
+        if (controller.signal.aborted) return;
+        const key = occupancyMeshKey(record);
+        try {
+          const mesh = await fetchOccupancyMesh(record.programId, record.finishedClusterId, controller.signal);
+          if (controller.signal.aborted) return;
+          setOccupancyMeshes((current) => (current[key] === undefined ? { ...current, [key]: mesh } : current));
+        } catch (error: unknown) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          setOccupancyMeshes((current) => (current[key] === undefined ? { ...current, [key]: null } : current));
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [occupancy, occupancyMeshes]);
+  const occupancyLayer = useMemo<ClusterAssemblyModel>(() => occupancyModel(occupancy, occupancyMeshes), [occupancy, occupancyMeshes]);
   const [assemblyPage, setAssemblyPage] = useState(0);
   const assemblyPageCount = Math.max(1, Math.ceil(catalog.length / ASSEMBLY_PAGE_SIZE));
   const assemblyPageIndex = Math.min(assemblyPage, assemblyPageCount - 1);
@@ -1284,7 +1347,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     workflowBoot.current = true;
     const stored = readSiteWorkflowState();
     setConnections(stored.connections);
-    setMassingId(stored.massingNetworkId);
     setZoningShortlist(stored.zoningShortlist);
     for (const zone of stored.zones) {
       const match = /^z(\d+)$/.exec(zone.id);
@@ -1402,12 +1464,16 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const selectedMemberWorld = memberHost && selectedMember ? assemblyWorldModules(memberHost).find((member) => member.instanceId === selectedMember.instanceId) ?? null : null;
   const selected = instances.find((entry) => entry.instanceId === selectedId) ?? null;
   const activeInstances = useMemo(
-    () => instances.filter((item) => !massingId || !item.networkId || item.networkId === massingId),
+    () => instances.filter((item) => Boolean(massingId) && item.networkId === massingId),
     [instances, massingId],
   );
   const activeAssemblies = useMemo(
-    () => assemblies.filter((item) => !massingId || !item.networkId || item.networkId === massingId),
+    () => assemblies.filter((item) => Boolean(massingId) && item.networkId === massingId),
     [assemblies, massingId],
+  );
+  const unassignedWorkingCount = useMemo(
+    () => instances.filter((item) => !item.networkId).length + assemblies.filter((item) => !item.networkId).length,
+    [assemblies, instances],
   );
   const visibleAssemblies = useMemo(() => activeAssemblies.flatMap((assembly) => assemblyWorldModules(assembly)), [activeAssemblies]);
   const sceneInstances = useMemo(() => [...activeInstances, ...visibleAssemblies], [activeInstances, visibleAssemblies]);
@@ -2033,12 +2099,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     void writeConfigurations([...list, created]);
   };
   const openConfiguration = (entry: SiteConfiguration) => {
+    /* Historical Configurations restore tiles only. They must not change the selected Site Strategy network, designer zoning, or selectedAssemblyId. */
     const nextModules = structuredClone(entry.modules);
     const nextAssemblies = structuredClone(entry.assemblies);
     const nextNotes = structuredClone(entry.annotations ?? []);
     publish(emptyEditHistory({ instances: nextModules, assemblies: nextAssemblies, annotations: nextNotes, zones: structuredClone(entry.zones ?? []) }));
     setZoneDraft([]);
     setZoneSelection(null);
+    viewingHistoricalRef.current = true;
     setMassingId(entry.networkId);
     const direct = keptJoins(nextModules, entry.directJoins ?? []);
     const hybrid = keptJoins(nextModules, entry.hybridJoins ?? []);
@@ -2776,22 +2844,39 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     if (!iteration && iterationView === null && iterations.length > 0) {
       iteration = iterations[iterations.length - 1];
     }
-    if (!iteration || iteration.id === massingId) return;
+    if (!iteration || (iteration.id === massingId && iteration.id === selectedNetworkId)) return;
+    const chosen = iteration;
     const hasWork = zones.length > 0 || instances.length > 0 || assemblies.length > 0;
-    if (massingId && hasWork) {
+    if (massingId && chosen.id !== massingId && hasWork) {
       const previous = iterations.find((item) => item.id === massingId);
-      const accepted = window.confirm(`Use iteration ${iteration.index} for zoning? Zones, tiles, and assemblies drawn on ${previous ? `iteration ${previous.index}` : "the previous network"} stay saved and are hidden until that network is chosen again.`);
+      const accepted = window.confirm(`Use iteration ${chosen.index} for zoning? Zones, tiles, and assemblies drawn on ${previous ? `iteration ${previous.index}` : "the previous network"} stay saved and are hidden until that network is chosen again.`);
       if (!accepted) return;
       commit((present) => ({
         ...present,
         instances: present.instances.map((item) => item.networkId || !massingId ? item : { ...item, networkId: massingId }),
         assemblies: present.assemblies.map((item) => item.networkId || !massingId ? item : { ...item, networkId: massingId }),
+        zones: (present.zones ?? []).map((zone) => zone.networkId || !massingId ? zone : { ...zone, networkId: massingId }),
       }));
     }
-    if (captured) rememberIteration(captured);
-    if (requestedId || iterationView === null) setIterationView(iteration.id);
-    setSelectedId(null);
-    setMassingId(iteration.id);
+    const apply = () => {
+      viewingHistoricalRef.current = false;
+      if (captured) rememberIteration(captured);
+      if (requestedId || iterationView === null) setIterationView(chosen.id);
+      setSelectedId(null);
+      setSelectedNetworkId(chosen.id);
+      setMassingId(chosen.id);
+    };
+    if (chosen.id === selectedNetworkId) {
+      apply();
+      return;
+    }
+    void persistPublishedSelection(chosen.id, captured ?? chosen).then((saved) => {
+      if (!saved.ok) {
+        setStrategyNotice(saved.error);
+        return;
+      }
+      apply();
+    });
   };
   const pocketReport = useMemo(() => detectPockets(viewedIteration?.branches ?? [], site.site.ring), [viewedIteration]);
   const pocketReadings = useMemo(() => readPockets(
@@ -2832,9 +2917,42 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     return kinds;
   }, [pocketReport, viewedIteration, zones]);
   const visibleZones = useMemo(
-    () => zones.filter((zone) => !zone.networkId || zone.networkId === massingId),
+    () => zones.filter((zone) => Boolean(massingId) && zone.networkId === massingId),
     [zones, massingId],
   );
+  const unassignedZoningCount = useMemo(
+    () => zones.filter((zone) => !zone.networkId).length,
+    [zones],
+  );
+  const staleZoningNote = useMemo(() => {
+    const notes: string[] = [];
+    const prior = zones.filter((zone) => zone.networkId && zone.networkId !== massingId);
+    if (prior.length > 0 && massingId) {
+      const labels = [...new Set(prior.map((zone) => zone.networkId))].map((id) => {
+        const iteration = iterations.find((item) => item.id === id);
+        return iteration ? `iteration ${iteration.index}` : "another network";
+      });
+      const count = prior.length;
+      notes.push(`${count} region${count === 1 ? "" : "s"} ${count === 1 ? "was" : "were"} drawn on ${labels.join(", ")}. ${count === 1 ? "It stays" : "They stay"} saved and ${count === 1 ? "is" : "are"} not zoning for this network.`);
+    }
+    if (unassignedZoningCount > 0) {
+      notes.push(`${unassignedZoningCount} unassigned working ${unassignedZoningCount === 1 ? "region" : "regions"} ${unassignedZoningCount === 1 ? "stays" : "stay"} saved and ${unassignedZoningCount === 1 ? "is" : "are"} not bound to this network.`);
+    }
+    return notes.length > 0 ? notes.join(" ") : null;
+  }, [iterations, massingId, unassignedZoningCount, zones]);
+  const stalePlacementNote = useMemo(() => {
+    const notes: string[] = [];
+    const hiddenTiles = instances.filter((item) => item.networkId && item.networkId !== massingId);
+    const hiddenAssemblies = assemblies.filter((item) => item.networkId && item.networkId !== massingId);
+    const count = hiddenTiles.length + hiddenAssemblies.length;
+    if (count > 0 && massingId) {
+      notes.push(`${count} placed ${count === 1 ? "record" : "records"} ${count === 1 ? "belongs" : "belong"} to another network. ${count === 1 ? "It stays" : "They stay"} saved and hidden until that network is used for zoning.`);
+    }
+    if (unassignedWorkingCount > 0) {
+      notes.push(`${unassignedWorkingCount} unassigned working ${unassignedWorkingCount === 1 ? "placement" : "placements"} ${unassignedWorkingCount === 1 ? "stays" : "stay"} saved and ${unassignedWorkingCount === 1 ? "is" : "are"} not bound to this network.`);
+    }
+    return notes.length > 0 ? notes.join(" ") : null;
+  }, [assemblies, instances, massingId, unassignedWorkingCount]);
   const placementZone = visibleZones.find((zone) => zone.id === zoneSelection)
     ?? visibleZones.filter((zone) => zone.pocketId && pocketSelection.includes(zone.pocketId)).sort((a, b) => a.baseFt - b.baseFt)[0]
     ?? null;
@@ -2845,6 +2963,68 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     const chosen = matches.find((zone) => zone.id === placementZone?.id) ?? [...matches].sort((left, right) => left.baseFt - right.baseFt)[0];
     setZoneSelection(chosen.id);
     setPocketSelection(chosen.pocketId ? [chosen.pocketId] : []);
+  };
+  const assignOccupancy = async (programId: string, clusterId: string, recommended: boolean) => {
+    if (!placementZone || !massingId) {
+      setOccupancyNotice("Select a zoning region first.");
+      return;
+    }
+    setOccupancyNotice("");
+    try {
+      const provenance: OccupancyProvenance = placementAssist === "automatic" ? "automatic-initial" : recommended || placementAssist === "ranked" ? "assisted" : "manual";
+      const previous = occupancyInZone(occupancy, placementZone.id);
+      const record = await placeOccupancy({
+        zoneId: placementZone.id,
+        programId,
+        finishedClusterId: clusterId,
+        provenance,
+        transform: previous?.transform,
+        networkId: massingId,
+      });
+      setOccupancy((current) => replaceZoneOccupancy(current, record));
+    } catch (error) {
+      setOccupancyNotice(error instanceof Error ? error.message : "The cluster could not be placed.");
+    }
+  };
+  const autoPlaceOccupancy = async () => {
+    setOccupancyNotice("Reading packed occupancy.");
+    try {
+      const records = await runAutomaticInitialPlacement();
+      setOccupancy(records);
+      setOccupancyNotice(records.length > 0 ? `Automatic initial placement assigned ${records.length} zone${records.length === 1 ? "" : "s"}. Replace any cluster from the catalog.` : "Automatic initial placement found no zone occupancy.");
+    } catch (error) {
+      setOccupancyNotice(error instanceof Error ? error.message : "Automatic initial placement could not run.");
+    }
+  };
+  const rotateSelectedOccupancy = () => {
+    if (!placementZone) return;
+    setOccupancy((current) => {
+      const record = occupancyInZone(current, placementZone.id);
+      return record ? replaceZoneOccupancy(current, rotateOccupancy(record, 90)) : current;
+    });
+  };
+  const saveWorkingAssembly = async () => {
+    if (!massingId) {
+      setOccupancyNotice("A selected Site Strategy network is required.");
+      return;
+    }
+    if (occupancy.length === 0) {
+      setOccupancyNotice("Place at least one finished cluster before saving an assembly.");
+      return;
+    }
+    try {
+      const saved = await saveClusterAssemblyRecord({
+        name: configName.trim() || undefined,
+        selectedNetworkId: massingId,
+        zoningSignature: occupancy[0]?.zoningSignature ?? "",
+        zones: visibleZones,
+        occupancy,
+        savedFrom: occupancy.every((item) => item.provenance === "automatic-initial") ? "auto-initial" : "placement",
+      });
+      setOccupancyNotice(`Saved ${saved.assemblyId}. Send for Development from Cluster Assembly.`);
+    } catch (error) {
+      setOccupancyNotice(error instanceof Error ? error.message : "The Cluster Assembly could not be saved.");
+    }
   };
   const tileReports = useMemo(() => reportTiles(sceneInstances, visibleZones), [sceneInstances, visibleZones]);
   tileReportRef.current = tileReports;
@@ -2894,7 +3074,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     const totals: Record<SiteZoneKind, number> = { lobby: 0, gathering: 0, workspace: 0 };
     const counts: Record<SiteZoneKind, number> = { lobby: 0, gathering: 0, workspace: 0 };
     for (const zone of zones) {
-      if (zone.networkId && zone.networkId !== massingId) continue;
+      if (zone.networkId !== massingId) continue;
       totals[zone.kind] += polygonAreaSqFt(zone.points);
       counts[zone.kind] += 1;
     }
@@ -3068,6 +3248,10 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       className="site-view"
       data-panels="model"
       data-sheet={sheet === "strategy" ? "network" : sheet}
+      data-selected-network={selectedNetworkId ?? undefined}
+      data-viewing-network={massingId ?? undefined}
+      data-zoning-count={String(visibleZones.length)}
+      data-zoning-source="designer"
     >
       <aside className="site-panel site-panel-library" aria-label={sheet === "strategy" ? "Site strategy" : sheet === "zoning" ? "Zoning" : sheet === "assembly" ? "Assembly" : sheet === "configurations" ? "Configurations" : "Library and project"}>
             {sheet === "strategy" ? (
@@ -3124,7 +3308,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                   plan={mode === "plan"}
                   canFinish={zoneDraft.length >= 3}
                   onFinish={() => finishZoneDraft(zoneDraft)}
-                  notice={zoneNotice}
+                  notice={[staleZoningNote, zoneNotice].filter(Boolean).join(" ") || null}
                   deleteId={zoneDeleteId}
                   onSelect={(id) => {
                     setZoneTool((current) => current === "draw" ? "select" : current);
@@ -3182,7 +3366,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
             ) : sheet === "configurations" ? (
               <section className="site-block">
                 <h2 className="site-subtitle">Configurations</h2>
-                <p className="site-note">Saved massings stay on this site model.</p>
+                <p className="site-note">Historical tile configurations. Opening one does not change the selected Site Strategy network, designer zoning, or the Selected Assembly for Development.</p>
                 {configurations.length === 0 ? <p className="site-note">Save names the current massing.</p> : (
                   <ul className="site-strategy-nodes">
                     {configurations.map((entry) => (
@@ -3197,6 +3381,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               </section>
             ) : sheet === "assembly" ? (
               <div className="site-strategy-body">
+                <p className="site-note">Tile joins. This is not the Cluster Assembly checkpoint.</p>
                 <SiteAssemblyStep
                   tiles={workflowTiles}
                   tileA={chosenA}
@@ -3244,7 +3429,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               </div>
             ) : (
             <section className="site-block">
-              <ClusterPlacementLibrary zones={visibleZones} selectedZoneId={placementZone?.id ?? null} onSelectZone={focusProgramZone} onInspect={(programId, clusterId) => setClusterInspect({ programId, clusterId })} />
+              {stalePlacementNote ? <p className="site-note">{stalePlacementNote}</p> : null}
+              <div className="site-modes" role="group" aria-label="Placement assistance">
+                <button type="button" aria-pressed={placementAssist === "manual"} data-active={placementAssist === "manual" || undefined} onClick={() => setPlacementAssist("manual")}>Manual</button>
+                <button type="button" aria-pressed={placementAssist === "ranked"} data-active={placementAssist === "ranked" || undefined} onClick={() => setPlacementAssist("ranked")}>Ranked suggestion</button>
+                <button type="button" aria-pressed={placementAssist === "automatic"} data-active={placementAssist === "automatic" || undefined} onClick={() => { setPlacementAssist("automatic"); void autoPlaceOccupancy(); }}>Automatic initial</button>
+              </div>
+              {occupancyNotice ? <p className="site-note">{occupancyNotice}</p> : null}
+              <ClusterPlacementLibrary zones={visibleZones} selectedZoneId={placementZone?.id ?? null} occupancy={occupancy} assist={placementAssist === "ranked" ? "ranked" : "manual"} onSelectZone={focusProgramZone} onInspect={(programId, clusterId) => setClusterInspect({ programId, clusterId })} onPlace={(programId, clusterId, recommended) => void assignOccupancy(programId, clusterId, recommended)} />
               <h3 className="site-subtitle">Assemblies</h3>
               {catalog.length === 0 ? <p className="site-note">No assemblies are selected in Hybrid Cluster. Select one there to import it here.</p> : (
                 <>
@@ -3349,12 +3541,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
             <>
             <div className="site-frame-name">
               <h2 className="site-subtitle">Cluster Placement</h2>
-              <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}</p>
+              <p className="site-note">{massingLabel ? `Network ${massingLabel}` : "No massing network"}{occupancy.length > 0 ? ` · ${occupancy.length} occupied zone${occupancy.length === 1 ? "" : "s"}` : ""}</p>
               {armed && faceMatch?.valid ? <p className="site-note">{autoMatch ? "Auto-match" : "Manual"} {faceMatch.rank}/{faceMatch.total} · {faceMatch.pair} · {faceMatch.score >= 8 ? "Good" : "Partial"}{faceMatch.neighborName ? ` · ${faceMatch.neighborName}` : ""}</p> : null}
               {armed && faceMatch && !faceMatch.valid && faceMatch.warning ? <p className="site-note site-alert">{faceMatch.warning}</p> : null}
               <input aria-label="Configuration name" value={configName} onChange={(event) => setConfigName(event.target.value)} />
               {unsavedChanges ? <span className="site-pending">Unsaved</span> : null}
               <div className="site-modes">
+                <button type="button" onClick={() => void saveWorkingAssembly()}>Save assembly</button>
+                <button type="button" disabled={!occupancyInZone(occupancy, placementZone?.id ?? "")} onClick={rotateSelectedOccupancy}>Rotate 90°</button>
                 <button type="button" onClick={() => saveConfiguration(false)}>Save</button>
                 <button type="button" onClick={() => duplicateConfiguration()}>Duplicate</button>
                 <button type="button" disabled={!savedConfiguration} onClick={() => savedConfiguration && deleteSavedConfiguration(savedConfiguration.id)}>Delete</button>
@@ -3442,6 +3636,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 skins: assemblySkins,
                 onSweepDone: assemblyFilm.finishSweep,
               } : null}
+              clusterAssembly={sheet === "placement" && occupancy.length > 0 ? occupancyLayer : null}
               network={
                 networkStudy
                   ? {
@@ -3624,7 +3819,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               ? "Parallel view. Right-drag pans. Ctrl+Shift+right turns it. Ctrl+right or the wheel zooms."
               : "Right-drag orbits. Shift+right pans. Ctrl+right or the wheel zooms."}
           {" "}
-          <>Click a module in the library, then click the site. The ghost is the real mesh. Left-click selects a placed tile. Left-drag moves it. Stack above and stack below offset by 20 ft, and the upper tile can shift sideways.</>
+          <>Select a zoning region, choose a compatible program, then Place a ranked finished cluster. Automatic initial placement is optional. Save assembly writes a Cluster Assembly catalog record. Tile click-to-place remains available as a legacy auxiliary tool.</>
         </p>
         ) : null}
       </section>
@@ -3639,7 +3834,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                     evaluations={networkEvaluations}
                     layouts={layoutEvaluations}
                     viewId={iterationView}
-                    massingId={massingId}
+                    massingId={selectedNetworkId}
                     compareIds={iterationCompare}
                     shortlistIds={zoningShortlist}
                     batch={iterationBatch}

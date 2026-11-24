@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import publishedSelections from "@/data/skill2/pareto-catalog/selections.json";
@@ -22,7 +22,11 @@ function publishedLobby(archetypeId: string, candidateId: number) {
   return pick?.typologyId === "lobby" && pick.candidateId === candidateId;
 }
 
-/** Serving copy of a published Lobby bundle. The verified Z0 files are not written. */
+/**
+ * Optional serving cache of Lobby continuation bundles.
+ * Not Skill 3 production authority (`data/skill3/final-selection.json` is).
+ * GET handlers must not write this directory.
+ */
 const LOBBY_BUNDLE_DIR = join(process.cwd(), "data", "skill3", "published-lobby");
 
 function lobbyBundlePath(archetypeId: string, candidateId: number) {
@@ -36,22 +40,6 @@ function readLobbyBundle(archetypeId: string, candidateId: number) {
     return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof continuationBundle>;
   } catch {
     return null;
-  }
-}
-
-function writeLobbyBundle(archetypeId: string, candidateId: number, bundle: ReturnType<typeof continuationBundle>) {
-  mkdirSync(LOBBY_BUNDLE_DIR, { recursive: true });
-  writeFileSync(lobbyBundlePath(archetypeId, candidateId), JSON.stringify(bundle));
-}
-
-/** The response does not depend on this cache. A read-only deploy cannot write it. */
-function rememberLobbyBundle(archetypeId: string, candidateId: number, bundle: ReturnType<typeof continuationBundle>) {
-  if (existsSync(lobbyBundlePath(archetypeId, candidateId))) return;
-  try {
-    writeLobbyBundle(archetypeId, candidateId, bundle);
-  } catch (caught) {
-    const code = caught && typeof caught === "object" && "code" in caught ? String(caught.code) : "";
-    if (code !== "EROFS" && code !== "EPERM" && code !== "EACCES") throw caught;
   }
 }
 
@@ -176,9 +164,6 @@ function continuations(request: Request) {
       return NextResponse.json({ error: "The continuation bundle is not loaded." }, { status: 404 });
     }
     const bundle = continuationBundle(set);
-    if (lobby && set.origin === "handoff") {
-      rememberLobbyBundle(requested.selection.archetypeId, requested.selection.candidateId, bundle);
-    }
     return jsonBundle(bundle, url.searchParams.get("continuation"));
   }
 
@@ -187,9 +172,6 @@ function continuations(request: Request) {
       ? loadProvisionalContinuations(requested.selection)
       : loadVerifiedContinuations(requested.selection);
     const bundle = continuationBundle(set);
-    if (!preview && set.origin === "handoff" && publishedLobby(set.archetypeId, set.candidateId)) {
-      rememberLobbyBundle(set.archetypeId, set.candidateId, bundle);
-    }
     return NextResponse.json(bundle);
   } catch (caught) {
     const error = caught instanceof Error ? caught.message : "The selected candidate could not be reconstructed.";

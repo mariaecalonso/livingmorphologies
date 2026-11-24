@@ -742,6 +742,9 @@
 }
 
 .placed.live {
+  --teal: #49d7de;
+  --deep: #0f7377;
+  --copper: #c77e5f;
   min-height: 0;
   align-items: center;
 }
@@ -812,6 +815,8 @@
   align-self: center;
   justify-self: center;
   box-shadow: none;
+  animation: none;
+  opacity: 1;
 }
 
 .placed.live .key {

@@ -12,10 +12,10 @@ import {
 } from "./contract";
 
 /**
- * Current working Skill 3 handoff for Skill 4 testing.
+ * Skill 3 Final Handoff for Skill 4.
  * The solidified file stays the source. Registration writes a new mesh.
  */
-export const SKILL3_HANDOFF_NOTE = "Current working Skill 3 handoff for Skill 4 testing. Not a final approved geometry set.";
+export const SKILL3_HANDOFF_NOTE = "Skill 3 Final Handoff. 15 designer-selected final geometries.";
 
 type RegistrationCell = { min: Vec3; max: Vec3 };
 
@@ -92,6 +92,8 @@ export function loadSkill3HandoffRecord(archetypeId: string): Skill4ModuleRecord
   return {
     contract: SKILL4_MODULE_CONTRACT,
     moduleId: entry.moduleId,
+    candidateId: entry.candidateId,
+    continuationId: entry.continuationId,
     revision: 1,
     archetypeId: entry.archetypeId,
     source: "skill03",

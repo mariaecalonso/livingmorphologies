@@ -12,14 +12,17 @@ import { semanticCatalogRoot, semanticPreviewPath } from "@/lib/skill2/published
 export type PublishedHandoff = "verified" | "pending";
 
 /**
- * The drawing on the catalog page. A finished local run supplies its catalog
- * representatives. Otherwise the published catalogue does.
+ * Lab and Skill 3 read the committed Pareto catalog first.
+ * A finished local run supplies only candidates that catalog does not contain.
+ * Older published semantic catalogues are last.
  * Does not write the catalogue or rerun search.
  */
 export function readCatalogSelection(archetypeId: string, candidateId: number): Skill2Selection | null {
-  const run = finishedLocalRun(archetypeId);
-  if (run) return selectionFromRun(run, candidateId);
-  return readPublishedSelection(archetypeId, candidateId);
+  return (
+    selectionFromParetoCatalog(archetypeId, candidateId) ??
+    selectionFromFinishedLocalRun(archetypeId, candidateId) ??
+    readPublishedSelection(archetypeId, candidateId)
+  );
 }
 
 /** Verified only when the stored snapshot is this same drawing. */
@@ -67,6 +70,11 @@ function finishedLocalRun(archetypeId: string): SemanticRun | null {
   return run;
 }
 
+function selectionFromFinishedLocalRun(archetypeId: string, candidateId: number): Skill2Selection | null {
+  const run = finishedLocalRun(archetypeId);
+  return run ? selectionFromRun(run, candidateId) : null;
+}
+
 function selectionFromRun(run: SemanticRun, candidateId: number): Skill2Selection | null {
   const visible = run.catalog.entries.some((entry) => entry.representativeId === candidateId);
   if (!visible) return null;
@@ -100,6 +108,51 @@ export function snapshotMatchesSelection(meta: Z0Meta, selection: Skill2Selectio
   if (JSON.stringify(meta.identity.genome) !== JSON.stringify(selection.plan)) return false;
   if (meta.replay?.state && JSON.stringify(meta.replay.state) !== JSON.stringify(selection.state)) return false;
   return true;
+}
+
+type ParetoCatalogCandidate = {
+  id: number;
+  pareto: boolean;
+  specialist: "formal" | "spatial" | "atmospheric" | null;
+  diversity: "none" | "tag" | "rescue";
+};
+
+/** Committed Skill 2 catalog in `data/skill2/pareto-catalog`. Plan comes from the stored Z0. */
+function selectionFromParetoCatalog(archetypeId: string, candidateId: number): Skill2Selection | null {
+  if (!/^[a-z0-9-]+$/.test(archetypeId) || !Number.isInteger(candidateId)) return null;
+  const infoPath = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "info.json");
+  if (!existsSync(infoPath)) return null;
+  let info: { candidates?: ParetoCatalogCandidate[] };
+  try {
+    info = JSON.parse(readFileSync(infoPath, "utf8")) as { candidates?: ParetoCatalogCandidate[] };
+  } catch {
+    return null;
+  }
+  const candidate = (info.candidates ?? []).find((item) => item.id === candidateId);
+  if (!candidate) return null;
+  const z0Path = join(semanticRunDir(), archetypeId, "z0", `${candidateId}.json`);
+  if (!existsSync(z0Path)) return null;
+  let meta: Z0Meta;
+  try {
+    meta = JSON.parse(readFileSync(z0Path, "utf8")) as Z0Meta;
+  } catch {
+    return null;
+  }
+  if (meta.identity?.archetypeId !== archetypeId || meta.identity.candidateId !== candidateId) return null;
+  const typologyId = Object.values(ARCHETYPES).find((item) => item.id === archetypeId)?.typologyId ?? "";
+  const drawing = join(process.cwd(), "data", "skill2", "pareto-catalog", archetypeId, "drawings", `${candidateId}.png`);
+  return parseSkill2Selection({
+    archetypeId,
+    typologyId,
+    candidateId,
+    objectives: meta.provenance?.objectives,
+    pareto: candidate.pareto,
+    specialist: candidate.specialist,
+    diversity: candidate.diversity,
+    plan: meta.identity.genome,
+    state: meta.replay?.state ?? {},
+    previewFile: existsSync(drawing) ? `previews/${candidateId}.png` : null,
+  });
 }
 
 function selectionFromCandidate(archetypeId: string, candidate: PublishedCandidate): Skill2Selection | null {

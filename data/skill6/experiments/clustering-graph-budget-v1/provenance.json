@@ -1,0 +1,624 @@
+{
+  "source": "data/skill6/process-archive/diagnostics/troubleshooting-v3",
+  "chain": "on-graph-branching-7 remains the ranked winner in clustering-overnight-v1",
+  "plans": [
+    {
+      "id": "graph-budget-widening-7",
+      "cache": "Fresh board. The placement at 210 tests is the stored six-tile widening plan.",
+      "tests": 286,
+      "milliseconds": 4286,
+      "matchesPlacementAt210": true,
+      "rejectionCounts": [
+        {
+          "reason": "The guest passes below Z = 0.",
+          "count": 75
+        },
+        {
+          "reason": "The meeting face is -Z.",
+          "count": 37
+        },
+        {
+          "reason": "Triangle crossing depth 0.146 exceeds 0.02.",
+          "count": 23
+        },
+        {
+          "reason": "Triangle crossing depth 0.152 exceeds 0.02.",
+          "count": 15
+        },
+        {
+          "reason": "Triangle crossing depth 0.173 exceeds 0.02.",
+          "count": 12
+        },
+        {
+          "reason": "Triangle crossing depth 0.149 exceeds 0.02.",
+          "count": 11
+        },
+        {
+          "reason": "Triangle crossing depth 0.138 exceeds 0.02.",
+          "count": 6
+        },
+        {
+          "reason": "Triangle crossing depth 0.128 exceeds 0.02.",
+          "count": 6
+        },
+        {
+          "reason": "The guest drops below its host.",
+          "count": 6
+        },
+        {
+          "reason": "Triangle crossing depth 0.145 exceeds 0.02.",
+          "count": 5
+        },
+        {
+          "reason": "Triangle crossing depth 0.134 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.158 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.150 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.161 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.108 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.196 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.147 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.154 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.177 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.165 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.166 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.156 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.089 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.081 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.087 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.079 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.179 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.069 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.104 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.126 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.187 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.142 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.172 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.084 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.143 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.148 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.192 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.137 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.159 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.125 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.155 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.160 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.204 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.169 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.236 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.124 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.234 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.102 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.174 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.184 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.115 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.180 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.167 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.195 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.200 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.163 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.209 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.170 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.227 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.226 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.214 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.212 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.222 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.240 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.199 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.218 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.217 exceeds 0.02.",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "graph-budget-wide-fan-7",
+      "cache": "Same board after paired generations and widening each used 210 tests. The placement at 210 tests is the stored six-tile wide-fan plan.",
+      "tests": 362,
+      "milliseconds": 867,
+      "matchesPlacementAt210": true,
+      "rejectionCounts": [
+        {
+          "reason": "The meeting face is -Z.",
+          "count": 238
+        },
+        {
+          "reason": "The guest passes below Z = 0.",
+          "count": 66
+        },
+        {
+          "reason": "Triangle crossing depth 0.166 exceeds 0.02.",
+          "count": 11
+        },
+        {
+          "reason": "Triangle crossing depth 0.125 exceeds 0.02.",
+          "count": 11
+        },
+        {
+          "reason": "Triangle crossing depth 0.138 exceeds 0.02.",
+          "count": 10
+        },
+        {
+          "reason": "Triangle crossing depth 0.172 exceeds 0.02.",
+          "count": 8
+        },
+        {
+          "reason": "Triangle crossing depth 0.189 exceeds 0.02.",
+          "count": 7
+        },
+        {
+          "reason": "Triangle crossing depth 0.161 exceeds 0.02.",
+          "count": 7
+        },
+        {
+          "reason": "Triangle crossing depth 0.158 exceeds 0.02.",
+          "count": 6
+        },
+        {
+          "reason": "Triangle crossing depth 0.150 exceeds 0.02.",
+          "count": 5
+        },
+        {
+          "reason": "Triangle crossing depth 0.196 exceeds 0.02.",
+          "count": 5
+        },
+        {
+          "reason": "Triangle crossing depth 0.179 exceeds 0.02.",
+          "count": 5
+        },
+        {
+          "reason": "Triangle crossing depth 0.243 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.140 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.108 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.122 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.184 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.152 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.143 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.205 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.128 exceeds 0.02.",
+          "count": 4
+        },
+        {
+          "reason": "Triangle crossing depth 0.085 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.151 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.121 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.083 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.167 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.081 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.105 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.142 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.177 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.077 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.171 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.198 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.157 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.099 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.149 exceeds 0.02.",
+          "count": 3
+        },
+        {
+          "reason": "Triangle crossing depth 0.087 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.159 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.104 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.126 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.182 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.180 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.148 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.129 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.173 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.146 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.174 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.154 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.170 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.147 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.226 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.190 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.145 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.141 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.217 exceeds 0.02.",
+          "count": 2
+        },
+        {
+          "reason": "Triangle crossing depth 0.089 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.079 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.069 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.110 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.223 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.132 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.187 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.103 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.165 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.134 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.102 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.156 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.136 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.114 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.084 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.185 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.100 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.168 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.195 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.200 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.163 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.227 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.209 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.214 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.212 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.222 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.199 exceeds 0.02.",
+          "count": 1
+        },
+        {
+          "reason": "Triangle crossing depth 0.218 exceeds 0.02.",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

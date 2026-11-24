@@ -1,0 +1,3657 @@
+{
+ "version": 1,
+ "note": "Surface proximity docking on the adaptive-seating comparison pairs. Not promoted. Thresholds unchanged.",
+ "atlas": "data/skill6/atlas/v1.json",
+ "summary": {
+  "pairs": 12,
+  "fixedAccepted": 0,
+  "adaptiveAccepted": 4,
+  "dockAccepted": 2,
+  "beyondAdaptive": 2,
+  "beyondAdaptiveAllowed": 2,
+  "directionCounts": {
+   "-X": 2
+  },
+  "tested": 1012,
+  "skippedCurvature": 0,
+  "skippedPrefilter": 100,
+  "milliseconds": 21621,
+  "atlasEntries": 440
+ },
+ "comparisons": [
+  {
+   "key": "compressed-sequential|open-hall|-Y|270|0|0|0",
+   "host": "compressed-sequential",
+   "guest": "open-hall",
+   "fixedAccepted": false,
+   "adaptiveAccepted": true,
+   "adaptiveArea": 250.92948616923516,
+   "adaptiveDirection": "-Y",
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 154,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 2,
+   "milliseconds": 3488,
+   "attempts": [
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.10592937323986544,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.41349146203662,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.111 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.10592937323986544,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 16.442148094100276,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.164 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.10592937323986544,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.971556379500027,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.10592937323986544,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.10592937323986544,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 8.757711724833543,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.10592937323986544,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.340121332269863,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.244 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.10592937323986544,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 6.004925488816378,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.10592937323986544,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.0905698144690736,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 15.795195068387468,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.0905698144690736,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 10.013777824698433,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.0905698144690736,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 21.991587757115273,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.0905698144690736,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 14.561483220288666,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.0905698144690736,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 12.556583385863771,
+     "gap": 0.42,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.0905698144690736,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 14.921255666407415,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.0905698144690736,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 17.493138349060498,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.0905698144690736,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 29.04049178440676,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.127 exceeds 0.02.",
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "flat-deep-plan|contained-room-within-volume|-Y|180|40|90|0",
+   "host": "flat-deep-plan",
+   "guest": "contained-room-within-volume",
+   "fixedAccepted": false,
+   "adaptiveAccepted": true,
+   "adaptiveArea": 3.242944757485469,
+   "adaptiveDirection": "-Y",
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 55,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 11,
+   "milliseconds": 825,
+   "attempts": [
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d01",
+     "twist": 0,
+     "curvature": [
+      0.1921066127996195,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d01",
+     "twist": 90,
+     "curvature": [
+      0.1921066127996195,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d01",
+     "twist": 180,
+     "curvature": [
+      0.1921066127996195,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d01",
+     "twist": 270,
+     "curvature": [
+      0.1921066127996195,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.11734107370036652,
+      -0.012252095445187718
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 0.9752208761927561,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.11734107370036652,
+      -0.012252095445187718
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.11734107370036652,
+      -0.012252095445187718
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.11734107370036652,
+      -0.012252095445187718
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 0.9872448450484321,
+     "gap": 0.3,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.055848777103775414,
+      -0.012252095445187718
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 0.1540120191271591,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.055848777103775414,
+      -0.012252095445187718
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.055848777103775414,
+      -0.012252095445187718
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.055848777103775414,
+      -0.012252095445187718
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d01",
+     "twist": 0,
+     "curvature": [
+      -0.11734107370036652,
+      0.14993414240008623
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 2.4943842486450447,
+     "gap": 0.42,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d01",
+     "twist": 90,
+     "curvature": [
+      -0.11734107370036652,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d01",
+     "twist": 180,
+     "curvature": [
+      -0.11734107370036652,
+      0.14993414240008623
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d01",
+     "twist": 270,
+     "curvature": [
+      -0.11734107370036652,
+      0.14993414240008623
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 12.908159126088583,
+     "gap": 0.26,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.255 exceeds 0.02.",
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "linear-gallery|open-hall|+Y|90|0|0|0",
+   "host": "linear-gallery",
+   "guest": "open-hall",
+   "fixedAccepted": false,
+   "adaptiveAccepted": true,
+   "adaptiveArea": 211.14016781048468,
+   "adaptiveDirection": "+Y",
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 55,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 11,
+   "milliseconds": 1176,
+   "attempts": [
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.2545209328870809,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.2545209328870809,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.2545209328870809,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.2545209328870809,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      -0.2545209328870809,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      -0.2545209328870809,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      -0.2545209328870809,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      -0.2545209328870809,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.16281301571263998,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.16281301571263998,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.16281301571263998,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 16.113620368360998,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.16281301571263998,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.175628991896281,
+     "gap": 0.42,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.16281301571263998,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.16281301571263998,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 3.0036866633307913,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.16281301571263998,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 3.670546266254367,
+     "gap": 0.14,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.16281301571263998,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.147089901965316,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "vertical-void|open-hall|+Y|90|0|0|0",
+   "host": "vertical-void",
+   "guest": "open-hall",
+   "fixedAccepted": false,
+   "adaptiveAccepted": true,
+   "adaptiveArea": 192.114690434972,
+   "adaptiveDirection": "+Y",
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 77,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 9,
+   "milliseconds": 1950,
+   "attempts": [
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.05474158526165461,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.05474158526165461,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.05474158526165461,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.05474158526165461,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      -0.05474158526165461,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      -0.05474158526165461,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      -0.05474158526165461,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      -0.05474158526165461,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.029557141483318988,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 52.55314827658336,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.151 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.029557141483318988,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 63.70713744343672,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.158 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.029557141483318988,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 67.24332212538656,
+     "gap": 0.26,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.029557141483318988,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 22.689804449978023,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      -0.029557141483318988,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 76.5130460010622,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.162 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      -0.029557141483318988,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 48.37874190488196,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      -0.029557141483318988,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 89.32392695322243,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.225 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      -0.029557141483318988,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "continuous-hall|flat-deep-plan|+Z|0|0|90|1",
+   "host": "continuous-hall",
+   "guest": "flat-deep-plan",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 66,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 10,
+   "milliseconds": 1355,
+   "attempts": [
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d05",
+     "twist": 0,
+     "curvature": [
+      -0.14878288813751583,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d05",
+     "twist": 90,
+     "curvature": [
+      -0.14878288813751583,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d05",
+     "twist": 180,
+     "curvature": [
+      -0.14878288813751583,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 5.049778197190764,
+     "gap": 0.14,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d05",
+     "twist": 270,
+     "curvature": [
+      -0.14878288813751583,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d07",
+     "twist": 0,
+     "curvature": [
+      -0.14878288813751583,
+      0.1921066127996195
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d07",
+     "twist": 90,
+     "curvature": [
+      -0.14878288813751583,
+      0.1921066127996195
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d07",
+     "twist": 180,
+     "curvature": [
+      -0.14878288813751583,
+      0.1921066127996195
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 8.602655300022795,
+     "gap": 0.38,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.160 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d07",
+     "twist": 270,
+     "curvature": [
+      -0.14878288813751583,
+      0.1921066127996195
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.14878288813751583,
+      -0.055848777103775414
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 5.236996476783843,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.14878288813751583,
+      -0.055848777103775414
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 1.9963352005871249,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.14878288813751583,
+      -0.055848777103775414
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.14878288813751583,
+      -0.055848777103775414
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d05",
+     "twist": 0,
+     "curvature": [
+      0.14499506703260895,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.110511926127808,
+     "gap": 0.3,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d05",
+     "twist": 90,
+     "curvature": [
+      0.14499506703260895,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 5.294153291624635,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d05",
+     "twist": 180,
+     "curvature": [
+      0.14499506703260895,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d05",
+     "twist": 270,
+     "curvature": [
+      0.14499506703260895,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "flat-deep-plan|open-hall|-X|180|0|0|0",
+   "host": "flat-deep-plan",
+   "guest": "open-hall",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": true,
+   "dockArea": 12.484461674510925,
+   "dockGap": 0.34,
+   "dockDirection": "-X",
+   "dockNormal": [
+    -0.9999399473010073,
+    0.007721093610454051,
+    -0.007777307060765381
+   ],
+   "directions": [
+    "-X"
+   ],
+   "beyondAdaptive": true,
+   "tested": 132,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 4,
+   "milliseconds": 2917,
+   "attempts": [
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.1921066127996195,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.1921066127996195,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 14.220963133669963,
+     "gap": 0.38,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.081 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.1921066127996195,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 24.262849327251157,
+     "gap": 0.38,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.1921066127996195,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.11734107370036652,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 16.86816768608105,
+     "gap": 0.3,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.195 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.11734107370036652,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 23.158726062429547,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.045 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.11734107370036652,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": true,
+     "area": 12.484461674510925,
+     "gap": 0.34,
+     "direction": "-X",
+     "reason": null,
+     "pose": {
+      "basis": [
+       -0.9947933298571193,
+       0.06748310958159474,
+       0.076369239835053,
+       0.06748310958159459,
+       -0.1253584433367583,
+       0.9898137656172414,
+       0.076369239835053,
+       0.9898137656172415,
+       0.12015177319387703
+      ],
+      "translation": [
+       -21.18693723102828,
+       -0.6923791595703432,
+       3.7197247344021247
+      ],
+      "quarterZ": 0,
+      "mirrorX": false
+     }
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.11734107370036652,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": true,
+     "area": 7.404597245197571,
+     "gap": 0.26,
+     "direction": "-X",
+     "reason": null,
+     "pose": {
+      "basis": [
+       -0.9890246942227736,
+       -0.12861226040392995,
+       0.0727257911015172,
+       -0.1171571426377889,
+       0.9825653227876853,
+       0.14435924072978812,
+       -0.09002420866910515,
+       0.1342545080394837,
+       -0.9868492128611028
+      ],
+      "translation": [
+       -21.108183174972265,
+       -0.6898055140004228,
+       3.705898129496861
+      ],
+      "quarterZ": 0,
+      "mirrorX": false
+     }
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      -0.11734107370036652,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      -0.11734107370036652,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 31.44408173756233,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.227 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      -0.11734107370036652,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 36.725373563052244,
+     "gap": 0.42,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.159 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      -0.11734107370036652,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 30.365174771998547,
+     "gap": 0.42,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.051 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.1921066127996195,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.898205300614144,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.129 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.1921066127996195,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.693027031177625,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.067 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.1921066127996195,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 22.499380144974815,
+     "gap": 0.3,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.078 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.1921066127996195,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "void-edge|compressed-sequential|+Y|0|0|0|0",
+   "host": "void-edge",
+   "guest": "compressed-sequential",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 99,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 7,
+   "milliseconds": 1887,
+   "attempts": [
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d00",
+     "twist": 0,
+     "curvature": [
+      -0.33920190566202757,
+      0.10592937323986544
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d00",
+     "twist": 90,
+     "curvature": [
+      -0.33920190566202757,
+      0.10592937323986544
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d00",
+     "twist": 180,
+     "curvature": [
+      -0.33920190566202757,
+      0.10592937323986544
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 20.044961479184664,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.142 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d00",
+     "twist": 270,
+     "curvature": [
+      -0.33920190566202757,
+      0.10592937323986544
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 13.168869993041334,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d01",
+     "twist": 0,
+     "curvature": [
+      -0.33920190566202757,
+      0.0905698144690736
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 13.357002606046184,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.226 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d01",
+     "twist": 90,
+     "curvature": [
+      -0.33920190566202757,
+      0.0905698144690736
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.769760085603025,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d01",
+     "twist": 180,
+     "curvature": [
+      -0.33920190566202757,
+      0.0905698144690736
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 10.67958457646697,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.126 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d01",
+     "twist": 270,
+     "curvature": [
+      -0.33920190566202757,
+      0.0905698144690736
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.404909068151481,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.33920190566202757,
+      -0.04311713727711947
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.33920190566202757,
+      -0.04311713727711947
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.33920190566202757,
+      -0.04311713727711947
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.33920190566202757,
+      -0.04311713727711947
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d05",
+     "twist": 0,
+     "curvature": [
+      -0.33920190566202757,
+      -0.023207878356293243
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d05",
+     "twist": 90,
+     "curvature": [
+      -0.33920190566202757,
+      -0.023207878356293243
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.717557337516135,
+     "gap": 0.22,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d05",
+     "twist": 180,
+     "curvature": [
+      -0.33920190566202757,
+      -0.023207878356293243
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.302076750333118,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d05",
+     "twist": 270,
+     "curvature": [
+      -0.33920190566202757,
+      -0.023207878356293243
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 12.903024846324733,
+     "gap": 0.38,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "undulated|flat-deep-plan|+Y|90|0|0|0",
+   "host": "undulated",
+   "guest": "flat-deep-plan",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 66,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 10,
+   "milliseconds": 1304,
+   "attempts": [
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d05",
+     "twist": 0,
+     "curvature": [
+      -0.022764128522149842,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 4.113950862726433,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.203 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d05",
+     "twist": 90,
+     "curvature": [
+      -0.022764128522149842,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d05",
+     "twist": 180,
+     "curvature": [
+      -0.022764128522149842,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d05",
+     "twist": 270,
+     "curvature": [
+      -0.022764128522149842,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 2.8487497413307903,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d05",
+     "twist": 0,
+     "curvature": [
+      0.04050581716721618,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d05",
+     "twist": 90,
+     "curvature": [
+      0.04050581716721618,
+      -0.11734107370036652
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 2.184286128483464,
+     "gap": 0.26,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d05",
+     "twist": 180,
+     "curvature": [
+      0.04050581716721618,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d05",
+     "twist": 270,
+     "curvature": [
+      0.04050581716721618,
+      -0.11734107370036652
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 0,
+     "curvature": [
+      -0.022764128522149842,
+      0.1921066127996195
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 4.087143775373533,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 90,
+     "curvature": [
+      -0.022764128522149842,
+      0.1921066127996195
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 180,
+     "curvature": [
+      -0.022764128522149842,
+      0.1921066127996195
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 270,
+     "curvature": [
+      -0.022764128522149842,
+      0.1921066127996195
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 1.2846695412394866,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.022764128522149842,
+      -0.055848777103775414
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 2.778067435512983,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.022764128522149842,
+      -0.055848777103775414
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.022764128522149842,
+      -0.055848777103775414
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.022764128522149842,
+      -0.055848777103775414
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "terraced|open-hall|+Y|90|40|0|0",
+   "host": "terraced",
+   "guest": "open-hall",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 77,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 9,
+   "milliseconds": 2211,
+   "attempts": [
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.02636345510788449,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.777772713840532,
+     "gap": 0.26,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.02636345510788449,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.444728140974725,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.02636345510788449,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 12.080525223757613,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.02636345510788449,
+      -0.23744810211476852
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.339071962290019,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.02636345510788449,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.02636345510788449,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.056098013816026,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.02636345510788449,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.72565120617337,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.02636345510788449,
+      -0.01614307370004237
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 15.987851906474068,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      0.02816531807738424,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      0.02816531807738424,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      0.02816531807738424,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      0.02816531807738424,
+      -0.23744810211476852
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d06",
+     "twist": 0,
+     "curvature": [
+      0.02816531807738424,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d06",
+     "twist": 90,
+     "curvature": [
+      0.02816531807738424,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d06",
+     "twist": 180,
+     "curvature": [
+      0.02816531807738424,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d06",
+     "twist": 270,
+     "curvature": [
+      0.02816531807738424,
+      -0.01614307370004237
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "vertical-void|void-field|+Y|90|-40|0|0",
+   "host": "vertical-void",
+   "guest": "void-field",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 66,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 10,
+   "milliseconds": 1334,
+   "attempts": [
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.05474158526165461,
+      -0.0554855150119314
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.05474158526165461,
+      -0.0554855150119314
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.05474158526165461,
+      -0.0554855150119314
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.05474158526165461,
+      -0.0554855150119314
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 3.2711178690471336,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d07",
+     "twist": 0,
+     "curvature": [
+      -0.05474158526165461,
+      0.10741783155394309
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d07",
+     "twist": 90,
+     "curvature": [
+      -0.05474158526165461,
+      0.10741783155394309
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d07",
+     "twist": 180,
+     "curvature": [
+      -0.05474158526165461,
+      0.10741783155394309
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d07",
+     "twist": 270,
+     "curvature": [
+      -0.05474158526165461,
+      0.10741783155394309
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d03",
+     "twist": 0,
+     "curvature": [
+      -0.05474158526165461,
+      0.03963267119982761
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 6.086028537035017,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d03",
+     "twist": 90,
+     "curvature": [
+      -0.05474158526165461,
+      0.03963267119982761
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d03",
+     "twist": 180,
+     "curvature": [
+      -0.05474158526165461,
+      0.03963267119982761
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d03",
+     "guestRegion": "d03",
+     "twist": 270,
+     "curvature": [
+      -0.05474158526165461,
+      0.03963267119982761
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.029557141483318988,
+      -0.0554855150119314
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 8.048558986808203,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.029557141483318988,
+      -0.0554855150119314
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 28.716688142667397,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.198 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.029557141483318988,
+      -0.0554855150119314
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 18.48878700393641,
+     "gap": 0.46,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d05",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.029557141483318988,
+      -0.0554855150119314
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 26.971056438054696,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "stepped-amphitheater|void-edge|+Y|180|0|0|1",
+   "host": "stepped-amphitheater",
+   "guest": "void-edge",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": false,
+   "dockArea": null,
+   "dockGap": null,
+   "dockDirection": null,
+   "dockNormal": null,
+   "directions": [],
+   "beyondAdaptive": false,
+   "tested": 66,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 10,
+   "milliseconds": 1371,
+   "attempts": [
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.01036096265870735,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 15.272995978102552,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.177 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.01036096265870735,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.758860336507883,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.096 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.01036096265870735,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d07",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.01036096265870735,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 12.6309724245489,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      -0.019147178473273286,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 4.93054345435324,
+     "gap": 0.14,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.167 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      -0.019147178473273286,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      -0.019147178473273286,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d01",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      -0.019147178473273286,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 10.114679689679448,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      0.02948109225812194,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      0.02948109225812194,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      0.02948109225812194,
+      -0.33920190566202757
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 7.538979486448887,
+     "gap": 0.38,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d04",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      0.02948109225812194,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d04",
+     "twist": 0,
+     "curvature": [
+      0.1377601973779316,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d04",
+     "twist": 90,
+     "curvature": [
+      0.1377601973779316,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d04",
+     "twist": 180,
+     "curvature": [
+      0.1377601973779316,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d00",
+     "guestRegion": "d04",
+     "twist": 270,
+     "curvature": [
+      0.1377601973779316,
+      -0.33920190566202757
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    }
+   ]
+  },
+  {
+   "key": "open-hall|undulated|-X|270|0|0|1",
+   "host": "open-hall",
+   "guest": "undulated",
+   "fixedAccepted": false,
+   "adaptiveAccepted": false,
+   "adaptiveArea": null,
+   "adaptiveDirection": null,
+   "dockAccepted": true,
+   "dockArea": 3.2692180114013287,
+   "dockGap": 0.42,
+   "dockDirection": "-X",
+   "dockNormal": [
+    -0.9994029601383247,
+    0.03405509042310738,
+    0.00582872910915135
+   ],
+   "directions": [
+    "-X"
+   ],
+   "beyondAdaptive": true,
+   "tested": 99,
+   "skippedCurvature": 0,
+   "skippedPrefilter": 7,
+   "milliseconds": 1803,
+   "attempts": [
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 0,
+     "curvature": [
+      -0.23744810211476852,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 11.67546794756634,
+     "gap": 0.34,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.131 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 90,
+     "curvature": [
+      -0.23744810211476852,
+      0.17898678684791422
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 180,
+     "curvature": [
+      -0.23744810211476852,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": true,
+     "area": 3.2692180114013287,
+     "gap": 0.42,
+     "direction": "-X",
+     "reason": null,
+     "pose": {
+      "basis": [
+       0.0437996996446446,
+       -0.31058725730611736,
+       0.9495352241544821,
+       -0.3105872573061175,
+       -0.9075833759735925,
+       -0.28253844208433043,
+       0.9495352241544828,
+       -0.2825384420843303,
+       -0.13621632367105233
+      ],
+      "translation": [
+       -15.901330949454573,
+       -1.7449184827646205,
+       1.3849896524357914
+      ],
+      "quarterZ": 0,
+      "mirrorX": false
+     }
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d07",
+     "twist": 270,
+     "curvature": [
+      -0.23744810211476852,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 8.423601344971441,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.159 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.23744810211476852,
+      -0.022764128522149842
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.23744810211476852,
+      -0.022764128522149842
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.23744810211476852,
+      -0.022764128522149842
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 3.7486511880642466,
+     "gap": 0.18,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d02",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.23744810211476852,
+      -0.022764128522149842
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 2.741669319497636,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 0,
+     "curvature": [
+      -0.01614307370004237,
+      -0.022764128522149842
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 90,
+     "curvature": [
+      -0.01614307370004237,
+      -0.022764128522149842
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 180,
+     "curvature": [
+      -0.01614307370004237,
+      -0.022764128522149842
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d02",
+     "twist": 270,
+     "curvature": [
+      -0.01614307370004237,
+      -0.022764128522149842
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 5.840006487636302,
+     "gap": 0.1,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d07",
+     "twist": 0,
+     "curvature": [
+      -0.01614307370004237,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 8.771198859552259,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.148 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d07",
+     "twist": 90,
+     "curvature": [
+      -0.01614307370004237,
+      0.17898678684791422
+     ],
+     "skipped": "prefilter",
+     "accepted": false,
+     "area": null,
+     "gap": null,
+     "direction": null,
+     "reason": null,
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d07",
+     "twist": 180,
+     "curvature": [
+      -0.01614307370004237,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 14.45696217591226,
+     "gap": 0.26,
+     "direction": null,
+     "reason": "Triangle crossing depth 0.121 exceeds 0.02.",
+     "pose": null
+    },
+    {
+     "hostRegion": "d06",
+     "guestRegion": "d07",
+     "twist": 270,
+     "curvature": [
+      -0.01614307370004237,
+      0.17898678684791422
+     ],
+     "skipped": null,
+     "accepted": false,
+     "area": 15.102039417084073,
+     "gap": 0.5,
+     "direction": null,
+     "reason": "The coherent region missed the area, residual, or alignment limit.",
+     "pose": null
+    }
+   ]
+  }
+ ],
+ "assemblies": [
+  {
+   "id": "dock-flat-deep-plan-open-hall",
+   "key": "flat-deep-plan|open-hall|-X|180|0|0|0",
+   "beyondAdaptive": true,
+   "dockArea": 12.484461674510925,
+   "dockDirection": "-X",
+   "joint": [
+    "patched-near-contact"
+   ],
+   "originalVoidAltered": false,
+   "originalOpeningAltered": false,
+   "review": [],
+   "preservation": {
+    "tiles": [
+     {
+      "instanceId": "t00",
+      "archetypeId": "flat-deep-plan",
+      "retained": 0.9220241780376596,
+      "slight": 0.04556123774420988,
+      "moved": 0.024065088026705796,
+      "buried": 0.00834949619142512,
+      "maxDeviation": 0.638133311105221
+     },
+     {
+      "instanceId": "t01",
+      "archetypeId": "open-hall",
+      "retained": 0.965203810920294,
+      "slight": 0.01648550738732767,
+      "moved": 0.013005743458242375,
+      "buried": 0.00530493823413648,
+      "maxDeviation": 0.3888186055215562
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "cell": 0.5,
+      "intersection": 1223,
+      "union": 1228,
+      "deviation": 0.004071661237785018,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "cell": 0.5,
+      "intersection": 1333,
+      "union": 1338,
+      "deviation": 0.0037369207772794955,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "cell": 0.5,
+      "intersection": 1252,
+      "union": 1253,
+      "deviation": 0.0007980845969672856,
+      "maxGap": 0.5
+     }
+    ],
+    "originalVoids": [
+     {
+      "instanceId": "t00",
+      "archetypeId": "flat-deep-plan",
+      "voids": []
+     },
+     {
+      "instanceId": "t01",
+      "archetypeId": "open-hall",
+      "voids": []
+     }
+    ],
+    "originalVoidsAltered": [],
+    "originalVoidAltered": false,
+    "openings": {
+     "step": 4.075797653198242,
+     "samples": 130,
+     "voidSamples": 95,
+     "filled": 0,
+     "filledNearJoint": 0,
+     "filledRemote": 0
+    },
+    "originalOpeningAltered": false,
+    "patches": [
+     {
+      "volume": 3.656444171814156,
+      "hostOverlap": 1.5662028188359813,
+      "guestOverlap": 1.472219133020424,
+      "outside": 0.6180222199577505
+     }
+    ],
+    "patchVolumeOutside": 0.6180222199577505,
+    "jointPocketsFilled": [
+     {
+      "volume": 0.005220109441946969,
+      "centroid": [
+       -10.215018535482473,
+       7.907053585710196,
+       15.342613976577233
+      ]
+     },
+     {
+      "volume": 0.0012041399345565679,
+      "centroid": [
+       -10.192386722564697,
+       7.710137462615966,
+       16.246194648742676
+      ]
+     }
+    ],
+    "jointPocketVolumeFilled": 0.006424249376503537,
+    "refinerFilled": 3,
+    "review": []
+   },
+   "milliseconds": {
+    "patches": 588,
+    "union": 137,
+    "refine": 807,
+    "total": 1532
+   }
+  },
+  {
+   "id": "dock-open-hall-undulated",
+   "key": "open-hall|undulated|-X|270|0|0|1",
+   "beyondAdaptive": true,
+   "dockArea": 3.2692180114013287,
+   "dockDirection": "-X",
+   "joint": [
+    "patched-near-contact"
+   ],
+   "originalVoidAltered": false,
+   "originalOpeningAltered": true,
+   "review": [
+    "4 of 104 original void samples lie inside the refined solid (0 near a joint, 4 remote)."
+   ],
+   "preservation": {
+    "tiles": [
+     {
+      "instanceId": "t00",
+      "archetypeId": "open-hall",
+      "retained": 0.9752063963004403,
+      "slight": 0.013456595359599116,
+      "moved": 0.007623498378973273,
+      "buried": 0.003713509960987709,
+      "maxDeviation": 0.3975577502968005
+     },
+     {
+      "instanceId": "t01",
+      "archetypeId": "undulated",
+      "retained": 0.9512166233408713,
+      "slight": 0.026470671521744604,
+      "moved": 0.017290425913687554,
+      "buried": 0.005022279223696328,
+      "maxDeviation": 0.2919611214210532
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "cell": 0.5,
+      "intersection": 1408,
+      "union": 1413,
+      "deviation": 0.0035385704175513455,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "cell": 0.5,
+      "intersection": 1487,
+      "union": 1489,
+      "deviation": 0.001343183344526544,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "cell": 0.5,
+      "intersection": 1119,
+      "union": 1120,
+      "deviation": 0.0008928571428571397,
+      "maxGap": 0.5
+     }
+    ],
+    "originalVoids": [
+     {
+      "instanceId": "t00",
+      "archetypeId": "open-hall",
+      "voids": []
+     },
+     {
+      "instanceId": "t01",
+      "archetypeId": "undulated",
+      "voids": []
+     }
+    ],
+    "originalVoidsAltered": [],
+    "originalVoidAltered": false,
+    "openings": {
+     "step": 4.075324821472168,
+     "samples": 145,
+     "voidSamples": 104,
+     "filled": 4,
+     "filledNearJoint": 0,
+     "filledRemote": 4
+    },
+    "originalOpeningAltered": true,
+    "patches": [
+     {
+      "volume": 2.417473444646253,
+      "hostOverlap": 1.0217825324532626,
+      "guestOverlap": 0.9058627393354078,
+      "outside": 0.4898281728575825
+     }
+    ],
+    "patchVolumeOutside": 0.4898281728575825,
+    "jointPocketsFilled": [],
+    "jointPocketVolumeFilled": 0,
+    "refinerFilled": 0,
+    "review": [
+     "4 of 104 original void samples lie inside the refined solid (0 near a joint, 4 remote)."
+    ]
+   },
+   "milliseconds": {
+    "patches": 439,
+    "union": 126,
+    "refine": 394,
+    "total": 959
+   }
+  }
+ ]
+}

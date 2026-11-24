@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ClusterCriteriaView } from "./cluster-analysis-view";
+import { parseClientCompatibility, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import { levelName, readClusterCriteria } from "@/lib/skill4/cluster-criteria-reading";
 import { drawPlacedMeshes, type PlacedMesh } from "@/lib/skill4/draw-placed";
 import type { FinishedIteration } from "@/lib/skill4/finished-catalog";
@@ -157,7 +158,24 @@ export function ClusterAnalysisBoard({
   solidMesh: IsoMesh;
   voidReport: ShrinkwrapVoidReport | null;
 }) {
-  const reading = useMemo(() => (iteration && programId ? readClusterCriteria(programId, iteration) : null), [iteration, programId]);
+  const [activities, setActivities] = useState<ClientCompatibilityDocument | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/site/client-activities", { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("unread");
+        return parseClientCompatibility(await response.json() as unknown);
+      })
+      .then((document) => {
+        if (document) setActivities(document);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  const reading = useMemo(
+    () => (iteration && programId && activities ? readClusterCriteria(programId, iteration, activities) : null),
+    [activities, iteration, programId],
+  );
   const cuts = shownPlates(plates);
   const id = iteration ? String(iteration.iteration).padStart(2, "0") : "—";
 

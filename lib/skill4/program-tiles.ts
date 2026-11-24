@@ -1,7 +1,7 @@
 import dnaJson from "@/data/skill5/architectural-dna.json";
 import { TYPOLOGIES } from "@/lib/catalog";
-import { parseArchitecturalDna, type ArchetypeDna } from "@/lib/skill5/architectural-dna";
-import { CLIENT_ACTIVITY_SEED, UNIVERSAL_CRITERIA, similarity, type ClientActivity } from "@/lib/skill5/client-compatibility";
+import { parseArchitecturalDna, type ArchetypeDna, type ArchitecturalDnaDocument } from "@/lib/skill5/architectural-dna";
+import { CLIENT_ACTIVITY_SEED, UNIVERSAL_CRITERIA, similarity, type ClientActivity, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import type { TypologyId } from "@/lib/types";
 
 /**
@@ -51,7 +51,13 @@ export const CLUSTER_PROGRAMS = CLIENT_ACTIVITY_SEED.activities.map((activity) =
   name: activity.name,
 }));
 
-const architecturalDna = parseArchitecturalDna(dnaJson);
+/** Compiled DNA for client display. Server generation passes a disk-read document instead. */
+const compiledDna = parseArchitecturalDna(dnaJson);
+
+export type RankingDocuments = {
+  dna?: ArchitecturalDnaDocument | null;
+  activities?: ClientCompatibilityDocument;
+};
 
 export type RankedTile = {
   id: string;
@@ -82,12 +88,14 @@ function universalMatch(profile: ArchetypeDna, activity: ClientActivity): number
 }
 
 /** Eligible tiles on one Universal DNA scale, including tiles from another allowed typology. */
-export function rankedEligibleTiles(programId: string): RankedTile[] {
+export function rankedEligibleTiles(programId: string, documents?: RankingDocuments): RankedTile[] {
   const tiles = eligibleTiles(programId);
-  const activity = CLIENT_ACTIVITY_SEED.activities.find((item) => item.id === programId);
+  const activities = documents?.activities ?? CLIENT_ACTIVITY_SEED;
+  const dna = documents?.dna !== undefined ? documents.dna : compiledDna;
+  const activity = activities.activities.find((item) => item.id === programId);
   const order = new Map(tiles.map((tile, index) => [tile.id, index]));
   const scored = tiles.map((tile) => {
-    const profile = architecturalDna?.profiles.find((item) => item.archetypeId === tile.id);
+    const profile = dna?.profiles.find((item) => item.archetypeId === tile.id);
     const score = profile && activity ? universalMatch(profile, activity) : null;
     return { ...tile, score };
   });
@@ -100,8 +108,8 @@ export function rankedEligibleTiles(programId: string): RankedTile[] {
 }
 
 /** Highest-ranked eligible tile that has an existing Universal DNA Match. */
-export function dominantTile(programId: string): RankedTile | null {
-  return rankedEligibleTiles(programId).find((tile) => tile.score !== null) ?? null;
+export function dominantTile(programId: string, documents?: RankingDocuments): RankedTile | null {
+  return rankedEligibleTiles(programId, documents).find((tile) => tile.score !== null) ?? null;
 }
 
 /** Existing percent, shown on the 0–1 scale used by the cluster readout. */

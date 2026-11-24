@@ -3,6 +3,23 @@ import type { TileConnection } from "./connections";
 import type { AreaStanding } from "./program-area";
 import type { TileInstance } from "./tiles";
 
+export type ProgramClusterModuleRef = {
+  archetypeId: string;
+  moduleId: string;
+  candidateId: number | null;
+  continuationId: string | null;
+};
+
+export type ProgramClusterProvenance = {
+  generator: string;
+  programId: string;
+  seed: number;
+  targetCount: number;
+  clientActivitiesHash: string;
+  architecturalDnaHash: string;
+  modules: ProgramClusterModuleRef[];
+};
+
 export type FinishedIteration = {
   id: string;
   iteration: number;
@@ -35,6 +52,8 @@ export type FinishedIteration = {
     verticalTransitionCount?: number;
     upperMassSupportedBySingleStem?: boolean;
   };
+  /** Present on clusters generated after Client synchronization. Older stored records omit this. */
+  provenance?: ProgramClusterProvenance;
 };
 
 export type FinishedProgram = {

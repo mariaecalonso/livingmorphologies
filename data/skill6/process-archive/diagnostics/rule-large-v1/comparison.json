@@ -1,0 +1,647 @@
+{
+  "prior": "clustering-overnight-v1",
+  "added": "clustering-rule-large-v1",
+  "coverage": [
+    {
+      "engine": "rule",
+      "sizes": [
+        {
+          "size": "small",
+          "validated": 4,
+          "partial": 0,
+          "ids": [
+            "on-rule-compact-2",
+            "on-rule-branching-2",
+            "on-rule-compact-3",
+            "on-rule-branching-3"
+          ]
+        },
+        {
+          "size": "medium",
+          "validated": 4,
+          "partial": 2,
+          "ids": [
+            "on-rule-compact-4",
+            "on-rule-compact-5",
+            "on-rule-branching-5",
+            "on-rule-compact-6"
+          ]
+        },
+        {
+          "size": "large",
+          "validated": 0,
+          "partial": 0,
+          "ids": []
+        }
+      ],
+      "largeTarget": [
+        {
+          "id": "on-rule-compact-7",
+          "tiles": 6,
+          "validated": false,
+          "partial": true,
+          "stop": "exhausted",
+          "milliseconds": 3138
+        },
+        {
+          "id": "on-rule-branching-7",
+          "tiles": 0,
+          "validated": false,
+          "partial": false,
+          "stop": "not-attempted",
+          "milliseconds": 0
+        }
+      ]
+    },
+    {
+      "engine": "graph",
+      "sizes": [
+        {
+          "size": "small",
+          "validated": 4,
+          "partial": 0,
+          "ids": [
+            "on-graph-compact-2",
+            "on-graph-branching-2",
+            "on-graph-compact-3",
+            "on-graph-branching-3"
+          ]
+        },
+        {
+          "size": "medium",
+          "validated": 6,
+          "partial": 0,
+          "ids": [
+            "on-graph-compact-4",
+            "on-graph-branching-4",
+            "on-graph-compact-5",
+            "on-graph-branching-5",
+            "on-graph-compact-6",
+            "on-graph-branching-6"
+          ]
+        },
+        {
+          "size": "large",
+          "validated": 2,
+          "partial": 0,
+          "ids": [
+            "on-graph-compact-7",
+            "on-graph-branching-7"
+          ]
+        }
+      ],
+      "largeTarget": [
+        {
+          "id": "on-graph-compact-7",
+          "tiles": 7,
+          "validated": true,
+          "partial": false,
+          "stop": "reached",
+          "milliseconds": 38279
+        },
+        {
+          "id": "on-graph-branching-7",
+          "tiles": 7,
+          "validated": true,
+          "partial": false,
+          "stop": "reached",
+          "milliseconds": 39817
+        }
+      ]
+    },
+    {
+      "engine": "wfc",
+      "sizes": [
+        {
+          "size": "small",
+          "validated": 4,
+          "partial": 0,
+          "ids": [
+            "on-wfc-compact-2",
+            "on-wfc-branching-2",
+            "on-wfc-compact-3",
+            "on-wfc-branching-3"
+          ]
+        },
+        {
+          "size": "medium",
+          "validated": 6,
+          "partial": 0,
+          "ids": [
+            "on-wfc-compact-4",
+            "on-wfc-branching-4",
+            "on-wfc-compact-5",
+            "on-wfc-branching-5",
+            "on-wfc-compact-6",
+            "on-wfc-branching-6"
+          ]
+        },
+        {
+          "size": "large",
+          "validated": 2,
+          "partial": 0,
+          "ids": [
+            "on-wfc-compact-7",
+            "on-wfc-branching-7"
+          ]
+        }
+      ],
+      "largeTarget": [
+        {
+          "id": "on-wfc-compact-7",
+          "tiles": 7,
+          "validated": true,
+          "partial": false,
+          "stop": "reached",
+          "milliseconds": 45960
+        },
+        {
+          "id": "on-wfc-branching-7",
+          "tiles": 7,
+          "validated": true,
+          "partial": false,
+          "stop": "reached",
+          "milliseconds": 48684
+        }
+      ]
+    }
+  ],
+  "representatives": [
+    {
+      "engine": "rule",
+      "size": "small",
+      "id": "on-rule-compact-3",
+      "morphology": "compact",
+      "tiles": 3,
+      "milliseconds": 84621,
+      "maxPenetration": 0.01685089325776328,
+      "shape": {
+        "compact": 0.472,
+        "branching": 0.617,
+        "vertical": 0.725,
+        "quality": 1,
+        "balanced": 0.472,
+        "depth": 1,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 57.541,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "trace": "aggregateCoverage scored profile 2 on the shared atlas, adaptive, and reseated pool · reused lab-rule-compact-3; not regenerated"
+    },
+    {
+      "engine": "rule",
+      "size": "small",
+      "id": "on-rule-branching-3",
+      "morphology": "branching",
+      "tiles": 3,
+      "milliseconds": 27098,
+      "maxPenetration": 0.018423674020500054,
+      "shape": {
+        "compact": 0.325,
+        "branching": 0.317,
+        "vertical": 0.573,
+        "quality": 1,
+        "balanced": 0.317,
+        "depth": 2,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 2,
+        "directions": [
+          "+Y",
+          "-X"
+        ],
+        "minJointArea": 26.12,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "trace": "aggregateCoverage scored profile 2 on the shared atlas, adaptive, and reseated pool · reused lab-rule-branching-3; not regenerated"
+    },
+    {
+      "engine": "rule",
+      "size": "medium",
+      "id": "on-rule-compact-6",
+      "morphology": "compact",
+      "tiles": 6,
+      "milliseconds": 32494,
+      "maxPenetration": 0.01978762837099305,
+      "shape": {
+        "compact": 0.422,
+        "branching": 0.833,
+        "vertical": 0.679,
+        "quality": 0.676,
+        "balanced": 0.422,
+        "depth": 3,
+        "leaves": 3,
+        "branchPoints": 2,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 3.776,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "aggregateCoverage portfolio on the checked pool, 720 evaluations, chosen compact rules: compact rules 6/6 · compact rules, tabu 1 3/6"
+    },
+    {
+      "engine": "graph",
+      "size": "small",
+      "id": "on-graph-compact-3",
+      "morphology": "compact",
+      "tiles": 3,
+      "milliseconds": 39452,
+      "maxPenetration": 0.019313740965117183,
+      "shape": {
+        "compact": 0.421,
+        "branching": 0.317,
+        "vertical": 0.384,
+        "quality": 0.889,
+        "balanced": 0.317,
+        "depth": 2,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 2,
+        "directions": [
+          "+Y",
+          "-X"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "trace": "graph topology then realize, 1 backtracks: topology open-hall->inserted-horizontal-plate -X open-hall->linear-gallery -X linear-gallery->undulated +Y · reused lab-graph-compact-3; not regenerated"
+    },
+    {
+      "engine": "graph",
+      "size": "small",
+      "id": "on-graph-branching-3",
+      "morphology": "branching",
+      "tiles": 3,
+      "milliseconds": 24733,
+      "maxPenetration": 0.01992123338470509,
+      "shape": {
+        "compact": 0.42,
+        "branching": 0.617,
+        "vertical": 0.678,
+        "quality": 0.85,
+        "balanced": 0.42,
+        "depth": 1,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 100.583,
+        "groundSeams": 1,
+        "unique": 3
+      },
+      "trace": "graph plans then realize, 43 tests, 6 backtracks: paired generations 3/3 · widening 3/3 · wide fan 3/3 · chain 3/3"
+    },
+    {
+      "engine": "graph",
+      "size": "medium",
+      "id": "on-graph-compact-6",
+      "morphology": "compact",
+      "tiles": 6,
+      "milliseconds": 34504,
+      "maxPenetration": 0.019946936828851406,
+      "shape": {
+        "compact": 0.319,
+        "branching": 0.5,
+        "vertical": 0.625,
+        "quality": 0.889,
+        "balanced": 0.319,
+        "depth": 5,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "graph plans then realize, 344 tests, 30 backtracks: wide fan 3/6 · widening 6/6 (1 deeper) · paired generations 6/6 (3 deeper) · chain 6/6"
+    },
+    {
+      "engine": "graph",
+      "size": "medium",
+      "id": "on-graph-branching-6",
+      "morphology": "branching",
+      "tiles": 6,
+      "milliseconds": 41964,
+      "maxPenetration": 0.017781415880187206,
+      "shape": {
+        "compact": 0.38,
+        "branching": 0.7,
+        "vertical": 0.682,
+        "quality": 0.889,
+        "balanced": 0.38,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "graph plans then realize, 495 tests, 43 backtracks: paired generations 3/6 · widening 6/6 (1 deeper) · wide fan 6/6 (4 deeper) · chain 6/6"
+    },
+    {
+      "engine": "graph",
+      "size": "large",
+      "id": "on-graph-compact-7",
+      "morphology": "compact",
+      "tiles": 7,
+      "milliseconds": 38279,
+      "maxPenetration": 0.019946936828851406,
+      "shape": {
+        "compact": 0.346,
+        "branching": 0.633,
+        "vertical": 0.617,
+        "quality": 0.708,
+        "balanced": 0.346,
+        "depth": 5,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "graph plans then realize, 628 tests, 60 backtracks: wide fan 3/7 · widening 6/7 (8 deeper) · paired generations 7/7 (12 deeper) · chain 7/7"
+    },
+    {
+      "engine": "graph",
+      "size": "large",
+      "id": "on-graph-branching-7",
+      "morphology": "branching",
+      "tiles": 7,
+      "milliseconds": 39817,
+      "maxPenetration": 0.019387060127904823,
+      "shape": {
+        "compact": 0.288,
+        "branching": 0.492,
+        "vertical": 0.663,
+        "quality": 0.645,
+        "balanced": 0.288,
+        "depth": 6,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 4,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 4.373,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · widening 6/7 (8 deeper) · wide fan 6/7 (4 deeper) · chain 7/7"
+    },
+    {
+      "engine": "wfc",
+      "size": "small",
+      "id": "on-wfc-compact-3",
+      "morphology": "compact",
+      "tiles": 3,
+      "milliseconds": 70160,
+      "maxPenetration": 0.01677229225809698,
+      "shape": {
+        "compact": 0.424,
+        "branching": 0.617,
+        "vertical": 0.69,
+        "quality": 1,
+        "balanced": 0.424,
+        "depth": 1,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 58.192,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "trace": "wfc lowest-domain collapse, 83 propagations, 0 backtracks, 83 geometric tests · reused lab-wfc-compact-3; not regenerated"
+    },
+    {
+      "engine": "wfc",
+      "size": "small",
+      "id": "on-wfc-branching-3",
+      "morphology": "branching",
+      "tiles": 3,
+      "milliseconds": 88236,
+      "maxPenetration": 0.01992123338470509,
+      "shape": {
+        "compact": 0.405,
+        "branching": 0.617,
+        "vertical": 0.647,
+        "quality": 0.85,
+        "balanced": 0.405,
+        "depth": 1,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 78.169,
+        "groundSeams": 1,
+        "unique": 3
+      },
+      "trace": "wfc lowest-domain collapse, 64 propagations, 0 backtracks, 64 geometric tests · reused lab-wfc-branching-3; not regenerated"
+    },
+    {
+      "engine": "wfc",
+      "size": "medium",
+      "id": "on-wfc-compact-6",
+      "morphology": "compact",
+      "tiles": 6,
+      "milliseconds": 40559,
+      "maxPenetration": 0.019780165099456376,
+      "shape": {
+        "compact": 0.454,
+        "branching": 0.7,
+        "vertical": 0.725,
+        "quality": 0.884,
+        "balanced": 0.454,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.211,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 159 propagations, 56 backtracks, 97 tests; pruned support 15101, socket 1451, cardinality 381, spatial 1842"
+    },
+    {
+      "engine": "wfc",
+      "size": "medium",
+      "id": "on-wfc-branching-6",
+      "morphology": "branching",
+      "tiles": 6,
+      "milliseconds": 30828,
+      "maxPenetration": 0.019946936828851406,
+      "shape": {
+        "compact": 0.362,
+        "branching": 0.833,
+        "vertical": 0.621,
+        "quality": 0.701,
+        "balanced": 0.362,
+        "depth": 3,
+        "leaves": 3,
+        "branchPoints": 2,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 128 propagations, 38 backtracks, 85 tests; pruned support 11309, socket 1042, cardinality 38, spatial 1261"
+    },
+    {
+      "engine": "wfc",
+      "size": "large",
+      "id": "on-wfc-compact-7",
+      "morphology": "compact",
+      "tiles": 7,
+      "milliseconds": 45960,
+      "maxPenetration": 0.019786666834348654,
+      "shape": {
+        "compact": 0.389,
+        "branching": 0.775,
+        "vertical": 0.63,
+        "quality": 0.708,
+        "balanced": 0.389,
+        "depth": 4,
+        "leaves": 3,
+        "branchPoints": 2,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 200 propagations, 61 backtracks, 135 tests; pruned support 26931, socket 1745, cardinality 0, spatial 2888"
+    },
+    {
+      "engine": "wfc",
+      "size": "large",
+      "id": "on-wfc-branching-7",
+      "morphology": "branching",
+      "tiles": 7,
+      "milliseconds": 48684,
+      "maxPenetration": 0.018639219360403483,
+      "shape": {
+        "compact": 0.489,
+        "branching": 0.775,
+        "vertical": 0.639,
+        "quality": 0.665,
+        "balanced": 0.489,
+        "depth": 4,
+        "leaves": 3,
+        "branchPoints": 2,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "trace": "wfc weighted-entropy collapse with restarts, 6 solutions, 235 propagations, 70 backtracks, 131 tests; pruned support 31820, socket 1886, cardinality 0, spatial 3093"
+    }
+  ],
+  "ruleLarge": [
+    {
+      "id": "rule-large-compact-16",
+      "engine": "rule",
+      "morphology": "compact",
+      "targetTiles": 7,
+      "tiles": 7,
+      "status": "accepted",
+      "stop": "reached",
+      "validated": true,
+      "partial": false,
+      "penetrations": 0,
+      "maxPenetration": 0.019786666834348654,
+      "milliseconds": 26023,
+      "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen compact rules: compact rules 7/7 · compact rules, tabu 1 3/7 · compact rules, tabu 2 3/7",
+      "reason": null,
+      "shape": {
+        "compact": 0.362,
+        "branching": 0.708,
+        "vertical": 0.571,
+        "quality": 0.665,
+        "balanced": 0.362,
+        "depth": 3,
+        "leaves": 3,
+        "branchPoints": 2,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "lift": 0,
+      "backtracks": 16,
+      "budget": 1680
+    }
+  ]
+}

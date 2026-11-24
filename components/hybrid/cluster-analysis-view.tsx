@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
+import { parseClientCompatibility, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import { levelName, readClusterCriteria, type ClusterReading, type CriterionRelation, type SpacePoint, type SpatialMark } from "@/lib/skill4/cluster-criteria-reading";
 import { drawPlacedMeshes, projectPlacement } from "@/lib/skill4/draw-placed";
 import type { FinishedIteration } from "@/lib/skill4/finished-catalog";
@@ -689,7 +690,24 @@ function paintQualities(
 export function ClusterCriteriaView({ programId, item, mesh, span }: { programId: string; item: FinishedIteration; mesh: IsoMesh | null; span: number }) {
   const solidRef = useRef<HTMLCanvasElement>(null);
   const inkRef = useRef<HTMLCanvasElement>(null);
-  const reading = useMemo(() => readClusterCriteria(programId, item), [programId, item]);
+  const [activities, setActivities] = useState<ClientCompatibilityDocument | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/site/client-activities", { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("unread");
+        return parseClientCompatibility(await response.json() as unknown);
+      })
+      .then((document) => {
+        if (document) setActivities(document);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+  const reading = useMemo(
+    () => (activities ? readClusterCriteria(programId, item, activities) : { criteria: [] as ClusterReading["criteria"] }),
+    [activities, item, programId],
+  );
   const title = reading.criteria.map((criterion) => `${criterion.label}: ${levelName(criterion.measured)} measured, ${levelName(criterion.desired)} desired. ${criterion.basis}`).join("\n");
 
   useEffect(() => {

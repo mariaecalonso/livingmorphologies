@@ -1,5 +1,5 @@
 import { readArchitecturalRecord } from "@/lib/skill5/architectural-strategy";
-import { missingPublishedIterations, publishedZoning } from "@/lib/skill5/strategy-archive";
+import { missingPublishedIterations, publishedZoning, serializeArchiveIteration } from "@/lib/skill5/strategy-archive";
 import { readNetworkNode, type NetworkIteration, type NetworkNode } from "./site-network";
 
 const DB_NAME = "living-morphologies";
@@ -97,6 +97,60 @@ export async function installPublishedStrategy() {
   const missing = missingPublishedIterations(body, new Set(local.map((item) => item.id)));
   for (const iteration of missing) await saveNetworkIteration(iteration);
   return zoning;
+}
+
+export const SELECTED_SITE_NETWORK_EVENT = "living-morphologies.selected-site-network";
+
+export function announceSelectedSiteNetwork(massingNetworkId: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(SELECTED_SITE_NETWORK_EVENT, { detail: { massingNetworkId } }));
+}
+
+/** Persist the production selection to the published archive. Preview and historical view must not call this. */
+export async function persistDesignerZoning(regions: unknown) {
+  try {
+    const response = await fetch("/api/site/designer-zoning", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ regions }),
+    });
+    if (!response.ok) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function loadDesignerZoning() {
+  try {
+    const response = await fetch("/api/site/designer-zoning", { cache: "no-store" });
+    if (!response.ok) return [];
+    const body = await response.json() as { regions?: unknown };
+    return Array.isArray(body.regions) ? body.regions : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function persistPublishedSelection(massingNetworkId: string, iteration?: NetworkIteration) {
+  try {
+    const response = await fetch("/api/site/selected-network", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        massingNetworkId,
+        iteration: iteration ? serializeArchiveIteration(iteration) : undefined,
+      }),
+    });
+    const body = await response.json() as { massingNetworkId?: unknown; error?: unknown };
+    if (!response.ok || typeof body.massingNetworkId !== "string") {
+      return { ok: false as const, error: typeof body.error === "string" ? body.error : "The published Site Strategy selection could not be saved." };
+    }
+    announceSelectedSiteNetwork(body.massingNetworkId);
+    return { ok: true as const, massingNetworkId: body.massingNetworkId };
+  } catch {
+    return { ok: false as const, error: "The published Site Strategy selection could not be saved." };
+  }
 }
 
 export async function loadNetworkIterations(): Promise<NetworkIteration[]> {

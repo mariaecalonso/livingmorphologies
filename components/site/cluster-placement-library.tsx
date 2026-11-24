@@ -12,6 +12,7 @@ import { polygonAreaSqFt } from "@/lib/skill5/zoning";
 import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
 import { HybridState } from "@/components/hybrid/hybrid-state";
 import "@/app/lab/hybrid/skill4-interface.css";
+import { occupancyInZone, programsForZoneKind, type PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { ZONE_KINDS, type SiteZone, type SiteZoneKind } from "./site-workflow";
 
 type PackedMesh = { triangles: number; positions: string; normals: string; indices: string };
@@ -48,17 +49,27 @@ function openStep(id: (typeof STEPS)[number]["id"], router: ReturnType<typeof us
 export function ClusterPlacementLibrary({
   zones,
   selectedZoneId,
+  occupancy,
+  assist = "manual",
   onSelectZone,
   onInspect,
+  onPlace,
 }: {
   zones: readonly SiteZone[];
   selectedZoneId: string | null;
+  occupancy: readonly PlacedCluster[];
+  assist?: "manual" | "ranked";
   onSelectZone: (kind: SiteZoneKind) => void;
   onInspect: (programId: string, clusterId: string) => void;
+  onPlace: (programId: string, clusterId: string, recommended: boolean) => void;
 }) {
   const router = useRouter();
   const selectZone = useRef(onSelectZone);
   selectZone.current = onSelectZone;
+  const selectedZoneIdRef = useRef(selectedZoneId);
+  selectedZoneIdRef.current = selectedZoneId;
+  const selectedZone = zones.find((zone) => zone.id === selectedZoneId) ?? null;
+  const compatibleIds = selectedZone ? programsForZoneKind(selectedZone.kind) : CLUSTER_PROGRAMS.map((item) => item.id);
   const [programId, setProgramId] = useState("public-lobby");
   const [rank, setRank] = useState<PlacementRank | null>(null);
   const [pending, setPending] = useState(false);
@@ -90,7 +101,7 @@ export function ClusterPlacementLibrary({
           return;
         }
         setRank(body);
-        if (body.zoneKind) selectZone.current(body.zoneKind);
+        if (body.zoneKind && !selectedZoneIdRef.current) selectZone.current(body.zoneKind);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -127,16 +138,40 @@ export function ClusterPlacementLibrary({
     return () => controller.abort();
   }, [programId, rank]);
 
-  const zoneKind = rank?.zoneKind ?? null;
+  useEffect(() => {
+    if (!selectedZone) return;
+    const ids = programsForZoneKind(selectedZone.kind);
+    if (!ids.includes(programId)) setProgramId(ids[0] ?? programId);
+  }, [programId, selectedZone]);
+
+  useEffect(() => {
+    if (assist !== "ranked" || !rank?.clusters[0]) return;
+    setOpenId(rank.clusters[0].id);
+  }, [assist, rank]);
+
+  useEffect(() => {
+    const kind = selectedZone?.kind ?? rank?.zoneKind;
+    if (!kind || selectedZoneId) return;
+    if (zones.some((zone) => zone.kind === kind)) selectZone.current(kind);
+  }, [rank?.zoneKind, selectedZone, selectedZoneId, zones]);
+
+  const zoneKind = selectedZone?.kind ?? rank?.zoneKind ?? null;
   const zoneLabel = ZONE_KINDS.find((item) => item.id === zoneKind)?.label ?? "";
   const matching = zoneKind ? zones.filter((zone) => zone.kind === zoneKind) : [];
-  const selected = matching.find((zone) => zone.id === selectedZoneId) ?? null;
+  const selected = selectedZone ?? matching.find((zone) => zone.id === selectedZoneId) ?? null;
   const programName = CLUSTER_PROGRAMS.find((item) => item.id === programId)?.name ?? rank?.name ?? "";
+  const placed = selected ? occupancyInZone(occupancy, selected.id) : null;
+  const programOptions = CLUSTER_PROGRAMS.filter((program) => compatibleIds.includes(program.id));
 
   const rows = rank ? Math.ceil(rank.clusters.length / 2) : 0;
 
   return (
-    <div className="site-strategy-panel site-cluster-board">
+    <div
+      className="site-strategy-panel site-cluster-board"
+      data-authority-class="working"
+      data-occupancy-authority="working"
+      data-zone-occupied={placed ? "true" : undefined}
+    >
       <nav className="site-kind-toggle site-cluster-steps" aria-label="Cluster placement pages">
         {STEPS.map((step) => (
           <button
@@ -158,15 +193,16 @@ export function ClusterPlacementLibrary({
           value={programId}
           onChange={(event) => setProgramId(event.target.value)}
         >
-          {CLUSTER_PROGRAMS.map((program) => (
+          {programOptions.map((program) => (
             <option key={program.id} value={program.id}>{program.name}</option>
           ))}
         </select>
       </label>
       {programId && zoneLabel ? (
         <p className="site-note">
-          {programName} · {zoneLabel} zone{selected ? ` · ${Math.round(polygonAreaSqFt(selected.points)).toLocaleString("en-US")} ft²` : ""}. The recommended cluster is the closest match.
+          {programName} · {zoneLabel} zone{selected ? ` · ${Math.round(polygonAreaSqFt(selected.points)).toLocaleString("en-US")} ft²` : ""}. The recommended cluster is the closest match. Place assigns it to the selected zone.
           {programId && !pending && rank && matching.length === 0 ? " No zone of this kind is drawn yet." : ""}
+          {placed ? ` ${placed.finishedClusterId} occupies this zone.` : ""}
         </p>
       ) : null}
       {pending ? <p className="site-note">Reading clusters</p> : null}
@@ -179,9 +215,13 @@ export function ClusterPlacementLibrary({
               cluster={cluster}
               index={index}
               mesh={meshes[cluster.id] ?? null}
-              active={cluster.id === openId}
+              active={cluster.id === openId || placed?.finishedClusterId === cluster.id}
+              occupied={placed?.finishedClusterId === cluster.id}
+              canPlace={Boolean(selected)}
+              replace={Boolean(placed) && placed?.finishedClusterId !== cluster.id}
               onOpen={() => setOpenId(cluster.id)}
               onInspect={() => onInspect(programId, cluster.id)}
+              onPlace={() => onPlace(programId, cluster.id, cluster.recommended)}
             />
           ))}
         </div>
@@ -196,31 +236,49 @@ function ClusterCard({
   index,
   mesh,
   active,
+  occupied,
+  canPlace,
+  replace,
   onOpen,
   onInspect,
+  onPlace,
 }: {
   cluster: PlacementCluster;
   index: number;
   mesh: IsoMesh | null;
   active: boolean;
+  occupied: boolean;
+  canPlace: boolean;
+  replace: boolean;
   onOpen: () => void;
   onInspect: () => void;
+  onPlace: () => void;
 }) {
   const label = cluster.recommended ? "Recommended" : `Rank ${index + 1}`;
+  const placeLabel = occupied ? "Placed" : replace ? "Replace" : "Place";
   return (
-    <div className="site-cluster-card" data-active={active || cluster.recommended || undefined} data-recommended={cluster.recommended || undefined}>
+    <div className="site-cluster-card" data-active={active || cluster.recommended || undefined} data-recommended={cluster.recommended || undefined} data-occupied={occupied || undefined}>
       <button
         type="button"
         data-active={active || cluster.recommended || undefined}
-        title={`${label}. Iteration ${String(cluster.iteration).padStart(2, "0")}. Match ${cluster.score}. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles.`}
+        title={`${label}. Iteration ${String(cluster.iteration).padStart(2, "0")}. Match ${cluster.score}%. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles. ${Math.round(cluster.habitableArea)} ft².`}
         onClick={onOpen}
       >
         <span className="site-module-glass">
           <ClusterForm mesh={mesh} />
         </span>
-        <em>{label}</em>
+        <em>{label} · {cluster.score}% · {cluster.tileCount} tiles · {Math.round(cluster.habitableArea)} ft²</em>
       </button>
       <button type="button" className="site-cluster-plus" aria-label={`Open the analysis for ${label}`} onClick={onInspect}>+</button>
+      <button
+        type="button"
+        className="site-cluster-place"
+        disabled={!canPlace || occupied}
+        aria-label={`${placeLabel} ${label} in the selected zone`}
+        onClick={onPlace}
+      >
+        {placeLabel}
+      </button>
     </div>
   );
 }

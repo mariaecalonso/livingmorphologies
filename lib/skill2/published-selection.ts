@@ -1,5 +1,11 @@
 import type { RealizationState, SemanticPlan } from "@/lib/skill2/semantic/types";
 
+/**
+ * Browser session working picks (`lm-skill2-selections`).
+ * Production 2D checkpoint is `data/skill2/pareto-catalog/selections.json`.
+ * Session storage is not Lab authority.
+ */
+
 /** One published Skill 2 candidate per archetype. Not a Skill 3 handoff. */
 export const SKILL2_SELECTIONS_KEY = "lm-skill2-selections";
 /** Previous single-candidate key. Read once so an existing session is kept. */

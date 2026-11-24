@@ -1,0 +1,115 @@
+{
+  "version": "skill6-geometry-diagnostic-v1",
+  "written": "2026-11-17",
+  "archive": "data/skill6/process-archive/v1.json",
+  "measurements": "data/skill6/process-archive/diagnostics/geometry-v1/measurements.json",
+  "sourceCollection": "data/skill6/experiments/clustering-overnight-v1",
+  "unchanged": "Engines, thresholds, source archetypes, experiment indexes, and stored meshes were not modified.",
+  "views": {
+    "camera": "Isometric axonometric of the stored mesh. X right-down, Y left-down, Z up.",
+    "refined": "{id}-refined.png is the stored refined surface.",
+    "rigid": "{id}-rigid.png poses the unchanged Skill 3 meshes with the stored seated poses. Color is growth step: 0 light grey, 1 cyan, 2 copper, 3 blue, 4 sand, 5 green, 6 mauve.",
+    "contacts": "{id}-contacts.svg places tile centers from those poses. Cyan is a primary growth edge. Copper is a later contact. The number is contact area.",
+    "notReconstructed": "No intermediate union or patch was rebuilt. A separate frame for each growth step was not exported. The colored rigid view is the stored placement, not a saved historical intermediate."
+  },
+  "definitions": {
+    "branchPoint": "A tile with two or more guests in the primary growth tree. The primary edge is the first stored contact that names that guest. A later contact increases degree and the compact score's extra-edge term. It does not add a branch point.",
+    "branchingScore": "0.30 branch points, saturated at one point per two edges, plus 0.25 leaf ratio, plus 0.25 depth, saturated once depth reaches 3, plus 0.20 direction count, saturated at four directions. Quality is not included.",
+    "bridgePlanMin": "The middle axis of the stored patch footprint. The smallest axis is usually the patch thickness, about 0.84 to 1.08, and is not a neck width. A broad strip can have a middle axis near 3.8 and an area above 30.",
+    "groundSeam": "A stored contact whose samples fall below z = 0.6. It is not the same as a tile whose bounds reach the ground."
+  },
+  "unavailable": [
+    "Per-step raw unions, patches, and refined meshes.",
+    "The other rule sets, graph plans, and WFC solutions named in the traces. Only the saved cluster remains.",
+    "Surface retention, buried area, and the open-void sampler in measurePreservation. Those were not recomputed. Sealed-cavity counts in the assembly record are the available void evidence.",
+    "Organization v2 and v3 poses, and on-rule-branching-7."
+  ],
+  "issues": [
+    {
+      "id": "branch-score-counts-chains",
+      "kind": "misleading metric",
+      "clusters": ["on-rule-branching-5", "on-rule-branching-3", "on-graph-branching-7", "on-rule-branching-2", "on-graph-branching-2", "on-wfc-branching-2"],
+      "evidence": "Rule Branching 5 has 0 branch points, 1 leaf, depth 4, and four directions. Its branching score is 0.512, of which 0.25 is the saturated depth term and 0.20 is the direction term. The branch-point term is 0. Graph Branching 7 is the same pattern at depth 6: score 0.492 with a branch-point term of 0. Across the 35 stored shapes, every validated Branching result with 0 branch points is one of those six. The three two-tile cases cannot branch.",
+      "origin": "morphology.ts rankReadings and morphologyScore, after a geometrically valid placement. The search did not fail. The name of the score does not match the tree.",
+      "pipeline": "Post-placement ranking. Refinement does not change the tree."
+    },
+    {
+      "id": "preset-does-not-own-the-measurement",
+      "kind": "misleading metric",
+      "clusters": ["on-rule-compact-5", "on-rule-compact-6", "on-wfc-branching-7"],
+      "evidence": "Rule Compact 6 was requested compact and scores compact 0.422, branching 0.833. Occupancy is 0.133 and the bounding void fraction is 0.867. WFC Branching 7 scores compact 0.489, the highest compact reading in this set, because two extra contacts add the compact extra-edge term. In 5 of 17 stored compact/branching pairs, the compact result has the higher branching score.",
+      "origin": "Rule passes the preset into scoreOrganizationV2 during placement, then rankReadings sorts by tile count and that preset. Graph and WFC do the same at plan weight and collapse weight. The measured scores are computed afterward and do not have to agree with the request.",
+      "pipeline": "Search preference and post-placement rank. Not patching or refinement."
+    },
+    {
+      "id": "narrow-joint-large-guest",
+      "kind": "geometric characteristic accepted by the current threshold",
+      "clusters": ["on-rule-compact-6", "on-graph-branching-7", "on-graph-branching-5", "on-wfc-branching-5", "on-wfc-branching-7"],
+      "evidence": "Rule Compact 6 adds terraced, 1919 solid, 26% of the cluster, through joint t01-t05: area 3.78, gap 0.158, rigid crossing 0, bridge plan 1.56, patch volume 1.2. Its bounds also reach z = 0, so 26% of the solid is a second ground mass on a joint just above the area floor of 3.2. Graph Branching 7 holds terraced, 22% of the solid, on t04-t05 area 4.37 and plan 1.92, with the guest's bounds starting at z = 23. Graph Branching 5, WFC Branching 5, and WFC Branching 7 repeat linear-gallery to linear-gallery at area 7.55, plan 3.12, rigid crossing 0.0189. That crossing is a graze under 0.02. Eleven stored primary joints in the whole 2–7 set have area under 8. Five other joints have area near 33 and a middle footprint axis near 3.8; those are strips, not the same defect.",
+      "origin": "The contact test accepts one coherent region of area at least 3.2. The compact and branching preferences do not reject a large guest on that minimum. Refinement did not create these areas: the rigid contact record already has them, and the refined penetration on the validated clusters stays at or under 0.0199.",
+      "pipeline": "Geometric validation threshold, then search selection."
+    },
+    {
+      "id": "graph-branch-becomes-chain",
+      "kind": "search ranking",
+      "clusters": ["on-graph-branching-5", "on-graph-branching-7"],
+      "evidence": "Graph Branching 5 branches at t01: undulated on +Y and a second linear-gallery on -X, then void-edge stacks on undulated. Branch points 1, score 0.658. Graph Branching 7 is a new search, not an extension. Its trace is paired 4/7, widening 6/7, wide fan 6/7, chain 7/7. The saved tree has 0 branch points, depth 6, void fraction 0.942, occupancy 0.058, and only the seed reaches the ground. The centroid sits at 42% of the 56 height.",
+      "origin": "graph.ts tries branching plans first, then ranks finished placements by tile count before the branching score. The only plan that placed 7 tiles was the chain, so it outranks the branched plans that stopped at 6.",
+      "pipeline": "Graph plan order and finish() ranking. The five-tile branch was not edited."
+    },
+    {
+      "id": "wfc-branch-holds",
+      "kind": "morphological characteristic",
+      "clusters": ["on-wfc-branching-5", "on-wfc-branching-7"],
+      "evidence": "WFC Branching 5 has branch points at t00 and t01, depth 2, three leaves, branching score 0.746. WFC Branching 7 keeps those two branch points and lengthens one arm to depth 4. Two later contacts, t02-t06 and t03-t06, tie the last tile to earlier modules. They raise degree and the compact score. They are not branch points. Occupancy rises from 0.085 on the Rule chain to 0.109 here, and the void fraction is 0.891 against the Graph chain's 0.942. The repeated 7.55 gallery joint remains.",
+      "origin": "WFC preference and the saved solution among six. The extra contacts come from the assembly contact list, not from the branching score.",
+      "pipeline": "WFC collapse, then assembly contact measurement."
+    },
+    {
+      "id": "refinement-penetration",
+      "kind": "geometric defect",
+      "clusters": ["on-rule-branching-4"],
+      "evidence": "The search placed 4 of 4. The tree is a chain, so the branching request was also unmet. Rigid crossings are 0, 0, and 0.0062. All three joints are patched near-contacts, and the patch status is NoError. The raw union is one solid with 9 sealed cavities. The refined mesh has 2 penetrations, maximum 0.0354, 2280 grazes, max shift 0.900, mean shift 0.045, and 187 restored vertices. The record is already unsuccessful for that reason. The largest joint, t02-t03, has area 164 and a patch thickness of 0.84. The seam shift cap is 0.90, well above the 0.02 penetration limit.",
+      "origin": "refineClusterMesh runs after a valid contact. The contact test never sees the smoothed surface. Filling removed every sealed cavity the refiner counted (17 filled, 0 remaining). That count is sealed pockets under volume 1, not a measurement of the open halls.",
+      "pipeline": "Refinement, after a passing patch and union."
+    },
+    {
+      "id": "ground-and-voids",
+      "kind": "measurement gap",
+      "clusters": ["on-rule-compact-5", "on-rule-compact-6", "on-rule-branching-5", "on-graph-branching-5", "on-graph-branching-7", "on-wfc-branching-5", "on-wfc-branching-7", "on-rule-branching-4"],
+      "evidence": "groundSeams is 0 on all eight. Lift is 0 except Rule Compact 6 at 0.0008. The seed is the only tile whose bounds reach z = 0, except terraced on Rule Compact 6. Mass centroids sit between 41% and 49% of cluster height, including Rule Branching 5, whose vertical score is 0.836 because its height is 50.7 against a plan of about 40. Refined sealed cavities are 0 on all eight. The refiner filled 45 to 188 cavities under volume 1. Union volume stays within a few dozen of the sum of the tile solids, so the patches do not add a large new mass. Mean surface shift is 0.043 to 0.068. Open-void retention and the fraction of original surface still exposed were not stored and were not recomputed.",
+      "origin": "Grounding is the seed placement plus one cluster lift. Cavity fill and seam smoothing are refinement. Open archetype voids are outside both of those stored counts.",
+      "pipeline": "Ground seed, assembly lift, and refinement. The open-void question needs measurePreservation before a defect is claimed."
+    }
+  ],
+  "proposedFixes": [
+    {
+      "rank": 1,
+      "change": "Record the requested preset and the measured branch-point count as separate fields. Show the branch-point count wherever the lab currently implies that a Branching run branched.",
+      "impact": "High for traceability. The eight cases above become readable without a new cluster.",
+      "risk": "None for generation, thresholds, or stored meshes.",
+      "experiment": "A display check on these eight ids against measurements.json. No search."
+    },
+    {
+      "rank": 2,
+      "change": "Stop letting tile count outrank a branched plan that is one tile short, or save every plan the graph trace already names.",
+      "impact": "Directly addresses Graph Branching 7 becoming a chain while branched plans reached 6.",
+      "risk": "Medium. The saved 7-tile winner would change. The stored file should stay. A new collection would hold the comparison.",
+      "experiment": "One Graph Branching run at 7 tiles, seed 101, root open-hall, the same budget. Keep all four plans. Do not overwrite on-graph-branching-7."
+    },
+    {
+      "rank": 3,
+      "change": "Treat contact area under 8 on a guest that is more than 15% of cluster solid as a measured fault, before any threshold change.",
+      "impact": "Marks the terraced joints at 3.78 and 4.37, which carry 22–26% of the solid. Leaves the area-33 strips alone.",
+      "risk": "High if it becomes an acceptance rule: several current validated clusters would fail and the search would need another guest. Low if it is only reported.",
+      "experiment": "The 11 stored joints already under area 8 are the control set. A generation check is one Rule Compact run at 6 tiles that may not keep a guest below that area, saved beside on-rule-compact-6."
+    },
+    {
+      "rank": 4,
+      "change": "Keep the refined penetration check, and limit seam motion that can exceed 0.02, or accept the next already-found candidate when refinement crosses that line.",
+      "impact": "Addresses the only genuine failure in this set: Rule Branching 4, max penetration 0.035 after a legal contact.",
+      "risk": "Medium. A lower seam shift changes the refined surface of future clusters. It must not rewrite the stored unsuccessful mesh.",
+      "experiment": "One Rule Branching run at 4 tiles. If the first assembly again exceeds 0.02 after refinement, assemble the next distinct candidate from that same run and record both. Compare only the new file with on-rule-branching-4."
+    }
+  ]
+}

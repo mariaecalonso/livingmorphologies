@@ -1,0 +1,20 @@
+{
+  "projection": "isometric axonometric",
+  "x": "(x - y) * cos(30°)",
+  "y": "-z + (x + y) * sin(30°)",
+  "depth": "-(x - y + z)",
+  "up": "+Z",
+  "palette": {
+    "step0": "#d6d6d6",
+    "step1": "#49d7de",
+    "step2": "#c77e5f",
+    "step3": "#78a8c4",
+    "step4": "#e8c48c",
+    "step5": "#96c4a8",
+    "step6": "#c4a0be",
+    "refined": "#d6d6d6",
+    "primaryContact": "#49d7de",
+    "secondaryContact": "#c77e5f"
+  },
+  "note": "Views rendered from stored or reproduced poses. A tiles-only union is labeled as a reconstruction."
+}

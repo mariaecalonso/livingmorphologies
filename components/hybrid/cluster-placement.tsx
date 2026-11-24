@@ -10,9 +10,8 @@ import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
 import type { TileConnection } from "@/lib/skill4/connections";
 import { connectClusterHybrid, hybridReady, validateClusterAssembly } from "@/lib/skill4/cluster-hybrids";
 import type { IsoMesh } from "@/lib/scan/isomesh";
-import { allowedTypeLabel, CLUSTER_PROGRAMS, dominantTile, eligibleTiles, matchLabel, rankedEligibleTiles } from "@/lib/skill4/program-tiles";
+import { allowedTypeLabel, CLUSTER_PROGRAMS, eligibleTiles, matchLabel } from "@/lib/skill4/program-tiles";
 import { resolveTileModule } from "@/lib/skill4/tiles";
-import { spacingBiasLabel, spacingProfile, spacingRangeLabel } from "@/lib/skill4/program-spacing";
 import { tileBasis } from "@/lib/skill4/tile-basis";
 import { tileStep, type TileInstance } from "@/lib/skill4/tiles";
 import { areaStandingLabel } from "@/lib/skill4/program-area";
@@ -39,7 +38,7 @@ function ClusterStepNav({ step }: { step: ClusterStepId }) {
     router.push(`/lab/site?${params.toString()}`);
   };
   return (
-    <nav className="site-workflow" aria-label="Site strategy">
+    <nav className="site-workflow" aria-label="Program cluster">
       {CLUSTER_STEPS.map((item, index) => (
         <span key={item.id} className="site-workflow-step">
           {index > 0 ? <span className="site-workflow-arrow" aria-hidden="true">→</span> : null}
@@ -139,6 +138,13 @@ function ClusterThumb({ tiles, connections = [], film = null }: { tiles: readonl
   );
 }
 
+type ProgramReadout = {
+  ranked: { id: string; name: string; score: number | null }[];
+  dominant: { name: string } | null;
+  spacingRangeLabel: string;
+  spacingBiasLabel: string;
+};
+
 /** Temporary program check and the first cluster iterations. Tile menus stay manual. */
 function ProgramRuleReadout() {
   const { loadCluster, ensureArchetypes, loaded } = useHybrid();
@@ -150,22 +156,59 @@ function ProgramRuleReadout() {
   const [armId, setArmId] = useState("");
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState("");
+  const [readout, setReadout] = useState<ProgramReadout | null>(null);
   const clustersRef = useRef(clusters);
   clustersRef.current = clusters;
   const tiles = programId ? eligibleTiles(programId) : [];
-  const ranked = programId ? rankedEligibleTiles(programId) : [];
-  const dominant = programId ? dominantTile(programId) : null;
-  const spacing = programId ? spacingProfile(programId) : null;
+  const ranked = readout?.ranked ?? [];
+  const dominant = readout?.dominant ?? null;
+  const spacingRange = readout?.spacingRangeLabel ?? "unavailable";
+  const spacingBias = readout?.spacingBiasLabel ?? "unavailable";
+
+  useEffect(() => {
+    if (!programId) {
+      setReadout(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      fetch(`/api/skill4/program-cluster?program=${encodeURIComponent(programId)}&view=readout`, { cache: "no-store" })
+        .then(async (response) => {
+          const body = await response.json() as ProgramReadout & { error?: string };
+          if (!response.ok) throw new Error(body.error || "unread");
+          return body;
+        })
+        .then((body) => {
+          if (!cancelled) setReadout(body);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          setReadout(null);
+          if (error instanceof Error && error.message && error.message !== "unread") setNotice(error.message);
+        });
+    };
+    load();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", load);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", load);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [programId]);
 
   const generate = () => {
     if (!programId || pending) return;
     setPending(true);
     setNotice("");
     setArmId("");
-    void fetch(`/api/skill4/program-cluster?program=${encodeURIComponent(programId)}`)
+    void fetch(`/api/skill4/program-cluster?program=${encodeURIComponent(programId)}`, { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) throw new Error("unread");
-        const body = await response.json() as { clusters?: ClusterCard[] };
+        const body = await response.json() as { clusters?: ClusterCard[]; error?: string };
+        if (!response.ok) throw new Error(body.error || "unread");
         const next = (body.clusters ?? []).filter((cluster) => cluster.status === "valid" && cluster.tiles.length >= 2 && cluster.tiles.length <= 9);
         setClusters(next);
         ensureArchetypes(next.flatMap((cluster) => cluster.tiles.map((tile) => tile.archetypeId)));
@@ -173,7 +216,9 @@ function ProgramRuleReadout() {
         finishForCatalog(programId, program?.name ?? programId, next, () => loadedRef.current);
         setOpenId("");
       })
-      .catch(() => setNotice("Cluster iterations could not be generated."))
+      .catch((error: unknown) => {
+        setNotice(error instanceof Error && error.message && error.message !== "unread" ? error.message : "Cluster iterations could not be generated.");
+      })
       .finally(() => setPending(false));
   };
 
@@ -252,9 +297,9 @@ function ProgramRuleReadout() {
             Allowed tile types: {allowedTypeLabel(programId)} · {tiles.length} eligible tiles
           </p>
           <p className="hybrid-units" data-spacing-profile="">
-            Spacing profile: {spacingRangeLabel(spacing)}
+            Spacing profile: {spacingRange}
             <br />
-            Bias: {spacingBiasLabel(spacing)}
+            Bias: {spacingBias}
           </p>
           <p className="hybrid-units" data-dominant-tile="">
             Dominant tile: {dominant?.name ?? "none"}
@@ -291,7 +336,7 @@ function ProgramRuleReadout() {
                   onClick={() => openCluster(cluster)}
                 >
                   <ClusterThumb tiles={cluster.tiles} />
-                  <span className="hybrid-units" title={`${cluster.names.join(", ")} · Profile ${spacingRangeLabel(spacing)} · ${spacingBiasLabel(spacing)}`}>
+                  <span className="hybrid-units" title={`${cluster.names.join(", ")} · Profile ${spacingRange} · ${spacingBias}`}>
                     {index + 1} · {cluster.tiles.length} tiles
                     <br />
                     {cluster.spacings.map((value) => Math.round(value)).join(" / ")}
@@ -618,7 +663,7 @@ function ClusterCatalog({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-/** Site strategy steps. Cluster Placement keeps the Skill 04 workspace. */
+/** Program-cluster steps. Cluster Placement stays in Cluster Integration, not Hybrid Connection. */
 export function ClusterPlacement({ sheet = "placement" }: { sheet?: ClusterStepId }) {
   return (
     <HybridState>

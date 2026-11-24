@@ -1,0 +1,29 @@
+{
+  "id": "rule-large-v1",
+  "collection": "data/skill6/experiments/clustering-rule-large-v1",
+  "priorStop": "clustering-overnight-v1 on-rule-compact-7 placed 6 of 7. The chosen compact rule set stopped at 8 backtracks after 588 evaluations. The remaining evaluations produced a 3-tile tabu set. Two further sets did not start. The six-tile mesh is the stored compact six and its refined geometry passed.",
+  "experiment": "This collection only. 240 evaluations per tile, twice the default 120. Compact was tried at 16 backtracks. Branching was tried at 16 and then 24. Scoring, profile 2, tabu, thresholds, patching, and refinement are unchanged. The default cap in runRule remains 8 when a job does not set one.",
+  "compact": {
+    "id": "rule-large-compact-16",
+    "tiles": 7,
+    "validated": true,
+    "searchMilliseconds": 26023,
+    "evaluations": 1680,
+    "backtracks": 16,
+    "sequence": ["Open Hall", "Linear Gallery −X", "Continuous Hall +Z", "Undulated +Y", "Void Edge +Z", "Linear Gallery −X", "Linear Gallery −X"],
+    "contacts": 6,
+    "patched": 6,
+    "direct": 0,
+    "failedPatches": 0,
+    "penetrations": 0,
+    "maxPenetration": 0.0198,
+    "lift": 0,
+    "refined": "NoError, 1 body, 0 cavities",
+    "shape": { "compact": 0.362, "branching": 0.708, "vertical": 0.571, "unique": 5, "branchPoints": 2, "depth": 3, "directions": ["+Y", "+Z", "−X"], "minJointArea": 7.552 }
+  },
+  "branching": {
+    "tiles": 5,
+    "validated": false,
+    "note": "Same five-tile sequence at 16 and at 24 backtracks. The 24-backtrack pass used 1648 evaluations and still stopped at 5, with 739 geometric rejections, all intersections. It was not assembled as a large cluster."
+  }
+}

@@ -42,6 +42,9 @@ export type EncodedIsoMesh = {
 export type Skill4ModuleRecord = {
   contract: typeof SKILL4_MODULE_CONTRACT;
   moduleId: string;
+  /** Native Skill 3 identity. Present on the published Final Handoff; omitted on mocks and tests. */
+  candidateId?: number;
+  continuationId?: string;
   revision: number;
   archetypeId: string;
   source: ModuleSource;

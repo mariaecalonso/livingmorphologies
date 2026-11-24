@@ -1,7 +1,7 @@
 import { readClusterCriteria } from "./cluster-criteria-reading";
 import type { FinishedIteration } from "./finished-catalog";
 import type { AreaStanding } from "./program-area";
-import { CLIENT_ACTIVITY_SEED } from "@/lib/skill5/client-compatibility";
+import { CLIENT_ACTIVITY_SEED, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import type { ZoneKind } from "@/lib/skill5/zoning";
 
 export type PlacementCluster = {
@@ -26,8 +26,8 @@ export type PlacementRank = {
   clusters: PlacementCluster[];
 };
 
-function zoneKindOf(programId: string): ZoneKind | null {
-  const context = CLIENT_ACTIVITY_SEED.activities.find((item) => item.id === programId)?.contexts[0];
+function zoneKindOf(programId: string, activities: ClientCompatibilityDocument): ZoneKind | null {
+  const context = activities.activities.find((item) => item.id === programId)?.contexts[0];
   if (context === "lobby" || context === "workspace" || context === "gathering") return context;
   return null;
 }
@@ -36,11 +36,16 @@ function zoneKindOf(programId: string): ZoneKind | null {
  * Order saved clusters for one program.
  * The score reads the existing criteria survey. It does not rewrite a cluster.
  */
-export function rankProgramClusters(programId: string, name: string, iterations: readonly FinishedIteration[]): PlacementRank {
-  const activity = CLIENT_ACTIVITY_SEED.activities.find((item) => item.id === programId);
+export function rankProgramClusters(
+  programId: string,
+  name: string,
+  iterations: readonly FinishedIteration[],
+  activities: ClientCompatibilityDocument = CLIENT_ACTIVITY_SEED,
+): PlacementRank {
+  const activity = activities.activities.find((item) => item.id === programId);
   const weights = new Map(activity?.desires.map((desire) => [desire.criterionId, desire.weight]) ?? []);
   const clusters = iterations.map((item) => {
-    const reading = readClusterCriteria(programId, item);
+    const reading = readClusterCriteria(programId, item, activities);
     let weight = 0;
     let earned = 0;
     let meets = 0;
@@ -75,7 +80,7 @@ export function rankProgramClusters(programId: string, name: string, iterations:
   return {
     programId,
     name,
-    zoneKind: zoneKindOf(programId),
+    zoneKind: zoneKindOf(programId, activities),
     clusters: clusters.map(({ within: _within, ...cluster }) => cluster),
   };
 }

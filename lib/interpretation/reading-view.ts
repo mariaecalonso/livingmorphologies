@@ -5,6 +5,10 @@
 import { encodeMesh } from "./mesh-codec";
 import { loadControlBuilding, loadProximityBuilding } from "./fixtures";
 import { readAssembly, type AssemblyReading, type Opportunity } from "./opportunities";
+import type { OccupancyHandoff } from "./building";
+import { loadSelectedAssemblyBuilding } from "./selected-assembly";
+import type { GeometryStatus } from "@/lib/skill5/downstream-pipeline";
+import { resolveDownstreamPipeline } from "@/lib/skill5/downstream-pipeline";
 import type { SurfaceRegion } from "./regions";
 import type { EncodedMesh } from "./types";
 
@@ -28,7 +32,7 @@ export type ReadingCard = {
 };
 
 export type ReadingFixtureView = {
-  id: "control" | "proximity";
+  id: "control" | "proximity" | "selected";
   label: string;
   note: string;
   placements: { clusterId: string; translation: [number, number, number] }[];
@@ -42,27 +46,46 @@ export type ReadingFixtureView = {
   cards: ReadingCard[];
 };
 
+export type ReadingClusterView = {
+  id: string;
+  label: string;
+  meshFile: string;
+  tiles: string[];
+  mesh: EncodedMesh;
+  occupancy?: OccupancyHandoff;
+};
+
+export type ReadingSourceView = {
+  assemblyId: string | null;
+  assemblyRevision: string | null;
+  networkId: string | null;
+  occupancyCount: number;
+  occupancy: OccupancyHandoff[];
+  geometryStatus: GeometryStatus;
+  sourceReady: boolean;
+};
+
 export type ReadingLabView = {
   contract: "architectural-interpretation-lab-v1";
   generatesGeometry: false;
-  clusters: {
-    id: string;
-    label: string;
-    meshFile: string;
-    tiles: string[];
-    mesh: EncodedMesh;
-  }[];
+  mode: "production" | "legacy-fixture";
+  source: ReadingSourceView;
+  clusters: ReadingClusterView[];
   fixtures: {
-    control: ReadingFixtureView;
-    proximity: ReadingFixtureView;
+    selected?: ReadingFixtureView;
+    control?: ReadingFixtureView;
+    proximity?: ReadingFixtureView;
   };
 };
 
-function shortLabel(id: string): string {
+function shortLabel(id: string, reading?: AssemblyReading): string {
   if (id === "assembled-flat-self") return "Flat Self";
   if (id === "assembled-flat-plate") return "Flat Plate";
   if (id === "assembled-rule-small-02") return "Rule 02";
-  return id;
+  const source = reading?.analysis.sources.find((item) => item.id === id);
+  const name = source?.tiles[0]?.name;
+  if (name) return name;
+  return id.replace(/^occ-/, "") || id;
 }
 
 function num(item: Opportunity, key: string): number | null {
@@ -98,10 +121,14 @@ function measuredCards(reading: AssemblyReading): ReadingCard[] {
       clusterIds: sources.map((source) => source.id),
       evidence: sources.map((source) => {
         const span = source.worldBounds.max.map((value, axis) => value - source.worldBounds.min[axis]);
-        return `${shortLabel(source.id)} · ${span.map((value) => value.toFixed(1)).join(" × ")} ft · ground Z ${source.worldBounds.min[2].toFixed(2)}`;
+        return `${shortLabel(source.id, reading)} · ${span.map((value) => value.toFixed(1)).join(" × ")} ft · ground Z ${source.worldBounds.min[2].toFixed(2)}`;
       }),
-      interpretation: "Three stored Skill 6 meshes in one analysis frame. X and Y are horizontal, Z is up, and one unit is one foot. The placement is a temporary fixture.",
-      limits: ["The assembly is not the site building. Cluster meshes are not merged and are not rescaled."],
+      interpretation: reading.analysis.role === "upstream"
+        ? "Selected Assembly occupancies in the Interpretation analysis frame. X and Y are horizontal, Z is up, and one unit is one foot. Site yaw is baked into each occupancy mesh. Clusters are not merged."
+        : "Three stored Skill 6 meshes in one analysis frame. X and Y are horizontal, Z is up, and one unit is one foot. The placement is a temporary fixture.",
+      limits: reading.analysis.role === "upstream"
+        ? ["The source is the Selected Assembly for Development. Cluster meshes are not merged and stored Skill 4 files are not rewritten. This reading is not a Current Integrated Architectural Model."]
+        : ["The assembly is not the site building. Cluster meshes are not merged and are not rescaled."],
     }),
     card({
       id: "surfaces",
@@ -113,7 +140,7 @@ function measuredCards(reading: AssemblyReading): ReadingCard[] {
         const slope = reading.analysis.findings.find((item) => item.id === `${source.id}:slope`);
         const upArea = slope?.values.upArea;
         const oblique = slope?.values.obliqueArea;
-        return `${shortLabel(source.id)} · upward ${upArea ?? "—"} sq ft · oblique ${oblique ?? "—"} sq ft`;
+        return `${shortLabel(source.id, reading)} · upward ${upArea ?? "—"} sq ft · oblique ${oblique ?? "—"} sq ft`;
       }),
       interpretation: "Connected upward patches are edge-linked and stay inside one facing class. An upward normal is a measurement, not a floor.",
       limits: ["Patches that only share a height are kept apart. Small fragments stay out of this list."],
@@ -128,10 +155,10 @@ function measuredCards(reading: AssemblyReading): ReadingCard[] {
       evidence: [
         ...sources.map((source) => {
           const overhang = reading.analysis.findings.find((item) => item.id === `${source.id}:void`);
-          return `${shortLabel(source.id)} · cover ${overhang?.values.overhangMedianFeet ?? "—"} ft · enclosed cells ${overhang?.values.enclosedCells ?? "—"}`;
+          return `${shortLabel(source.id, reading)} · cover ${overhang?.values.overhangMedianFeet ?? "—"} ft · enclosed cells ${overhang?.values.enclosedCells ?? "—"}`;
         }),
         ...reading.analysis.findings.filter((item) => item.topic === "clearance" && item.support === "measured").map((item) => {
-          const names = item.clusterIds.map(shortLabel).join(" → ");
+          const names = item.clusterIds.map((id) => shortLabel(id, reading)).join(" → ");
           return item.values.openInterval === 1
             ? `${names} · open ${item.values.lowerFeet}–${item.values.upperFeet ?? "—"} ft`
             : `${names} · interval occupied`;
@@ -147,7 +174,7 @@ function opportunityCards(reading: AssemblyReading): ReadingCard[] {
   const cards: ReadingCard[] = [];
   for (const item of reading.opportunities) {
     if (item.type === "preserve" && item.status === "candidate" && item.featureId.endsWith(":morphology")) {
-      const name = shortLabel(item.clusterIds[0] ?? "");
+      const name = shortLabel(item.clusterIds[0] ?? "", reading);
       cards.push(card({
         id: item.id,
         group: "opportunity",
@@ -164,7 +191,7 @@ function opportunityCards(reading: AssemblyReading): ReadingCard[] {
       }));
     }
     if (item.type === "partial-platform" && item.status === "candidate") {
-      const name = shortLabel(item.clusterIds[0] ?? "");
+      const name = shortLabel(item.clusterIds[0] ?? "", reading);
       cards.push(card({
         id: item.id,
         group: "opportunity",
@@ -185,7 +212,7 @@ function opportunityCards(reading: AssemblyReading): ReadingCard[] {
       cards.push(card({
         id: item.id,
         group: "opportunity",
-        label: `Shelter · ${shortLabel(item.clusterIds[0] ?? "")}`,
+        label: `Shelter · ${shortLabel(item.clusterIds[0] ?? "", reading)}`,
         tone: "opportunity",
         clusterIds: item.clusterIds,
         evidence: [
@@ -201,7 +228,7 @@ function opportunityCards(reading: AssemblyReading): ReadingCard[] {
       cards.push(card({
         id: item.id,
         group: "opportunity",
-        label: `Open gap · ${item.clusterIds.map(shortLabel).join(" / ")}`,
+        label: `Open gap · ${item.clusterIds.map((id) => shortLabel(id, reading)).join(" / ")}`,
         tone: "opportunity",
         clusterIds: item.clusterIds,
         evidence: [
@@ -255,7 +282,7 @@ function limitCards(reading: AssemblyReading): ReadingCard[] {
       if (seenMezzanine.has(key)) continue;
       seenMezzanine.add(key);
     }
-    const name = item.clusterIds.map(shortLabel).join(" / ");
+    const name = item.clusterIds.map((id) => shortLabel(id, reading)).join(" / ");
     const area = item.type === "partial-platform" && !item.id.includes("infill") ? num(item, "area") : null;
     cards.push(card({
       id: item.id,
@@ -272,7 +299,7 @@ function limitCards(reading: AssemblyReading): ReadingCard[] {
   return cards;
 }
 
-function fixtureView(id: "control" | "proximity", reading: AssemblyReading): ReadingFixtureView {
+function fixtureView(id: "control" | "proximity" | "selected", reading: AssemblyReading): ReadingFixtureView {
   const cards = [...measuredCards(reading), ...opportunityCards(reading), ...limitCards(reading)];
   const caps = cards.filter((item) => item.label.startsWith("Cap ·") && item.tone === "opportunity").length;
   const shelters = cards.filter((item) => item.label.startsWith("Shelter")).length;
@@ -280,10 +307,12 @@ function fixtureView(id: "control" | "proximity", reading: AssemblyReading): Rea
   const unsupported = [...new Set(cards.filter((item) => item.tone === "unsupported").map((item) => item.label.split(" · ")[0]))];
   return {
     id,
-    label: id === "control" ? "Control" : "Proximity",
+    label: id === "control" ? "Control" : id === "proximity" ? "Proximity" : "Selected Assembly",
     note: id === "control"
       ? "Clusters stay 20 feet apart. That gap is the module registration, not a site measurement."
-      : "Clusters are separated by the smaller measured thickness of each pair. The gap is not a joint.",
+      : id === "proximity"
+        ? "Clusters are separated by the smaller measured thickness of each pair. The gap is not a joint."
+        : "Occupancies from the Selected Assembly for Development. Site poses and yaw are baked. No new solids.",
     placements: reading.analysis.placements.map((placement) => ({
       clusterId: placement.clusterId,
       translation: placement.translation,
@@ -299,7 +328,19 @@ function fixtureView(id: "control" | "proximity", reading: AssemblyReading): Rea
   };
 }
 
-/** Both temporary fixtures. Source meshes are encoded once, in their stored frames. */
+function emptySource(geometryStatus: GeometryStatus = "no-source"): ReadingSourceView {
+  return {
+    assemblyId: null,
+    assemblyRevision: null,
+    networkId: null,
+    occupancyCount: 0,
+    occupancy: [],
+    geometryStatus,
+    sourceReady: false,
+  };
+}
+
+/** Both temporary Skill 6 fixtures. Not the production source. */
 export function buildReadingLabView(): ReadingLabView {
   const controlRequest = loadControlBuilding();
   const proximityRequest = loadProximityBuilding();
@@ -310,7 +351,7 @@ export function buildReadingLabView(): ReadingLabView {
     if (!cluster) throw new Error(`Missing mesh for ${source.id}.`);
     return {
       id: source.id,
-      label: shortLabel(source.id),
+      label: shortLabel(source.id, control),
       meshFile: source.meshFile,
       tiles: source.tiles.map((tile) => tile.name),
       mesh: encodeMesh(cluster.positions, cluster.indices),
@@ -319,10 +360,57 @@ export function buildReadingLabView(): ReadingLabView {
   return {
     contract: "architectural-interpretation-lab-v1",
     generatesGeometry: false,
+    mode: "legacy-fixture",
+    source: emptySource("no-source"),
     clusters,
     fixtures: {
       control: fixtureView("control", control),
       proximity: fixtureView("proximity", proximity),
+    },
+  };
+}
+
+/** Production reading. Null selected assembly returns no-source and does not load Skill 6 fixtures. */
+export function buildProductionReadingView(): ReadingLabView {
+  const interpretation = resolveDownstreamPipeline().interpretation;
+  const source: ReadingSourceView = {
+    assemblyId: interpretation.sourceAssemblyId,
+    assemblyRevision: interpretation.sourceAssemblyRevision,
+    networkId: interpretation.sourceNetworkId,
+    occupancyCount: interpretation.occupancyCount,
+    occupancy: [],
+    geometryStatus: interpretation.geometryStatus,
+    sourceReady: interpretation.sourceReady,
+  };
+  const request = loadSelectedAssemblyBuilding();
+  if (!request) {
+    return {
+      contract: "architectural-interpretation-lab-v1",
+      generatesGeometry: false,
+      mode: "production",
+      source,
+      clusters: [],
+      fixtures: {},
+    };
+  }
+  const reading = readAssembly(request);
+  source.occupancy = request.origin?.occupancy ?? [];
+  const clusters = request.clusters.map((cluster) => ({
+    id: cluster.id,
+    label: shortLabel(cluster.id, reading),
+    meshFile: cluster.meshFile,
+    tiles: cluster.tiles.map((tile) => tile.name),
+    mesh: encodeMesh(cluster.positions, cluster.indices),
+    occupancy: cluster.occupancy,
+  }));
+  return {
+    contract: "architectural-interpretation-lab-v1",
+    generatesGeometry: false,
+    mode: "production",
+    source,
+    clusters,
+    fixtures: {
+      selected: fixtureView("selected", reading),
     },
   };
 }

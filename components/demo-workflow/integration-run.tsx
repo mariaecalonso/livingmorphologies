@@ -547,7 +547,7 @@ export function HybridSitePage() {
   }, [meshes, placed]);
 
   return (
-    <div className={styles.place}>
+    <div className={styles.place} data-publication-class="demo" data-publication-source="hybrid-stress-test-and-browser-catalog">
       <div className={styles.stage}>
         <SiteViewport
           context={site}

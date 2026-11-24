@@ -1,0 +1,759 @@
+{
+ "version": 1,
+ "note": "Joint-local refinement compared with the unchanged baseline. Not promoted. Thresholds, patch settings, and scores unchanged.",
+ "atlas": "data/skill6/atlas/v1.json",
+ "summary": {
+  "pairs": 4,
+  "regressions": [
+   {
+    "id": "strong-linear-gallery-open-hall",
+    "regressions": [
+     "penetrations"
+    ]
+   },
+   {
+    "id": "weak-open-hall-undulated",
+    "regressions": [
+     "penetrations"
+    ]
+   }
+  ],
+  "neighborhood": 3.2,
+  "floorShift": 0.04,
+  "baseWeight": 0.1
+ },
+ "rows": [
+  {
+   "id": "strong-compressed-sequential-open-hall",
+   "kind": "strong",
+   "host": "compressed-sequential",
+   "guest": "open-hall",
+   "atlasId": "compressed-sequential|open-hall|-0.000,-1.000,0.000,1.000,-0.000,0.000,0.000,0.000,1.000|0.00,-20.38,0.00|0.14",
+   "method": "adaptive-seating-v1",
+   "gap": 0.14,
+   "contactArea": 250.92948616923516,
+   "growthDirection": "-Y",
+   "revalidate": true,
+   "joint": [
+    "patched-near-contact"
+   ],
+   "protectedVoids": 0,
+   "baseline": {
+    "milliseconds": 8719,
+    "retained": [
+     {
+      "archetypeId": "compressed-sequential",
+      "retained": 0.7409267258705913,
+      "slight": 0.10089073044221969,
+      "moved": 0.09003359673628959,
+      "buried": 0.06814894695089677,
+      "maxDeviation": 1.4791438881692314
+     },
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.7464713541544437,
+      "slight": 0.08349175293202776,
+      "moved": 0.05617893661008499,
+      "buried": 0.11385795630344447,
+      "maxDeviation": 0.48486355078584864
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.002762430939226568,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.006172839506172867,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.0037523452157598447,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075860977172852,
+     "samples": 180,
+     "voidSamples": 138,
+     "filled": 0,
+     "filledNearJoint": 0,
+     "filledRemote": 0,
+     "occupiedByAnotherTile": 0,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 2,
+    "jointPocketVolumeFilled": 0.04677358101009166,
+    "patchVolumeOutside": 4.0855662899302345,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2694.004720984377,
+     "triangles": 54176,
+     "cavitiesFilled": 15,
+     "penetrations": 0,
+     "grazes": 4775,
+     "maxPenetration": 0.01933325681819832,
+     "sharpEdgesBefore": 9957,
+     "sharpEdgesAfter": 4780,
+     "seamSharpEdgesBefore": 9080,
+     "seamSharpEdgesAfter": 3915,
+     "maxShift": 0.9000001866563058,
+     "meanShift": 0.08197534383948775,
+     "outsideMoved": 13218,
+     "outsideMax": 0.008359939135478755
+    },
+    "patchContinuity": [
+     {
+      "samples": 807,
+      "withinContact": 0.14869888475836432,
+      "maxGap": 1.3378913462952038
+     }
+    ]
+   },
+   "proposed": {
+    "milliseconds": 7261,
+    "retained": [
+     {
+      "archetypeId": "compressed-sequential",
+      "retained": 0.7409267258705913,
+      "slight": 0.10089073044221969,
+      "moved": 0.09003359673628959,
+      "buried": 0.06814894695089677,
+      "maxDeviation": 1.4791438881692314
+     },
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.7464713541544437,
+      "slight": 0.08349175293202776,
+      "moved": 0.05617893661008499,
+      "buried": 0.11385795630344447,
+      "maxDeviation": 0.48486355078584864
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.0020732550103662595,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.005149330587023715,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.0031289111389236623,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075860977172852,
+     "samples": 180,
+     "voidSamples": 138,
+     "filled": 0,
+     "filledNearJoint": 0,
+     "filledRemote": 0,
+     "occupiedByAnotherTile": 0,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 2,
+    "jointPocketVolumeFilled": 0.04677358101009166,
+    "patchVolumeOutside": 4.0855662899302345,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2693.215860509103,
+     "triangles": 54176,
+     "cavitiesFilled": 15,
+     "penetrations": 0,
+     "grazes": 4757,
+     "maxPenetration": 0.019333272408532946,
+     "sharpEdgesBefore": 9957,
+     "sharpEdgesAfter": 4764,
+     "seamSharpEdgesBefore": 9080,
+     "seamSharpEdgesAfter": 3915,
+     "maxShift": 0.9000001866563058,
+     "meanShift": 0.08127572371734898,
+     "outsideMoved": 0,
+     "outsideMax": 0
+    },
+    "patchContinuity": [
+     {
+      "samples": 807,
+      "withinContact": 0.14869888475836432,
+      "maxGap": 1.3378913462952038
+     }
+    ]
+   },
+   "regressions": [],
+   "assembleMilliseconds": 45353
+  },
+  {
+   "id": "strong-linear-gallery-open-hall",
+   "kind": "strong",
+   "host": "linear-gallery",
+   "guest": "open-hall",
+   "atlasId": "linear-gallery|open-hall|0.000,1.000,0.000,-1.000,0.000,0.000,0.000,0.000,1.000|0.00,20.38,0.00|0.30",
+   "method": "adaptive-seating-v1",
+   "gap": 0.3,
+   "contactArea": 211.14016781048468,
+   "growthDirection": "+Y",
+   "revalidate": true,
+   "joint": [
+    "patched-near-contact"
+   ],
+   "protectedVoids": 0,
+   "baseline": {
+    "milliseconds": 14528,
+    "retained": [
+     {
+      "archetypeId": "linear-gallery",
+      "retained": 0.7675868681692468,
+      "slight": 0.10342950402986809,
+      "moved": 0.08348182324735867,
+      "buried": 0.04550180455352701,
+      "maxDeviation": 0.6202711017222582
+     },
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.7578114464908481,
+      "slight": 0.07952714059863733,
+      "moved": 0.06945620729415304,
+      "buried": 0.09320520561636195,
+      "maxDeviation": 0.5125056922537898
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.0027081922816519777,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.007478632478632452,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.004216867469879482,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075877571105957,
+     "samples": 160,
+     "voidSamples": 122,
+     "filled": 0,
+     "filledNearJoint": 0,
+     "filledRemote": 0,
+     "occupiedByAnotherTile": 0,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 1,
+    "jointPocketVolumeFilled": 0.0024921848802554945,
+    "patchVolumeOutside": 3.3620032715330126,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2778.1613478432077,
+     "triangles": 55168,
+     "cavitiesFilled": 12,
+     "penetrations": 1,
+     "grazes": 3536,
+     "maxPenetration": 0.029289398858209602,
+     "sharpEdgesBefore": 9236,
+     "sharpEdgesAfter": 4255,
+     "seamSharpEdgesBefore": 8461,
+     "seamSharpEdgesAfter": 3492,
+     "maxShift": 0.7767711928429885,
+     "meanShift": 0.07803385226197178,
+     "outsideMoved": 13831,
+     "outsideMax": 0.008213192057047052
+    },
+    "patchContinuity": [
+     {
+      "samples": 808,
+      "withinContact": 0.1448019801980198,
+      "maxGap": 0.8759146183926931
+     }
+    ]
+   },
+   "proposed": {
+    "milliseconds": 15305,
+    "retained": [
+     {
+      "archetypeId": "linear-gallery",
+      "retained": 0.7675868681692468,
+      "slight": 0.10342950402986809,
+      "moved": 0.08348182324735867,
+      "buried": 0.04550180455352701,
+      "maxDeviation": 0.6202711017222582
+     },
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.7578114464908481,
+      "slight": 0.07952714059863733,
+      "moved": 0.06945620729415304,
+      "buried": 0.09320520561636195,
+      "maxDeviation": 0.5125056922537898
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.002032520325203291,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.007478632478632452,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.003616636528028905,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075877571105957,
+     "samples": 160,
+     "voidSamples": 122,
+     "filled": 0,
+     "filledNearJoint": 0,
+     "filledRemote": 0,
+     "occupiedByAnotherTile": 0,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 1,
+    "jointPocketVolumeFilled": 0.0024921848802554945,
+    "patchVolumeOutside": 3.3620032715330126,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2777.349776126697,
+     "triangles": 55168,
+     "cavitiesFilled": 12,
+     "penetrations": 2,
+     "grazes": 3530,
+     "maxPenetration": 0.12092602745931817,
+     "sharpEdgesBefore": 9236,
+     "sharpEdgesAfter": 4242,
+     "seamSharpEdgesBefore": 8461,
+     "seamSharpEdgesAfter": 3492,
+     "maxShift": 0.7767711928429885,
+     "meanShift": 0.07733706180117514,
+     "outsideMoved": 0,
+     "outsideMax": 0
+    },
+    "patchContinuity": [
+     {
+      "samples": 808,
+      "withinContact": 0.1448019801980198,
+      "maxGap": 0.8759146183926931
+     }
+    ]
+   },
+   "regressions": [
+    "penetrations"
+   ],
+   "assembleMilliseconds": 59534
+  },
+  {
+   "id": "weak-flat-deep-plan-contained-room-within-volume",
+   "kind": "weak",
+   "host": "flat-deep-plan",
+   "guest": "contained-room-within-volume",
+   "atlasId": "flat-deep-plan|contained-room-within-volume|-0.000,-0.643,-0.766,-0.000,-0.766,0.643,-1.000,0.000,0.000|0.00,3.67,0.00|0.50",
+   "method": "adaptive-seating-v1",
+   "gap": 0.5,
+   "contactArea": 3.242944757485469,
+   "growthDirection": "-Y",
+   "revalidate": true,
+   "joint": [
+    "patched-near-contact"
+   ],
+   "protectedVoids": 0,
+   "baseline": {
+    "milliseconds": 771,
+    "retained": [
+     {
+      "archetypeId": "flat-deep-plan",
+      "retained": 0.950295575291419,
+      "slight": 0.0396950586405917,
+      "moved": 0.004087605878676027,
+      "buried": 0.005921760189312931,
+      "maxDeviation": 0.2377072493930236
+     },
+     {
+      "archetypeId": "contained-room-within-volume",
+      "retained": 0.9304480533971834,
+      "slight": 0.03358705019706936,
+      "moved": 0.02958410432957006,
+      "buried": 0.006380792076176625,
+      "maxDeviation": 0.35986782157565134
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0,
+      "maxGap": 0
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0,
+      "maxGap": 0
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.0008904719501335867,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075797653198242,
+     "samples": 75,
+     "voidSamples": 47,
+     "filled": 1,
+     "filledNearJoint": 0,
+     "filledRemote": 1,
+     "occupiedByAnotherTile": 1,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 0,
+    "jointPocketVolumeFilled": 0,
+    "patchVolumeOutside": 0.5596067204466811,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1433.3846334695488,
+     "triangles": 25226,
+     "cavitiesFilled": 0,
+     "penetrations": 0,
+     "grazes": 102,
+     "maxPenetration": 0.017918477573419658,
+     "sharpEdgesBefore": 1230,
+     "sharpEdgesAfter": 781,
+     "seamSharpEdgesBefore": 587,
+     "seamSharpEdgesAfter": 127,
+     "maxShift": 0.42420583603624906,
+     "meanShift": 0.016256228404595032,
+     "outsideMoved": 10020,
+     "outsideMax": 0.00815574441440381
+    },
+    "patchContinuity": [
+     {
+      "samples": 1100,
+      "withinContact": 0.20545454545454545,
+      "maxGap": 1.208139046729671
+     }
+    ]
+   },
+   "proposed": {
+    "milliseconds": 755,
+    "retained": [
+     {
+      "archetypeId": "flat-deep-plan",
+      "retained": 0.950295575291419,
+      "slight": 0.0396950586405917,
+      "moved": 0.004087605878676027,
+      "buried": 0.005921760189312931,
+      "maxDeviation": 0.2377072493930236
+     },
+     {
+      "archetypeId": "contained-room-within-volume",
+      "retained": 0.9304480533971834,
+      "slight": 0.03358705019706936,
+      "moved": 0.02958410432957006,
+      "buried": 0.006380792076176625,
+      "maxDeviation": 0.3598678207370873
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0,
+      "maxGap": 0
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0,
+      "maxGap": 0
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.0008904719501335867,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075797653198242,
+     "samples": 75,
+     "voidSamples": 47,
+     "filled": 1,
+     "filledNearJoint": 0,
+     "filledRemote": 1,
+     "occupiedByAnotherTile": 1,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 0,
+    "jointPocketVolumeFilled": 0,
+    "patchVolumeOutside": 0.5596067204466811,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 1432.6354695472169,
+     "triangles": 25226,
+     "cavitiesFilled": 0,
+     "penetrations": 0,
+     "grazes": 100,
+     "maxPenetration": 0.017918478427359847,
+     "sharpEdgesBefore": 1230,
+     "sharpEdgesAfter": 770,
+     "seamSharpEdgesBefore": 587,
+     "seamSharpEdgesAfter": 127,
+     "maxShift": 0.4242058111204939,
+     "meanShift": 0.01499207581431589,
+     "outsideMoved": 0,
+     "outsideMax": 0
+    },
+    "patchContinuity": [
+     {
+      "samples": 1100,
+      "withinContact": 0.20545454545454545,
+      "maxGap": 1.208139046729671
+     }
+    ]
+   },
+   "regressions": [],
+   "assembleMilliseconds": 4879
+  },
+  {
+   "id": "weak-open-hall-undulated",
+   "kind": "weak",
+   "host": "open-hall",
+   "guest": "undulated",
+   "atlasId": "open-hall|undulated|0.044,-0.311,0.950,-0.311,-0.908,-0.283,0.950,-0.283,-0.136|-15.90,-1.74,1.38|0.42",
+   "method": "proximity-dock-v1",
+   "gap": 0.42,
+   "contactArea": 3.2692180114013287,
+   "growthDirection": null,
+   "revalidate": true,
+   "joint": [
+    "patched-near-contact"
+   ],
+   "protectedVoids": 0,
+   "baseline": {
+    "milliseconds": 911,
+    "retained": [
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.9752063963004403,
+      "slight": 0.013456595359599116,
+      "moved": 0.007623498378973273,
+      "buried": 0.003713509960987709,
+      "maxDeviation": 0.3975577502968005
+     },
+     {
+      "archetypeId": "undulated",
+      "retained": 0.9512166233408713,
+      "slight": 0.026470671521744604,
+      "moved": 0.017290425913687554,
+      "buried": 0.005022279223696328,
+      "maxDeviation": 0.2919611214210532
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.0035385704175513455,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.001343183344526544,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0.0008928571428571397,
+      "maxGap": 0.5
+     }
+    ],
+    "openings": {
+     "step": 4.075324821472168,
+     "samples": 145,
+     "voidSamples": 104,
+     "filled": 4,
+     "filledNearJoint": 0,
+     "filledRemote": 4,
+     "occupiedByAnotherTile": 4,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 0,
+    "jointPocketVolumeFilled": 0,
+    "patchVolumeOutside": 0.4898281728575825,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2363.5197894652397,
+     "triangles": 38132,
+     "cavitiesFilled": 0,
+     "penetrations": 0,
+     "grazes": 184,
+     "maxPenetration": 0.018777488316205716,
+     "sharpEdgesBefore": 1577,
+     "sharpEdgesAfter": 1160,
+     "seamSharpEdgesBefore": 505,
+     "seamSharpEdgesAfter": 74,
+     "maxShift": 0.5256775644107229,
+     "meanShift": 0.009761478806406043,
+     "outsideMoved": 15695,
+     "outsideMax": 0.008226261388250724
+    },
+    "patchContinuity": [
+     {
+      "samples": 1144,
+      "withinContact": 0.17045454545454544,
+      "maxGap": 1.3967743508985655
+     }
+    ]
+   },
+   "proposed": {
+    "milliseconds": 3210,
+    "retained": [
+     {
+      "archetypeId": "open-hall",
+      "retained": 0.9752063963004403,
+      "slight": 0.013456595359599116,
+      "moved": 0.007623498378973273,
+      "buried": 0.003713509960987709,
+      "maxDeviation": 0.3975579027030695
+     },
+     {
+      "archetypeId": "undulated",
+      "retained": 0.9512166233408713,
+      "slight": 0.026470671521744604,
+      "moved": 0.017290425913687554,
+      "buried": 0.005022279223696328,
+      "maxDeviation": 0.2919611214210532
+     }
+    ],
+    "silhouettes": [
+     {
+      "plane": "plan",
+      "deviation": 0.002126151665485465,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-x",
+      "deviation": 0.001343183344526544,
+      "maxGap": 0.5
+     },
+     {
+      "plane": "elevation-y",
+      "deviation": 0,
+      "maxGap": 0
+     }
+    ],
+    "openings": {
+     "step": 4.075324821472168,
+     "samples": 145,
+     "voidSamples": 104,
+     "filled": 4,
+     "filledNearJoint": 0,
+     "filledRemote": 4,
+     "occupiedByAnotherTile": 4,
+     "altered": 0,
+     "alteredNearJoint": 0,
+     "alteredRemote": 0
+    },
+    "originalVoidAltered": false,
+    "originalOpeningAltered": false,
+    "review": [],
+    "jointPocketsFilled": 0,
+    "jointPocketVolumeFilled": 0,
+    "patchVolumeOutside": 0.4898281728575825,
+    "topology": {
+     "status": "NoError",
+     "components": 1,
+     "cavities": 0,
+     "volume": 2362.528704423731,
+     "triangles": 38132,
+     "cavitiesFilled": 0,
+     "penetrations": 2,
+     "grazes": 183,
+     "maxPenetration": 0.0695364213908254,
+     "sharpEdgesBefore": 1577,
+     "sharpEdgesAfter": 1143,
+     "seamSharpEdgesBefore": 505,
+     "seamSharpEdgesAfter": 74,
+     "maxShift": 0.5256758798827854,
+     "meanShift": 0.008557568435807952,
+     "outsideMoved": 0,
+     "outsideMax": 0
+    },
+    "patchContinuity": [
+     {
+      "samples": 1144,
+      "withinContact": 0.17045454545454544,
+      "maxGap": 1.3967736235805572
+     }
+    ]
+   },
+   "regressions": [
+    "penetrations"
+   ],
+   "assembleMilliseconds": 10129
+  }
+ ]
+}

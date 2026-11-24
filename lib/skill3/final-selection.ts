@@ -27,7 +27,7 @@ export function finalSelectionPath() {
   return path.join(process.cwd(), "data", "skill3", "final-selection.json");
 }
 
-/** The tracked 15-archetype handoff. The JSON is compiled in, so production does not read the file from disk. */
+/** Published Skill 3 Final Handoff of 15 designer-selected geometries. The JSON is compiled in. */
 export function readFinalSelection(): FinalHandoffManifest {
   const manifest = handoffFile as FinalHandoffManifest;
   if (manifest.contract !== FINAL_SELECTION_CONTRACT) throw new Error("Skill 3 final selection contract does not match.");

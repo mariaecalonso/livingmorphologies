@@ -101,11 +101,6 @@ export const DEMO_CHAPTERS: readonly DemoChapter[] = [
         sequence: [{ label: "Initial Morphology Catalog", mark: "03" }],
       },
       {
-        name: "Multiobjective Optimization",
-        holdMs: 64000,
-        sequence: [{ label: "Multiobjective Optimization", mark: "" }],
-      },
-      {
         name: "MOO Morphology Study",
         holdMs: 74000,
         sequence: [{ label: "MOO Morphology Study", mark: "" }],

@@ -1,0 +1,39 @@
+{
+  "contract": "skill5-downstream-pipeline-v1",
+  "interpretation": {
+    "interpretationRevisionId": null,
+    "derivedFromAssemblyId": null,
+    "derivedFromAssemblyRevision": null,
+    "outputGeometryRef": null,
+    "updatedAt": null,
+    "previous": []
+  },
+  "enclosure": {
+    "enclosureRevisionId": null,
+    "derivedFromInterpretationRevisionId": null,
+    "finalEnclosedModelRef": null,
+    "updatedAt": null,
+    "previous": []
+  },
+  "finalEnclosedModel": {
+    "modelRevisionId": null,
+    "enclosureRevisionId": null,
+    "sourceInterpretationRevisionId": null,
+    "geometryRef": null,
+    "updatedAt": null,
+    "units": "foot",
+    "axes": {
+      "x": "east",
+      "y": "up",
+      "z": "north"
+    },
+    "siteModelRef": "data/skill5/herald-site.json"
+  },
+  "slices": [],
+  "drawings": [],
+  "rendering": {
+    "derivedFromFinalModelRevisionId": null,
+    "updatedAt": null,
+    "outputs": []
+  }
+}

@@ -63,6 +63,15 @@ export type ClusterTileRef = {
   pose: ClusterRecord["tiles"][number]["pose"];
 };
 
+export type OccupancyHandoff = {
+  occupancyId: string;
+  zoneId: string;
+  programId: string;
+  finishedClusterId: string;
+  transform: { x: number; y: number; z: number; rotationY: number };
+  modules: { moduleId: string; archetypeId: string; candidateId: number | null; continuationId: string | null }[];
+};
+
 export type LoadedCluster = {
   id: string;
   meshFile: string;
@@ -71,8 +80,9 @@ export type LoadedCluster = {
   indices: Uint32Array;
   triangles: number;
   tiles: ClusterTileRef[];
+  occupancy?: OccupancyHandoff;
   validation: {
-    state: "catalog-current" | "synthetic";
+    state: "catalog-current" | "synthetic" | "upstream";
     penetrations: number | null;
     maxPenetration: number | null;
     cavities: number | null;
@@ -96,8 +106,8 @@ export type BuildingRequest = {
     skill6UnitToFoot: number;
     moduleRegistrationFeet: number;
     moduleIsStoryCount: false;
-    /** Skill 6 files are already Z-up, so no second axis conversion is applied. */
-    axisConversionApplied: false;
+    /** True only when the Interpretation adapter converted posed Skill 5 meshes into this Z-up frame. Skill 6 fixtures stay false. */
+    axisConversionApplied: boolean;
     scaleApplied: false;
   };
   placementRule: {
@@ -110,6 +120,12 @@ export type BuildingRequest = {
   };
   placements: ClusterPlacement[];
   clusters: LoadedCluster[];
+  origin?: {
+    assemblyId: string;
+    assemblyRevision: string;
+    networkId: string;
+    occupancy: OccupancyHandoff[];
+  };
 };
 
 const TEMPORARY_DISCLAIMER = "Temporary test assembly of current Skill 6 catalog clusters. Not the official site building. Not an upstream multi-cluster placement. Official placements can replace the translation list without merging or rescaling the source meshes.";

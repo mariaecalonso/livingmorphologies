@@ -1,0 +1,358 @@
+{
+  "note": "All distinct plans returned by the unchanged ranker. Ranking was not edited. Incomplete plans are included.",
+  "plans": [
+    {
+      "id": "diag-graph-branching-7",
+      "tiles": 7,
+      "status": "accepted",
+      "reason": null,
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · budget · 210 tests · The guest passes below Z = 0. · widening 6/7 (8 deeper) · budget · 210 tests · Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · budget · 210 tests · The meeting face is -Z. · chain 7/7 · reached · 131 tests",
+      "samePlacementAsStored": true,
+      "sequence": [
+        "open-hall",
+        "linear-gallery",
+        "undulated",
+        "contained-room-within-volume",
+        "linear-gallery",
+        "terraced",
+        "continuous-hall"
+      ],
+      "shape": {
+        "compact": 0.288,
+        "branching": 0.492,
+        "vertical": 0.663,
+        "quality": 0.645,
+        "balanced": 0.288,
+        "depth": 6,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 4,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 4.373,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "solid": 8581.7,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "linear-gallery",
+          "area": 66.49,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.168
+        },
+        {
+          "host": "t01",
+          "guest": "t02",
+          "archetype": "undulated",
+          "area": 14.43,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.118
+        },
+        {
+          "host": "t02",
+          "guest": "t03",
+          "archetype": "contained-room-within-volume",
+          "area": 46.41,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.064
+        },
+        {
+          "host": "t03",
+          "guest": "t04",
+          "archetype": "linear-gallery",
+          "area": 69.96,
+          "rigidCrossing": 0.0066,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.168
+        },
+        {
+          "host": "t04",
+          "guest": "t05",
+          "archetype": "terraced",
+          "area": 4.37,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": true,
+          "guestShare": 0.224
+        },
+        {
+          "host": "t05",
+          "guest": "t06",
+          "archetype": "continuous-hall",
+          "area": 44.6,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.1
+        }
+      ]
+    },
+    {
+      "id": "diag-graph-branching-7-alt1",
+      "tiles": 6,
+      "status": "accepted",
+      "reason": "Graph realization stopped at 6 of 7. Triangle crossing depth 0.104 exceeds 0.02.",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · budget · 210 tests · The guest passes below Z = 0. · widening 6/7 (8 deeper) · budget · 210 tests · Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · budget · 210 tests · The meeting face is -Z. · chain 7/7 · reached · 131 tests",
+      "samePlacementAsStored": false,
+      "sequence": [
+        "open-hall",
+        "linear-gallery",
+        "undulated",
+        "topographic-ground-field",
+        "contained-room-within-volume",
+        "compressed-sequential"
+      ],
+      "shape": {
+        "compact": 0.38,
+        "branching": 0.7,
+        "vertical": 0.682,
+        "quality": 0.889,
+        "balanced": 0.38,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "solid": 7459,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "linear-gallery",
+          "area": 66.49,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.193
+        },
+        {
+          "host": "t01",
+          "guest": "t02",
+          "archetype": "undulated",
+          "area": 14.43,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.136
+        },
+        {
+          "host": "t00",
+          "guest": "t03",
+          "archetype": "topographic-ground-field",
+          "area": 115.96,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.233
+        },
+        {
+          "host": "t02",
+          "guest": "t04",
+          "archetype": "contained-room-within-volume",
+          "area": 46.41,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.074
+        },
+        {
+          "host": "t04",
+          "guest": "t05",
+          "archetype": "compressed-sequential",
+          "area": 81.12,
+          "rigidCrossing": 0.0193,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.182
+        }
+      ]
+    },
+    {
+      "id": "diag-graph-branching-7-alt2",
+      "tiles": 6,
+      "status": "accepted",
+      "reason": "Graph realization stopped at 6 of 7. Triangle crossing depth 0.104 exceeds 0.02.",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · budget · 210 tests · The guest passes below Z = 0. · widening 6/7 (8 deeper) · budget · 210 tests · Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · budget · 210 tests · The meeting face is -Z. · chain 7/7 · reached · 131 tests",
+      "samePlacementAsStored": false,
+      "sequence": [
+        "open-hall",
+        "linear-gallery",
+        "undulated",
+        "linear-gallery",
+        "contained-room-within-volume",
+        "compressed-sequential"
+      ],
+      "shape": {
+        "compact": 0.426,
+        "branching": 0.7,
+        "vertical": 0.605,
+        "quality": 0.701,
+        "balanced": 0.426,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "solid": 7160.3,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "linear-gallery",
+          "area": 66.49,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.202
+        },
+        {
+          "host": "t01",
+          "guest": "t02",
+          "archetype": "undulated",
+          "area": 14.43,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.142
+        },
+        {
+          "host": "t01",
+          "guest": "t03",
+          "archetype": "linear-gallery",
+          "area": 7.55,
+          "rigidCrossing": 0.0189,
+          "secondary": false,
+          "narrowLargeGuest": true,
+          "guestShare": 0.202
+        },
+        {
+          "host": "t02",
+          "guest": "t04",
+          "archetype": "contained-room-within-volume",
+          "area": 46.41,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.077
+        },
+        {
+          "host": "t04",
+          "guest": "t05",
+          "archetype": "compressed-sequential",
+          "area": 81.12,
+          "rigidCrossing": 0.0193,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.19
+        },
+        {
+          "host": "t03",
+          "guest": "t05",
+          "archetype": "compressed-sequential",
+          "area": 32.11,
+          "rigidCrossing": 0.0193,
+          "secondary": true,
+          "narrowLargeGuest": false,
+          "guestShare": 0.19
+        }
+      ]
+    },
+    {
+      "id": "diag-graph-branching-7-alt3",
+      "tiles": 4,
+      "status": "accepted",
+      "reason": "Graph realization stopped at 4 of 7. Triangle crossing depth 0.104 exceeds 0.02.",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · budget · 210 tests · The guest passes below Z = 0. · widening 6/7 (8 deeper) · budget · 210 tests · Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · budget · 210 tests · The meeting face is -Z. · chain 7/7 · reached · 131 tests",
+      "samePlacementAsStored": false,
+      "sequence": [
+        "open-hall",
+        "linear-gallery",
+        "undulated",
+        "linear-gallery"
+      ],
+      "shape": {
+        "compact": 0.401,
+        "branching": 0.658,
+        "vertical": 0.321,
+        "quality": 0.676,
+        "balanced": 0.321,
+        "depth": 2,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Y",
+          "-X"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "solid": 5250.9,
+      "joints": [
+        {
+          "host": "t00",
+          "guest": "t01",
+          "archetype": "linear-gallery",
+          "area": 66.49,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.275
+        },
+        {
+          "host": "t01",
+          "guest": "t02",
+          "archetype": "undulated",
+          "area": 14.43,
+          "rigidCrossing": 0,
+          "secondary": false,
+          "narrowLargeGuest": false,
+          "guestShare": 0.193
+        },
+        {
+          "host": "t01",
+          "guest": "t03",
+          "archetype": "linear-gallery",
+          "area": 7.55,
+          "rigidCrossing": 0.0189,
+          "secondary": false,
+          "narrowLargeGuest": true,
+          "guestShare": 0.275
+        }
+      ]
+    }
+  ]
+}

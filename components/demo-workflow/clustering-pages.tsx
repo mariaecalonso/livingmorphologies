@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { refinedFor, seatedTilesOf } from "@/components/clustering/card-view";
+import { assemblyFor, refinedFor, seatedTilesOf } from "@/components/clustering/card-view";
 import { ClusterView, loadArchetypeGeometry, poseMatrix, type ViewArchetype, type ViewExtra } from "@/components/clustering/cluster-view";
 import { Unavailable, useJson } from "@/components/demo-workflow/chapter-kit";
 import type { ClusterEngine, ClusterMorphology, ClusterRecord } from "@/lib/skill6/contract";
@@ -19,19 +19,11 @@ const CATALOG_SIZES = [2, 3, 4, 5, 6, 7];
 
 type SpinSlot = { canvas: HTMLCanvasElement; scene: THREE.Scene; camera: THREE.PerspectiveCamera };
 
-const LOGICS: { id: ClusterEngine; label: string }[] = [
-  { id: "rule-based", label: "Full Build" },
-  { id: "graph-based", label: "Graph" },
-  { id: "wave-function-collapse", label: "WFC" },
+const ENGINES: { id: ClusterEngine; index: string; name: string; note: string; icon: "build" | "graph" | "wave" }[] = [
+  { id: "rule-based", index: "01", name: "Full Build", note: "Rule based growth with explicit placement rules.", icon: "build" },
+  { id: "graph-based", index: "02", name: "Graph Based", note: "Topology driven growth using a connectivity graph.", icon: "graph" },
+  { id: "wave-function-collapse", index: "03", name: "Wave Function Collapse", note: "Constraint based growth through local possibility collapse.", icon: "wave" },
 ];
-
-const JOINT_PLAY = [
-  { id: "placed", label: "Tiles placed", plate: "/clustering/joint/01-tiles.webp" },
-  { id: "contact", label: "Contact region", plate: "/clustering/joint/02-contact.webp" },
-  { id: "patch", label: "Patch", plate: "/clustering/joint/03-patch.webp" },
-  { id: "union", label: "Raw union", plate: "/clustering/joint/04-union.webp" },
-  { id: "refined", label: "Refined", plate: "/clustering/joint/05-refined.webp" },
-] as const;
 
 function isCatalog(value: unknown): value is CatalogBody {
   if (!value || typeof value !== "object") return false;
@@ -65,7 +57,7 @@ function broadcast(group: string, yaw: number, pitch: number, ratio: number) {
   }));
 }
 
-function Reading({ record, archetypes, extras, shown, hideTiles, shownIds, selectedId = null, syncGroup, ground = false, interactive = true, fixedSpan, focus, onSpan }: {
+function Reading({ record, archetypes, extras, shown, hideTiles, shownIds, selectedId = null, syncGroup, ground = false, interactive = true, fixedSpan, focus, onSpan, ink = "typology", accentId = null, distance = 1 }: {
   record: ClusterRecord | null;
   archetypes: readonly ViewArchetype[];
   extras?: readonly ViewExtra[];
@@ -79,6 +71,9 @@ function Reading({ record, archetypes, extras, shown, hideTiles, shownIds, selec
   fixedSpan?: number;
   focus?: readonly [number, number, number];
   onSpan?: (span: number) => void;
+  ink?: "typology" | "white";
+  accentId?: string | null;
+  distance?: number;
 }) {
   const tiles = useMemo(() => (record ? seatedTilesOf(record) : []), [record]);
   if (!record) return <p className={styles.gap}>No stored mesh</p>;
@@ -96,6 +91,9 @@ function Reading({ record, archetypes, extras, shown, hideTiles, shownIds, selec
         floorZ={record.assembly ? 0 : undefined}
         tones="interface"
         presentation
+        ink={ink}
+        accentId={accentId}
+        distance={distance}
         syncGroup={syncGroup}
         ground={ground}
         fixedSpan={fixedSpan}
@@ -117,291 +115,295 @@ function useSharedSpan(fit: number) {
   return [span, report] as const;
 }
 
-function titleOf(id: string) {
-  return id.replace(/-/g, " ");
-}
+const PAPER = "#f2f2ee";
+const COPPER = "#c77e5f";
+const TEAL = "#49d7de";
+const QUIET = "rgba(242,242,238,0.28)";
+const PIPELINE = [
+  { id: "select", index: "01", name: "Select", note: "Valid run", shown: [] as string[], hideTiles: false },
+  { id: "patch", index: "02", name: "Patch", note: "Continuity", shown: ["patch"], hideTiles: false },
+  { id: "refine", index: "03", name: "Refine", note: "Surface", shown: ["union"], hideTiles: true },
+  { id: "final", index: "04", name: "Final", note: "Validated", shown: ["refined"], hideTiles: true },
+] as const;
 
-function logicRule(engine: ClusterEngine, record: ClusterRecord | null) {
-  if (engine === "rule-based") return "Passing poses are scored. One is seated.";
-  if (engine === "graph-based") {
-    const withdrawn = record?.search?.backtracks;
-    return withdrawn ? `The tree is planned, then realized. ${withdrawn} edges were withdrawn.` : "The tree is planned, then realized.";
-  }
-  const trace = record?.search?.trace ?? "";
-  const propagations = trace.match(/(\d[\d,]*)\s+propagations/)?.[1];
-  const solutions = trace.match(/(\d+)\s+solutions/)?.[1];
-  const backtracks = record?.search?.backtracks;
-  if (propagations && backtracks != null) return `Lowest entropy collapses. ${propagations} propagations, ${backtracks} backtracks${solutions ? `, ${solutions} solutions` : ""}.`;
-  return "Lowest entropy collapses. A contradiction reopens the slot.";
-}
-
-function stepLine(engine: ClusterEngine, record: ClusterRecord | null, step: { archetypeId: string; hostInstanceId: string | null; direction: string | null; placement: string } | undefined, index: number, total: number) {
-  const count = `${index} of ${total}`;
-  if (!step) return "No stored growth";
-  if (step.placement === "seed") {
-    if (engine === "rule-based") return `${count} · Seed. Scoring starts next.`;
-    if (engine === "graph-based") return `${count} · Seed. The plan grows from here.`;
-    return `${count} · Seed. The first slot is fixed.`;
-  }
-  const guest = titleOf(step.archetypeId);
-  const way = step.direction ?? "next";
-  if (engine === "rule-based") {
-    const places = record?.search?.placements ?? [];
-    const match = [...places].reverse().find((item) => item.chosen.startsWith(step.archetypeId));
-    const passed = match ? match.alternatives.length + 1 : null;
-    return passed ? `${count} · ${passed} passed. ${guest} seated ${way}.` : `${count} · ${guest} seated ${way}.`;
-  }
-  if (engine === "graph-based") {
-    const host = record?.assembly?.growth.find((item) => item.instanceId === step.hostInstanceId);
-    const from = host ? titleOf(host.archetypeId) : "seed";
-    return `${count} · ${from} → ${guest}, ${way}.`;
-  }
-  return `${count} · Slot ${index} collapsed. ${guest}, ${way}.`;
-}
-
-function seatedSteps(record: ClusterRecord | null) {
-  const placements = record?.search?.placements ?? [];
-  const chosen = new Map<number, { options: number }>();
-  for (const item of placements) chosen.set(item.step, { options: item.alternatives.length + 1 });
-  return [...chosen.entries()].sort((left, right) => left[0] - right[0]).map(([step, value]) => ({ step, options: value.options }));
-}
-
-/** The chosen pass at each step, taken from the stored scored selection. */
-function ScoreLogic({ record, active }: { record: ClusterRecord | null; active: number }) {
-  const steps = useMemo(() => seatedSteps(record), [record]);
-  if (steps.length === 0) return <p className={styles.gap}>No stored scores</p>;
-  const marked = active % steps.length;
+function EngineMark({ kind }: { kind: "build" | "graph" | "wave" | "stack" }) {
   return (
-    <svg className={styles.diagram} viewBox="0 0 120 168" role="img" aria-label="Scored selection">
-      {steps.map((step, index) => {
-        const count = Math.min(step.options, 7);
-        const y = 18 + index * (136 / Math.max(1, steps.length - 1));
-        return (
-          <g key={step.step}>
-            <text x="2" y={y + 3} className={styles.diagramText}>{step.step}</text>
-            {Array.from({ length: count }, (_, dot) => {
-              const chosen = dot === count - 1;
-              const cx = 18 + (dot * 72) / Math.max(1, count - 1);
-              return (
-                <g key={dot}>
-                  <circle cx={cx} cy={y} r="3.2" fill={chosen ? "#49d7de" : "rgba(242,242,238,0.28)"} />
-                  {chosen && index === marked ? <circle cx={cx} cy={y} r="6" fill="none" stroke="#49d7de" strokeWidth="1.2" /> : null}
-                </g>
-              );
-            })}
-            {index === marked ? <text x="96" y={y + 3} className={styles.diagramText}>Chosen</text> : null}
-          </g>
-        );
-      })}
+    <svg className={styles.engineIcon} viewBox="0 0 24 24" aria-hidden="true">
+      {kind === "build" ? <path d="M12 3 20 7.5 12 12 4 7.5 12 3Zm8 6.2V16.5L12 21l-8-4.5V9.2l8 4.3 8-4.3Z" /> : null}
+      {kind === "graph" ? <path d="M6 7a2 2 0 1 0 0.01 0ZM12 5a2 2 0 1 0 0.01 0ZM18 8a2 2 0 1 0 0.01 0ZM8 16a2 2 0 1 0 0.01 0ZM15 18a2 2 0 1 0 0.01 0ZM7.6 8.4l3-2.2M13.6 6.4l2.6 1.2M8.2 14.2l2.2-6.4M16.4 9.6 14.2 16" /> : null}
+      {kind === "wave" ? <path d="M3 14c2.2-4 3.4-4 5.2 0s3 4 5.2 0 3-4 5.4 0" /> : null}
+      {kind === "stack" ? <path d="M4 8h16M4 12h16M4 16h16" /> : null}
     </svg>
   );
 }
 
-const TILE_TONE: Record<string, string> = { lobby: "#c77e5f", workspace: "#f2f2ee", gathering: "#7db8b8" };
-
-/** The stored growth tree, drawn in the order it was seated. */
-function TreeLogic({ record, grown }: { record: ClusterRecord | null; grown: number }) {
-  const layout = useMemo(() => {
-    const growth = record?.assembly?.growth ?? [];
-    const tone = new Map(record?.tiles.map((tile) => [tile.instanceId, TILE_TONE[tile.typologyId] ?? "#f2f2ee"]) ?? []);
-    const depthOf = new Map<string, number>();
-    const rowOf = new Map<number, number>();
-    return growth.map((step) => {
-      const depth = step.hostInstanceId ? (depthOf.get(step.hostInstanceId) ?? 0) + 1 : 0;
-      depthOf.set(step.instanceId, depth);
-      const row = rowOf.get(depth) ?? 0;
-      rowOf.set(depth, row + 1);
-      return { id: step.instanceId, host: step.hostInstanceId, depth, row, color: tone.get(step.instanceId) ?? "#f2f2ee", direction: step.direction };
-    });
-  }, [record]);
-  if (layout.length === 0) return <p className={styles.gap}>No stored tree</p>;
-  const at = new Map(layout.map((node) => [node.id, node]));
-  const columns = Math.max(...layout.map((node) => node.depth), 1);
-  const rows = Math.max(...layout.map((node) => node.row), 1);
-  const point = (node: { depth: number; row: number }) => ({ x: 24 + (node.row * 72) / rows, y: 16 + (node.depth * 132) / columns });
+function StatusMark({ kind }: { kind: "pass" | "fail" }) {
   return (
-    <svg className={styles.diagram} viewBox="0 0 120 168" role="img" aria-label="Connectivity tree">
-      {layout.map((node, index) => {
-        const host = node.host ? at.get(node.host) : null;
-        if (!host || index >= grown) return null;
-        const from = point(host);
-        const to = point(node);
-        return (
-          <g key={`${host.id}-${node.id}`}>
-            <line className={styles.edge} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />
-            {node.direction ? <text x={(from.x + to.x) / 2 + 8} y={(from.y + to.y) / 2} className={styles.diagramText}>{node.direction}</text> : null}
-          </g>
-        );
-      })}
-      {layout.map((node, index) => {
-        if (index >= grown) return null;
-        const spot = point(node);
-        return <circle key={node.id} cx={spot.x} cy={spot.y} r={index === 0 ? 7 : 6} fill={node.color} stroke={index === grown - 1 ? "#49d7de" : "none"} strokeWidth="1.4" />;
-      })}
+    <svg className={styles.statusMark} data-kind={kind} viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.2" />
+      {kind === "pass" ? <path d="M4.8 8.2 7 10.3 11.3 5.6" /> : <path d="M5.4 5.4 10.6 10.6M10.6 5.4 5.4 10.6" />}
     </svg>
   );
 }
 
-/** Domain collapse and one reopen. The counts are this run's stored search. */
-function CollapseLogic({ record }: { record: ClusterRecord | null }) {
-  const backtracks = record?.search?.backtracks ?? 0;
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    const timer = window.setInterval(() => setPhase((value) => (value + 1) % 6), 700);
-    return () => window.clearInterval(timer);
-  }, []);
-  const tones = ["#f2f2ee", "#c77e5f", "#7db8b8", "#f2f2ee"];
-  const phaseName = phase < 4 ? "Collapse" : phase === 4 ? "Backtrack" : "Seated";
+function StageArrow() {
   return (
-    <svg className={styles.diagram} viewBox="0 0 120 168" role="img" aria-label={`Domain collapse, ${backtracks} backtracks`}>
-      {[0, 1, 2, 3].map((slot) => {
-        const open = phase < slot || (slot === 3 && phase === 4);
-        const x = 8 + slot * 29;
-        return (
-          <g key={slot}>
-            <text x={x + 4} y="16" className={styles.diagramText}>{slot + 1}</text>
-            {open
-              ? [0, 1, 2].map((line) => <rect key={line} x={x} y={28 + line * 36} width="22" height="22" fill="rgba(242,242,238,0.28)" />)
-              : <rect x={x} y="36" width="22" height="88" fill={tones[slot]} stroke={slot === 3 && phase === 4 ? "#c77e5f" : "none"} strokeWidth="1.5" />}
-          </g>
-        );
-      })}
-      <text x="60" y="158" textAnchor="middle" className={styles.diagramText}>{phaseName}</text>
+    <svg className={styles.stageArrow} viewBox="0 0 16 10" aria-hidden="true">
+      <path d="M0 5h12M9 1.5 13.5 5 9 8.5" />
     </svg>
   );
 }
 
-/** The diagram for one engine. The cluster it is seating is drawn in Runs. */
-function Formation({ record, engine, shown }: { record: ClusterRecord | null; engine: ClusterEngine; shown: number }) {
-  const order = record?.assembly?.growth ?? [];
-  if (order.length === 0) return <p className={styles.gap}>No stored growth</p>;
-  const count = Math.min(shown, order.length);
-  const current = order[count - 1];
-  const diagram = engine === "rule-based"
-    ? <ScoreLogic record={record} active={count - 2} />
-    : engine === "graph-based"
-      ? <TreeLogic record={record} grown={count} />
-      : <CollapseLogic record={record} />;
+function IsoCube({ x, y, fill }: { x: number; y: number; fill: string }) {
   return (
-    <>
-      <p className={styles.rule}>{logicRule(engine, record)}</p>
-      {diagram}
-      <p className={styles.method}>{stepLine(engine, record, current, count, order.length)}</p>
-    </>
+    <g>
+      <polygon points={`${x},${y} ${x + 8},${y - 4.4} ${x + 16},${y} ${x + 8},${y + 4.4}`} fill={fill} stroke="rgba(0,0,0,0.45)" strokeWidth="0.4" />
+      <polygon points={`${x},${y} ${x + 8},${y + 4.4} ${x + 8},${y + 12} ${x},${y + 7.6}`} fill={fill} opacity="0.78" />
+      <polygon points={`${x + 8},${y + 4.4} ${x + 16},${y} ${x + 16},${y + 7.6} ${x + 8},${y + 12}`} fill={fill} opacity="0.58" />
+    </g>
   );
 }
 
-/** Compact run, revealing tiles in the same order as that engine's diagram. */
-function GrowingRun({ record, archetypes, built, fixedSpan, onSpan }: {
+function LogicArrow({ x }: { x: number }) {
+  return <path className={styles.logicArrow} d={`M${x} 30H${x + 12}M${x + 8} 26.2 ${x + 14} 30 ${x + 8} 33.8`} />;
+}
+
+function BuildLogic() {
+  const stages = [
+    [{ x: 6, y: 22, fill: PAPER }],
+    [{ x: 2, y: 24, fill: PAPER }, { x: 16, y: 18, fill: COPPER }],
+    [{ x: 0, y: 28, fill: PAPER }, { x: 12, y: 22, fill: PAPER }, { x: 24, y: 16, fill: COPPER }],
+    [{ x: 0, y: 30, fill: PAPER }, { x: 12, y: 24, fill: PAPER }, { x: 24, y: 18, fill: PAPER }, { x: 18, y: 12, fill: COPPER }],
+  ];
+  return (
+    <svg className={styles.logicDiagram} viewBox="0 0 300 86" role="img" aria-label="Seed, test a valid attachment, add a module, repeat">
+      <g transform="translate(6 8) scale(1.32)">
+      {stages.map((cubes, index) => (
+        <g key={index} transform={`translate(${index * 76} 0)`}>
+          {cubes.map((cube) => <IsoCube key={`${cube.x}-${cube.y}`} {...cube} />)}
+        </g>
+      ))}
+      {[58, 134, 210].map((x) => <LogicArrow key={x} x={x} />)}
+      </g>
+    </svg>
+  );
+}
+
+function GraphLogic() {
+  const stages: { nodes: { x: number; y: number; fill: string }[]; edges: [number, number][] }[] = [
+    { nodes: [{ x: 18, y: 26, fill: TEAL }], edges: [] },
+    { nodes: [{ x: 8, y: 30, fill: TEAL }, { x: 22, y: 16, fill: TEAL }, { x: 30, y: 32, fill: COPPER }], edges: [[0, 1], [0, 2]] },
+    { nodes: [{ x: 6, y: 34, fill: TEAL }, { x: 18, y: 20, fill: TEAL }, { x: 30, y: 34, fill: TEAL }, { x: 28, y: 12, fill: COPPER }], edges: [[0, 1], [1, 2], [1, 3]] },
+    { nodes: [{ x: 4, y: 36, fill: TEAL }, { x: 16, y: 22, fill: TEAL }, { x: 28, y: 36, fill: TEAL }, { x: 22, y: 10, fill: COPPER }, { x: 34, y: 22, fill: COPPER }], edges: [[0, 1], [1, 2], [1, 3], [2, 4]] },
+  ];
+  return (
+    <svg className={styles.logicDiagram} viewBox="0 0 300 86" role="img" aria-label="Seed, plan connectivity, expand the graph, realize the topology">
+      <g transform="translate(6 10) scale(1.32)">
+      {stages.map((stage, index) => (
+        <g key={index} transform={`translate(${index * 76} 0)`}>
+          {stage.edges.map(([from, to]) => (
+            <line key={`${from}-${to}`} x1={stage.nodes[from].x} y1={stage.nodes[from].y} x2={stage.nodes[to].x} y2={stage.nodes[to].y} stroke={TEAL} strokeWidth="1" />
+          ))}
+          {stage.nodes.map((node, nodeIndex) => <circle key={nodeIndex} cx={node.x} cy={node.y} r="3.3" fill={node.fill === TEAL ? "none" : node.fill} stroke={node.fill} strokeWidth="1.2" />)}
+        </g>
+      ))}
+      {[58, 134, 210].map((x) => <LogicArrow key={x} x={x} />)}
+      </g>
+    </svg>
+  );
+}
+
+function WaveLogic() {
+  const grids = [
+    [["?", "?"], ["?", "?"]],
+    [["?", COPPER], ["?", "?"]],
+    [[PAPER, COPPER], ["?", PAPER]],
+    [[PAPER, COPPER], [TEAL, PAPER]],
+  ];
+  return (
+    <svg className={styles.logicDiagram} viewBox="0 0 300 86" role="img" aria-label="Possibilities, collapse, propagate, resolved state">
+      <g transform="translate(4 8) scale(1.32)">
+      {grids.map((grid, index) => (
+        <g key={index} transform={`translate(${index * 76 + 8} 12)`}>
+          {grid.map((row, rowIndex) => row.map((cell, cellIndex) => (
+            <g key={`${rowIndex}-${cellIndex}`} transform={`translate(${cellIndex * 12} ${rowIndex * 12})`}>
+              <rect width="10" height="10" rx="1" fill={cell === "?" ? "none" : cell} stroke={cell === "?" ? QUIET : "rgba(0,0,0,0.35)"} strokeWidth="0.7" />
+              {cell === "?" ? <text x="5" y="7.4" textAnchor="middle" className={styles.diagramText}>?</text> : null}
+            </g>
+          )))}
+        </g>
+      ))}
+      {[58, 134, 210].map((x) => <LogicArrow key={x} x={x} />)}
+      </g>
+    </svg>
+  );
+}
+
+function GrowthRow({ record, archetypes }: { record: ClusterRecord; archetypes: readonly ViewArchetype[] }) {
+  const steps = record.assembly?.growth ?? [];
+  const stages = useMemo(() => {
+    const seated = seatedTilesOf(record);
+    return steps.map((step, index) => ({
+      id: step.instanceId,
+      tiles: seated.filter((tile) => steps.slice(0, index + 1).some((item) => item.instanceId === tile.instanceId)),
+    }));
+  }, [record, steps]);
+  if (stages.length === 0) return <p className={styles.gap}>No stored growth</p>;
+  return (
+    <div className={styles.growth} style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>
+      {stages.map((stage, index) => (
+        <div key={stage.id} className={styles.thumb}>
+          <div className={styles.mesh}>
+            <ClusterView tiles={stage.tiles} archetypes={archetypes} selectedId={null} interactive={false} ink="white" accentId={stage.id} distance={0.8} presentation ground={false} tones="interface" />
+          </div>
+          <p className={styles.stepLabel}>s{index}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Outcome({ record, archetypes, fixedSpan, onSpan }: {
   record: ClusterRecord | null;
   archetypes: readonly ViewArchetype[];
-  built: number;
   fixedSpan?: number;
   onSpan?: (span: number) => void;
 }) {
-  const order = record?.assembly?.growth ?? [];
-  const count = Math.min(built, Math.max(order.length, 1));
-  const shownIds = useMemo(() => order.slice(0, count).map((item) => item.instanceId), [order, count]);
-  const current = order[count - 1];
+  const failed = record?.status === "unsuccessful";
+  const passed = record?.status === "accepted";
   return (
-    <Reading
-      record={record}
-      archetypes={archetypes}
-      interactive={false}
-      shownIds={order.length > 0 ? shownIds : undefined}
-      selectedId={current?.instanceId ?? null}
-      fixedSpan={fixedSpan}
-      onSpan={onSpan}
-    />
+    <div className={styles.outcome} data-status={record?.status ?? "missing"}>
+      <Reading record={record} archetypes={archetypes} interactive={false} ink="white" distance={0.82} fixedSpan={fixedSpan} onSpan={onSpan} />
+      {passed ? <StatusMark kind="pass" /> : null}
+      {failed ? <StatusMark kind="fail" /> : null}
+    </div>
   );
 }
 
-/** Three tested searches, the compact and branching runs, then patching and smoothing. */
+function EngineFrame({ engine, record, branching, archetypes, runSpan, onSpan }: {
+  engine: (typeof ENGINES)[number];
+  record: ClusterRecord | null;
+  branching: ClusterRecord | null;
+  archetypes: readonly ViewArchetype[];
+  runSpan?: number;
+  onSpan: (id: string, span: number) => void;
+}) {
+  const last = (record?.assembly?.growth.length ?? 1) - 1;
+  return (
+    <section className={styles.engine} aria-label={engine.name}>
+      <header className={styles.engineHead}>
+        <EngineMark kind={engine.icon} />
+        <p className={styles.badge}>{engine.index}</p>
+        <h2 className={styles.engineName}>{engine.name}</h2>
+        <p className={styles.engineNote}>{engine.note}</p>
+      </header>
+      <div className={styles.band}>
+        <p className={styles.bandLabel}>Logic</p>
+        {engine.id === "rule-based" ? <BuildLogic /> : engine.id === "graph-based" ? <GraphLogic /> : <WaveLogic />}
+      </div>
+      <div className={styles.band}>
+        <p className={styles.bandLabel}>Growth (s0 → s{Math.max(0, last)})</p>
+        {record ? <GrowthRow record={record} archetypes={archetypes} /> : <p className={styles.gap}>No stored growth</p>}
+      </div>
+      <div className={styles.band}>
+        <p className={styles.bandLabel}>Runs</p>
+        <div className={styles.outcomes}>
+          {MORPHOLOGIES.map((morphology) => {
+            const cluster = morphology === "compact" ? record : branching;
+            return (
+              <div key={morphology} className={styles.outcomeColumn}>
+                <p className={styles.outcomeName}>{morphology}</p>
+                <Outcome record={cluster} archetypes={archetypes} fixedSpan={runSpan} onSpan={(value) => onSpan(`${engine.id}-${morphology}`, value)} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Pipeline({ record, archetypes, fixedSpan, onSpan }: {
+  record: ClusterRecord | null;
+  archetypes: readonly ViewArchetype[];
+  fixedSpan?: number;
+  onSpan: (id: string, span: number) => void;
+}) {
+  const [extras, setExtras] = useState<ViewExtra[] | null>(null);
+  useEffect(() => {
+    if (!record) return;
+    let live = true;
+    void assemblyFor(record.id, null).then((list) => {
+      if (live) setExtras(list);
+    }).catch(() => undefined);
+    return () => { live = false; };
+  }, [record]);
+  const accent = record?.tiles.find((tile) => tile.archetypeId === "inserted-horizontal-plate")?.instanceId ?? null;
+  return (
+    <section className={styles.engine} aria-label="Refinement Pipeline">
+      <header className={styles.engineHead}>
+        <EngineMark kind="stack" />
+        <h2 className={styles.engineName}>Refinement Pipeline</h2>
+        <p className={styles.engineNote}>Selected Results</p>
+      </header>
+      <div className={styles.pipeline}>
+        {record && extras ? PIPELINE.map((stage, index) => (
+          <div key={stage.id} className={styles.pipeStep}>
+            {index > 0 ? <StageArrow /> : null}
+            <div className={styles.mesh}>
+              <Reading
+                record={record}
+                archetypes={archetypes}
+                extras={extras}
+                shown={stage.shown}
+                hideTiles={stage.hideTiles}
+                interactive={false}
+                ink="white"
+                accentId={stage.id === "select" ? accent : null}
+                distance={1.2}
+                fixedSpan={fixedSpan}
+                onSpan={(value) => onSpan(stage.id, value)}
+              />
+            </div>
+            <p className={styles.pipeName}><b>{stage.index}</b> {stage.name}</p>
+            <p className={styles.pipeNote}>{stage.note}</p>
+          </div>
+        )) : <p className={styles.gap}>{record ? "Loading the pair" : "The assembled pair is not in the catalog"}</p>}
+      </div>
+    </section>
+  );
+}
+
+/** Three searches, each with its logic, growth, and runs, then one shared refinement pipeline. */
 export function ClusteringDevelopmentPage() {
   const load = useJson(`/api/clustering/catalog?collection=${encodeURIComponent(COLLECTION)}`, isCatalog);
-  const [runSpan, reportRun] = useSharedSpan(1.72);
-  const [play, setPlay] = useState({ built: 1, refineAt: 0 });
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setPlay((current) => {
-        if (current.built < 4) return { built: current.built + 1, refineAt: 0 };
-        if (current.refineAt < JOINT_PLAY.length - 1) return { built: 4, refineAt: current.refineAt + 1 };
-        return { built: 1, refineAt: 0 };
-      });
-    }, 1400);
-    return () => window.clearInterval(timer);
-  }, []);
+  const assembled = useJson("/api/clustering/catalog", isCatalog);
+  const [runSpan, reportRun] = useSharedSpan(1);
+  const [refineSpan, reportRefine] = useSharedSpan(1);
   if (load.status !== "ready") return <Unavailable status={load.status} what="the clustering engines" />;
   const { archetypes, clusters } = load.data;
-  const shown = (engine: ClusterEngine, morphology: ClusterMorphology) => findCluster(clusters, engine, morphology, 4);
+  const pair = assembled.status === "ready" ? assembled.data.clusters.find((cluster) => cluster.id === "assembled-flat-plate") ?? null : null;
+  const pairArchetypes = assembled.status === "ready" ? assembled.data.archetypes : archetypes;
   return (
-    <div className={styles.page}>
-      <div className={styles.progress}>
-        <section className={styles.stage} aria-label="Logics">
-          <header className={styles.stageHead}>
-            <p className={styles.index}>01</p>
-            <p className={styles.kicker}>Logics</p>
-          </header>
-          <p className={styles.sentence}>Each search seats one tile. The cluster builds in Runs.</p>
-          <div className={styles.logicRow}>
-            {LOGICS.map((logic) => (
-              <article key={logic.id} className={styles.logic}>
-                <p className={styles.kicker}>{logic.label}</p>
-                <Formation record={shown(logic.id, "compact")} engine={logic.id} shown={play.built} />
-              </article>
-            ))}
-          </div>
-        </section>
-        <section className={styles.stage} aria-label="Runs">
-          <header className={styles.stageHead}>
-            <p className={styles.index}>02</p>
-            <p className={styles.kicker}>Runs</p>
-          </header>
-          <p className={styles.sentence}>Compact follows the diagram. Branching is the finished cluster. Full Build lost branching at four tiles.</p>
-          <div className={styles.runBoard}>
-            <span />
-            {LOGICS.map((logic) => (
-              <p key={logic.id} className={styles.kicker}>
-                {logic.label}
-                <span data-state={logic.id === "rule-based" ? "failed" : "held"}>{logic.id === "rule-based" ? "Branching failed" : "Held"}</span>
-              </p>
-            ))}
-            {MORPHOLOGIES.map((morphology) => (
-              <div key={morphology} className={styles.runGroup}>
-                <p className={styles.kicker}>{morphology}</p>
-                {LOGICS.map((logic) => {
-                  const record = shown(logic.id, morphology);
-                  return (
-                    <div key={logic.id} className={styles.run} data-status={record?.status ?? "missing"}>
-                      {morphology === "compact"
-                        ? <GrowingRun record={record} archetypes={archetypes} built={play.built} fixedSpan={runSpan} onSpan={(value) => reportRun(`${logic.id}-${morphology}`, value)} />
-                        : <Reading record={record} archetypes={archetypes} interactive={false} fixedSpan={runSpan} onSpan={(value) => reportRun(`${logic.id}-${morphology}`, value)} />}
-                      {record?.status === "unsuccessful" ? <p className={styles.fail}>Failed</p> : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-          <ul className={styles.legend}>
-            <li><i data-tone="lobby" />Lobby</li>
-            <li><i data-tone="workspace" />Workspace</li>
-            <li><i data-tone="gathering" />Gathering</li>
-          </ul>
-        </section>
-        <section className={styles.stage} aria-label="Refine">
-          <header className={styles.stageHead}>
-            <p className={styles.index}>03</p>
-            <p className={styles.kicker}>Refine</p>
-          </header>
-          <p className={styles.sentence}>{JOINT_PLAY[play.refineAt].label}. Flat deep plan × inserted horizontal plate.</p>
-          <div className={styles.refinePlay}>
-            <img src={JOINT_PLAY[play.refineAt].plate} alt={JOINT_PLAY[play.refineAt].label} />
-          </div>
-          <ul className={styles.legend}>
-            <li><i data-tone="patch" />Patch</li>
-          </ul>
-        </section>
+    <div
+      className={styles.page}
+      data-publication-class="demo"
+      data-publication-engine-source="clustering-overnight-v1"
+      data-publication-pipeline-source="skill6-assembled-catalog"
+    >
+      <div className={styles.board}>
+        {ENGINES.map((engine) => (
+          <EngineFrame
+            key={engine.id}
+            engine={engine}
+            record={findCluster(clusters, engine.id, "compact", 4)}
+            branching={findCluster(clusters, engine.id, "branching", 4)}
+            archetypes={archetypes}
+            runSpan={runSpan}
+            onSpan={reportRun}
+          />
+        ))}
+        <Pipeline record={pair} archetypes={pairArchetypes} fixedSpan={refineSpan} onSpan={reportRefine} />
       </div>
     </div>
   );
@@ -937,7 +939,7 @@ export function ClusterCatalogPage() {
     { id: "wave-function-collapse" as const, label: "WFC" },
   ];
   return (
-    <div className={styles.catalog}>
+    <div className={styles.catalog} data-publication-class="demo" data-publication-source="clustering-overnight-v1">
       <div className={styles.sheet}>
       <div className={styles.board}>
         <div className={styles.head}>

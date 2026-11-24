@@ -5,7 +5,6 @@ import { TYPOLOGIES, defaultRatings, groupsForArchetype } from "@/lib/catalog";
 import { ratingLabel } from "@/lib/physarum";
 import type { ChapterContent } from "@/components/demo-workflow/demo-chapter";
 import { LabRun } from "@/components/demo-workflow/lab-run";
-import { MooIntro } from "@/components/demo-workflow/moo-intro";
 import { MooMorphologyStudy } from "@/components/demo-workflow/moo-morphology";
 import { MooCombinedPresentation } from "@/components/demo-workflow/moo-combined";
 import { CatalogSelection } from "@/components/demo-workflow/catalog-selection";
@@ -207,10 +206,6 @@ export function useGenerativeContent(): ChapterContent {
       {
         layout: styles.open,
         details: [<FirstPopulation key="population" />],
-      },
-      {
-        layout: styles.open,
-        details: [<MooIntro key="moo" />],
       },
       {
         layout: styles.open,

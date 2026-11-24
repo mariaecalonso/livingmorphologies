@@ -1,5 +1,5 @@
 import type { Rating } from "@/lib/types";
-import { CLIENT_ACTIVITY_SEED } from "../skill5/client-compatibility";
+import { CLIENT_ACTIVITY_SEED, type ClientCompatibilityDocument } from "../skill5/client-compatibility";
 import type { TileConnection } from "./connections";
 import type { FinishedIteration } from "./finished-catalog";
 import { envelopeWidth, type TileInstance } from "./tiles";
@@ -576,8 +576,8 @@ function labelPoint(marks: SpatialMark[], fallback: SpacePoint): SpacePoint {
 }
 
 /** Read one program's desires against one saved cluster. Nothing is written back. */
-export function readClusterCriteria(programId: string, item: FinishedIteration): ClusterReading {
-  const program = CLIENT_ACTIVITY_SEED.activities.find((entry) => entry.id === programId);
+export function readClusterCriteria(programId: string, item: FinishedIteration, activities: ClientCompatibilityDocument = CLIENT_ACTIVITY_SEED): ClusterReading {
+  const program = activities.activities.find((entry) => entry.id === programId);
   const space = survey(item);
   return {
     criteria: (program?.desires ?? []).map((desire) => {

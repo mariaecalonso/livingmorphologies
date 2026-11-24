@@ -1,0 +1,990 @@
+{
+  "id": "sketch-experiment-v1",
+  "recessionFt": 80,
+  "strength": 1,
+  "exploratoryPreserved": [
+    "measured-herald-waterfront",
+    "measured-northeast-internal",
+    "measured-both-waterfront",
+    "city-edge-internal",
+    "city-edge-road",
+    "measured-both-road"
+  ],
+  "runs": [
+    {
+      "id": "sketch-sketch-with-northeast-20365850",
+      "layoutId": "sketch-with-northeast",
+      "title": "Sketch, with northeast access",
+      "seed": 20365850,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 202.30354285871462,
+          "z": 229.37931467408868,
+          "recordId": "pedestrian:access:Potential Northeast Access"
+        },
+        {
+          "id": "s2",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s8",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 261,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.24926955505467902,
+      "branchFeet": 4648.416707603803,
+      "pockets": {
+        "count": 15,
+        "areaSqFt": 38025,
+        "north": 0,
+        "central": 6,
+        "south": 9,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 135,
+            "north": 150,
+            "band": "south",
+            "area": 4950
+          },
+          {
+            "east": 45,
+            "north": 60,
+            "band": "south",
+            "area": 1912.5
+          },
+          {
+            "east": 30,
+            "north": 30,
+            "band": "south",
+            "area": 787.5
+          },
+          {
+            "east": 90,
+            "north": 135,
+            "band": "south",
+            "area": 5737.5
+          },
+          {
+            "east": 75,
+            "north": 45,
+            "band": "south",
+            "area": 1800
+          },
+          {
+            "east": 75,
+            "north": 75,
+            "band": "south",
+            "area": 3712.5
+          },
+          {
+            "east": 75,
+            "north": 75,
+            "band": "south",
+            "area": 3037.5
+          },
+          {
+            "east": 90,
+            "north": 75,
+            "band": "south",
+            "area": 2925
+          },
+          {
+            "east": 30,
+            "north": 45,
+            "band": "south",
+            "area": 675
+          },
+          {
+            "east": 75,
+            "north": 75,
+            "band": "central",
+            "area": 3037.5
+          },
+          {
+            "east": 45,
+            "north": 60,
+            "band": "central",
+            "area": 1687.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "central",
+            "area": 675
+          },
+          {
+            "east": 60,
+            "north": 60,
+            "band": "central",
+            "area": 1687.5
+          },
+          {
+            "east": 120,
+            "north": 75,
+            "band": "central",
+            "area": 3487.5
+          },
+          {
+            "east": 60,
+            "north": 75,
+            "band": "central",
+            "area": 1912.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-with-northeast-20470579",
+      "layoutId": "sketch-with-northeast",
+      "title": "Sketch, with northeast access",
+      "seed": 20470579,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 202.30354285871462,
+          "z": 229.37931467408868,
+          "recordId": "pedestrian:access:Potential Northeast Access"
+        },
+        {
+          "id": "s2",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s8",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 234,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.13605754514845425,
+      "branchFeet": 2465.9545677856977,
+      "pockets": {
+        "count": 7,
+        "areaSqFt": 27225,
+        "north": 0,
+        "central": 4,
+        "south": 3,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 180,
+            "north": 120,
+            "band": "south",
+            "area": 9675
+          },
+          {
+            "east": 90,
+            "north": 150,
+            "band": "south",
+            "area": 7650
+          },
+          {
+            "east": 90,
+            "north": 90,
+            "band": "south",
+            "area": 3937.5
+          },
+          {
+            "east": 75,
+            "north": 90,
+            "band": "central",
+            "area": 3037.5
+          },
+          {
+            "east": 45,
+            "north": 75,
+            "band": "central",
+            "area": 1237.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "central",
+            "area": 1012.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "central",
+            "area": 675
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-with-northeast-20575308",
+      "layoutId": "sketch-with-northeast",
+      "title": "Sketch, with northeast access",
+      "seed": 20575308,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 202.30354285871462,
+          "z": 229.37931467408868,
+          "recordId": "pedestrian:access:Potential Northeast Access"
+        },
+        {
+          "id": "s2",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s8",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 242,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.13991151181233827,
+      "branchFeet": 2493.3809833337523,
+      "pockets": {
+        "count": 2,
+        "areaSqFt": 18562.5,
+        "north": 0,
+        "central": 1,
+        "south": 1,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 45,
+            "north": 30,
+            "band": "south",
+            "area": 787.5
+          },
+          {
+            "east": 150,
+            "north": 225,
+            "band": "central",
+            "area": 17775
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20470579",
+      "layoutId": "sketch-without-northeast",
+      "title": "Sketch, without northeast access",
+      "seed": 20470579,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s2",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 220,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.17451373236497203,
+      "branchFeet": 3169.446992853415,
+      "pockets": {
+        "count": 9,
+        "areaSqFt": 41512.5,
+        "north": 0,
+        "central": 4,
+        "south": 5,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 180,
+            "north": 120,
+            "band": "south",
+            "area": 9675
+          },
+          {
+            "east": 90,
+            "north": 120,
+            "band": "south",
+            "area": 6412.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "south",
+            "area": 1012.5
+          },
+          {
+            "east": 90,
+            "north": 90,
+            "band": "south",
+            "area": 3937.5
+          },
+          {
+            "east": 60,
+            "north": 45,
+            "band": "south",
+            "area": 1237.5
+          },
+          {
+            "east": 75,
+            "north": 90,
+            "band": "central",
+            "area": 3037.5
+          },
+          {
+            "east": 45,
+            "north": 75,
+            "band": "central",
+            "area": 1237.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "central",
+            "area": 675
+          },
+          {
+            "east": 120,
+            "north": 195,
+            "band": "central",
+            "area": 14287.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20575308",
+      "layoutId": "sketch-without-northeast",
+      "title": "Sketch, without northeast access",
+      "seed": 20575308,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s2",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.19424270250716533,
+      "branchFeet": 3587.939441862599,
+      "pockets": {
+        "count": 10,
+        "areaSqFt": 49275,
+        "north": 0,
+        "central": 5,
+        "south": 5,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 45,
+            "north": 30,
+            "band": "south",
+            "area": 787.5
+          },
+          {
+            "east": 60,
+            "north": 60,
+            "band": "south",
+            "area": 2250
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "south",
+            "area": 1012.5
+          },
+          {
+            "east": 45,
+            "north": 45,
+            "band": "south",
+            "area": 900
+          },
+          {
+            "east": 90,
+            "north": 90,
+            "band": "south",
+            "area": 5062.5
+          },
+          {
+            "east": 45,
+            "north": 75,
+            "band": "central",
+            "area": 1800
+          },
+          {
+            "east": 105,
+            "north": 135,
+            "band": "central",
+            "area": 5400
+          },
+          {
+            "east": 120,
+            "north": 120,
+            "band": "central",
+            "area": 3712.5
+          },
+          {
+            "east": 60,
+            "north": 90,
+            "band": "central",
+            "area": 3375
+          },
+          {
+            "east": 255,
+            "north": 210,
+            "band": "central",
+            "area": 24975
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-without-northeast-20680037",
+      "layoutId": "sketch-without-northeast",
+      "title": "Sketch, without northeast access",
+      "seed": 20680037,
+      "sources": [
+        {
+          "id": "s1",
+          "origin": "measured-access",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "id": "s2",
+          "origin": "city-edge",
+          "x": -47.41,
+          "z": -582.64
+        },
+        {
+          "id": "s3",
+          "origin": "city-edge",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003
+        },
+        {
+          "id": "s4",
+          "origin": "city-edge",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004
+        },
+        {
+          "id": "s5",
+          "origin": "city-edge",
+          "x": -70.025,
+          "z": 39.79
+        },
+        {
+          "id": "s6",
+          "origin": "city-edge",
+          "x": -73.51,
+          "z": 135.865
+        },
+        {
+          "id": "s7",
+          "origin": "city-edge",
+          "x": -75.4,
+          "z": 193.325
+        }
+      ],
+      "attractors": [
+        {
+          "id": "a1",
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "x": 239.49,
+          "z": -172.37,
+          "waterfrontFeet": 10.750733928712599
+        },
+        {
+          "id": "a2",
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "x": 149.49,
+          "z": -337.37,
+          "waterfrontFeet": 98.28033941827267
+        },
+        {
+          "id": "a3",
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "waterfrontFeet": 287.1909941098622
+        },
+        {
+          "id": "a4",
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "x": 104.49,
+          "z": -277.37,
+          "waterfrontFeet": 144.17002284042994
+        },
+        {
+          "id": "a5",
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "x": 149.49,
+          "z": -487.37,
+          "waterfrontFeet": 96.04362291577031
+        }
+      ],
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractorCount": 5,
+      "reachShare": 0.19720622199961044,
+      "branchFeet": 3635.5130334323608,
+      "pockets": {
+        "count": 11,
+        "areaSqFt": 47362.5,
+        "north": 2,
+        "central": 5,
+        "south": 4,
+        "eastGapFt": 12.889999999999986,
+        "spans": [
+          {
+            "east": 45,
+            "north": 30,
+            "band": "south",
+            "area": 787.5
+          },
+          {
+            "east": 30,
+            "north": 45,
+            "band": "south",
+            "area": 900
+          },
+          {
+            "east": 120,
+            "north": 135,
+            "band": "south",
+            "area": 5737.5
+          },
+          {
+            "east": 45,
+            "north": 30,
+            "band": "south",
+            "area": 900
+          },
+          {
+            "east": 45,
+            "north": 30,
+            "band": "central",
+            "area": 1012.5
+          },
+          {
+            "east": 90,
+            "north": 75,
+            "band": "central",
+            "area": 3262.5
+          },
+          {
+            "east": 60,
+            "north": 75,
+            "band": "central",
+            "area": 3037.5
+          },
+          {
+            "east": 60,
+            "north": 75,
+            "band": "central",
+            "area": 2587.5
+          },
+          {
+            "east": 255,
+            "north": 255,
+            "band": "north",
+            "area": 26775
+          },
+          {
+            "east": 30,
+            "north": 60,
+            "band": "central",
+            "area": 1237.5
+          },
+          {
+            "east": 45,
+            "north": 30,
+            "band": "north",
+            "area": 1125
+          }
+        ]
+      }
+    }
+  ]
+}

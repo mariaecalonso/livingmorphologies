@@ -1,8 +1,9 @@
 import type { ContinuationOrigin, NaturalContinuation, NaturalContinuationSet } from "./continuations";
 
 /**
- * Production collection. One selected morphology per archetype.
+ * Browser working collection. One selected morphology per archetype.
  * A legacy single-record value is migrated on read.
+ * Disk authority for downstream Skills 4/6 is `data/skill3/final-selection.json`.
  */
 export const SKILL3_MORPHOLOGY_KEY = "lm-skill3-morphology";
 

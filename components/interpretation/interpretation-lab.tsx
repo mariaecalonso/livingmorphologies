@@ -5,6 +5,7 @@ import { InterpretationView, type Orbit, type ViewPart } from "@/components/inte
 import { liveElements, decodeMesh, type LiveElement } from "@/lib/interpretation/decode";
 import { bakePositions, boundsOf, cleanEdits, identityEdit } from "@/lib/interpretation/edits";
 import { INTERPRETATION_CONTRACT, INTERPRETATION_WORKFLOW, PROPOSALS, type ElementEdit, type ElementKind, type InterpretationModel, type ProposalId } from "@/lib/interpretation/types";
+import { InterpretationSourcePanel } from "./interpretation-source-panel";
 import styles from "./interpretation-lab.module.css";
 
 const STORAGE_KEY = "lm-architectural-interpretation";
@@ -294,7 +295,7 @@ export function InterpretationLab() {
   const nudge = (id: string, change: ElementEdit) => commit(id, change);
 
   return (
-    <div className={styles.board} data-interpretation={proposal}>
+    <div className={styles.board} data-interpretation={proposal} data-legacy-implementation="skill6-assembled">
       <header className={styles.head}>
         <div>
           <h1>Architectural Interpretation</h1>
@@ -309,6 +310,7 @@ export function InterpretationLab() {
       </header>
 
       <aside className={styles.tools} aria-label="Generation and editing">
+        <InterpretationSourcePanel />
         <section>
           <h2><i>01</i> Generate interpretation</h2>
           {PROPOSALS.map((item) => (

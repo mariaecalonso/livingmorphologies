@@ -96,7 +96,7 @@
   letter-spacing: var(--wf-label-tracking, 0.14em);
   line-height: var(--wf-label-line, 1.15);
   text-transform: uppercase;
-  color: #49d7de;
+  color: #9b9b98;
 }
 
 .title {
@@ -142,7 +142,7 @@
 .tiles button[data-on="true"],
 .tools button[data-on="true"],
 .card[data-on="true"] {
-  color: #49d7de;
+  color: var(--cyan);
 }
 
 .check {
@@ -256,7 +256,7 @@
 }
 
 .metrics dt {
-  color: #49d7de;
+  color: #9b9b98;
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -286,12 +286,13 @@
   letter-spacing: 0.04em;
 }
 
-/* Presentation sheet, matched to Hybrid Connection's assembly row and Vertical Propagation's frame padding. */
+/* Presentation sheet. Type and frames follow the Vertical Propagation Process rule. */
 :global([data-view-mode="presentation"]) .board,
 :global([data-view-mode="presentation"]) .view {
   padding: 40px;
   gap: 22px;
-  font-size: 30px;
+  font-family: var(--font-ui);
+  font-size: 22px;
 }
 
 :global([data-view-mode="presentation"]) .board {
@@ -302,18 +303,11 @@
 :global([data-view-mode="presentation"]) .detail,
 :global([data-view-mode="presentation"]) .stage,
 :global([data-view-mode="presentation"]) .frame {
-  border: 1px solid rgba(255, 255, 255, 0.46);
-  border-radius: 64px;
+  border: 1px solid var(--frame-edge);
+  border-radius: var(--frame-radius);
   padding: 28px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 26%),
-    linear-gradient(155deg, rgba(30, 30, 30, 0.94) 0%, rgba(12, 12, 12, 0.97) 46%, rgba(0, 0, 0, 0.98) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 0 8px rgba(255, 255, 255, 0.26),
-    0 0 24px rgba(255, 255, 255, 0.16),
-    0 0 52px rgba(255, 255, 255, 0.09);
+  background: #000000;
+  box-shadow: none;
 }
 
 :global([data-view-mode="presentation"]) .list,
@@ -333,23 +327,31 @@
   gap: 0.4em;
 }
 
-:global([data-view-mode="presentation"]) .kicker {
-  font-size: 0.5em;
-  letter-spacing: 0.22em;
+:global([data-view-mode="presentation"]) .kicker,
+:global([data-view-mode="presentation"]) .note,
+:global([data-view-mode="presentation"]) .metrics dt {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: #9b9b98;
 }
 
 :global([data-view-mode="presentation"]) .title {
-  font-size: 0.86em;
-  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #f2f2ee;
 }
 
 :global([data-view-mode="presentation"]) .body,
-:global([data-view-mode="presentation"]) .note,
 :global([data-view-mode="presentation"]) .metrics dd,
 :global([data-view-mode="presentation"]) .tools span {
-  font-size: 0.62em;
+  font-family: var(--font-ui);
+  font-size: 22px;
   letter-spacing: 0.04em;
   line-height: 1.35;
+  color: rgba(242, 242, 238, 0.82);
 }
 
 :global([data-view-mode="presentation"]) .filters,
@@ -360,24 +362,25 @@
 :global([data-view-mode="presentation"]) .filters button,
 :global([data-view-mode="presentation"]) .tools button,
 :global([data-view-mode="presentation"]) .check,
-:global([data-view-mode="presentation"]) .metrics dt,
 :global([data-view-mode="presentation"]) .cardCopy b,
+:global([data-view-mode="presentation"]) .tiles button {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+
 :global([data-view-mode="presentation"]) .cardCopy i,
 :global([data-view-mode="presentation"]) .cardCopy em,
 :global([data-view-mode="presentation"]) .tiles i,
 :global([data-view-mode="presentation"]) .miss {
-  font-size: 0.5em;
-  letter-spacing: 0.14em;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.06em;
 }
 
 :global([data-view-mode="presentation"]) .tiles button {
   gap: 0.15em;
-  font-size: 0.62em;
   letter-spacing: 0.04em;
-}
-
-:global([data-view-mode="presentation"]) .tiles i {
-  font-size: 0.8em;
 }
 
 :global([data-view-mode="presentation"]) .metrics {
@@ -390,7 +393,9 @@
 
 :global([data-view-mode="presentation"]) .card {
   grid-template-columns: 8.4em minmax(0, 1fr);
-  border-radius: 16px;
+  border: 1px solid var(--frame-edge);
+  border-radius: var(--frame-radius);
+  box-shadow: none;
 }
 
 :global([data-view-mode="presentation"]) .cardView {

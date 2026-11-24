@@ -122,7 +122,7 @@ export function SiteZoningPanel({
 }) {
   const active = ZONE_KINDS.find((item) => item.id === kind) ?? ZONE_KINDS[0];
   return (
-    <div className="site-strategy-panel">
+    <div className="site-strategy-panel" data-authority-class="designer-zoning" data-zoning-authority={hasNetwork ? "saved-network" : "none"} data-preview={preview ? "true" : undefined}>
       <section className="site-strategy-section" aria-label="Program">
         {preview ? <p className="site-strategy-note" title={`${preview.title}. Zoning stays ${networkLabel}.`}>Preview {preview.index}</p> : hasNetwork ? <p className="site-strategy-note" title={networkLabel}>Zoning {networkLabel.split(" · ")[0]}</p> : (
           <p className="site-strategy-note">No massing network.</p>
@@ -154,8 +154,8 @@ export function SiteZoningPanel({
           ))}
         </div>
       </section>
-      <section className="site-strategy-section" aria-label="Pockets">
-        <h3>Pockets</h3>
+      <section className="site-strategy-section" aria-label="Suggested pockets">
+        <h3>Suggested pockets</h3>
         {branchNote ? <p className="site-strategy-note">{branchNote}</p> : null}
         <p className="site-strategy-note" title="Copper fits a validated plan. A copper outline is marginal. White does not fit. Cyan is a parcel remainder.">{pockets.length} · {pocketSelection.length} selected{openSegments > 0 ? ` · ${openSegments} open` : ""}</p>
         {pockets.length > 0 ? (
@@ -201,8 +201,9 @@ export function SiteZoningPanel({
         {tool === "draw" ? <button type="button" disabled={!canFinish} onClick={onFinish}>Finish</button> : null}
         {notice ? <p className="site-strategy-note">{notice}</p> : null}
       </section>
-      <section className="site-strategy-section" aria-label="Placed zones">
-        {zones.length === 0 ? <p className="site-strategy-note">No regions yet.</p> : (
+      <section className="site-strategy-section" aria-label="Designer zoning">
+        <h3>Zoning</h3>
+        {zones.length === 0 ? <p className="site-strategy-note">No designer zoning for this network.</p> : (
           <ul className="site-strategy-nodes">
             {zones.map((zone) => (
               <li key={zone.id}>

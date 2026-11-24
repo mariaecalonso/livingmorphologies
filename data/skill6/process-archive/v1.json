@@ -1,0 +1,319 @@
+{
+  "version": "skill6-process-archive-v1",
+  "written": "2026-11-17",
+  "role": "Pointer ledger. Original experiment files, meshes, labels, and validation outcomes stay where they were written. This file does not copy geometry and does not reconstruct missing meshes.",
+  "sourceArchetypes": {
+    "count": 15,
+    "reader": "lib/skill6/source.ts loadArchetypeMeshes",
+    "geometry": "data/experiments/carved-mass-solidified",
+    "selection": "Skill 3 final selection. Skill 6 does not rewrite these meshes.",
+    "atlasRevision": "c6ebabca",
+    "atlas": "data/skill6/atlas/v1.json"
+  },
+  "unchangedThisPass": [
+    "Rule, Graph, and WFC search code",
+    "contactTolerance 0.18, minContactArea 3.2, targetGap 0.05, normalOpposition 0.82, maxPenetration 0.02",
+    "patch radius 0.32, voxel 0.12",
+    "union and CLUSTER_REFINEMENT",
+    "catalog data/skill6/assembled",
+    "every experiment directory under data/skill6/experiments"
+  ],
+  "activeMethod": {
+    "id": "engine-lab-morphology-presets",
+    "status": "current baseline, not the finalized Spatial Organization method",
+    "engines": ["rule-based", "graph-based", "wave-function-collapse"],
+    "historicalEngines": ["evolutionary-search"],
+    "generationObjectives": ["compact", "branching"],
+    "historicalObjectives": ["vertical", "integrated"],
+    "growth": ["+X", "-X", "+Y", "-Y", "+Z"],
+    "displaySize": { "small": "2-4 placed tiles", "medium": "5-7", "large": "8+" },
+    "storedSizeBands": "SIZE_BANDS remain small 2-6, medium 7-10, large 11+. Do not rewrite stored size labels.",
+    "decision": "Compact and Branching stay as generation controls until a neutral portfolio experiment is compared with the stored five-tile meshes. They are not removed in this archive."
+  },
+  "methodology": [
+    {
+      "id": "catalog-coverage-v2.1",
+      "where": "data/skill6/assembled and data/skill6/coverage-v2.1.json",
+      "search": "aggregateCoverage, first scored coverage path, no morphology preset",
+      "reason": "Earliest assembled catalog. Saved clusters were not regenerated when later engines were added."
+    },
+    {
+      "id": "small-ground-v1",
+      "where": "data/skill6/experiments/small-ground-v1",
+      "search": "Grounded seed. Pose library with a preference for a new host, an upright pose, and a new direction.",
+      "reason": "Ground-first small clusters before world-axis reseating."
+    },
+    {
+      "id": "small-ground-v2",
+      "where": "data/skill6/experiments/small-ground-v2",
+      "search": "Reseat stored contacts onto ±X, ±Y, and +Z, then score. A failed geometric test still rejects the pose.",
+      "reason": "Test whether reseating changes organization without changing thresholds."
+    },
+    {
+      "id": "organization-v1",
+      "where": "data/skill6/experiments/organization-v1",
+      "search": "Same pool, three rankings: compact, branching, vertical.",
+      "reason": "First explicit morphology comparison. Not promoted."
+    },
+    {
+      "id": "organization-v2",
+      "where": "data/skill6/experiments/organization-v2",
+      "search": "Profile 2. Atlas poses revalidated. Whole-cluster compact, branching, and vertical scores.",
+      "reason": "Move the morphology score from a local preference to the cluster that would result."
+    },
+    {
+      "id": "organization-v3",
+      "where": "data/skill6/experiments/organization-v3",
+      "search": "Profile 3. Upright surface seats and dual-tile slides. Field vertical four-tile mesh exceeds penetration and stays not validated.",
+      "reason": "Test surface seating. The failed field mesh is kept with its original failure."
+    },
+    {
+      "id": "initial-clustering-lab",
+      "where": "data/skill6/experiments/initial-clustering-lab",
+      "search": "Rule, Graph, WFC, and Evolutionary on compact, branching, vertical, and integrated. Every run stopped at 2 tiles.",
+      "reason": "First four-engine comparison. Not overwritten by the later coverage collection."
+    },
+    {
+      "id": "initial-clustering-coverage",
+      "where": "data/skill6/experiments/initial-clustering-coverage",
+      "search": "Same four engines on one atlas, reseat, and compatibility pool. Refinement only at three or more tiles.",
+      "reason": "Later two-tile lab was left in place. Medium and large were not generated here."
+    },
+    {
+      "id": "clustering-expansion-v1",
+      "where": "data/skill6/experiments/clustering-expansion-v1",
+      "search": "Checked pool, 190 candidates. Five tiles, compact only, three engines. Six and seven were not attempted.",
+      "reason": "First exact five-tile engine meshes. Stored size label remains small."
+    },
+    {
+      "id": "clustering-five-tile-v1",
+      "where": "data/skill6/experiments/clustering-five-tile-v1",
+      "search": "Compact copies the three expansion meshes. Branching is generated at five tiles. Stops at five.",
+      "reason": "Checkpoint before the 2–7 batch. Expansion files were not rewritten."
+    },
+    {
+      "id": "clustering-overnight-v1",
+      "where": "data/skill6/experiments/clustering-overnight-v1",
+      "search": "Exact 2, then 3, then 4, then the six fives, then 6, then 7. Seven runs only after that engine and morphology validated at 6. Search still starts from the seed.",
+      "reason": "Current engine lab. The directory name is the batch that wrote it. The lab opens here. Compact and Branching remain the generation presets."
+    },
+    {
+      "id": "clustering-rule-large-v1",
+      "where": "data/skill6/experiments/clustering-rule-large-v1",
+      "search": "Rule only. Seven tiles from the seed. 240 evaluations per tile and 16 backtracks for Compact. Branching was also tried at 16 and 24. Default 120 evaluations and 8 backtracks stay in place.",
+      "reason": "One validated Compact seven-tile cluster. Branching stayed at five tiles. Overnight files were not rewritten."
+    }
+  ],
+  "howMorphologyEntersSearch": {
+    "measurement": "lib/skill6/engines/morphology.ts readShape. Compact, branching, vertical, and quality are computed after a placement already passed geometric validation. They do not accept a contact.",
+    "rule": "aggregateCoverage with profile 2 and organization set to the requested preset. scoreOrganizationV2 biases each accepted pose. Four sequential rule sets share that same preset; later sets tabu the earlier first guest. rankReadings then keeps the highest preset score. The runner stores one cluster.",
+    "graph": "Plan order changes with the preset: compact tries wide fan, widening, paired, then chain; branching tries paired, widening, wide, then chain. Edge weights penalize span for compact and extra children for branching. finish ranks the realized plans by the same preset score. The runner stores one cluster.",
+    "wfc": "preference() weights the collapse: compact favors area and short translations; branching favors a new direction and a host that already has a child. The random stream also shifts with the preset name. Up to six solutions are ranked by the preset score. The runner stores one cluster.",
+    "evolutionary": "Historical. Fitness during evolution is morphologyScore. It is not an active engine."
+  },
+  "collections": [
+    {
+      "id": "assembled",
+      "path": "data/skill6/assembled",
+      "fullRecords": 8,
+      "recordsWithGrowthGraphAndPoses": 4,
+      "meshFiles": ["assembled-flat-self", "assembled-flat-plate", "assembled-rule-small-02", "assembled-rule-small-04"],
+      "missingMeshes": ["assembled-rule-small-06", "assembled-rule-medium-07", "assembled-rule-medium-09", "assembled-rule-large-11"],
+      "note": "The four missing entries are unsuccessful rigid searches and were stored without an assembly. history/ keeps three superseded mesh files plus one later small-06 mesh. joint-diagram.json is one joint of assembled-flat-plate, not a full diagram set. coverage-v2.1.json holds 6 rigid catalog clusters."
+    },
+    {
+      "id": "small-ground-v1",
+      "path": "data/skill6/experiments/small-ground-v1",
+      "fullRecords": 5,
+      "meshFiles": 5,
+      "missing": "No 4-, 5-, or 6-tile validation. Index says those sizes validated 0."
+    },
+    {
+      "id": "small-ground-v2",
+      "path": "data/skill6/experiments/small-ground-v2",
+      "fullRecords": 2,
+      "meshFiles": 2,
+      "missing": "Only the two stored jobs. No later sizes."
+    },
+    {
+      "id": "organization-v1",
+      "path": "data/skill6/experiments/organization-v1",
+      "fullRecords": 11,
+      "meshFiles": 11,
+      "missing": "Seven of 18 jobs have no validated record."
+    },
+    {
+      "id": "organization-v2",
+      "path": "data/skill6/experiments/organization-v2",
+      "fullRecords": 0,
+      "summaryRows": 12,
+      "meshFiles": 12,
+      "has": "Each row stores id, strategy, sequence, directions, branch points, occupancy, height, footprint, and penetration. Each mesh file stores raw, refined, and patches.",
+      "missing": "No ClusterRecord: poses, host/guest graph, and seated transforms are not in the index. They are not reconstructed here."
+    },
+    {
+      "id": "organization-v3",
+      "path": "data/skill6/experiments/organization-v3",
+      "fullRecords": 0,
+      "summaryRows": 12,
+      "meshFiles": 8,
+      "missingMeshes": ["org3-compact-hall-3-101", "org3-compact-field-4-101", "org3-branching-hall-3-101", "org3-vertical-field-4-101"],
+      "note": "Field vertical four-tile diagnosis is stored as not validated, refined penetration max 0.175."
+    },
+    {
+      "id": "adaptive-seating-v1",
+      "path": "data/skill6/experiments/adaptive-seating-v1",
+      "meshFiles": 4,
+      "missing": "Pair studies and preservation numbers. Not cluster records and not an engine run."
+    },
+    {
+      "id": "proximity-dock-v1",
+      "path": "data/skill6/experiments/proximity-dock-v1",
+      "meshFiles": 2,
+      "missing": "Pair studies. Not cluster records."
+    },
+    {
+      "id": "connection-refine-v1",
+      "path": "data/skill6/experiments/connection-refine-v1",
+      "meshFiles": 0,
+      "missingMeshes": ["strong-compressed-sequential-open-hall", "strong-linear-gallery-open-hall", "weak-flat-deep-plan-contained-room-within-volume", "weak-open-hall-undulated"],
+      "note": "Comparison metrics only. No raw, patch, or refined mesh was stored."
+    },
+    {
+      "id": "initial-clustering-lab",
+      "path": "data/skill6/experiments/initial-clustering-lab",
+      "fullRecords": 20,
+      "meshFiles": 20,
+      "outcome": "All 20 stopped at 2 of a 3- or 4-tile target. Labels stay unsuccessful. Evolutionary, vertical, and integrated are in this collection."
+    },
+    {
+      "id": "initial-clustering-coverage",
+      "path": "data/skill6/experiments/initial-clustering-coverage",
+      "fullRecords": 20,
+      "validatedRecords": 15,
+      "meshFiles": 20,
+      "notValidated": ["lab-rule-integrated-3", "lab-graph-integrated-3", "lab-wfc-integrated-3", "lab-wfc-compact-4", "lab-evolve-compact-4"],
+      "note": "lab-graph-branching-3 remains validated in this file. A later recheck measured lift 0.358 and did not reuse it. This file was not rewritten."
+    },
+    {
+      "id": "clustering-expansion-v1",
+      "path": "data/skill6/experiments/clustering-expansion-v1",
+      "fullRecords": 3,
+      "meshFiles": 3,
+      "missing": "No branching runs. No 6- or 7-tile runs. Compact five-tile meshes are the originals later copied by the checkpoint."
+    },
+    {
+      "id": "clustering-five-tile-v1",
+      "path": "data/skill6/experiments/clustering-five-tile-v1",
+      "fullRecords": 6,
+      "meshFiles": 6,
+      "note": "All six validated. Compact meshes match the expansion hashes. Branching meshes were generated here."
+    },
+    {
+      "id": "clustering-overnight-v1",
+      "path": "data/skill6/experiments/clustering-overnight-v1",
+      "rows": 36,
+      "fullRecords": 35,
+      "meshFiles": 35,
+      "geometryCopies": 26,
+      "missingRecords": ["on-rule-branching-7"],
+      "failedOriginal": ["on-rule-branching-4"],
+      "partialDuplicates": ["on-rule-branching-6 duplicates on-rule-branching-5", "on-rule-compact-7 duplicates on-rule-compact-6"],
+      "identicalPresets": ["on-wfc-branching-2 is the same mesh as on-wfc-compact-2"],
+      "note": "35 records include tiles, poses, contacts, metrics.geometricDiversity, assembly.growth, assembly.graph, assembly.joints, raw union, patches, and refined mesh. Rule branching 7 has a row only: stop not-attempted, no cluster, no mesh."
+    }
+  ],
+  "perClusterFieldsWhenAFullRecordExists": [
+    "tiles[].pose basis and translation",
+    "tiles[].archetypeId and moduleId",
+    "contacts hostId, guestId, area, gap, normal",
+    "assembly.growth step, host, direction, placement, depth",
+    "assembly.seatedTiles, the same poses plus one ground lift",
+    "assembly.graph nodes, edges, branch points, leaves",
+    "assembly.joints classification and patch summary",
+    "mesh file raw, refined, patches"
+  ],
+  "notStored": [
+    "A separate mesh for each growth step. The rigid poses can be drawn from the record. A union or patch at an intermediate step is not an original file.",
+    "Rejected poses and the alternative clusters an engine ranked and did not save. Traces name the rule set, plan, or solution count. They do not keep those geometries.",
+    "Organization v2 and v3 poses and connection graphs.",
+    "Connection-refine meshes.",
+    "Any 8-tile or larger cluster. Large is untested.",
+    "on-rule-branching-7"
+  ],
+  "diagramReadiness": {
+    "viewer": "components/clustering/cluster-view.tsx",
+    "layersAlreadyInTheLab": ["tiles", "tiles + patches", "raw union", "refined", "contacts", "growth sequence"],
+    "api": "GET /api/clustering/assembly?collection=<id>&id=<cluster>&part=refined returns the refined surface. Omitting part returns raw, refined, and patches.",
+    "collectionsTheApiAlreadyServes": ["assembled", "small-ground-v1", "small-ground-v2", "organization-v1", "initial-clustering-lab", "initial-clustering-coverage", "clustering-expansion-v1", "clustering-five-tile-v1", "clustering-overnight-v1"],
+    "notServed": ["organization-v2", "organization-v3", "adaptive-seating-v1", "proximity-dock-v1"],
+    "smallestLaterChange": "Add an axonometric camera and a growth-step slider that poses the stored tiles. Export the current layer through the existing assembly response. Do not add a second renderer. Do not build that control until it is asked for."
+  },
+  "diagnostics": [
+    {
+      "id": "geometry-v1",
+      "path": "data/skill6/process-archive/diagnostics/geometry-v1",
+      "report": "data/skill6/process-archive/diagnostics/geometry-v1/report.json",
+      "measurements": "data/skill6/process-archive/diagnostics/geometry-v1/measurements.json",
+      "note": "Read-only diagnosis of eight stored clusters. Experiment files and meshes were not modified. Views are renders of stored meshes and stored poses."
+    },
+    {
+      "id": "troubleshooting-v1",
+      "path": "data/skill6/process-archive/diagnostics/troubleshooting-v1",
+      "baseline": "data/skill6/process-archive/diagnostics/geometry-v1/report.json",
+      "note": "Graph Branching at seven tiles, all four plans, and the reproduced Rule Branching four-tile failure with stage penetrations. Ranking, thresholds, and refinement settings were not changed. Overnight meshes were not rewritten."
+    },
+    {
+      "id": "troubleshooting-v2",
+      "path": "data/skill6/process-archive/diagnostics/troubleshooting-v2",
+      "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v1",
+      "note": "Both six-tile Graph plans pass as six-tile geometry and remain incomplete seven-tile attempts. Their budget share ended at 6. Validated clusters also have tiles-only and raw-union crossings that refinement clears. Rule Branching 4 keeps two refined crossings, max 0.0354. The chain was not rewritten."
+    },
+    {
+      "id": "troubleshooting-v3",
+      "path": "data/skill6/process-archive/diagnostics/troubleshooting-v3",
+      "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v2",
+      "report": "data/skill6/process-archive/diagnostics/troubleshooting-v3/report.json",
+      "note": "Widening and wide fan each received 420 tests. Both place a validated seven-tile assembly that is not the stored chain. The two remaining Rule crossings sit on the compressed-sequential pair and already exist in the raw union. Default budgets and refinement are unchanged."
+    },
+    {
+      "id": "troubleshooting-v4",
+      "path": "data/skill6/process-archive/diagnostics/troubleshooting-v4",
+      "collection": "data/skill6/experiments/clustering-graph-budget-v1",
+      "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v3",
+      "report": "data/skill6/process-archive/diagnostics/troubleshooting-v4/report.json",
+      "note": "The two seven-tile Graph alternatives are a separate collection. A local seam split clears the 0.0354 Rule crossing with a 0.0022 move and does not clear the 0.0256 crossing. The result is not validated. The overnight chain, the 210-test share, and refinement settings are unchanged."
+    },
+    {
+      "id": "rule-large-v1",
+      "path": "data/skill6/process-archive/diagnostics/rule-large-v1",
+      "collection": "data/skill6/experiments/clustering-rule-large-v1",
+      "report": "data/skill6/process-archive/diagnostics/rule-large-v1/report.json",
+      "note": "Rule Compact reaches a validated seven-tile cluster when the backtrack cap is 16 and the evaluation allowance is 240 per tile. Branching stays at five tiles at 16 and at 24. The overnight six-of-seven result and the default caps are unchanged."
+    }
+  ],
+  "systems": {
+    "system01": {
+      "id": "skill6-clustering",
+      "status": "complete and retained",
+      "where": "lib/skill6 and /lab/clustering",
+      "note": "First computational clustering approach. Remains independently demonstrable for the research presentation. Rule-Based, Graph-Based, WFC, Compact, Branching, geometry, assembly, the interface, and the stored experiments stay as written."
+    },
+    "system02": {
+      "id": "not started",
+      "status": "not started",
+      "mayReuse": ["Graph-Based connectivity planning", "WFC constraint propagation"],
+      "suppliesItself": ["candidate pool", "compatibility evaluation", "attachment tests", "spatial constraints", "geometric assembly"],
+      "note": "Does not use the Skill 6 lab or the Skill 6 assembly pipeline. Skill 6 does not use its interface. When it exists, record which methods were retained, adapted, or replaced. Do not rewrite System 01 results."
+    }
+  },
+  "recommendedExperiment": {
+    "id": "clustering-open-v1",
+    "status": "not run",
+    "doNot": "Do not remove Compact or Branching. Do not change the three engines' active presets. Do not overwrite clustering-overnight-v1.",
+    "scope": "Five tiles only. Rule, Graph, and WFC. Seed 101. Root open-hall. 120 tests per tile. Same checked pool and the same geometric thresholds.",
+    "method": "Keep every distinct complete placement the current search already produces, instead of discarding all but the preset winner. Measure compact, branching, vertical, connectivity, and geometricDiversity afterward. Record the non-dominated set and label it measured.",
+    "compareWith": ["ft-rule-compact-5", "ft-rule-branching-5", "ft-graph-compact-5", "ft-graph-branching-5", "ft-wfc-compact-5", "ft-wfc-branching-5"],
+    "stopIf": "If each engine returns only one geometry, the presets are still the source of variation and they stay."
+  }
+}

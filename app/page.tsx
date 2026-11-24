@@ -8,6 +8,7 @@ export const metadata = {
 };
 
 export default function Home() {
+  // presentation.plates is unused legacy. See lib/publication-sources.ts.
   return (
     <HomePage
       plates={loadHomeResultPlates()}

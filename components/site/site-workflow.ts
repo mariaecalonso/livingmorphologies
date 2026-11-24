@@ -60,7 +60,11 @@ const STORAGE_KEY = "living-morphologies.site-workflow";
 export type SiteWorkflowState = {
   zones: ZoningRegion[];
   connections: SiteConnection[];
-  /** Iteration sent to Zoning, Tile Placement, and Assembly. */
+  /**
+   * Browser cache of the published Site Strategy selection.
+   * Production authority is `data/skill5/herald-arrival-v1.json` `massingNetworkId`.
+   * This cache must not silently override that selection.
+   */
   massingNetworkId: string | null;
   /** Up to three networks held for Zoning investigation. This does not select the zoning network. */
   zoningShortlist: string[];

@@ -827,7 +827,7 @@ export function LivingInstrument() {
                           <span className="text-[0.64rem] tracking-[0.08em] uppercase text-[var(--text)]">
                             {criterion.label}
                           </span>
-                          <span className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--orange-hot)]">
+                          <span className="text-[0.66rem] uppercase tracking-[0.12em] text-[var(--orange)]">
                             {ratingLabel(value)}
                           </span>
                           <span
@@ -853,7 +853,7 @@ export function LivingInstrument() {
                       );
                     })}
                   </div>
-                  <div className="criteria-scale mt-0.5 flex justify-between text-[0.48rem] tracking-[0.14em] uppercase text-[var(--muted)]">
+                  <div className="criteria-scale mt-0.5 flex justify-between text-[0.48rem] tracking-[0.14em] uppercase text-[var(--orange)]">
                     <span>Low</span>
                     <span>Medium</span>
                     <span>High</span>

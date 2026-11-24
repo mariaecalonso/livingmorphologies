@@ -1,0 +1,13 @@
+{
+  "id": "troubleshooting-v3",
+  "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v2",
+  "graph": "graph-budget-420.json",
+  "rule": "rule-crossing-trace.json",
+  "unchanged": [
+    "ranking",
+    "thresholds",
+    "default budgets",
+    "refinement",
+    "on-graph-branching-7"
+  ]
+}

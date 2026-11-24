@@ -69,6 +69,10 @@
   color: #49d7de;
 }
 
+.sourceSlot {
+  grid-column: 1 / -1;
+}
+
 .column,
 .detail {
   min-width: 0;

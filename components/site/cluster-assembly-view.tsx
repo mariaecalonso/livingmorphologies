@@ -1,220 +1,236 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import context from "@/data/skill5/herald-site.json";
-import { analyzeShrinkwrapVoid } from "@/lib/skill4/cluster-void";
-import type { ClusterAssemblyReport } from "@/lib/skill5/cluster-assembly-report";
+import type { ClusterAssemblyRecord, PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { readOccupancyList } from "@/lib/skill5/placed-cluster";
 import type { SiteContext } from "@/lib/skill5/site-model";
-import { ClusterAssemblyLayer, type AssemblySolid, type ClusterAssemblyModel } from "./cluster-assembly-layer";
+import {
+  announceWorkingOccupancy,
+  loadClusterAssemblies,
+  loadDevelopmentCheckpoint,
+  readWorkingOccupancy,
+  saveClusterAssemblyRecord,
+  SELECTED_CLUSTER_ASSEMBLY_EVENT,
+  sendAssemblyForDevelopment,
+  WORKING_OCCUPANCY_EVENT,
+} from "./cluster-assembly-catalog";
+import { SELECTED_SITE_NETWORK_EVENT } from "./site-network-archive";
+import { occupancyModel, fetchOccupancyMesh, occupancyMeshKey } from "./occupancy-solids";
 import { SiteViewport, type SiteViewMode } from "./site-viewport";
 
 const site = context as SiteContext;
 
-function unpackF32(value: string) {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new Float32Array(bytes.buffer);
-}
-
-function unpackU32(value: string) {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new Uint32Array(bytes.buffer);
-}
-
-function solid(id: string, packed: { positions: string; indices: string } | null, color: string, opacity: number): AssemblySolid | null {
-  if (!packed) return null;
-  return { id, positions: unpackF32(packed.positions), indices: unpackU32(packed.indices), color, opacity };
-}
-
-type VoidReading = {
-  programId: string;
-  floor: number;
-  volume: number;
-  height: number;
-  width: number;
-  depth: number;
-  solids: AssemblySolid[];
-};
-
-function voidSolid(id: string, mesh: { positions: Float32Array; indices: Uint32Array } | null): AssemblySolid | null {
-  if (!mesh || mesh.indices.length < 12) return null;
-  return { id, positions: mesh.positions, indices: mesh.indices, color: "#49d7de", opacity: 0.85 };
-}
-
-function feet(value: number) {
-  return `${Math.round(value)} ft`;
-}
-
-function point(value: { x: number; y: number; z: number }) {
-  return `${Math.round(value.x)}, ${Math.round(value.y)}, ${Math.round(value.z)}`;
+function roleOf(id: string, selectedId: string | null, viewingId: string | null) {
+  if (id === selectedId) return "Development";
+  if (id === viewingId) return "Preview";
+  return "Saved";
 }
 
 export function ClusterAssemblyView() {
-  const [report, setReport] = useState<ClusterAssemblyReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [assemblies, setAssemblies] = useState<ClusterAssemblyRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [working, setWorking] = useState<PlacedCluster[]>([]);
+  const [meshes, setMeshes] = useState<Record<string, { positions: Float32Array; indices: Uint32Array } | null>>({});
+  const [notice, setNotice] = useState("");
   const [mode, setMode] = useState<SiteViewMode>("plan");
-  const [frame, setFrame] = useState<"pair" | "site">("site");
-  const [layers, setLayers] = useState({ zoning: true, clusters: true, voids: false, connections: true, massing: true });
-  const [voidReadings, setVoidReadings] = useState<VoidReading[] | null>(null);
+  const [name, setName] = useState("");
+  const [checkpointId, setCheckpointId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let live = true;
-    fetch("/api/site/cluster-assembly")
-      .then(async (response) => {
-        const body = await response.json() as ClusterAssemblyReport & { error?: string };
-        if (!response.ok) throw new Error(body.error || "Assembly failed.");
-        if (live) setReport(body);
-      })
-      .catch((reason: unknown) => {
-        if (live) setError(reason instanceof Error ? reason.message : "Assembly failed.");
-      });
-    return () => {
-      live = false;
-    };
+  const refreshCatalog = useCallback(async () => {
+    const document = await loadClusterAssemblies();
+    setAssemblies(document.assemblies);
+    setSelectedId(document.selectedAssemblyId);
+    return document;
+  }, []);
+
+  const refreshCheckpoint = useCallback(async () => {
+    const checkpoint = await loadDevelopmentCheckpoint();
+    setCheckpointId(checkpoint.selectedAssemblyId);
+    return checkpoint;
   }, []);
 
   useEffect(() => {
-    if (!layers.voids || !report || voidReadings) return;
-    let cancel = false;
-    const clusters = report.meshes.clusters;
-    const readings: VoidReading[] = [];
-    let index = 0;
-    const step = () => {
-      if (cancel) return;
-      const mesh = clusters[index];
-      if (!mesh) {
-        setVoidReadings(readings);
-        return;
-      }
-      const positions = unpackF32(mesh.positions);
-      const indices = unpackU32(mesh.indices);
-      const measured = analyzeShrinkwrapVoid({
-        triangles: indices.length / 3,
-        positions,
-        normals: new Float32Array(positions.length),
-        indices,
-      });
-      const solids = [
-        voidSolid(`${mesh.programId}-void`, measured.mesh),
-        voidSolid(`${mesh.programId}-pockets`, measured.pocketsMesh),
-      ].flatMap((item) => item ? [item] : []);
-      readings.push({
-        programId: mesh.programId,
-        floor: measured.floorSquareFeet,
-        volume: measured.volumeCubicFeet,
-        height: measured.maxHeightFeet,
-        width: measured.widthFeet,
-        depth: measured.depthFeet,
-        solids,
-      });
-      index += 1;
-      window.setTimeout(step, 0);
+    let live = true;
+    void refreshCatalog().then((document) => {
+      if (!live) return;
+      if (document.selectedAssemblyId) setViewingId(document.selectedAssemblyId);
+    }).catch((error: unknown) => {
+      if (live) setNotice(error instanceof Error ? error.message : "The Cluster Assembly catalog could not be read.");
+    });
+    void refreshCheckpoint().catch(() => undefined);
+    setWorking(readOccupancyList(readWorkingOccupancy()));
+    const onSelected = () => {
+      void refreshCatalog();
+      void refreshCheckpoint();
     };
-    window.setTimeout(step, 0);
+    const onWorking = (event: Event) => {
+      const occupancy = (event as CustomEvent<{ occupancy?: unknown }>).detail?.occupancy;
+      setWorking(readOccupancyList(occupancy ?? readWorkingOccupancy()));
+    };
+    window.addEventListener(SELECTED_CLUSTER_ASSEMBLY_EVENT, onSelected);
+    window.addEventListener(WORKING_OCCUPANCY_EVENT, onWorking);
+    window.addEventListener(SELECTED_SITE_NETWORK_EVENT, onSelected);
     return () => {
-      cancel = true;
+      live = false;
+      window.removeEventListener(SELECTED_CLUSTER_ASSEMBLY_EVENT, onSelected);
+      window.removeEventListener(WORKING_OCCUPANCY_EVENT, onWorking);
+      window.removeEventListener(SELECTED_SITE_NETWORK_EVENT, onSelected);
     };
-  }, [layers.voids, report, voidReadings]);
+  }, [refreshCatalog, refreshCheckpoint]);
 
-  const model = useMemo<ClusterAssemblyModel | null>(() => {
-    if (!report) return null;
-    const tested = new Set(["primary-lobby", "central-gathering"]);
-    return {
-      zoning: layers.zoning,
-      clusters: layers.clusters,
-      connections: layers.connections,
-      massing: layers.massing,
-      branches: report.branches,
-      zones: report.zones,
-      anchors: report.anchors.map((anchor) => ({ id: anchor.id, x: anchor.x, z: anchor.z, tested: tested.has(anchor.role) })),
-      link: layers.zoning ? {
-        ax: report.link.fromAnchor.x,
-        az: report.link.fromAnchor.z,
-        bx: report.link.toAnchor.x,
-        bz: report.link.toAnchor.z,
-      } : null,
-      solids: report.meshes.clusters.flatMap((mesh) => {
-        const item = solid(mesh.programId, mesh, "#f5f5f2", 1);
-        return item ? [item] : [];
-      }),
-      voids: layers.voids && voidReadings ? voidReadings.flatMap((reading) => reading.solids) : [],
-      hybrid: solid("hybrid", report.meshes.hybrid, "#49d7de", 0.86),
-      wrap: solid("wrap", report.meshes.wrap, "#f5f5f2", 1),
-    };
-  }, [layers, report, voidReadings]);
+  const viewing = assemblies.find((item) => item.assemblyId === viewingId) ?? null;
+  const occupancy = viewing?.occupancy ?? working;
+  const zones = viewing?.zones ?? [];
 
-  const link = report?.link;
-  const focus = useMemo(() => {
-    if (frame === "site" || !link) return null;
-    const padX = 130;
-    const padZ = 150;
-    const minX = Math.min(link.fromAnchor.x, link.toAnchor.x) - padX;
-    const maxX = Math.max(link.fromAnchor.x, link.toAnchor.x) + padX;
-    const minZ = Math.min(link.fromAnchor.z, link.toAnchor.z) - padZ;
-    const maxZ = Math.max(link.fromAnchor.z, link.toAnchor.z) + padZ;
-    const width = maxX - minX;
-    const depth = Math.max(180, maxZ - minZ);
-    return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, width, depth, span: Math.max(width, depth) };
-  }, [frame, link]);
-  const toggle = (key: keyof typeof layers) => setLayers((current) => ({ ...current, [key]: !current[key] }));
+  useEffect(() => {
+    const controller = new AbortController();
+    const missing = occupancy.filter((record) => meshes[occupancyMeshKey(record)] === undefined);
+    if (missing.length === 0) return;
+    void (async () => {
+      for (const record of missing) {
+        if (controller.signal.aborted) return;
+        const key = occupancyMeshKey(record);
+        try {
+          const mesh = await fetchOccupancyMesh(record.programId, record.finishedClusterId, controller.signal);
+          if (controller.signal.aborted) return;
+          setMeshes((current) => (current[key] === undefined ? { ...current, [key]: mesh } : current));
+        } catch (error: unknown) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          setMeshes((current) => (current[key] === undefined ? { ...current, [key]: null } : current));
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [meshes, occupancy]);
+
+  const model = useMemo(() => ({
+    ...occupancyModel(occupancy, meshes),
+    zoning: zones.length > 0,
+    zones: zones.map((zone) => ({ kind: zone.kind, points: zone.points })),
+  }), [meshes, occupancy, zones]);
+
+  const saveWorking = async () => {
+    const records = readOccupancyList(working);
+    if (records.length === 0) {
+      setNotice("Place at least one finished cluster in Cluster Placement before saving.");
+      return;
+    }
+    try {
+      const saved = await saveClusterAssemblyRecord({
+        name: name.trim() || undefined,
+        selectedNetworkId: records[0].selectedNetworkId,
+        zoningSignature: records[0].zoningSignature,
+        zones: [],
+        occupancy: records,
+        savedFrom: "catalog",
+      });
+      announceWorkingOccupancy(records);
+      setNotice(`Saved ${saved.assemblyId}. Preview does not send it for Development.`);
+      await refreshCatalog();
+      setViewingId(saved.assemblyId);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "The Cluster Assembly could not be saved.");
+    }
+  };
+
+  const send = async (assemblyId: string) => {
+    try {
+      await sendAssemblyForDevelopment(assemblyId);
+      setNotice(`${assemblyId} is the Selected Assembly for Development.`);
+      await refreshCatalog();
+      await refreshCheckpoint();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "The Cluster Assembly could not be sent for Development.");
+    }
+  };
+
+  const development = assemblies.find((item) => item.assemblyId === selectedId) ?? null;
 
   return (
-    <main className="site-view" data-panels="model" data-sheet="cluster-assembly">
-      <aside className="site-panel site-panel-library" aria-label="Cluster assembly">
+    <main
+      className="site-view"
+      data-panels="model"
+      data-sheet="cluster-assembly"
+      data-selected-assembly={selectedId ?? ""}
+      data-preview-assembly={viewingId ?? ""}
+      data-development-assembly={checkpointId ?? ""}
+      data-working-occupancy={String(working.length)}
+      data-occupancy-authority={viewing ? "saved" : "working"}
+    >
+      <aside className="site-panel site-panel-library" aria-label="Cluster assembly catalog">
         <section className="site-block">
-          <h2 className="site-subtitle">Cluster Assembly</h2>
-          <p className="site-note">Iteration 101 · City-side experimental lobby · seed 20365850</p>
-          {error ? <p className="site-note">{error}</p> : null}
-          {!report && !error ? <p className="site-note">Placing each cluster inside a pocket that states its program.</p> : null}
-          {link ? (
-            <div className="site-specs">
-              <p className="site-stat"><span>Public Lobby anchor</span><strong>{Math.round(link.fromAnchor.x)}, {Math.round(link.fromAnchor.z)}</strong></p>
-              <p className="site-stat"><span>Central Gathering anchor</span><strong>{Math.round(link.toAnchor.x)}, {Math.round(link.toAnchor.z)}</strong></p>
-              <p className="site-stat"><span>Cluster separation</span><strong>{feet(link.separationFt)}</strong></p>
-              <p className="site-stat"><span>Portal A</span><strong>{point(link.portalA.center)}</strong><em>{Math.round(link.portalA.areaSqFt)} ft² · r {Math.round(link.portalA.radiusFt)}</em></p>
-              <p className="site-stat"><span>Portal B</span><strong>{point(link.portalB.center)}</strong><em>{Math.round(link.portalB.areaSqFt)} ft² · r {Math.round(link.portalB.radiusFt)}</em></p>
-              <p className="site-stat"><span>Portal distance</span><strong>{feet(link.distanceFt)}</strong></p>
-              <p className="site-stat"><span>Inter-cluster hybrid</span><strong>{link.hybridGenerated ? "Generated" : "Not generated"}</strong></p>
-              <p className="site-stat"><span>Validation</span><strong>{link.validationPassed ? "Passed" : "Not passed"}</strong></p>
-              <p className="site-stat"><span>Joined solid</span><strong>{link.joinedSolid ? "Yes" : "No"}</strong></p>
-              <p className="site-note">{link.fromCluster} · yaw {link.fromPose.yaw}° · shift {link.fromPose.east} east, {link.fromPose.north} north</p>
-              <p className="site-note">{link.toCluster} · yaw {link.toPose.yaw}° · shift {link.toPose.east} east, {link.toPose.north} north</p>
-              {link.note ? <p className="site-note">{link.note}</p> : null}
-              <p className="site-note">{report.placements.length} programs. Each cluster sits in a pocket that states its program. Experimental Lobby has no finished program, so that anchor stays open.</p>
-              {layers.voids && !voidReadings ? <p className="site-note">Reading the habitable void of each cluster.</p> : null}
-              {report.placements.map((item) => {
-                const reading = layers.voids ? voidReadings?.find((entry) => entry.programId === item.programId) : null;
+          <h2 className="site-subtitle">Cluster Assembly Catalog</h2>
+          <p className="site-note">
+            {development ? `Development ${development.assemblyId}` : "No assembly is selected for Development."}
+            {viewing && viewing.assemblyId !== selectedId ? ` · Preview ${viewing.assemblyId}` : ""}
+          </p>
+          <input aria-label="Assembly name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Assembly name" />
+          <div className="site-modes">
+            <button type="button" onClick={() => void saveWorking()}>Save assembly</button>
+            <button type="button" disabled={!viewing || viewing.assemblyId === selectedId} onClick={() => viewing && void send(viewing.assemblyId)}>Send for Development</button>
+          </div>
+          {notice ? <p className="site-note">{notice}</p> : null}
+          <p className="site-note">Preview shows a saved assembly. Send for Development is the only action that replaces the canonical selected assembly. Film wrap and joined mass stay outside this checkpoint.</p>
+        </section>
+        <section className="site-block site-specs" aria-label="Saved assemblies">
+          <h2 className="site-subtitle">Assemblies {assemblies.length > 0 ? <span>{assemblies.length}</span> : null}</h2>
+          {assemblies.length === 0 ? <p className="site-note">No Cluster Assemblies are saved yet. Place finished clusters, then Save assembly.</p> : (
+            <div className="site-gallery" aria-label="Cluster assemblies">
+              {assemblies.map((item) => {
+                const role = roleOf(item.assemblyId, selectedId, viewingId);
                 return (
-                  <p key={item.programId} className="site-note">
-                    {item.name} · {item.clusterId} · {item.pocket.map((kind) => (kind === "lobby" ? "Lobby" : kind === "gathering" ? "Gathering" : "Workspace")).join(", ")}
-                    {reading ? ` · Main void ${Math.round(reading.floor).toLocaleString("en-US")} sf · ${Math.round(reading.volume).toLocaleString("en-US")} cf · ${Math.round(reading.height)} ft high · ${Math.round(reading.width)} × ${Math.round(reading.depth)} ft` : ""}
-                  </p>
+                  <article
+                    key={item.assemblyId}
+                    className="site-iteration-card"
+                    data-assembly-id={item.assemblyId}
+                    data-active={item.assemblyId === viewingId || undefined}
+                    data-massing={item.assemblyId === selectedId || undefined}
+                    data-assembly-role={role.toLowerCase()}
+                  >
+                    <button type="button" aria-pressed={item.assemblyId === viewingId} title={role === "Development" ? "Development assembly" : "Preview this assembly"} onClick={() => setViewingId(item.assemblyId)}>
+                      <span className="site-iteration-meta">
+                        <b>{item.assemblyId} · {role}</b>
+                      </span>
+                      <span className="site-iteration-meta">
+                        <b>{item.name}</b>
+                      </span>
+                      <span className="site-iteration-meta">
+                        <b>Zones</b>
+                        <b>{item.occupancy.length}</b>
+                      </span>
+                      <span className="site-iteration-meta">
+                        <b>Clusters</b>
+                        <b>{item.sourceFinishedClusterIds.length}</b>
+                      </span>
+                    </button>
+                    <div className="site-modes">
+                      <button type="button" disabled={item.assemblyId === selectedId} onClick={() => void send(item.assemblyId)}>Send for Development</button>
+                    </div>
+                  </article>
                 );
               })}
-              <p className="site-note">The placed clusters go through one shrinkwrap validation. That skin is the final mass. Experimental Lobby still has no finished program.</p>
             </div>
-          ) : null}
+          )}
+        </section>
+        <section className="site-block">
+          <h2 className="site-subtitle">Occupancy</h2>
+          {occupancy.length === 0 ? <p className="site-note">No finished cluster occupies a zone in this view.</p> : occupancy.map((record) => (
+            <p key={record.occupancyId} className="site-note">
+              {record.zoneId} · {record.programId} · {record.finishedClusterId} · {record.provenance}
+            </p>
+          ))}
         </section>
       </aside>
-      <section className="site-stage" aria-label="Zoning-driven cluster assembly">
+      <section className="site-stage" aria-label="Cluster assembly">
         <div className="site-frame">
           <header className="site-frame-bar">
             <div className="site-frame-name">
-              <h2 className="site-subtitle">Public Lobby to Central Gathering</h2>
-            </div>
-            <div className="site-modes site-network-layers" role="group" aria-label="Assembly layers">
-              <button type="button" data-active={layers.zoning || undefined} onClick={() => toggle("zoning")}>Zoning</button>
-              <button type="button" data-active={layers.clusters || undefined} onClick={() => toggle("clusters")}>Clusters</button>
-              <button type="button" data-active={layers.voids || undefined} onClick={() => toggle("voids")}>Void</button>
-              <button type="button" data-active={layers.connections || undefined} onClick={() => toggle("connections")}>Connections</button>
-              <button type="button" data-active={layers.massing || undefined} onClick={() => toggle("massing")}>Final Massing</button>
+              <h2 className="site-subtitle">{viewing ? viewing.assemblyId : "Working occupancy"}</h2>
+              <p className="site-note">{viewing ? `${roleOf(viewing.assemblyId, selectedId, viewingId)} · ${viewing.occupancy.length} occupied zones` : `${working.length} occupied working zones`}</p>
             </div>
             <div className="site-modes site-frame-views" role="group" aria-label="Camera">
-              <button type="button" data-active={frame === "pair" || undefined} onClick={() => setFrame("pair")}>Pair</button>
-              <button type="button" data-active={frame === "site" || undefined} onClick={() => setFrame("site")}>Site</button>
               <button type="button" data-active={mode === "plan" || undefined} onClick={() => setMode("plan")}>Plan</button>
               <button type="button" data-active={mode === "perspective" || undefined} onClick={() => setMode("perspective")}>View</button>
             </div>
@@ -225,8 +241,7 @@ export function ClusterAssemblyView() {
             fit="site"
             showGrid={false}
             showAerial={false}
-            frameToken={(mode === "plan" ? 1 : 2) + (frame === "pair" ? 10 : 0)}
-            focusBounds={focus}
+            frameToken={mode === "plan" ? 1 : 2}
             onReadout={() => {}}
             clusterAssembly={model}
           />

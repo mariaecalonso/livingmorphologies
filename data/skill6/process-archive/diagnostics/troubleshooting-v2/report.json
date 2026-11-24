@@ -1,0 +1,38 @@
+{
+  "id": "troubleshooting-v2",
+  "changed": "Nothing in ranking, thresholds, budgets, or refinement. The overnight winner was not reassembled.",
+  "graph": {
+    "chain": "The repeated search reproduced on-graph-branching-7. It stays the ranked seven-tile winner.",
+    "sixTile": [
+      {
+        "id": "graph-branching-7-alt1",
+        "plan": "wide fan",
+        "sevenTileStatus": "incomplete",
+        "stop": "Its 210-test share of the budget ran out at 6 of 7.",
+        "sixTileAlternative": "validated",
+        "branchPoints": 1,
+        "branchingScore": 0.7
+      },
+      {
+        "id": "graph-branching-7-alt2",
+        "plan": "widening",
+        "sevenTileStatus": "incomplete",
+        "stop": "Its 210-test share of the budget ran out at 6 of 7.",
+        "sixTileAlternative": "validated",
+        "branchPoints": 1,
+        "branchingScore": 0.7
+      }
+    ],
+    "poses": "Recovered by repeating the unchanged search. troubleshooting-v1 stored scores only."
+  },
+  "union": {
+    "comparable": "Tiles-only, raw union, and refined use one crossing measurement. Rigid seating is the pair-crossing depth and is not the same number.",
+    "shared": "The three validated clusters each have 2 tiles-only crossings, max 0.1209, away from the contacts. Refinement clears them.",
+    "patches": "Every raw union has several hundred crossings, about half at the contacts. Refinement clears all of them on the validated clusters.",
+    "failure": "Rule Branching 4 has 7 tiles-only crossings in one place, max 0.1077, away from the contacts. Refinement clears that group. Two different crossings remain: 0.0354 at a contact and 0.0256 away from it."
+  },
+  "recommendation": {
+    "rule": "Do not reject a tiles-only union and do not change the refinement settings. Validated clusters also fail the tiles-only check and then pass after refinement. The next measurement should name the patch that owns the two remaining crossings on this one cluster.",
+    "graph": "A separate increased-budget run of the wide-fan and widening plans is warranted. Both are valid six-tile assemblies, and each stopped because its budget share ended. It should not replace the seven-tile chain or change the default budget until it finds a seventh tile."
+  }
+}

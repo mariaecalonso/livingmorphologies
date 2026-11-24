@@ -3,18 +3,18 @@ import path from "node:path";
 import { runAssemblyShrinkwrap } from "@/lib/skill4/assembly-shrinkwrap";
 import { filmWrapAssembly } from "@/lib/skill4/film-wrap";
 import { rankProgramClusters } from "@/lib/skill4/cluster-placement-rank";
+import { loadClientActivitiesDocument } from "@/lib/skill5/load-client-documents";
 import type { FinishedProgram } from "@/lib/skill4/finished-catalog";
-import { programForRole, ROLE_LABEL } from "@/lib/skill5/architectural-strategy";
-import { assessPockets } from "@/lib/skill5/pocket-feasibility";
-import { detectPockets } from "@/lib/skill5/pockets";
+import { ROLE_LABEL } from "@/lib/skill5/architectural-strategy";
 import type { ArchitecturalRole } from "@/components/site/site-network";
 import site from "@/data/skill5/herald-site.json";
 import { pointInRing } from "@/lib/skill5/placement";
 import type { ClusterAssemblyReport, PackedMesh, PortalReadout } from "@/lib/skill5/cluster-assembly-report";
+import { designerZoningForNetwork, designerZoningSignature } from "@/lib/skill5/designer-zoning";
+import { finishedClusterSource } from "@/lib/skill5/finished-cluster-source";
+import { occupancyIdForZone, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { publishedZoning } from "@/lib/skill5/strategy-archive";
 import type { XZ } from "@/lib/skill5/site-model";
-
-/** The zoning network this stage is allowed to use. */
-export const ZONING_NETWORK_ID = "batch-mwss0uvx-arrival-city-north-v1-20365850";
 
 const TEST_LINK = { from: "primary-lobby", to: "central-gathering" } as const;
 
@@ -69,7 +69,7 @@ type Box = { minX: number; minY: number; minZ: number; maxX: number; maxY: numbe
 type Sample = { x: number; z: number };
 
 type ZoneKind = "lobby" | "gathering" | "workspace";
-type ZoneFace = { suggestions: ZoneKind[]; ring: XZ[] };
+type ZoneFace = { id: string; suggestions: ZoneKind[]; ring: XZ[] };
 
 type Pose = {
   yaw: number;
@@ -294,7 +294,7 @@ function packMesh(mesh: Solid): PackedMesh {
 function rankedClusterIds(programId: string, name: string) {
   const file = path.join(process.cwd(), "data", "skill4", "finished-programs", `${programId}.json`);
   const program = JSON.parse(readFileSync(file, "utf8")) as FinishedProgram;
-  const rank = rankProgramClusters(programId, name, program.iterations);
+  const rank = rankProgramClusters(programId, name, program.iterations, loadClientActivitiesDocument());
   const ids = rank.clusters.map((cluster) => cluster.id);
   if (ids.length === 0) throw new Error(`The catalog has no cluster for ${name}.`);
   return ids;
@@ -738,8 +738,10 @@ function readZoning() {
       architectureRecord?: { relationships?: { from?: string; to?: string; statement?: string }[] };
     }[];
   };
-  const iteration = archive.iterations?.find((item) => item.id === ZONING_NETWORK_ID && item.index === 101 && item.seed === 20365850);
-  if (!iteration) throw new Error("Zoning iteration 101 is not in the Herald archive.");
+  const selected = publishedZoning(archive);
+  if (!selected?.massingNetworkId) throw new Error("Published Site Strategy has no selected network.");
+  const iteration = archive.iterations?.find((item) => item.id === selected.massingNetworkId);
+  if (!iteration) throw new Error(`Selected Site Strategy network ${selected.massingNetworkId} is not in the Herald archive.`);
   return iteration;
 }
 
@@ -761,42 +763,43 @@ function mergeSolids(solids: readonly Solid[]): Solid | null {
 
 function nodeAt(iteration: ReturnType<typeof readZoning>, anchorId: string) {
   const node = iteration.nodes?.find((item) => item.id === anchorId && typeof item.x === "number" && typeof item.z === "number");
-  if (!node || typeof node.x !== "number" || typeof node.z !== "number") throw new Error(`Zoning 101 has no anchor ${anchorId}.`);
+  if (!node || typeof node.x !== "number" || typeof node.z !== "number") throw new Error(`Selected Site Strategy network has no anchor ${anchorId}.`);
   return { x: node.x, z: node.z, role: node.architecture?.role ?? "" };
 }
 
-function programZones(iteration: ReturnType<typeof readZoning>, ring: readonly XZ[]) {
-  const branches = (iteration.branches ?? []).flatMap((branch) => (
-    typeof branch.x0 === "number" && typeof branch.z0 === "number" && typeof branch.x1 === "number" && typeof branch.z1 === "number"
-      ? [{ x0: branch.x0, z0: branch.z0, x1: branch.x1, z1: branch.z1, conductivity: 1 }]
-      : []
-  ));
-  const nodes = (iteration.nodes ?? []).flatMap((node) => {
-    const role = node.architecture?.role;
-    if ((node.kind !== "source" && node.kind !== "attractor") || typeof node.x !== "number" || typeof node.z !== "number" || !role || !(role in ROLE_LABEL)) return [];
-    return [{ kind: node.kind, x: node.x, z: node.z, program: programForRole(role as ArchitecturalRole) }];
-  });
-  const pockets = detectPockets(branches, ring).pockets;
-  const readings = assessPockets(pockets, nodes, branches);
+function programZones(networkId: string) {
   const faces: ZoneFace[] = [];
   const drawn: { kind: ZoneKind; points: { x: number; z: number }[] }[] = [];
-  pockets.forEach((pocket, index) => {
-    const reading = readings[index];
-    if (!reading || reading.fit === "remainder" || reading.fit === "unsuitable") return;
-    const suggestions = reading.suggestions.filter((kind): kind is ZoneKind => kind === "lobby" || kind === "gathering" || kind === "workspace");
-    faces.push({ suggestions, ring: pocket.points.map((point) => [point.x, point.z]) });
-    if (suggestions.length === 0) return;
-    const kind: ZoneKind = suggestions.includes("gathering") ? "gathering" : suggestions.includes("workspace") ? "workspace" : "lobby";
-    drawn.push({ kind, points: pocket.points.map((point) => ({ x: point.x, z: point.z })) });
-  });
+  for (const zone of designerZoningForNetwork(networkId)) {
+    if (zone.points.length < 3) continue;
+    const ring = zone.points.map((point) => [point.x, point.z] as XZ);
+    faces.push({ id: zone.id, suggestions: [zone.kind], ring });
+    drawn.push({ kind: zone.kind, points: zone.points.map((point) => ({ x: point.x, z: point.z })) });
+  }
   return { faces, drawn };
 }
 
-/** Place one catalog cluster per program inside a zoning pocket and continue their surfaces into one mass. */
-export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
+type FittedSeat = {
+  id: string;
+  name: string;
+  clusterId: string;
+  kind: ZoneKind;
+  anchorId: string;
+  role: string;
+  anchor: { x: number; z: number };
+  source: Solid;
+  local: ReturnType<typeof frameOf>;
+  pose: Pose;
+  parcelFit: boolean;
+  pocket: ZoneKind[];
+  zoneId: string | null;
+};
+
+function seatFittedPrograms() {
   const iteration = readZoning();
   const ring = site.site.ring as XZ[];
-  const { faces, drawn } = programZones(iteration, ring);
+  const networkId = iteration.id ?? "";
+  const { faces, drawn } = programZones(networkId);
   const seats = PROGRAM_SEATS.map((seat) => {
     const anchor = nodeAt(iteration, seat.anchorId);
     return { ...seat, anchor, role: anchor.role, ids: rankedClusterIds(seat.id, seat.name) };
@@ -810,9 +813,10 @@ export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
   }).sort((a, b) => a.options.length - b.options.length || Math.max(b.local.sizeX, b.local.sizeZ) - Math.max(a.local.sizeX, a.local.sizeZ));
   const occupied: Pose[] = [];
   const skipped: string[] = [];
-  const fitted = new Map<string, { clusterId: string; source: Solid; local: ReturnType<typeof frameOf>; pose: Pose; parcelFit: boolean; pocket: ZoneKind[] }>();
+  const fitted = new Map<string, { clusterId: string; source: Solid; local: ReturnType<typeof frameOf>; pose: Pose; parcelFit: boolean; pocket: ZoneKind[]; zoneId: string | null }>();
   for (const seat of queued) {
-    let placedSeat: { clusterId: string; source: Solid; local: ReturnType<typeof frameOf>; pose: Pose; parcelFit: boolean; pocket: ZoneKind[] } | null = null;
+    if (faces.length === 0) break;
+    let placedSeat: { clusterId: string; source: Solid; local: ReturnType<typeof frameOf>; pose: Pose; parcelFit: boolean; pocket: ZoneKind[]; zoneId: string | null } | null = null;
     for (let rank = 0; rank < seat.ids.length; rank += 1) {
       const clusterId = seat.ids[rank];
       const source = rank === 0 ? seat.source : loadShrinkwrap(seat.id, clusterId);
@@ -822,61 +826,112 @@ export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
       const next = chooseOne(open, occupied);
       const pocket = next ? pocketFor(next.pose, seat.kind, faces) : null;
       if (!next || !pocket) continue;
-      placedSeat = { clusterId, source, local, pose: next.pose, parcelFit: next.parcelFit, pocket: pocket.suggestions };
+      placedSeat = { clusterId, source, local, pose: next.pose, parcelFit: next.parcelFit, pocket: pocket.suggestions, zoneId: pocket.id };
       break;
     }
     if (!placedSeat) {
-      skipped.push(`${seat.name} has no catalog cluster that fits a ${seat.kind} pocket`);
+      skipped.push(`${seat.name} has no catalog cluster that fits a ${seat.kind} zone`);
       continue;
     }
     fitted.set(seat.id, placedSeat);
     occupied.push(placedSeat.pose);
   }
-  const placed = seats.flatMap((seat) => {
+  const placed: FittedSeat[] = seats.flatMap((seat) => {
     const choice = fitted.get(seat.id);
     if (!choice) return [];
-    return [{ ...seat, ...choice, mesh: placeMesh(choice.source, choice.pose, choice.local, seat.anchor.x, seat.anchor.z) }];
+    return [{ ...seat, ...choice }];
   });
+  return { iteration, networkId, faces, drawn, placed, skipped, seats };
+}
+
+/**
+ * Optional Placement assistance. Uses the existing packing seats, then writes one occupancy
+ * record per zone. Shrinkwrap / film / portals are not occupancy state.
+ */
+export function packAutomaticOccupancy(): PlacedCluster[] {
+  const seating = seatFittedPrograms();
+  const signature = designerZoningSignature(seating.networkId);
+  const claimed = new Set<string>();
+  const occupancy: PlacedCluster[] = [];
+  for (const seat of seating.placed) {
+    if (!seat.zoneId || claimed.has(seat.zoneId)) continue;
+    claimed.add(seat.zoneId);
+    occupancy.push({
+      occupancyId: occupancyIdForZone(seat.zoneId),
+      zoneId: seat.zoneId,
+      programId: seat.id,
+      finishedClusterId: seat.clusterId,
+      transform: {
+        x: seat.anchor.x + seat.pose.offsetX,
+        y: seat.pose.lift,
+        z: seat.anchor.z + seat.pose.offsetZ,
+        rotationY: seat.pose.yaw,
+      },
+      selectedNetworkId: seating.networkId,
+      zoningSignature: signature,
+      source: finishedClusterSource(seat.id, seat.clusterId),
+      provenance: "automatic-initial",
+    });
+  }
+  return occupancy;
+}
+
+/** Place one catalog cluster per program inside designer zoning and continue their surfaces into one mass. */
+export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
+  const { iteration, faces, drawn, placed: seated, skipped, seats } = seatFittedPrograms();
+  const placed = seated.map((seat) => ({
+    ...seat,
+    mesh: placeMesh(seat.source, seat.pose, seat.local, seat.anchor.x, seat.anchor.z),
+  }));
   const lobby = placed.find((seat) => seat.id === "public-lobby");
   const gathering = placed.find((seat) => seat.id === "waterfront-gathering");
-  if (!gathering) throw new Error("Waterfront Gathering was not placed.");
   const lobbySeat = seats.find((seat) => seat.id === "public-lobby");
-  const lobbyAnchor = lobby?.anchor ?? lobbySeat?.anchor ?? gathering.anchor;
-  const gatheringAnchor = gathering.anchor;
+  const gatheringSeat = seats.find((seat) => seat.id === "waterfront-gathering");
+  const lobbyAnchor = lobby?.anchor ?? lobbySeat?.anchor ?? gathering?.anchor ?? gatheringSeat?.anchor ?? { x: 0, z: 0 };
+  const gatheringAnchor = gathering?.anchor ?? gatheringSeat?.anchor ?? lobbyAnchor;
   const lobbyId = lobby?.clusterId ?? "";
-  const gatheringId = gathering.clusterId;
+  const gatheringId = gathering?.clusterId ?? "";
   const lobbyCenter = lobby
     ? { x: lobbyAnchor.x + lobby.pose.offsetX, y: lobby.pose.lift + lobby.local.height * 0.5, z: lobbyAnchor.z + lobby.pose.offsetZ }
     : { x: lobbyAnchor.x, y: 0, z: lobbyAnchor.z };
-  const gatheringCenter = { x: gatheringAnchor.x + gathering.pose.offsetX, y: gathering.pose.lift + gathering.local.height * 0.5, z: gatheringAnchor.z + gathering.pose.offsetZ };
+  const gatheringCenter = gathering
+    ? { x: gatheringAnchor.x + gathering.pose.offsetX, y: gathering.pose.lift + gathering.local.height * 0.5, z: gatheringAnchor.z + gathering.pose.offsetZ }
+    : { x: gatheringAnchor.x, y: 0, z: gatheringAnchor.z };
   let joinedSolid = false;
   let wrap: Solid | null = null;
   let wrapNote = "The shrinkwrap validation was not run.";
-  try {
-    const meshes = placed.map((seat) => seat.mesh);
-    const cell = Math.max(...meshes.map((mesh) => spanOf(mesh))) / 80;
-    const film = filmWrapAssembly([...meshes, ...bridgeBeads(meshes, cell)], cell);
-    if (film && film.mesh.triangles > 4) {
-      const skin = gapSkin(
-        { positions: film.mesh.positions, indices: film.mesh.indices },
-        meshes,
-        cell * 3,
-      );
-      wrap = skin;
-      joinedSolid = film.check.adopted && film.check.continuous && film.check.pieces === 1;
-      wrapNote = joinedSolid
-        ? "Shrinkwrap validation adopted one continuous skin."
-        : `Shrinkwrap validation found ${film.check.pieces} pieces, so it did not adopt one skin.`;
-    } else wrapNote = "The shrinkwrap validation did not adopt one skin.";
-  } catch (error) {
-    wrapNote = error instanceof Error ? error.message : "The shrinkwrap validation could not be completed.";
+  if (placed.length === 0) {
+    wrapNote = faces.length === 0
+      ? "No designer zoning is saved for this network. Pocket suggestions are not used as zoning."
+      : skipped.join(" ") || "No program cluster fitted the designer zoning.";
+  } else {
+    try {
+      const meshes = placed.map((seat) => seat.mesh);
+      const cell = Math.max(...meshes.map((mesh) => spanOf(mesh))) / 80;
+      const film = filmWrapAssembly([...meshes, ...bridgeBeads(meshes, cell)], cell);
+      if (film && film.mesh.triangles > 4) {
+        const skin = gapSkin(
+          { positions: film.mesh.positions, indices: film.mesh.indices },
+          meshes,
+          cell * 3,
+        );
+        wrap = skin;
+        joinedSolid = film.check.adopted && film.check.continuous && film.check.pieces === 1;
+        wrapNote = joinedSolid
+          ? "Shrinkwrap validation adopted one continuous skin."
+          : `Shrinkwrap validation found ${film.check.pieces} pieces, so it did not adopt one skin.`;
+      } else wrapNote = "The shrinkwrap validation did not adopt one skin.";
+    } catch (error) {
+      wrapNote = error instanceof Error ? error.message : "The shrinkwrap validation could not be completed.";
+    }
   }
-  const parcelFit = placed.every((seat) => seat.parcelFit && seat.pocket.includes(seat.kind));
+  const parcelFit = placed.length > 0 && placed.every((seat) => seat.parcelFit && seat.pocket.includes(seat.kind));
   const validationPassed = Boolean(parcelFit && skipped.length === 0 && joinedSolid);
   const reasons = [
-    parcelFit ? "" : "A cluster sits outside a pocket of its program.",
+    faces.length === 0 ? "No designer zoning is saved for this network. Pocket suggestions are not used as zoning." : "",
+    parcelFit || placed.length === 0 ? "" : "A cluster sits outside a zone of its program.",
     skipped.join(" "),
-    joinedSolid ? "" : wrapNote,
+    placed.length === 0 || joinedSolid ? "" : wrapNote,
   ].filter(Boolean);
   const statement = iteration.architectureRecord?.relationships?.find((item) => item.from === TEST_LINK.from && item.to === TEST_LINK.to)?.statement
     ?? "Public Lobby leads to the central gathering system, which has the strongest waterfront projection.";
@@ -889,9 +944,10 @@ export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
     loop: [],
   };
   return {
-    iteration: 101,
-    seed: 20365850,
-    networkId: ZONING_NETWORK_ID,
+    iteration: typeof iteration.index === "number" ? iteration.index : 0,
+    seed: typeof iteration.seed === "number" ? iteration.seed : 0,
+    networkId: iteration.id ?? "",
+    zoningSource: "designer",
     arrangement: iteration.layoutTitle ?? "City-side experimental lobby",
     scale: "1 model unit = 1 foot",
     anchors: (iteration.nodes ?? []).flatMap((node) => {
@@ -932,7 +988,9 @@ export function buildPublicLobbyAssembly(): ClusterAssemblyReport {
       fromPose: lobby
         ? { yaw: lobby.pose.yaw, east: lobby.pose.offsetX, north: lobby.pose.offsetZ, lift: lobby.pose.lift }
         : { yaw: 0, east: 0, north: 0, lift: 0 },
-      toPose: { yaw: gathering.pose.yaw, east: gathering.pose.offsetX, north: gathering.pose.offsetZ, lift: gathering.pose.lift },
+      toPose: gathering
+        ? { yaw: gathering.pose.yaw, east: gathering.pose.offsetX, north: gathering.pose.offsetZ, lift: gathering.pose.lift }
+        : { yaw: 0, east: 0, north: 0, lift: 0 },
       anchorSeparationFt: Math.hypot(gatheringAnchor.x - lobbyAnchor.x, gatheringAnchor.z - lobbyAnchor.z),
       separationFt: Math.hypot(gatheringCenter.x - lobbyCenter.x, gatheringCenter.z - lobbyCenter.z),
       portalA: emptyPortal,

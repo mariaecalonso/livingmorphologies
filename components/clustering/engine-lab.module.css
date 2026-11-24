@@ -1535,3 +1535,93 @@
   text-transform: uppercase;
   cursor: pointer;
 }
+
+/* Vertical Propagation Process rule: Orbitron 28, Helvetica 22, Helvetica 13, bone frame. */
+:global([data-view-mode="presentation"]) .lab,
+:global([data-view-mode="presentation"]) .labBare {
+  font-family: var(--font-ui);
+  font-size: 22px;
+}
+
+:global([data-view-mode="presentation"]) .panelHeading,
+:global([data-view-mode="presentation"]) .controls .sectionLabel,
+:global([data-view-mode="presentation"]) .titleBar,
+:global([data-view-mode="presentation"]) .stripBar p,
+:global([data-view-mode="presentation"]) .identityName {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: #f2f2ee;
+}
+
+:global([data-view-mode="presentation"]) .controls .sectionLabel::after {
+  background: var(--frame-edge);
+}
+
+:global([data-view-mode="presentation"]) .lab :global(.note),
+:global([data-view-mode="presentation"]) .lab :global(.kicker),
+:global([data-view-mode="presentation"]) .configSummary,
+:global([data-view-mode="presentation"]) .kicker,
+:global([data-view-mode="presentation"]) .picks button span,
+:global([data-view-mode="presentation"]) .compareOpen span,
+:global([data-view-mode="presentation"]) .engine i,
+:global([data-view-mode="presentation"]) .engine em,
+:global([data-view-mode="presentation"]) .stripBar span,
+:global([data-view-mode="presentation"]) .metaLine i {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #9b9b98;
+}
+
+:global([data-view-mode="presentation"]) .metaLine {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: rgba(242, 242, 238, 0.82);
+}
+
+:global([data-view-mode="presentation"]) .picks button,
+:global([data-view-mode="presentation"]) .views button,
+:global([data-view-mode="presentation"]) .checkList button,
+:global([data-view-mode="presentation"]) .compareOpen,
+:global([data-view-mode="presentation"]) .engine b,
+:global([data-view-mode="presentation"]) .open,
+:global([data-view-mode="presentation"]) .status span {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+}
+
+:global([data-view-mode="presentation"]) .picks button[data-on="true"],
+:global([data-view-mode="presentation"]) .engine[data-on="true"],
+:global([data-view-mode="presentation"]) .engine[data-on="true"] b,
+:global([data-view-mode="presentation"]) .views button[data-on="true"],
+:global([data-view-mode="presentation"]) .compareOpen,
+:global([data-view-mode="presentation"]) .open,
+:global([data-view-mode="presentation"]) .titleBar span,
+:global([data-view-mode="presentation"]) .lab [data-tone="ok"] {
+  border-color: var(--frame-edge);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cyan);
+}
+
+:global([data-view-mode="presentation"]) .views button[data-on="true"] {
+  border-bottom-color: var(--cyan);
+}
+
+:global([data-view-mode="presentation"]) .checkList button[aria-pressed="true"] i,
+:global([data-view-mode="presentation"]) .stripCheck[aria-pressed="true"] i,
+:global([data-view-mode="presentation"]) .compareCheck:has(input:checked) i {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  box-shadow: none;
+}
+
+:global([data-view-mode="presentation"]) .legend i[data-tone="gathering"] {
+  background: var(--cyan);
+}

@@ -1,0 +1,9 @@
+{
+  "version": "skill6-troubleshooting-v2",
+  "archive": "data/skill6/process-archive/v1.json",
+  "prior": "data/skill6/process-archive/diagnostics/troubleshooting-v1",
+  "poses": "graph-plan-poses.json",
+  "sixTile": "graph-six-tile.json",
+  "stages": "union-stages.json",
+  "camera": "data/skill6/process-archive/diagnostics/troubleshooting-v1/camera.json"
+}

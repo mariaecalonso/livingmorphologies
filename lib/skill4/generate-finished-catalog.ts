@@ -197,6 +197,7 @@ function runProgram(programId: string, name: string, loaded: ReturnType<typeof l
         verticalExtent: report.verticalExtent,
         clearance: report.clearance,
       },
+      provenance: cluster.provenance,
     };
     if (iteration.validation.executed !== true || iteration.shrinkwrap.executed !== true || film.mesh.triangles <= 4) {
       rejected += 1;

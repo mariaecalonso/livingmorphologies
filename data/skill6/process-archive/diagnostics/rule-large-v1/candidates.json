@@ -1,0 +1,88 @@
+[
+  {
+    "id": "rule-large-compact-16",
+    "morphology": "compact",
+    "backtracks": 16,
+    "tiles": 7,
+    "sequence": [
+      "Open Hall",
+      "Linear Gallery",
+      "Continuous Hall",
+      "Undulated",
+      "Void Edge",
+      "Linear Gallery",
+      "Linear Gallery"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen compact rules: compact rules 7/7 · compact rules, tabu 1 3/7 · compact rules, tabu 2 3/7",
+    "reason": null
+  },
+  {
+    "id": "rule-large-compact-16-alt1",
+    "morphology": "compact",
+    "backtracks": 16,
+    "tiles": 3,
+    "sequence": [
+      "Open Hall",
+      "Inserted Horizontal Plate",
+      "Continuous Hall"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen compact rules, tabu 1: compact rules 7/7 · compact rules, tabu 1 3/7 · compact rules, tabu 2 3/7",
+    "reason": "Search budget exhausted at 3 tiles after 688 evaluations and 16 backtracks. 0 candidates were not evaluated. 293 evaluated candidates were rejected geometrically (293 intersections, 0 containments, 0 contact failures)."
+  },
+  {
+    "id": "rule-large-compact-16-alt2",
+    "morphology": "compact",
+    "backtracks": 16,
+    "tiles": 3,
+    "sequence": [
+      "Open Hall",
+      "Vertical Void",
+      "Continuous Hall"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen compact rules, tabu 2: compact rules 7/7 · compact rules, tabu 1 3/7 · compact rules, tabu 2 3/7",
+    "reason": "Search budget exhausted at 3 tiles after 338 evaluations and 10 backtracks. 35 candidates were not evaluated. 159 evaluated candidates were rejected geometrically (159 intersections, 0 containments, 0 contact failures)."
+  },
+  {
+    "id": "rule-large-branching-16",
+    "morphology": "branching",
+    "backtracks": 16,
+    "tiles": 5,
+    "sequence": [
+      "Open Hall",
+      "Linear Edge Gallery",
+      "Compressed Sequential",
+      "Open Hall",
+      "Topographic Ground Field"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen branching rules: branching rules 5/7 · branching rules, tabu 1 3/7",
+    "reason": "Search budget exhausted at 5 tiles after 1406 evaluations and 16 backtracks. 20 candidates were not evaluated. 637 evaluated candidates were rejected geometrically (637 intersections, 0 containments, 0 contact failures)."
+  },
+  {
+    "id": "rule-large-branching-16-alt1",
+    "morphology": "branching",
+    "backtracks": 16,
+    "tiles": 3,
+    "sequence": [
+      "Open Hall",
+      "Terraced",
+      "Topographic Ground Field"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1680 evaluations, chosen branching rules, tabu 1: branching rules 5/7 · branching rules, tabu 1 3/7",
+    "reason": "Search budget exhausted at 3 tiles after 274 evaluations and 6 backtracks. 24 candidates were not evaluated. 97 evaluated candidates were rejected geometrically (97 intersections, 0 containments, 0 contact failures)."
+  },
+  {
+    "id": "rule-large-branching-24",
+    "morphology": "branching",
+    "backtracks": 24,
+    "tiles": 5,
+    "sequence": [
+      "Open Hall",
+      "Linear Edge Gallery",
+      "Compressed Sequential",
+      "Open Hall",
+      "Topographic Ground Field"
+    ],
+    "trace": "aggregateCoverage portfolio on the checked pool, 1648 evaluations, chosen branching rules: branching rules 5/7",
+    "reason": "Search budget exhausted at 5 tiles after 1648 evaluations and 24 backtracks. 20 candidates were not evaluated. 739 evaluated candidates were rejected geometrically (739 intersections, 0 containments, 0 contact failures)."
+  }
+]

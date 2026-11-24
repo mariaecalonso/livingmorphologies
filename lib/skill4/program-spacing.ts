@@ -1,4 +1,4 @@
-import { CLIENT_ACTIVITY_SEED, UNIVERSAL_CRITERIA } from "@/lib/skill5/client-compatibility";
+import { CLIENT_ACTIVITY_SEED, UNIVERSAL_CRITERIA, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import { moduleLength } from "./contract";
 import { modelUnitsToFeet } from "./scale";
 
@@ -85,9 +85,9 @@ function variabilityLabel(variability: number, center: number): VariabilityLabel
 }
 
 /** Spacing behavior for one program, from its room type and the six shared desires. */
-export function spacingProfile(programId: string): SpacingProfile | null {
+export function spacingProfile(programId: string, activities: ClientCompatibilityDocument = CLIENT_ACTIVITY_SEED): SpacingProfile | null {
   const tendency = PROGRAM_TENDENCY[programId];
-  const activity = CLIENT_ACTIVITY_SEED.activities.find((item) => item.id === programId);
+  const activity = activities.activities.find((item) => item.id === programId);
   if (!tendency || !activity) return null;
   const baseline = TENDENCY[tendency];
   const desire = new Map(activity.desires.map((item) => [item.criterionId, item]));

@@ -3,6 +3,8 @@ import type { Skill2Selection } from "@/lib/skill2/published-selection";
 /**
  * Minimum identity for the Skill 2 → Skill 3 handoff.
  * The catalogue writes it. `/lab/vertical` reads it and passes it to the existing loader.
+ * Session `lm-vertical-selection` is working browser state.
+ * Production 3D checkpoint remains `data/skill3/final-selection.json`.
  */
 
 export const VERTICAL_SELECTION_KEY = "lm-vertical-selection";

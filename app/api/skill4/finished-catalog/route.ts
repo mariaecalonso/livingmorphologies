@@ -3,6 +3,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { rankProgramClusters } from "@/lib/skill4/cluster-placement-rank";
 import { CLUSTER_PROGRAMS } from "@/lib/skill4/program-tiles";
+import { ClientDocumentError, loadClientActivitiesDocument } from "@/lib/skill5/load-client-documents";
 import type { FinishedCatalog, FinishedProgram } from "@/lib/skill4/finished-catalog";
 
 export const runtime = "nodejs";
@@ -40,6 +41,10 @@ function summarize(program: FinishedProgram): FinishedProgram {
   } as FinishedProgram;
 }
 
+/**
+ * Differentiation-test clusters stay on disk for /api/skill4/differentiation-test.
+ * They are not production Placement records unless includeTest=1 is explicit.
+ */
 function withTestClusters(program: FinishedProgram): FinishedProgram {
   const file = path.join(TEST_PROGRAMS, `${program.programId}.json`);
   if (!existsSync(file)) return program;
@@ -97,10 +102,18 @@ export function GET(request: Request) {
     const catalog = readCatalog();
     if (programId) {
       const stored = catalog.programs.find((item) => item.programId === programId) ?? null;
-      const program = stored ? withTestClusters(stored) : null;
+      const includeTest = url.searchParams.get("includeTest") === "1";
+      const program = stored ? (includeTest ? withTestClusters(stored) : stored) : null;
       if (url.searchParams.get("view") === "placement") {
         if (!program) return Response.json(null);
-        return Response.json(rankProgramClusters(program.programId, program.name, program.iterations));
+        try {
+          return Response.json(rankProgramClusters(program.programId, program.name, program.iterations, loadClientActivitiesDocument()));
+        } catch (error) {
+          const message = error instanceof ClientDocumentError || error instanceof Error
+            ? error.message
+            : "The client activity record could not be read.";
+          return Response.json({ error: message }, { status: 500 });
+        }
       }
       return Response.json(program);
     }

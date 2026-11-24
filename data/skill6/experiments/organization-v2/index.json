@@ -1,0 +1,636 @@
+{
+ "version": 1,
+ "note": "Profile 2 ranks whole-cluster compact, branching, and vertical objectives. Atlas poses are revalidated. Not promoted. Thresholds, patching, and baseline refinement are unchanged.",
+ "atlas": "data/skill6/atlas/v1.json",
+ "atlasPosesOffered": 153,
+ "budget": {
+  "evaluations": 700,
+  "backtracks": 12,
+  "triesPerDepth": 64
+ },
+ "seed": 101,
+ "rows": [
+  {
+   "id": "org2-compact-hall-3-101",
+   "strategy": "compact",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "inserted-horizontal-plate -X",
+    "open-hall +Z"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 1,
+   "contacts": 2,
+   "height": 40.8,
+   "footprint": 44.6,
+   "occupancy": 0.1,
+   "maxTilt": 90,
+   "uniqueArchetypes": 2,
+   "minContact": 58.2,
+   "atlasNotes": 0,
+   "passedDirections": {
+    "+Z": 2,
+    "-X": 6
+   },
+   "atlasAccepted": 4,
+   "evaluations": 128,
+   "milliseconds": 27515,
+   "refineMilliseconds": 12032,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01993686797145645,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-compact-hall-4-101",
+   "strategy": "compact",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "linear-gallery -X",
+    "continuous-hall +Z",
+    "terraced +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "height": 35.9,
+   "footprint": 61.7,
+   "occupancy": 0.082,
+   "maxTilt": 180,
+   "uniqueArchetypes": 4,
+   "minContact": 3.8,
+   "atlasNotes": 1,
+   "passedDirections": {
+    "+Z": 3,
+    "-X": 6,
+    "+Y": 2
+   },
+   "atlasAccepted": 4,
+   "evaluations": 320,
+   "milliseconds": 28928,
+   "refineMilliseconds": 8664,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01961592825851711,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-compact-field-3-101",
+   "strategy": "compact",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "+X",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "inserted-horizontal-plate +X",
+    "undulated +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 1,
+   "contacts": 2,
+   "height": 20.4,
+   "footprint": 41.1,
+   "occupancy": 0.222,
+   "maxTilt": 0,
+   "uniqueArchetypes": 3,
+   "minContact": 3.4,
+   "atlasNotes": 1,
+   "passedDirections": {
+    "+Y": 22,
+    "+X": 1
+   },
+   "atlasAccepted": 12,
+   "evaluations": 128,
+   "milliseconds": 10698,
+   "refineMilliseconds": 2595,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01708054041108864,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-compact-field-4-101",
+   "strategy": "compact",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "+X",
+    "+Y",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "inserted-horizontal-plate +X",
+    "linear-edge-gallery +Y",
+    "continuous-hall +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 1,
+   "contacts": 3,
+   "height": 24.9,
+   "footprint": 51.5,
+   "occupancy": 0.141,
+   "maxTilt": 90,
+   "uniqueArchetypes": 4,
+   "minContact": 3.4,
+   "atlasNotes": 1,
+   "passedDirections": {
+    "+Y": 23,
+    "+X": 1
+   },
+   "atlasAccepted": 12,
+   "evaluations": 640,
+   "milliseconds": 21270,
+   "refineMilliseconds": 8252,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01898895374413339,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-branching-hall-3-101",
+   "strategy": "branching",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "-X",
+    "+Y"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "linear-edge-gallery -X",
+    "compressed-sequential +Y"
+   ],
+   "branchPoints": [],
+   "hosts": 2,
+   "contacts": 2,
+   "height": 35.9,
+   "footprint": 55.4,
+   "occupancy": 0.066,
+   "maxTilt": 40,
+   "uniqueArchetypes": 3,
+   "minContact": 26.1,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Z": 3,
+    "-X": 6,
+    "+Y": 1
+   },
+   "atlasAccepted": 6,
+   "evaluations": 128,
+   "milliseconds": 7128,
+   "refineMilliseconds": 3100,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.018423674020500054,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-branching-hall-4-101",
+   "strategy": "branching",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "linear-edge-gallery -X",
+    "continuous-hall +Z",
+    "compressed-sequential +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "height": 35.9,
+   "footprint": 55.4,
+   "occupancy": 0.082,
+   "maxTilt": 180,
+   "uniqueArchetypes": 4,
+   "minContact": 26.1,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Z": 4,
+    "-X": 6,
+    "+Y": 2
+   },
+   "atlasAccepted": 8,
+   "evaluations": 256,
+   "milliseconds": 17913,
+   "refineMilliseconds": 5894,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.018423674020500054,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-branching-field-3-101",
+   "strategy": "branching",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "+Y",
+    "+X"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "linear-edge-gallery +Y",
+    "compressed-sequential +X"
+   ],
+   "branchPoints": [],
+   "hosts": 2,
+   "contacts": 2,
+   "height": 35.9,
+   "footprint": 54.6,
+   "occupancy": 0.075,
+   "maxTilt": 40,
+   "uniqueArchetypes": 3,
+   "minContact": 25.2,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Y": 14,
+    "+X": 2,
+    "+Z": 1
+   },
+   "atlasAccepted": 9,
+   "evaluations": 256,
+   "milliseconds": 19481,
+   "refineMilliseconds": 14840,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01998181579232505,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-branching-field-4-101",
+   "strategy": "branching",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "+Y",
+    "+X",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "linear-edge-gallery +Y",
+    "compressed-sequential +X",
+    "continuous-hall +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "height": 35.9,
+   "footprint": 58.4,
+   "occupancy": 0.08,
+   "maxTilt": 90,
+   "uniqueArchetypes": 4,
+   "minContact": 25.2,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Y": 15,
+    "+X": 2,
+    "+Z": 1
+   },
+   "atlasAccepted": 9,
+   "evaluations": 320,
+   "milliseconds": 33870,
+   "refineMilliseconds": 23927,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.01842496675107603,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-vertical-hall-3-101",
+   "strategy": "vertical",
+   "rootId": "open-hall",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "linear-edge-gallery -X",
+    "compressed-sequential +Z"
+   ],
+   "branchPoints": [],
+   "hosts": 2,
+   "contacts": 2,
+   "height": 42.8,
+   "footprint": 51.6,
+   "occupancy": 0.065,
+   "maxTilt": 40,
+   "uniqueArchetypes": 3,
+   "minContact": 26.1,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Z": 3,
+    "-X": 6,
+    "+Y": 1
+   },
+   "atlasAccepted": 6,
+   "evaluations": 128,
+   "milliseconds": 10736,
+   "refineMilliseconds": 5252,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019680683752129315,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-vertical-hall-4-101",
+   "strategy": "vertical",
+   "rootId": "open-hall",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "-X",
+    "+Z",
+    "+Z"
+   ],
+   "sequence": [
+    "open-hall seed",
+    "linear-edge-gallery -X",
+    "continuous-hall +Z",
+    "compressed-sequential +Z"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "height": 42.8,
+   "footprint": 51.6,
+   "occupancy": 0.081,
+   "maxTilt": 180,
+   "uniqueArchetypes": 4,
+   "minContact": 26.1,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Z": 4,
+    "-X": 6,
+    "+Y": 2
+   },
+   "atlasAccepted": 8,
+   "evaluations": 320,
+   "milliseconds": 23214,
+   "refineMilliseconds": 8104,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019707117596548997,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-vertical-field-3-101",
+   "strategy": "vertical",
+   "rootId": "topographic-ground-field",
+   "tiles": 3,
+   "status": "accepted",
+   "achieved": 3,
+   "directions": [
+    "seed",
+    "+Y",
+    "+X"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "inserted-horizontal-plate +Y",
+    "inserted-horizontal-plate +X"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 1,
+   "contacts": 2,
+   "height": 27.5,
+   "footprint": 43.3,
+   "occupancy": 0.15,
+   "maxTilt": 40,
+   "uniqueArchetypes": 2,
+   "minContact": 3.4,
+   "atlasNotes": 0,
+   "passedDirections": {
+    "+Y": 14,
+    "+X": 2
+   },
+   "atlasAccepted": 7,
+   "evaluations": 128,
+   "milliseconds": 9712,
+   "refineMilliseconds": 2553,
+   "penetrationFlag": false,
+   "penetrations": 0,
+   "maxPenetration": 0.019236777671875073,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null
+   ]
+  },
+  {
+   "id": "org2-vertical-field-4-101",
+   "strategy": "vertical",
+   "rootId": "topographic-ground-field",
+   "tiles": 4,
+   "status": "accepted",
+   "achieved": 4,
+   "directions": [
+    "seed",
+    "+Y",
+    "+Z",
+    "+Y"
+   ],
+   "sequence": [
+    "topographic-ground-field seed",
+    "linear-edge-gallery +Y",
+    "compressed-sequential +Z",
+    "continuous-hall +Y"
+   ],
+   "branchPoints": [
+    "t00"
+   ],
+   "hosts": 2,
+   "contacts": 3,
+   "height": 42.8,
+   "footprint": 54.2,
+   "occupancy": 0.078,
+   "maxTilt": 90,
+   "uniqueArchetypes": 4,
+   "minContact": 25.2,
+   "atlasNotes": 2,
+   "passedDirections": {
+    "+Y": 15,
+    "+X": 4,
+    "+Z": 1
+   },
+   "atlasAccepted": 9,
+   "evaluations": 512,
+   "milliseconds": 31496,
+   "refineMilliseconds": 19441,
+   "penetrationFlag": true,
+   "penetrations": 3,
+   "maxPenetration": 0.17546198906938273,
+   "components": 1,
+   "cavities": 0,
+   "growthChecks": [
+    null,
+    null,
+    null
+   ]
+  }
+ ],
+ "distinct": [
+  {
+   "key": "open-hall|3",
+   "lines": [
+    "compact seed -X +Z",
+    "branching seed -X +Y",
+    "vertical seed -X +Z"
+   ],
+   "different": true
+  },
+  {
+   "key": "open-hall|4",
+   "lines": [
+    "compact seed -X +Z +Y",
+    "branching seed -X +Z +Y",
+    "vertical seed -X +Z +Z"
+   ],
+   "different": true
+  },
+  {
+   "key": "topographic-ground-field|3",
+   "lines": [
+    "compact seed +X +Y",
+    "branching seed +Y +X",
+    "vertical seed +Y +X"
+   ],
+   "different": true
+  },
+  {
+   "key": "topographic-ground-field|4",
+   "lines": [
+    "compact seed +X +Y +Y",
+    "branching seed +Y +X +Y",
+    "vertical seed +Y +Z +Y"
+   ],
+   "different": true
+  }
+ ]
+}

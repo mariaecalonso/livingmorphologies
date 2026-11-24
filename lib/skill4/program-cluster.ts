@@ -1,3 +1,6 @@
+import { SITE_ARCHETYPES } from "@/lib/skill5/catalog";
+import { loadArchitecturalDnaRecord, loadClientActivitiesRecord } from "@/lib/skill5/load-client-documents";
+import type { ProgramClusterProvenance } from "./finished-catalog";
 import { TILE_IDS } from "./assembly-layout";
 import { rankCompatibleFaces } from "./cluster-face-pair";
 import { DOMINANT_SPINE, evaluateClusterMorphology, ONE_MODULE_DEEP_CHAIN, PLAN_SPREAD_TOO_LOW, placementBias, readVerticalSupport, SINGLE_VERTICAL_STEM, spineEndIds } from "./cluster-morphology";
@@ -13,6 +16,7 @@ import { envelopeWidth, type TileInstance } from "./tiles";
 export const CLUSTER_ITERATION_COUNT = 6;
 export const MIN_CLUSTER_TILES = 2;
 export const MAX_CLUSTER_TILES = 9;
+export const PROGRAM_CLUSTER_GENERATOR = "skill4-program-cluster-v1";
 const CLUSTER_TILE_IDS = [...TILE_IDS, "I"] as const;
 
 export type ClusterStatus = "valid" | "failed";
@@ -29,6 +33,7 @@ export type ProgramCluster = {
   dominantUsed: boolean;
   /** Face-to-face gap for each connection, in module units, from the program spacing profile. */
   spacings: number[];
+  provenance?: ProgramClusterProvenance;
 };
 
 function randomOf(seed: number) {
@@ -61,10 +66,11 @@ function pickWeighted<T extends { score: number | null }>(items: readonly T[], r
 }
 
 function blankTile(instanceId: string, archetypeId: string): TileInstance {
+  const entry = SITE_ARCHETYPES.find((item) => item.archetypeId === archetypeId);
   return {
     instanceId,
     archetypeId,
-    moduleId: "",
+    moduleId: entry?.moduleId ?? "",
     transform: { x: 0, y: 0, z: 0 },
     rotationQuarter: 0,
     mirror: null,
@@ -556,14 +562,52 @@ export type ClusterBatch = {
   regeneratedFailures: number;
 };
 
+function attachProvenance(
+  cluster: ProgramCluster,
+  attempt: number,
+  count: number,
+  clientActivitiesHash: string,
+  architecturalDnaHash: string,
+): ProgramCluster {
+  return {
+    ...cluster,
+    provenance: {
+      generator: PROGRAM_CLUSTER_GENERATOR,
+      programId: cluster.programId,
+      seed: attempt,
+      targetCount: count,
+      clientActivitiesHash,
+      architecturalDnaHash,
+      modules: cluster.tiles.map((tile) => {
+        const entry = SITE_ARCHETYPES.find((item) => item.archetypeId === tile.archetypeId);
+        return {
+          archetypeId: tile.archetypeId,
+          moduleId: tile.moduleId || entry?.moduleId || "",
+          candidateId: entry?.candidateId ?? null,
+          continuationId: entry?.continuationId ?? null,
+        };
+      }),
+    },
+  };
+}
+
 /** One connected cluster of a requested size. Spacing and faces come from the existing program rules. */
 export function generateSizedCluster(programId: string, targetCount: number, attempt: number, keepRejected = false): ProgramCluster | null {
-  const ranked = rankedEligibleTiles(programId).filter((tile) => tile.score !== null);
-  const dominantId = dominantTile(programId)?.id ?? "";
-  const profile = spacingProfile(programId);
+  const activities = loadClientActivitiesRecord();
+  const dna = loadArchitecturalDnaRecord();
+  const documents = { dna: dna.document, activities: activities.document };
+  const ranked = rankedEligibleTiles(programId, documents).filter((tile) => tile.score !== null);
+  const dominantId = dominantTile(programId, documents)?.id ?? "";
+  const profile = spacingProfile(programId, activities.document);
   const count = Math.min(MAX_CLUSTER_TILES, Math.max(MIN_CLUSTER_TILES, targetCount));
   if (ranked.length === 0 || !profile) return null;
-  const cluster = grow(randomOf(seedFor(programId, attempt)), ranked, dominantId, programId, attempt, profile, count);
+  const cluster = attachProvenance(
+    grow(randomOf(seedFor(programId, attempt)), ranked, dominantId, programId, attempt, profile, count),
+    attempt,
+    count,
+    activities.hash,
+    dna.hash,
+  );
   if (cluster.status === "valid") return cluster;
   const connected = cluster.connections.length + 1 === cluster.tiles.length && cluster.tiles.length === count;
   return keepRejected && connected ? cluster : null;

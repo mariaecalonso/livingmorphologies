@@ -1,0 +1,6 @@
+{
+  "id": "rule-large-v1",
+  "collection": "data/skill6/experiments/clustering-rule-large-v1",
+  "diagnosis": "The stored compact seven-tile search placed 6 and stopped at 8 backtracks after 588 evaluations. The remaining budget produced a 3-tile tabu set. This run doubles the evaluation allowance to 240 per tile and raises the backtrack cap.",
+  "reached": true
+}

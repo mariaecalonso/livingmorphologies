@@ -1,0 +1,643 @@
+{
+  "beside": "on-graph-branching-7 remains the ranked seven-tile winner in clustering-overnight-v1. It was not reassembled.",
+  "chainDiagrams": "data/skill6/process-archive/diagnostics/geometry-v1/on-graph-branching-7-refined.png",
+  "assemblies": [
+    {
+      "id": "graph-branching-7-alt1",
+      "sevenTileStatus": "incomplete",
+      "sixTileAlternative": "validated",
+      "validationReasons": [],
+      "shape": {
+        "compact": 0.38,
+        "branching": 0.7,
+        "vertical": 0.682,
+        "quality": 0.889,
+        "balanced": 0.38,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "growth": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "hostInstanceId": null,
+          "direction": null,
+          "placement": "seed",
+          "depth": 0
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "hostInstanceId": "t00",
+          "direction": "-X",
+          "placement": "lateral",
+          "depth": 1
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "hostInstanceId": "t01",
+          "direction": "+Y",
+          "placement": "lateral",
+          "depth": 2
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "topographic-ground-field",
+          "hostInstanceId": "t00",
+          "direction": "+Z",
+          "placement": "stacked",
+          "depth": 1
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "contained-room-within-volume",
+          "hostInstanceId": "t02",
+          "direction": "+Z",
+          "placement": "stacked",
+          "depth": 3
+        },
+        {
+          "step": 5,
+          "instanceId": "t05",
+          "archetypeId": "compressed-sequential",
+          "hostInstanceId": "t04",
+          "direction": "-Y",
+          "placement": "lateral",
+          "depth": 4
+        }
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "instanceId": "t00",
+            "parent": null,
+            "children": [
+              "t01",
+              "t03"
+            ],
+            "depth": 0,
+            "degree": 2
+          },
+          {
+            "instanceId": "t01",
+            "parent": "t00",
+            "children": [
+              "t02"
+            ],
+            "depth": 1,
+            "degree": 2
+          },
+          {
+            "instanceId": "t02",
+            "parent": "t01",
+            "children": [
+              "t04"
+            ],
+            "depth": 2,
+            "degree": 2
+          },
+          {
+            "instanceId": "t03",
+            "parent": "t00",
+            "children": [],
+            "depth": 1,
+            "degree": 1
+          },
+          {
+            "instanceId": "t04",
+            "parent": "t02",
+            "children": [
+              "t05"
+            ],
+            "depth": 3,
+            "degree": 2
+          },
+          {
+            "instanceId": "t05",
+            "parent": "t04",
+            "children": [],
+            "depth": 4,
+            "degree": 1
+          }
+        ],
+        "edges": [
+          {
+            "host": "t00",
+            "guest": "t01",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t01",
+            "guest": "t02",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t00",
+            "guest": "t03",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t02",
+            "guest": "t04",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t04",
+            "guest": "t05",
+            "primary": true,
+            "classification": "patched-near-contact"
+          }
+        ],
+        "branchPoints": [
+          "t00"
+        ],
+        "leaves": [
+          "t03",
+          "t05"
+        ],
+        "maxDepth": 4
+      },
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "area": 66.49,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "area": 14.43,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t00-t03",
+          "primary": true,
+          "direction": "+Z",
+          "area": 115.96,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t02-t04",
+          "primary": true,
+          "direction": "+Z",
+          "area": 46.41,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t04-t05",
+          "primary": true,
+          "direction": "-Y",
+          "area": 81.12,
+          "classification": "patched-near-contact"
+        }
+      ],
+      "refined": {
+        "penetrations": 0,
+        "maxPenetration": 0.017781415880187206,
+        "components": 1,
+        "cavities": 0
+      },
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0193
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 4,
+          "grazes": 614,
+          "maxPenetration": 0.1209,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 4,
+            "clusters": [
+              {
+                "at": "6,-6,36",
+                "count": 2,
+                "maxPenetration": 0.074,
+                "atContact": 0
+              },
+              {
+                "at": "-18,8,20",
+                "count": 1,
+                "maxPenetration": 0.1209,
+                "atContact": 0
+              },
+              {
+                "at": "-18,18,20",
+                "count": 1,
+                "maxPenetration": 0.075,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 1214,
+          "grazes": 903,
+          "maxPenetration": 0.5795,
+          "location": {
+            "atContact": 414,
+            "awayFromContact": 800,
+            "clusters": [
+              {
+                "at": "4,0,20",
+                "count": 54,
+                "maxPenetration": 0.5795,
+                "atContact": 0
+              },
+              {
+                "at": "-8,-2,20",
+                "count": 44,
+                "maxPenetration": 0.168,
+                "atContact": 44
+              },
+              {
+                "at": "-6,-4,20",
+                "count": 33,
+                "maxPenetration": 0.1498,
+                "atContact": 8
+              },
+              {
+                "at": "-4,-4,20",
+                "count": 32,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              },
+              {
+                "at": "-6,-2,20",
+                "count": 28,
+                "maxPenetration": 0.0668,
+                "atContact": 15
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 0,
+          "grazes": 793,
+          "maxPenetration": 0.0178,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 0,
+            "clusters": []
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    },
+    {
+      "id": "graph-branching-7-alt2",
+      "sevenTileStatus": "incomplete",
+      "sixTileAlternative": "validated",
+      "validationReasons": [],
+      "shape": {
+        "compact": 0.426,
+        "branching": 0.7,
+        "vertical": 0.605,
+        "quality": 0.701,
+        "balanced": 0.426,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "growth": [
+        {
+          "step": 0,
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "hostInstanceId": null,
+          "direction": null,
+          "placement": "seed",
+          "depth": 0
+        },
+        {
+          "step": 1,
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "hostInstanceId": "t00",
+          "direction": "-X",
+          "placement": "lateral",
+          "depth": 1
+        },
+        {
+          "step": 2,
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "hostInstanceId": "t01",
+          "direction": "+Y",
+          "placement": "lateral",
+          "depth": 2
+        },
+        {
+          "step": 3,
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "hostInstanceId": "t01",
+          "direction": "-X",
+          "placement": "lateral",
+          "depth": 2
+        },
+        {
+          "step": 4,
+          "instanceId": "t04",
+          "archetypeId": "contained-room-within-volume",
+          "hostInstanceId": "t02",
+          "direction": "+Z",
+          "placement": "stacked",
+          "depth": 3
+        },
+        {
+          "step": 5,
+          "instanceId": "t05",
+          "archetypeId": "compressed-sequential",
+          "hostInstanceId": "t04",
+          "direction": "-Y",
+          "placement": "lateral",
+          "depth": 4
+        }
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "instanceId": "t00",
+            "parent": null,
+            "children": [
+              "t01"
+            ],
+            "depth": 0,
+            "degree": 1
+          },
+          {
+            "instanceId": "t01",
+            "parent": "t00",
+            "children": [
+              "t02",
+              "t03"
+            ],
+            "depth": 1,
+            "degree": 3
+          },
+          {
+            "instanceId": "t02",
+            "parent": "t01",
+            "children": [
+              "t04"
+            ],
+            "depth": 2,
+            "degree": 2
+          },
+          {
+            "instanceId": "t03",
+            "parent": "t01",
+            "children": [],
+            "depth": 2,
+            "degree": 2
+          },
+          {
+            "instanceId": "t04",
+            "parent": "t02",
+            "children": [
+              "t05"
+            ],
+            "depth": 3,
+            "degree": 2
+          },
+          {
+            "instanceId": "t05",
+            "parent": "t04",
+            "children": [],
+            "depth": 4,
+            "degree": 2
+          }
+        ],
+        "edges": [
+          {
+            "host": "t00",
+            "guest": "t01",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t01",
+            "guest": "t02",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t01",
+            "guest": "t03",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t02",
+            "guest": "t04",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t04",
+            "guest": "t05",
+            "primary": true,
+            "classification": "patched-near-contact"
+          },
+          {
+            "host": "t03",
+            "guest": "t05",
+            "primary": false,
+            "classification": "patched-near-contact"
+          }
+        ],
+        "branchPoints": [
+          "t01"
+        ],
+        "leaves": [
+          "t03",
+          "t05"
+        ],
+        "maxDepth": 4
+      },
+      "joints": [
+        {
+          "id": "t00-t01",
+          "primary": true,
+          "direction": "-X",
+          "area": 66.49,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t01-t02",
+          "primary": true,
+          "direction": "+Y",
+          "area": 14.43,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t01-t03",
+          "primary": true,
+          "direction": "-X",
+          "area": 7.55,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t02-t04",
+          "primary": true,
+          "direction": "+Z",
+          "area": 46.41,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t04-t05",
+          "primary": true,
+          "direction": "-Y",
+          "area": 81.12,
+          "classification": "patched-near-contact"
+        },
+        {
+          "id": "t03-t05",
+          "primary": false,
+          "direction": "+Z",
+          "area": 32.11,
+          "classification": "patched-near-contact"
+        }
+      ],
+      "refined": {
+        "penetrations": 0,
+        "maxPenetration": 0.017779407732621308,
+        "components": 1,
+        "cavities": 0
+      },
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0193
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 2,
+          "grazes": 607,
+          "maxPenetration": 0.1209,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 2,
+            "clusters": [
+              {
+                "at": "-18,8,20",
+                "count": 1,
+                "maxPenetration": 0.1209,
+                "atContact": 0
+              },
+              {
+                "at": "-18,18,20",
+                "count": 1,
+                "maxPenetration": 0.075,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 833,
+          "grazes": 836,
+          "maxPenetration": 0.182,
+          "location": {
+            "atContact": 427,
+            "awayFromContact": 406,
+            "clusters": [
+              {
+                "at": "-26,2,20",
+                "count": 41,
+                "maxPenetration": 0.163,
+                "atContact": 41
+              },
+              {
+                "at": "-24,2,20",
+                "count": 33,
+                "maxPenetration": 0.12,
+                "atContact": 25
+              },
+              {
+                "at": "-30,10,22",
+                "count": 24,
+                "maxPenetration": 0.12,
+                "atContact": 21
+              },
+              {
+                "at": "-20,18,20",
+                "count": 23,
+                "maxPenetration": 0.1432,
+                "atContact": 0
+              },
+              {
+                "at": "-30,10,26",
+                "count": 23,
+                "maxPenetration": 0.1429,
+                "atContact": 18
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 0,
+          "grazes": 1077,
+          "maxPenetration": 0.0178,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 0,
+            "clusters": []
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    }
+  ]
+}

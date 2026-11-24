@@ -1,0 +1,679 @@
+{
+  "note": "Poses recovered by repeating the unchanged seven-tile Graph search. troubleshooting-v1 stored scores and sequences, not poses. The chain placement is checked against on-graph-branching-7.",
+  "plans": [
+    {
+      "id": "graph-branching-7",
+      "plan": null,
+      "tiles": 7,
+      "target": 7,
+      "sevenTileStatus": "complete",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · stop budget · 210 tests · last contact: The guest passes below Z = 0. · widening 6/7 (8 deeper) · stop budget · 210 tests · last contact: Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · stop budget · 210 tests · last contact: The meeting face is -Z. · chain 7/7 · stop reached · 131 tests",
+      "samePlacementAsStoredChain": true,
+      "shape": {
+        "compact": 0.288,
+        "branching": 0.492,
+        "vertical": 0.663,
+        "quality": 0.645,
+        "balanced": 0.288,
+        "depth": 6,
+        "leaves": 1,
+        "branchPoints": 0,
+        "levels": 4,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 4.373,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "sequence": [
+        {
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ],
+            "translation": [
+              0,
+              0,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              1,
+              -1.8369701987210297e-16,
+              0,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -20.379986254374188,
+              3,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -1,
+              1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              6.12323399573677e-17,
+              1,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -23.379986254374185,
+              19.666399046579997,
+              10.187668800354002
+            ]
+          }
+        },
+        {
+          "instanceId": "t03",
+          "archetypeId": "contained-room-within-volume",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              -2.4492935982947064e-16,
+              -1,
+              6.123233995736764e-17,
+              3.0616169978683826e-16,
+              -6.123233995736772e-17,
+              -1,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -26.379986254374188,
+              19.66639904658,
+              30.56842089335123
+            ]
+          }
+        },
+        {
+          "instanceId": "t04",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 1,
+            "mirrorX": false,
+            "basis": [
+              3.0616169978683826e-16,
+              -1.224646799147354e-16,
+              -1,
+              2.4492935982947064e-16,
+              1,
+              -1.224646799147353e-16,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -26.37998625437419,
+              -0.7040139452616359,
+              30.56842089335123
+            ]
+          }
+        },
+        {
+          "instanceId": "t05",
+          "archetypeId": "terraced",
+          "pose": {
+            "quarterZ": 1,
+            "mirrorX": false,
+            "basis": [
+              2.4492935982947064e-16,
+              1,
+              -1.8369701987210297e-16,
+              -3.0616169978683826e-16,
+              1.8369701987210307e-16,
+              1,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -44.092411098480234,
+              -0.7040139452616315,
+              30.568420893351224
+            ]
+          }
+        },
+        {
+          "instanceId": "t06",
+          "archetypeId": "continuous-hall",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              1,
+              -2.4492935982947064e-16,
+              3.6739403974420594e-16,
+              2.449293598294707e-16,
+              1,
+              -3.6739403974420594e-16,
+              3.673940397442059e-16,
+              -3.6739403974420604e-16,
+              -1
+            ],
+            "translation": [
+              -35.09241109848024,
+              -0.70401394526163,
+              50.9526125717163
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "graph-branching-7-alt1",
+      "plan": "wide fan exhausted its search budget at 6 of 7 after 210 tests. Last contact rejection, not the reason the plan stopped: The meeting face is -Z..",
+      "tiles": 6,
+      "target": 7,
+      "sevenTileStatus": "incomplete",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · stop budget · 210 tests · last contact: The guest passes below Z = 0. · widening 6/7 (8 deeper) · stop budget · 210 tests · last contact: Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · stop budget · 210 tests · last contact: The meeting face is -Z. · chain 7/7 · stop reached · 131 tests",
+      "samePlacementAsStoredChain": false,
+      "shape": {
+        "compact": 0.38,
+        "branching": 0.7,
+        "vertical": 0.682,
+        "quality": 0.889,
+        "balanced": 0.38,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 14.431,
+        "groundSeams": 0,
+        "unique": 6
+      },
+      "sequence": [
+        {
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ],
+            "translation": [
+              0,
+              0,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              1,
+              -1.8369701987210297e-16,
+              0,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -20.379986254374188,
+              3,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -1,
+              1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              6.12323399573677e-17,
+              1,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -23.379986254374185,
+              19.666399046579997,
+              10.187668800354002
+            ]
+          }
+        },
+        {
+          "instanceId": "t03",
+          "archetypeId": "topographic-ground-field",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": true,
+            "basis": [
+              1.1248198369963932e-32,
+              1,
+              -1.8369701987210297e-16,
+              6.123233995736766e-17,
+              -1.8369701987210297e-16,
+              -1,
+              1,
+              0,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              0,
+              0,
+              30.57031275431315
+            ]
+          }
+        },
+        {
+          "instanceId": "t04",
+          "archetypeId": "contained-room-within-volume",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              -2.4492935982947064e-16,
+              -1,
+              6.123233995736764e-17,
+              3.0616169978683826e-16,
+              -6.123233995736772e-17,
+              -1,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -26.379986254374188,
+              19.66639904658,
+              30.56842089335123
+            ]
+          }
+        },
+        {
+          "instanceId": "t05",
+          "archetypeId": "compressed-sequential",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -3.061616997868382e-16,
+              2.449293598294707e-16,
+              1,
+              -2.449293598294707e-16,
+              -1,
+              2.449293598294706e-16,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -23.37998625437419,
+              -0.701282469431554,
+              30.568420893351234
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "graph-branching-7-alt2",
+      "plan": "widening exhausted its search budget at 6 of 7 after 210 tests. Last contact rejection, not the reason the plan stopped: Triangle crossing depth 0.195 exceeds 0.02..",
+      "tiles": 6,
+      "target": 7,
+      "sevenTileStatus": "incomplete",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · stop budget · 210 tests · last contact: The guest passes below Z = 0. · widening 6/7 (8 deeper) · stop budget · 210 tests · last contact: Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · stop budget · 210 tests · last contact: The meeting face is -Z. · chain 7/7 · stop reached · 131 tests",
+      "samePlacementAsStoredChain": false,
+      "shape": {
+        "compact": 0.426,
+        "branching": 0.7,
+        "vertical": 0.605,
+        "quality": 0.701,
+        "balanced": 0.426,
+        "depth": 4,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 3,
+        "directions": [
+          "+Y",
+          "+Z",
+          "-X",
+          "-Y"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 5
+      },
+      "sequence": [
+        {
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ],
+            "translation": [
+              0,
+              0,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              1,
+              -1.8369701987210297e-16,
+              0,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -20.379986254374188,
+              3,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -1,
+              1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              6.12323399573677e-17,
+              1,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -23.379986254374185,
+              19.666399046579997,
+              10.187668800354002
+            ]
+          }
+        },
+        {
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              0.7660444431189779,
+              -0.6427876096865394,
+              3.9359389436709925e-17,
+              -0.6427876096865394,
+              -0.7660444431189779,
+              4.6906693763513654e-17
+            ],
+            "translation": [
+              -30.99151690178032,
+              3.0000000000000018,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t04",
+          "archetypeId": "contained-room-within-volume",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              -2.4492935982947064e-16,
+              -1,
+              6.123233995736764e-17,
+              3.0616169978683826e-16,
+              -6.123233995736772e-17,
+              -1,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -26.379986254374188,
+              19.66639904658,
+              30.56842089335123
+            ]
+          }
+        },
+        {
+          "instanceId": "t05",
+          "archetypeId": "compressed-sequential",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -3.061616997868382e-16,
+              2.449293598294707e-16,
+              1,
+              -2.449293598294707e-16,
+              -1,
+              2.449293598294706e-16,
+              1,
+              -2.4492935982947064e-16,
+              3.0616169978683826e-16
+            ],
+            "translation": [
+              -23.37998625437419,
+              -0.701282469431554,
+              30.568420893351234
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "graph-branching-7-alt3",
+      "plan": "paired generations exhausted its search budget at 4 of 7 after 210 tests. Last contact rejection, not the reason the plan stopped: The guest passes below Z = 0..",
+      "tiles": 4,
+      "target": 7,
+      "sevenTileStatus": "incomplete",
+      "trace": "graph plans then realize, 761 tests, 70 backtracks: paired generations 4/7 (1 deeper) · stop budget · 210 tests · last contact: The guest passes below Z = 0. · widening 6/7 (8 deeper) · stop budget · 210 tests · last contact: Triangle crossing depth 0.195 exceeds 0.02. · wide fan 6/7 (4 deeper) · stop budget · 210 tests · last contact: The meeting face is -Z. · chain 7/7 · stop reached · 131 tests",
+      "samePlacementAsStoredChain": false,
+      "shape": {
+        "compact": 0.401,
+        "branching": 0.658,
+        "vertical": 0.321,
+        "quality": 0.676,
+        "balanced": 0.321,
+        "depth": 2,
+        "leaves": 2,
+        "branchPoints": 1,
+        "levels": 2,
+        "directions": [
+          "+Y",
+          "-X"
+        ],
+        "minJointArea": 7.552,
+        "groundSeams": 0,
+        "unique": 3
+      },
+      "sequence": [
+        {
+          "instanceId": "t00",
+          "archetypeId": "open-hall",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              1
+            ],
+            "translation": [
+              0,
+              0,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t01",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": true,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              1,
+              -1.8369701987210297e-16,
+              0,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -20.379986254374188,
+              3,
+              10.187668800354004
+            ]
+          }
+        },
+        {
+          "instanceId": "t02",
+          "archetypeId": "undulated",
+          "pose": {
+            "quarterZ": 3,
+            "mirrorX": false,
+            "basis": [
+              -1,
+              1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              -1.8369701987210297e-16,
+              6.12323399573677e-17,
+              1,
+              -1.8369701987210297e-16,
+              -1,
+              6.123233995736766e-17
+            ],
+            "translation": [
+              -23.379986254374185,
+              19.666399046579997,
+              10.187668800354002
+            ]
+          }
+        },
+        {
+          "instanceId": "t03",
+          "archetypeId": "linear-gallery",
+          "pose": {
+            "quarterZ": 0,
+            "mirrorX": false,
+            "basis": [
+              1.1248198369963932e-32,
+              6.123233995736766e-17,
+              1,
+              0.7660444431189779,
+              -0.6427876096865394,
+              3.9359389436709925e-17,
+              -0.6427876096865394,
+              -0.7660444431189779,
+              4.6906693763513654e-17
+            ],
+            "translation": [
+              -30.99151690178032,
+              3.0000000000000018,
+              10.187668800354004
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

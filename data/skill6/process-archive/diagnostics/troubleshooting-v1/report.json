@@ -1,0 +1,31 @@
+{
+  "version": "skill6-troubleshooting-v1",
+  "baseline": "data/skill6/process-archive/diagnostics/geometry-v1/report.json",
+  "unchanged": "Overnight meshes, ranking, thresholds, refinement settings, and engine preferences were not changed.",
+  "reporting": "The lab shows the requested preset beside measured branch points, leaves, depth, and secondary contacts. The branching score remains. A primary joint under area 8 whose guest is more than 15% of solid volume is a warning. Checked against geometry-v1: the eight clusters flag the same guests.",
+  "graph": {
+    "seed": 101,
+    "budget": "120 tests per tile, 761 tests used",
+    "sameChainAsStored": "diag-graph-branching-7 matches on-graph-branching-7",
+    "plans": [
+      { "name": "paired generations", "tiles": "4/7", "stop": "budget after 210 tests", "lastRejection": "The guest passes below Z = 0.", "branchPoints": 1 },
+      { "name": "widening", "tiles": "6/7", "stop": "budget after 210 tests", "lastRejection": "Triangle crossing depth 0.195 exceeds 0.02.", "branchPoints": 1 },
+      { "name": "wide fan", "tiles": "6/7", "stop": "budget after 210 tests", "lastRejection": "The meeting face is -Z.", "branchPoints": 1 },
+      { "name": "chain", "tiles": "7/7", "stop": "reached in 131 tests", "branchPoints": 0, "branchingScore": 0.492 }
+    ],
+    "cause": "Each branched plan stops when its share of the test budget is spent. The chain finishes inside a smaller share. Rank still prefers more tiles, so the chain is saved. Both six-tile plans score 0.700 on branching, above the chain's 0.492. Their record.reason text repeats a later rejection and is not the per-plan stop; the trace is."
+  },
+  "rule": {
+    "samePlacementAsStored": true,
+    "completeCandidates": 1,
+    "incomplete": "The tabu rule set places 3 of 4 and is not a repair.",
+    "stages": {
+      "rigidSeating": "0 contacts over 0.02, max crossing 0.0062",
+      "patches": "0 self-intersections on each of the three patches",
+      "tilesOnlyUnion": "Reconstruction, not a stored mesh. 7 penetrations, max 0.108",
+      "rawUnion": "856 penetrations, max 0.329",
+      "refined": "2 penetrations, max 0.0354, matching the stored failure"
+    },
+    "firstFailingStage": "The boolean union of the rigid tiles. Refinement reduces the raw-union crossings and does not clear them."
+  }
+}

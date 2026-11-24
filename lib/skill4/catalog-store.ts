@@ -1,3 +1,8 @@
+/**
+ * Browser Hybrid Cluster catalog. Working state only.
+ * Finished Program Cluster generation does not read this store.
+ * Historical name: Hybrid Connection catalog.
+ */
 import { SKILL4_CATALOG_KEY, type CatalogEntry } from "./catalog";
 
 const listeners = new Set<() => void>();

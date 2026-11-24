@@ -1,6 +1,6 @@
 {
   "contract": "skill3-final-selection-v1",
-  "purpose": "Current working Skill 3 handoff for Skill 4. Not a final approved geometry set.",
+  "purpose": "Skill 3 Final Handoff. 15 designer-selected final geometries.",
   "source": "lm-skill3-morphology",
   "geometry": "data/experiments/carved-mass-solidified",
   "selections": [

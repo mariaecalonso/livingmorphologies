@@ -108,8 +108,7 @@
 
 .catalog {
   display: grid;
-  grid-template-columns: minmax(0, 38em) max-content;
-  justify-content: start;
+  grid-template-columns: minmax(0, 1fr) max-content;
   gap: 0.7em;
   flex: 1 1 auto;
 }

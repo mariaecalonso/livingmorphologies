@@ -1,0 +1,4533 @@
+{
+  "recessionFt": 80,
+  "spacingFeet": 15,
+  "strength": 1,
+  "seeds": [
+    20365850,
+    20470579,
+    20575308,
+    20680037
+  ],
+  "preserved": [
+    "iteration 7",
+    "18 exploratory runs",
+    "sketch-with-northeast",
+    "sketch-without-northeast"
+  ],
+  "nodes": [
+    {
+      "id": "sketch-north-distinct-with",
+      "title": "Distinct northern gathering, with northeast",
+      "notes": [
+        "A northern Gathering attractor is added. The central waterfront and southern attractors stay."
+      ],
+      "nodes": [
+        {
+          "kind": "source",
+          "x": 202.30354285871462,
+          "z": 229.37931467408868,
+          "note": "Potential Northeast Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential Northeast Access"
+        },
+        {
+          "kind": "source",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "note": "Potential City-Side Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "kind": "source",
+          "x": -47.41,
+          "z": -582.64,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -70.025,
+          "z": 39.79,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -73.51,
+          "z": 135.865,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -75.4,
+          "z": 193.325,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 164.49,
+          "z": 82.63,
+          "note": "Gathering. Northern destination. Strength 1. 86 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 239.49,
+          "z": -172.37,
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -337.37,
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 104.49,
+          "z": -277.37,
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -487.37,
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "recordId": null
+        }
+      ]
+    },
+    {
+      "id": "sketch-north-distinct-without",
+      "title": "Distinct northern gathering, without northeast",
+      "notes": [
+        "A northern Gathering attractor is added. The northeast contact is omitted."
+      ],
+      "nodes": [
+        {
+          "kind": "source",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "note": "Potential City-Side Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "kind": "source",
+          "x": -47.41,
+          "z": -582.64,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -70.025,
+          "z": 39.79,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -73.51,
+          "z": 135.865,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -75.4,
+          "z": 193.325,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 164.49,
+          "z": 82.63,
+          "note": "Gathering. Northern destination. Strength 1. 86 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 239.49,
+          "z": -172.37,
+          "note": "Gathering. Central waterfront. Strength 1. 11 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -337.37,
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 104.49,
+          "z": -277.37,
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -487.37,
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "recordId": null
+        }
+      ]
+    },
+    {
+      "id": "sketch-north-continuous-with",
+      "title": "Continuous gathering, with northeast",
+      "notes": [
+        "The waterfront Gathering attractor is shifted north along the shore. No separate northern attractor is added."
+      ],
+      "nodes": [
+        {
+          "kind": "source",
+          "x": 202.30354285871462,
+          "z": 229.37931467408868,
+          "note": "Potential Northeast Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential Northeast Access"
+        },
+        {
+          "kind": "source",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "note": "Potential City-Side Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "kind": "source",
+          "x": -47.41,
+          "z": -582.64,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -70.025,
+          "z": 39.79,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -73.51,
+          "z": 135.865,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -75.4,
+          "z": 193.325,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 239.49,
+          "z": 22.629999999999995,
+          "note": "Gathering. Northern waterfront. Strength 1. 11 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -337.37,
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 104.49,
+          "z": -277.37,
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -487.37,
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "recordId": null
+        }
+      ]
+    },
+    {
+      "id": "sketch-north-continuous-without",
+      "title": "Continuous gathering, without northeast",
+      "notes": [
+        "The waterfront Gathering attractor is shifted north along the shore. The northeast contact is omitted."
+      ],
+      "nodes": [
+        {
+          "kind": "source",
+          "x": 31.239191504204,
+          "z": 218.5333980975285,
+          "note": "Potential City-Side Access. Unverified gap, not an entrance.",
+          "recordId": "pedestrian:access:Potential City-Side Access"
+        },
+        {
+          "kind": "source",
+          "x": -47.41,
+          "z": -582.64,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -54.68666666666667,
+          "z": -382.34000000000003,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -61.61333333333334,
+          "z": -191.77000000000004,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -70.025,
+          "z": 39.79,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -73.51,
+          "z": 135.865,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "source",
+          "x": -75.4,
+          "z": 193.325,
+          "note": "Design proposal on the city edge. Not a measured entrance.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 239.49,
+          "z": 22.629999999999995,
+          "note": "Gathering. Northern waterfront. Strength 1. 11 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -337.37,
+          "note": "Gathering. Southern destination. Strength 1. 98 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": -45.510000000000005,
+          "z": -577.37,
+          "note": "Workspace. Southern. Strength 1. 287 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 104.49,
+          "z": -277.37,
+          "note": "Workspace. Southern. Strength 1. 144 ft from the coastline.",
+          "recordId": null
+        },
+        {
+          "kind": "attractor",
+          "x": 149.49,
+          "z": -487.37,
+          "note": "Workspace. Southern. Strength 1. 96 ft from the coastline.",
+          "recordId": null
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "id": "sketch-sketch-north-distinct-with-20365850",
+      "layoutId": "sketch-north-distinct-with",
+      "title": "Distinct northern gathering, with northeast",
+      "seed": 20365850,
+      "status": "connected",
+      "step": 216,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 5,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 3,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 142,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 3,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 22,
+        "areaSqFt": 70994,
+        "byBand": {
+          "north": 5,
+          "central": 6,
+          "south": 11
+        },
+        "cluster": {
+          "count": 17,
+          "areaSqFt": 65480,
+          "byBand": {
+            "north": 3,
+            "central": 5,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 5,
+          "areaSqFt": 5514
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4050,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5963,
+            "chordMinFt": 38,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1463,
+            "chordMinFt": 13,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2813,
+            "chordMinFt": 30,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3038,
+            "chordMinFt": 13,
+            "chordMedianFt": 55,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4725,
+            "chordMinFt": 18,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4838,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5063,
+            "chordMinFt": 45,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1913,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5513,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 11700,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1575,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 6075,
+            "chordMinFt": 75,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 788,
+            "chordMinFt": 5,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2813,
+            "chordMinFt": 60,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 675,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-with-20470579",
+      "layoutId": "sketch-north-distinct-with",
+      "title": "Distinct northern gathering, with northeast",
+      "seed": 20470579,
+      "status": "connected",
+      "step": 308,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 68,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 21,
+        "areaSqFt": 254485,
+        "byBand": {
+          "north": 5,
+          "central": 9,
+          "south": 7
+        },
+        "cluster": {
+          "count": 18,
+          "areaSqFt": 87530,
+          "byBand": {
+            "north": 5,
+            "central": 6,
+            "south": 7
+          }
+        },
+        "narrow": {
+          "count": 2,
+          "areaSqFt": 1913
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 165042
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 165042,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1688,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 9900,
+            "chordMinFt": 65,
+            "chordMedianFt": 85,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 11925,
+            "chordMinFt": 30,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7200,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 43,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 15,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5850,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3038,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1013,
+            "chordMinFt": 15,
+            "chordMedianFt": 23,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 20700,
+            "chordMinFt": 78,
+            "chordMedianFt": 128,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1125,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3938,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1575,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2138,
+            "chordMinFt": 23,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2588,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 4388,
+            "chordMinFt": 55,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-with-20575308",
+      "layoutId": "sketch-north-distinct-with",
+      "title": "Distinct northern gathering, with northeast",
+      "seed": 20575308,
+      "status": "connected",
+      "step": 195,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 132,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 20,
+        "areaSqFt": 99791,
+        "byBand": {
+          "north": 8,
+          "central": 3,
+          "south": 9
+        },
+        "cluster": {
+          "count": 19,
+          "areaSqFt": 98891,
+          "byBand": {
+            "north": 8,
+            "central": 3,
+            "south": 8
+          }
+        },
+        "narrow": {
+          "count": 1,
+          "areaSqFt": 900
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 6638,
+            "chordMinFt": 30,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5288,
+            "chordMinFt": 15,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5400,
+            "chordMinFt": 30,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1800,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4050,
+            "chordMinFt": 30,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5625,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 8550,
+            "chordMinFt": 43,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2475,
+            "chordMinFt": 13,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1125,
+            "chordMinFt": 35,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 22050,
+            "chordMinFt": 103,
+            "chordMedianFt": 165,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3375,
+            "chordMinFt": 10,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3713,
+            "chordMinFt": 98,
+            "chordMedianFt": 113,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2025,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 13388,
+            "chordMinFt": 60,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 4838,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1125,
+            "chordMinFt": 35,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 4275,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-with-20680037",
+      "layoutId": "sketch-north-distinct-with",
+      "title": "Distinct northern gathering, with northeast",
+      "seed": 20680037,
+      "status": "connected",
+      "step": 247,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 5,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 140,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 3,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 17,
+        "areaSqFt": 254487,
+        "byBand": {
+          "north": 3,
+          "central": 5,
+          "south": 9
+        },
+        "cluster": {
+          "count": 15,
+          "areaSqFt": 55916,
+          "byBand": {
+            "north": 2,
+            "central": 4,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 1,
+          "areaSqFt": 1350
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 197221
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 197221,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 9675,
+            "chordMinFt": 25,
+            "chordMedianFt": 55,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7763,
+            "chordMinFt": 35,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3150,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 10,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 15,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2138,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4950,
+            "chordMinFt": 15,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2250,
+            "chordMinFt": 13,
+            "chordMedianFt": 43,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 15075,
+            "chordMinFt": 75,
+            "chordMedianFt": 103,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3375,
+            "chordMinFt": 13,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-without-20365850",
+      "layoutId": "sketch-north-distinct-without",
+      "title": "Distinct northern gathering, without northeast",
+      "seed": 20365850,
+      "status": "connected",
+      "step": 304,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 6,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 3,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 148,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 3,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 16,
+        "areaSqFt": 74480,
+        "byBand": {
+          "north": 3,
+          "central": 5,
+          "south": 8
+        },
+        "cluster": {
+          "count": 14,
+          "areaSqFt": 72792,
+          "byBand": {
+            "north": 3,
+            "central": 4,
+            "south": 7
+          }
+        },
+        "narrow": {
+          "count": 2,
+          "areaSqFt": 1688
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 3713,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 11138,
+            "chordMinFt": 60,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1463,
+            "chordMinFt": 13,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2813,
+            "chordMinFt": 30,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7650,
+            "chordMinFt": 23,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4838,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1913,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 10688,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2925,
+            "chordMinFt": 15,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 5288,
+            "chordMinFt": 90,
+            "chordMedianFt": 125,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 7200,
+            "chordMinFt": 60,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 10575,
+            "chordMinFt": 30,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-without-20470579",
+      "layoutId": "sketch-north-distinct-without",
+      "title": "Distinct northern gathering, without northeast",
+      "seed": 20470579,
+      "status": "connected",
+      "step": 252,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 6,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 100,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 21,
+        "areaSqFt": 254485,
+        "byBand": {
+          "north": 5,
+          "central": 7,
+          "south": 9
+        },
+        "cluster": {
+          "count": 18,
+          "areaSqFt": 97426,
+          "byBand": {
+            "north": 5,
+            "central": 4,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 2,
+          "areaSqFt": 1913
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 155146
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 155146,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "north",
+            "areaSqFt": 12146,
+            "chordMinFt": 35,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": true
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3713,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1688,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7425,
+            "chordMinFt": 45,
+            "chordMedianFt": 90,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 15525,
+            "chordMinFt": 25,
+            "chordMedianFt": 95,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 28,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 8213,
+            "chordMinFt": 30,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 28,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3150,
+            "chordMinFt": 13,
+            "chordMedianFt": 55,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2813,
+            "chordMinFt": 28,
+            "chordMedianFt": 43,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 675,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 10463,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 12375,
+            "chordMinFt": 150,
+            "chordMedianFt": 180,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1125,
+            "chordMinFt": 15,
+            "chordMedianFt": 23,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 7538,
+            "chordMinFt": 85,
+            "chordMedianFt": 185,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-without-20575308",
+      "layoutId": "sketch-north-distinct-without",
+      "title": "Distinct northern gathering, without northeast",
+      "seed": 20575308,
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 2,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 133,
+          "participating": false
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 27,
+          "participating": false
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 146,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 91,
+          "participating": false
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 147,
+          "participating": false
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 18,
+        "areaSqFt": 63228,
+        "byBand": {
+          "north": 6,
+          "central": 6,
+          "south": 6
+        },
+        "cluster": {
+          "count": 17,
+          "areaSqFt": 62328,
+          "byBand": {
+            "north": 6,
+            "central": 6,
+            "south": 5
+          }
+        },
+        "narrow": {
+          "count": 1,
+          "areaSqFt": 900
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 23,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2025,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2925,
+            "chordMinFt": 40,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5625,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5850,
+            "chordMinFt": 15,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1688,
+            "chordMinFt": 13,
+            "chordMedianFt": 25,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3713,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3375,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 8550,
+            "chordMinFt": 40,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5625,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 12825,
+            "chordMinFt": 125,
+            "chordMedianFt": 150,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2138,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 23,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3375,
+            "chordMinFt": 13,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 900,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-distinct-without-20680037",
+      "layoutId": "sketch-north-distinct-without",
+      "title": "Distinct northern gathering, without northeast",
+      "seed": 20680037,
+      "status": "connected",
+      "step": 301,
+      "settled": true,
+      "connectedAttractors": 6,
+      "attractors": 6,
+      "sourcesParticipating": 6,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 3,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 158,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 16,
+        "areaSqFt": 68627,
+        "byBand": {
+          "north": 4,
+          "central": 3,
+          "south": 9
+        },
+        "cluster": {
+          "count": 16,
+          "areaSqFt": 68627,
+          "byBand": {
+            "north": 4,
+            "central": 3,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 11025,
+            "chordMinFt": 35,
+            "chordMedianFt": 70,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 13,
+            "chordMedianFt": 23,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1575,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2025,
+            "chordMinFt": 8,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 15,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4950,
+            "chordMinFt": 15,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2250,
+            "chordMinFt": 13,
+            "chordMedianFt": 43,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 16763,
+            "chordMinFt": 75,
+            "chordMedianFt": 90,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 7650,
+            "chordMinFt": 60,
+            "chordMedianFt": 83,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 6525,
+            "chordMinFt": 13,
+            "chordMedianFt": 145,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2475,
+            "chordMinFt": 10,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3375,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-with-20365850",
+      "layoutId": "sketch-north-continuous-with",
+      "title": "Continuous gathering, with northeast",
+      "seed": 20365850,
+      "status": "connected",
+      "step": 238,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 5,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 3,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 162,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 3,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 16,
+        "areaSqFt": 53892,
+        "byBand": {
+          "north": 2,
+          "central": 3,
+          "south": 11
+        },
+        "cluster": {
+          "count": 13,
+          "areaSqFt": 49841,
+          "byBand": {
+            "north": 1,
+            "central": 3,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 3,
+          "areaSqFt": 4051
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 8100,
+            "chordMinFt": 45,
+            "chordMedianFt": 83,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1463,
+            "chordMinFt": 13,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2813,
+            "chordMinFt": 30,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 30,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3038,
+            "chordMinFt": 13,
+            "chordMedianFt": 55,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1800,
+            "chordMinFt": 13,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4838,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 15300,
+            "chordMinFt": 53,
+            "chordMedianFt": 90,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3150,
+            "chordMinFt": 25,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 675,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-with-20470579",
+      "layoutId": "sketch-north-continuous-with",
+      "title": "Continuous gathering, with northeast",
+      "seed": 20470579,
+      "status": "connected",
+      "step": 360,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 79,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 27,
+        "areaSqFt": 254487,
+        "byBand": {
+          "north": 6,
+          "central": 5,
+          "south": 16
+        },
+        "cluster": {
+          "count": 24,
+          "areaSqFt": 117794,
+          "byBand": {
+            "north": 5,
+            "central": 5,
+            "south": 14
+          }
+        },
+        "narrow": {
+          "count": 2,
+          "areaSqFt": 1913
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 134780
+        },
+        "faces": [
+          {
+            "band": "north",
+            "areaSqFt": 134780,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2475,
+            "chordMinFt": 38,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 10,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2700,
+            "chordMinFt": 25,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1575,
+            "chordMinFt": 23,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4838,
+            "chordMinFt": 20,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 6188,
+            "chordMinFt": 45,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4613,
+            "chordMinFt": 45,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 675,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 5513,
+            "chordMinFt": 20,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 13,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 563,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 30,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 10,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1575,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3150,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 23513,
+            "chordMinFt": 78,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 16988,
+            "chordMinFt": 65,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 8888,
+            "chordMinFt": 65,
+            "chordMedianFt": 85,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 5063,
+            "chordMinFt": 55,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1800,
+            "chordMinFt": 15,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 11250,
+            "chordMinFt": 30,
+            "chordMedianFt": 180,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1575,
+            "chordMinFt": 50,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 6750,
+            "chordMinFt": 105,
+            "chordMedianFt": 135,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-with-20575308",
+      "layoutId": "sketch-north-continuous-with",
+      "title": "Continuous gathering, with northeast",
+      "seed": 20575308,
+      "status": "connected",
+      "step": 284,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 112,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 18,
+        "areaSqFt": 109017,
+        "byBand": {
+          "north": 5,
+          "central": 4,
+          "south": 9
+        },
+        "cluster": {
+          "count": 18,
+          "areaSqFt": 109017,
+          "byBand": {
+            "north": 5,
+            "central": 4,
+            "south": 9
+          }
+        },
+        "narrow": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3488,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1125,
+            "chordMinFt": 10,
+            "chordMedianFt": 25,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7313,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 6413,
+            "chordMinFt": 58,
+            "chordMedianFt": 98,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4163,
+            "chordMinFt": 18,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3600,
+            "chordMinFt": 13,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2700,
+            "chordMinFt": 30,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2025,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1688,
+            "chordMinFt": 15,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 19125,
+            "chordMinFt": 60,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 9000,
+            "chordMinFt": 75,
+            "chordMedianFt": 120,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3263,
+            "chordMinFt": 30,
+            "chordMedianFt": 95,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 14850,
+            "chordMinFt": 120,
+            "chordMedianFt": 145,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3263,
+            "chordMinFt": 28,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 17325,
+            "chordMinFt": 90,
+            "chordMedianFt": 195,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 6075,
+            "chordMinFt": 30,
+            "chordMedianFt": 78,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-with-20680037",
+      "layoutId": "sketch-north-continuous-with",
+      "title": "Continuous gathering, with northeast",
+      "seed": 20680037,
+      "status": "connected",
+      "step": 323,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 7,
+      "sources": 8,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential Northeast Access",
+          "x": 202,
+          "z": 229,
+          "nearestBranchFt": 5,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 182,
+          "participating": false
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s8",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 9,
+        "areaSqFt": 254485,
+        "byBand": {
+          "north": 1,
+          "central": 1,
+          "south": 7
+        },
+        "cluster": {
+          "count": 8,
+          "areaSqFt": 24527,
+          "byBand": {
+            "north": 1,
+            "central": 0,
+            "south": 7
+          }
+        },
+        "narrow": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 229958
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 229958,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 10125,
+            "chordMinFt": 43,
+            "chordMedianFt": 73,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3263,
+            "chordMinFt": 25,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2250,
+            "chordMinFt": 13,
+            "chordMedianFt": 33,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4613,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1688,
+            "chordMinFt": 10,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-without-20365850",
+      "layoutId": "sketch-north-continuous-without",
+      "title": "Continuous gathering, without northeast",
+      "seed": 20365850,
+      "status": "connected",
+      "step": 207,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 6,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 3,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 151,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 3,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 27,
+        "areaSqFt": 80782,
+        "byBand": {
+          "north": 5,
+          "central": 7,
+          "south": 15
+        },
+        "cluster": {
+          "count": 24,
+          "areaSqFt": 76843,
+          "byBand": {
+            "north": 5,
+            "central": 6,
+            "south": 13
+          }
+        },
+        "narrow": {
+          "count": 3,
+          "areaSqFt": 3939
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7200,
+            "chordMinFt": 45,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1238,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1350,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1463,
+            "chordMinFt": 13,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 10,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 675,
+            "chordMinFt": 5,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3600,
+            "chordMinFt": 30,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3038,
+            "chordMinFt": 13,
+            "chordMedianFt": 55,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1800,
+            "chordMinFt": 13,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4838,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1238,
+            "chordMinFt": 10,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2138,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 563,
+            "chordMinFt": 15,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 7200,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 9450,
+            "chordMinFt": 30,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 4163,
+            "chordMinFt": 23,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1125,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 6300,
+            "chordMinFt": 33,
+            "chordMedianFt": 98,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 10013,
+            "chordMinFt": 50,
+            "chordMedianFt": 105,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2363,
+            "chordMinFt": 13,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1800,
+            "chordMinFt": 20,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-without-20470579",
+      "layoutId": "sketch-north-continuous-without",
+      "title": "Continuous gathering, without northeast",
+      "seed": 20470579,
+      "status": "connected",
+      "step": 308,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 6,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 4,
+          "participating": true
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 59,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 1,
+          "participating": true
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 8,
+          "participating": true
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 37,
+        "areaSqFt": 254488,
+        "byBand": {
+          "north": 10,
+          "central": 9,
+          "south": 18
+        },
+        "cluster": {
+          "count": 33,
+          "areaSqFt": 140407,
+          "byBand": {
+            "north": 9,
+            "central": 8,
+            "south": 16
+          }
+        },
+        "narrow": {
+          "count": 2,
+          "areaSqFt": 1351
+        },
+        "parcel": {
+          "count": 2,
+          "areaSqFt": 112730
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 103617,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "north",
+            "areaSqFt": 3713,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 25,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2475,
+            "chordMinFt": 38,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1013,
+            "chordMinFt": 10,
+            "chordMedianFt": 20,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2025,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2700,
+            "chordMinFt": 25,
+            "chordMedianFt": 50,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1575,
+            "chordMinFt": 23,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2813,
+            "chordMinFt": 18,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 6188,
+            "chordMinFt": 45,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 9563,
+            "chordMinFt": 28,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4500,
+            "chordMinFt": 43,
+            "chordMedianFt": 68,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2813,
+            "chordMinFt": 28,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 675,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4275,
+            "chordMinFt": 20,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1125,
+            "chordMinFt": 35,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 563,
+            "chordMinFt": 8,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1913,
+            "chordMinFt": 30,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 10,
+            "chordMedianFt": 15,
+            "kind": "narrow",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1913,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1575,
+            "chordMinFt": 15,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 5625,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 18788,
+            "chordMinFt": 65,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 12825,
+            "chordMinFt": 60,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2475,
+            "chordMinFt": 30,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 12825,
+            "chordMinFt": 45,
+            "chordMedianFt": 90,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 3375,
+            "chordMinFt": 13,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 7875,
+            "chordMinFt": 43,
+            "chordMedianFt": 120,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2363,
+            "chordMinFt": 30,
+            "chordMedianFt": 53,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1800,
+            "chordMinFt": 15,
+            "chordMedianFt": 35,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2363,
+            "chordMinFt": 45,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 9113,
+            "chordMinFt": 115,
+            "chordMedianFt": 230,
+            "kind": "parcel",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1125,
+            "chordMinFt": 30,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 4838,
+            "chordMinFt": 25,
+            "chordMedianFt": 110,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 8550,
+            "chordMinFt": 45,
+            "chordMedianFt": 180,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1913,
+            "chordMinFt": 10,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-without-20575308",
+      "layoutId": "sketch-north-continuous-without",
+      "title": "Continuous gathering, without northeast",
+      "seed": 20575308,
+      "status": "connected",
+      "step": 311,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 3,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 133,
+          "participating": false
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 140,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 77,
+          "participating": false
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 132,
+          "participating": false
+        }
+      ],
+      "waterfrontBranchFt": 4,
+      "pockets": {
+        "count": 16,
+        "areaSqFt": 254482,
+        "byBand": {
+          "north": 4,
+          "central": 4,
+          "south": 8
+        },
+        "cluster": {
+          "count": 15,
+          "areaSqFt": 78305,
+          "byBand": {
+            "north": 4,
+            "central": 3,
+            "south": 8
+          }
+        },
+        "narrow": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "parcel": {
+          "count": 1,
+          "areaSqFt": 176177
+        },
+        "faces": [
+          {
+            "band": "central",
+            "areaSqFt": 176177,
+            "chordMinFt": 308,
+            "chordMedianFt": 316,
+            "kind": "parcel",
+            "touchesParcel": true
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 15,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3488,
+            "chordMinFt": 30,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 15638,
+            "chordMinFt": 30,
+            "chordMedianFt": 88,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 6413,
+            "chordMinFt": 58,
+            "chordMedianFt": 98,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 3600,
+            "chordMinFt": 13,
+            "chordMedianFt": 60,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 4725,
+            "chordMinFt": 60,
+            "chordMedianFt": 75,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 1800,
+            "chordMinFt": 38,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 2363,
+            "chordMinFt": 25,
+            "chordMedianFt": 40,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 2025,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 1688,
+            "chordMinFt": 15,
+            "chordMedianFt": 28,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 7313,
+            "chordMinFt": 33,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 2138,
+            "chordMinFt": 13,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 4613,
+            "chordMinFt": 10,
+            "chordMedianFt": 110,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 1238,
+            "chordMinFt": 35,
+            "chordMedianFt": 45,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 18900,
+            "chordMinFt": 50,
+            "chordMedianFt": 195,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "sketch-sketch-north-continuous-without-20680037",
+      "layoutId": "sketch-north-continuous-without",
+      "title": "Continuous gathering, without northeast",
+      "seed": 20680037,
+      "status": "connected",
+      "step": 343,
+      "settled": true,
+      "connectedAttractors": 5,
+      "attractors": 5,
+      "sourcesParticipating": 3,
+      "sources": 7,
+      "sourceDetail": [
+        {
+          "id": "s1",
+          "recordId": "pedestrian:access:Potential City-Side Access",
+          "x": 31,
+          "z": 219,
+          "nearestBranchFt": 153,
+          "participating": false
+        },
+        {
+          "id": "s2",
+          "recordId": null,
+          "x": -47,
+          "z": -583,
+          "nearestBranchFt": 6,
+          "participating": true
+        },
+        {
+          "id": "s3",
+          "recordId": null,
+          "x": -55,
+          "z": -382,
+          "nearestBranchFt": 13,
+          "participating": true
+        },
+        {
+          "id": "s4",
+          "recordId": null,
+          "x": -62,
+          "z": -192,
+          "nearestBranchFt": 174,
+          "participating": false
+        },
+        {
+          "id": "s5",
+          "recordId": null,
+          "x": -70,
+          "z": 40,
+          "nearestBranchFt": 14,
+          "participating": true
+        },
+        {
+          "id": "s6",
+          "recordId": null,
+          "x": -74,
+          "z": 136,
+          "nearestBranchFt": 85,
+          "participating": false
+        },
+        {
+          "id": "s7",
+          "recordId": null,
+          "x": -75,
+          "z": 193,
+          "nearestBranchFt": 137,
+          "participating": false
+        }
+      ],
+      "waterfrontBranchFt": 3,
+      "pockets": {
+        "count": 5,
+        "areaSqFt": 35888,
+        "byBand": {
+          "north": 1,
+          "central": 1,
+          "south": 3
+        },
+        "cluster": {
+          "count": 5,
+          "areaSqFt": 35888,
+          "byBand": {
+            "north": 1,
+            "central": 1,
+            "south": 3
+          }
+        },
+        "narrow": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "parcel": {
+          "count": 0,
+          "areaSqFt": 0
+        },
+        "faces": [
+          {
+            "band": "south",
+            "areaSqFt": 788,
+            "chordMinFt": 20,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 900,
+            "chordMinFt": 8,
+            "chordMedianFt": 30,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "south",
+            "areaSqFt": 7650,
+            "chordMinFt": 23,
+            "chordMedianFt": 83,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "central",
+            "areaSqFt": 9000,
+            "chordMinFt": 15,
+            "chordMedianFt": 38,
+            "kind": "cluster",
+            "touchesParcel": false
+          },
+          {
+            "band": "north",
+            "areaSqFt": 17550,
+            "chordMinFt": 165,
+            "chordMedianFt": 185,
+            "kind": "cluster",
+            "touchesParcel": false
+          }
+        ]
+      }
+    }
+  ]
+}

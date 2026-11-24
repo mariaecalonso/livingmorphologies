@@ -3149,6 +3149,36 @@
   height: 100%;
 }
 
+.site-gallery.site-gallery-clusters .site-cluster-place {
+  position: absolute;
+  z-index: 2;
+  top: 0.28rem;
+  left: 0.28rem;
+  width: auto;
+  height: 1.35rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.32rem;
+  border: 1px solid rgba(242, 242, 238, 0.55);
+  border-radius: 4px;
+  background: #000000;
+  color: #f2f2ee;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.site-cluster-place:hover,
+.site-cluster-place:focus-visible {
+  border-color: #49d7de;
+  color: #49d7de;
+}
+
+.site-cluster-place:disabled {
+  opacity: 0.45;
+  color: #f2f2ee;
+}
+
 .site-gallery.site-gallery-clusters .site-cluster-plus {
   position: absolute;
   z-index: 2;

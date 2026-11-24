@@ -14,13 +14,19 @@ description: >-
 This is the project-level skill for Skill 5 in the shared repository `livingmorphologies`.
 Apply it when placing work on the site or reading the site. Do not apply it to architectural translation, 2D generation, vertical propagation, or generating a new connector.
 
-The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Cluster Assembly is a Cluster Integration tab at `/lab/site?sheet=cluster-assembly`. Saved configurations are `/lab/site/configurations`. The work lives in `lib/skill5/` and `components/site/`.
+The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Cluster Placement is `/lab/site?sheet=placement`. Cluster Assembly Catalog is `/lab/site?sheet=cluster-assembly`. The Assembly tab is tile joins, not the Cluster Assembly checkpoint. Historical Configurations remain `/lab/site?sheet=configurations` and `data/skill5/configurations.json`. The work lives in `lib/skill5/` and `components/site/`.
 
-Cluster Assembly places one catalog cluster for each program inside a zoning iteration 101 pocket of the same program and joins them into one mass. A lobby cluster stays in a lobby pocket, a gathering cluster in a gathering pocket, and a workspace cluster in a workspace pocket. It uses the highest-ranked cluster from that program's catalog that fits inside such a pocket. Placed clusters use the catalog solid: opaque white, the same shaded body as the catalog thumbnail. The Void control reads each cluster's habitable void from the same shrinkwrap measurement as the catalog plus icon. The catalog is the same ranked list as the Cluster Placement panel. The placed clusters keep their own shrinkwrap. Where two clusters do not already touch, the same hybrid shrinkwrap fills only that gap. It does not cover the cluster. It does not change cluster generation, the finished catalog, tile-to-tile hybrids, or the stored site network.
+Cluster Placement is the composition tool: the designer selects a zoning region, chooses a compatible Client program, and Places a ranked finished cluster into that zone. One zone holds one finished cluster at a time. Replacing that zone does not rebuild the rest of the occupancy. Ranking is unchanged. Automatic initial placement is optional assistance; it writes the same occupancy records using the existing packing seats, then stops. Shrinkwrap, film wrap, and joined mass remain in `buildPublicLobbyAssembly` and are not occupancy or catalog state.
+
+A Cluster Assembly is the situated composition: selected Site Strategy network, designer zoning, zone occupancy, transforms, source identities, and optional confirmed joins. It is stored in `data/skill5/cluster-assemblies.json`. Many assemblies may exist. Exactly one may be the Selected Assembly for Development (`selectedAssemblyId`). Preview does not change that id. Send for Development does. Historical Configurations C01–C08 and later C## records must not write `selectedAssemblyId`, the selected network, or designer zoning.
+
+The Development checkpoint is `GET /api/site/development-checkpoint`. Architectural Interpretation resolves its production source from that checkpoint. Do not generate enclosure, floors, envelope, circulation, shrinkwrap, or architectural articulation from it. The historical Skill 6 Interpretation mesh is not derived from the selected Cluster Assembly.
+
+Lab input and output names for Cluster Placement, Cluster Assembly Catalog, Architectural Interpretation, Enclosure, Slicing, Drawing, and Rendering live in `lib/lab-contracts.ts`. Do not invent a second source of truth for those contracts.
 
 ## Purpose
 
-Bring the selected modules and Skill 4 assemblies onto the Herald Plaza site. The site workflow, in order, is Site Analysis, Site Strategy, Zoning, Tile Placement, and Assembly. Site Analysis has its own workspace. The later steps stay on the site model.
+Bring selected finished clusters onto the Herald Plaza site. The production workflow is Site Analysis, Site Strategy, Zoning, Cluster Placement, Cluster Assembly Catalog, Send for Development, then Architectural Interpretation. Site Analysis has its own workspace. The later steps stay on the site model.
 
 ## The site
 

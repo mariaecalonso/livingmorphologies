@@ -74,9 +74,7 @@ export function HomePage({
       if (home && visualHeight > 0) {
         const progress = (viewTop - home.getBoundingClientRect().top) / visualHeight;
         const heroFade = Math.min(1, Math.max(0, 1 - progress));
-        const clientFade = Math.min(1, Math.max(0, progress <= 1 ? progress : 2 - progress));
         root.style.setProperty("--hero-fade", heroFade.toFixed(3));
-        root.style.setProperty("--client-fade", clientFade.toFixed(3));
       }
     };
 

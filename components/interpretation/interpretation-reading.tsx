@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { InterpretationView, type Orbit, type ViewPart } from "@/components/interpretation/interpretation-view";
+import { InterpretationSourcePanel } from "@/components/interpretation/interpretation-source-panel";
+import { subscribePipeline } from "@/components/pipeline/pipeline-client";
 import { decodeMesh } from "@/lib/interpretation/decode";
 import type { ReadingCard, ReadingFixtureView, ReadingLabView } from "@/lib/interpretation/reading-view";
 import styles from "./interpretation-reading.module.css";
@@ -50,27 +52,35 @@ function preferred(cards: ReadingCard[]) {
 export function InterpretationReading() {
   const [view, setView] = useState<ReadingLabView | null>(null);
   const [error, setError] = useState("");
-  const [fixtureId, setFixtureId] = useState<"control" | "proximity">("proximity");
   const [cardId, setCardId] = useState("");
   const [orbit, setOrbit] = useState<Orbit | null>(null);
 
   useEffect(() => {
     let live = true;
-    fetch("/api/interpretation/reading")
-      .then(async (response) => {
-        const body = await response.json() as ReadingLabView & { error?: string };
-        if (!response.ok) throw new Error(body.error ?? "The reading did not load.");
-        if (live) setView(body);
-      })
-      .catch((caught: unknown) => {
-        if (live) setError(caught instanceof Error ? caught.message : "The reading did not load.");
-      });
+    const load = () => {
+      fetch("/api/interpretation/reading", { cache: "no-store" })
+        .then(async (response) => {
+          const body = await response.json() as ReadingLabView & { error?: string };
+          if (!response.ok) throw new Error(body.error ?? "The reading did not load.");
+          if (!live) return;
+          setView(body);
+          setError("");
+          setOrbit(null);
+          setCardId("");
+        })
+        .catch((caught: unknown) => {
+          if (live) setError(caught instanceof Error ? caught.message : "The reading did not load.");
+        });
+    };
+    load();
+    const unsubscribe = subscribePipeline(load);
     return () => {
       live = false;
+      unsubscribe();
     };
   }, []);
 
-  const fixture: ReadingFixtureView | null = view?.fixtures[fixtureId] ?? null;
+  const fixture: ReadingFixtureView | null = view?.fixtures.selected ?? null;
   const card = fixture?.cards.find((item) => item.id === cardId) ?? fixture?.cards[0] ?? null;
 
   useEffect(() => {
@@ -119,25 +129,62 @@ export function InterpretationReading() {
     return [...mass, ...marks];
   }, [meshes, fixture, card]);
 
-  if (error) return <div className={styles.board}><p className={styles.wait}>{error}</p></div>;
-  if (!view || !fixture || !card) return <div className={styles.board}><p className={styles.wait}>Reading the three clusters</p></div>;
+  const source = view?.source;
+  const boardProps = {
+    "data-assembly-id": source?.assemblyId ?? "",
+    "data-assembly-revision": source?.assemblyRevision ?? "",
+    "data-geometry-status": source?.geometryStatus ?? "no-source",
+    "data-source-ready": source?.sourceReady ? "true" : "false",
+    "data-cluster-ids": (view?.clusters ?? []).map((cluster) => cluster.id).join(","),
+    "data-finished-cluster-ids": (view?.clusters ?? []).map((cluster) => cluster.occupancy?.finishedClusterId ?? "").join(","),
+    "data-reading-mode": view?.mode ?? "",
+  };
+
+  if (error) {
+    return (
+      <div className={styles.board} {...boardProps}>
+        <div className={styles.sourceSlot}><InterpretationSourcePanel /></div>
+        <p className={styles.wait}>{error}</p>
+      </div>
+    );
+  }
+
+  if (!view) {
+    return (
+      <div className={styles.board} {...boardProps}>
+        <div className={styles.sourceSlot}><InterpretationSourcePanel /></div>
+        <p className={styles.wait}>Reading the selected assembly</p>
+      </div>
+    );
+  }
+
+  if (!source?.sourceReady || !fixture || !card) {
+    return (
+      <div className={styles.board} {...boardProps}>
+        <header className={styles.head}>
+          <div>
+            <h1>Architectural Interpretation</h1>
+            <p>Geometry reading · Opportunities · No new solids</p>
+          </div>
+        </header>
+        <aside className={styles.column}>
+          <InterpretationSourcePanel />
+        </aside>
+        <p className={styles.wait}>No Selected Assembly for Development</p>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.board}>
+    <div className={styles.board} {...boardProps}>
       <header className={styles.head}>
         <div>
           <h1>Architectural Interpretation</h1>
           <p>Geometry reading · Opportunities · No new solids</p>
         </div>
-        <div className={styles.switch} role="group" aria-label="Fixture">
-          {(["control", "proximity"] as const).map((id) => (
-            <button key={id} type="button" data-on={fixtureId === id} onClick={() => { setFixtureId(id); setOrbit(null); }}>
-              {view.fixtures[id].label}
-            </button>
-          ))}
-        </div>
       </header>
       <aside className={styles.column}>
+        <InterpretationSourcePanel />
         {GROUPS.map((group) => (
           <section className={styles.group} key={group.id}>
             <h2><i>{group.index}</i>{group.title}</h2>
@@ -174,7 +221,7 @@ export function InterpretationReading() {
       <aside className={styles.detail}>
         <h2>Building summary</h2>
         <div className={styles.summary}>
-          <div><span>Fixture</span><b>{fixture.label}</b></div>
+          <div><span>Assembly</span><b>{source.assemblyId ?? "none"}</b></div>
           <div><span>Clusters</span><b>{fixture.summary.clusters}</b></div>
           <div><span>Candidate caps</span><b>{fixture.summary.caps}</b></div>
           <div><span>Shelter readings</span><b>{fixture.summary.shelters}</b></div>

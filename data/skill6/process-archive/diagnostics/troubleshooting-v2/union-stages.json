@@ -1,0 +1,388 @@
+{
+  "comparability": "Rigid seating is the stored pair-crossing depth. Tiles-only, raw union, and refined use crossingReport on one mesh with the same 0.02 graze. A penetration within 2 of a stored contact sample is marked at the contact. The tiles-only union is a reconstruction.",
+  "stored": [
+    {
+      "id": "on-rule-branching-4",
+      "validated": false,
+      "tiles": 4,
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0062
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 7,
+          "grazes": 437,
+          "maxPenetration": 0.1077,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 7,
+            "clusters": [
+              {
+                "at": "-18,12,10",
+                "count": 7,
+                "maxPenetration": 0.1077,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 856,
+          "grazes": 837,
+          "maxPenetration": 0.329,
+          "location": {
+            "atContact": 332,
+            "awayFromContact": 524,
+            "clusters": [
+              {
+                "at": "-10,14,20",
+                "count": 46,
+                "maxPenetration": 0.2397,
+                "atContact": 0
+              },
+              {
+                "at": "-10,10,16",
+                "count": 42,
+                "maxPenetration": 0.1458,
+                "atContact": 0
+              },
+              {
+                "at": "-10,10,14",
+                "count": 41,
+                "maxPenetration": 0.1314,
+                "atContact": 31
+              },
+              {
+                "at": "-10,10,20",
+                "count": 34,
+                "maxPenetration": 0.1516,
+                "atContact": 0
+              },
+              {
+                "at": "-14,12,12",
+                "count": 33,
+                "maxPenetration": 0.1806,
+                "atContact": 33
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 2,
+          "grazes": 2280,
+          "maxPenetration": 0.0354,
+          "location": {
+            "atContact": 1,
+            "awayFromContact": 1,
+            "clusters": [
+              {
+                "at": "-10,10,14",
+                "count": 1,
+                "maxPenetration": 0.0354,
+                "atContact": 1
+              },
+              {
+                "at": "-10,12,22",
+                "count": 1,
+                "maxPenetration": 0.0256,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    },
+    {
+      "id": "on-rule-compact-5",
+      "validated": true,
+      "tiles": 5,
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0157
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 2,
+          "grazes": 484,
+          "maxPenetration": 0.1209,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 2,
+            "clusters": [
+              {
+                "at": "-18,4,20",
+                "count": 1,
+                "maxPenetration": 0.1209,
+                "atContact": 0
+              },
+              {
+                "at": "-14,16,20",
+                "count": 1,
+                "maxPenetration": 0.075,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 510,
+          "grazes": 617,
+          "maxPenetration": 0.1789,
+          "location": {
+            "atContact": 230,
+            "awayFromContact": 280,
+            "clusters": [
+              {
+                "at": "-10,-4,12",
+                "count": 18,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              },
+              {
+                "at": "2,-6,20",
+                "count": 17,
+                "maxPenetration": 0.1301,
+                "atContact": 17
+              },
+              {
+                "at": "0,4,20",
+                "count": 17,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              },
+              {
+                "at": "-20,12,20",
+                "count": 14,
+                "maxPenetration": 0.12,
+                "atContact": 9
+              },
+              {
+                "at": "-16,12,20",
+                "count": 14,
+                "maxPenetration": 0.0776,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 0,
+          "grazes": 421,
+          "maxPenetration": 0.0198,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 0,
+            "clusters": []
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    },
+    {
+      "id": "on-graph-branching-5",
+      "validated": true,
+      "tiles": 5,
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0189
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 2,
+          "grazes": 492,
+          "maxPenetration": 0.1209,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 2,
+            "clusters": [
+              {
+                "at": "-18,8,20",
+                "count": 1,
+                "maxPenetration": 0.1209,
+                "atContact": 0
+              },
+              {
+                "at": "-18,18,20",
+                "count": 1,
+                "maxPenetration": 0.075,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 433,
+          "grazes": 652,
+          "maxPenetration": 0.182,
+          "location": {
+            "atContact": 227,
+            "awayFromContact": 206,
+            "clusters": [
+              {
+                "at": "-10,-6,14",
+                "count": 19,
+                "maxPenetration": 0.1009,
+                "atContact": 0
+              },
+              {
+                "at": "-24,14,20",
+                "count": 18,
+                "maxPenetration": 0.0945,
+                "atContact": 18
+              },
+              {
+                "at": "-10,-6,8",
+                "count": 17,
+                "maxPenetration": 0.1651,
+                "atContact": 0
+              },
+              {
+                "at": "-10,-6,12",
+                "count": 17,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              },
+              {
+                "at": "-20,14,12",
+                "count": 17,
+                "maxPenetration": 0.1525,
+                "atContact": 17
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 0,
+          "grazes": 441,
+          "maxPenetration": 0.0199,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 0,
+            "clusters": []
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    },
+    {
+      "id": "on-wfc-branching-5",
+      "validated": true,
+      "tiles": 5,
+      "stage": {
+        "rigidSeating": {
+          "measurement": "Pair crossing recorded on the contact. Not a union self-intersection.",
+          "contactsOver002": 0,
+          "maxCrossing": 0.0189
+        },
+        "tilesOnlyUnion": {
+          "label": "Reconstruction. No historical tiles-only union was stored.",
+          "status": "NoError",
+          "name": "tiles-only union",
+          "penetrations": 2,
+          "grazes": 461,
+          "maxPenetration": 0.1209,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 2,
+            "clusters": [
+              {
+                "at": "-18,8,20",
+                "count": 1,
+                "maxPenetration": 0.1209,
+                "atContact": 0
+              },
+              {
+                "at": "-18,18,20",
+                "count": 1,
+                "maxPenetration": 0.075,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "patchedUnion": {
+          "name": "stored or assembled raw union",
+          "penetrations": 451,
+          "grazes": 635,
+          "maxPenetration": 0.2093,
+          "location": {
+            "atContact": 211,
+            "awayFromContact": 240,
+            "clusters": [
+              {
+                "at": "-10,-6,14",
+                "count": 19,
+                "maxPenetration": 0.1009,
+                "atContact": 0
+              },
+              {
+                "at": "-10,-6,8",
+                "count": 17,
+                "maxPenetration": 0.1651,
+                "atContact": 0
+              },
+              {
+                "at": "-10,-6,12",
+                "count": 17,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              },
+              {
+                "at": "2,-6,20",
+                "count": 17,
+                "maxPenetration": 0.1301,
+                "atContact": 17
+              },
+              {
+                "at": "0,4,20",
+                "count": 17,
+                "maxPenetration": 0.12,
+                "atContact": 0
+              }
+            ]
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        },
+        "refined": {
+          "name": "refined",
+          "penetrations": 0,
+          "grazes": 441,
+          "maxPenetration": 0.0175,
+          "location": {
+            "atContact": 0,
+            "awayFromContact": 0,
+            "clusters": []
+          },
+          "measurement": "crossingReport on one mesh, graze 0.02. Same function at every mesh stage."
+        }
+      }
+    }
+  ]
+}

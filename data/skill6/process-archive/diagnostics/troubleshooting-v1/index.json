@@ -1,0 +1,9 @@
+{
+  "version": "skill6-troubleshooting-v1",
+  "archive": "data/skill6/process-archive/v1.json",
+  "baseline": "data/skill6/process-archive/diagnostics/geometry-v1/report.json",
+  "warningMismatches": [],
+  "graph": "graph-plans.json",
+  "rule": "rule-candidates.json",
+  "camera": "camera.json"
+}

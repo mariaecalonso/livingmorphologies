@@ -1,0 +1,23 @@
+---
+description: Lab input/output contracts. Inspect before modifying or creating a Lab.
+alwaysApply: true
+---
+
+# Lab contracts
+
+Before modifying or creating a Lab, read `lib/lab-contracts.ts`.
+The whole computational workflow, including upstream stages, is `lib/computational-workflow.ts`.
+Website publication classes are `lib/publication-sources.ts`.
+
+Every Lab follows **authoritative input → methodology → authoritative output**. The registry names what enters and what leaves. It does not prescribe internal method.
+
+- Resolve production input from the declared upstream authority. Do not replace it with browser state, previews, caches, fixtures, historical configurations, or test data.
+- If the upstream source changes, recognize it immediately. Keep older work only as stale / derived from an older source. Never leave it labeled current.
+- Do not change an output contract because the internal methodology changed.
+- A revision id, reading, status flag, or null geometry ref does not satisfy a geometry output. Real output geometry plus matching source lineage is required.
+- Architectural Interpretation readings are not the Current Integrated Architectural Model.
+- Enclosure consumes only a complete Current Integrated Architectural Model.
+- Drawing and Rendering share `lib/skill5/site-context-source.ts`. Do not copy the Site Model into those labs.
+- Navigation order may differ from computational order. Do not reorder the stage bar to match the graph. Rendering stays last in navigation even though it branches from the Final Enclosed Model.
+- If a Lab later becomes a catalog, downstream still consumes one explicit selected output. Do not force downstream Labs to read catalog internals.
+- Architectural Interpretation and Enclosure are single working stages today. Do not create catalogs for them in this pass.

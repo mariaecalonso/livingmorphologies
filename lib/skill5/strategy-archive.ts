@@ -117,15 +117,43 @@ export function parseStrategyArchive(value: unknown): StrategyArchiveFile | null
   return { strategyId: STRATEGY_ARCHIVE_ID, massingNetworkId, zoningShortlist, iterations };
 }
 
+export function serializeArchiveIteration(iteration: NetworkIteration) {
+  return {
+    id: iteration.id,
+    index: iteration.index,
+    seed: iteration.seed,
+    nodes: iteration.nodes,
+    step: iteration.step,
+    settled: iteration.settled,
+    reached: iteration.reached,
+    total: iteration.total,
+    reachedIds: [...iteration.reachedIds],
+    connectedIds: [...iteration.connectedIds],
+    note: iteration.note,
+    inkSize: iteration.inkSize,
+    traversable: iteration.traversable,
+    cellFeet: iteration.cellFeet,
+    generator: iteration.generator,
+    branches: iteration.branches,
+    layoutId: iteration.layoutId,
+    layoutTitle: iteration.layoutTitle,
+    layoutFamily: iteration.layoutFamily,
+    architectureRecord: iteration.architectureRecord,
+    spacingFeet: iteration.spacingFeet,
+    windFromDegrees: iteration.windFromDegrees,
+    trailCells: trailCells(iteration.trails),
+  };
+}
+
+export function readArchiveIterationRecord(value: unknown) {
+  return readIteration(value);
+}
+
 export function serializeStrategyArchive(archive: StrategyArchiveFile) {
   return {
     strategyId: archive.strategyId,
     massingNetworkId: archive.massingNetworkId,
     zoningShortlist: archive.zoningShortlist,
-    iterations: archive.iterations.map((iteration) => ({
-      ...iteration,
-      trails: undefined,
-      trailCells: trailCells(iteration.trails),
-    })),
+    iterations: archive.iterations.map((iteration) => serializeArchiveIteration(iteration)),
   };
 }

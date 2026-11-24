@@ -102,7 +102,11 @@ function activity(input: Omit<ClientActivity, "desires"> & { desires: DesireSeed
 }
 
 /**
- * Desired profiles for ecoLogicStudio's twelve approved building spaces.
+ * Identity schema and fallback for ecoLogicStudio's twelve approved building spaces.
+ * Live desire values live in `data/skill5/client-activities.json`.
+ * Server generation and ranking read that file through `loadClientActivitiesDocument`.
+ * `parseClientCompatibility` still requires names, ids, and contexts to match this seed,
+ * so the JSON cannot silently become a different program list.
  * Each rating and priority is the approved pair. The previous Living Morphologies Studio
  * profiles are archived and are not selectable here.
  */

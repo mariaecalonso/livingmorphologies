@@ -92,6 +92,28 @@ export function poseMatrix(pose: Skill6Pose) {
   return matrix;
 }
 
+const BAKE_LIMIT = 4;
+let baking = 0;
+const bakeWaiters: Array<() => void> = [];
+
+function acquireBake() {
+  if (baking < BAKE_LIMIT) {
+    baking += 1;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    bakeWaiters.push(() => {
+      baking += 1;
+      resolve();
+    });
+  });
+}
+
+function releaseBake() {
+  baking = Math.max(0, baking - 1);
+  bakeWaiters.shift()?.();
+}
+
 export function ClusterView({
   tiles,
   archetypes,
@@ -110,6 +132,8 @@ export function ClusterView({
   fixedSpan,
   focus,
   onSpan,
+  accentId = null,
+  distance = 1,
   ink = "typology",
   presentation = false,
   tones = "lab",
@@ -140,6 +164,10 @@ export function ClusterView({
   focus?: readonly [number, number, number];
   /** Largest extent of the drawn cluster, reported once it loads. */
   onSpan?: (span: number) => void;
+  /** One tile drawn in copper. The others keep the ink color. */
+  accentId?: string | null;
+  /** Scales the camera distance. 1 keeps the usual framing. */
+  distance?: number;
   /** Fit Tiles can be drawn as one white body. The assembly reading keeps typology color. */
   ink?: "typology" | "white";
   /** Softer, brighter light for the main architectural solid. */
@@ -214,6 +242,11 @@ export function ClusterView({
     scene.add(marks);
     let disposed = false;
     let detach = () => {};
+    let slot: "idle" | "waiting" | "held" = "idle";
+    const dropSlot = () => {
+      if (slot === "held") releaseBake();
+      slot = "idle";
+    };
     const controls = { yaw: Math.PI / 4, pitch: 0.62, distance: 48, homeDistance: 48, dragging: false, moved: false, button: 0, x: 0, y: 0 };
 
     const resize = () => {
@@ -232,7 +265,7 @@ export function ClusterView({
     const fit = (box: THREE.Box3) => {
       const size = box.getSize(new THREE.Vector3());
       const span = fixedSpan ?? Math.max(size.x, size.y, size.z, 1);
-      controls.homeDistance = span * (presentation ? 1.62 : 1.85);
+      controls.homeDistance = span * (presentation ? 1.62 : 1.85) * distance;
       controls.distance = controls.homeDistance;
       controls.yaw = Math.PI / 4;
       controls.pitch = 0.62;
@@ -310,7 +343,7 @@ export function ClusterView({
       const geometry = await loadArchetypeGeometry(source);
       if (disposed) return null;
       const material = new THREE.MeshStandardMaterial({
-        color: ink === "white" ? "#f4f4f4" : ((tones === "interface" ? INTERFACE_COLOR : COLOR)[tile.typologyId] ?? "#ffffff"),
+        color: tile.instanceId === accentId ? "#c77e5f" : ink === "white" ? "#f4f4f4" : ((tones === "interface" ? INTERFACE_COLOR : COLOR)[tile.typologyId] ?? "#ffffff"),
         roughness: 0.62,
         metalness: 0.02,
         side: THREE.FrontSide,
@@ -396,6 +429,8 @@ export function ClusterView({
       };
       const draw = () => {
         if (disposed) return;
+        const paint = () => {
+        if (disposed) return;
         for (const mesh of meshes) {
           const lit = mesh.userData.instanceId === selectedRef.current;
           const material = mesh.material as THREE.MeshStandardMaterial;
@@ -407,7 +442,10 @@ export function ClusterView({
         paintContacts();
         placeCamera(look);
         const active = open();
-        if (!active) return;
+        if (!active) {
+          dropSlot();
+          return;
+        }
         active.render(scene, camera);
         if (interactive) return;
         canvas.style.backgroundImage = `url(${active.domElement.toDataURL()})`;
@@ -415,6 +453,23 @@ export function ClusterView({
         active.forceContextLoss();
         active.dispose();
         renderer = null;
+        dropSlot();
+        };
+        if (interactive || renderer) {
+          paint();
+          return;
+        }
+        if (slot !== "idle") return;
+        slot = "waiting";
+        void acquireBake().then(() => {
+          if (disposed) {
+            releaseBake();
+            slot = "idle";
+            return;
+          }
+          slot = "held";
+          paint();
+        });
       };
       redraw = draw;
       draw();
@@ -525,6 +580,7 @@ export function ClusterView({
 
     return () => {
       disposed = true;
+      dropSlot();
       detach();
       observer.disconnect();
       floor.traverse((node) => {
@@ -543,7 +599,7 @@ export function ClusterView({
       });
       marks.clear();
     };
-  }, [tiles, archetypes, interactive, extras, floorZ, fixedSpan, focus, ink, presentation, tones, ground, shownIds, selectedId]);
+  }, [tiles, archetypes, interactive, extras, floorZ, fixedSpan, focus, accentId, distance, ink, presentation, tones, ground, shownIds, selectedId]);
 
   useEffect(() => {
     canvasRef.current?.dispatchEvent(new Event("lm-cluster-draw"));
