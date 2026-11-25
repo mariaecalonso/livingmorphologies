@@ -14,7 +14,7 @@ description: >-
 This is the project-level skill for Skill 4 in the shared repository `livingmorphologies`.
 Apply it when joining already selected Skill 3 modules into an assembly. Do not apply it to architectural translation, 2D generation, vertical propagation, or placing modules on the site.
 
-The lab is `/lab/hybrid`. Its tabs are Process, Catalog, and Final Catalog. The work lives in `lib/skill4/` and `components/hybrid/`.
+The lab is `/lab/hybrid`. Its tabs are Process, Catalog, Final Catalog, and Final Clusters. Final Clusters is the new pair-family catalog (`/lab/hybrid/final-clusters`): Workspace × Workspace, Workspace × Lobby, Workspace × Gathering, Lobby × Lobby, Lobby × Gathering, Gathering × Gathering. The work lives in `lib/skill4/` and `components/hybrid/`.
 
 Skill 4 may reuse the Skill 6 Graph plan and WFC propagator. Ask to retrieve Initial Clustering logic, then read `.cursor/skills/initial-clustering-logic/SKILL.md`. Alterations for Hybrid Connection are written in `lib/skill4/` or `components/hybrid/`. Do not modify `lib/skill6/` unless the request specifically alters Skill 6.
 

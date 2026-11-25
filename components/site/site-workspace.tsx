@@ -45,7 +45,7 @@ import { reportTiles } from "@/lib/skill5/tile-placement";
 import { announceWorkingOccupancy, placeOccupancy, readWorkingOccupancy, runAutomaticInitialPlacement, saveClusterAssemblyRecord } from "./cluster-assembly-catalog";
 import type { ClusterAssemblyModel } from "./cluster-assembly-layer";
 import { ClusterInspect, ClusterPlacementLibrary } from "./cluster-placement-library";
-import { fetchOccupancyMesh, occupancyMeshKey, occupancyModel } from "./occupancy-solids";
+import { fetchOccupancyMesh, gumballToOccupancyPose, occupancyMeshKey, occupancyModel } from "./occupancy-solids";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
@@ -69,12 +69,13 @@ import { ARRANGEMENT_FAMILY, buildArrivalFamily, programForRole } from "@/lib/sk
 import { assessPockets, suggestionLabel } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets, readPockets } from "@/lib/skill5/pockets";
 import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
-import { occupancyInZone, readOccupancyList, replaceZoneOccupancy, rotateOccupancy, type OccupancyProvenance, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { isPocketBoundZone, occupancyInZone, programZoneKind, readOccupancyList, replaceZoneOccupancy, rotateOccupancy, type OccupancyProvenance, type PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, readZoningList, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SPACING_FEET, FLOW_SURVIVE } from "./site-network-flow";
 import { evaluateLayouts, evaluateNetwork, openNetworkField } from "@/lib/skill5/strategy-evaluation";
 import { SiteStrategyPanel } from "./site-strategy";
+import { PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 
 const site = context as SiteContext;
 /** The same afternoon light Site Analysis uses for the model, so the site reads the same way. */
@@ -1079,9 +1080,15 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       return;
     }
     const next = search.get("sheet");
+    if (PROGRAM_CLUSTER_2_ARCHIVED && next === "placement") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("sheet", "cluster-assembly");
+      router.replace(`/lab/site?${params.toString()}`);
+      return;
+    }
     if (next === "zoning" || next === "placement" || next === "assembly" || next === "configurations") setSheet(next);
     else if (next === "strategy" || next == null) setSheet("strategy");
-  }, [initialSheet, search]);
+  }, [initialSheet, router, search]);
   const [zones, setZones] = useState<SiteZone[]>([]);
   const [connections, setConnections] = useState<SiteConnection[]>([]);
   const [zoneKind, setZoneKind] = useState<SiteZoneKind>("lobby");
@@ -1243,6 +1250,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const [instances, setInstances] = useState<PlacedModule[]>([]);
   const [occupancy, setOccupancy] = useState<PlacedCluster[]>([]);
   const [occupancyMeshes, setOccupancyMeshes] = useState<Record<string, { positions: Float32Array; indices: Uint32Array } | null>>({});
+  const [selectedOccupancyId, setSelectedOccupancyId] = useState<string | null>(null);
+  const [occupancyGumballLive, setOccupancyGumballLive] = useState<(GumballPose & { id: string }) | null>(null);
   const [placementAssist, setPlacementAssist] = useState<"manual" | "ranked" | "automatic">("manual");
   const [occupancyNotice, setOccupancyNotice] = useState("");
   const occupancyHydrated = useRef(false);
@@ -1281,26 +1290,88 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     announceWorkingOccupancy(occupancy);
   }, [occupancy]);
   useEffect(() => {
-    const controller = new AbortController();
+    if (!selectedOccupancyId) return;
+    if (occupancy.some((item) => item.occupancyId === selectedOccupancyId)) return;
+    setSelectedOccupancyId(null);
+    setOccupancyGumballLive(null);
+  }, [occupancy, selectedOccupancyId]);
+  useEffect(() => {
+    let cancelled = false;
     const missing = occupancy.filter((record) => occupancyMeshes[occupancyMeshKey(record)] === undefined);
     if (missing.length === 0) return;
-    void (async () => {
-      for (const record of missing) {
-        if (controller.signal.aborted) return;
-        const key = occupancyMeshKey(record);
-        try {
-          const mesh = await fetchOccupancyMesh(record.programId, record.finishedClusterId, controller.signal);
-          if (controller.signal.aborted) return;
-          setOccupancyMeshes((current) => (current[key] === undefined ? { ...current, [key]: mesh } : current));
-        } catch (error: unknown) {
-          if (error instanceof DOMException && error.name === "AbortError") return;
-          setOccupancyMeshes((current) => (current[key] === undefined ? { ...current, [key]: null } : current));
-        }
+    void Promise.all(missing.map(async (record) => {
+      const key = occupancyMeshKey(record);
+      try {
+        const mesh = await fetchOccupancyMesh(record.programId, record.finishedClusterId);
+        return [key, mesh] as const;
+      } catch {
+        return [key, null] as const;
       }
-    })();
-    return () => controller.abort();
+    })).then((entries) => {
+      if (cancelled) return;
+      setOccupancyMeshes((current) => {
+        const next = { ...current };
+        for (const [key, mesh] of entries) {
+          if (next[key] === undefined) next[key] = mesh;
+        }
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [occupancy, occupancyMeshes]);
-  const occupancyLayer = useMemo<ClusterAssemblyModel>(() => occupancyModel(occupancy, occupancyMeshes), [occupancy, occupancyMeshes]);
+  const selectedOccupancy = occupancy.find((item) => item.occupancyId === selectedOccupancyId) ?? null;
+  const applyOccupancyGumball = useCallback((pose: GumballPose & { id: string }, commitChange: boolean) => {
+    if (!commitChange) {
+      setOccupancyGumballLive(pose);
+      return;
+    }
+    setOccupancyGumballLive(null);
+    const record = occupancy.find((item) => item.occupancyId === pose.id);
+    if (!record) return;
+    const zone = zones.find((item) => item.id === record.zoneId);
+    if (zone && !pointInRing(pose.x, pose.z, zone.points.map((point) => [point.x, point.z] as [number, number]))) {
+      setOccupancyNotice("Keep the cluster inside its pocket.");
+      return;
+    }
+    const nextPose = gumballToOccupancyPose(pose, record.transform.mirror);
+    const before = record.transform;
+    if (before.x === nextPose.x && before.y === nextPose.y && before.z === nextPose.z && before.rotationY === nextPose.rotationY) {
+      return;
+    }
+    setOccupancyNotice("");
+    setOccupancy((current) => {
+      const latest = current.find((item) => item.occupancyId === pose.id);
+      return latest ? replaceZoneOccupancy(current, { ...latest, transform: nextPose }) : current;
+    });
+  }, [occupancy, zones]);
+  const selectOccupancy = useCallback((id: string | null) => {
+    setSelectedOccupancyId(id);
+    setOccupancyGumballLive(null);
+    if (!id) return;
+    const record = occupancy.find((item) => item.occupancyId === id);
+    if (!record) return;
+    setSelectedId(null);
+    setZoneSelection(record.zoneId);
+    const zone = zones.find((item) => item.id === record.zoneId);
+    if (zone?.pocketId) setPocketSelection([zone.pocketId]);
+    else if (zone?.sourcePocketIds?.length) setPocketSelection([...zone.sourcePocketIds]);
+  }, [occupancy, zones]);
+  const occupancyLayer = useMemo<ClusterAssemblyModel>(() => {
+    const model = occupancyModel(occupancy, occupancyMeshes, occupancyGumballLive);
+    if (sheet !== "placement") return model;
+    return {
+      ...model,
+      interaction: {
+        selectedId: selectedOccupancyId,
+        onSelect: selectOccupancy,
+        snap,
+        view: mode,
+        onGumball: applyOccupancyGumball,
+      },
+    };
+  }, [applyOccupancyGumball, mode, occupancy, occupancyGumballLive, occupancyMeshes, selectOccupancy, selectedOccupancyId, sheet, snap]);
   const [assemblyPage, setAssemblyPage] = useState(0);
   const assemblyPageCount = Math.max(1, Math.ceil(catalog.length / ASSEMBLY_PAGE_SIZE));
   const assemblyPageIndex = Math.min(assemblyPage, assemblyPageCount - 1);
@@ -1626,26 +1697,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       setLoadingId((current) => current === entry.moduleId ? null : current);
     });
   }, [meshes, noteGeometry]);
-  const preloadMesh = useCallback((entry: { archetypeId: string; candidateId: number; continuationId: string; moduleId: string }) => {
-    if (meshes[entry.moduleId] || loadAbort.current.has(entry.moduleId)) return;
-    const controller = new AbortController();
-    loadAbort.current.set(entry.moduleId, controller);
-    loadArchetypeMesh(entry, controller.signal).then((mesh) => {
-      loadAbort.current.delete(entry.moduleId);
-      if (controller.signal.aborted) return;
-      setMeshes((current) => ({ ...current, [entry.moduleId]: mesh ?? "missing" }));
-      noteGeometry(entry.moduleId, mesh ? "available" : "unavailable");
-    }).catch(() => {
-      loadAbort.current.delete(entry.moduleId);
-      if (controller.signal.aborted) return;
-      setMeshes((current) => ({ ...current, [entry.moduleId]: "missing" }));
-      noteGeometry(entry.moduleId, "unavailable");
-    });
-  }, [meshes, noteGeometry]);
-  useEffect(() => {
-    for (const entry of SITE_ARCHETYPES) preloadMesh(entry);
-  }, [preloadMesh]);
-    const placeModule = useCallback((x: number, z: number, pose?: { x: number; y: number; z: number; rotationY: number; mirror: "x" | "z" | null }) => {
+  const placeModule = useCallback((x: number, z: number, pose?: { x: number; y: number; z: number; rotationY: number; mirror: "x" | "z" | null }) => {
     if (memberEditId && armedId && !armedAssemblyId) {
       const source = SITE_ARCHETYPES.find((entry) => entry.archetypeId === armedId);
       const host = assemblies.find((assembly) => assembly.placementId === memberEditId);
@@ -2167,29 +2219,41 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   });
   useEffect(() => {
     let cancel = false;
-    fetch("/api/site/configurations").then((response) => response.json()).then((body: ConfigurationDocument) => {
+    const load = () => {
       if (cancel) return;
-      const list = body.configurations ?? [];
-      configurationsRef.current = list;
-      setConfigurations(list);
-      setPriorities(body.priorities ?? []);
-      const id = new URLSearchParams(window.location.search).get("open");
-      const entry = id ? list.find((item) => item.id === id) : undefined;
-      fetch("/api/site/massing-catalog").then((response) => response.json()).then((catalog: MassingCatalogDocument) => {
+      fetch("/api/site/configurations").then((response) => response.json()).then((body: ConfigurationDocument) => {
         if (cancel) return;
-        const studies = catalog.studies ?? [];
-        setMassingStudies(studies);
-        const study = entry ? studies.find((item) => item.configurationId === entry.id) : undefined;
-        if (study) restoreLatest.current(study);
-        else if (entry) openLatest.current(entry);
+        const list = body.configurations ?? [];
+        configurationsRef.current = list;
+        setConfigurations(list);
+        setPriorities(body.priorities ?? []);
+        const id = new URLSearchParams(window.location.search).get("open");
+        const entry = id ? list.find((item) => item.id === id) : undefined;
+        fetch("/api/site/massing-catalog").then((response) => response.json()).then((catalog: MassingCatalogDocument) => {
+          if (cancel) return;
+          const studies = catalog.studies ?? [];
+          setMassingStudies(studies);
+          const study = entry ? studies.find((item) => item.configurationId === entry.id) : undefined;
+          if (study) restoreLatest.current(study);
+          else if (entry) openLatest.current(entry);
+        }).catch(() => {
+          if (entry) openLatest.current(entry);
+        });
       }).catch(() => {
-        if (entry) openLatest.current(entry);
+        if (!cancel) setConfigurations([]);
       });
-    }).catch(() => {
-      if (!cancel) setConfigurations([]);
-    });
+    };
+    // Keep the placement catalog and site network free of this heavy list on first paint.
+    const idle = typeof window !== "undefined" && "requestIdleCallback" in window
+      ? window.requestIdleCallback(load, { timeout: 2500 })
+      : window.setTimeout(load, 800);
     return () => {
       cancel = true;
+      if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof idle === "number") {
+        window.cancelIdleCallback(idle);
+      } else {
+        window.clearTimeout(idle);
+      }
     };
   }, []);
   const armedAssembly = catalog.find((entry) => entry.id === armedAssemblyId) ?? null;
@@ -2908,10 +2972,11 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     for (const item of reviewAssessment) fits[item.id] = item.fit;
     return fits;
   }, [reviewAssessment]);
+  const zoneCoversPocket = (zone: ZoningRegion, pocketId: string) => zone.pocketId === pocketId || Boolean(zone.sourcePocketIds?.includes(pocketId));
   const pocketKinds = useMemo(() => {
     const kinds: Record<string, SiteZoneKind | null> = {};
     for (const pocket of pocketReport.pockets) {
-      const level = zones.filter((zone) => zone.networkId === viewedIteration?.id && (zone.pocketId === pocket.id || zone.sourcePocketIds?.includes(pocket.id))).sort((a, b) => a.baseFt - b.baseFt)[0];
+      const level = zones.filter((zone) => zone.networkId === viewedIteration?.id && zoneCoversPocket(zone, pocket.id)).sort((a, b) => a.baseFt - b.baseFt)[0];
       kinds[pocket.id] = level?.kind ?? null;
     }
     return kinds;
@@ -2954,37 +3019,129 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     return notes.length > 0 ? notes.join(" ") : null;
   }, [assemblies, instances, massingId, unassignedWorkingCount]);
   const placementZone = visibleZones.find((zone) => zone.id === zoneSelection)
-    ?? visibleZones.filter((zone) => zone.pocketId && pocketSelection.includes(zone.pocketId)).sort((a, b) => a.baseFt - b.baseFt)[0]
+    ?? visibleZones.filter((zone) => pocketSelection.some((id) => zoneCoversPocket(zone, id))).sort((a, b) => a.baseFt - b.baseFt)[0]
     ?? null;
+  const placementPocketId = (pocketSelection.length > 0 ? pocketSelection[pocketSelection.length - 1] : null)
+    ?? (placementZone?.pocketId ?? null)
+    ?? (placementZone?.sourcePocketIds?.[0] ?? null);
+  const pocketReady = Boolean(
+    (placementZone && isPocketBoundZone(placementZone))
+    || pocketSelection.some((id) => pocketReport.pockets.some((pocket) => pocket.id === id)),
+  );
   placementYRef.current = MODULE_GROUND_Y + (placementZone?.baseFt ?? 0);
   const focusProgramZone = (kind: SiteZoneKind) => {
-    const matches = visibleZones.filter((zone) => zone.kind === kind);
+    const matches = visibleZones.filter((zone) => zone.kind === kind && isPocketBoundZone(zone));
     if (matches.length === 0) return;
     const chosen = matches.find((zone) => zone.id === placementZone?.id) ?? [...matches].sort((left, right) => left.baseFt - right.baseFt)[0];
     setZoneSelection(chosen.id);
-    setPocketSelection(chosen.pocketId ? [chosen.pocketId] : []);
+    setPocketSelection(chosen.pocketId ? [chosen.pocketId] : chosen.sourcePocketIds?.length ? [...chosen.sourcePocketIds] : []);
   };
-  const assignOccupancy = async (programId: string, clusterId: string, recommended: boolean) => {
-    if (!placementZone || !massingId) {
-      setOccupancyNotice("Select a zoning region first.");
+  const groundPickRef = useRef<((clientX: number, clientY: number) => { x: number; z: number } | null) | null>(null);
+  const assignOccupancy = async (
+    programId: string,
+    clusterId: string,
+    recommended: boolean,
+    options?: { pocketId?: string; at?: { x: number; z: number } },
+  ) => {
+    if (!massingId) {
+      setOccupancyNotice("A selected Site Strategy network is required.");
+      return;
+    }
+    const kind = programZoneKind(programId);
+    if (!kind) {
+      setOccupancyNotice("That program has no Lobby / Workspace / Gathering zoning type.");
+      return;
+    }
+    const targetPocketId = options?.pocketId
+      ?? placementPocketId
+      ?? (pocketSelection.length > 0 ? pocketSelection[pocketSelection.length - 1] : null);
+    if (!targetPocketId) {
+      setOccupancyNotice("Drag the cluster onto a pocket, or click a pocket then Place.");
+      return;
+    }
+    const pocket = pocketReport.pockets.find((item) => item.id === targetPocketId);
+    if (!pocket) {
+      setOccupancyNotice("That pocket is not on the current network.");
       return;
     }
     setOccupancyNotice("");
     try {
+      const label = ZONE_KINDS.find((item) => item.id === kind)?.label ?? "Zone";
+      let nextZones = [...zones];
+      let zonesChanged = false;
+      const boundToPocket = (item: ZoningRegion) => item.networkId === massingId && (
+        item.pocketId === targetPocketId
+        || Boolean(item.sourcePocketIds?.includes(targetPocketId))
+      );
+      let zone = nextZones.find((item) => boundToPocket(item) && item.kind === kind && item.pocketId === targetPocketId)
+        ?? nextZones.find((item) => boundToPocket(item) && item.kind === kind)
+        ?? nextZones.find((item) => item.networkId === massingId && item.pocketId === targetPocketId)
+        ?? null;
+      if (!zone) {
+        const regionId = `z${zoneSerial.current}`;
+        zoneSerial.current += 1;
+        const named = nextZones.filter((item) => item.kind === kind).length + 1;
+        zone = {
+          id: regionId,
+          name: `${label} ${named}`,
+          kind,
+          points: pocket.points.map((point) => ({ ...point })),
+          baseFt: 0,
+          heightFt: 12,
+          visible: true,
+          networkId: massingId,
+          pocketId: targetPocketId,
+        };
+        nextZones = [...nextZones.filter((item) => !(item.networkId === massingId && item.pocketId === targetPocketId)), zone];
+        zonesChanged = true;
+      } else if (zone.pocketId === targetPocketId && (zone.kind !== kind || zone.points.length !== pocket.points.length)) {
+        zone = {
+          ...zone,
+          kind,
+          name: ZONE_KINDS.reduce((name, item) => name.startsWith(item.label) ? `${label}${name.slice(item.label.length)}` : name, zone.name),
+          points: pocket.points.map((point) => ({ ...point })),
+        };
+        nextZones = nextZones.map((item) => item.id === zone!.id ? zone! : item);
+        zonesChanged = true;
+      }
+      if (zonesChanged) {
+        replaceZones(nextZones);
+        const saved = await persistDesignerZoning(nextZones);
+        if (!saved) {
+          setOccupancyNotice("The pocket zone could not be saved.");
+          return;
+        }
+      }
+      setZoneSelection(zone.id);
+      setPocketSelection([targetPocketId]);
       const provenance: OccupancyProvenance = placementAssist === "automatic" ? "automatic-initial" : recommended || placementAssist === "ranked" ? "assisted" : "manual";
-      const previous = occupancyInZone(occupancy, placementZone.id);
+      const previous = occupancyInZone(occupancy, zone.id);
+      const drop = options?.at && pointInRing(options.at.x, options.at.z, zone.points.map((point) => [point.x, point.z] as [number, number]))
+        ? { x: options.at.x, y: zone.baseFt, z: options.at.z, rotationY: previous?.transform.rotationY ?? 0 }
+        : previous?.transform;
       const record = await placeOccupancy({
-        zoneId: placementZone.id,
+        zoneId: zone.id,
         programId,
         finishedClusterId: clusterId,
         provenance,
-        transform: previous?.transform,
+        transform: drop,
         networkId: massingId,
       });
       setOccupancy((current) => replaceZoneOccupancy(current, record));
+      setSelectedOccupancyId(record.occupancyId);
+      setOccupancyGumballLive(null);
+      setSelectedId(null);
     } catch (error) {
       setOccupancyNotice(error instanceof Error ? error.message : "The cluster could not be placed.");
     }
+  };
+  const pocketHoverRef = useRef(pocketHover);
+  pocketHoverRef.current = pocketHover;
+  const pocketAtClient = (clientX: number, clientY: number) => {
+    const hit = groundPickRef.current?.(clientX, clientY);
+    if (!hit) return null;
+    const pocket = pocketReport.pockets.find((item) => pointInRing(hit.x, hit.z, item.points.map((point) => [point.x, point.z] as [number, number])));
+    return pocket ? { pocket, hit } : { pocket: null, hit };
   };
   const autoPlaceOccupancy = async () => {
     setOccupancyNotice("Reading packed occupancy.");
@@ -2997,11 +3154,22 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     }
   };
   const rotateSelectedOccupancy = () => {
-    if (!placementZone) return;
+    const targetId = selectedOccupancy?.zoneId ?? placementZone?.id;
+    if (!targetId) return;
     setOccupancy((current) => {
-      const record = occupancyInZone(current, placementZone.id);
+      const record = occupancyInZone(current, targetId);
       return record ? replaceZoneOccupancy(current, rotateOccupancy(record, 90)) : current;
     });
+  };
+  const mirrorSelectedOccupancy = (axis: "x" | "z") => {
+    const record = selectedOccupancy ?? (placementZone ? occupancyInZone(occupancy, placementZone.id) : null);
+    if (!record) return;
+    const next = record.transform.mirror === axis ? null : axis;
+    setOccupancy((current) => replaceZoneOccupancy(current, {
+      ...record,
+      transform: { ...record.transform, mirror: next },
+    }));
+    setOccupancyGumballLive(null);
   };
   const saveWorkingAssembly = async () => {
     if (!massingId) {
@@ -3088,7 +3256,9 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       setZoneSelection(null);
       return;
     }
-    const level = zones.find((zone) => zone.pocketId === id && zone.networkId === massingId);
+    const level = zones
+      .filter((zone) => zone.networkId === massingId && zoneCoversPocket(zone, id))
+      .sort((left, right) => left.baseFt - right.baseFt)[0];
     setZoneSelection(adding ? (level?.id ?? null) : null);
   };
   const saveZoning = () => {
@@ -3436,7 +3606,36 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 <button type="button" aria-pressed={placementAssist === "automatic"} data-active={placementAssist === "automatic" || undefined} onClick={() => { setPlacementAssist("automatic"); void autoPlaceOccupancy(); }}>Automatic initial</button>
               </div>
               {occupancyNotice ? <p className="site-note">{occupancyNotice}</p> : null}
-              <ClusterPlacementLibrary zones={visibleZones} selectedZoneId={placementZone?.id ?? null} occupancy={occupancy} assist={placementAssist === "ranked" ? "ranked" : "manual"} onSelectZone={focusProgramZone} onInspect={(programId, clusterId) => setClusterInspect({ programId, clusterId })} onPlace={(programId, clusterId, recommended) => void assignOccupancy(programId, clusterId, recommended)} />
+              <ClusterPlacementLibrary
+                zones={visibleZones}
+                selectedZoneId={placementZone && isPocketBoundZone(placementZone) ? placementZone.id : null}
+                occupancy={occupancy}
+                assist={placementAssist === "ranked" ? "ranked" : "manual"}
+                pocketReady={pocketReady}
+                onSelectZone={focusProgramZone}
+                onInspect={(programId, clusterId) => setClusterInspect({ programId, clusterId })}
+                onPlace={(programId, clusterId, recommended) => void assignOccupancy(programId, clusterId, recommended)}
+                onDragMove={(_payload, clientX, clientY) => {
+                  const target = pocketAtClient(clientX, clientY);
+                  if (target?.pocket) setPocketHover(target.pocket.id);
+                }}
+                onDragEnd={(payload, clientX, clientY) => {
+                  const target = pocketAtClient(clientX, clientY);
+                  const hoveredId = pocketHoverRef.current;
+                  const pocketId = target?.pocket?.id ?? hoveredId;
+                  setPocketHover(null);
+                  if (!pocketId) {
+                    setOccupancyNotice(target?.hit
+                      ? "Drop the cluster inside a pocket on the site."
+                      : "Drag onto a pocket in the site view.");
+                    return;
+                  }
+                  void assignOccupancy(payload.programId, payload.clusterId, payload.recommended, {
+                    pocketId,
+                    at: target?.hit,
+                  });
+                }}
+              />
               <h3 className="site-subtitle">Assemblies</h3>
               {catalog.length === 0 ? <p className="site-note">No assemblies are selected in Hybrid Cluster. Select one there to import it here.</p> : (
                 <>
@@ -3458,12 +3657,12 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 </>
               )}
               <h3 className="site-subtitle">Zones</h3>
-              {pocketReport.pockets.every((pocket) => !visibleZones.some((zone) => zone.pocketId === pocket.id)) ? (
+              {pocketReport.pockets.every((pocket) => !visibleZones.some((zone) => zoneCoversPocket(zone, pocket.id))) ? (
                 <p className="site-note">No pocket zone is assigned.</p>
               ) : (
                 <ul className="site-strategy-nodes">
                   {pocketReport.pockets.flatMap((pocket) => {
-                    const levels = visibleZones.filter((zone) => zone.pocketId === pocket.id);
+                    const levels = visibleZones.filter((zone) => zoneCoversPocket(zone, pocket.id));
                     if (levels.length === 0) return [];
                     const lowest = [...levels].sort((a, b) => a.baseFt - b.baseFt)[0];
                     const top = levels.reduce((highest, zone) => Math.max(highest, zone.baseFt + zone.heightFt), 0);
@@ -3548,7 +3747,9 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               {unsavedChanges ? <span className="site-pending">Unsaved</span> : null}
               <div className="site-modes">
                 <button type="button" onClick={() => void saveWorkingAssembly()}>Save assembly</button>
-                <button type="button" disabled={!occupancyInZone(occupancy, placementZone?.id ?? "")} onClick={rotateSelectedOccupancy}>Rotate 90°</button>
+                <button type="button" disabled={!selectedOccupancy && !occupancyInZone(occupancy, placementZone?.id ?? "")} onClick={rotateSelectedOccupancy}>Rotate 90°</button>
+                <button type="button" aria-pressed={selectedOccupancy?.transform.mirror === "x" || undefined} disabled={!selectedOccupancy && !occupancyInZone(occupancy, placementZone?.id ?? "")} onClick={() => mirrorSelectedOccupancy("x")}>Mirror east</button>
+                <button type="button" aria-pressed={selectedOccupancy?.transform.mirror === "z" || undefined} disabled={!selectedOccupancy && !occupancyInZone(occupancy, placementZone?.id ?? "")} onClick={() => mirrorSelectedOccupancy("z")}>Mirror north</button>
                 <button type="button" onClick={() => saveConfiguration(false)}>Save</button>
                 <button type="button" onClick={() => duplicateConfiguration()}>Duplicate</button>
                 <button type="button" disabled={!savedConfiguration} onClick={() => savedConfiguration && deleteSavedConfiguration(savedConfiguration.id)}>Delete</button>
@@ -3637,6 +3838,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 onSweepDone: assemblyFilm.finishSweep,
               } : null}
               clusterAssembly={sheet === "placement" && occupancy.length > 0 ? occupancyLayer : null}
+              groundPickRef={sheet === "placement" ? groundPickRef : null}
               network={
                 networkStudy
                   ? {
@@ -3702,6 +3904,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 matchCycle,
                 onMatch: (match) => setFaceMatch((current) => current?.warning === match?.warning && current?.rank === match?.rank && current?.pair === match?.pair && current?.x === match?.x && current?.y === match?.y && current?.z === match?.z && current?.pose.rotationY === match?.pose.rotationY && current?.pose.mirror === match?.pose.mirror ? current : match),
                 onEmpty: (x, z) => {
+                  setSelectedOccupancyId(null);
+                  setOccupancyGumballLive(null);
                   const pocket = pocketReport.pockets.find((item) => pointInRing(x, z, item.points.map((point) => [point.x, point.z])));
                   if (!pocket) {
                     setPocketSelection([]);

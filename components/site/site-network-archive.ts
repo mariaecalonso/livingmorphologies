@@ -87,16 +87,26 @@ function readBranches(value: unknown) {
   return branches.length > 0 ? branches : undefined;
 }
 
+let strategyArchiveInstall: Promise<{ massingNetworkId: string | null; zoningShortlist: string[] } | null> | null = null;
+
 export async function installPublishedStrategy() {
-  const response = await fetch("/api/site/strategy-archive");
-  if (!response.ok) return null;
-  const body = await response.json() as unknown;
-  const zoning = publishedZoning(body);
-  if (!zoning) return null;
-  const local = await loadNetworkIterations();
-  const missing = missingPublishedIterations(body, new Set(local.map((item) => item.id)));
-  for (const iteration of missing) await saveNetworkIteration(iteration);
-  return zoning;
+  if (!strategyArchiveInstall) {
+    strategyArchiveInstall = (async () => {
+      const response = await fetch("/api/site/strategy-archive");
+      if (!response.ok) return null;
+      const body = await response.json() as unknown;
+      const zoning = publishedZoning(body);
+      if (!zoning) return null;
+      const local = await loadNetworkIterations();
+      const missing = missingPublishedIterations(body, new Set(local.map((item) => item.id)));
+      for (const iteration of missing) await saveNetworkIteration(iteration);
+      return zoning;
+    })().catch(() => {
+      strategyArchiveInstall = null;
+      return null;
+    });
+  }
+  return strategyArchiveInstall;
 }
 
 export const SELECTED_SITE_NETWORK_EVENT = "living-morphologies.selected-site-network";

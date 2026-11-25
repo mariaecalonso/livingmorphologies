@@ -1445,6 +1445,7 @@ export function SiteViewport({
   typology = null,
   focusBounds = null,
   clusterAssembly = null,
+  groundPickRef = null,
   onReadout,
 }: {
   context: SiteContext;
@@ -1526,6 +1527,8 @@ export function SiteViewport({
   /** When set, the camera frames the building instead of the whole parcel. */
   focusBounds?: Bounds | null;
   clusterAssembly?: ClusterAssemblyModel | null;
+  /** Filled by the placement scene so catalog drag-and-drop can hit the site plan. */
+  groundPickRef?: { current: ((clientX: number, clientY: number) => { x: number; z: number } | null) | null } | null;
 }) {
   const siteBounds = useMemo(() => boundsOf(context), [context]);
   const bounds = focusBounds ?? siteBounds;
@@ -1566,7 +1569,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} groundPickRef={groundPickRef} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
       {sight?.mode === "views" ? <ViewCalloutProjector overlay={sight} root={callouts} ring={context.site.ring} /> : null}
       {placeObserver ? <PlaceProbe ring={context.site.ring} onPlace={placeObserver} /> : null}
@@ -1606,6 +1609,7 @@ function PlacementScene({
   typology,
   measuredRoads = false,
   clusterAssembly = null,
+  groundPickRef = null,
 }: {
   context: SiteContext;
   showGrid: boolean;
@@ -1677,8 +1681,16 @@ function PlacementScene({
   } | null;
   measuredRoads?: boolean;
   clusterAssembly?: ClusterAssemblyModel | null;
+  groundPickRef?: { current: ((clientX: number, clientY: number) => { x: number; z: number } | null) | null } | null;
 }) {
   const pointer = useModulePointer(placement);
+  useEffect(() => {
+    if (!groundPickRef) return;
+    groundPickRef.current = pointer.pickGround;
+    return () => {
+      if (groundPickRef.current === pointer.pickGround) groundPickRef.current = null;
+    };
+  }, [groundPickRef, pointer.pickGround]);
   const shadowBox = useMemo(() => (sun?.above ? casterBox(context.buildings, analysisTowers(context.buildings)) : null), [context.buildings, sun]);
   return (
     <>

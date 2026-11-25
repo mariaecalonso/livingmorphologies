@@ -16,6 +16,7 @@ import { tileBasis } from "@/lib/skill4/tile-basis";
 import { tileStep, type TileInstance } from "@/lib/skill4/tiles";
 import { areaStandingLabel } from "@/lib/skill4/program-area";
 import { restoreStoredCatalog, type StoredIteration, type StoredProgramCatalog } from "@/lib/skill4/program-catalog";
+import { PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 import { finishForCatalog, useCatalogIterations, useCatalogStatus } from "./cluster-catalog";
 import { MorphologyReview } from "./morphology-review";
 import { HybridAssembly } from "./hybrid-assembly";
@@ -29,13 +30,13 @@ const CLUSTER_STEPS = [
 
 export type ClusterStepId = (typeof CLUSTER_STEPS)[number]["id"];
 
-function ClusterStepNav({ step }: { step: ClusterStepId }) {
+function ClusterStepNav({ step, base = "/lab/site" }: { step: ClusterStepId; base?: string }) {
   const router = useRouter();
   const open = (id: ClusterStepId) => {
     if (id === step) return;
     const params = new URLSearchParams(window.location.search);
     params.set("sheet", id);
-    router.push(`/lab/site?${params.toString()}`);
+    router.push(`${base}?${params.toString()}`);
   };
   return (
     <nav className="site-workflow" aria-label="Program cluster">
@@ -359,7 +360,7 @@ function hybridReport(cluster: ClusterCard | undefined) {
   return `${cluster.tiles.length} tiles | ${raw} raw hybrids | ${validated} validated hybrids | ${expected - validated} missing`;
 }
 
-function TileCompatibilityStep() {
+function TileCompatibilityStep({ base = "/lab/site" }: { base?: string }) {
   const router = useRouter();
   const [entryId, setEntryId] = useState<string | null>(null);
   const [activityId, setActivityId] = useState("public-lobby");
@@ -382,7 +383,7 @@ function TileCompatibilityStep() {
       onClose={() => {
         const params = new URLSearchParams(window.location.search);
         params.set("sheet", "placement");
-        router.push(`/lab/site?${params.toString()}`);
+        router.push(`${base}?${params.toString()}`);
       }}
       onInspect={(archetypeId, nextActivity) => {
         setActivityId(nextActivity);
@@ -663,13 +664,30 @@ function ClusterCatalog({ embedded = false }: { embedded?: boolean }) {
   );
 }
 
-/** Program-cluster steps. Cluster Placement stays in Cluster Integration, not Hybrid Connection. */
-export function ClusterPlacement({ sheet = "placement" }: { sheet?: ClusterStepId }) {
+/** Finished program-cluster catalog. Opened from the Archived pocket. The live bar does not mount this. */
+export function FinishedProgramCatalog() {
   return (
     <HybridState>
       <div className="cluster-placement">
-        <ClusterStepNav step={sheet} />
-        {sheet === "compatibility" ? <TileCompatibilityStep /> : null}
+        <ClusterCatalog />
+      </div>
+    </HybridState>
+  );
+}
+
+/** Program-cluster steps. Archived from the live bar when PROGRAM_CLUSTER_2_ARCHIVED. The Archived pocket passes base="/lab/archived". */
+export function ClusterPlacement({ sheet = "placement", base = "/lab/site" }: { sheet?: ClusterStepId; base?: string }) {
+  const router = useRouter();
+  const pocket = base.startsWith("/lab/archived");
+  useEffect(() => {
+    if (PROGRAM_CLUSTER_2_ARCHIVED && !pocket) router.replace("/lab/site?sheet=cluster-assembly");
+  }, [pocket, router]);
+  if (PROGRAM_CLUSTER_2_ARCHIVED && !pocket) return null;
+  return (
+    <HybridState>
+      <div className="cluster-placement">
+        <ClusterStepNav step={sheet} base={base} />
+        {sheet === "compatibility" ? <TileCompatibilityStep base={base} /> : null}
         {sheet === "placement" ? (
           <>
             <div className="cluster-catalog-band">

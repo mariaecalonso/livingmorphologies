@@ -222,6 +222,9 @@ export function useModulePointer(model: SitePlacementModel | null) {
     raycaster.current.setFromCamera(pointer.current, cameraRef.current);
     return groundPoint(raycaster.current);
   };
+  const pickGroundFn = useRef(hitFromClient);
+  pickGroundFn.current = hitFromClient;
+  const pickGroundStable = useRef((clientX: number, clientY: number) => pickGroundFn.current(clientX, clientY)).current;
 
   const showDrag = (active: Drag) => {
     setPose({
@@ -456,6 +459,8 @@ export function useModulePointer(model: SitePlacementModel | null) {
     ground: { onPointerMove, onClick },
     onModulePointerDown,
     onModuleClick,
+    /** Screen → site plan hit for catalog drag-and-drop onto pockets. */
+    pickGround: pickGroundStable,
   };
 }
 

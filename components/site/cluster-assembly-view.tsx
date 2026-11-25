@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import context from "@/data/skill5/herald-site.json";
+import type { ClusterAssemblyReport, PackedMesh } from "@/lib/skill5/cluster-assembly-report";
 import type { ClusterAssemblyRecord, PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { readOccupancyList } from "@/lib/skill5/placed-cluster";
 import type { SiteContext } from "@/lib/skill5/site-model";
@@ -16,6 +17,7 @@ import {
   WORKING_OCCUPANCY_EVENT,
 } from "./cluster-assembly-catalog";
 import { SELECTED_SITE_NETWORK_EVENT } from "./site-network-archive";
+import type { AssemblySolid, ClusterAssemblyModel } from "./cluster-assembly-layer";
 import { occupancyModel, fetchOccupancyMesh, occupancyMeshKey } from "./occupancy-solids";
 import { SiteViewport, type SiteViewMode } from "./site-viewport";
 
@@ -27,6 +29,58 @@ function roleOf(id: string, selectedId: string | null, viewingId: string | null)
   return "Saved";
 }
 
+function unpackF32(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Float32Array(bytes.buffer);
+}
+
+function unpackU32(value: string) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Uint32Array(bytes.buffer);
+}
+
+function solidFromPacked(id: string, packed: PackedMesh | null | undefined, color: string, opacity: number): AssemblySolid | null {
+  if (!packed?.positions || !packed.indices) return null;
+  return {
+    id,
+    positions: unpackF32(packed.positions),
+    indices: unpackU32(packed.indices),
+    color,
+    opacity,
+  };
+}
+
+/** Iteration 101 zoning massing: posed clusters + hybrid + shrinkwrap from the site assembly API. */
+function modelFromMassingReport(report: ClusterAssemblyReport): ClusterAssemblyModel {
+  const solids = report.meshes.clusters.flatMap((item, index) => {
+    const solid = solidFromPacked(item.programId || `cluster-${index}`, item, "#f5f5f2", 1);
+    return solid ? [solid] : [];
+  });
+  return {
+    zoning: true,
+    clusters: true,
+    connections: Boolean(report.meshes.hybrid),
+    massing: Boolean(report.meshes.wrap),
+    branches: report.branches,
+    zones: report.zones,
+    anchors: report.anchors.map((anchor) => ({ id: anchor.id, x: anchor.x, z: anchor.z, tested: true })),
+    link: {
+      ax: report.link.fromAnchor.x,
+      az: report.link.fromAnchor.z,
+      bx: report.link.toAnchor.x,
+      bz: report.link.toAnchor.z,
+    },
+    solids,
+    voids: [],
+    hybrid: solidFromPacked("hybrid", report.meshes.hybrid, "#49d7de", 0.85),
+    wrap: solidFromPacked("wrap", report.meshes.wrap, "#d7d3cc", 0.55),
+  };
+}
+
 export function ClusterAssemblyView() {
   const [assemblies, setAssemblies] = useState<ClusterAssemblyRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -34,9 +88,12 @@ export function ClusterAssemblyView() {
   const [working, setWorking] = useState<PlacedCluster[]>([]);
   const [meshes, setMeshes] = useState<Record<string, { positions: Float32Array; indices: Uint32Array } | null>>({});
   const [notice, setNotice] = useState("");
-  const [mode, setMode] = useState<SiteViewMode>("plan");
+  const [mode, setMode] = useState<SiteViewMode>("perspective");
   const [name, setName] = useState("");
   const [checkpointId, setCheckpointId] = useState<string | null>(null);
+  const [massing, setMassing] = useState<ClusterAssemblyReport | null>(null);
+  const [massingError, setMassingError] = useState("");
+  const [showMassing, setShowMassing] = useState(true);
 
   const refreshCatalog = useCallback(async () => {
     const document = await loadClusterAssemblies();
@@ -61,6 +118,20 @@ export function ClusterAssemblyView() {
     });
     void refreshCheckpoint().catch(() => undefined);
     setWorking(readOccupancyList(readWorkingOccupancy()));
+    void fetch("/api/site/cluster-assembly", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json() as ClusterAssemblyReport & { error?: string };
+        if (!live) return;
+        if (!response.ok || body.error) {
+          setMassingError(body.error || "The site massing could not be loaded.");
+          return;
+        }
+        setMassing(body);
+        setMassingError("");
+      })
+      .catch((error: unknown) => {
+        if (live) setMassingError(error instanceof Error ? error.message : "The site massing could not be loaded.");
+      });
     const onSelected = () => {
       void refreshCatalog();
       void refreshCheckpoint();
@@ -105,11 +176,13 @@ export function ClusterAssemblyView() {
     return () => controller.abort();
   }, [meshes, occupancy]);
 
-  const model = useMemo(() => ({
+  const occupancyLayer = useMemo(() => ({
     ...occupancyModel(occupancy, meshes),
     zoning: zones.length > 0,
     zones: zones.map((zone) => ({ kind: zone.kind, points: zone.points })),
   }), [meshes, occupancy, zones]);
+  const massingLayer = useMemo(() => (massing ? modelFromMassingReport(massing) : null), [massing]);
+  const model = showMassing && massingLayer ? massingLayer : occupancyLayer;
 
   const saveWorking = async () => {
     const records = readOccupancyList(working);
@@ -170,9 +243,21 @@ export function ClusterAssemblyView() {
           <div className="site-modes">
             <button type="button" onClick={() => void saveWorking()}>Save assembly</button>
             <button type="button" disabled={!viewing || viewing.assemblyId === selectedId} onClick={() => viewing && void send(viewing.assemblyId)}>Send for Development</button>
+            <button type="button" aria-pressed={showMassing} data-active={showMassing || undefined} disabled={!massing} onClick={() => setShowMassing((value) => !value)}>
+              {massing ? `Iteration ${massing.iteration} massing` : "Site massing"}
+            </button>
           </div>
           {notice ? <p className="site-note">{notice}</p> : null}
-          <p className="site-note">Preview shows a saved assembly. Send for Development is the only action that replaces the canonical selected assembly. Film wrap and joined mass stay outside this checkpoint.</p>
+          {massingError ? <p className="site-note site-alert">{massingError}</p> : null}
+          {massing && showMassing ? (
+            <p className="site-note">
+              Iteration {massing.iteration} · seed {massing.seed} · {massing.placements.length} clusters
+              {massing.meshes.wrap ? " · shrinkwrap" : ""}{massing.meshes.hybrid ? " · hybrid" : ""}.
+              {massing.link.note ? ` ${massing.link.note}` : ""}
+            </p>
+          ) : (
+            <p className="site-note">Preview shows a saved assembly. Send for Development is the only action that replaces the canonical selected assembly.</p>
+          )}
         </section>
         <section className="site-block site-specs" aria-label="Saved assemblies">
           <h2 className="site-subtitle">Assemblies {assemblies.length > 0 ? <span>{assemblies.length}</span> : null}</h2>
@@ -227,8 +312,16 @@ export function ClusterAssemblyView() {
         <div className="site-frame">
           <header className="site-frame-bar">
             <div className="site-frame-name">
-              <h2 className="site-subtitle">{viewing ? viewing.assemblyId : "Working occupancy"}</h2>
-              <p className="site-note">{viewing ? `${roleOf(viewing.assemblyId, selectedId, viewingId)} · ${viewing.occupancy.length} occupied zones` : `${working.length} occupied working zones`}</p>
+              <h2 className="site-subtitle">
+                {showMassing && massing
+                  ? `Iteration ${massing.iteration} · site massing`
+                  : viewing ? viewing.assemblyId : "Working occupancy"}
+              </h2>
+              <p className="site-note">
+                {showMassing && massing
+                  ? `${massing.arrangement} · ${massing.placements.length} placed · ${massing.link.joinedSolid ? "joined" : "open"}`
+                  : viewing ? `${roleOf(viewing.assemblyId, selectedId, viewingId)} · ${viewing.occupancy.length} occupied zones` : `${working.length} occupied working zones`}
+              </p>
             </div>
             <div className="site-modes site-frame-views" role="group" aria-label="Camera">
               <button type="button" data-active={mode === "plan" || undefined} onClick={() => setMode("plan")}>Plan</button>

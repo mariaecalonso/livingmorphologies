@@ -19,7 +19,11 @@ export function GET(request: Request) {
       : "";
     const file = existsSync(finished) ? finished : test;
     if (!file) return Response.json(null);
-    return Response.json(JSON.parse(readFileSync(file, "utf8")));
+    return Response.json(JSON.parse(readFileSync(file, "utf8")), {
+      headers: {
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      },
+    });
   } catch {
     return Response.json(null);
   }

@@ -15,7 +15,12 @@ export async function GET() {
     if (!zoning?.massingNetworkId || zoning.zoningShortlist.length !== 3) {
       return NextResponse.json({ error: "The strategy archive could not be read." }, { status: 500 });
     }
-    return new NextResponse(raw, { headers: { "Content-Type": "application/json; charset=utf-8" } });
+    return new NextResponse(raw, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
+      },
+    });
   } catch {
     return NextResponse.json({ strategyId: "herald-arrival-v1", massingNetworkId: null, zoningShortlist: [], iterations: [] });
   }

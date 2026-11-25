@@ -16,6 +16,8 @@ export type ClusterSitePose = {
   y: number;
   z: number;
   rotationY: number;
+  /** Plan mirror before yaw. East = x, north = z. */
+  mirror?: "x" | "z" | null;
 };
 
 export type SourceModuleIdentity = {
@@ -89,6 +91,11 @@ export function programZoneKind(programId: string, activities = CLIENT_ACTIVITY_
   return null;
 }
 
+/** Finished clusters occupy designer zones that came from network pockets. */
+export function isPocketBoundZone(zone: Pick<ZoningRegion, "pocketId" | "sourcePocketIds">) {
+  return Boolean(zone.pocketId) || Boolean(zone.sourcePocketIds && zone.sourcePocketIds.length > 0);
+}
+
 export function programsForZoneKind(kind: ZoneKind) {
   return CLIENT_ACTIVITY_SEED.activities
     .filter((item) => item.contexts[0] === kind)
@@ -137,11 +144,13 @@ function readNumber(value: unknown, fallback = 0) {
 
 function readPose(value: unknown): ClusterSitePose | null {
   if (!isRecord(value)) return null;
+  const mirror = value.mirror === "x" || value.mirror === "z" ? value.mirror : value.mirror === null ? null : undefined;
   return {
     x: readNumber(value.x),
     y: readNumber(value.y),
     z: readNumber(value.z),
     rotationY: readNumber(value.rotationY),
+    ...(mirror !== undefined ? { mirror } : {}),
   };
 }
 
@@ -230,10 +239,10 @@ export function readConnectionList(value: unknown): AssemblyConnectionRecord[] {
 }
 
 /**
- * Pose a finished-cluster mesh into site coordinates.
- * Matches packing: yaw about vertical, plan centroid to transform x/z, mesh minY onto transform.y.
+ * Center a finished-cluster mesh: plan centroid at origin, minY at 0.
+ * Pair with a site pose group (or poseFinishedMesh) for placement.
  */
-export function poseFinishedMesh(positions: ArrayLike<number>, transform: ClusterSitePose): Float32Array {
+export function centerFinishedMesh(positions: ArrayLike<number>): Float32Array {
   let minX = Infinity;
   let minY = Infinity;
   let minZ = Infinity;
@@ -251,15 +260,32 @@ export function poseFinishedMesh(positions: ArrayLike<number>, transform: Cluste
   }
   const cx = (minX + maxX) / 2;
   const cz = (minZ + maxZ) / 2;
+  const out = new Float32Array(positions.length);
+  for (let index = 0; index < positions.length; index += 3) {
+    out[index] = positions[index] - cx;
+    out[index + 1] = positions[index + 1] - minY;
+    out[index + 2] = positions[index + 2] - cz;
+  }
+  return out;
+}
+
+/**
+ * Pose a finished-cluster mesh into site coordinates.
+ * Matches packing: optional plan mirror, yaw about vertical, plan centroid to transform x/z, mesh minY onto transform.y.
+ */
+export function poseFinishedMesh(positions: ArrayLike<number>, transform: ClusterSitePose): Float32Array {
+  const local = centerFinishedMesh(positions);
   const radians = transform.rotationY * Math.PI / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
-  const out = new Float32Array(positions.length);
-  for (let index = 0; index < positions.length; index += 3) {
-    const dx = positions[index] - cx;
-    const dz = positions[index + 2] - cz;
+  const mx = transform.mirror === "x" ? -1 : 1;
+  const mz = transform.mirror === "z" ? -1 : 1;
+  const out = new Float32Array(local.length);
+  for (let index = 0; index < local.length; index += 3) {
+    const dx = local[index] * mx;
+    const dz = local[index + 2] * mz;
     out[index] = transform.x + dx * cos - dz * sin;
-    out[index + 1] = positions[index + 1] - minY + transform.y;
+    out[index + 1] = local[index + 1] + transform.y;
     out[index + 2] = transform.z + dx * sin + dz * cos;
   }
   return out;

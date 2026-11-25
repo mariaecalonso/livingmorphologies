@@ -73,13 +73,20 @@ function addPoses(pairs: Map<string, CompatibleFacePair>, poses: readonly KnownA
   }
 }
 
-/** Direct Skill 6 seating first. A verified hybrid fills only a face that has no direct pose. */
-export function rankCompatibleFaces(archetypeA: string, archetypeB: string): CompatibleFacePair[] {
+/** Skill 6 direct seating poses only. No hybrid-connectable fill. */
+export function rankDirectFaces(archetypeA: string, archetypeB: string): CompatibleFacePair[] {
   if (!archetypeA || !archetypeB) return [];
   const known = cache();
   const pairs = new Map<string, CompatibleFacePair>();
   addPoses(pairs, known.poses(archetypeA, archetypeB), true);
   addPoses(pairs, known.poses(archetypeB, archetypeA), false);
+  return [...pairs.values()].sort((left, right) => right.score - left.score);
+}
+
+/** Direct Skill 6 seating first. A verified hybrid fills only a face that has no direct pose. */
+export function rankCompatibleFaces(archetypeA: string, archetypeB: string): CompatibleFacePair[] {
+  if (!archetypeA || !archetypeB) return [];
+  const pairs = new Map(rankDirectFaces(archetypeA, archetypeB).map((pair) => [`${pair.faceA}:${pair.faceB}`, pair]));
   addHybridPoses(pairs, archetypeA, archetypeB);
   return [...pairs.values()].sort((left, right) => right.score - left.score);
 }

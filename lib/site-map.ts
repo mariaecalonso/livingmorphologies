@@ -31,6 +31,32 @@ export const CINEMATIC_STAGE_ARCHIVED = true;
 export const GROWTH_STAGE_ARCHIVED = true;
 
 /**
+ * Program Cluster 2.0 archived from the interface:
+ * Tile Compatibility, Cluster Placement (program catalog), Morphology Review,
+ * differentiation / finished program-cluster catalogs.
+ * Hybrid Connection stays live at /lab/hybrid (Process, Catalog, Final Catalog).
+ * Routes and data stay in the project; set false to restore the old UI.
+ */
+export const PROGRAM_CLUSTER_2_ARCHIVED = true;
+
+/**
+ * Pocket after the Physarum video. Program Cluster 2.0 only.
+ * Cinematic intro and GROWTH stay off the bar.
+ * Live Cluster Integration routes still redirect while PROGRAM_CLUSTER_2_ARCHIVED is true.
+ */
+export const CLUSTER_ARCHIVE = {
+  href: "/lab/archived",
+  label: "Archived",
+  tabs: [
+    { href: "/lab/archived?sheet=compatibility", label: "Tile Compatibility" },
+    { href: "/lab/archived?sheet=placement", label: "Cluster Placement" },
+    { href: "/lab/archived?sheet=morphology", label: "Morphology Review" },
+    { href: "/lab/archived?sheet=differentiation", label: "Differentiation" },
+    { href: "/lab/archived?sheet=catalog", label: "Finished Catalogs" },
+  ],
+} as const;
+
+/**
  * Lab workspaces. Overall Workflow and Results read these names.
  * Change a label here and the stage bar, the workflow zoom, and the results preview follow.
  */
@@ -105,16 +131,17 @@ export const LAB_WORKSPACES = [
       { href: "/lab/hybrid", label: "Process" },
       { href: "/lab/hybrid/catalog", label: "Catalog" },
       { href: "/lab/hybrid/final-catalog", label: "Final Catalog" },
+      { href: "/lab/hybrid/final-clusters", label: "Final Clusters" },
     ],
   },
   {
     id: "cluster-integration",
-    href: "/lab/site?sheet=placement",
+    // When PROGRAM_CLUSTER_2_ARCHIVED is false, restore Cluster Placement as the first tab and default href.
+    href: "/lab/site?sheet=cluster-assembly",
     label: "Cluster Integration",
     workflowStage: "cluster-integration",
     resultId: null,
     tabs: [
-      { href: "/lab/site?sheet=placement", label: "Cluster Placement" },
       { href: "/lab/site?sheet=cluster-assembly", label: "Cluster Assembly Catalog" },
       { href: "/lab/site?sheet=assembly", label: "Tile Assembly" },
       { href: "/lab/site?sheet=configurations", label: "Configurations" },

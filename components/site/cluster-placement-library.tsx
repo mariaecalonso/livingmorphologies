@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { FinishedIteration, FinishedProgram } from "@/lib/skill4/finished-catalog";
 import type { PlacementCluster, PlacementRank } from "@/lib/skill4/cluster-placement-rank";
 import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
+import { fetchFinishedMeshPacked, fetchPlacementRank, type PackedFinishedMesh } from "@/lib/skill4/finished-mesh-client";
 import { CLUSTER_PROGRAMS } from "@/lib/skill4/program-tiles";
 import { tileStep } from "@/lib/skill4/tiles";
 import { polygonAreaSqFt } from "@/lib/skill5/zoning";
@@ -13,12 +14,11 @@ import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
 import { HybridState } from "@/components/hybrid/hybrid-state";
 import "@/app/lab/hybrid/skill4-interface.css";
 import { occupancyInZone, programsForZoneKind, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 import { ZONE_KINDS, type SiteZone, type SiteZoneKind } from "./site-workflow";
 
-type PackedMesh = { triangles: number; positions: string; normals: string; indices: string };
-
-function unpackMesh(packed: PackedMesh | null): IsoMesh | null {
-  if (!packed || packed.triangles < 1 || !packed.positions || !packed.indices) return null;
+function unpackMesh(packed: PackedFinishedMesh | null): IsoMesh | null {
+  if (!packed || (packed.triangles ?? 0) < 1 || !packed.positions || !packed.indices) return null;
   const view = (value: string) => {
     const binary = atob(value);
     const bytes = new Uint8Array(binary.length);
@@ -26,7 +26,7 @@ function unpackMesh(packed: PackedMesh | null): IsoMesh | null {
     return bytes.buffer;
   };
   return {
-    triangles: packed.triangles,
+    triangles: packed.triangles ?? 0,
     positions: new Float32Array(view(packed.positions)),
     normals: new Float32Array(view(packed.normals || "")),
     indices: new Uint32Array(view(packed.indices)),
@@ -38,6 +38,15 @@ const STEPS = [
   { id: "placement", label: "Cluster Placement" },
   { id: "morphology", label: "Morphology Review" },
 ] as const;
+
+const DRAG_THRESHOLD_PX = 6;
+
+export type ClusterDragPayload = {
+  programId: string;
+  clusterId: string;
+  recommended: boolean;
+  label: string;
+};
 
 function openStep(id: (typeof STEPS)[number]["id"], router: ReturnType<typeof useRouter>) {
   if (id === "placement") return;
@@ -51,17 +60,26 @@ export function ClusterPlacementLibrary({
   selectedZoneId,
   occupancy,
   assist = "manual",
+  pocketReady = false,
   onSelectZone,
   onInspect,
   onPlace,
+  onDragMove,
+  onDragEnd,
 }: {
   zones: readonly SiteZone[];
   selectedZoneId: string | null;
   occupancy: readonly PlacedCluster[];
   assist?: "manual" | "ranked";
+  /** True when a network pocket is selected so Place can bind that pocket as a zone. */
+  pocketReady?: boolean;
   onSelectZone: (kind: SiteZoneKind) => void;
   onInspect: (programId: string, clusterId: string) => void;
   onPlace: (programId: string, clusterId: string, recommended: boolean) => void;
+  /** While dragging a catalog cluster over the site. */
+  onDragMove?: (payload: ClusterDragPayload, clientX: number, clientY: number) => void;
+  /** Drop a catalog cluster at a screen point over the site. */
+  onDragEnd?: (payload: ClusterDragPayload, clientX: number, clientY: number) => void;
 }) {
   const router = useRouter();
   const selectZone = useRef(onSelectZone);
@@ -76,6 +94,11 @@ export function ClusterPlacementLibrary({
   const [notice, setNotice] = useState("");
   const [openId, setOpenId] = useState("");
   const [meshes, setMeshes] = useState<Record<string, IsoMesh | null>>({});
+  const [ghost, setGhost] = useState<{ label: string; x: number; y: number } | null>(null);
+  const dragMove = useRef(onDragMove);
+  dragMove.current = onDragMove;
+  const dragEnd = useRef(onDragEnd);
+  dragEnd.current = onDragEnd;
 
   useEffect(() => {
     if (!programId) {
@@ -84,58 +107,54 @@ export function ClusterPlacementLibrary({
       setPending(false);
       return;
     }
-    const controller = new AbortController();
+    let cancelled = false;
     setPending(true);
     setNotice("");
     setOpenId("");
     setRank(null);
-    fetch(`/api/skill4/finished-catalog?program=${encodeURIComponent(programId)}&view=placement`, { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("unread");
-        return response.json() as Promise<PlacementRank | null>;
-      })
+    void fetchPlacementRank(programId)
       .then((body) => {
-        if (!body || body.programId !== programId) {
+        if (cancelled) return;
+        const rankBody = body as PlacementRank | null;
+        if (!rankBody || rankBody.programId !== programId) {
           setRank(null);
           setNotice("No clusters are stored for this program.");
           return;
         }
-        setRank(body);
-        if (body.zoneKind && !selectedZoneIdRef.current) selectZone.current(body.zoneKind);
+        setRank(rankBody);
+        if (rankBody.zoneKind && !selectedZoneIdRef.current) selectZone.current(rankBody.zoneKind);
       })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+      .catch(() => {
+        if (cancelled) return;
         setRank(null);
         setNotice("Clusters for this program could not be read.");
       })
       .finally(() => {
-        if (!controller.signal.aborted) setPending(false);
+        if (!cancelled) setPending(false);
       });
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [programId]);
 
   useEffect(() => {
-    if (!programId || !rank || rank.programId !== programId) {
-      setMeshes({});
-      return;
-    }
-    const controller = new AbortController();
+    if (!programId || !rank || rank.programId !== programId) return;
+    let cancelled = false;
     const ids = rank.clusters.map((cluster) => cluster.id);
-    void (async () => {
-      for (const id of ids) {
-        if (controller.signal.aborted) return;
-        try {
-          const response = await fetch(`/api/skill4/finished-mesh?program=${encodeURIComponent(programId)}&id=${encodeURIComponent(id)}`, { signal: controller.signal });
-          const body = await response.json() as { mesh?: PackedMesh | null } | null;
-          if (controller.signal.aborted) return;
-          const mesh = unpackMesh(body?.mesh ?? null);
-          setMeshes((current) => ({ ...current, [id]: mesh }));
-        } catch (error: unknown) {
-          if (error instanceof DOMException && error.name === "AbortError") return;
-        }
-      }
-    })();
-    return () => controller.abort();
+    void Promise.all(ids.map(async (id) => {
+      const packed = await fetchFinishedMeshPacked(programId, id);
+      return [id, unpackMesh(packed)] as const;
+    })).then((entries) => {
+      if (cancelled) return;
+      setMeshes((current) => {
+        const next = { ...current };
+        for (const [id, mesh] of entries) next[id] = mesh;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [programId, rank]);
 
   useEffect(() => {
@@ -164,6 +183,38 @@ export function ClusterPlacementLibrary({
   const programOptions = CLUSTER_PROGRAMS.filter((program) => compatibleIds.includes(program.id));
 
   const rows = rank ? Math.ceil(rank.clusters.length / 2) : 0;
+
+  const beginDrag = (payload: ClusterDragPayload, event: ReactPointerEvent) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let dragging = false;
+    const onMove = (next: PointerEvent) => {
+      const dx = next.clientX - startX;
+      const dy = next.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+      dragging = true;
+      setGhost({ label: payload.label, x: next.clientX, y: next.clientY });
+      dragMove.current?.(payload, next.clientX, next.clientY);
+    };
+    const onUp = (next: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      setGhost(null);
+      if (!dragging) {
+        setOpenId(payload.clusterId);
+        return;
+      }
+      dragEnd.current?.(payload, next.clientX, next.clientY);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
+  if (PROGRAM_CLUSTER_2_ARCHIVED) return null;
 
   return (
     <div
@@ -200,11 +251,13 @@ export function ClusterPlacementLibrary({
       </label>
       {programId && zoneLabel ? (
         <p className="site-note">
-          {programName} · {zoneLabel} zone{selected ? ` · ${Math.round(polygonAreaSqFt(selected.points)).toLocaleString("en-US")} ft²` : ""}. The recommended cluster is the closest match. Place assigns it to the selected zone.
-          {programId && !pending && rank && matching.length === 0 ? " No zone of this kind is drawn yet." : ""}
+          {programName} · {zoneLabel}. Drag a cluster onto a pocket on the site. Place still uses the selected pocket.
+          {!pocketReady && !selected ? " Or click a pocket first, then Place." : ""}
           {placed ? ` ${placed.finishedClusterId} occupies this zone.` : ""}
         </p>
-      ) : null}
+      ) : (
+        <p className="site-note">Drag a cluster onto a pocket on the site.</p>
+      )}
       {pending ? <p className="site-note">Reading clusters</p> : null}
       {notice ? <p className="site-note">{notice}</p> : null}
       {rank && rank.clusters.length > 0 ? (
@@ -217,16 +270,26 @@ export function ClusterPlacementLibrary({
               mesh={meshes[cluster.id] ?? null}
               active={cluster.id === openId || placed?.finishedClusterId === cluster.id}
               occupied={placed?.finishedClusterId === cluster.id}
-              canPlace={Boolean(selected)}
+              canPlace={Boolean(selected) || pocketReady}
               replace={Boolean(placed) && placed?.finishedClusterId !== cluster.id}
-              onOpen={() => setOpenId(cluster.id)}
               onInspect={() => onInspect(programId, cluster.id)}
               onPlace={() => onPlace(programId, cluster.id, cluster.recommended)}
+              onDragStart={(event) => beginDrag({
+                programId,
+                clusterId: cluster.id,
+                recommended: cluster.recommended,
+                label: cluster.recommended ? "Recommended" : `Rank ${index + 1}`,
+              }, event)}
             />
           ))}
         </div>
       ) : null}
       {rank && rank.clusters.length === 0 ? <p className="site-note">No clusters are stored for this program.</p> : null}
+      {ghost ? (
+        <div className="site-cluster-ghost" style={{ left: ghost.x, top: ghost.y }} aria-hidden="true">
+          {ghost.label}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -239,9 +302,9 @@ function ClusterCard({
   occupied,
   canPlace,
   replace,
-  onOpen,
   onInspect,
   onPlace,
+  onDragStart,
 }: {
   cluster: PlacementCluster;
   index: number;
@@ -250,9 +313,9 @@ function ClusterCard({
   occupied: boolean;
   canPlace: boolean;
   replace: boolean;
-  onOpen: () => void;
   onInspect: () => void;
   onPlace: () => void;
+  onDragStart: (event: ReactPointerEvent) => void;
 }) {
   const label = cluster.recommended ? "Recommended" : `Rank ${index + 1}`;
   const placeLabel = occupied ? "Placed" : replace ? "Replace" : "Place";
@@ -261,8 +324,8 @@ function ClusterCard({
       <button
         type="button"
         data-active={active || cluster.recommended || undefined}
-        title={`${label}. Iteration ${String(cluster.iteration).padStart(2, "0")}. Match ${cluster.score}%. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles. ${Math.round(cluster.habitableArea)} ft².`}
-        onClick={onOpen}
+        title={`Drag onto a pocket. ${label}. Iteration ${String(cluster.iteration).padStart(2, "0")}. Match ${cluster.score}%. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles. ${Math.round(cluster.habitableArea)} ft².`}
+        onPointerDown={onDragStart}
       >
         <span className="site-module-glass">
           <ClusterForm mesh={mesh} />
@@ -298,18 +361,17 @@ export function ClusterInspect({
     const controller = new AbortController();
     setIteration(null);
     setMesh(null);
-    void fetch(`/api/skill4/finished-catalog?program=${encodeURIComponent(programId)}`, { signal: controller.signal, cache: "no-store" })
+    void fetch(`/api/skill4/finished-catalog?program=${encodeURIComponent(programId)}`, { signal: controller.signal })
       .then((response) => response.json() as Promise<FinishedProgram | null>)
       .then((program) => {
         if (controller.signal.aborted) return;
         setIteration(program?.iterations.find((item) => item.id === clusterId) ?? null);
       })
       .catch(() => undefined);
-    void fetch(`/api/skill4/finished-mesh?program=${encodeURIComponent(programId)}&id=${encodeURIComponent(clusterId)}`, { signal: controller.signal, cache: "no-store" })
-      .then((response) => response.json() as Promise<{ mesh?: PackedMesh | null } | null>)
-      .then((body) => {
+    void fetchFinishedMeshPacked(programId, clusterId)
+      .then((packed) => {
         if (controller.signal.aborted) return;
-        setMesh(unpackMesh(body?.mesh ?? null));
+        setMesh(unpackMesh(packed));
       })
       .catch(() => undefined);
     return () => controller.abort();

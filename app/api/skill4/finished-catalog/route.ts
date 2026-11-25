@@ -107,7 +107,9 @@ export function GET(request: Request) {
       if (url.searchParams.get("view") === "placement") {
         if (!program) return Response.json(null);
         try {
-          return Response.json(rankProgramClusters(program.programId, program.name, program.iterations, loadClientActivitiesDocument()));
+          return Response.json(rankProgramClusters(program.programId, program.name, program.iterations, loadClientActivitiesDocument()), {
+            headers: { "Cache-Control": "public, max-age=120, stale-while-revalidate=600" },
+          });
         } catch (error) {
           const message = error instanceof ClientDocumentError || error instanceof Error
             ? error.message
@@ -115,7 +117,9 @@ export function GET(request: Request) {
           return Response.json({ error: message }, { status: 500 });
         }
       }
-      return Response.json(program);
+      return Response.json(program, {
+        headers: { "Cache-Control": "public, max-age=120, stale-while-revalidate=600" },
+      });
     }
     return Response.json({
       ...catalog,

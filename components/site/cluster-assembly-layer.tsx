@@ -2,6 +2,24 @@
 
 import { useEffect, useMemo } from "react";
 import { BufferGeometry, DoubleSide, Float32BufferAttribute, ShaderMaterial, Uint32BufferAttribute } from "three";
+import type { ThreeEvent } from "@react-three/fiber";
+import type { ClusterSitePose } from "@/lib/skill5/placed-cluster";
+import type { GumballPose } from "@/lib/skill5/gumball";
+import { TileGumball } from "./tile-gumball";
+
+function poseToGumball(pose: ClusterSitePose): GumballPose {
+  return {
+    x: pose.x,
+    y: pose.y,
+    z: pose.z,
+    rotationY: pose.rotationY * Math.PI / 180,
+    rotationX: 0,
+    rotationZ: 0,
+    scaleX: 1,
+    scaleY: 1,
+    scaleZ: 1,
+  };
+}
 
 export type AssemblySolid = {
   id: string;
@@ -9,6 +27,16 @@ export type AssemblySolid = {
   indices: Uint32Array;
   color: string;
   opacity: number;
+  /** When set, positions are local (centered) and this pose places the solid on site. */
+  pose?: ClusterSitePose;
+};
+
+export type ClusterAssemblyInteraction = {
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  snap: boolean;
+  view: "perspective" | "plan" | "axon" | "section";
+  onGumball: (pose: GumballPose & { id: string }, commit: boolean) => void;
 };
 
 export type ClusterAssemblyModel = {
@@ -24,6 +52,7 @@ export type ClusterAssemblyModel = {
   voids: readonly AssemblySolid[];
   hybrid: AssemblySolid | null;
   wrap: AssemblySolid | null;
+  interaction?: ClusterAssemblyInteraction | null;
 };
 
 const WHITE_VERT = `
@@ -81,7 +110,19 @@ function heightRange(positions: Float32Array) {
   return { min, max: Math.max(max, min + 1) };
 }
 
-function CatalogCluster({ solid }: { solid: AssemblySolid }) {
+function CatalogCluster({
+  solid,
+  pickable,
+  selected,
+  onSelect,
+  gumball,
+}: {
+  solid: AssemblySolid;
+  pickable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+  gumball?: ClusterAssemblyInteraction | null;
+}) {
   const geometry = useMemo(() => {
     const next = new BufferGeometry();
     next.setAttribute("position", new Float32BufferAttribute(solid.positions, 3));
@@ -102,7 +143,47 @@ function CatalogCluster({ solid }: { solid: AssemblySolid }) {
     geometry.dispose();
     material.dispose();
   }, [geometry, material]);
-  return <mesh geometry={geometry} material={material} raycast={() => undefined} />;
+
+  const pick = (event: ThreeEvent<MouseEvent>) => {
+    if (!pickable || !onSelect) return;
+    event.stopPropagation();
+    onSelect(solid.id);
+  };
+
+  const body = (
+    <mesh
+      geometry={geometry}
+      material={material}
+      raycast={pickable ? undefined : () => undefined}
+      onClick={pickable ? pick : undefined}
+      onPointerDown={pickable ? (event) => event.stopPropagation() : undefined}
+    />
+  );
+
+  if (!solid.pose) return body;
+
+  const pose = solid.pose;
+  const yaw = -pose.rotationY * Math.PI / 180;
+  const sx = pose.mirror === "x" ? -1 : 1;
+  const sz = pose.mirror === "z" ? -1 : 1;
+  const showGumball = Boolean(selected && gumball);
+
+  return (
+    <group position={[pose.x, pose.y, pose.z]}>
+      <group rotation={[0, yaw, 0]} scale={[sx, 1, sz]}>
+        {body}
+      </group>
+      {showGumball && gumball ? (
+        <TileGumball
+          pose={poseToGumball(pose)}
+          snap={gumball.snap}
+          view={gumball.view}
+          onChange={(next) => gumball.onGumball({ ...next, id: solid.id }, false)}
+          onCommit={(next) => gumball.onGumball({ ...next, id: solid.id }, true)}
+        />
+      ) : null}
+    </group>
+  );
 }
 
 function VoidVolume({ solid }: { solid: AssemblySolid }) {
@@ -195,6 +276,7 @@ export function ClusterAssemblyLayer({ model }: { model: ClusterAssemblyModel })
     zones.forEach((zone) => zone.geometry.dispose());
   }, [branches, link, zones]);
   const showClusters = model.clusters || model.connections;
+  const interaction = model.interaction ?? null;
   return (
     <group>
       {model.zoning ? zones.map((zone) => (
@@ -210,7 +292,16 @@ export function ClusterAssemblyLayer({ model }: { model: ClusterAssemblyModel })
       )) : null}
       {model.voids.map((item) => <VoidVolume key={item.id} solid={item} />)}
       {model.massing && model.wrap ? <CatalogCluster solid={model.wrap} /> : null}
-      {showClusters ? model.solids.map((item) => <CatalogCluster key={item.id} solid={item} />) : null}
+      {showClusters ? model.solids.map((item) => (
+        <CatalogCluster
+          key={item.id}
+          solid={item}
+          pickable={Boolean(interaction)}
+          selected={interaction?.selectedId === item.id}
+          onSelect={interaction?.onSelect}
+          gumball={interaction}
+        />
+      )) : null}
       {model.connections && model.hybrid ? <SolidMesh solid={model.hybrid} /> : null}
     </group>
   );

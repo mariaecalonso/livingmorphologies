@@ -3144,9 +3144,11 @@
   height: 100%;
 }
 
-.site-gallery.site-gallery-clusters .site-cluster-card > button:not(.site-cluster-plus) {
+.site-gallery.site-gallery-clusters .site-cluster-card > button:not(.site-cluster-plus):not(.site-cluster-place) {
   width: 100%;
   height: 100%;
+  cursor: grab;
+  touch-action: none;
 }
 
 .site-gallery.site-gallery-clusters .site-cluster-place {
@@ -3206,6 +3208,22 @@
 .site-cluster-plus:focus-visible {
   border-color: #49d7de;
   color: #49d7de;
+}
+
+.site-cluster-ghost {
+  position: fixed;
+  z-index: 40;
+  transform: translate(-50%, -120%);
+  pointer-events: none;
+  padding: 0.28rem 0.5rem;
+  border: 1px solid #49d7de;
+  border-radius: 4px;
+  background: #000000;
+  color: #f2f2ee;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .site-cluster-inspect {

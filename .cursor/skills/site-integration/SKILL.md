@@ -14,9 +14,11 @@ description: >-
 This is the project-level skill for Skill 5 in the shared repository `livingmorphologies`.
 Apply it when placing work on the site or reading the site. Do not apply it to architectural translation, 2D generation, vertical propagation, or generating a new connector.
 
-The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Cluster Placement is `/lab/site?sheet=placement`. Cluster Assembly Catalog is `/lab/site?sheet=cluster-assembly`. The Assembly tab is tile joins, not the Cluster Assembly checkpoint. Historical Configurations remain `/lab/site?sheet=configurations` and `data/skill5/configurations.json`. The work lives in `lib/skill5/` and `components/site/`.
+The lab is `/lab/site`. Site Analysis is `/lab/site/analysis`. Cluster Assembly Catalog is `/lab/site?sheet=cluster-assembly`. The Assembly tab is tile joins, not the Cluster Assembly checkpoint. Historical Configurations remain `/lab/site?sheet=configurations` and `data/skill5/configurations.json`. The work lives in `lib/skill5/` and `components/site/`.
 
-Cluster Placement is the composition tool: the designer selects a zoning region, chooses a compatible Client program, and Places a ranked finished cluster into that zone. One zone holds one finished cluster at a time. Replacing that zone does not rebuild the rest of the occupancy. Ranking is unchanged. Automatic initial placement is optional assistance; it writes the same occupancy records using the existing packing seats, then stops. Shrinkwrap, film wrap, and joined mass remain in `buildPublicLobbyAssembly` and are not occupancy or catalog state.
+Program Cluster 2.0 is off the live pipeline (`PROGRAM_CLUSTER_2_ARCHIVED` in `lib/site-map.ts`): Tile Compatibility, Cluster Placement (program catalog), Morphology Review, and differentiation / finished program-cluster catalogs stay in the project. Their live routes still redirect to Cluster Assembly Catalog. They reopen only from the Archived stage after the Physarum video (`/lab/archived`). That pocket is Program Cluster 2.0 only. Hybrid Connection at `/lab/hybrid` is not archived. A later cluster generation logic will replace the archived catalog before site placement resumes.
+
+Cluster Placement code remains the composition tool for when a new finished-cluster catalog is live: the designer selects a zoning region, chooses a compatible Client program, and Places a ranked finished cluster into that zone. One zone holds one finished cluster at a time. Replacing that zone does not rebuild the rest of the occupancy. Ranking is unchanged. Automatic initial placement is optional assistance; it writes the same occupancy records using the existing packing seats, then stops. Shrinkwrap, film wrap, and joined mass remain in `buildPublicLobbyAssembly` and are not occupancy or catalog state.
 
 A Cluster Assembly is the situated composition: selected Site Strategy network, designer zoning, zone occupancy, transforms, source identities, and optional confirmed joins. It is stored in `data/skill5/cluster-assemblies.json`. Many assemblies may exist. Exactly one may be the Selected Assembly for Development (`selectedAssemblyId`). Preview does not change that id. Send for Development does. Historical Configurations C01–C08 and later C## records must not write `selectedAssemblyId`, the selected network, or designer zoning.
 
@@ -26,7 +28,7 @@ Lab input and output names for Cluster Placement, Cluster Assembly Catalog, Arch
 
 ## Purpose
 
-Bring selected finished clusters onto the Herald Plaza site. The production workflow is Site Analysis, Site Strategy, Zoning, Cluster Placement, Cluster Assembly Catalog, Send for Development, then Architectural Interpretation. Site Analysis has its own workspace. The later steps stay on the site model.
+Bring selected finished clusters onto the Herald Plaza site. The live Cluster Integration entry is Cluster Assembly Catalog while Program Cluster 2.0 is archived. The full production path returns to Site Analysis, Site Strategy, Zoning, Cluster Placement, Cluster Assembly Catalog, Send for Development, then Architectural Interpretation once a new cluster catalog is active. Site Analysis has its own workspace. The later steps stay on the site model.
 
 ## The site
 

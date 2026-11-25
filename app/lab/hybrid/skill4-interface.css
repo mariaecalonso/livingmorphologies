@@ -4006,3 +4006,247 @@
 }
 
 
+
+/* Final Clusters - one pair family at a time so WebGL thumbs stay under the context limit */
+.hybrid-final-clusters .final-clusters-families {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55em;
+  padding: 0.9em 1.4em 0;
+  min-width: 0;
+}
+
+.hybrid-final-clusters .final-clusters-families button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  min-width: 0;
+  border: 1px solid rgba(242, 242, 238, 0.16);
+  background: #000000;
+  color: inherit;
+  text-align: left;
+  padding: 0.55em 0.6em;
+  cursor: pointer;
+}
+
+.hybrid-final-clusters .final-clusters-families button[data-active] {
+  border-color: #49d7de;
+}
+
+.hybrid-final-clusters .final-clusters-family-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1em 1.4em 1.6em;
+  overflow: auto;
+}
+
+.hybrid-final-clusters .final-clusters-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75em;
+  width: 100%;
+  margin: 0;
+}
+
+.hybrid-final-clusters .final-clusters-grid button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid rgba(242, 242, 238, 0.16);
+  background: #000000;
+  color: inherit;
+  text-align: left;
+  padding: 0.4em;
+  cursor: pointer;
+}
+
+.hybrid-final-clusters .final-clusters-grid button:hover,
+.hybrid-final-clusters .final-clusters-grid button:focus-visible {
+  border-color: #49d7de;
+}
+
+.hybrid-final-clusters .final-clusters-thumb {
+  display: block;
+  width: 100%;
+  height: 7.5rem;
+  min-height: 7.5rem;
+  overflow: hidden;
+  background: #000000;
+  border: 1px solid rgba(242, 242, 238, 0.08);
+}
+
+.hybrid-final-clusters .final-clusters-thumb canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hybrid-final-clusters .final-clusters-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8em;
+  min-height: 0;
+  padding: 1em 1.4em 1.8em;
+  flex: 1 1 auto;
+}
+
+.hybrid-final-clusters .final-clusters-back-arrow {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85em;
+  height: 1.85em;
+  margin: 0 0 0.55em;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #f2f2ee;
+  cursor: pointer;
+  filter:
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.28));
+  transition: filter 160ms ease, transform 160ms ease, color 160ms ease;
+}
+
+.hybrid-final-clusters .final-clusters-back-arrow svg {
+  display: block;
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.hybrid-final-clusters .final-clusters-back-arrow:hover,
+.hybrid-final-clusters .final-clusters-back-arrow:focus-visible {
+  color: #ffffff;
+  filter:
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.45));
+  transform: translateX(-2px);
+  outline: none;
+}
+
+.hybrid-final-clusters .final-clusters-detail-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(14em, 22em) minmax(0, 1fr);
+  gap: 1.1em;
+  align-items: stretch;
+}
+
+.hybrid-final-clusters .final-clusters-dna {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  align-self: start;
+  min-width: 0;
+  padding: 0.2em 0.15em 0;
+}
+
+.hybrid-final-clusters .final-clusters-dna-title {
+  margin: 0 0 0.35em;
+  font-size: 1.35em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #49d7de;
+}
+
+.hybrid-final-clusters .final-clusters-dna-line {
+  margin: 0;
+  font-size: 1.05em;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hybrid-final-clusters .final-clusters-dna-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28em;
+  margin-top: 0.55em;
+  padding-top: 0.55em;
+  border-top: 1px solid rgba(242, 242, 238, 0.14);
+}
+
+.hybrid-final-clusters .final-clusters-detail-preview {
+  flex: 1 1 auto;
+  min-height: 22em;
+  border: 1px solid rgba(73, 215, 222, 0.22);
+  background: #000000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hybrid-final-clusters .final-clusters-detail-preview .hybrid-preview,
+.hybrid-final-clusters .final-clusters-film-preview {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 22em;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+}
+
+.hybrid-final-clusters .final-clusters-film-preview:active {
+  cursor: grabbing;
+}
+
+.hybrid-final-clusters .final-clusters-detail-preview canvas {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.hybrid-final-clusters .final-clusters-detail-preview canvas:active {
+  cursor: grabbing;
+}
+
+.hybrid-final-clusters .final-clusters-detail-preview .final-clusters-thumb {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 22em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-families {
+  gap: 0.85em;
+  padding: 1.2em 2em 0;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-grid {
+  gap: 1.1em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-thumb {
+  height: 11rem;
+  min-height: 11rem;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-detail-stage {
+  grid-template-columns: minmax(18em, 26em) minmax(0, 1fr);
+  gap: 1.6em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-back-arrow {
+  width: 2.35em;
+  height: 2.35em;
+  margin-bottom: 0.75em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-back-arrow svg {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-dna-title {
+  font-size: 1.7em;
+}
+
+[data-view-mode="presentation"] .hybrid-final-clusters .final-clusters-dna-line {
+  font-size: 1.25em;
+}

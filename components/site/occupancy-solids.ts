@@ -1,7 +1,7 @@
 import type { ClusterAssemblyModel } from "./cluster-assembly-layer";
-import { poseFinishedMesh, type PlacedCluster } from "@/lib/skill5/placed-cluster";
-
-type PackedMesh = { positions?: string; indices?: string };
+import { fetchFinishedMeshPacked } from "@/lib/skill4/finished-mesh-client";
+import { centerFinishedMesh, type ClusterSitePose, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import type { GumballPose } from "@/lib/skill5/gumball";
 
 function unpackF32(value: string) {
   const binary = atob(value);
@@ -21,19 +21,45 @@ export function occupancyMeshKey(record: Pick<PlacedCluster, "programId" | "fini
   return `${record.programId}:${record.finishedClusterId}`;
 }
 
-export async function fetchOccupancyMesh(programId: string, clusterId: string, signal?: AbortSignal) {
-  const response = await fetch(`/api/skill4/finished-mesh?program=${encodeURIComponent(programId)}&id=${encodeURIComponent(clusterId)}`, { signal, cache: "no-store" });
-  const body = await response.json() as { mesh?: PackedMesh | null } | null;
-  if (!body?.mesh?.positions || !body.mesh.indices) return null;
+export async function fetchOccupancyMesh(programId: string, clusterId: string, _signal?: AbortSignal) {
+  const packed = await fetchFinishedMeshPacked(programId, clusterId);
+  if (!packed?.positions || !packed.indices) return null;
   return {
-    positions: unpackF32(body.mesh.positions),
-    indices: unpackU32(body.mesh.indices),
+    positions: centerFinishedMesh(unpackF32(packed.positions)),
+    indices: unpackU32(packed.indices),
+  };
+}
+
+/** Gumball uses radians; ClusterSitePose stores yaw in degrees. */
+export function occupancyPoseToGumball(pose: ClusterSitePose): GumballPose {
+  return {
+    x: pose.x,
+    y: pose.y,
+    z: pose.z,
+    rotationY: pose.rotationY * Math.PI / 180,
+    rotationX: 0,
+    rotationZ: 0,
+    scaleX: 1,
+    scaleY: 1,
+    scaleZ: 1,
+  };
+}
+
+export function gumballToOccupancyPose(pose: GumballPose, mirror: ClusterSitePose["mirror"] = null): ClusterSitePose {
+  const degrees = ((pose.rotationY * 180 / Math.PI) % 360 + 360) % 360;
+  return {
+    x: pose.x,
+    y: pose.y,
+    z: pose.z,
+    rotationY: degrees,
+    mirror: mirror ?? null,
   };
 }
 
 export function occupancyModel(
   occupancy: readonly PlacedCluster[],
   meshes: Record<string, { positions: Float32Array; indices: Uint32Array } | null>,
+  live?: (GumballPose & { id: string }) | null,
 ): ClusterAssemblyModel {
   return {
     zoning: false,
@@ -47,12 +73,16 @@ export function occupancyModel(
     solids: occupancy.flatMap((record) => {
       const mesh = meshes[occupancyMeshKey(record)];
       if (!mesh) return [];
+      const pose = live?.id === record.occupancyId
+        ? gumballToOccupancyPose(live, record.transform.mirror)
+        : record.transform;
       return [{
         id: record.occupancyId,
-        positions: poseFinishedMesh(mesh.positions, record.transform),
+        positions: mesh.positions,
         indices: mesh.indices,
         color: "#f5f5f2",
         opacity: 1,
+        pose,
       }];
     }),
     voids: [],

@@ -6,13 +6,13 @@ import type { DisplayMode } from "@/components/display-mode-toggle";
 import { DESKTOP_MODE_ARCHIVED } from "@/components/display-sync";
 import { PresentationEditControls } from "@/components/presentation-edit";
 import { setViewMode } from "@/components/view-mode";
-import { CINEMATIC_STAGE_ARCHIVED, CLIENT_LAB, GROWTH_STAGE_ARCHIVED, LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
+import { CINEMATIC_STAGE_ARCHIVED, CLIENT_LAB, CLUSTER_ARCHIVE, GROWTH_STAGE_ARCHIVED, LAB_WORKSPACES, stageFrameSuffix } from "@/lib/site-map";
 import { CINEMATIC_INTRO } from "@/lib/cinematic-intro";
 import { TEMP_PHYSARUM_VIDEO } from "@/lib/temp-physarum-video";
 
 type NavItem = { href: string; label: string };
 
-const CLUSTER_SHEETS = new Set(["placement", "cluster-assembly", "assembly", "configurations"]);
+const CLUSTER_SHEETS = new Set(["placement", "compatibility", "morphology", "catalog", "cluster-assembly", "assembly", "configurations"]);
 
 function workspaceActive(id: string, href: string, pathname: string, sheet: string | null) {
   if (id === "site") {
@@ -50,6 +50,12 @@ const STAGES: (NavItem & { active: (pathname: string, sheet: string | null) => b
     href: TEMP_PHYSARUM_VIDEO.href,
     label: TEMP_PHYSARUM_VIDEO.label,
     active: (pathname: string) => pathname === TEMP_PHYSARUM_VIDEO.href,
+  },
+  {
+    href: CLUSTER_ARCHIVE.tabs[0].href,
+    label: CLUSTER_ARCHIVE.label,
+    active: (pathname: string) => pathname === CLUSTER_ARCHIVE.href || pathname.startsWith(`${CLUSTER_ARCHIVE.href}/`),
+    sub: CLUSTER_ARCHIVE.tabs,
   },
   ...(CINEMATIC_STAGE_ARCHIVED ? [] : [{
     href: CINEMATIC_INTRO.href,
