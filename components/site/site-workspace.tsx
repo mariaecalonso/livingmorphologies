@@ -68,7 +68,7 @@ import { ARRANGEMENT_FAMILY, buildArrivalFamily, programForRole } from "@/lib/sk
 import { assessPockets, suggestionLabel } from "@/lib/skill5/pocket-feasibility";
 import { detectPockets, readPockets } from "@/lib/skill5/pockets";
 import { consolidatePockets } from "@/lib/skill5/zone-consolidation";
-import { isPocketBoundZone, occupancyInZone, programZoneKind, readOccupancyList, replaceZoneOccupancy, rotateOccupancy, type OccupancyProvenance, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { isPocketBoundZone, occupancyInZone, placementProgramKinds, readOccupancyList, replaceZoneOccupancy, rotateOccupancy, type OccupancyProvenance, type PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, readZoningList, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SPACING_FEET, FLOW_SURVIVE } from "./site-network-flow";
@@ -3234,8 +3234,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       setOccupancyNotice("A selected Site Strategy network is required.");
       return;
     }
-    const kind = programZoneKind(programId);
-    if (!kind) {
+    const kinds = placementProgramKinds(programId);
+    if (kinds.length === 0) {
       setOccupancyNotice("That program has no Lobby / Workspace / Gathering zoning type.");
       return;
     }
@@ -3251,60 +3251,30 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       setOccupancyNotice("That pocket is not on the current network.");
       return;
     }
+    const onPocket = (item: ZoningRegion) => item.networkId === massingId && (
+      item.pocketId === targetPocketId
+      || Boolean(item.sourcePocketIds?.includes(targetPocketId))
+    );
+    const approved = visibleZones.filter(onPocket);
+    const zone = approved.find((item) => item.id === placementZone?.id && kinds.includes(item.kind))
+      ?? approved.find((item) => kinds.includes(item.kind))
+      ?? null;
+    if (!zone) {
+      setOccupancyNotice(approved.length > 0
+        ? `That program belongs in a ${kinds.join(" or ")} zone.`
+        : "No approved zone is on this pocket.");
+      return;
+    }
     setOccupancyNotice("");
     try {
-      const label = ZONE_KINDS.find((item) => item.id === kind)?.label ?? "Zone";
-      let nextZones = [...zones];
-      let zonesChanged = false;
-      const boundToPocket = (item: ZoningRegion) => item.networkId === massingId && (
-        item.pocketId === targetPocketId
-        || Boolean(item.sourcePocketIds?.includes(targetPocketId))
-      );
-      let zone = nextZones.find((item) => boundToPocket(item) && item.kind === kind && item.pocketId === targetPocketId)
-        ?? nextZones.find((item) => boundToPocket(item) && item.kind === kind)
-        ?? nextZones.find((item) => item.networkId === massingId && item.pocketId === targetPocketId)
-        ?? null;
-      if (!zone) {
-        const regionId = `z${zoneSerial.current}`;
-        zoneSerial.current += 1;
-        const named = nextZones.filter((item) => item.kind === kind).length + 1;
-        zone = {
-          id: regionId,
-          name: `${label} ${named}`,
-          kind,
-          points: pocket.points.map((point) => ({ ...point })),
-          baseFt: 0,
-          heightFt: 12,
-          visible: true,
-          networkId: massingId,
-          pocketId: targetPocketId,
-        };
-        nextZones = [...nextZones.filter((item) => !(item.networkId === massingId && item.pocketId === targetPocketId)), zone];
-        zonesChanged = true;
-      } else if (zone.pocketId === targetPocketId && (zone.kind !== kind || zone.points.length !== pocket.points.length)) {
-        zone = {
-          ...zone,
-          kind,
-          name: ZONE_KINDS.reduce((name, item) => name.startsWith(item.label) ? `${label}${name.slice(item.label.length)}` : name, zone.name),
-          points: pocket.points.map((point) => ({ ...point })),
-        };
-        nextZones = nextZones.map((item) => item.id === zone!.id ? zone! : item);
-        zonesChanged = true;
-      }
-      if (zonesChanged) {
-        replaceZones(nextZones);
-        const saved = await persistDesignerZoning(nextZones);
-        if (!saved) {
-          setOccupancyNotice("The pocket zone could not be saved.");
-          return;
-        }
-      }
       setZoneSelection(zone.id);
       setPocketSelection([targetPocketId]);
       const provenance: OccupancyProvenance = placementAssist === "automatic" ? "automatic-initial" : recommended || placementAssist === "ranked" ? "assisted" : "manual";
       const previous = occupancyInZone(occupancy, zone.id);
-      const drop = options?.at && pointInRing(options.at.x, options.at.z, zone.points.map((point) => [point.x, point.z] as [number, number]))
-        ? { x: options.at.x, y: zone.baseFt, z: options.at.z, rotationY: previous?.transform.rotationY ?? 0 }
+      const stored = zones.find((item) => item.id === zone.id) ?? zone;
+      const ring = stored.points.map((point) => [point.x, point.z] as [number, number]);
+      const drop = options?.at && pointInRing(options.at.x, options.at.z, ring)
+        ? { x: options.at.x, y: stored.baseFt, z: options.at.z, rotationY: previous?.transform.rotationY ?? 0 }
         : previous?.transform;
       const record = await placeOccupancy({
         zoneId: zone.id,

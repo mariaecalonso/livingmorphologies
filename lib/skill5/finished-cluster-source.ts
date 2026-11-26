@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import type { FinishedProgram } from "@/lib/skill4/finished-catalog";
+import { isFinalClusterCategory, readFinalClusterRecord } from "@/lib/skill4/final-cluster-placement";
 import type { FinishedClusterSource, SourceModuleIdentity } from "./placed-cluster";
 
 const PROGRAMS = path.join(process.cwd(), "data", "skill4", "finished-programs");
@@ -39,6 +40,27 @@ export function finishedClusterSource(programId: string, clusterId: string): Fin
     iteration: null,
     modules: [],
   };
+  const pair = clusterId.split(":")[0] ?? "";
+  const category = isFinalClusterCategory(programId)
+    ? programId
+    : isFinalClusterCategory(pair)
+      ? pair
+      : null;
+  if (category) {
+    const cluster = readFinalClusterRecord(category, clusterId);
+    if (!cluster) return empty;
+    return {
+      finishedClusterId: clusterId,
+      programId,
+      iteration: null,
+      modules: uniqueModules((cluster.provenance?.modules ?? []).map((module) => ({
+        moduleId: module.moduleId,
+        archetypeId: module.archetypeId,
+        candidateId: module.candidateId,
+        continuationId: module.continuationId,
+      }))),
+    };
+  }
   const program = readProgram(programId);
   if (!program) return empty;
   const iteration = program.iterations.find((item) => item.id === clusterId);

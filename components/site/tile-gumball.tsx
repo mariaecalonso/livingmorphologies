@@ -2,7 +2,8 @@
 
 import { useMemo, useRef } from "react";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { DoubleSide, Group, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from "three";
+import { DoubleSide, Group, Mesh, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from "three";
+import { setPlacementCameraSuspended } from "./placement-navigation";
 import type { GumballPose } from "@/lib/skill5/gumball";
 import { worldToStored } from "@/lib/skill5/render-frame";
 
@@ -33,18 +34,40 @@ function snapValue(value: number, step: number, enabled: boolean) {
   return Math.round(value / step) * step;
 }
 
+const DEFAULT_HANDLES = { move: true, rotate: true, scale: true } as const;
+
+/** Handles win the ray test even when the cluster body is closer to the camera. */
+function preferHandle(mesh: Mesh | null) {
+  if (!mesh || mesh.userData.preferHandle) return;
+  mesh.userData.preferHandle = true;
+  const base = mesh.raycast.bind(mesh);
+  mesh.raycast = (raycaster, intersects) => {
+    const start = intersects.length;
+    base(raycaster, intersects);
+    for (let index = start; index < intersects.length; index += 1) intersects[index].distance -= 1e6;
+  };
+}
+
 export function TileGumball({
   pose,
   snap,
   view,
+  yawStep,
+  handles = DEFAULT_HANDLES,
+  /** When set, only these rotation axes are drawn. Translation stays on X, Y, and Z. */
+  rings,
   onChange,
   onCommit,
 }: {
   pose: GumballPose;
   snap: boolean;
   view: "perspective" | "plan" | "axon" | "section";
-  onChange: (pose: GumballPose) => void;
-  onCommit: (pose: GumballPose) => void;
+  /** When set, the yaw ring snaps to this step in radians. Placement uses a quarter turn. */
+  yawStep?: number;
+  handles?: Partial<Record<"move" | "rotate" | "scale", boolean>>;
+  rings?: readonly Axis[];
+  onChange: (pose: GumballPose, modifiers?: { shiftKey?: boolean }) => void;
+  onCommit: (pose: GumballPose, modifiers?: { shiftKey?: boolean }) => void;
 }) {
   const { camera, gl } = useThree();
   const root = useRef<Group>(null);
@@ -119,41 +142,52 @@ export function TileGumball({
     });
     const storedBasis = { x: basis[0], y: basis[1], z: basis[2] };
     drag.current = { handle, axis, start: point, origin, pose: { ...poseRef.current }, pointerId: event.pointerId };
+    setPlacementCameraSuspended(true);
+    onChange({ ...poseRef.current }, { shiftKey: event.nativeEvent.shiftKey });
     const move = (native: PointerEvent) => {
       const active = drag.current;
       if (!active || native.pointerId !== active.pointerId) return;
       const nextHit = hitOn(native, normal, active.origin);
       if (!nextHit) return;
-      const next = applyDrag(active.handle, active.axis, active.pose, active.origin, active.start, nextHit, storedBasis, snap);
+      const next = applyDrag(active.handle, active.axis, active.pose, active.origin, active.start, nextHit, storedBasis, snap, yawStep);
       poseRef.current = next;
-      onChange(next);
+      onChange(next, { shiftKey: native.shiftKey });
     };
     const end = (native: PointerEvent) => {
       if (native.pointerId !== event.pointerId) return;
-      gl.domElement.removeEventListener("pointermove", move);
-      gl.domElement.removeEventListener("pointerup", end);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
       drag.current = null;
-      onCommit(poseRef.current);
+      setPlacementCameraSuspended(false);
+      onCommit(poseRef.current, { shiftKey: native.shiftKey });
     };
-    gl.domElement.addEventListener("pointermove", move);
-    gl.domElement.addEventListener("pointerup", end);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
   };
+
+  const move = handles.move ?? DEFAULT_HANDLES.move;
+  const rotate = handles.rotate ?? DEFAULT_HANDLES.rotate;
+  const scale = handles.scale ?? DEFAULT_HANDLES.scale;
+  const rotationOn = (handle: Handle) => !rings || rings.includes(handle[1] as Axis);
+  const translationOn = (handle: Handle) => (rings ? handle === "mx" || handle === "my" || handle === "mz" : shown(view, handle));
 
   return (
     <group ref={root} renderOrder={20}>
-      {shown(view, "mx") ? <Arrow axis="x" color={COLOR.x} onDown={(event) => start("mx", "x", event)} /> : null}
-      {shown(view, "my") ? <Arrow axis="y" color={COLOR.y} onDown={(event) => start("my", "y", event)} /> : null}
-      {shown(view, "mz") ? <Arrow axis="z" color={COLOR.z} onDown={(event) => start("mz", "z", event)} /> : null}
-      {shown(view, "pxy") ? <PlaneHandle axis="z" color={COLOR.z} onDown={(event) => start("pxy", "z", event)} /> : null}
-      {shown(view, "pyz") ? <PlaneHandle axis="x" color={COLOR.x} onDown={(event) => start("pyz", "x", event)} /> : null}
-      {shown(view, "pzx") ? <PlaneHandle axis="y" color={COLOR.y} onDown={(event) => start("pzx", "y", event)} /> : null}
-      {shown(view, "rx") ? <Ring axis="x" color={COLOR.x} onDown={(event) => start("rx", "x", event)} /> : null}
-      {shown(view, "ry") ? <Ring axis="y" color={COLOR.y} onDown={(event) => start("ry", "y", event)} /> : null}
-      {shown(view, "rz") ? <Ring axis="z" color={COLOR.z} onDown={(event) => start("rz", "z", event)} /> : null}
-      {shown(view, "sx") ? <ScaleBox axis="x" color={COLOR.x} onDown={(event) => start("sx", "x", event)} /> : null}
-      {shown(view, "sy") ? <ScaleBox axis="y" color={COLOR.y} onDown={(event) => start("sy", "y", event)} /> : null}
-      {shown(view, "sz") ? <ScaleBox axis="z" color={COLOR.z} onDown={(event) => start("sz", "z", event)} /> : null}
-      {shown(view, "su") ? <UniformHandle onDown={(event) => start("su", "y", event)} /> : null}
+      {move && translationOn("mx") ? <Arrow axis="x" color={COLOR.x} onDown={(event) => start("mx", "x", event)} /> : null}
+      {move && translationOn("my") ? <Arrow axis="y" color={COLOR.y} onDown={(event) => start("my", "y", event)} /> : null}
+      {move && translationOn("mz") ? <Arrow axis="z" color={COLOR.z} onDown={(event) => start("mz", "z", event)} /> : null}
+      {move && !rings && shown(view, "pxy") ? <PlaneHandle axis="z" color={COLOR.z} onDown={(event) => start("pxy", "z", event)} /> : null}
+      {move && !rings && shown(view, "pyz") ? <PlaneHandle axis="x" color={COLOR.x} onDown={(event) => start("pyz", "x", event)} /> : null}
+      {move && !rings && shown(view, "pzx") ? <PlaneHandle axis="y" color={COLOR.y} onDown={(event) => start("pzx", "y", event)} /> : null}
+      {rotate && shown(view, "rx") && rotationOn("rx") ? <Ring axis="x" color={COLOR.x} onDown={(event) => start("rx", "x", event)} /> : null}
+      {rotate && shown(view, "ry") && rotationOn("ry") ? <Ring axis="y" color={COLOR.y} onDown={(event) => start("ry", "y", event)} /> : null}
+      {rotate && shown(view, "rz") && rotationOn("rz") ? <Ring axis="z" color={COLOR.z} onDown={(event) => start("rz", "z", event)} /> : null}
+      {scale && shown(view, "sx") ? <ScaleBox axis="x" color={COLOR.x} onDown={(event) => start("sx", "x", event)} /> : null}
+      {scale && shown(view, "sy") ? <ScaleBox axis="y" color={COLOR.y} onDown={(event) => start("sy", "y", event)} /> : null}
+      {scale && shown(view, "sz") ? <ScaleBox axis="z" color={COLOR.z} onDown={(event) => start("sz", "z", event)} /> : null}
+      {scale && shown(view, "su") ? <UniformHandle onDown={(event) => start("su", "y", event)} /> : null}
     </group>
   );
 }
@@ -172,6 +206,7 @@ function applyDrag(
   hit: Vector3,
   basis: Record<Axis, Vector3>,
   snap: boolean,
+  yawStep?: number,
 ): GumballPose {
   const next = { ...startPose };
   const pivot = storedPoint(origin);
@@ -185,7 +220,10 @@ function applyDrag(
     next.z = snapValue(startPose.z + shift.z, 1, snap);
   };
   if (handle === "mx" || handle === "my" || handle === "mz") {
-    place(direction.clone().multiplyScalar(along(to) - along(from)));
+    const shift = direction.clone().multiplyScalar(along(to) - along(from));
+    // East and north stay on the ground plane. The vertical axis is seated by the placement pose.
+    if (handle !== "my") shift.y = 0;
+    place(shift);
     return next;
   }
   if (handle === "pxy" || handle === "pyz" || handle === "pzx") {
@@ -202,7 +240,8 @@ function applyDrag(
     const angle = Math.atan2(cross.dot(direction), from.dot(to));
     const key = axis === "x" ? "rotationX" : axis === "y" ? "rotationY" : "rotationZ";
     const turns = startPose[key] + (axis === "y" ? -angle : angle);
-    next[key] = snapValue(turns, Math.PI / 12, snap);
+    const step = yawStep ?? Math.PI / 12;
+    next[key] = snapValue(turns, step, yawStep ? true : snap);
     return next;
   }
   const factor = handle === "su"
@@ -228,6 +267,10 @@ function Arrow({ axis, color, onDown }: { axis: Axis; color: string; onDown: (ev
   const rotation: [number, number, number] = axis === "x" ? [0, 0, -Math.PI / 2] : axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
   return (
     <group rotation={rotation} onPointerDown={onDown} onPointerMove={stop} onClick={stop}>
+      <mesh position={[0, 11, 0]} ref={preferHandle} onPointerDown={onDown}>
+        <cylinderGeometry args={[1.8, 1.8, 22, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthTest={false} />
+      </mesh>
       <mesh position={[0, 11, 0]}>
         <cylinderGeometry args={[0.35, 0.35, 18, 12]} />
         <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
@@ -244,7 +287,7 @@ function PlaneHandle({ axis, color, onDown }: { axis: Axis; color: string; onDow
   const rotation: [number, number, number] = axis === "y" ? [-Math.PI / 2, 0, 0] : axis === "x" ? [0, Math.PI / 2, 0] : [0, 0, 0];
   const position: [number, number, number] = axis === "y" ? [6, 0, 6] : axis === "x" ? [0, 6, 6] : [6, 6, 0];
   return (
-    <mesh position={position} rotation={rotation} onPointerDown={onDown} onPointerMove={stop} onClick={stop}>
+    <mesh ref={preferHandle} position={position} rotation={rotation} onPointerDown={onDown} onPointerMove={stop} onClick={stop}>
       <planeGeometry args={[5, 5]} />
       <meshBasicMaterial color={color} side={DoubleSide} transparent opacity={0.35} depthTest={false} />
     </mesh>
@@ -254,9 +297,13 @@ function PlaneHandle({ axis, color, onDown }: { axis: Axis; color: string; onDow
 function Ring({ axis, color, onDown }: { axis: Axis; color: string; onDown: (event: ThreeEvent<PointerEvent>) => void }) {
   const rotation: [number, number, number] = axis === "y" ? [-Math.PI / 2, 0, 0] : axis === "x" ? [0, 0, Math.PI / 2] : [0, 0, 0];
   return (
-    <mesh rotation={rotation} onPointerDown={onDown} onPointerMove={stop} onClick={stop}>
-      <torusGeometry args={[16, 0.38, 8, 48]} />
-      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.9} />
+    <mesh ref={preferHandle} rotation={rotation} onPointerDown={onDown} onPointerMove={stop} onClick={stop}>
+      <torusGeometry args={[16, 3.2, 8, 28]} />
+      <meshBasicMaterial transparent opacity={0} depthTest={false} />
+      <mesh>
+        <torusGeometry args={[16, 0.38, 8, 48]} />
+        <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.9} />
+      </mesh>
     </mesh>
   );
 }

@@ -69,6 +69,7 @@ import { SightLines, ViewCalloutProjector, type ViewOverlay } from "./sight-line
 import { WalkLines } from "./walk-lines";
 import { MovementLayer } from "./movement-layer";
 import { UseLines } from "./use-lines";
+import { markPlacementDrag, placementCameraSuspended, placementClickSuppressed } from "./placement-navigation";
 import type { PedestrianMode, WalkSegment } from "@/lib/skill5/pedestrian";
 import type { UseSegment } from "@/lib/skill5/urban";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
@@ -984,6 +985,7 @@ function CameraRig({
   frameWholeSite,
   sheetsRef,
   focus = false,
+  clusterNavigation = false,
 }: {
   mode: SiteViewMode;
   planHeading: "north" | "east" | "west";
@@ -996,6 +998,8 @@ function CameraRig({
   frameWholeSite: boolean;
   sheetsRef: { current: SheetSet };
   focus?: boolean;
+  /** Scroll zooms, right-drag pans, left-drag orbits. A short click still selects. */
+  clusterNavigation?: boolean;
 }) {
   const { set, size, gl } = useThree();
   const cameras = useRef<{ persp: PerspectiveCamera; ortho: OrthographicCamera } | null>(null);
@@ -1059,7 +1063,10 @@ function CameraRig({
     const hit = new Vector3();
     const held = new Vector3();
     const maxDistance = frameOf(bounds, "context").span * 6;
-    let last: { x: number; y: number } | null = null;
+    const orthoZoomMin = clusterNavigation ? 0.03 : 0.08;
+    const orthoZoomMax = clusterNavigation ? 320 : 80;
+    const perspDistanceMin = clusterNavigation ? 5 : 30;
+    let last: { x: number; y: number; button: number; moved: boolean } | null = null;
 
     const activeCamera = () => {
       const pair = cameras.current;
@@ -1125,14 +1132,14 @@ function CameraRig({
       const before = pointUnderCursor(camera, clientX, clientY);
       if (before) held.copy(before);
       if (camera instanceof OrthographicCamera) {
-        const next = Math.min(80, Math.max(0.08, camera.zoom * Math.exp(-delta)));
-        if (next === camera.zoom) return;
+        const next = Math.min(orthoZoomMax, Math.max(orthoZoomMin, camera.zoom * Math.exp(-delta)));
+        if (Math.abs(next - camera.zoom) < 1e-5) return;
         camera.zoom = next;
         camera.updateProjectionMatrix();
       } else if (camera instanceof PerspectiveCamera) {
         const distance = camera.position.distanceTo(target.current);
-        const next = Math.min(maxDistance, Math.max(30, distance * Math.exp(delta)));
-        if (next === distance) return;
+        const next = Math.min(maxDistance, Math.max(perspDistanceMin, distance * Math.exp(delta)));
+        if (Math.abs(next - distance) < 1e-3) return;
         offset.copy(camera.position).sub(target.current).setLength(next);
         camera.position.copy(target.current).add(offset);
       } else return;
@@ -1145,17 +1152,39 @@ function CameraRig({
       target.current.add(pan);
     };
     const down = (event: PointerEvent) => {
+      if (placementCameraSuspended()) return;
+      if (clusterNavigation) {
+        if (event.button !== 0 && event.button !== 2) return;
+        last = { x: event.clientX, y: event.clientY, button: event.button, moved: false };
+        return;
+      }
       if (event.button !== 2) return;
-      last = { x: event.clientX, y: event.clientY };
+      last = { x: event.clientX, y: event.clientY, button: 2, moved: true };
       element.setPointerCapture(event.pointerId);
     };
     const move = (event: PointerEvent) => {
-      if (!last || (event.buttons & 2) === 0) return;
+      if (!last || placementCameraSuspended()) return;
       const camera = activeCamera();
       if (!camera) return;
       const dx = event.clientX - last.x;
       const dy = event.clientY - last.y;
-      last = { x: event.clientX, y: event.clientY };
+      if (clusterNavigation) {
+        if ((event.buttons & (last.button === 2 ? 2 : 1)) === 0) return;
+        if (!last.moved && Math.hypot(event.clientX - last.x, event.clientY - last.y) < 4) return;
+        if (!last.moved) {
+          last.moved = true;
+          markPlacementDrag();
+          element.setPointerCapture(event.pointerId);
+        }
+        last.x = event.clientX;
+        last.y = event.clientY;
+        if (last.button === 2 || mode === "plan") panBy(camera, dx, dy);
+        else orbitBy(camera, dx, dy);
+        return;
+      }
+      if ((event.buttons & 2) === 0) return;
+      last.x = event.clientX;
+      last.y = event.clientY;
       const kind = gesture(event);
       if (kind === "zoom") zoomBy(camera, dy * 0.004, event.clientX, event.clientY);
       else if (kind === "orbit") orbitBy(camera, dx, dy);
@@ -1164,20 +1193,28 @@ function CameraRig({
       else panBy(camera, dx, dy);
     };
     const release = (event: PointerEvent) => {
-      if (event.type !== "pointercancel" && event.button !== 2) return;
+      if (event.type !== "pointercancel" && event.button !== 0 && event.button !== 2) return;
+      if (!clusterNavigation && event.button !== 2) return;
       last = null;
     };
+    const click = (event: MouseEvent) => {
+      if (!clusterNavigation || !placementClickSuppressed()) return;
+      event.stopPropagation();
+      event.preventDefault();
+    };
     const wheel = (event: WheelEvent) => {
+      if (placementCameraSuspended()) return;
       const camera = activeCamera();
       if (!camera) return;
       event.preventDefault();
-      zoomBy(camera, event.deltaY * 0.0011, event.clientX, event.clientY);
+      zoomBy(camera, event.deltaY * (clusterNavigation ? 0.00135 : 0.0011), event.clientX, event.clientY);
     };
     const menu = (event: Event) => event.preventDefault();
     element.addEventListener("pointerdown", down);
     element.addEventListener("pointermove", move);
     element.addEventListener("pointerup", release);
     element.addEventListener("pointercancel", release);
+    element.addEventListener("click", click, true);
     element.addEventListener("wheel", wheel, { passive: false });
     element.addEventListener("contextmenu", menu);
     return () => {
@@ -1185,10 +1222,11 @@ function CameraRig({
       element.removeEventListener("pointermove", move);
       element.removeEventListener("pointerup", release);
       element.removeEventListener("pointercancel", release);
+      element.removeEventListener("click", click, true);
       element.removeEventListener("wheel", wheel);
       element.removeEventListener("contextmenu", menu);
     };
-  }, [bounds, gl, mode, rotateView]);
+  }, [bounds, clusterNavigation, gl, mode, rotateView]);
 
   useFrame(() => {
     const pair = cameras.current;
@@ -1449,6 +1487,8 @@ export function SiteViewport({
   arrivalZoning = null,
   focusBounds = null,
   clusterAssembly = null,
+  parcelOnly = false,
+  clusterNavigation = false,
   groundPickRef = null,
   onReadout,
 }: {
@@ -1534,6 +1574,10 @@ export function SiteViewport({
   /** When set, the camera frames the building instead of the whole parcel. */
   focusBounds?: Bounds | null;
   clusterAssembly?: ClusterAssemblyModel | null;
+  /** Parcel, network, zoning, and clusters. Surrounding urban context stays out. */
+  parcelOnly?: boolean;
+  /** Scroll zooms, right-drag pans, left-drag orbits. A click that does not drag still selects. */
+  clusterNavigation?: boolean;
   /** Filled by the placement scene so catalog drag-and-drop can hit the site plan. */
   groundPickRef?: { current: ((clientX: number, clientY: number) => { x: number; z: number } | null) | null } | null;
 }) {
@@ -1576,8 +1620,8 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} arrivalZoning={arrivalZoning} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} groundPickRef={groundPickRef} />
-      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} arrivalZoning={arrivalZoning} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} parcelOnly={parcelOnly} groundPickRef={groundPickRef} />
+      <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} clusterNavigation={clusterNavigation} />
       {sight?.mode === "views" ? <ViewCalloutProjector overlay={sight} root={callouts} ring={context.site.ring} /> : null}
       {placeObserver ? <PlaceProbe ring={context.site.ring} onPlace={placeObserver} /> : null}
     </Canvas>
@@ -1617,6 +1661,7 @@ function PlacementScene({
   arrivalZoning = null,
   measuredRoads = false,
   clusterAssembly = null,
+  parcelOnly = false,
   groundPickRef = null,
 }: {
   context: SiteContext;
@@ -1692,6 +1737,7 @@ function PlacementScene({
   arrivalZoning?: ArrivalZoningMap | null;
   measuredRoads?: boolean;
   clusterAssembly?: ClusterAssemblyModel | null;
+  parcelOnly?: boolean;
   groundPickRef?: { current: ((clientX: number, clientY: number) => { x: number; z: number } | null) | null } | null;
 }) {
   const pointer = useModulePointer(placement);
@@ -1707,7 +1753,7 @@ function PlacementScene({
     <>
       {showShadows && sun?.above && shadowBox ? <SunLight sun={sun} box={shadowBox} onTexel={onShadowTexel} /> : null}
       <group scale={RENDER_GROUP_SCALE}>
-      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} linework={presentation !== "analysis" && network?.studyTone !== false && network !== null} showContext={!network || network.showContext} showShadows={showShadows} measuredRoads={measuredRoads} />
+      <SiteContent context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} ground={zoning?.active || !placement ? undefined : pointer.ground} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} linework={presentation !== "analysis" && network?.studyTone !== false && network !== null} showContext={!parcelOnly && (!network || network.showContext)} showShadows={showShadows} measuredRoads={measuredRoads} />
       {placement ? <ModuleMeshes model={placement} pointer={pointer} listen={!zoning?.active} /> : null}
       {overlay?.shore ? <OverlayLines paths={clipPath(overlay.shorePath)} y={1.1} color="#5c6466" opacity={0.7} /> : null}
       {overlay?.macarthur ? <OverlayLines paths={overlay.macarthurPaths.flatMap((path) => clipPath(path))} y={1.2} color="#c77e5f" opacity={0.7} /> : null}

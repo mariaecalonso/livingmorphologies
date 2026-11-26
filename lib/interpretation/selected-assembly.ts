@@ -17,6 +17,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { finalClusterMeshPath, isFinalClusterCategory } from "@/lib/skill4/final-cluster-placement";
 import { readDevelopmentCheckpoint } from "@/lib/skill5/development-checkpoint";
 import { assemblyRevisionSignature } from "@/lib/skill5/downstream-pipeline";
 import { poseFinishedMesh, type ClusterAssemblyRecord, type PlacedCluster } from "@/lib/skill5/placed-cluster";
@@ -69,6 +70,12 @@ function finishedMeshFile(programId: string, clusterId: string) {
   }
   const finished = path.join(process.cwd(), "data", "skill4", "finished", programId, `${clusterId.replaceAll(":", "__")}.json`);
   if (existsSync(finished)) return finished;
+  const pair = clusterId.split(":")[0] ?? "";
+  const finalProgram = isFinalClusterCategory(programId) ? programId : isFinalClusterCategory(pair) ? pair : null;
+  if (finalProgram) {
+    const finalFile = finalClusterMeshPath(finalProgram, clusterId);
+    if (existsSync(finalFile)) return finalFile;
+  }
   const testIndex = clusterId.match(/:test-(\d+)$/);
   if (!testIndex) return null;
   const test = path.join(process.cwd(), "data", "skill4", "differentiation-test", "meshes", programId, `${programId}__${testIndex[1]}.json`);

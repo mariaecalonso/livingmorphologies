@@ -37,8 +37,8 @@ export function occupancyPoseToGumball(pose: ClusterSitePose): GumballPose {
     y: pose.y,
     z: pose.z,
     rotationY: pose.rotationY * Math.PI / 180,
-    rotationX: 0,
-    rotationZ: 0,
+    rotationX: (pose.rotationX ?? 0) * Math.PI / 180,
+    rotationZ: (pose.rotationZ ?? 0) * Math.PI / 180,
     scaleX: 1,
     scaleY: 1,
     scaleZ: 1,
@@ -46,12 +46,14 @@ export function occupancyPoseToGumball(pose: ClusterSitePose): GumballPose {
 }
 
 export function gumballToOccupancyPose(pose: GumballPose, mirror: ClusterSitePose["mirror"] = null): ClusterSitePose {
-  const degrees = ((pose.rotationY * 180 / Math.PI) % 360 + 360) % 360;
+  const degrees = (radians: number) => ((radians * 180 / Math.PI) % 360 + 360) % 360;
   return {
     x: pose.x,
     y: pose.y,
     z: pose.z,
-    rotationY: degrees,
+    rotationY: degrees(pose.rotationY),
+    rotationX: degrees(pose.rotationX),
+    rotationZ: degrees(pose.rotationZ),
     mirror: mirror ?? null,
   };
 }
@@ -60,6 +62,7 @@ export function occupancyModel(
   occupancy: readonly PlacedCluster[],
   meshes: Record<string, { positions: Float32Array; indices: Uint32Array } | null>,
   live?: (GumballPose & { id: string }) | null,
+  liveTransforms?: Readonly<Record<string, ClusterSitePose>> | null,
 ): ClusterAssemblyModel {
   return {
     zoning: false,
@@ -73,9 +76,10 @@ export function occupancyModel(
     solids: occupancy.flatMap((record) => {
       const mesh = meshes[occupancyMeshKey(record)];
       if (!mesh) return [];
-      const pose = live?.id === record.occupancyId
-        ? gumballToOccupancyPose(live, record.transform.mirror)
-        : record.transform;
+      const pose = liveTransforms?.[record.occupancyId]
+        ?? (live?.id === record.occupancyId
+          ? gumballToOccupancyPose(live, record.transform.mirror)
+          : record.transform);
       return [{
         id: record.occupancyId,
         positions: mesh.positions,

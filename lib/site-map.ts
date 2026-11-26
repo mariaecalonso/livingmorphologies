@@ -139,15 +139,14 @@ export const LAB_WORKSPACES = [
   },
   {
     id: "cluster-integration",
-    // When PROGRAM_CLUSTER_2_ARCHIVED is false, restore Cluster Placement as the first tab and default href.
-    href: "/lab/site?sheet=cluster-assembly",
+    href: "/lab/site?sheet=placement",
     label: "Cluster Integration",
     workflowStage: "cluster-integration",
     resultId: null,
     tabs: [
-      { href: "/lab/site?sheet=cluster-assembly", label: "Cluster Assembly Catalog" },
-      { href: "/lab/site?sheet=assembly", label: "Tile Assembly" },
-      { href: "/lab/site?sheet=configurations", label: "Configurations" },
+      { href: "/lab/site?sheet=placement", label: "Cluster Placement" },
+      { href: "/lab/site?sheet=void", label: "Void" },
+      { href: "/lab/site?sheet=integrated-massing", label: "Integrated Massing" },
     ],
   },
   {

@@ -1,17 +1,21 @@
 import { redirect } from "next/navigation";
 import { ClusterPlacement } from "@/components/hybrid/cluster-placement";
 import { ClusterAssemblyView } from "@/components/site/cluster-assembly-view";
+import { ClusterDownstream } from "@/components/site/cluster-downstream";
+import { ClusterPlacementPage } from "@/components/site/cluster-placement-page";
 import { SiteWorkspace } from "@/components/site/site-workspace";
 import { labWorkspace, PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 
 const workspace = labWorkspace("site");
 const clusterWorkspace = labWorkspace("cluster-integration");
 const MODEL_SHEETS = new Set(["strategy", "zoning", "placement", "assembly", "configurations"]);
-const PROGRAM_CLUSTER_SHEETS = new Set(["placement", "compatibility", "morphology", "catalog"]);
+const PROGRAM_CLUSTER_SHEETS = new Set(["compatibility", "morphology", "catalog"]);
 const SHEET_TITLE: Record<string, string> = {
   strategy: "Site Strategy",
   zoning: "Zoning",
   placement: "Cluster Placement",
+  void: "Void",
+  "integrated-massing": "Integrated Massing",
   assembly: "Assembly",
   "cluster-assembly": "Cluster Assembly",
   configurations: "Configurations",
@@ -39,7 +43,7 @@ export async function generateMetadata({
   const params = await searchParams;
   const sheet = Array.isArray(params.sheet) ? params.sheet[0] : params.sheet;
   const title = (sheet && SHEET_TITLE[sheet]) || "Site Strategy";
-  const stage = sheet === "placement" || sheet === "cluster-assembly" || sheet === "assembly" || sheet === "configurations" || sheet === "compatibility" || sheet === "morphology"
+  const stage = sheet === "placement" || sheet === "void" || sheet === "integrated-massing" || sheet === "cluster-assembly" || sheet === "assembly" || sheet === "configurations" || sheet === "compatibility" || sheet === "morphology"
     ? clusterWorkspace.label
     : workspace.label;
   return { title: `${title} -+ ${stage} -+ Living Morphologies` };
@@ -69,6 +73,8 @@ export default async function SitePage({
     return <ClusterPlacement sheet={sheet} />;
   }
   if (sheet === "cluster-assembly") return <ClusterAssemblyView />;
+  if (sheet === "placement") return <ClusterPlacementPage />;
+  if (sheet === "void" || sheet === "integrated-massing") return <ClusterDownstream sheet={sheet} />;
   if (!sheet || !MODEL_SHEETS.has(sheet)) {
     const next = keepParams(params, true);
     const query = next.toString();

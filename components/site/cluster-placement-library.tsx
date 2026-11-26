@@ -1,19 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { FinishedIteration, FinishedProgram } from "@/lib/skill4/finished-catalog";
 import type { PlacementCluster, PlacementRank } from "@/lib/skill4/cluster-placement-rank";
 import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
-import { fetchFinishedMeshPacked, fetchPlacementRank, type PackedFinishedMesh } from "@/lib/skill4/finished-mesh-client";
+import {
+  fetchFinishedClusterAssembly,
+  fetchFinishedMeshPacked,
+  fetchPlacementRank,
+  type FinishedClusterMeshFile,
+  type PackedFinishedMesh,
+} from "@/lib/skill4/finished-mesh-client";
+import type { FinalClusterTilePose } from "@/lib/skill4/final-cluster-pairs";
+import { FINAL_CLUSTER_PAIRS } from "@/lib/skill4/final-cluster-pairs";
+import { tileBasis } from "@/lib/skill4/tile-basis";
+import { resolveTileModule, type TileInstance } from "@/lib/skill4/tiles";
+import { HybridState, useHybrid } from "@/components/hybrid/hybrid-state";
 import { CLUSTER_PROGRAMS } from "@/lib/skill4/program-tiles";
 import { tileStep } from "@/lib/skill4/tiles";
 import { polygonAreaSqFt } from "@/lib/skill5/zoning";
 import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
-import { HybridState } from "@/components/hybrid/hybrid-state";
 import "@/app/lab/hybrid/skill4-interface.css";
-import { occupancyInZone, programsForZoneKind, type PlacedCluster } from "@/lib/skill5/placed-cluster";
+import { occupancyInZone, type PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 import { ZONE_KINDS, type SiteZone, type SiteZoneKind } from "./site-workflow";
 
@@ -55,7 +65,15 @@ function openStep(id: (typeof STEPS)[number]["id"], router: ReturnType<typeof us
   router.push(`/lab/site?${params.toString()}`);
 }
 
-export function ClusterPlacementLibrary({
+export function ClusterPlacementLibrary(props: Parameters<typeof ClusterPlacementLibraryInner>[0]) {
+  return (
+    <HybridState>
+      <ClusterPlacementLibraryInner {...props} />
+    </HybridState>
+  );
+}
+
+function ClusterPlacementLibraryInner({
   zones,
   selectedZoneId,
   occupancy,
@@ -87,14 +105,17 @@ export function ClusterPlacementLibrary({
   const selectedZoneIdRef = useRef(selectedZoneId);
   selectedZoneIdRef.current = selectedZoneId;
   const selectedZone = zones.find((zone) => zone.id === selectedZoneId) ?? null;
-  const compatibleIds = selectedZone ? programsForZoneKind(selectedZone.kind) : CLUSTER_PROGRAMS.map((item) => item.id);
-  const [programId, setProgramId] = useState("public-lobby");
+  const [programId, setProgramId] = useState<string>(FINAL_CLUSTER_PAIRS[3]?.id ?? "lobby-lobby");
   const [rank, setRank] = useState<PlacementRank | null>(null);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState("");
   const [openId, setOpenId] = useState("");
   const [meshes, setMeshes] = useState<Record<string, IsoMesh | null>>({});
+  const [assemblies, setAssemblies] = useState<Record<string, FinishedClusterMeshFile | null>>({});
+  const [shrinkWrap, setShrinkWrap] = useState(false);
+  const { ensureArchetypes } = useHybrid();
   const [ghost, setGhost] = useState<{ label: string; x: number; y: number } | null>(null);
+  const finalCategory = FINAL_CLUSTER_PAIRS.some((pair) => pair.id === programId);
   const dragMove = useRef(onDragMove);
   dragMove.current = onDragMove;
   const dragEnd = useRef(onDragEnd);
@@ -123,6 +144,9 @@ export function ClusterPlacementLibrary({
         }
         setRank(rankBody);
         if (rankBody.zoneKind && !selectedZoneIdRef.current) selectZone.current(rankBody.zoneKind);
+        if ("stale" in rankBody && rankBody.stale) {
+          setNotice("This catalog was generated from an older Vertical Propagation selection. Saved assemblies are unchanged.");
+        }
       })
       .catch(() => {
         if (cancelled) return;
@@ -138,17 +162,27 @@ export function ClusterPlacementLibrary({
   }, [programId]);
 
   useEffect(() => {
+    if (!rank?.clusters.length) return;
+    ensureArchetypes([...new Set(rank.clusters.flatMap((cluster) => cluster.tiles?.map((tile) => tile.archetypeId) ?? []))]);
+  }, [ensureArchetypes, rank]);
+
+  useEffect(() => {
     if (!programId || !rank || rank.programId !== programId) return;
     let cancelled = false;
     const ids = rank.clusters.map((cluster) => cluster.id);
     void Promise.all(ids.map(async (id) => {
-      const packed = await fetchFinishedMeshPacked(programId, id);
-      return [id, unpackMesh(packed)] as const;
+      const body = await fetchFinishedClusterAssembly(programId, id);
+      return [id, body, unpackMesh(body?.mesh ?? null)] as const;
     })).then((entries) => {
       if (cancelled) return;
       setMeshes((current) => {
         const next = { ...current };
-        for (const [id, mesh] of entries) next[id] = mesh;
+        for (const [id, , mesh] of entries) next[id] = mesh;
+        return next;
+      });
+      setAssemblies((current) => {
+        const next = { ...current };
+        for (const [id, body] of entries) next[id] = body;
         return next;
       });
     });
@@ -156,12 +190,6 @@ export function ClusterPlacementLibrary({
       cancelled = true;
     };
   }, [programId, rank]);
-
-  useEffect(() => {
-    if (!selectedZone) return;
-    const ids = programsForZoneKind(selectedZone.kind);
-    if (!ids.includes(programId)) setProgramId(ids[0] ?? programId);
-  }, [programId, selectedZone]);
 
   useEffect(() => {
     if (assist !== "ranked" || !rank?.clusters[0]) return;
@@ -178,9 +206,12 @@ export function ClusterPlacementLibrary({
   const zoneLabel = ZONE_KINDS.find((item) => item.id === zoneKind)?.label ?? "";
   const matching = zoneKind ? zones.filter((zone) => zone.kind === zoneKind) : [];
   const selected = selectedZone ?? matching.find((zone) => zone.id === selectedZoneId) ?? null;
-  const programName = CLUSTER_PROGRAMS.find((item) => item.id === programId)?.name ?? rank?.name ?? "";
+  const programName = FINAL_CLUSTER_PAIRS.find((item) => item.id === programId)?.label
+    ?? CLUSTER_PROGRAMS.find((item) => item.id === programId)?.name
+    ?? rank?.name
+    ?? "";
   const placed = selected ? occupancyInZone(occupancy, selected.id) : null;
-  const programOptions = CLUSTER_PROGRAMS.filter((program) => compatibleIds.includes(program.id));
+  const programOptions = FINAL_CLUSTER_PAIRS.map((pair) => ({ id: pair.id, name: pair.label }));
 
   const rows = rank ? Math.ceil(rank.clusters.length / 2) : 0;
 
@@ -249,6 +280,11 @@ export function ClusterPlacementLibrary({
           ))}
         </select>
       </label>
+      {finalCategory ? (
+        <button type="button" className="site-note site-cluster-shrink" onClick={() => setShrinkWrap((value) => !value)}>
+          Shrink wrap: {shrinkWrap ? "On" : "Off"}
+        </button>
+      ) : null}
       {programId && zoneLabel ? (
         <p className="site-note">
           {programName} · {zoneLabel}. Drag a cluster onto a pocket on the site. Place still uses the selected pocket.
@@ -268,6 +304,10 @@ export function ClusterPlacementLibrary({
               cluster={cluster}
               index={index}
               mesh={meshes[cluster.id] ?? null}
+              assembly={assemblies[cluster.id] ?? null}
+              shrinkWrap={shrinkWrap}
+              finalPreview={finalCategory}
+              tiles={cluster.tiles}
               active={cluster.id === openId || placed?.finishedClusterId === cluster.id}
               occupied={placed?.finishedClusterId === cluster.id}
               canPlace={Boolean(selected) || pocketReady}
@@ -294,10 +334,14 @@ export function ClusterPlacementLibrary({
   );
 }
 
-function ClusterCard({
+export function ClusterCard({
   cluster,
   index,
   mesh,
+  assembly,
+  shrinkWrap,
+  finalPreview,
+  tiles,
   active,
   occupied,
   canPlace,
@@ -309,6 +353,10 @@ function ClusterCard({
   cluster: PlacementCluster;
   index: number;
   mesh: IsoMesh | null;
+  assembly: FinishedClusterMeshFile | null;
+  shrinkWrap: boolean;
+  finalPreview: boolean;
+  tiles?: readonly FinalClusterTilePose[];
   active: boolean;
   occupied: boolean;
   canPlace: boolean;
@@ -317,20 +365,31 @@ function ClusterCard({
   onPlace: () => void;
   onDragStart: (event: ReactPointerEvent) => void;
 }) {
-  const label = cluster.recommended ? "Recommended" : `Rank ${index + 1}`;
+  const label = cluster.measured > 0
+    ? (cluster.recommended ? "Recommended" : `Rank ${index + 1}`)
+    : `Cluster ${String(cluster.iteration).padStart(2, "0")}`;
   const placeLabel = occupied ? "Placed" : replace ? "Replace" : "Place";
+  const detail = cluster.measured > 0
+    ? `${label}. Match ${cluster.score}%. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles. ${Math.round(cluster.habitableArea)} ft².`
+    : `${label}. ${cluster.tileCount} tiles.`;
   return (
     <div className="site-cluster-card" data-active={active || cluster.recommended || undefined} data-recommended={cluster.recommended || undefined} data-occupied={occupied || undefined}>
       <button
         type="button"
         data-active={active || cluster.recommended || undefined}
-        title={`Drag onto a pocket. ${label}. Iteration ${String(cluster.iteration).padStart(2, "0")}. Match ${cluster.score}%. ${cluster.meets} of ${cluster.measured} criteria. ${cluster.tileCount} tiles. ${Math.round(cluster.habitableArea)} ft².`}
+        title={`Drag onto a pocket. ${detail}`}
         onPointerDown={onDragStart}
       >
         <span className="site-module-glass">
-          <ClusterForm mesh={mesh} />
+          <ClusterForm
+            mesh={mesh}
+            assembly={assembly}
+            shrinkWrap={shrinkWrap}
+            finalPreview={finalPreview}
+            tiles={tiles}
+          />
         </span>
-        <em>{label} · {cluster.score}% · {cluster.tileCount} tiles · {Math.round(cluster.habitableArea)} ft²</em>
+        <em>{cluster.measured > 0 ? `${label} · ${cluster.score}% · ${cluster.tileCount} tiles · ${Math.round(cluster.habitableArea)} ft²` : `${label} · ${cluster.tileCount} tiles`}</em>
       </button>
       <button type="button" className="site-cluster-plus" aria-label={`Open the analysis for ${label}`} onClick={onInspect}>+</button>
       <button
@@ -392,29 +451,116 @@ export function ClusterInspect({
   );
 }
 
-function ClusterForm({ mesh }: { mesh: IsoMesh | null }) {
+function asTileInstances(tiles: readonly FinalClusterTilePose[]): TileInstance[] {
+  return tiles.map((tile) => ({
+    instanceId: tile.instanceId,
+    archetypeId: tile.archetypeId,
+    moduleId: "",
+    transform: { ...tile.transform },
+    rotationQuarter: tile.rotationQuarter as TileInstance["rotationQuarter"],
+    mirror: tile.mirror,
+    rotation: tile.rotation ? (tile.rotation as TileInstance["rotation"]) : undefined,
+  }));
+}
+
+export function ClusterForm({
+  mesh,
+  assembly,
+  shrinkWrap,
+  finalPreview,
+  tiles = [],
+}: {
+  mesh: IsoMesh | null;
+  assembly: FinishedClusterMeshFile | null;
+  shrinkWrap: boolean;
+  finalPreview: boolean;
+  tiles?: readonly FinalClusterTilePose[];
+}) {
+  const { loaded } = useHybrid();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const instances = useMemo(() => asTileInstances(tiles), [tiles]);
+  const hybrids = useMemo(() => (
+    assembly?.connections?.flatMap((connection) => {
+      const hybrid = unpackMesh(connection.validatedHybrid);
+      if (!hybrid || hybrid.triangles < 1) return [];
+      return [{
+        id: connection.id,
+        mesh: hybrid,
+        translate: { x: 0, y: 0, z: 0 },
+        selected: false,
+        color: [0.78, 0.49, 0.37] as [number, number, number],
+        plain: true,
+      }];
+    }) ?? []
+  ), [assembly]);
+  const readyKey = instances.map((tile) => {
+    const handoff = resolveTileModule(tile.archetypeId, loaded);
+    return handoff.status === "ready" && handoff.geometry ? tile.archetypeId : "";
+  }).join("|");
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const frame = canvas?.parentElement;
     if (!canvas || !frame) return;
     canvas.getContext("webgl2", { antialias: true, alpha: true, depth: true, premultipliedAlpha: true });
     const paint = () => {
-      if (!mesh || mesh.triangles < 1 || frame.clientHeight < 2) return;
-      drawPlacedMeshes(canvas, [{
-        id: "shrinkwrap",
-        mesh,
-        translate: { x: 0, y: 0, z: 0 },
-        selected: false,
-        color: [1, 1, 1] as [number, number, number],
-        opacity: 1,
-        plain: true,
-      }], 0.8, -1.05, tileStep() * 8, false, 4.2, false, 1, undefined, true, false, undefined, 1, 480, [0, 0, 0, 0]);
+      if (frame.clientHeight < 2) return;
+      const useFilm = shrinkWrap || !finalPreview;
+      if (!useFilm && assembly == null) return;
+      if (useFilm) {
+        if (!mesh || mesh.triangles < 1) return;
+        drawPlacedMeshes(canvas, [{
+          id: "shrinkwrap",
+          mesh,
+          translate: { x: 0, y: 0, z: 0 },
+          selected: false,
+          color: [1, 1, 1] as [number, number, number],
+          opacity: 1,
+        }], 0.8, -1.05, tileStep() * 8, false, 4.2, false, 1, undefined, true, false, undefined, 1, 480, [0, 0, 0, 0]);
+        return;
+      }
+      const tilesDrawn = instances.flatMap((tile) => {
+        const handoff = resolveTileModule(tile.archetypeId, loaded);
+        if (handoff.status !== "ready" || !handoff.geometry) return [];
+        return [{
+          id: tile.instanceId,
+          mesh: handoff.geometry,
+          translate: tile.transform,
+          selected: false,
+          basis: tileBasis(tile),
+          kind: 0 as const,
+          color: [1, 1, 1] as [number, number, number],
+        }];
+      });
+      const drawn = [...tilesDrawn, ...hybrids];
+      if (drawn.length === 0) return;
+      const reach = instances.reduce(
+        (max, tile) => Math.max(max, Math.abs(tile.transform.x), Math.abs(tile.transform.y), Math.abs(tile.transform.z)),
+        tileStep(),
+      );
+      drawPlacedMeshes(
+        canvas,
+        drawn,
+        0.8,
+        -1.05,
+        Math.max(reach * 2.4, tileStep() * 8),
+        false,
+        4.2,
+        false,
+        1,
+        undefined,
+        true,
+        false,
+        undefined,
+        1,
+        480,
+        [0, 0, 0, 0],
+      );
     };
     paint();
     const observer = new ResizeObserver(paint);
     observer.observe(frame);
     return () => observer.disconnect();
-  }, [mesh]);
+  }, [finalPreview, hybrids, instances, loaded, mesh, readyKey, shrinkWrap]);
   return <canvas ref={canvasRef} width={440} height={240} aria-hidden="true" />;
 }

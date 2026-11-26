@@ -107,6 +107,8 @@ export async function placeOccupancy(input: {
   provenance?: PlacedCluster["provenance"];
   transform?: PlacedCluster["transform"];
   networkId?: string;
+  occupancyId?: string;
+  stackOnPlan?: { x: number; z: number };
 }): Promise<PlacedCluster> {
   const response = await fetch("/api/site/cluster-occupancy", {
     method: "POST",

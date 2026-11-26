@@ -1,16 +1,15 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { runAssemblyShrinkwrap } from "@/lib/skill4/assembly-shrinkwrap";
 import { filmWrapAssembly } from "@/lib/skill4/film-wrap";
-import { rankProgramClusters } from "@/lib/skill4/cluster-placement-rank";
-import { loadClientActivitiesDocument } from "@/lib/skill5/load-client-documents";
-import type { FinishedProgram } from "@/lib/skill4/finished-catalog";
 import { ROLE_LABEL } from "@/lib/skill5/architectural-strategy";
 import type { ArchitecturalRole } from "@/components/site/site-network";
 import site from "@/data/skill5/herald-site.json";
 import { pointInRing } from "@/lib/skill5/placement";
 import type { ClusterAssemblyReport, PackedMesh, PortalReadout } from "@/lib/skill5/cluster-assembly-report";
 import { designerZoningForNetwork, designerZoningSignature } from "@/lib/skill5/designer-zoning";
+import { finalClusterMeshPath, isFinalClusterCategory } from "@/lib/skill4/final-cluster-placement";
+import { finalCategoryForActivity } from "@/lib/skill5/final-cluster-seat-map";
 import { finishedClusterSource } from "@/lib/skill5/finished-cluster-source";
 import { occupancyIdForZone, type PlacedCluster } from "@/lib/skill5/placed-cluster";
 import { publishedZoning } from "@/lib/skill5/strategy-archive";
@@ -290,18 +289,25 @@ function packMesh(mesh: Solid): PackedMesh {
   };
 }
 
-/** Catalog order for one program. The first id is the recommended cluster. */
-function rankedClusterIds(programId: string, name: string) {
-  const file = path.join(process.cwd(), "data", "skill4", "finished-programs", `${programId}.json`);
-  const program = JSON.parse(readFileSync(file, "utf8")) as FinishedProgram;
-  const rank = rankProgramClusters(programId, name, program.iterations, loadClientActivitiesDocument());
-  const ids = rank.clusters.map((cluster) => cluster.id);
-  if (ids.length === 0) throw new Error(`The catalog has no cluster for ${name}.`);
+/** Catalog order for one activity seat. Uses Final Cluster categories for new placements. */
+function rankedClusterIds(programId: string, _name: string) {
+  const categoryId = finalCategoryForActivity(programId) ?? (isFinalClusterCategory(programId) ? programId : null);
+  if (!categoryId) {
+    throw new Error(`unsupported program for new placement: ${programId}`);
+  }
+  const file = path.join(process.cwd(), "data", "skill4", "final-clusters-pairs", `${categoryId}.json`);
+  const body = JSON.parse(readFileSync(file, "utf8")) as { clusters?: { id: string; validated?: boolean; generator?: string }[] };
+  const ids = (body.clusters ?? []).filter((item) => item.validated !== false).map((item) => item.id);
+  if (ids.length === 0) throw new Error(`Final Clusters has no cluster for ${categoryId}.`);
   return ids;
 }
 
 function loadShrinkwrap(programId: string, clusterId: string): Solid {
-  const file = path.join(process.cwd(), "data", "skill4", "finished", programId, `${clusterId.replaceAll(":", "__")}.json`);
+  const categoryId = finalCategoryForActivity(programId) ?? programId;
+  const finalFile = isFinalClusterCategory(categoryId) ? finalClusterMeshPath(categoryId, clusterId) : "";
+  const file = finalFile && existsSync(finalFile)
+    ? finalFile
+    : path.join(process.cwd(), "data", "skill4", "finished", programId, `${clusterId.replaceAll(":", "__")}.json`);
   const body = JSON.parse(readFileSync(file, "utf8")) as { mesh?: { positions?: string; indices?: string } };
   if (!body.mesh?.positions || !body.mesh.indices) throw new Error(`Finished shrinkwrap ${clusterId} has no mesh.`);
   return { positions: unpackF32(body.mesh.positions), indices: unpackU32(body.mesh.indices) };
@@ -856,10 +862,11 @@ export function packAutomaticOccupancy(): PlacedCluster[] {
   for (const seat of seating.placed) {
     if (!seat.zoneId || claimed.has(seat.zoneId)) continue;
     claimed.add(seat.zoneId);
+    const categoryId = finalCategoryForActivity(seat.id);
     occupancy.push({
       occupancyId: occupancyIdForZone(seat.zoneId),
       zoneId: seat.zoneId,
-      programId: seat.id,
+      programId: categoryId ?? seat.id,
       finishedClusterId: seat.clusterId,
       transform: {
         x: seat.anchor.x + seat.pose.offsetX,
