@@ -30,6 +30,8 @@ import { announceWorkingOccupancy, placeOccupancy, readWorkingOccupancy, saveClu
 import { occupancyMeshKey, occupancyModel, occupancyPoseToGumball, fetchOccupancyMesh, gumballToOccupancyPose } from "./occupancy-solids";
 import { ZONE_COLOR } from "./site-zone-layer";
 import { PlacementClusterThumb, preloadPlacementThumbs } from "./placement-cluster-thumb";
+import { PlacementAssemblyStatsPanel } from "./placement-assembly-stats";
+import { computePlacementAssemblyStats } from "@/lib/skill5/placement-assembly-stats";
 import { SiteViewport, type SiteViewMode } from "./site-viewport";
 
 const site = context as SiteContext;
@@ -1073,24 +1075,23 @@ export function ClusterPlacementPage() {
   const rows = visibleCards.length ? Math.ceil(visibleCards.length / 2) : 0;
   const activeZoneKind = activeZone ? ZONE_KIND_ORDER.find((item) => item.id === activeZone.kind) : null;
   const programName = FINAL_CLUSTER_PAIRS.find((pair) => pair.id === activePair)?.label ?? pairId;
-  const totals = { lobby: 0, workspace: 0, gathering: 0 };
-  let unrecorded = 0;
-  for (const record of occupancy) {
-    const mix = mixes[`${record.programId}:${record.finishedClusterId}`];
-    if (!mix) {
-      unrecorded += 1;
-      continue;
-    }
-    totals.lobby += mix.lobby;
-    totals.workspace += mix.workspace;
-    totals.gathering += mix.gathering;
-  }
+  const assemblyStats = useMemo(
+    () => computePlacementAssemblyStats({
+      occupancy,
+      zones,
+      meshes,
+      meshKey: occupancyMeshKey,
+      mixes,
+    }),
+    [meshes, mixes, occupancy, zones],
+  );
   const nominal = {
-    lobby: totals.lobby * MODULE_SQFT,
-    workspace: totals.workspace * MODULE_SQFT,
-    gathering: totals.gathering * MODULE_SQFT,
+    lobby: assemblyStats.constituentTiles.lobby * MODULE_SQFT,
+    workspace: assemblyStats.constituentTiles.workspace * MODULE_SQFT,
+    gathering: assemblyStats.constituentTiles.gathering * MODULE_SQFT,
   };
   const nominalTotal = nominal.lobby + nominal.workspace + nominal.gathering;
+  const unrecorded = assemblyStats.constituentUnrecorded;
 
   const hiddenEntries = useMemo(() => {
     const set = new Set(hiddenIds);
@@ -1321,22 +1322,14 @@ export function ClusterPlacementPage() {
             {mirroring ? "Mirroring & stacking…" : "Mirror & stack"}
           </button>
         </section>
-        <section className="site-block">
-          <h2 className="site-subtitle">Program</h2>
-          <p className="site-note">Nominal module envelope. Each constituent morphology tile counts as one {SKILL5_MODULE_ENVELOPE_FEET} ft square ({MODULE_SQFT} sq ft), from the catalog typology mix. This is not measured habitable floor area.</p>
-          {(["lobby", "workspace", "gathering"] as const).map((kind) => (
-            <p key={kind} className="site-stat" data-program={kind}>
-              <span style={{ color: ZONE_COLOR[kind] }}>{ZONE_KIND_ORDER.find((item) => item.id === kind)?.label}</span>
-              <strong>{nominal[kind].toLocaleString()} sq ft</strong>
-              <span>{totals[kind]} tiles</span>
-            </p>
-          ))}
-          <p className="site-stat" data-program="total">
-            <span>Total nominal area</span>
-            <strong>{nominalTotal.toLocaleString()} sq ft</strong>
-          </p>
-          <p className="site-note" data-placement-progress data-placed-count={occupancy.length} data-occupied-zones={new Set(occupancy.map((item) => item.zoneId)).size}>{occupancy.length} placed clusters · {new Set(occupancy.map((item) => item.zoneId)).size} of {zones.length} zones occupied{unrecorded ? ` · ${unrecorded} without a recorded typology mix` : ""}</p>
-        </section>
+        <PlacementAssemblyStatsPanel
+          stats={assemblyStats}
+          nominal={nominal}
+          nominalTotal={nominalTotal}
+          moduleSqft={MODULE_SQFT}
+          moduleEnvelopeFt={SKILL5_MODULE_ENVELOPE_FEET}
+          unrecordedTiles={unrecorded}
+        />
         <section className="site-block" data-placement-display>
           <h2 className="site-subtitle">Display</h2>
           <p className="site-note">Layers in Plan and View. Zoning stays pickable when its overlay is off.</p>
