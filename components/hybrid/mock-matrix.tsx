@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import type { IsoMesh } from "@/lib/scan/isomesh";
-import { drawPlacedMeshes } from "@/lib/skill4/draw-placed";
+import { drawPlacedMeshes, meshSnapshotCanvas } from "@/lib/skill4/draw-placed";
 import type { GeneratedHybridField } from "@/lib/skill4/generated-hybrid-field";
 import { hybridDisplay, type HybridDisplaySlot } from "@/lib/skill4/hybrid-display";
 import { mockHybridField, type MockHybrid } from "@/lib/skill4/mock-hybrids";
@@ -51,6 +51,7 @@ function imageFor(mesh: IsoMesh, key: string, color: [number, number, number]) {
     document.body.appendChild(host);
   }
   drawPlacedMeshes(shared, [{ id: key, mesh: centeredMesh(mesh), translate: { x: 0, y: 0, z: 0 }, selected: false, color, kind: 0 }], 0.8, 0.35, 1, true, undefined, false, 1.6);
+  meshSnapshotCanvas(shared);
   const url = shared.toDataURL("image/png");
   images.set(storedKey, url);
   return url;

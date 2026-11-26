@@ -38,6 +38,7 @@ export function AggregationView({
   pendingPoint = null,
   onMeasurePoint,
   zoomOut = MAX_ZOOM_OUT_MULTIPLIER,
+  tone = "default",
 }: {
   instances: readonly PlacedMesh[];
   selectedId: string;
@@ -59,9 +60,11 @@ export function AggregationView({
   initialYaw?: number;
   /** How far the wheel can pull back, as a multiple of the resting camera. */
   zoomOut?: number;
+  /** Hybrid Cluster viewers use the reduced rim, crease, and bloom. */
+  tone?: "default" | "hybrid";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; button: number; shift: boolean; focus: Vec3 } | null>(null);
   const movedRef = useRef(false);
   const [yaw, setYaw] = useState(initialYaw);
   const [pitch, setPitch] = useState(initialPitch);
@@ -90,7 +93,7 @@ export function AggregationView({
       const duration = sweep?.duration ?? SWEEP_MS;
       const t = sweep && clock.id === sweep.id ? Math.min(1, ((now ?? performance.now()) - clock.start) / duration) : 1;
       const drawn = sweep && clock.id === sweep.id ? filmSweepFrame(instances, sweep, t) : instances;
-      const frame = drawPlacedMeshes(canvas, drawn, yaw, pitch, span, false, eye, drawn.some((item) => !item.volume), 1, lookAt);
+      const frame = drawPlacedMeshes(canvas, drawn, yaw, pitch, span, false, eye, drawn.some((item) => !item.volume), 1, lookAt, false, false, undefined, 1, 0, [0, 0, 0, 1], tone);
       if (!frame) {
         setMarkers((current) => (current.length === 0 ? current : []));
         setMeasureOverlay((current) => (current.length === 0 ? current : []));
@@ -147,7 +150,7 @@ export function AggregationView({
       cancelAnimationFrame(frameId);
       observer.disconnect();
     };
-  }, [eye, instances, links, lookAt, measures, pendingPoint, pitch, span, sweep, yaw]);
+  }, [eye, instances, links, lookAt, measures, pendingPoint, pitch, span, sweep, tone, yaw]);
 
   useEffect(() => {
     fitEyeRef.current = CANVAS_EYE;
@@ -260,9 +263,10 @@ export function AggregationView({
       <canvas
         ref={canvasRef}
         className="hybrid-stage-canvas"
+        onContextMenu={(event) => event.preventDefault()}
         onPointerDown={(event) => {
           movedRef.current = false;
-          dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch };
+          dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch, button: event.button, shift: event.shiftKey, focus: focusRef.current };
           try {
             event.currentTarget.setPointerCapture(event.pointerId);
           } catch {
@@ -275,6 +279,13 @@ export function AggregationView({
           const dx = event.clientX - drag.x;
           const dy = event.clientY - drag.y;
           if (Math.hypot(dx, dy) > 4) movedRef.current = true;
+          if (drag.shift || drag.button === 1 || drag.button === 2) {
+            const scale = Math.max(span, 8) * 0.0016 / Math.max(0.45, eye);
+            const next = { x: drag.focus.x - dx * scale, y: drag.focus.y + dy * scale * 0.35, z: drag.focus.z - dy * scale };
+            focusRef.current = next;
+            setFocus(next);
+            return;
+          }
           setYaw(drag.yaw - dx * 0.008);
           setPitch(Math.min(1.2, Math.max(-1.2, drag.pitch - dy * 0.008)));
         }}

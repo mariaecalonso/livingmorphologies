@@ -93,6 +93,24 @@ function uint32From(bytes: Uint8Array) {
   return copy;
 }
 
+function asFloat32(value: ArrayLike<number> | Record<string, number>): Float32Array {
+  if (value instanceof Float32Array) return value;
+  if (Array.isArray(value)) return Float32Array.from(value);
+  const keys = Object.keys(value);
+  const out = new Float32Array(keys.length);
+  for (const key of keys) out[Number(key)] = Number(value[key]);
+  return out;
+}
+
+function asUint32(value: ArrayLike<number> | Record<string, number>): Uint32Array {
+  if (value instanceof Uint32Array) return value;
+  if (Array.isArray(value)) return Uint32Array.from(value);
+  const keys = Object.keys(value);
+  const out = new Uint32Array(keys.length);
+  for (const key of keys) out[Number(key)] = Number(value[key]);
+  return out;
+}
+
 export function decodeGeometry(geometry: Skill4ModuleRecord["geometry"]): IsoMesh | null {
   if (!geometry) return null;
   if ("encoding" in geometry) {
@@ -101,7 +119,10 @@ export function decodeGeometry(geometry: Skill4ModuleRecord["geometry"]): IsoMes
     const indices = uint32From(bytesFromBase64(geometry.indices));
     return { positions, normals, indices, triangles: geometry.triangles };
   }
-  return geometry;
+  const positions = asFloat32(geometry.positions as ArrayLike<number> | Record<string, number>);
+  const normals = asFloat32(geometry.normals as ArrayLike<number> | Record<string, number>);
+  const indices = asUint32(geometry.indices as ArrayLike<number> | Record<string, number>);
+  return { positions, normals, indices, triangles: geometry.triangles };
 }
 
 function assertRecord(record: Skill4ModuleRecord) {

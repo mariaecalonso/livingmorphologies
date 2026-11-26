@@ -1,8 +1,10 @@
 import { TYPOLOGIES } from "@/lib/catalog";
 import type { TypologyId } from "@/lib/types";
 import { SITE_ARCHETYPES } from "@/lib/skill5/catalog";
-import { rankCompatibleFaces } from "./cluster-face-pair";
-import { ADJACENCY_TOLERANCE, connectionId, tileBounds, type TileConnection } from "./connections";
+import { offersBetween, type PoolOffer } from "./connection-pool";
+import { registrationSpan } from "./compact-measures";
+import { connectionId, tileBounds, type TileConnection } from "./connections";
+import { readGrowth } from "./growth-reading";
 import type { FaceId, Vec3 } from "./contract";
 import {
   emptyCatalog,
@@ -10,35 +12,37 @@ import {
   FINAL_CLUSTER_MAX_LINE,
   FINAL_CLUSTER_MAX_VERTICAL,
   FINAL_CLUSTER_PAIRS,
-  FINAL_CLUSTER_STRUCTURE_INTENTS,
+  FINAL_CLUSTER_GROWTH_BIASES,
+  FINAL_CLUSTER_GROWTH_CHARACTERS,
   kindsForPair,
-  sizeScheduleForPair,
+  sizeScheduleForId,
+  type FinalClusterGrowthBias,
+  type FinalClusterGrowthCharacter,
   type FinalClusterKind,
   type FinalClusterPair,
   type FinalClusterPairId,
-  type FinalClusterStructureIntent,
   type FinalClusterSummary,
   type FinalClustersCatalogDocument,
 } from "./final-cluster-pairs";
 import { faceWorldNormal, orientTiles } from "./tile-orientation";
-import { IDENTITY_BASIS, rotateByBasis, tileBasis, type Mat3 } from "./tile-basis";
-import { envelopeWidth, HYBRID_GAP, type TileInstance } from "./tiles";
+import { rotateByBasis, tileBasis, type Mat3 } from "./tile-basis";
+import type { TileInstance } from "./tiles";
 
 export {
   emptyCatalog,
   FINAL_CLUSTER_GENERATOR,
   FINAL_CLUSTER_MAX_LINE,
   FINAL_CLUSTER_MAX_VERTICAL,
+  FINAL_CLUSTER_GROWTH_CHARACTERS,
   FINAL_CLUSTER_PAIRS,
   FINAL_CLUSTER_SIZE_SCHEDULE,
-  FINAL_CLUSTER_STRUCTURE_INTENTS,
   FINAL_CLUSTERS_PER_PAIR,
   kindsForPair,
-  sizeScheduleForPair,
+  sizeScheduleForId,
+  type FinalClusterGrowthCharacter,
   type FinalClusterKind,
   type FinalClusterPair,
   type FinalClusterPairId,
-  type FinalClusterStructureIntent,
   type FinalClusterSummary,
   type FinalClustersCatalogDocument,
 } from "./final-cluster-pairs";
@@ -64,13 +68,31 @@ export type FinalClusterRecord = {
   names: string[];
   typologyMix: Record<FinalClusterKind, number>;
   structure?: string;
-  intent?: FinalClusterStructureIntent;
+  intent?: FinalClusterGrowthBias;
+  character?: FinalClusterGrowthBias;
+  provenance?: {
+    selectionHash: string;
+    modules: { archetypeId: string; moduleId: string; candidateId: number | null; continuationId: string | null }[];
+  };
   hybridReady: boolean;
   validated: boolean;
   generator: typeof FINAL_CLUSTER_GENERATOR;
 };
 
+function isBias(value: string | undefined): value is FinalClusterGrowthBias {
+  return (FINAL_CLUSTER_GROWTH_BIASES as readonly string[]).includes(value ?? "");
+}
+
+function assignedBiasOf(cluster: { intent?: string; character?: string }): FinalClusterGrowthBias | undefined {
+  const value = cluster.intent ?? cluster.character;
+  return isBias(value) ? value : undefined;
+}
+
 export function summarizeCluster(cluster: FinalClusterRecord): FinalClusterSummary {
+  const reading = readGrowth(cluster.tiles, cluster.connections ?? []);
+  const storedCharacter = (FINAL_CLUSTER_GROWTH_CHARACTERS as readonly string[]).includes(cluster.character ?? "")
+    ? cluster.character as FinalClusterGrowthCharacter
+    : undefined;
   return {
     id: cluster.id,
     pairId: cluster.pairId,
@@ -88,6 +110,11 @@ export function summarizeCluster(cluster: FinalClusterRecord): FinalClusterSumma
       rotation: tile.rotation ? [...tile.rotation] : null,
     })),
     typologyMix: cluster.typologyMix,
+    assignedBias: assignedBiasOf(cluster),
+    realizedPrimary: reading.primary,
+    realizedSecondary: reading.secondary,
+    balance: registrationSpan(cluster.tiles).balance,
+    character: storedCharacter,
     hybridReady: cluster.hybridReady,
     validated: cluster.validated,
     generator: cluster.generator,
@@ -109,12 +136,12 @@ export function tilesForKinds(kinds: readonly FinalClusterKind[]): FinalClusterT
 export function uniquePoolSizeForPair(pair: FinalClusterPair) {
   const pool = tilesForKinds(kindsForPair(pair));
   return pool.filter((tile) =>
-    pool.some((other) => other.id !== tile.id && rankCompatibleFaces(tile.id, other.id).length > 0),
+    pool.some((other) => other.id !== tile.id && (offersBetween(tile.id, other.id).length > 0 || offersBetween(other.id, tile.id).length > 0)),
   ).length;
 }
 
 export function scheduleForPair(pair: FinalClusterPair) {
-  return sizeScheduleForPair(pair.a === pair.b, uniquePoolSizeForPair(pair));
+  return sizeScheduleForId(pair.id);
 }
 
 function randomOf(seed: number) {
@@ -127,7 +154,12 @@ function randomOf(seed: number) {
   };
 }
 
-function seedFor(pairId: string, index: number) {
+/**
+ * FNV-1a of `categoryId:slotTimes1000PlusAttemptPlus17:final-v3`.
+ * `attemptDirectCluster` passes `catalogSlot * 1000 + retryAttempt + 17`.
+ * The catalog slot and the retry both change the sequence. The preference is chosen separately.
+ */
+export function seedFor(pairId: string, index: number) {
   let hash = 2166136261;
   const text = `${pairId}:${index}:final-v3`;
   for (let i = 0; i < text.length; i += 1) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
@@ -165,60 +197,7 @@ function mulMat3(a: Mat3, b: Mat3): Mat3 {
   return out as unknown as Mat3;
 }
 
-/** World reorientation after seating. orientTiles keeps assemblies upright; this tips whole clusters. */
-function worldBasisForIntent(intent: FinalClusterStructureIntent, random: () => number): Mat3 {
-  const upright = IDENTITY_BASIS;
-  const yaw90: Mat3 = [0, 0, -1, 0, 1, 0, 1, 0, 0];
-  const yaw180: Mat3 = [-1, 0, 0, 0, 1, 0, 0, 0, -1];
-  const yaw270: Mat3 = [0, 0, 1, 0, 1, 0, -1, 0, 0];
-  const tipX: Mat3 = [0, 1, 0, 1, 0, 0, 0, 0, 1];
-  const tipNegX: Mat3 = [0, -1, 0, -1, 0, 0, 0, 0, 1];
-  const tipZ: Mat3 = [1, 0, 0, 0, 0, -1, 0, 1, 0];
-  const tipNegZ: Mat3 = [1, 0, 0, 0, 0, 1, 0, -1, 0];
-  const yaws = [upright, yaw90, yaw180, yaw270];
-  const tips = [tipX, tipNegX, tipZ, tipNegZ];
-  const pick = <T,>(items: readonly T[]) => items[Math.floor(random() * items.length)]!;
-  switch (intent) {
-    case "vertical-spine":
-      return pick(yaws);
-    case "plan-spread":
-    case "horizontal-first":
-      return mulMat3(pick(yaws), pick(tips));
-    case "l-elbow":
-    case "early-turn":
-    case "corner-stack":
-      return random() < 0.65 ? mulMat3(pick(yaws), pick(tips)) : pick(yaws);
-    case "compact":
-    case "axis-alternate":
-    case "branch-from-seed":
-    case "branch-tips":
-      return random() < 0.5 ? mulMat3(pick(yaws), pick(tips)) : pick(yaws);
-    default:
-      return pick(yaws);
-  }
-}
-
-function bakeWorldBasis(tiles: readonly TileInstance[], basis: Mat3): TileInstance[] {
-  if (basis === IDENTITY_BASIS || (
-    basis[0] === 1 && basis[1] === 0 && basis[2] === 0
-    && basis[3] === 0 && basis[4] === 1 && basis[5] === 0
-    && basis[6] === 0 && basis[7] === 0 && basis[8] === 1
-  )) {
-    return tiles.map((tile) => ({ ...tile, transform: { ...tile.transform } }));
-  }
-  return tiles.map((tile) => {
-    const local = tileBasis(tile);
-    return {
-      ...tile,
-      transform: rotateByBasis(basis, tile.transform),
-      rotation: mulMat3(basis, local),
-      rotationQuarter: 0,
-      mirror: null,
-    };
-  });
-}
-
-function connectionBetween(hostId: string, guestId: string, hostFace: FaceId, guestFace: FaceId): TileConnection {
+function connectionBetween(hostId: string, guestId: string, offer: PoolOffer): TileConnection {
   const hostFirst = hostId < guestId;
   const tileAId = hostFirst ? hostId : guestId;
   const tileBId = hostFirst ? guestId : hostId;
@@ -226,8 +205,8 @@ function connectionBetween(hostId: string, guestId: string, hostFace: FaceId, gu
     id: connectionId(tileAId, tileBId),
     tileAId,
     tileBId,
-    faceA: hostFirst ? hostFace : guestFace,
-    faceB: hostFirst ? guestFace : hostFace,
+    faceA: hostFirst ? offer.hostFace : offer.guestFace,
+    faceB: hostFirst ? offer.guestFace : offer.hostFace,
     origin: "explicit",
     generationStatus: "not-generated",
     faceSelection: "user",
@@ -236,25 +215,10 @@ function connectionBetween(hostId: string, guestId: string, hostFace: FaceId, gu
     candidateField: null,
     generatedHybridField: null,
     selectedMockId: "",
+    connectionKind: "hybrid",
+    separation: offer.distance,
+    poseNote: offer.poseNote,
   };
-}
-
-function overlaps(left: TileInstance, right: TileInstance) {
-  const a = tileBounds(left);
-  const b = tileBounds(right);
-  const span = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1, b1) - Math.max(a0, b0);
-  return span(a.min.x, a.max.x, b.min.x, b.max.x) > ADJACENCY_TOLERANCE
-    && span(a.min.y, a.max.y, b.min.y, b.max.y) > ADJACENCY_TOLERANCE
-    && span(a.min.z, a.max.z, b.min.z, b.max.z) > ADJACENCY_TOLERANCE;
-}
-
-function collides(tiles: readonly TileInstance[]) {
-  for (let left = 0; left < tiles.length; left += 1) {
-    for (let right = left + 1; right < tiles.length; right += 1) {
-      if (overlaps(tiles[left], tiles[right])) return true;
-    }
-  }
-  return false;
 }
 
 function typologyOf(archetypeId: string, pool: readonly FinalClusterTileRef[]): FinalClusterKind | null {
@@ -430,64 +394,87 @@ function lastConnectionAxis(tiles: readonly TileInstance[], connections: readonl
   })?.axis ?? null;
 }
 
+function assemblySpan(tiles: readonly TileInstance[]) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (const tile of tiles) {
+    const box = tileBounds(tile);
+    minX = Math.min(minX, box.min.x);
+    minY = Math.min(minY, box.min.y);
+    minZ = Math.min(minZ, box.min.z);
+    maxX = Math.max(maxX, box.max.x);
+    maxY = Math.max(maxY, box.max.y);
+    maxZ = Math.max(maxZ, box.max.z);
+  }
+  return {
+    x: Number.isFinite(minX) ? maxX - minX : 0,
+    y: Number.isFinite(minY) ? maxY - minY : 0,
+    z: Number.isFinite(minZ) ? maxZ - minZ : 0,
+  };
+}
+
+/**
+ * Soft compact bias. It does not reject a legal attachment and it does not
+ * force a cube. Balance, shorter dispersion, and growth on the short axis
+ * only change the weight of an attachment that already passed the tree rules.
+ */
+function compactBias(before: readonly TileInstance[], after: readonly TileInstance[]) {
+  const current = assemblySpan(before);
+  const next = assemblySpan(after);
+  const mean = (next.x + next.y + next.z) / 3;
+  const deviation = Math.sqrt(
+    ((next.x - mean) ** 2 + (next.y - mean) ** 2 + (next.z - mean) ** 2) / 3,
+  );
+  const balance = mean > 1 ? 1 - Math.min(1, deviation / mean) : 0;
+  const axes = ["x", "y", "z"] as const;
+  const shortest = axes.reduce((best, axis) => (current[axis] < current[best] ? axis : best), "x");
+  const longest = axes.reduce((best, axis) => (current[axis] > current[best] ? axis : best), "x");
+  const towardShort = Math.max(0, next[shortest] - current[shortest]);
+  const alongLong = Math.max(0, next[longest] - current[longest]);
+  const dispersion = next.x + next.y + next.z;
+  return balance * 3.4 + towardShort * 0.08 - alongLong * 0.07 - dispersion * 0.01;
+}
+
 function scoreMove(
-  intent: FinalClusterStructureIntent,
+  character: FinalClusterGrowthCharacter | "compact",
   frame: Frame,
   host: TileInstance,
   axis: Axis | null,
-  nextTiles: readonly TileInstance[],
+  offer: PoolOffer,
+  guestId: string,
+  pressure: ReadonlyMap<string, number>,
   random: () => number,
+  nextTiles?: readonly TileInstance[],
 ) {
-  const before = extentOf(frame.tiles);
-  const after = extentOf(nextTiles);
-  const growth = (after.rx - before.rx) + (after.ry - before.ry) + (after.rz - before.rz);
-  const planGrowth = (after.rx - before.rx) + (after.rz - before.rz);
   const vertical = axis === "y";
   const plan = axis === "x" || axis === "z";
   const degrees = degreeMap(frame.connections);
   const hostDegree = degrees.get(host.instanceId) ?? 0;
   const lastAxis = lastConnectionAxis(frame.tiles, frame.connections);
-  let score = 1 + random() * 0.35;
+  const guestCount = frame.tiles.filter((tile) => tile.archetypeId === guestId).length;
+  let score = offer.strength + random() * 0.35;
+  if (guestCount > 0) score *= 0.42;
+  score /= 1 + (pressure.get(guestId) ?? 0) * 0.15;
 
-  switch (intent) {
-    case "vertical-spine":
-      score += vertical ? 4 : plan ? 0.4 : 1;
+  switch (character) {
+    case "linear":
+      score += !lastAxis ? (plan ? 3 : 0.4) : axis === lastAxis ? 4 : 0.45;
       break;
-    case "plan-spread":
-      score += plan ? 5 : vertical ? 0.2 : 1;
-      score += planGrowth * 0.04;
+    case "angular":
+      score += lastAxis && axis && axis !== lastAxis && plan ? 4.5 : plan ? 1.2 : 0.5;
       break;
-    case "l-elbow":
-      if (!lastAxis) score += 1;
-      else if (axis && axis !== lastAxis) score += 5;
-      else score += 0.3;
+    case "branching":
+      score += hostDegree >= 1 ? 4 : host.instanceId === "A" ? 2.2 : 0.6;
       break;
-    case "early-turn":
-      score += axis && lastAxis && axis !== lastAxis ? 4 : 1;
-      break;
-    case "branch-from-seed":
-      score += host.instanceId === "A" ? 5 : hostDegree === 0 ? 2 : 0.4;
-      break;
-    case "branch-tips": {
-      const isLeaf = frame.tiles.length < 2 || hostDegree <= 1;
-      score += isLeaf ? 4.5 : 0.35;
-      break;
-    }
-    case "horizontal-first":
-      if (frame.connections.length === 0) score += plan ? 8 : 0.1;
-      else score += plan ? 2.5 : 1;
+    case "vertical":
+      score += vertical ? 4.5 : 0.7;
       break;
     case "compact":
-      score += Math.max(0.2, 4 - growth * 0.05);
-      break;
-    case "axis-alternate":
-      if (!lastAxis) score += 1.5;
-      else if (axis && axis !== lastAxis) score += 5;
-      else score += 0.25;
-      break;
-    case "corner-stack":
-      if (frame.connections.length < 2) score += plan ? 4 : 0.5;
-      else score += vertical ? 4 : plan ? 1.2 : 1;
+      if (nextTiles) score += compactBias(frame.tiles, nextTiles);
       break;
   }
   return score;
@@ -503,35 +490,52 @@ function pickWeighted<T extends { score: number }>(items: readonly T[], random: 
   return items[items.length - 1]!;
 }
 
+function deepOverlap(left: TileInstance, right: TileInstance) {
+  const a = tileBounds(left);
+  const b = tileBounds(right);
+  const span = (a0: number, a1: number, b0: number, b1: number) => Math.min(a1, b1) - Math.max(a0, b0);
+  return span(a.min.x, a.max.x, b.min.x, b.max.x) > 6
+    && span(a.min.y, a.max.y, b.min.y, b.max.y) > 6
+    && span(a.min.z, a.max.z, b.min.z, b.max.z) > 6;
+}
+
+function familiesPresent(tiles: readonly TileInstance[], pool: readonly FinalClusterTileRef[]) {
+  return new Set(tiles.map((tile) => typologyOf(tile.archetypeId, pool)).filter((kind): kind is FinalClusterKind => kind != null));
+}
+
 /**
- * Random Final Cluster growth with a structural brief.
- * - No archetype repeats.
- * - Collinear runs stop at 3 (or 2 for early-turn).
- * - Vertical stacks stop at 3.
- * - Root yaw is randomized so world organization can leave the default upright.
+ * Seeded stochastic tree growth. Hybrid offers only. World up stays up.
+ * A second copy of an archetype is allowed and scored at 0.42. A third copy is rejected.
+ * The root quarter-turn is 0–3 about world up. Sideways and inverted roots are not used.
+ * Linear, angular, branching, vertical, and compact bias the next edge. They do not define the saved shape.
+ * Connector generation and assembly validation run after this function returns a seated tree.
  */
 export function growDirectCluster(
   pair: FinalClusterPair,
   targetCount: number,
   seed: number,
-  intent: FinalClusterStructureIntent = "plan-spread",
-): { tiles: TileInstance[]; connections: TileConnection[]; names: string[]; structure: string; intent: FinalClusterStructureIntent } | null {
+  character: FinalClusterGrowthCharacter = "linear",
+  pressure: ReadonlyMap<string, number> = new Map(),
+  experiment: "compact" | null = null,
+): { tiles: TileInstance[]; connections: TileConnection[]; names: string[]; structure: string; intent: FinalClusterGrowthCharacter | "compact"; character: FinalClusterGrowthCharacter | "compact" } | null {
   const pool = tilesForKinds(kindsForPair(pair));
   if (pool.length === 0) return null;
-  const usable = pool.filter((tile) =>
-    pool.some((other) => other.id !== tile.id && rankCompatibleFaces(tile.id, other.id).length > 0),
-  );
-  if (usable.length === 0) return null;
-  const faceRank = rankCompatibleFaces;
+  const linked = (left: string, right: string) =>
+    offersBetween(left, right).length > 0 || offersBetween(right, left).length > 0;
+  const usable = pool.filter((tile) => pool.some((other) => other.id !== tile.id && linked(tile.id, other.id)));
+  const hosts = usable.filter((tile) => usable.some((other) => other.id !== tile.id && offersBetween(tile.id, other.id).length > 0));
+  if (hosts.length === 0) return null;
 
   const random = randomOf(seed);
-  const names = new Map(usable.map((tile) => [tile.id, tile.name]));
-  const uniqueCap = usable.length;
-  const count = Math.min(TILE_IDS.length, uniqueCap, Math.max(2, targetCount));
-  if (count < 2) return null;
-  const maxLine = intent === "early-turn" ? Math.min(2, FINAL_CLUSTER_MAX_LINE) : FINAL_CLUSTER_MAX_LINE;
+  const names = new Map(pool.map((tile) => [tile.id, tile.name]));
+  const minimum = pair.id === "mixed" ? 3 : 2;
+  const count = Math.min(TILE_IDS.length, Math.max(minimum, targetCount));
+  if (count < minimum) return null;
+  const bias = experiment === "compact" ? "compact" : character;
+  const maxLine = bias === "linear" ? count : FINAL_CLUSTER_MAX_LINE;
+  const maxVertical = bias === "vertical" ? 4 : FINAL_CLUSTER_MAX_VERTICAL;
 
-  const first = usable[Math.floor(random() * usable.length)];
+  const first = hosts[Math.floor(random() * hosts.length)];
   if (!first) return null;
   const rootQuarter = (Math.floor(random() * 4) as 0 | 1 | 2 | 3);
 
@@ -549,33 +553,16 @@ export function growDirectCluster(
     const frame = stack[stack.length - 1];
     if (frame.tiles.length >= count) break;
 
-    const usedArchetypes = new Set(frame.tiles.map((tile) => tile.archetypeId));
-    const mix = mixOf(frame.tiles, usable);
-    const needOther = pair.a !== pair.b && (mix[pair.a] === 0 || mix[pair.b] === 0);
-    const missingKind: FinalClusterKind | null = needOther
-      ? (mix[pair.a] === 0 ? pair.a : pair.b)
-      : null;
-
-    let guestPool = usable.filter((tile) => !usedArchetypes.has(tile.id));
-    if (missingKind) {
-      const forced = guestPool.filter((tile) => tile.typologyId === missingKind);
+    const counts = new Map<string, number>();
+    for (const tile of frame.tiles) counts.set(tile.archetypeId, (counts.get(tile.archetypeId) ?? 0) + 1);
+    const required = kindsForPair(pair);
+    const present = familiesPresent(frame.tiles, pool);
+    const missing = required.filter((kind) => !present.has(kind));
+    const slotsLeft = count - frame.tiles.length;
+    let guestPool = usable.filter((tile) => (counts.get(tile.id) ?? 0) < 2);
+    if (missing.length > 0 && missing.length >= slotsLeft) {
+      const forced = guestPool.filter((tile) => missing.includes(tile.typologyId));
       if (forced.length > 0) guestPool = forced;
-    }
-    // Prefer tiles that unlock horizontal faces when the brief wants plan growth.
-    if (intent === "plan-spread" || intent === "horizontal-first" || intent === "l-elbow") {
-      guestPool = [...guestPool].sort((left, right) => {
-        const score = (id: string) => {
-          let horizontal = 0;
-          for (const host of frame.tiles) {
-            for (const face of faceRank(host.archetypeId, id)) {
-              const axis = dominantAxis(faceWorldNormal(face.faceA, host));
-              if (axis && axis.axis !== "y") horizontal += 1;
-            }
-          }
-          return horizontal;
-        };
-        return score(right.id) - score(left.id);
-      });
     }
     const guests = shuffle(guestPool, random);
     const hosts = shuffle([...frame.tiles], random);
@@ -583,50 +570,61 @@ export function growDirectCluster(
     const moves: { key: string; frame: Frame; score: number }[] = [];
     for (const host of hosts) {
       const used = frame.occupied.get(host.instanceId) ?? new Set<FaceId>();
+      const hostBasis = tileBasis(host);
       for (const guest of guests) {
-        const faces = shuffle(faceRank(host.archetypeId, guest.id), random);
-        for (const pairFace of faces) {
-          if (used.has(pairFace.faceA)) continue;
+        const offers = shuffle(offersBetween(host.archetypeId, guest.id), random);
+        for (const offer of offers) {
+          if (used.has(offer.hostFace)) continue;
           const guestId = TILE_IDS[frame.tiles.length];
           if (!guestId) continue;
-          const key = `${frame.tiles.length}:${host.instanceId}:${guest.id}:${pairFace.faceA}:${pairFace.faceB}`;
+          const key = `${frame.tiles.length}:${host.instanceId}:${guest.id}:${offer.hostFace}:${offer.guestFace}:${offer.distance.toFixed(1)}`;
           if (blocked.has(key)) continue;
 
-          const normal = faceWorldNormal(pairFace.faceA, host);
-          const axis = dominantAxis(normal);
-          if (axis) {
+          let seated: TileInstance = blankTile(guestId, guest.id);
+          const poseSeat = Math.hypot(offer.localOffset.x, offer.localOffset.y, offer.localOffset.z) > 0.5;
+          let axis: ReturnType<typeof dominantAxis>;
+          if (poseSeat) {
+            const offset = rotateByBasis(hostBasis, offer.localOffset);
+            seated = {
+              ...seated,
+              transform: {
+                x: host.transform.x + offset.x,
+                y: host.transform.y + offset.y,
+                z: host.transform.z + offset.z,
+              },
+              rotation: mulMat3(hostBasis, offer.localRotation),
+              rotationQuarter: 0,
+              mirror: null,
+            };
+            axis = dominantAxis(offset);
+          } else {
+            const normal = faceWorldNormal(offer.hostFace, host);
+            seated = {
+              ...seated,
+              transform: {
+                x: host.transform.x + normal.x * offer.distance,
+                y: host.transform.y + normal.y * offer.distance,
+                z: host.transform.z + normal.z * offer.distance,
+              },
+            };
+            axis = dominantAxis(normal);
+          }
+          if (axis && axis.axis !== "y") {
             const run = lineRunAtHost(host.instanceId, axis.axis, axis.sign, frame.tiles, frame.connections);
             if (run >= maxLine) continue;
           }
+          if (axis?.axis === "y" && verticalStackCount(frame.tiles, host) >= maxVertical) continue;
 
-          const step = envelopeWidth() + HYBRID_GAP;
-          const seated: TileInstance = {
-            ...blankTile(guestId, guest.id),
-            transform: {
-              x: host.transform.x + normal.x * step,
-              y: host.transform.y + normal.y * step,
-              z: host.transform.z + normal.z * step,
-            },
-          };
-
-          if (axis?.axis === "y") {
-            const column = verticalStackCount(frame.tiles, host);
-            if (column >= FINAL_CLUSTER_MAX_VERTICAL) continue;
-          } else if (verticalStackCount([...frame.tiles, seated], seated) > FINAL_CLUSTER_MAX_VERTICAL) {
-            continue;
-          }
-
-          const connection = connectionBetween(host.instanceId, guestId, pairFace.faceA, pairFace.faceB);
+          const connection = connectionBetween(host.instanceId, guestId, offer);
           const oriented = orientTiles([...frame.tiles, seated], [...frame.connections, connection]);
           if (oriented.unresolved.has(connection.id)) continue;
-          if (collides(oriented.tiles)) continue;
-
+          if (oriented.tiles.some((tile, index) => oriented.tiles.slice(index + 1).some((other) => deepOverlap(tile, other)))) continue;
           const guestPlaced = oriented.tiles.find((tile) => tile.instanceId === guestId);
-          if (guestPlaced && verticalStackCount(oriented.tiles, guestPlaced) > FINAL_CLUSTER_MAX_VERTICAL) continue;
+          if (guestPlaced && verticalStackCount(oriented.tiles, guestPlaced) > maxVertical) continue;
 
           const nextOccupied = new Map([...frame.occupied].map(([id, facesUsed]) => [id, new Set(facesUsed)]));
-          nextOccupied.set(host.instanceId, new Set([...used, pairFace.faceA]));
-          nextOccupied.set(guestId, new Set([pairFace.faceB]));
+          nextOccupied.set(host.instanceId, new Set([...used, offer.hostFace]));
+          nextOccupied.set(guestId, new Set([offer.guestFace]));
           const nextFrame: Frame = {
             tiles: oriented.tiles,
             connections: [...frame.connections, connection],
@@ -635,7 +633,7 @@ export function growDirectCluster(
           moves.push({
             key,
             frame: nextFrame,
-            score: scoreMove(intent, frame, host, axis?.axis ?? null, oriented.tiles, random),
+            score: scoreMove(bias, frame, host, axis?.axis ?? null, offer, guest.id, pressure, random, oriented.tiles),
           });
         }
       }
@@ -643,19 +641,16 @@ export function growDirectCluster(
 
     if (moves.length > 0) {
       let poolMoves = moves;
-      if (intent === "horizontal-first" && frame.connections.length === 0) {
+      if (bias === "linear" || bias === "angular") {
         const planMoves = moves.filter((move) => {
           const axis = lastConnectionAxis(move.frame.tiles, move.frame.connections);
           return axis === "x" || axis === "z";
         });
-        if (planMoves.length > 0) poolMoves = planMoves;
+        if (planMoves.length > 0 && random() < (bias === "linear" ? 0.85 : 0.7)) poolMoves = planMoves;
       }
-      if (intent === "plan-spread") {
-        const planMoves = moves.filter((move) => {
-          const axis = lastConnectionAxis(move.frame.tiles, move.frame.connections);
-          return axis === "x" || axis === "z";
-        });
-        if (planMoves.length > 0 && random() < 0.72) poolMoves = planMoves;
+      if (bias === "vertical") {
+        const upMoves = moves.filter((move) => lastConnectionAxis(move.frame.tiles, move.frame.connections) === "y");
+        if (upMoves.length > 0 && random() < 0.8) poolMoves = upMoves;
       }
       const pick = pickWeighted(poolMoves, random);
       blocked.add(pick.key);
@@ -678,23 +673,49 @@ export function growDirectCluster(
 
   const frame = stack[stack.length - 1];
   if (!frame || frame.tiles.length !== count || frame.connections.length !== count - 1) return null;
-  const unique = new Set(frame.tiles.map((tile) => tile.archetypeId));
-  if (unique.size !== frame.tiles.length) return null;
-  if (pair.a !== pair.b) {
-    const mix = mixOf(frame.tiles, usable);
-    if (mix[pair.a] < 1 || mix[pair.b] < 1) return null;
-  }
-  const oriented = bakeWorldBasis(frame.tiles, worldBasisForIntent(intent, random));
+  const present = familiesPresent(frame.tiles, pool);
+  if (kindsForPair(pair).some((kind) => !present.has(kind))) return null;
+  if (frame.tiles.some((tile) => frame.tiles.filter((other) => other.archetypeId === tile.archetypeId).length > 2)) return null;
   return {
-    tiles: oriented,
+    tiles: frame.tiles,
     connections: frame.connections,
-    names: oriented.map((tile) => names.get(tile.archetypeId) ?? tile.archetypeId),
-    structure: structureSignature(oriented, frame.connections),
-    intent,
+    names: frame.tiles.map((tile) => names.get(tile.archetypeId) ?? tile.archetypeId),
+    structure: structureSignature(frame.tiles, frame.connections),
+    intent: bias,
+    character: bias,
   };
 }
 
-export function attemptDirectCluster(pair: FinalClusterPair, index: number, size: number, attempt: number) {
-  const intent = FINAL_CLUSTER_STRUCTURE_INTENTS[index % FINAL_CLUSTER_STRUCTURE_INTENTS.length]!;
-  return growDirectCluster(pair, size, seedFor(pair.id, index * 1000 + attempt + 17), intent);
+/** Experiment index. It is not a catalog slot. The bias rule matches attemptDirectCluster. */
+export const PROCESS_EXPERIMENT_INDEX = 900;
+
+export function experimentGrowthCharacter(attempt: number): FinalClusterGrowthBias {
+  const safe = Math.max(0, Math.round(attempt));
+  const shift = safe > 40 ? Math.floor(safe / 20) : 0;
+  return FINAL_CLUSTER_GROWTH_BIASES[(PROCESS_EXPERIMENT_INDEX + shift) % FINAL_CLUSTER_GROWTH_BIASES.length]!;
+}
+
+/**
+ * `index` is the catalog slot. `attempt` is the retry counter, not the slot.
+ * Preference is `(slot + shift) mod 5`, and shift is `floor(attempt / 20)` only after attempt 40.
+ * Compact is the fifth assigned bias. Realized topology stays the four-class reading.
+ * RNG seed is `seedFor(category, slot * 1000 + attempt + 17)`.
+ */
+export function attemptDirectCluster(
+  pair: FinalClusterPair,
+  index: number,
+  size: number,
+  attempt: number,
+  pressure: ReadonlyMap<string, number> = new Map(),
+) {
+  const shift = attempt > 40 ? Math.floor(attempt / 20) : 0;
+  const bias = FINAL_CLUSTER_GROWTH_BIASES[(index + shift) % FINAL_CLUSTER_GROWTH_BIASES.length]!;
+  return growDirectCluster(
+    pair,
+    size,
+    seedFor(pair.id, index * 1000 + attempt + 17),
+    bias === "compact" ? "linear" : bias,
+    pressure,
+    bias === "compact" ? "compact" : null,
+  );
 }

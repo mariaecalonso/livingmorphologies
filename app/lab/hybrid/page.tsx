@@ -1,4 +1,4 @@
-import { HybridAssembly } from "@/components/hybrid/hybrid-assembly";
+import { FinalClusterProcess } from "@/components/hybrid/final-cluster-process";
 import { labWorkspace } from "@/lib/site-map";
 
 const workspace = labWorkspace("hybrid");
@@ -9,5 +9,5 @@ export const metadata = {
 };
 
 export default function HybridPage() {
-  return <HybridAssembly view="process" />;
+  return <FinalClusterProcess />;
 }

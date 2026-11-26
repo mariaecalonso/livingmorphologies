@@ -20,10 +20,13 @@ export function connectClusterHybrid(
   connection: TileConnection,
   tiles: readonly TileInstance[],
   loaded: ReadonlyMap<string, ModuleHandoff>,
+  candidateIds?: readonly string[],
+  select?: (connection: TileConnection) => string,
+  options?: { retainCandidateMeshes?: boolean },
 ): TileConnection {
   const reusable = generateConnectionHybridField(connection, tiles, loaded);
   if (reusable.ok && reusable.reused) {
-    const kept = keepChosenHybrid(reusable.connection);
+    const kept = options?.retainCandidateMeshes ? reusable.connection : keepChosenHybrid(reusable.connection);
     return hybridReady(kept) ? kept : sealConnection(kept, tiles, loaded);
   }
 
@@ -39,14 +42,22 @@ export function connectClusterHybrid(
     moduleB: resolveTileModule(tileB.archetypeId, loaded),
   });
   if (!inputs.ok) return { ...connection, signature };
+  const field = candidateIds && candidateIds.length > 0
+    ? { ...inputs.field, candidates: inputs.field.candidates.filter((candidate) => candidateIds.includes(candidate.id)) }
+    : inputs.field;
+  if (field.candidates.length === 0) return { ...connection, signature };
   const seeded: TileConnection = {
     ...connection,
     signature,
-    candidateField: inputs.field,
+    candidateField: field,
     inputsChanged: false,
   };
   const generated = generateConnectionHybridField(seeded, tiles, loaded);
-  return generated.ok ? sealConnection(keepChosenHybrid(generated.connection), tiles, loaded) : seeded;
+  if (!generated.ok) return seeded;
+  const selectedId = select?.(generated.connection) || generated.connection.selectedMockId;
+  const chosen = selectedId ? { ...generated.connection, selectedMockId: selectedId } : generated.connection;
+  const kept = options?.retainCandidateMeshes ? chosen : keepChosenHybrid(chosen);
+  return sealConnection(kept, tiles, loaded);
 }
 
 /** The full field is generated, then only the chosen candidate keeps its mesh. */
@@ -113,7 +124,8 @@ export function validateClusterAssembly(
         : []
     )),
   ];
-  if (worlds.length < tiles.length + connections.length) return null;
+  const required = tiles.length + connections.length;
+  if (worlds.length < required) return null;
   try {
     const film = filmWrapAssembly(worlds);
     if (film?.check.adopted && film.mesh && film.mesh.triangles > 4) return film.mesh;

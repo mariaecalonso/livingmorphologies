@@ -49,6 +49,14 @@ export type TileConnection = {
   candidateField: CandidateField | null;
   generatedHybridField: GeneratedHybridField | null;
   selectedMockId: string;
+  /** Direct pose contact, or a generated transition. Absent on older records. */
+  connectionKind?: "direct" | "hybrid";
+  /** Center-to-center separation in model units. */
+  separation?: number;
+  /** Pose or face note that seated this edge. */
+  poseNote?: string;
+  /** SOM-inspired field cells opened during adaptive selection. */
+  connectorsEvaluated?: readonly string[];
   /** Placed hybrid before Skill 04 validation. Debug only. */
   rawHybrid?: IsoMesh | null;
   /** Validated, shrink-wrapped connection. This is the cluster solid. */

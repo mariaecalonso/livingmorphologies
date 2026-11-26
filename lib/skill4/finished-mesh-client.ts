@@ -10,7 +10,12 @@ export type PackedFinishedMesh = {
   indices?: string;
 };
 
-type MeshResponse = { mesh?: PackedFinishedMesh | null } | null;
+export type FinishedClusterMeshFile = {
+  mesh?: PackedFinishedMesh | null;
+  connections?: { id: string; validatedHybrid: PackedFinishedMesh | null }[];
+};
+
+type MeshResponse = FinishedClusterMeshFile | null;
 
 const pending = new Map<string, Promise<PackedFinishedMesh | null>>();
 
@@ -18,7 +23,7 @@ function keyOf(programId: string, clusterId: string) {
   return `${programId}:${clusterId}`;
 }
 
-export function fetchFinishedMeshPacked(programId: string, clusterId: string): Promise<PackedFinishedMesh | null> {
+export function fetchFinishedClusterAssembly(programId: string, clusterId: string): Promise<FinishedClusterMeshFile | null> {
   const key = keyOf(programId, clusterId);
   const open = pending.get(key);
   if (open) return open;
@@ -26,7 +31,7 @@ export function fetchFinishedMeshPacked(programId: string, clusterId: string): P
     .then(async (response) => {
       if (!response.ok) return null;
       const body = await response.json() as MeshResponse;
-      return body?.mesh ?? null;
+      return body ?? null;
     })
     .catch(() => {
       pending.delete(key);
@@ -34,6 +39,10 @@ export function fetchFinishedMeshPacked(programId: string, clusterId: string): P
     });
   pending.set(key, request);
   return request;
+}
+
+export function fetchFinishedMeshPacked(programId: string, clusterId: string): Promise<PackedFinishedMesh | null> {
+  return fetchFinishedClusterAssembly(programId, clusterId).then((body) => body?.mesh ?? null);
 }
 
 const ranks = new Map<string, Promise<unknown>>();

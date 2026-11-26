@@ -34,7 +34,11 @@ export const GROWTH_STAGE_ARCHIVED = true;
  * Program Cluster 2.0 archived from the interface:
  * Tile Compatibility, Cluster Placement (program catalog), Morphology Review,
  * differentiation / finished program-cluster catalogs.
- * Hybrid Connection stays live at /lab/hybrid (Process, Catalog, Final Catalog).
+ * Hybrid Cluster stays live at /lab/hybrid (Process, Catalog, Method).
+ * The Catalog tab is the production catalog: 161 clusters, 23 in each of seven categories.
+ * The older two-parent Catalog and Final Catalog stay at
+ * /lab/hybrid/legacy/catalog and /lab/hybrid/legacy/final-catalog.
+ * /lab/hybrid/final-clusters redirects to the production Catalog.
  * Routes and data stay in the project; set false to restore the old UI.
  */
 export const PROGRAM_CLUSTER_2_ARCHIVED = true;
@@ -130,8 +134,7 @@ export const LAB_WORKSPACES = [
     tabs: [
       { href: "/lab/hybrid", label: "Process" },
       { href: "/lab/hybrid/catalog", label: "Catalog" },
-      { href: "/lab/hybrid/final-catalog", label: "Final Catalog" },
-      { href: "/lab/hybrid/final-clusters", label: "Final Clusters" },
+      { href: "/lab/hybrid/method", label: "Method" },
     ],
   },
   {

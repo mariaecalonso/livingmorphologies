@@ -124,6 +124,7 @@ uniform vec3 uColor;
 uniform float uAlpha;
 uniform float uPalette;
 uniform float uStyle;
+uniform float uTone;
 uniform float uClip;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oDepth;
@@ -156,7 +157,7 @@ void main() {
   if (uStyle > 4.5) {
     float shadeLit = 0.38 + lambert * 0.24;
     vec3 body = uColor * shadeLit;
-    float crease = uAlpha > 0.999 ? smoothstep(0.5, 0.95, length(fwidth(n))) * 0.22 : 0.0;
+    float crease = uTone > 0.5 ? 0.0 : (uAlpha > 0.999 ? smoothstep(0.5, 0.95, length(fwidth(n))) * 0.22 : 0.0);
     oColor = vec4(mix(body, vec3(0.96), crease), uAlpha);
     oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
     return;
@@ -181,10 +182,10 @@ void main() {
   if (uStyle > 0.5) {
     float rim = pow(1.0 - abs(facing), 2.6);
     float bend = length(fwidth(n));
-    float crease = smoothstep(0.2, 0.46, bend) * (1.0 - smoothstep(0.46, 1.2, bend));
+    float crease = uTone > 0.5 ? 0.0 : smoothstep(0.2, 0.46, bend) * (1.0 - smoothstep(0.46, 1.2, bend));
     float edgeDist = min(vBary.x, min(vBary.y, vBary.z));
     float fw = fwidth(edgeDist);
-    float meshEdge = fw > 0.003 && fw < 0.055 ? (1.0 - smoothstep(fw * 0.15, fw * 0.7, edgeDist)) : 0.0;
+    float meshEdge = uTone > 0.5 ? 0.0 : (fw > 0.003 && fw < 0.055 ? (1.0 - smoothstep(fw * 0.15, fw * 0.7, edgeDist)) : 0.0);
     vec3 body;
     vec3 line;
     if (uStyle > 1.5) {
@@ -198,8 +199,9 @@ void main() {
       line = vec3(1.0);
     }
     float shell = facing < 0.0 ? 0.66 : 1.0;
-    float alpha = 0.22 * shell * uAlpha;
-    vec3 glow = line * (rim * 0.55 + crease * 0.28 + meshEdge * 0.22);
+    float alpha = (uTone > 0.5 ? 0.62 : 0.22) * shell * uAlpha;
+    float rimGain = uTone > 0.5 ? 0.12 : 0.55;
+    vec3 glow = line * (rim * rimGain + crease * 0.28 + meshEdge * 0.22);
     oColor = vec4(body * alpha + glow, alpha);
     oDepth = vec4(vDepth, 0.0, 0.0, 1.0);
     return;
@@ -221,6 +223,7 @@ precision highp float;
 uniform sampler2D uColor;
 uniform sampler2D uDepth;
 uniform vec2 uTexel;
+uniform float uBloom;
 in vec2 vUv;
 out vec4 oColor;
 void main() {
@@ -251,11 +254,14 @@ void main() {
   float inside = step(0.002, z);
   float strength = max(col.r, max(col.g, col.b));
   vec3 hue = strength > 0.05 ? col / strength : vec3(0.95, 0.96, 0.95);
-  vec3 lit = col + bloom * mix(0.16, 0.04, inside) + hue * contour * 0.55;
+  vec3 lit = col + bloom * mix(0.16, 0.04, inside) * uBloom + hue * contour * 0.55 * uBloom;
   oColor = vec4(min(lit, vec3(1.0)), texture(uColor, vUv).a);
 }`;
 
-const SHADER_VERSION = 47;
+const SHADER_VERSION = 51;
+
+const MESH_PRESENT_MARK = "hybrid-mesh-present";
+const MESH_SOURCE_MARK = "hybrid-mesh-source";
 
 const expandedMeshes = new WeakMap<IsoMesh, { positions: Float32Array; normals: Float32Array }>();
 
@@ -334,10 +340,12 @@ type Gpu = {
   uAlpha: WebGLUniformLocation;
   uPalette: WebGLUniformLocation;
   uStyle: WebGLUniformLocation;
+  uTone: WebGLUniformLocation;
   uRampOrigin: WebGLUniformLocation;
   uRampDir: WebGLUniformLocation;
   uClip: WebGLUniformLocation;
   uTexel: WebGLUniformLocation;
+  uBloom: WebGLUniformLocation;
   width: number;
   height: number;
 };
@@ -384,7 +392,7 @@ function tex(gl: WebGL2RenderingContext, internal: number, format: number, type:
 function setup(canvas: HTMLCanvasElement, transparent = false): Gpu | null {
   const existing = cache.get(canvas);
   if (existing && existing.shaderVersion === SHADER_VERSION && existing.transparent === transparent && !existing.gl.isContextLost()) return existing;
-  const gl = canvas.getContext("webgl2", { antialias: true, alpha: transparent, premultipliedAlpha: !transparent, depth: true });
+  const gl = canvas.getContext("webgl2", { antialias: true, alpha: transparent, premultipliedAlpha: !transparent, depth: true, preserveDrawingBuffer: true });
   if (!gl) return null;
   gl.getExtension("EXT_color_buffer_float");
   const meshProgram = link(gl, VERT, FRAG);
@@ -412,12 +420,14 @@ function setup(canvas: HTMLCanvasElement, transparent = false): Gpu | null {
   const uAlpha = gl.getUniformLocation(meshProgram, "uAlpha");
   const uPalette = gl.getUniformLocation(meshProgram, "uPalette");
   const uStyle = gl.getUniformLocation(meshProgram, "uStyle");
+  const uTone = gl.getUniformLocation(meshProgram, "uTone");
   const uRampOrigin = gl.getUniformLocation(meshProgram, "uRampOrigin");
   const uRampDir = gl.getUniformLocation(meshProgram, "uRampDir");
   const uClip = gl.getUniformLocation(meshProgram, "uClip");
   const uTexel = gl.getUniformLocation(aoProgram, "uTexel");
+  const uBloom = gl.getUniformLocation(aoProgram, "uBloom");
   if (!position || !normal || !index || !quad || !fbo || !colorTex || !linearTex || !depthTex) return null;
-  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uStyle || !uRampOrigin || !uRampDir || !uClip || !uTexel) return null;
+  if (!uYaw || !uPitch || !uAspect || !uFit || !uDistance || !uTranslate || !uCenter || !uBasis || !uSpin || !uMirror || !uColor || !uAlpha || !uPalette || !uStyle || !uTone || !uRampOrigin || !uRampDir || !uClip || !uTexel || !uBloom) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, quad);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -454,10 +464,12 @@ function setup(canvas: HTMLCanvasElement, transparent = false): Gpu | null {
     uAlpha,
     uPalette,
     uStyle,
+    uTone,
     uRampOrigin,
     uRampDir,
     uClip,
     uTexel,
+    uBloom,
     width: 0,
     height: 0,
   };
@@ -483,7 +495,11 @@ const GRID_COLOR: [number, number, number] = [0.3, 0.3, 0.28];
 const AXIS_COLOR: [number, number, number] = [0.46, 0.45, 0.42];
 
 export function placementFit(span: number, aspect: number) {
-  return Math.min(1.05, 1.35 / Math.max(1, span * 0.42 * Math.max(1, aspect * 0.35)));
+  const compensated = Math.max(1, aspect * 0.35);
+  // The projection multiplies vertical world units by the full aspect. A wide classroom
+  // canvas was clipping the assembly down to a couple of cell-shaped slices.
+  const vertical = aspect > 2 ? aspect / compensated : 1;
+  return Math.min(1.05, 1.35 / Math.max(1, span * 0.42 * compensated * vertical));
 }
 
 /** Fit one preview mesh inside the frame. The scene fit used by the aggregation canvas is unchanged. */
@@ -889,15 +905,22 @@ export function drawPlacedMeshes(
   pixelScale = 1,
   maxPixels = 0,
   clear: readonly [number, number, number, number] = [0, 0, 0, 1],
+  tone: "default" | "hybrid" = "default",
 ) {
   const parent = canvas.parentElement;
   if (!parent) return null;
   const dpr = (window.devicePixelRatio || 1) * Math.max(1, pixelScale);
-  const width = Math.max(1, Math.floor(parent.clientWidth));
-  const height = Math.max(1, Math.floor(parent.clientHeight));
+  const thumbHost = canvas.closest(".final-clusters-thumb");
+  let width = Math.max(1, Math.floor(parent.clientWidth));
+  let height = Math.max(1, Math.floor(parent.clientHeight));
+  if (thumbHost) {
+    width = Math.min(width, 440);
+    height = Math.min(height, 260);
+  }
   const rawW = Math.floor(width * dpr);
   const rawH = Math.floor(height * dpr);
-  const limit = maxPixels > 0 ? Math.min(4096, maxPixels) : 4096;
+  // 4096-wide buffers composite as black inside the scaled classroom wall.
+  const limit = maxPixels > 0 ? Math.min(2048, maxPixels) : 2048;
   const cap = Math.min(1, limit / Math.max(rawW, rawH, 1));
   const pixelsW = Math.max(1, Math.floor(rawW * cap));
   const pixelsH = Math.max(1, Math.floor(rawH * cap));
@@ -905,8 +928,16 @@ export function drawPlacedMeshes(
     canvas.width = pixelsW;
     canvas.height = pixelsH;
   }
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  const stageCanvas = canvas.classList.contains("hybrid-stage-canvas");
+  if (stageCanvas) {
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+  } else {
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
   const gpu = setup(canvas, clear[3] < 1);
   if (!gpu) return null;
   const { gl } = gpu;
@@ -972,6 +1003,7 @@ export function drawPlacedMeshes(
     gl.uniform1f(gpu.uPalette, instance.palette ? 1 : 0);
     const ghost = !instance.volume && !instance.quiet && !instance.plain && !instance.id.startsWith("guide:");
     gl.uniform1f(gpu.uStyle, instance.glow ? 6 : instance.plain ? 5 : instance.quiet ? 4 : instance.volume ? 3 : instance.palette ? 2 : ghost ? 1 : 0);
+    gl.uniform1f(gpu.uTone, tone === "hybrid" ? 1 : 0);
     const ramp = instance.glow ? verticalRamp(instance.mesh, instance.translate) : instance.palette ? meshRamp(instance.mesh, instance.translate) : null;
     gl.uniform3f(gpu.uRampOrigin, ramp?.origin.x ?? 0, ramp?.origin.y ?? 0, ramp?.origin.z ?? 0);
     gl.uniform3f(gpu.uRampDir, ramp?.dir.x ?? 0, ramp?.dir.y ?? 0, ramp?.dir.z ?? 0);
@@ -989,10 +1021,15 @@ export function drawPlacedMeshes(
       gl.depthFunc(gl.LESS);
       gl.depthMask(true);
       gl.enable(gl.CULL_FACE);
-      gl.cullFace(gl.FRONT);
-      gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
-      gl.cullFace(gl.BACK);
-      gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+      if (tone === "hybrid") {
+        gl.cullFace(gl.FRONT);
+        gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+        gl.cullFace(gl.BACK);
+        gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+      } else {
+        gl.cullFace(gl.FRONT);
+        gl.drawArrays(gl.TRIANGLES, 0, flat.positions.length / 3);
+      }
       gl.depthFunc(gl.LEQUAL);
       gl.disable(gl.CULL_FACE);
       gl.disable(gl.BLEND);
@@ -1073,8 +1110,128 @@ export function drawPlacedMeshes(
   gl.bindTexture(gl.TEXTURE_2D, gpu.linearTex);
   gl.uniform1i(gl.getUniformLocation(gpu.aoProgram, "uDepth"), 1);
   gl.uniform2f(gpu.uTexel, 1 / pixelsW, 1 / pixelsH);
+  gl.uniform1f(gpu.uBloom, tone === "hybrid" ? 0.22 : 1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+  const hasSolid = instances.some(
+    (instance) => !instance.hold && !instance.id.startsWith("guide:") && (instance.opacity ?? 1) > 0.05,
+  );
+  if (meshChromePresentationRequired(canvas) && hasSolid) syncChromeMeshPresenter(canvas);
+  else detachLegacyMeshPresenters(canvas);
   return { fit, center, width, height, yaw: viewYaw, pitch: viewPitch };
+}
+
+/**
+ * Chrome composites live WebGL as black on the scaled classroom sheet.
+ * Only Hybrid routes in presentation mode opt in — not Site, Clustering, or Method.
+ */
+function meshChromePresentationRequired(canvas: HTMLCanvasElement): boolean {
+  if (typeof document === "undefined" || typeof location === "undefined") return false;
+  if (!document.querySelector("[data-view-mode='presentation']")) return false;
+  if (!location.pathname.includes("/lab/hybrid")) return false;
+  const next = canvas.nextElementSibling;
+  if (next instanceof HTMLCanvasElement && next.dataset.methodPresent === "1") return false;
+  if (canvas.classList.contains("hybrid-stage-canvas")) return true;
+  // Catalog grid thumbs freeze to a JPEG in FinalClusterThumb; live presenter skipped.
+  if (canvas.classList.contains("hybrid-preview-canvas") && canvas.closest(".hybrid-stage, .hybrid-preview")) {
+    return true;
+  }
+  return false;
+}
+
+/** 1:1 2D copy above the hidden WebGL layer. Aggregation keeps pointer events on the source. */
+function syncChromeMeshPresenter(canvas: HTMLCanvasElement) {
+  const parent = canvas.parentElement;
+  if (!parent || canvas.width < 2 || canvas.height < 2) return;
+  let presenter = canvas.nextElementSibling;
+  if (!(presenter instanceof HTMLCanvasElement) || presenter.dataset.meshPresent !== "1") {
+    presenter = document.createElement("canvas");
+    presenter.dataset.meshPresent = "1";
+    presenter.className = MESH_PRESENT_MARK;
+    canvas.insertAdjacentElement("afterend", presenter);
+  }
+  if (presenter.width !== canvas.width || presenter.height !== canvas.height) {
+    presenter.width = canvas.width;
+    presenter.height = canvas.height;
+  }
+  const context = presenter.getContext("2d");
+  if (!context) return;
+  context.drawImage(canvas, 0, 0);
+  const interactive = canvas.classList.contains("hybrid-stage-canvas");
+  if (interactive) {
+    presenter.style.cssText = "position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;display:block;";
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.zIndex = "2";
+    canvas.style.pointerEvents = "auto";
+  } else {
+    presenter.style.cssText = "position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;display:block;";
+    canvas.style.pointerEvents = "none";
+  }
+  canvas.classList.add(MESH_SOURCE_MARK);
+  canvas.style.opacity = "0";
+}
+
+/** Remove shared presenter siblings when leaving presentation or non-hybrid routes. */
+function detachLegacyMeshPresenters(canvas: HTMLCanvasElement) {
+  const next = canvas.nextElementSibling;
+  if (next instanceof HTMLCanvasElement && next.dataset.meshPresent === "1") next.remove();
+  canvas.classList.remove(MESH_SOURCE_MARK);
+  if (canvas.style.opacity === "0") canvas.style.opacity = "";
+  if (canvas.classList.contains("hybrid-stage-canvas")) {
+    canvas.style.pointerEvents = "";
+    if (canvas.style.zIndex === "2") canvas.style.zIndex = "";
+  } else if (canvas.style.pointerEvents === "none") {
+    canvas.style.pointerEvents = "";
+  }
+}
+
+/** WebGL snapshot source for offscreen thumbs. */
+export function meshSnapshotCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const next = canvas.nextElementSibling;
+  if (next instanceof HTMLCanvasElement && next.classList.contains(MESH_PRESENT_MARK)) return next;
+  detachLegacyMeshPresenters(canvas);
+  return canvas;
+}
+
+/** Designer-facing WebGL probe. Paste in Chrome DevTools on /lab/hybrid. */
+export function probeMeshRenderer(canvas?: HTMLCanvasElement | null) {
+  const target = canvas ?? document.querySelector<HTMLCanvasElement>(".hybrid-stage-canvas, .hybrid-preview-canvas, .final-clusters-thumb canvas");
+  const report: Record<string, unknown> = {
+    href: typeof location !== "undefined" ? location.href : "",
+    dpr: typeof window !== "undefined" ? window.devicePixelRatio : 1,
+    presentation: Boolean(document.querySelector("[data-view-mode='presentation']")),
+  };
+  if (!target) return { ...report, error: "no mesh canvas found" };
+  const parent = target.parentElement;
+  const presenter = target.nextElementSibling;
+  const visible = presenter instanceof HTMLCanvasElement && presenter.classList.contains(MESH_PRESENT_MARK)
+    ? presenter
+    : target;
+  const gl = target.getContext("webgl2");
+  report.canvas = {
+    css: parent ? `${parent.clientWidth}×${parent.clientHeight}` : null,
+    backing: `${target.width}×${target.height}`,
+    presenter: visible !== target,
+  };
+  if (gl) {
+    report.webgl2 = {
+      contextLost: gl.isContextLost(),
+      maxTexture: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    };
+    const px = new Uint8Array(4);
+    gl.readPixels(Math.floor(target.width / 2), Math.floor(target.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    report.centerPixel = [...px];
+    report.centerLit = px[0] + px[1] + px[2] > 12;
+  }
+  const ctx2d = visible.getContext("2d");
+  if (ctx2d && visible.width > 0) {
+    const sample = ctx2d.getImageData(Math.floor(visible.width / 2), Math.floor(visible.height / 2), 1, 1).data;
+    report.presentPixel = [...sample];
+    report.presentLit = sample[0] + sample[1] + sample[2] > 12;
+  }
+  return report;
 }
 
 /** Display-only XZ lines on the registration ground. Not a placed instance, so it cannot be picked. */
@@ -1167,6 +1324,7 @@ function paintLines(gpu: Gpu, positions: number[], color: [number, number, numbe
   gl.uniform1f(gpu.uClip, 1e9);
   gl.uniform1f(gpu.uPalette, 0);
   gl.uniform1f(gpu.uStyle, 0);
+  gl.uniform1f(gpu.uTone, 0);
   gl.uniform3f(gpu.uRampOrigin, 0, 0, 0);
   gl.uniform3f(gpu.uRampDir, 0, 0, 0);
   gl.disable(gl.CULL_FACE);

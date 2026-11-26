@@ -50,3 +50,5 @@ CLAUDE.md
 # Skill 4 stress-test catalogs stay on this computer. The final catalog is public/skill4/SKILL04-FINAL-CATALOG.json.
 /public/skill4/SKILL04-STRESS-TEST-*-catalog.json
 /data/experiments/skill4-stress/
+# Coarser copies of the stored hybrid meshes, rebuilt for catalog thumbnails.
+/data/skill4/final-cluster-thumbs/

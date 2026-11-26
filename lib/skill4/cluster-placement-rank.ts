@@ -1,5 +1,6 @@
 import { readClusterCriteria } from "./cluster-criteria-reading";
 import type { FinishedIteration } from "./finished-catalog";
+import type { FinalClusterTilePose } from "./final-cluster-pairs";
 import type { AreaStanding } from "./program-area";
 import { CLIENT_ACTIVITY_SEED, type ClientCompatibilityDocument } from "@/lib/skill5/client-compatibility";
 import type { ZoneKind } from "@/lib/skill5/zoning";
@@ -8,6 +9,9 @@ export type PlacementCluster = {
   id: string;
   iteration: number;
   tileCount: number;
+  /** Final Cluster tile seating for placement previews (not used by legacy finished-program rows). */
+  tiles?: readonly FinalClusterTilePose[];
+  typologyMix?: { lobby: number; workspace: number; gathering: number };
   habitableArea: number;
   targetMin: number;
   targetMax: number;

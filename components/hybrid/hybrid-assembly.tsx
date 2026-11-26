@@ -70,32 +70,63 @@ function StudyHead({ mark, title, aside }: { mark: string; title: string; aside?
 function StudyView({ instances, span, yaw = 0.9, pitch = -0.48 }: { instances: readonly PlacedMesh[]; span: number; yaw?: number; pitch?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fitCache = useRef<{ width: number; height: number; signature: string; fit: number; center: { x: number; y: number; z: number } } | null>(null);
-  const key = `${span}:${yaw}:${pitch}:${instances.map((instance) => `${instance.id}:${instance.opacity ?? 1}:${instance.hold ? "hold" : "draw"}:${instance.mesh.triangles}`).join("|")}`;
+  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; button: number; shift: boolean } | null>(null);
+  const [view, setView] = useState({ yaw, pitch, zoom: 1, panX: 0, panY: 0, panZ: 0 });
+  const key = `${span}:${instances.map((instance) => `${instance.id}:${instance.opacity ?? 1}:${instance.hold ? "hold" : "draw"}:${instance.mesh.triangles}`).join("|")}`;
   useEffect(() => {
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement;
     if (!canvas || !parent) return;
-    const signature = `${span}:${yaw}:${pitch}:${instances.map((instance) => `${instance.id}:${instance.mesh.triangles}`).join("|")}`;
+    const signature = `${span}:${instances.map((instance) => `${instance.id}:${instance.mesh.triangles}`).join("|")}`;
     const draw = () => {
       const width = parent.clientWidth;
       const height = parent.clientHeight;
       if (width < 8 || height < 8) return;
       const cached = fitCache.current;
       if (cached && cached.width === width && cached.height === height && cached.signature === signature) {
-        drawPlacedMeshes(canvas, instances, yaw, pitch, Math.max(8, span), false, 4.2, false, 1, cached.center, false, false, cached.fit, 1, 960);
+        const look = { x: cached.center.x + view.panX, y: cached.center.y + view.panY, z: cached.center.z + view.panZ };
+        drawPlacedMeshes(canvas, instances, view.yaw, view.pitch, Math.max(8, span), false, 4.2, false, 0.82, look, false, false, cached.fit * view.zoom, 1, 960);
         return;
       }
-      const frame = drawPlacedMeshes(canvas, instances, yaw, pitch, Math.max(8, span), false, 4.2, false, 0.92, undefined, true, true, undefined, 1, 960);
+      const frame = drawPlacedMeshes(canvas, instances, view.yaw, view.pitch, Math.max(8, span), false, 4.2, false, 0.82, undefined, true, true, undefined, 1, 960);
       if (frame) fitCache.current = { width, height, signature, fit: frame.fit, center: frame.center };
     };
     draw();
     const observer = new ResizeObserver(draw);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [instances, key, span, yaw, pitch]);
+  }, [instances, key, span, view.panX, view.panY, view.panZ, view.pitch, view.yaw, view.zoom]);
   return (
     <div className="cluster-study-view">
-      <canvas ref={canvasRef} className="hybrid-stage-canvas" />
+      <canvas
+        ref={canvasRef}
+        className="hybrid-stage-canvas"
+        onContextMenu={(event) => event.preventDefault()}
+        onWheel={(event) => {
+          event.preventDefault();
+          setView((current) => ({ ...current, zoom: Math.min(2.4, Math.max(0.45, current.zoom * Math.exp(-event.deltaY * 0.0011))) }));
+        }}
+        onPointerDown={(event) => {
+          dragRef.current = { x: event.clientX, y: event.clientY, yaw: view.yaw, pitch: view.pitch, button: event.button, shift: event.shiftKey };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag) return;
+          const dx = event.clientX - drag.x;
+          const dy = event.clientY - drag.y;
+          if (drag.shift || drag.button === 1 || drag.button === 2) {
+            const scale = Math.max(8, span) * 0.0022 / view.zoom;
+            setView((current) => ({ ...current, panX: current.panX - dx * scale, panY: current.panY + dy * scale * 0.35, panZ: current.panZ - dy * scale }));
+            dragRef.current = { ...drag, x: event.clientX, y: event.clientY };
+            return;
+          }
+          setView((current) => ({ ...current, yaw: drag.yaw - dx * 0.008, pitch: Math.min(1.2, Math.max(-1.2, drag.pitch + dy * 0.004)) }));
+        }}
+        onPointerUp={() => {
+          dragRef.current = null;
+        }}
+      />
     </div>
   );
 }
@@ -808,9 +839,9 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
         </>}
       </Panel> : null}
       {!frame || frame === "som" ? <Panel className="hybrid-som major-section-frame">
-        <PanelHeader mark="03" title="Hybrid SOM Matrices" />
+        <PanelHeader mark="03" title="SOM-inspired parametric connector field" />
         <div className="hybrid-som-board">
-          {connections.length === 0 ? <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p> : null}
+          {connections.length === 0 ? <p className="hybrid-missing">Select two geometries and connection faces to generate the connector field</p> : null}
           {connections.map((connection) => {
             const tileA = tiles.find((tile) => tile.instanceId === connection.tileAId);
             const tileB = tiles.find((tile) => tile.instanceId === connection.tileBId);
@@ -848,7 +879,7 @@ export function HybridAssembly({ view = "process", frame, presentation = false, 
                           : null
                   }
                   previewMesh={growth?.connectionId === connection.id ? growth.mesh : null}
-                /> : <p className="hybrid-missing">Select two geometries and connection faces to generate SOM</p>}
+                /> : <p className="hybrid-missing">Select two geometries and connection faces to generate the connector field</p>}
                 {presentation ? (
                   <button type="button" className="hybrid-generate" onClick={() => generateHybridFieldForConnection(connection.id, true)}>
                     Generate real hybrids
@@ -919,7 +950,7 @@ function SaveCurrentAssembly() {
       {notice ? (
         <>
           <p className="hybrid-units" data-save-notice="">{notice}</p>
-          <Link href="/lab/hybrid/catalog" className="hybrid-generate">View catalog</Link>
+          <Link href="/lab/hybrid/legacy/catalog" className="hybrid-generate">View catalog</Link>
         </>
       ) : null}
     </>

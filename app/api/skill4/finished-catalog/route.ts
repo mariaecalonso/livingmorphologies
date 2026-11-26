@@ -2,6 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { rankProgramClusters } from "@/lib/skill4/cluster-placement-rank";
+import { finalClusterPlacement, isFinalClusterCategory } from "@/lib/skill4/final-cluster-placement";
+import { finalCategoryForActivity } from "@/lib/skill5/final-cluster-seat-map";
 import { CLUSTER_PROGRAMS } from "@/lib/skill4/program-tiles";
 import { ClientDocumentError, loadClientActivitiesDocument } from "@/lib/skill5/load-client-documents";
 import type { FinishedCatalog, FinishedProgram } from "@/lib/skill4/finished-catalog";
@@ -100,6 +102,19 @@ export function GET(request: Request) {
     const url = new URL(request.url);
     const programId = url.searchParams.get("program") ?? "";
     const catalog = readCatalog();
+    if (programId && url.searchParams.get("view") === "placement") {
+      const category = isFinalClusterCategory(programId) ? programId : finalCategoryForActivity(programId);
+      if (!category) {
+        return Response.json(
+          { error: "unsupported program for new placement", programId, source: "final-clusters" },
+          { status: 404, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+      const placement = finalClusterPlacement(category);
+      return Response.json(placement ? { ...placement, requestedProgramId: programId, source: "final-clusters" } : null, {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     if (programId) {
       const stored = catalog.programs.find((item) => item.programId === programId) ?? null;
       const includeTest = url.searchParams.get("includeTest") === "1";

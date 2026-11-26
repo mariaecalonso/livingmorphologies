@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import {
@@ -6,6 +6,7 @@ import {
   FINAL_CLUSTER_PAIRS,
   type FinalClustersCatalogDocument,
 } from "@/lib/skill4/final-cluster-pairs";
+import { readHybridThumb } from "@/lib/skill4/hybrid-thumb-mesh";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,9 +26,15 @@ function readBatch(): BatchState {
   }
 }
 
+let catalogCache: { mtimeMs: number; body: FinalClustersCatalogDocument } | null = null;
+
 function readCatalog(): FinalClustersCatalogDocument {
   try {
-    return JSON.parse(readFileSync(CATALOG, "utf8")) as FinalClustersCatalogDocument;
+    const mtimeMs = statSync(CATALOG).mtimeMs;
+    if (catalogCache?.mtimeMs === mtimeMs) return catalogCache.body;
+    const body = JSON.parse(readFileSync(CATALOG, "utf8")) as FinalClustersCatalogDocument;
+    catalogCache = { mtimeMs, body };
+    return body;
   } catch {
     return emptyCatalog();
   }
@@ -40,7 +47,26 @@ export function GET(request: Request) {
   if (pairId && id) {
     const file = path.join(MESHES, pairId, `${id.replaceAll(":", "__")}.json`);
     if (!existsSync(file)) return Response.json({ error: "not found" }, { status: 404 });
-    return Response.json(JSON.parse(readFileSync(file, "utf8")));
+    if (url.searchParams.get("connectors") === "1" && url.searchParams.get("thumb") === "1") {
+      const connections = readHybridThumb(pairId, id);
+      if (!connections) return Response.json({ error: "not found" }, { status: 404 });
+      return Response.json({ id, connections });
+    }
+    const body = JSON.parse(readFileSync(file, "utf8")) as {
+      mesh?: unknown;
+      connections?: { id: string; selectedMockId?: string; validatedHybrid: unknown }[];
+    };
+    if (url.searchParams.get("connectors") === "1") {
+      return Response.json({
+        id,
+        connections: (body.connections ?? []).map((connection) => ({
+          id: connection.id,
+          selectedMockId: connection.selectedMockId ?? "",
+          validatedHybrid: connection.validatedHybrid,
+        })),
+      });
+    }
+    return Response.json(body);
   }
   const catalog = readCatalog();
   const batch = readBatch();
