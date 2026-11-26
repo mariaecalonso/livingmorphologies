@@ -26,7 +26,14 @@ import {
 } from "@/lib/skill5/placed-cluster";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import { readZoningList, ZONE_KIND_ORDER, type ZoneKind, type ZoningRegion } from "@/lib/skill5/zoning";
-import { announceWorkingOccupancy, placeOccupancy, readWorkingOccupancy, saveClusterAssemblyRecord, sendAssemblyForDevelopment } from "./cluster-assembly-catalog";
+import {
+  announceWorkingOccupancy,
+  loadSelectedClusterAssembly,
+  placeOccupancy,
+  readWorkingOccupancy,
+  saveClusterAssemblyRecord,
+  sendAssemblyForDevelopment,
+} from "./cluster-assembly-catalog";
 import { occupancyMeshKey, occupancyModel, occupancyPoseToGumball, fetchOccupancyMesh, gumballToOccupancyPose } from "./occupancy-solids";
 import { ZONE_COLOR } from "./site-zone-layer";
 import { PlacementClusterThumb, preloadPlacementThumbs } from "./placement-cluster-thumb";
@@ -253,8 +260,28 @@ export function ClusterPlacementPage() {
         title: iteration.layoutTitle || "Selected network",
         branches: iteration.branches ?? [],
       } : null);
-      setZones(readZoningList(zoning.regions).filter((zone) => zone.networkId === massingId));
-      setOccupancy(readOccupancyList(readWorkingOccupancy()).filter((item) => item.selectedNetworkId === massingId));
+      const zoneList = readZoningList(zoning.regions).filter((zone) => zone.networkId === massingId);
+      setZones(zoneList);
+      const local = readOccupancyList(readWorkingOccupancy()).filter((item) => item.selectedNetworkId === massingId);
+      if (local.length > 0) {
+        setOccupancy(local);
+        return;
+      }
+      const selected = await loadSelectedClusterAssembly();
+      if (cancel) return;
+      const assembly = selected.assembly;
+      if (
+        assembly
+        && assembly.selectedNetworkId === massingId
+        && readOccupancyList(assembly.occupancy).length > 0
+      ) {
+        const fromAssembly = readOccupancyList(assembly.occupancy);
+        setOccupancy(fromAssembly);
+        announceWorkingOccupancy(fromAssembly);
+        setNotice(`Loaded ${fromAssembly.length} clusters from ${assembly.assemblyId}.`);
+      } else {
+        setOccupancy([]);
+      }
     })().catch(() => {
       if (!cancel) setNotice("The selected network or zoning could not be read.");
     });
