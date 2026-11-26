@@ -164,9 +164,11 @@ export function SiteZoningPanel({
               const program = pocket.kind ? ZONE_KINDS.find((item) => item.id === pocket.kind)?.label : null;
               const selected = pocketSelection.includes(pocket.id);
               const reading = program ?? [fitLabel(pocket.fit), pocket.suggestion].filter(Boolean).join(" · ");
+              // Selected open faces show the active program color while choosing.
+              const markKind = pocket.kind ?? (selected ? kind : null) ?? "pocket";
               return (
                 <li key={pocket.id}>
-                  <button type="button" data-kind={pocket.kind ?? "pocket"} data-fit={pocket.kind ? undefined : pocket.fit} data-active={selected || undefined} onClick={() => onPickPocket(pocket.id, true)}>
+                  <button type="button" data-kind={markKind} data-fit={pocket.kind || selected ? undefined : pocket.fit} data-active={selected || undefined} onClick={() => onPickPocket(pocket.id, true)}>
                     <i />
                     <b>{program ?? `Pocket ${index + 1}`}</b>
                     <span>{Math.round(pocket.area).toLocaleString("en-US")} ft² · {reading}{pocket.levels > 1 ? ` · ${pocket.levels} levels` : ""}</span>

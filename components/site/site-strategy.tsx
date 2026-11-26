@@ -96,10 +96,12 @@ export function SiteStrategyPanel({
     onRun: () => void;
     onPause: () => void;
     onReset: () => void;
+    onRegenerate: () => void;
     onDelete: () => void;
     onSelect: (id: string) => void;
     onGenerateStrategy: () => void;
     generating: boolean;
+    editing: boolean;
     notice: string | null;
   } | null;
   typology: {
@@ -146,25 +148,36 @@ export function SiteStrategyPanel({
         </ul>
       </section>
       {network ? (
+        <section className="site-strategy-section" aria-label="Field points">
+          <h3>Field points</h3>
+          <p className="site-strategy-note">
+            {network.editing
+              ? "Network stays. Click the plan to add a point, then Regenerate to attach it."
+              : "Choose Source or Attractor to add a point on this network, then Regenerate."}
+          </p>
+          <div className="site-kind-toggle" role="group" aria-label="Place in the view">
+            <button type="button" data-kind="source" aria-pressed={network.tool === "source" && network.editing} data-active={(network.tool === "source" && network.editing) || undefined} onClick={() => network.onTool("source")}>Source</button>
+            <button type="button" data-kind="attractor" aria-pressed={network.tool === "attractor" && network.editing} data-active={(network.tool === "attractor" && network.editing) || undefined} onClick={() => network.onTool("attractor")}>Attractor</button>
+          </div>
+          <div className="site-run-row" role="group" aria-label="Regenerate from field">
+            <button type="button" title="Grow a new network from the current field points." disabled={!network.study || network.generating || network.running} onClick={network.onRegenerate}>Regenerate</button>
+            <button type="button" title="Pauses live growth." disabled={!network.running} onClick={network.onPause}>Pause</button>
+          </div>
+          {network.notice ? <p className="site-strategy-note">{network.notice}</p> : null}
+        </section>
+      ) : null}
+      {network ? (
         <section className="site-strategy-section" aria-label="Generation">
           <h3>Generate strategy variations</h3>
           <button type="button" disabled={!network.study || network.generating} onClick={network.onGenerateStrategy}>{network.generating ? "Generating" : "Generate strategy variations"}</button>
-          {network.notice ? <p className="site-strategy-note">{network.notice}</p> : null}
           <div className="site-run-row" role="group" aria-label="Live playback">
             <button type="button" title="Plays the editor simulation. It does not archive a network." data-active={network.running || undefined} disabled={!network.study || !ready} onClick={network.onRun}>Run</button>
-            <button type="button" title="Pauses the editor simulation." disabled={!network.running} onClick={network.onPause}>Pause</button>
             <button type="button" title="Clears the live trails in the editor. Saved networks stay." disabled={!network.study} onClick={network.onReset}>Reset</button>
           </div>
         </section>
       ) : null}
       <details className="site-strategy-section">
         <summary>Advanced</summary>
-        {network ? (
-          <div className="site-kind-toggle" role="group" aria-label="Place in the view">
-            <button type="button" data-kind="source" aria-pressed={network.tool === "source"} data-active={network.tool === "source" || undefined} onClick={() => network.onTool("source")}>Source</button>
-            <button type="button" data-kind="attractor" aria-pressed={network.tool === "attractor"} data-active={network.tool === "attractor" || undefined} onClick={() => network.onTool("attractor")}>Attractor</button>
-          </div>
-        ) : null}
         {network?.study ? <WaterGrowthControls study={network.study} selectedId={edit.selectedId} /> : null}
         {network?.study ? (
           <ul className="site-strategy-nodes">

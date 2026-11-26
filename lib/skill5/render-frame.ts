@@ -42,7 +42,8 @@ function lookAtStored(camera: Camera, frame: SiteFrame, y = 0) {
   return target;
 }
 
-export function placePlan(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number, heading: "north" | "east" | "west" = "north") {
+/** Default west-up: city / building toward screen north, Biscayne Bay toward screen south. */
+export function placePlan(camera: OrthographicCamera, size: { width: number; height: number }, frame: SiteFrame, pad: number, heading: "north" | "east" | "west" = "west") {
   camera.left = -size.width / 2;
   camera.right = size.width / 2;
   camera.top = size.height / 2;

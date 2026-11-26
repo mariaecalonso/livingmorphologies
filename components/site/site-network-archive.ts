@@ -41,8 +41,12 @@ function readIteration(value: unknown): NetworkIteration | null {
   const record = value as Partial<StoredIteration>;
   if (typeof record.id !== "string" || typeof record.seed !== "number" || typeof record.inkSize !== "number") return null;
   if (typeof record.cellFeet !== "number" || !Number.isFinite(record.cellFeet) || record.cellFeet <= 0) return null;
-  const trails = readTrails(record.trails, record.inkSize);
-  if (!trails) return null;
+  const branches = readBranches(record.branches);
+  // Strategy display uses branches. Skip decoding 640² trail buffers when branches are present.
+  const trails = branches && branches.length > 0
+    ? new Float32Array(0)
+    : readTrails(record.trails, record.inkSize);
+  if (!trails && !(branches && branches.length > 0)) return null;
   return {
     id: record.id,
     index: typeof record.index === "number" ? record.index : 0,
@@ -55,12 +59,12 @@ function readIteration(value: unknown): NetworkIteration | null {
     reachedIds: Array.isArray(record.reachedIds) ? record.reachedIds.filter((item) => typeof item === "string") : [],
     connectedIds: Array.isArray(record.connectedIds) ? record.connectedIds.filter((item) => typeof item === "string") : [],
     note: typeof record.note === "string" ? record.note : null,
-    trails,
+    trails: trails ?? new Float32Array(0),
     inkSize: record.inkSize,
     traversable: typeof record.traversable === "number" && Number.isFinite(record.traversable) ? record.traversable : undefined,
     cellFeet: record.cellFeet,
     generator: record.generator === "flow" || record.generator === "agents" ? record.generator : undefined,
-    branches: readBranches(record.branches),
+    branches,
     layoutId: typeof record.layoutId === "string" ? record.layoutId : undefined,
     layoutTitle: typeof record.layoutTitle === "string" ? record.layoutTitle : undefined,
     layoutFamily: record.layoutFamily === "waterfront" || record.layoutFamily === "internal" || record.layoutFamily === "road-buffered" || record.layoutFamily === "sketch" || record.layoutFamily === "strategy" ? record.layoutFamily : undefined,
@@ -89,23 +93,45 @@ function readBranches(value: unknown) {
 
 let strategyArchiveInstall: Promise<{ massingNetworkId: string | null; zoningShortlist: string[] } | null> | null = null;
 
+/**
+ * Pull published strategy iterations into IndexedDB.
+ * Concurrent callers share one in-flight fetch; each new mount re-checks for missing ids
+ * so batch publishes show up in the Networks pane without a stuck cache.
+ */
 export async function installPublishedStrategy() {
-  if (!strategyArchiveInstall) {
-    strategyArchiveInstall = (async () => {
-      const response = await fetch("/api/site/strategy-archive");
-      if (!response.ok) return null;
-      const body = await response.json() as unknown;
-      const zoning = publishedZoning(body);
-      if (!zoning) return null;
-      const local = await loadNetworkIterations();
-      const missing = missingPublishedIterations(body, new Set(local.map((item) => item.id)));
-      for (const iteration of missing) await saveNetworkIteration(iteration);
-      return zoning;
-    })().catch(() => {
+  if (strategyArchiveInstall) return strategyArchiveInstall;
+  strategyArchiveInstall = (async () => {
+    const response = await fetch("/api/site/strategy-archive", { cache: "no-store" });
+    if (!response.ok) return null;
+    const body = await response.json() as unknown;
+    const zoning = publishedZoning(body);
+    if (!zoning) return null;
+    const local = await loadNetworkIterations();
+    const publishedIds = new Set(
+      Array.isArray((body as { iterations?: unknown }).iterations)
+        ? (body as { iterations: unknown[] }).iterations.flatMap((item) => {
+          if (!item || typeof item !== "object") return [];
+          const id = (item as { id?: unknown }).id;
+          return typeof id === "string" ? [id] : [];
+        })
+        : [],
+    );
+    // Drop published batch copies that were removed from the archive (keep local live captures).
+    for (const iteration of local) {
+      if (!iteration.id.startsWith("batch-")) continue;
+      if (publishedIds.size > 0 && !publishedIds.has(iteration.id)) {
+        await deleteNetworkIteration(iteration.id);
+      }
+    }
+    const remaining = await loadNetworkIterations();
+    const missing = missingPublishedIterations(body, new Set(remaining.map((item) => item.id)));
+    for (const iteration of missing) await saveNetworkIteration(iteration);
+    return zoning;
+  })()
+    .catch(() => null)
+    .finally(() => {
       strategyArchiveInstall = null;
-      return null;
     });
-  }
   return strategyArchiveInstall;
 }
 
@@ -185,12 +211,16 @@ export async function saveNetworkIteration(iteration: NetworkIteration) {
   if (typeof indexedDB === "undefined") return;
   const db = await openArchive();
   try {
+    const hasBranches = (iteration.branches?.length ?? 0) > 0;
     const stored: StoredIteration = {
       ...iteration,
       nodes: iteration.nodes.map((node) => ({ ...node })),
       reachedIds: [...iteration.reachedIds],
       connectedIds: [...iteration.connectedIds],
-      trails: iteration.trails.slice().buffer,
+      // Prefer branches; avoid writing multi-MB empty trail rasters for Strategy archives.
+      trails: hasBranches && iteration.trails.length === 0
+        ? new ArrayBuffer(0)
+        : iteration.trails.slice().buffer,
     };
     await new Promise<void>((resolve, reject) => {
       const request = db.transaction(STORE, "readwrite").objectStore(STORE).put(stored);

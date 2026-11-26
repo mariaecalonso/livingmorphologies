@@ -48,7 +48,6 @@ import { ClusterInspect, ClusterPlacementLibrary } from "./cluster-placement-lib
 import { fetchOccupancyMesh, gumballToOccupancyPose, occupancyMeshKey, occupancyModel } from "./occupancy-solids";
 import type { IsoMesh } from "@/lib/scan/isomesh";
 import type { SiteContext } from "@/lib/skill5/site-model";
-import { resolveZonedClock, solarPosition } from "@/lib/skill5/solar";
 import { clipPolygon } from "./site-geometry";
 import { SOURCE_CONTOUR_NOTE } from "./site-network-contours";
 import { installPublishedStrategy, loadDesignerZoning, loadNetworkIterations, persistDesignerZoning, persistPublishedSelection, saveNetworkIteration } from "./site-network-archive";
@@ -73,17 +72,12 @@ import { isPocketBoundZone, occupancyInZone, programZoneKind, readOccupancyList,
 import { cleanedRing, distanceToRing, elevationIssue, nearestDistance, networkSamples, polygonAreaSqFt, polygonCentroid, polygonIssue, readZoningList, translatePolygon, zoneFacing, zoneSiteFlags, type ZonePoint, type ZoningRegion } from "@/lib/skill5/zoning";
 import { ZONE_COLOR, type ZoneTool } from "./site-zone-layer";
 import { FLOW_SPACING_FEET, FLOW_SURVIVE } from "./site-network-flow";
+import { alignRingToVeinPaths, buildVeinChains, paintVeinChains } from "./site-network-vein-draw";
 import { evaluateLayouts, evaluateNetwork, openNetworkField } from "@/lib/skill5/strategy-evaluation";
 import { SiteStrategyPanel } from "./site-strategy";
 import { PROGRAM_CLUSTER_2_ARCHIVED } from "@/lib/site-map";
 
 const site = context as SiteContext;
-/** The same afternoon light Site Analysis uses for the model, so the site reads the same way. */
-const MODEL_SUN = (() => {
-  const clock = resolveZonedClock("2026-11-05", "15:00");
-  const occurrence = clock.status === "unique" ? clock.occurrence : clock.status === "ambiguous" ? clock.occurrences[0] ?? null : null;
-  return occurrence ? solarPosition(site.origin.lat, site.origin.lon, occurrence.instant) : null;
-})();
 const designSite = designSiteFromParcel(site.site.ring);
 /** Same polygon the viewport draws. The stored bay ring is left unchanged. */
 const visibleWater = clipPolygon(site.water.ring);
@@ -106,7 +100,7 @@ function clearOfNeighbors(
 
 const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "perspective", label: "Perspective" },
-  { id: "plan", label: "Top" },
+  { id: "plan", label: "Plan" },
   { id: "section", label: "Side" },
   { id: "axon", label: "Axonometric" },
 ];
@@ -838,7 +832,7 @@ function ComparisonPlan({
 }: {
   modules: readonly PlacedModule[];
   zones: readonly ZoningRegion[];
-  branches: readonly { x0: number; z0: number; x1: number; z1: number }[];
+  branches: readonly { x0: number; z0: number; x1: number; z1: number; conductivity?: number }[];
   bounds: { minEast: number; maxEast: number; minNorth: number; maxNorth: number };
   showZones: boolean;
   showNetwork: boolean;
@@ -883,17 +877,16 @@ function ComparisonPlan({
         ctx.globalAlpha = 1;
       }
     }
-    if (showNetwork) {
-      ctx.strokeStyle = "#49d7de";
-      ctx.lineWidth = 1;
-      for (const edge of branches) {
-        const start = project(edge.x0, edge.z0);
-        const end = project(edge.x1, edge.z1);
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-      }
+    if (showNetwork && branches.length > 0) {
+      const chains = buildVeinChains(branches.map((edge) => ({
+        x0: edge.x0,
+        z0: edge.z0,
+        x1: edge.x1,
+        z1: edge.z1,
+        conductivity: typeof edge.conductivity === "number" ? edge.conductivity : 0.4,
+      })));
+      paintVeinChains(ctx, chains, (x, z) => project(x, z), Math.min(width, height));
+      ctx.shadowBlur = 0;
     }
     ctx.strokeStyle = "#c77e5f";
     ctx.lineWidth = 1;
@@ -1126,9 +1119,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const zoneSerial = useRef(1);
   const connectionSerial = useRef(1);
   const joinPickAt = useRef(0);
-  const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(null);
+  const [networkStudy, setNetworkStudy] = useState<SiteNetworkStudy | null>(() =>
+    createSiteNetworkStudy(site.site.ring, site.water.ring, { buildings: site.buildings }),
+  );
   const [networkRunning, setNetworkRunning] = useState(false);
   const [networkTool, setNetworkTool] = useState<NetworkNodeKind>("source");
+  /** Editing field points on top of a kept archive network (veins stay visible). */
+  const [fieldEditing, setFieldEditing] = useState(false);
+  const [fieldBaseId, setFieldBaseId] = useState<string | null>(null);
   const [intentPoints, setIntentPoints] = useState<TypologyAttractor[]>([]);
   const [intentVisible, setIntentVisible] = useState(true);
   const [intentTypes, setIntentTypes] = useState<Record<TypologyIntent, boolean>>({ lobby: true, gathering: true, workspace: true });
@@ -1166,12 +1164,16 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       const stored = readSiteWorkflowState();
       setSelectedNetworkId(published.massingNetworkId);
       if (!viewingHistoricalRef.current) setMassingId(published.massingNetworkId);
+      // Adopt the published shortlist when the live massing network changed.
+      const shortlist = published.massingNetworkId !== stored.massingNetworkId || stored.zoningShortlist.length === 0
+        ? published.zoningShortlist
+        : stored.zoningShortlist;
+      setZoningShortlist(shortlist);
       writeSiteWorkflowState({
         ...stored,
         massingNetworkId: published.massingNetworkId,
-        zoningShortlist: stored.zoningShortlist.length > 0 ? stored.zoningShortlist : published.zoningShortlist,
+        zoningShortlist: shortlist,
       });
-      if (stored.zoningShortlist.length === 0) setZoningShortlist(published.zoningShortlist);
       const diskZones = readZoningList(await loadDesignerZoning());
       if (cancel) return;
       if (diskZones.length > 0) {
@@ -1192,10 +1194,6 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       cancel = true;
     };
   }, []);
-  useEffect(() => {
-    if (networkStudy) return;
-    setNetworkStudy(createSiteNetworkStudy(site.site.ring, site.water.ring, { buildings: site.buildings }));
-  }, [networkStudy]);
   const workflowBoot = useRef(false);
   useEffect(() => {
     if (!workflowReady) return;
@@ -1210,15 +1208,13 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     if (initialSheet) return;
     if (sheetQuery === "strategy" || sheetQuery === "zoning") {
       setMode("plan");
-      setPlanHeading("north");
+      // West up: city / building toward screen north, bay toward screen south.
+      setPlanHeading("west");
       return;
     }
     if (sheetQuery === "placement" || sheetQuery === "assembly" || sheetQuery === "configurations") setMode("perspective");
   }, [initialSheet, sheetQuery]);
-  const [planHeading, setPlanHeading] = useState<"north" | "east" | "west">(() => {
-    const opening = initialSheet ?? sheetFromSearch(search);
-    return opening === "strategy" || opening === "zoning" ? "north" : "west";
-  });
+  const [planHeading, setPlanHeading] = useState<"north" | "east" | "west">("west");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
   const [fit] = useState<SiteFit>("site");
@@ -2422,7 +2418,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     setSheet(next);
     if (next === "strategy" || next === "zoning") {
       setMode("plan");
-      setPlanHeading("north");
+      setPlanHeading("west");
     } else {
       setMode("perspective");
     }
@@ -2666,6 +2662,38 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     setHybridOffer(null);
     setHybridPlacement(null);
   };
+  const rememberIteration = (iteration: NetworkIteration) => {
+    setIterations((current) => {
+      const next = current.some((item) => item.id === iteration.id)
+        ? current.map((item) => item.id === iteration.id ? iteration : item)
+        : [...current, iteration];
+      return next.sort((a, b) => a.index - b.index);
+    });
+    saveNetworkIteration(iteration).catch(() => {});
+  };
+
+  const hydrateStudyFromViewed = useCallback(() => {
+    const study = networkStudy;
+    if (!study) return false;
+    const source = (iterationView
+      ? iterations.find((item) => item.id === iterationView)
+      : null)
+      ?? (massingId ? iterations.find((item) => item.id === massingId) : null)
+      ?? (fieldBaseId ? iterations.find((item) => item.id === fieldBaseId) : null);
+    if (!source?.nodes?.length) {
+      setStrategyNotice("No network field to edit.");
+      return false;
+    }
+    // Keep the archive veins on screen. Only the node list enters the live study.
+    study.installProposal(source.nodes.map((node) => ({ ...node })));
+    setFieldBaseId(source.id);
+    if (!iterationView) setIterationView(source.id);
+    setFieldEditing(true);
+    setShowTrails(true);
+    setStrategyNotice("Click the plan to add a point. The network stays. Then Regenerate.");
+    return true;
+  }, [fieldBaseId, iterationView, iterations, massingId, networkStudy]);
+
   const runNetwork = () => {
     const study = networkStudy;
     if (!study || !study.canRun) return;
@@ -2678,18 +2706,93 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     setNetworkRunning(false);
   };
   const deleteNetworkNode = () => {
+    if (!fieldEditing) hydrateStudyFromViewed();
     const selected = networkStudy?.edit.selectedId;
     if (selected) networkStudy?.remove(selected);
   };
-  const selectNetworkNode = (id: string) => networkStudy?.select(id);
-  const rememberIteration = (iteration: NetworkIteration) => {
-    setIterations((current) => {
-      const next = current.some((item) => item.id === iteration.id)
-        ? current.map((item) => item.id === iteration.id ? iteration : item)
-        : [...current, iteration];
-      return next.sort((a, b) => a.index - b.index);
+  const selectNetworkNode = (id: string) => {
+    if (!fieldEditing) hydrateStudyFromViewed();
+    networkStudy?.select(id);
+  };
+  const chooseNetworkTool = (tool: NetworkNodeKind) => {
+    if (!fieldEditing) hydrateStudyFromViewed();
+    setNetworkTool(tool);
+    setIntentPlacing(null);
+  };
+
+  const closestOnBranches = (
+    x: number,
+    z: number,
+    branches: readonly { x0: number; z0: number; x1: number; z1: number; conductivity: number }[],
+  ) => {
+    let best: { x: number; z: number; dist: number } | null = null;
+    for (const edge of branches) {
+      const dx = edge.x1 - edge.x0;
+      const dz = edge.z1 - edge.z0;
+      const length = dx * dx + dz * dz;
+      const t = length < 1e-8 ? 0 : Math.max(0, Math.min(1, ((x - edge.x0) * dx + (z - edge.z0) * dz) / length));
+      const px = edge.x0 + dx * t;
+      const pz = edge.z0 + dz * t;
+      const dist = Math.hypot(x - px, z - pz);
+      if (!best || dist < best.dist) best = { x: px, z: pz, dist };
+    }
+    return best;
+  };
+
+  /** Keep the existing veins; only stub any new / off-network points onto them. */
+  const regenerateNetwork = () => {
+    const study = networkStudy;
+    if (!study) return;
+    if (!fieldEditing) hydrateStudyFromViewed();
+    const base = (fieldBaseId ? iterations.find((item) => item.id === fieldBaseId) : null)
+      ?? (iterationView ? iterations.find((item) => item.id === iterationView) : null)
+      ?? (massingId ? iterations.find((item) => item.id === massingId) : null);
+    if (!base?.branches?.length) {
+      setStrategyNotice("No base network veins to keep.");
+      return;
+    }
+    const nodes = study.edit.nodes;
+    if (nodes.length === 0) {
+      setStrategyNotice("Place at least one point, then regenerate.");
+      return;
+    }
+    const branches = base.branches.map((edge) => ({ ...edge }));
+    let added = 0;
+    for (const node of nodes) {
+      const hit = closestOnBranches(node.x, node.z, branches);
+      if (!hit || hit.dist <= 0.75) continue;
+      branches.push({ x0: node.x, z0: node.z, x1: hit.x, z1: hit.z, conductivity: 1 });
+      added += 1;
+    }
+    const index = iterations.reduce((max, item) => Math.max(max, item.index), 0) + 1;
+    const snap: NetworkIteration = {
+      ...base,
+      id: `batch-${Date.now().toString(36)}-field-${base.seed}`,
+      index,
+      nodes: nodes.map((node) => ({ ...node })),
+      branches,
+      note:
+        `Same network as ${base.index} with field points updated `
+        + `(+${added} stubs only; veins otherwise unchanged). From ${base.id}.`,
+      layoutFamily: base.layoutFamily ?? "strategy",
+    };
+    rememberIteration(snap);
+    setSelectedNetworkId(snap.id);
+    setMassingId(snap.id);
+    setIterationView(snap.id);
+    setFieldBaseId(snap.id);
+    setFieldEditing(false);
+    setNetworkRunning(false);
+    writeSiteWorkflowState({
+      ...readSiteWorkflowState(),
+      massingNetworkId: snap.id,
+      zoningShortlist: [snap.id, ...zoningShortlist.filter((id) => id !== snap.id)].slice(0, 3),
     });
-    saveNetworkIteration(iteration).catch(() => {});
+    void persistPublishedSelection(snap.id, snap).then((result) => {
+      setStrategyNotice(result.ok
+        ? `Updated iteration ${index} — same veins, new point(s) attached.`
+        : `Updated iteration ${index} locally. ${result.error ?? ""}`.trim());
+    });
   };
   const openMassing = (study: MassingStudy) => {
     const entry = configurationsRef.current.find((item) => item.id === study.configurationId);
@@ -2819,9 +2922,9 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       return [...current, id];
     });
   };
-  const networkField = useMemo(() => openNetworkField(site), []);
-  const networkEvaluations = useMemo(() => iterations.map((item) => evaluateNetwork(item, networkField)), [iterations, networkField]);
-  const layoutEvaluations = useMemo(() => evaluateLayouts(iterations, networkEvaluations), [iterations, networkEvaluations]);
+  // Skip auto-scoring on load — openNetworkField + evaluateNetwork across archived runs freezes the tab.
+  const networkEvaluations = useMemo<ReturnType<typeof evaluateNetwork>[]>(() => [], []);
+  const layoutEvaluations = useMemo<ReturnType<typeof evaluateLayouts>>(() => [], []);
 
   const networkAnalysis = useMemo(() => {
     if (!analysisOn || !networkStudy) return null;
@@ -2879,7 +2982,49 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
   const massingIteration = iterations.find((item) => item.id === massingId) ?? null;
   const viewedIteration = massingIteration;
   const previewIteration = strategyIteration && strategyIteration.id !== massingId ? strategyIteration : null;
-  const canvasIteration = sheet === "strategy" ? strategyIteration : sheet === "zoning" && previewIteration ? previewIteration : massingIteration;
+  // Strategy Live falls back to the zoning network so the porous drawing stays on screen.
+  // Field editing keeps those veins visible and only swaps the node marks to the live study.
+  const canvasIteration = sheet === "strategy"
+    ? (strategyIteration ?? massingIteration)
+    : sheet === "zoning" && previewIteration
+      ? previewIteration
+      : massingIteration;
+  const fieldBaseIteration = fieldBaseId
+    ? iterations.find((item) => item.id === fieldBaseId) ?? null
+    : null;
+  const networkFocus = useMemo(() => {
+    if (sheet !== "strategy" && sheet !== "zoning") return null;
+    const branches = canvasIteration?.branches;
+    const nodes = canvasIteration?.nodes;
+    if ((!branches || branches.length === 0) && (!nodes || nodes.length === 0)) return null;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const edge of branches ?? []) {
+      minX = Math.min(minX, edge.x0, edge.x1);
+      maxX = Math.max(maxX, edge.x0, edge.x1);
+      minZ = Math.min(minZ, edge.z0, edge.z1);
+      maxZ = Math.max(maxZ, edge.z0, edge.z1);
+    }
+    for (const node of nodes ?? []) {
+      minX = Math.min(minX, node.x);
+      maxX = Math.max(maxX, node.x);
+      minZ = Math.min(minZ, node.z);
+      maxZ = Math.max(maxZ, node.z);
+    }
+    const pad = 56;
+    const width = Math.max(80, (maxX - minX) + pad * 2);
+    const depth = Math.max(80, (maxZ - minZ) + pad * 2);
+    const focus = {
+      cx: (minX + maxX) / 2,
+      cz: (minZ + maxZ) / 2,
+      width,
+      depth,
+      span: Math.max(width, depth),
+    };
+    return { plan: focus, axon: focus };
+  }, [canvasIteration, sheet]);
   const massingLabel = massingIteration ? `Iteration ${massingIteration.index} · ${massingIteration.id}` : massingId;
   const liveReport = iterationView === null && networkStudy?.generator === "flow" ? networkStudy.flowReport() : null;
   const liveReady = iterationView === null && ((liveReport?.surviving ?? 0) > 0 || (networkStudy?.generator === "agents" && networkStudy.status.step > 0));
@@ -2942,18 +3087,44 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
       apply();
     });
   };
-  const pocketReport = useMemo(() => detectPockets(viewedIteration?.branches ?? [], site.site.ring), [viewedIteration]);
-  const pocketReadings = useMemo(() => readPockets(
-    pocketReport.pockets,
-    site.site.ring,
-    (viewedIteration?.nodes ?? []).filter((node) => node.kind === "source" || node.kind === "attractor"),
-  ), [pocketReport, viewedIteration]);
-  const reviewIteration = sheet === "zoning" ? (previewIteration ?? massingIteration) : sheet === "strategy" ? strategyIteration : null;
+  // Pocket geometry is Zoning work. Skip it on Strategy so previewing dense archives does not freeze.
+  // Align rings to the drawn vein paths so zones fill the pockets, not a geometric rewrite.
+  const pocketReport = useMemo(() => {
+    if (sheet === "strategy" || !viewedIteration) return { pockets: [], openSegments: 0 };
+    const branches = viewedIteration.branches ?? [];
+    const raw = detectPockets(branches, site.site.ring, site.water.ring);
+    const pins = viewedIteration.nodes.map((node) => ({ x: node.x, z: node.z }));
+    return {
+      openSegments: raw.openSegments,
+      pockets: raw.pockets.map((pocket) => ({
+        ...pocket,
+        points: alignRingToVeinPaths(pocket.points, branches, pins),
+      })),
+    };
+  }, [sheet, site.site.ring, site.water.ring, viewedIteration]);
+  const pocketReadings = useMemo(() => {
+    if (sheet === "strategy") return [];
+    return readPockets(
+      pocketReport.pockets,
+      site.site.ring,
+      (viewedIteration?.nodes ?? []).filter((node) => node.kind === "source" || node.kind === "attractor"),
+    );
+  }, [pocketReport, sheet, site.site.ring, viewedIteration]);
+  const reviewIteration = sheet === "zoning" ? (previewIteration ?? massingIteration) : null;
   const reviewReport = useMemo(() => {
     if (!reviewIteration) return null;
     if (reviewIteration.id === viewedIteration?.id) return pocketReport;
-    return detectPockets(reviewIteration.branches ?? [], site.site.ring);
-  }, [pocketReport, reviewIteration, site.site.ring, viewedIteration]);
+    const branches = reviewIteration.branches ?? [];
+    const raw = detectPockets(branches, site.site.ring, site.water.ring);
+    const pins = reviewIteration.nodes.map((node) => ({ x: node.x, z: node.z }));
+    return {
+      openSegments: raw.openSegments,
+      pockets: raw.pockets.map((pocket) => ({
+        ...pocket,
+        points: alignRingToVeinPaths(pocket.points, branches, pins),
+      })),
+    };
+  }, [pocketReport, reviewIteration, site.site.ring, site.water.ring, viewedIteration]);
   const reviewReadings = useMemo(() => {
     if (!reviewReport || !reviewIteration) return [];
     if (reviewIteration.id === viewedIteration?.id) return pocketReadings;
@@ -2972,6 +3143,14 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     for (const item of reviewAssessment) fits[item.id] = item.fit;
     return fits;
   }, [reviewAssessment]);
+  const reviewSuggestions = useMemo(() => {
+    const suggestions: Record<string, SiteZoneKind | null> = {};
+    for (const item of reviewAssessment) {
+      const first = item.suggestions[0];
+      suggestions[item.id] = first === "lobby" || first === "gathering" || first === "workspace" ? first : null;
+    }
+    return suggestions;
+  }, [reviewAssessment]);
   const zoneCoversPocket = (zone: ZoningRegion, pocketId: string) => zone.pocketId === pocketId || Boolean(zone.sourcePocketIds?.includes(pocketId));
   const pocketKinds = useMemo(() => {
     const kinds: Record<string, SiteZoneKind | null> = {};
@@ -2982,8 +3161,16 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
     return kinds;
   }, [pocketReport, viewedIteration, zones]);
   const visibleZones = useMemo(
-    () => zones.filter((zone) => Boolean(massingId) && zone.networkId === massingId),
-    [zones, massingId],
+    () => zones
+      .filter((zone) => Boolean(massingId) && zone.networkId === massingId)
+      .map((zone) => {
+        if (!zone.pocketId) return zone;
+        const pocket = pocketReport.pockets.find((item) => item.id === zone.pocketId);
+        if (!pocket) return zone;
+        // Keep the zone fill on the live pocket path — do not keep a geometric rewrite.
+        return { ...zone, points: pocket.points.map((point) => ({ ...point })) };
+      }),
+    [zones, massingId, pocketReport.pockets],
   );
   const unassignedZoningCount = useMemo(
     () => zones.filter((zone) => !zone.networkId).length,
@@ -3431,14 +3618,16 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                   study: networkStudy,
                   running: networkRunning,
                   tool: networkTool,
-                  onTool: setNetworkTool,
+                  onTool: chooseNetworkTool,
                   onRun: runNetwork,
                   onPause: pauseNetwork,
                   onReset: resetNetwork,
+                  onRegenerate: regenerateNetwork,
                   onDelete: deleteNetworkNode,
                   onSelect: selectNetworkNode,
                   onGenerateStrategy: () => { void generateArrival(); },
                   generating: iterationBatch !== null,
+                  editing: fieldEditing,
                   notice: strategyNotice,
                 }}
                 typology={{
@@ -3777,15 +3966,16 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               fit={fit}
               appearance="model"
               framing="record"
-              presentation="analysis"
-              sun={MODEL_SUN}
+              frameWholeSite={false}
+              presentation="model"
+              sun={null}
               showSunPath={false}
               showShadows={false}
               rotateView={rotateView}
               showGrid={showGrid}
               showAerial={showAerial}
               frameToken={frameToken}
-              focusBounds={massingFocus ? (review || mode !== "plan" ? massingFocus.axon : massingFocus.plan) : null}
+              focusBounds={(networkFocus ?? massingFocus) ? (review || mode !== "plan" ? (networkFocus ?? massingFocus)!.axon : (networkFocus ?? massingFocus)!.plan) : null}
               onReadout={onReadout}
               overlay={{
                 shore: showShore,
@@ -3820,6 +4010,8 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 pockets: {
                   items: showZones ? (sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? pocketReport.pockets : reviewReport?.pockets ?? []) : [],
                   kinds: previewIteration && (sheet === "strategy" || sheet === "zoning") ? {} : pocketKinds,
+                  pickKind: sheet === "zoning" ? zoneKind : null,
+                  suggestions: sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? undefined : reviewSuggestions,
                   fits: sheet === "placement" || sheet === "assembly" || sheet === "configurations" ? undefined : reviewFits,
                   hoverId: pocketHover,
                   selectedIds: pocketSelection,
@@ -3843,23 +4035,26 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                 networkStudy
                   ? {
                     study: networkStudy,
-                    running: sheet === "strategy" && networkRunning && iterationView === null,
+                    running: sheet === "strategy" && networkRunning && iterationView === null && !fieldEditing,
                     tool: networkTool,
                     onSettle: pauseNetwork,
                     preview: canvasIteration?.branches?.length ? null : sheet === "strategy" && networkAnalysis ? null : canvasIteration?.trails ?? null,
-                    branches: canvasIteration?.branches ?? null,
+                    branches: (fieldEditing ? (fieldBaseIteration?.branches ?? canvasIteration?.branches) : canvasIteration?.branches) ?? null,
+                    // While editing, marks come from the live study so a newly placed point appears.
+                    fieldNodes: fieldEditing ? null : (canvasIteration?.nodes ?? null),
                     colored: sheet === "strategy" ? networkAnalysis?.rgba ?? null : null,
-                    showField: sheet === "strategy" && showField,
+                    showField: sheet === "strategy" && showField && !canvasIteration?.nodes?.length,
                     showTrails: sheet !== "strategy" && !massingIteration ? false : showTrails,
                     showContext: showContext && (sheet === "strategy" || sheet === "zoning" || sheet === "placement" || sheet === "assembly" || sheet === "configurations"),
                     interactive: sheet === "strategy",
                     studyTone: true,
                     quiet: sheet === "placement" || sheet === "assembly" || sheet === "configurations",
-                    glow: sheet !== "strategy" && sheet !== "zoning",
+                    glow: sheet === "strategy" || sheet === "zoning",
                   }
                   : null
               }
-              typology={sheet === "strategy" && networkStudy ? {
+              arrivalZoning={null}
+              typology={sheet === "strategy" && networkStudy && !canvasIteration?.nodes?.length ? {
                 study: networkStudy,
                 points: intentPoints.filter((point) => !point.id.startsWith("intent-mz") && !point.id.startsWith("intent-b3z")),
                 placing: intentPlacing,
@@ -4003,7 +4198,7 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
               {review ? (
                 <>
                   <button type="button" data-active={mode === "axon" || undefined} onClick={() => { setPlanHeading("west"); setMode("axon"); setFrameToken((value) => value + 1); }}>Overall</button>
-                  <button type="button" data-active={mode === "plan" || undefined} onClick={() => { setPlanHeading("north"); setMode("plan"); setFrameToken((value) => value + 1); }}>Plan</button>
+                  <button type="button" data-active={mode === "plan" || undefined} onClick={() => { setPlanHeading("west"); setMode("plan"); setFrameToken((value) => value + 1); }}>Plan</button>
                   <button type="button" data-active={mode === "section" || undefined} onClick={() => { setPlanHeading("west"); setMode("section"); setFrameToken((value) => value + 1); }}>Section</button>
                 </>
               ) : null}
@@ -4044,7 +4239,12 @@ function SiteModelWorkspace({ initialSheet }: { initialSheet?: SiteWorkflowId })
                     batch={iterationBatch}
                     generating={iterationBatch !== null}
                     onGenerate={() => { void generateArrival(); }}
-                    onView={setIterationView}
+                    onView={(id) => {
+                      setFieldEditing(false);
+                      setFieldBaseId(null);
+                      setNetworkRunning(false);
+                      setIterationView(id);
+                    }}
                     onUse={(id) => useNetworkForMassing(id)}
                     onToggleCompare={toggleIterationCompare}
                     onToggleShortlist={toggleZoningShortlist}

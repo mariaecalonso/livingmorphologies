@@ -19,6 +19,7 @@ import {
   FLOW_SURVIVE,
   flowSettled,
   rasterFlow,
+  refinePhysarumSettle,
   type FlowState,
 } from "./site-network-flow";
 import {
@@ -636,6 +637,8 @@ export class SiteNetworkStudy {
   private anchorY = new Float32Array(0);
   private flowRng: () => number = Math.random;
   private flow: FlowState | null = null;
+  /** Physarum Option B refine runs once after adaptive-flow settle. */
+  private refined = false;
   readonly generator: "flow" | "agents";
   private readonly parcelRing: readonly XZ[];
   private readonly waterRing: readonly XZ[];
@@ -685,6 +688,7 @@ export class SiteNetworkStudy {
     this.rng = mulberry32(this.seed ^ 0x51e7);
     this.flowRng = mulberry32(this.seed ^ 0xF10C);
     this.flow = null;
+    this.refined = false;
     this.watches.clear();
     this.settled = false;
     this.pixels.fill(0);
@@ -949,6 +953,7 @@ export class SiteNetworkStudy {
       if (flowSettled(state)) break;
     }
     this.settled = flowSettled(state);
+    if (this.settled) this.applyPhysarumRefine();
     rasterFlow(state, this.state.trails, this.frame, this.inkSize, this.open);
     auditFlowMask(state, this.frame, this.inkSize, this.open, this.cellFeet);
     if (!paint) {
@@ -958,6 +963,19 @@ export class SiteNetworkStudy {
     this.writeInk();
     this.publishFlowStatus();
     this.revision += 1;
+  }
+
+  /** Option B: reinforce shared trunks, prune dead ends, require one terminal component. */
+  private applyPhysarumRefine() {
+    if (this.generator !== "flow" || !this.flow || this.refined) return;
+    const metrics = refinePhysarumSettle(this.flow, 96);
+    this.refined = true;
+    this.measureFlow();
+    if (!metrics.ok) {
+      this.mappingNote = `Physarum refine failed: ${metrics.terminalsConnected}/${metrics.terminalsTotal} terminals across ${metrics.components} components.`;
+    } else {
+      this.mappingNote = `Physarum refine · ${metrics.terminalsConnected}/${metrics.terminalsTotal} terminals · 1 component · ${Math.round(metrics.totalNetworkLength)} ft · detour ${metrics.avgDetourRatio?.toFixed(2) ?? "—"}`;
+    }
   }
 
   private ensureFlow() {
@@ -1065,6 +1083,7 @@ export class SiteNetworkStudy {
   finish() {
     if (this.generator === "flow") {
       if (this.flow) {
+        this.applyPhysarumRefine();
         rasterFlow(this.flow, this.state.trails, this.frame, this.inkSize, this.open);
         auditFlowMask(this.flow, this.frame, this.inkSize, this.open, this.cellFeet);
       }
@@ -1082,6 +1101,7 @@ export class SiteNetworkStudy {
   resume() {
     this.hold = false;
     this.settled = false;
+    this.refined = false;
     this.state.converged = false;
     this.state.streak = 0;
     this.state.maxIterations = this.state.iteration + 1000;
@@ -1303,6 +1323,7 @@ export class SiteNetworkStudy {
     }
     this.state = next;
     this.flow = null;
+    this.refined = false;
     this.rememberAnchors();
     this.settled = false;
     if (!keepTrails) this.pixels.fill(0);
@@ -1632,10 +1653,11 @@ export async function runNetworkIteration(
   water: readonly XZ[],
   nodes: readonly NetworkNode[],
   seed: number,
-  onStep?: (step: number) => void,
+  onStep?: (step: number, study?: SiteNetworkStudy) => void,
   buildings: readonly NetworkFootprint[] = [],
+  overWater: readonly XZ[] | null = null,
 ): Promise<NetworkIteration> {
-  const study = new SiteNetworkStudy(parcel, water, { seed, nodes, persist: false, buildings });
+  const study = new SiteNetworkStudy(parcel, water, { seed, nodes, persist: false, buildings, overWater });
   const copy = nodes.map((node) => copyNode(node));
   if (!study.canRun) {
     return {
@@ -1661,11 +1683,12 @@ export async function runNetworkIteration(
   while (!study.settled && study.iteration < NETWORK_STEP_BUDGET) {
     study.step(8, false);
     if (study.iteration % 40 === 0) {
-      onStep?.(study.iteration);
+      onStep?.(study.iteration, study);
       await yieldToPaint();
     }
   }
   study.finish();
+  onStep?.(study.iteration, study);
   return {
     id: `i${seed.toString(16)}-${study.iteration}`,
     index: 0,

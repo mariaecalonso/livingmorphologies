@@ -44,10 +44,15 @@ function readIteration(value: unknown): NetworkIteration | null {
   if (typeof value.id !== "string" || typeof value.seed !== "number" || typeof value.inkSize !== "number") return null;
   if (!Number.isInteger(value.inkSize) || value.inkSize <= 0) return null;
   if (typeof value.cellFeet !== "number" || !Number.isFinite(value.cellFeet) || value.cellFeet <= 0) return null;
-  if (!Array.isArray(value.trailCells)) return null;
+  const branches = Array.isArray(value.branches) ? value.branches as NetworkIteration["branches"] : undefined;
+  const trailCells = Array.isArray(value.trailCells) ? value.trailCells : null;
+  // Branches alone are enough for Strategy / Zoning display. Skip 640² trail rasters when present.
+  if (!trailCells && !(branches && branches.length > 0)) return null;
+  // Zoning-grown networks may omit an arrival arrangement record; branches + nodes still display.
   const architectureRecord = readArchitecturalRecord(value.architectureRecord);
-  if (!architectureRecord) return null;
-  const trails = trailsFromCells(value.inkSize, value.trailCells.filter((cell): cell is number[] => Array.isArray(cell)));
+  const trails = branches && branches.length > 0 && (!trailCells || trailCells.length === 0)
+    ? new Float32Array(0)
+    : trailsFromCells(value.inkSize, (trailCells ?? []).filter((cell): cell is number[] => Array.isArray(cell)));
   return {
     id: value.id,
     index: typeof value.index === "number" ? value.index : 0,
@@ -65,7 +70,7 @@ function readIteration(value: unknown): NetworkIteration | null {
     traversable: typeof value.traversable === "number" && Number.isFinite(value.traversable) ? value.traversable : undefined,
     cellFeet: value.cellFeet,
     generator: value.generator === "flow" || value.generator === "agents" ? value.generator : undefined,
-    branches: Array.isArray(value.branches) ? value.branches as NetworkIteration["branches"] : undefined,
+    branches,
     layoutId: typeof value.layoutId === "string" ? value.layoutId : undefined,
     layoutTitle: typeof value.layoutTitle === "string" ? value.layoutTitle : undefined,
     layoutFamily: "strategy",
@@ -141,7 +146,8 @@ export function serializeArchiveIteration(iteration: NetworkIteration) {
     architectureRecord: iteration.architectureRecord,
     spacingFeet: iteration.spacingFeet,
     windFromDegrees: iteration.windFromDegrees,
-    trailCells: trailCells(iteration.trails),
+    // Strategy display uses branches; skip multi-MB trail rasters when branches exist.
+    trailCells: iteration.branches && iteration.branches.length > 0 ? [] : trailCells(iteration.trails),
   };
 }
 

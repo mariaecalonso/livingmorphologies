@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import context from "@/data/skill5/herald-site.json";
 import { ARRANGEMENT_FAMILY, ROLE_LABEL } from "@/lib/skill5/architectural-strategy";
-import { assessPockets, isParcelRemainder, PARTICIPATE_FT } from "@/lib/skill5/pocket-feasibility";
-import { detectPockets } from "@/lib/skill5/pockets";
+import { isParcelRemainder, PARTICIPATE_FT } from "@/lib/skill5/pocket-feasibility";
 import type { SiteContext } from "@/lib/skill5/site-model";
 import type { NetworkFrame, NetworkIteration, SiteNetworkStudy } from "./site-network";
 import type { LayoutEvaluation, NetworkEvaluation } from "@/lib/skill5/strategy-evaluation";
 import { FLOW_SURVIVE } from "./site-network-flow";
+import { buildVeinChains, paintVeinChains } from "./site-network-vein-draw";
 
 const SOURCE_RGB: [number, number, number] = [199, 126, 95];
 const ATTRACTOR_RGB: [number, number, number] = [73, 215, 222];
@@ -251,9 +251,9 @@ function paintPlan(canvas: HTMLCanvasElement, iteration: NetworkIteration, parce
   if (cssWidth < 8 || cssHeight < 8) return false;
   const branches = iteration.branches ?? [];
   if (branches.length === 0 || parcel.length < 3) return false;
-  const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
-  const width = Math.max(1, Math.round(cssWidth * pixelRatio));
-  const height = Math.max(1, Math.round(cssHeight * pixelRatio));
+  // Porous reference look on thumbs — visible cards only (IntersectionObserver). Cap samples if dense.
+  const width = Math.max(1, cssWidth);
+  const height = Math.max(1, cssHeight);
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
@@ -270,69 +270,36 @@ function paintPlan(canvas: HTMLCanvasElement, iteration: NetworkIteration, parce
   }
   const spanX = Math.max(1, maxX - minX);
   const spanZ = Math.max(1, maxZ - minZ);
-  const pad = 0.08;
-  const fitX = spanX * (1 + pad * 2);
-  const fitZ = spanZ * (1 + pad * 2);
-  const scale = Math.min(width / fitX, height / fitZ);
-  const originX = (width - spanX * scale) / 2;
-  const originY = (height - spanZ * scale) / 2;
+  const pad = 0.06;
+  // West-up, matching the site plan: city / west toward the top, bay / east toward the bottom.
+  const fitAcross = spanZ * (1 + pad * 2);
+  const fitAlong = spanX * (1 + pad * 2);
+  const scale = Math.min(width / fitAcross, height / fitAlong);
+  const originX = (width - spanZ * scale) / 2;
+  const originY = (height - spanX * scale) / 2;
   const map = (x: number, z: number) => ({
-    x: originX + (x - minX) * scale,
-    y: originY + (maxZ - z) * scale,
+    x: originX + (z - minZ) * scale,
+    y: originY + (x - minX) * scale,
   });
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
-  const pockets = detectPockets(branches, parcel).pockets;
-  ctx.fillStyle = "rgba(199, 126, 95, 0.28)";
-  for (const pocket of pockets) {
-    if (pocket.points.length < 3) continue;
-    ctx.beginPath();
-    pocket.points.forEach((point, index) => {
-      const mapped = map(point.x, point.z);
-      if (index === 0) ctx.moveTo(mapped.x, mapped.y);
-      else ctx.lineTo(mapped.x, mapped.y);
-    });
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.beginPath();
-  parcel.forEach(([x, z], index) => {
-    const mapped = map(x, z);
-    if (index === 0) ctx.moveTo(mapped.x, mapped.y);
-    else ctx.lineTo(mapped.x, mapped.y);
-  });
-  ctx.closePath();
-  ctx.strokeStyle = "rgba(73, 215, 222, 0.7)";
-  ctx.lineWidth = Math.max(1, pixelRatio);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
-  ctx.lineWidth = Math.max(1.25, Math.min(width, height) * 0.006);
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  for (const branch of branches) {
-    const start = map(branch.x0, branch.z0);
-    const end = map(branch.x1, branch.z1);
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-  }
-  ctx.stroke();
-  const mark = Math.max(2.4, Math.min(width, height) * 0.012);
-  for (const node of iteration.nodes) {
-    const point = map(node.x, node.z);
-    ctx.fillStyle = node.kind === "source" ? "rgb(199, 126, 95)" : "rgb(73, 215, 222)";
-    ctx.beginPath();
-    if (node.kind === "source") {
-      ctx.save();
-      ctx.translate(point.x, point.y);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillRect(-mark, -mark, mark * 2, mark * 2);
-      ctx.restore();
-    } else {
-      ctx.arc(point.x, point.y, mark, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+  const stride = branches.length > 420 ? Math.ceil(branches.length / 360) : 1;
+  const sample = stride === 1 ? branches : branches.filter((_, index) => index % stride === 0);
+  const chains = buildVeinChains(
+    sample.map((branch) => ({
+      x0: branch.x0,
+      z0: branch.z0,
+      x1: branch.x1,
+      z1: branch.z1,
+      conductivity: typeof branch.conductivity === "number" ? branch.conductivity : FLOW_SURVIVE + 0.35,
+    })),
+    1,
+    3,
+    (iteration.nodes ?? []).map((node) => ({ x: node.x, z: node.z })),
+  );
+  paintVeinChains(ctx, chains, map, Math.min(width, height));
+  ctx.shadowBlur = 0;
   return true;
 }
 
@@ -412,17 +379,9 @@ function paintIteration(canvas: HTMLCanvasElement, iteration: NetworkIteration, 
   }
   const chains = traceRibbons(thinRibbon(crop, cropW, cropH), cropW, cropH, startX, startY);
   const paths = chains.map((chain) => {
-    let tone = 0;
-    for (const point of chain) {
-      const sampleX = Math.min(field - 1, Math.max(0, Math.floor(point.x)));
-      const sampleY = Math.min(field - 1, Math.max(0, Math.floor(point.y)));
-      tone += trails[sampleY * field + sampleX] ?? 0;
-    }
-    tone /= chain.length;
-    const strength = Math.min(1, Math.max(0, (tone - FLOW_SURVIVE) / (1.25 - FLOW_SURVIVE)));
     let points = simplify(chain.map((point) => map(point.x, point.y)), 2.4);
     for (let pass = 0; pass < 3; pass += 1) points = chaikin(points);
-    const half = Math.max(2.2, Math.min(width, height) * 0.011) * (0.72 + strength ** 1.45 * 0.85);
+    const half = Math.max(2.4, Math.min(width, height) * 0.014);
     return { points, half };
   });
   paintTubes(ctx, paths);
@@ -462,22 +421,43 @@ function IterationCanvas({
     const canvas = ref.current;
     if (!canvas) return;
     let painted = "";
+    let visible = false;
+    let idle = 0;
     const paint = () => {
-      const key = `${canvas.clientWidth}x${canvas.clientHeight}`;
+      if (!visible) return;
+      if (canvas.clientWidth < 24 || canvas.clientHeight < 24) return;
+      const key = `${iteration.id}:${canvas.clientWidth}x${canvas.clientHeight}`;
       if (key === painted) return;
       const parcel = (context as SiteContext).site.ring;
       if (paintPlan(canvas, iteration, parcel)) {
         painted = key;
         return;
       }
-      if (canvas.clientWidth < 8 || canvas.clientHeight < 8) return;
       painted = key;
       paintIteration(canvas, iteration, frame);
     };
-    paint();
-    const observer = new ResizeObserver(paint);
-    observer.observe(canvas);
-    return () => observer.disconnect();
+    const schedule = () => {
+      window.clearTimeout(idle);
+      idle = window.setTimeout(paint, 32);
+    };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(canvas);
+    const sight = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver((entries) => {
+        visible = entries.some((entry) => entry.isIntersecting);
+        if (visible) schedule();
+      }, { rootMargin: "80px" });
+    if (sight) sight.observe(canvas);
+    else {
+      visible = true;
+      schedule();
+    }
+    return () => {
+      window.clearTimeout(idle);
+      resize.disconnect();
+      sight?.disconnect();
+    };
   }, [iteration, frame]);
   return <canvas ref={ref} aria-label={label} />;
 }
@@ -559,47 +539,15 @@ export function SiteNetworkIterations({
   const showingEvaluation = evaluations.find((item) => item.id === viewId) ?? null;
   const current = iterations.filter((item) => item.layoutFamily === "strategy");
   const massing = iterations.find((item) => item.id === massingId) ?? null;
-  const [sort, setSort] = useState<"connectivity" | "pockets" | "area" | "plans">("connectivity");
-  const [fits, setFits] = useState<Record<string, number>>({});
-  const measured = useRef<Record<string, number>>({});
-  useEffect(() => {
-    const site = context as SiteContext;
-    const pending = iterations.filter((item) => item.layoutFamily === "strategy" && measured.current[item.id] == null && (item.branches?.length ?? 0) > 0);
-    if (pending.length === 0) return;
-    let index = 0;
-    let cancel = false;
-    const step = () => {
-      if (cancel) return;
-      const item = pending[index];
-      index += 1;
-      if (!item) return;
-      const pockets = detectPockets(item.branches ?? [], site.site.ring);
-      const rows = assessPockets(
-        pockets.pockets,
-        item.nodes.map((node) => ({ kind: node.kind, x: node.x, z: node.z, note: node.strategy?.note ?? null })),
-        item.branches ?? [],
-      );
-      const plans = rows.filter((row) => row.fit === "plausible").length;
-      measured.current[item.id] = plans;
-      setFits((current) => ({ ...current, [item.id]: plans }));
-      if (index < pending.length) window.setTimeout(step, 0);
-    };
-    const timer = window.setTimeout(step, 0);
-    return () => {
-      cancel = true;
-      window.clearTimeout(timer);
-    };
-  }, [iterations]);
+  // Default to newest — do not auto-score pockets/plans across every archived run (that freezes Strategy).
+  const [sort, setSort] = useState<"index" | "connectivity">("index");
   const order = (runs: NetworkIteration[]) => [...runs].sort((a, b) => {
+    if (sort === "index") return b.index - a.index;
     const left = evaluations.find((item) => item.id === a.id);
     const right = evaluations.find((item) => item.id === b.id);
-    const value = (item: NetworkIteration, evaluation: typeof left) => {
-      if (sort === "pockets") return evaluation?.pockets.count ?? 0;
-      if (sort === "area") return evaluation?.pockets.areaSqFt ?? 0;
-      if (sort === "plans") return fits[item.id] ?? -1;
-      return evaluation && evaluation.attractors > 0 ? evaluation.connectedAttractors / evaluation.attractors : 0;
-    };
-    return value(b, right) - value(a, left);
+    const connected = (evaluation: typeof left) =>
+      evaluation && evaluation.attractors > 0 ? evaluation.connectedAttractors / evaluation.attractors : 0;
+    return connected(right) - connected(left);
   });
   const card = (item: NetworkIteration) => {
     const evaluation = evaluations.find((entry) => entry.id === item.id);
@@ -646,8 +594,8 @@ export function SiteNetworkIterations({
       <h2 className="site-subtitle">Networks {current.length > 0 ? <span>{current.length}</span> : null}</h2>
       <p className="site-note">{massing ? `Zoning ${massing.index}${massing.layoutTitle ? ` · ${massing.layoutTitle}` : ""}` : "No zoning network"}</p>
       <div className="site-modes site-network-controls" role="group" aria-label="Sort">
-        {(["connectivity", "pockets", "area", "plans"] as const).map((item) => (
-          <button key={item} type="button" aria-pressed={sort === item} data-active={sort === item || undefined} onClick={() => setSort(item)}>{item === "plans" ? "Plans" : item === "pockets" ? "Pockets" : item === "area" ? "Area" : "Connected"}</button>
+        {(["index", "connectivity"] as const).map((item) => (
+          <button key={item} type="button" aria-pressed={sort === item} data-active={sort === item || undefined} onClick={() => setSort(item)}>{item === "index" ? "Newest" : "Connected"}</button>
         ))}
       </div>
       {batch ? <p className="site-note" role="status">{batch.done + 1}/{batch.total} · step {batch.step}</p> : null}
@@ -674,18 +622,48 @@ export function SiteNetworkIterations({
           <p className="site-note">Then shortlist three and use one for Zoning.</p>
         </>
       ) : null}
-      {layouts.filter((layout) => layout.family === "strategy").map((layout) => {
-        const runs = current.filter((item) => item.layoutId === layout.layoutId);
-        if (runs.length === 0) return null;
-        return (
-          <section key={layout.layoutId} aria-label={layout.title}>
-            <h3 className="site-subtitle" title={layout.layoutId}>{ARRANGEMENT_FAMILY.find((item) => item.id === layout.layoutId)?.title ?? layout.title}</h3>
-            <div className="site-iteration-grid">
-              {order(runs).map(card)}
-            </div>
-          </section>
-        );
-      })}
+      {(() => {
+        // Prefer scored layout groups when present, then append any other strategy
+        // layoutIds (e.g. zoning-terminals-v1 batch runs) so new publishes always list.
+        const scored = layouts.filter((layout) => layout.family === "strategy");
+        const titleFor = (layoutId: string, fallback?: string) =>
+          ARRANGEMENT_FAMILY.find((item) => item.id === layoutId)?.title
+          ?? fallback
+          ?? layoutId;
+        const groups = scored.map((layout) => ({
+          layoutId: layout.layoutId,
+          title: titleFor(layout.layoutId, layout.title),
+          runs: current.filter((item) => item.layoutId === layout.layoutId),
+        }));
+        const seen = new Set(groups.map((group) => group.layoutId));
+        for (const item of current) {
+          const layoutId = item.layoutId ?? item.id;
+          if (seen.has(layoutId)) continue;
+          seen.add(layoutId);
+          groups.push({
+            layoutId,
+            title: titleFor(layoutId, item.layoutTitle),
+            runs: current.filter((run) => (run.layoutId ?? run.id) === layoutId),
+          });
+        }
+        // Newest layout groups first so zoning batch runs surface above older arrival sets.
+        groups.sort((left, right) => {
+          const leftMax = left.runs.reduce((max, run) => Math.max(max, run.index), 0);
+          const rightMax = right.runs.reduce((max, run) => Math.max(max, run.index), 0);
+          return rightMax - leftMax;
+        });
+        return groups.map((group) => {
+          if (group.runs.length === 0) return null;
+          return (
+            <section key={group.layoutId} aria-label={group.title}>
+              <h3 className="site-subtitle" title={group.layoutId}>{group.title}</h3>
+              <div className="site-iteration-grid">
+                {order(group.runs).map(card)}
+              </div>
+            </section>
+          );
+        });
+      })()}
       {compared.length >= 2 ? (
         <div className="site-iteration-compare" aria-label="Compared iterations">
           {compared.map((item) => {

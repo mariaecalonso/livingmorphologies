@@ -20,7 +20,7 @@ const FLOW_STABLE_STEPS = 20;
 export const FLOW_MAX_STEPS = 360;
 const SOLVER_ITERATIONS = 40;
 /** Edges opened in one step while the organism is still searching. */
-const GROW_EDGES = 48;
+const GROW_EDGES = 72;
 /** Edges opened in one step while a reached attractor grows toward another. */
 const JOIN_EDGES = 18;
 
@@ -115,10 +115,50 @@ export function createFlowGraph(
       neighbors[other].push({ to: index, edge });
     }
   }
+  // Pin every terminal into the graph at its exact site coordinates, then
+  // bridge it to nearby open samples so growth can leave/enter that point.
+  const linkRadius = spacingFeet * 2.4;
+  for (const terminal of terminals) {
+    if (!inside(terminal.x, terminal.z)) continue;
+    const pinKey = `${Math.round(terminal.x * 20) / 20}:${Math.round(terminal.z * 20) / 20}`;
+    let pin = indexAt.get(pinKey);
+    if (pin == null) {
+      pin = easts.length;
+      indexAt.set(pinKey, pin);
+      easts.push(terminal.x);
+      norths.push(terminal.z);
+      neighbors.push([]);
+    }
+    const nearby: { node: number; dist: number }[] = [];
+    for (let node = 0; node < easts.length; node += 1) {
+      if (node === pin) continue;
+      const dist = Math.hypot(easts[node] - terminal.x, norths[node] - terminal.z);
+      if (dist > linkRadius || dist < 0.05) continue;
+      if (!segmentOpen(terminal.x, terminal.z, easts[node], norths[node], inside, cellFeet)) continue;
+      nearby.push({ node, dist });
+    }
+    nearby.sort((left, right) => left.dist - right.dist);
+    for (const item of nearby.slice(0, 6)) {
+      const already = neighbors[pin].some((link) => link.to === item.node);
+      if (already) continue;
+      const edge = edges.length;
+      edges.push({
+        a: pin,
+        b: item.node,
+        length: Math.max(item.dist, 1),
+        conductivity: FLOW_FLOOR,
+        priority: rng(),
+      });
+      neighbors[pin].push({ to: item.node, edge });
+      neighbors[item.node].push({ to: pin, edge });
+    }
+  }
+
   const sources = terminals.filter((item) => item.kind === "source");
   const attractors = terminals.filter((item) => item.kind === "attractor");
-  const sourceAt = snapAll(sources, easts, norths, spacingFeet * 1.6);
-  const attractorAt = snapAll(attractors, easts, norths, spacingFeet * 1.6);
+  // Prefer the pinned coordinate (distance 0) over a nearby grid sample.
+  const sourceAt = snapAll(sources, easts, norths, spacingFeet * 2.5);
+  const attractorAt = snapAll(attractors, easts, norths, spacingFeet * 2.5);
   return {
     east: Float32Array.from(easts),
     north: Float32Array.from(norths),
@@ -135,17 +175,30 @@ export function createFlowGraph(
 function snapAll(terminals: readonly FlowTerminal[], easts: number[], norths: number[], limit: number) {
   const at = new Int32Array(terminals.length);
   at.fill(-1);
+  const claimed = new Set<number>();
   for (let index = 0; index < terminals.length; index += 1) {
     let best = -1;
     let bestDistance = limit;
     for (let node = 0; node < easts.length; node += 1) {
+      if (claimed.has(node)) continue;
       const distance = Math.hypot(easts[node] - terminals[index].x, norths[node] - terminals[index].z);
       if (distance < bestDistance) {
         best = node;
         bestDistance = distance;
       }
     }
+    // Fall back to a shared snap only when nothing unique is left in range.
+    if (best < 0) {
+      for (let node = 0; node < easts.length; node += 1) {
+        const distance = Math.hypot(easts[node] - terminals[index].x, norths[node] - terminals[index].z);
+        if (distance < bestDistance) {
+          best = node;
+          bestDistance = distance;
+        }
+      }
+    }
     at[index] = best;
+    if (best >= 0) claimed.add(best);
   }
   return at;
 }
@@ -261,6 +314,457 @@ export function flowSettled(state: FlowState) {
   return state.step >= FLOW_MAX_STEPS || state.stableFor >= FLOW_STABLE_STEPS;
 }
 
+/** Surviving edges for display / length, in site feet. */
+export function survivingFlowEdges(state: FlowState) {
+  const graph = state.graph;
+  const edges: { x0: number; z0: number; x1: number; z1: number; conductivity: number; length: number }[] = [];
+  for (const edge of graph.edges) {
+    if (edge.conductivity < FLOW_SURVIVE) continue;
+    edges.push({
+      x0: graph.east[edge.a],
+      z0: graph.north[edge.a],
+      x1: graph.east[edge.b],
+      z1: graph.north[edge.b],
+      conductivity: edge.conductivity,
+      length: edge.length,
+    });
+  }
+  return edges;
+}
+
+export type PhysarumNetworkMetrics = {
+  terminalsTotal: number;
+  terminalsConnected: number;
+  components: number;
+  totalNetworkLength: number;
+  avgDetourRatio: number | null;
+  /** True only when every terminal is on the graph and they share one component. */
+  ok: boolean;
+};
+
+/** Metrics over sources + attractors on the surviving conductivity graph. */
+export function measurePhysarumMetrics(state: FlowState): PhysarumNetworkMetrics {
+  const graph = state.graph;
+  const labels = livingLabels(graph);
+  const terminals: { id: string; node: number }[] = [];
+  for (let index = 0; index < graph.sourceIds.length; index += 1) {
+    terminals.push({ id: graph.sourceIds[index], node: graph.sourceAt[index] });
+  }
+  for (let index = 0; index < graph.attractorIds.length; index += 1) {
+    terminals.push({ id: graph.attractorIds[index], node: graph.attractorAt[index] });
+  }
+  const placed = terminals.filter((item) => item.node >= 0);
+  const componentIds = new Set<number>();
+  let connected = 0;
+  for (const item of placed) {
+    const label = labels[item.node];
+    if (label < 0) continue;
+    connected += 1;
+    componentIds.add(label);
+  }
+  let totalNetworkLength = 0;
+  for (const edge of graph.edges) {
+    if (edge.conductivity < FLOW_SURVIVE) continue;
+    totalNetworkLength += edge.length;
+  }
+  const avgDetourRatio = averageTerminalDetour(graph, placed.filter((item) => labels[item.node] >= 0));
+  return {
+    terminalsTotal: placed.length,
+    terminalsConnected: connected,
+    components: componentIds.size,
+    totalNetworkLength,
+    avgDetourRatio,
+    ok: connected === placed.length && placed.length > 0 && componentIds.size === 1,
+  };
+}
+
+function averageTerminalDetour(graph: FlowGraph, terminals: readonly { id: string; node: number }[]) {
+  if (terminals.length < 2) return null;
+  const count = graph.east.length;
+  const neighbors: { to: number; length: number }[][] = Array.from({ length: count }, () => []);
+  for (const edge of graph.edges) {
+    if (edge.conductivity < FLOW_SURVIVE) continue;
+    neighbors[edge.a].push({ to: edge.b, length: edge.length });
+    neighbors[edge.b].push({ to: edge.a, length: edge.length });
+  }
+  const pathDistance = (start: number, goal: number) => {
+    const distance = new Float64Array(count);
+    distance.fill(Number.POSITIVE_INFINITY);
+    distance[start] = 0;
+    const settled = new Uint8Array(count);
+    for (let step = 0; step < count; step += 1) {
+      let best = -1;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (let index = 0; index < count; index += 1) {
+        if (settled[index] === 1 || distance[index] >= bestDistance) continue;
+        best = index;
+        bestDistance = distance[index];
+      }
+      if (best < 0 || best === goal) break;
+      settled[best] = 1;
+      for (const link of neighbors[best]) {
+        const next = distance[best] + link.length;
+        if (next < distance[link.to]) distance[link.to] = next;
+      }
+    }
+    return distance[goal];
+  };
+  let sum = 0;
+  let pairs = 0;
+  for (let i = 0; i < terminals.length; i += 1) {
+    for (let j = i + 1; j < terminals.length; j += 1) {
+      const a = terminals[i];
+      const b = terminals[j];
+      const direct = Math.hypot(graph.east[a.node] - graph.east[b.node], graph.north[a.node] - graph.north[b.node]);
+      if (direct < 1e-3) continue;
+      const travel = pathDistance(a.node, b.node);
+      if (!Number.isFinite(travel)) continue;
+      sum += travel / direct;
+      pairs += 1;
+    }
+  }
+  return pairs > 0 ? sum / pairs : null;
+}
+
+/** Dijkstra from many starts; reinforce the recovered path to `goal`. */
+function reinforcePathToGoal(graph: FlowGraph, starts: readonly number[], goal: number) {
+  if (goal < 0 || starts.length === 0) return;
+  const count = graph.east.length;
+  const dist = new Float64Array(count);
+  const parent = new Int32Array(count);
+  const parentEdge = new Int32Array(count);
+  dist.fill(Number.POSITIVE_INFINITY);
+  parent.fill(-1);
+  parentEdge.fill(-1);
+  for (const source of starts) {
+    if (source >= 0) dist[source] = 0;
+  }
+  const used = new Uint8Array(count);
+  for (;;) {
+    let best = -1;
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (let node = 0; node < count; node += 1) {
+      if (used[node] !== 0 || dist[node] >= bestDist) continue;
+      best = node;
+      bestDist = dist[node];
+    }
+    if (best < 0 || best === goal) break;
+    used[best] = 1;
+    for (const link of graph.neighbors[best]) {
+      const edge = graph.edges[link.edge];
+      const live = edge.conductivity >= FLOW_SURVIVE;
+      const cost = dist[best] + edge.length * (live ? 1 : 2.2);
+      if (cost >= dist[link.to]) continue;
+      dist[link.to] = cost;
+      parent[link.to] = best;
+      parentEdge[link.to] = link.edge;
+    }
+  }
+  if (!Number.isFinite(dist[goal])) return;
+  let cursor = goal;
+  while (cursor >= 0 && parentEdge[cursor] >= 0) {
+    const edge = graph.edges[parentEdge[cursor]];
+    edge.conductivity = Math.max(edge.conductivity, FLOW_SHEET);
+    cursor = parent[cursor];
+  }
+}
+
+/**
+ * Force surviving paths from sources to every attractor, then stitch every
+ * source into the same body so edge-of-site lobbies stay on the drawn veins.
+ */
+function reinforceSourceToAttractorPaths(graph: FlowGraph) {
+  const sources = [...graph.sourceAt].filter((node) => node >= 0);
+  if (sources.length === 0) return;
+  for (let index = 0; index < graph.attractorAt.length; index += 1) {
+    reinforcePathToGoal(graph, sources, graph.attractorAt[index]);
+  }
+  // Anchor every source to the densest source component so northern / eastern
+  // lobbies cannot remain as isolated pins with only a display stub.
+  const labels = livingLabels(graph);
+  const counts = new Map<number, number>();
+  for (const node of sources) {
+    const mark = labels[node];
+    if (mark < 0) continue;
+    counts.set(mark, (counts.get(mark) ?? 0) + 1);
+  }
+  let hub = -1;
+  let hubCount = -1;
+  for (const [mark, count] of counts) {
+    if (count > hubCount) {
+      hub = mark;
+      hubCount = count;
+    }
+  }
+  const hubSources = hub >= 0 ? sources.filter((node) => labels[node] === hub) : sources.slice(0, 1);
+  for (const node of sources) {
+    if (hub >= 0 && labels[node] === hub) continue;
+    reinforcePathToGoal(graph, hubSources, node);
+  }
+}
+
+/**
+ * After the adaptive-flow settle, keep adapting for a short Physarum refinement:
+ * reinforce shared trunks, decay unused branches, prune dead ends that are not
+ * terminals, and join any remaining terminal components. Never disconnect a terminal.
+ */
+export function refinePhysarumSettle(state: FlowState, refineSteps = 80): PhysarumNetworkMetrics {
+  for (let step = 0; step < refineSteps; step += 1) {
+    if (!terminalsShareBody(state.graph)) {
+      joinTerminalComponents(state.graph);
+    } else {
+      state.feeding = true;
+      const supply = flowAmount(state.graph, supplyFlux(state.graph), state.step);
+      const between = attractorFlow(state.graph, state.step);
+      const supplyMean = meanFlow(supply);
+      const betweenMean = meanFlow(between);
+      for (let index = 0; index < state.graph.edges.length; index += 1) {
+        const edge = state.graph.edges[index];
+        const scaled = Math.max(supply[index] / supplyMean, between[index] / betweenMean);
+        if (edge.conductivity < FLOW_SURVIVE && scaled <= 0) continue;
+        const target = scaled >= 0.9
+          ? Math.min(FLOW_CAP, scaled ** FLOW_MU)
+          : scaled >= 0.22
+            ? 0.16 + scaled * 0.22
+            : 0;
+        const next = edge.conductivity + 0.48 * (target - edge.conductivity);
+        edge.conductivity = Math.min(FLOW_CAP, Math.max(FLOW_FLOOR, next));
+        if (edge.conductivity < FLOW_SURVIVE) edge.conductivity = FLOW_FLOOR;
+      }
+      pruneDeadEndsKeepingTerminals(state.graph);
+      shedRedundantKeepingTerminals(state.graph);
+    }
+    state.step += 1;
+  }
+  // Open / reinforce an explicit source→attractor path through every pin.
+  reinforceSourceToAttractorPaths(state.graph);
+  joinTerminalComponents(state.graph);
+  // Final safe cleanup once terminals share a body.
+  if (terminalsShareBody(state.graph)) {
+    for (let pass = 0; pass < 6; pass += 1) {
+      const before = survivingCount(state.graph);
+      pruneDeadEndsKeepingTerminals(state.graph);
+      shedRedundantKeepingTerminals(state.graph);
+      if (survivingCount(state.graph) === before) break;
+    }
+  }
+  // Re-assert the source→attractor routes after pruning so veins keep the pins.
+  reinforceSourceToAttractorPaths(state.graph);
+  const surviving: number[] = [];
+  for (let index = 0; index < state.graph.edges.length; index += 1) {
+    if (state.graph.edges[index].conductivity >= FLOW_SURVIVE) surviving.push(index);
+  }
+  state.surviving = surviving.length;
+  state.branches = branchCount(state.graph, surviving);
+  const reached = reachable(state.graph, surviving);
+  state.connected = [];
+  state.disconnected = [];
+  for (let index = 0; index < state.graph.attractorIds.length; index += 1) {
+    const node = state.graph.attractorAt[index];
+    const id = state.graph.attractorIds[index];
+    if (node >= 0 && reached.has(node)) state.connected.push(id);
+    else state.disconnected.push(id);
+  }
+  return measurePhysarumMetrics(state);
+}
+
+function survivingCount(graph: FlowGraph) {
+  let count = 0;
+  for (const edge of graph.edges) if (edge.conductivity >= FLOW_SURVIVE) count += 1;
+  return count;
+}
+
+/** Every placed source and attractor sits in the same surviving body. */
+export function terminalsShareBody(graph: FlowGraph) {
+  const label = livingLabels(graph);
+  let shared = -1;
+  const visit = (nodes: Int32Array) => {
+    for (const node of nodes) {
+      if (node < 0) continue;
+      if (label[node] < 0) return false;
+      if (shared < 0) shared = label[node];
+      else if (label[node] !== shared) return false;
+    }
+    return true;
+  };
+  if (!visit(graph.sourceAt)) return false;
+  if (!visit(graph.attractorAt)) return false;
+  return shared >= 0;
+}
+
+function terminalNodes(graph: FlowGraph) {
+  const nodes = new Set<number>();
+  for (const node of graph.sourceAt) if (node >= 0) nodes.add(node);
+  for (const node of graph.attractorAt) if (node >= 0) nodes.add(node);
+  return nodes;
+}
+
+function terminalsConnectedAfterDrop(graph: FlowGraph, dropEdge: number) {
+  const terminals = terminalNodes(graph);
+  if (terminals.size === 0) return true;
+  const start = terminals.values().next().value;
+  if (start == null) return true;
+  const seen = new Set<number>([start]);
+  const stack = [start];
+  while (stack.length) {
+    const node = stack.pop() ?? 0;
+    for (const link of graph.neighbors[node]) {
+      if (link.edge === dropEdge) continue;
+      if (graph.edges[link.edge].conductivity < FLOW_SURVIVE) continue;
+      if (seen.has(link.to)) continue;
+      seen.add(link.to);
+      stack.push(link.to);
+    }
+  }
+  for (const node of terminals) if (!seen.has(node)) return false;
+  return true;
+}
+
+/** Grow between surviving bodies that hold any terminal until they share one sheet. */
+function joinTerminalComponents(graph: FlowGraph) {
+  const count = graph.east.length;
+  const label = livingLabels(graph);
+  const terminalComponent = new Map<number, number>();
+  for (const node of terminalNodes(graph)) {
+    if (label[node] < 0) continue;
+    if (!terminalComponent.has(label[node])) terminalComponent.set(label[node], node);
+  }
+  if (terminalComponent.size < 2) {
+    // An orphan terminal with no living edges: open a hair toward the nearest body.
+    for (const node of terminalNodes(graph)) {
+      if (label[node] >= 0) continue;
+      let bestEdge = -1;
+      let bestPriority = -1;
+      for (const link of graph.neighbors[node]) {
+        const edge = graph.edges[link.edge];
+        if (edge.conductivity >= FLOW_SURVIVE) continue;
+        if (edge.priority <= bestPriority) continue;
+        bestPriority = edge.priority;
+        bestEdge = link.edge;
+      }
+      if (bestEdge >= 0) graph.edges[bestEdge].conductivity = FLOW_HAIR;
+    }
+    return;
+  }
+  const origin = terminalComponent.keys().next().value;
+  if (origin == null) return;
+  const dist = new Float64Array(count);
+  dist.fill(Number.POSITIVE_INFINITY);
+  const parent = new Int32Array(count);
+  parent.fill(-1);
+  const used = new Uint8Array(count);
+  for (let node = 0; node < count; node += 1) {
+    if (label[node] === origin) dist[node] = 0;
+  }
+  let found = -1;
+  for (;;) {
+    let best = -1;
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (let node = 0; node < count; node += 1) {
+      if (used[node] !== 0 || dist[node] >= bestDist) continue;
+      best = node;
+      bestDist = dist[node];
+    }
+    if (best < 0) break;
+    used[best] = 1;
+    const mark = label[best];
+    if (bestDist > 0 && mark >= 0 && mark !== origin && terminalComponent.has(mark)) {
+      found = best;
+      break;
+    }
+    for (const link of graph.neighbors[best]) {
+      if (used[link.to] !== 0) continue;
+      const edge = graph.edges[link.edge];
+      const cost = dist[best] + (1.2 - edge.priority);
+      if (cost < dist[link.to]) {
+        dist[link.to] = cost;
+        parent[link.to] = best;
+      }
+    }
+  }
+  if (found < 0) return;
+  const chain: number[] = [];
+  let cursor = found;
+  while (cursor >= 0) {
+    chain.push(cursor);
+    if (parent[cursor] < 0) break;
+    cursor = parent[cursor];
+  }
+  chain.reverse();
+  let opened = 0;
+  for (let index = 0; index < chain.length - 1 && opened < JOIN_EDGES; index += 1) {
+    let edge: FlowEdge | null = null;
+    for (const link of graph.neighbors[chain[index]]) {
+      if (link.to === chain[index + 1]) {
+        edge = graph.edges[link.edge];
+        break;
+      }
+    }
+    if (!edge || edge.conductivity >= FLOW_SURVIVE) continue;
+    edge.conductivity = FLOW_SHEET * (0.75 + edge.priority * 0.45);
+    opened += 1;
+  }
+}
+
+function pruneDeadEndsKeepingTerminals(graph: FlowGraph) {
+  const terminals = terminalNodes(graph);
+  for (let pass = 0; pass < 12; pass += 1) {
+    const degree = new Uint16Array(graph.east.length);
+    const incident: number[][] = Array.from({ length: graph.east.length }, () => []);
+    for (let index = 0; index < graph.edges.length; index += 1) {
+      const edge = graph.edges[index];
+      if (edge.conductivity < FLOW_SURVIVE) continue;
+      degree[edge.a] += 1;
+      degree[edge.b] += 1;
+      incident[edge.a].push(index);
+      incident[edge.b].push(index);
+    }
+    let removed = 0;
+    for (let node = 0; node < degree.length; node += 1) {
+      if (degree[node] !== 1) continue;
+      if (terminals.has(node)) continue;
+      const edgeIndex = incident[node][0];
+      if (edgeIndex == null) continue;
+      if (!terminalsConnectedAfterDrop(graph, edgeIndex)) continue;
+      graph.edges[edgeIndex].conductivity = FLOW_FLOOR;
+      removed += 1;
+    }
+    if (removed === 0) break;
+  }
+}
+
+function shedRedundantKeepingTerminals(graph: FlowGraph) {
+  for (let pass = 0; pass < 4; pass += 1) {
+    const degree = new Uint16Array(graph.east.length);
+    for (const edge of graph.edges) {
+      if (edge.conductivity < FLOW_SURVIVE) continue;
+      degree[edge.a] += 1;
+      degree[edge.b] += 1;
+    }
+    const candidates: number[] = [];
+    for (let index = 0; index < graph.edges.length; index += 1) {
+      const edge = graph.edges[index];
+      if (edge.conductivity < FLOW_SURVIVE) continue;
+      if (degree[edge.a] < 2 || degree[edge.b] < 2) continue;
+      candidates.push(index);
+    }
+    candidates.sort((left, right) => graph.edges[left].conductivity - graph.edges[right].conductivity || left - right);
+    let removed = 0;
+    for (const index of candidates) {
+      const edge = graph.edges[index];
+      if (edge.conductivity < FLOW_SURVIVE) continue;
+      if (degree[edge.a] < 2 || degree[edge.b] < 2) continue;
+      if (!closesShortLoop(graph, edge.a, edge.b, index)) continue;
+      if (!terminalsConnectedAfterDrop(graph, index)) continue;
+      edge.conductivity = FLOW_FLOOR;
+      degree[edge.a] -= 1;
+      degree[edge.b] -= 1;
+      removed += 1;
+    }
+    if (removed === 0) break;
+  }
+}
+
 function countLinked(nodes: Int32Array) {
   let count = 0;
   for (const node of nodes) if (node >= 0) count += 1;
@@ -305,6 +809,30 @@ function growOrganism(graph: FlowGraph) {
     components += 1;
   }
   const fresh = new Uint8Array(count);
+  // Unreached attractors — and source pins that are not yet in this body —
+  // pull the searching sheet so paths grow across the whole site.
+  const food: { x: number; z: number }[] = [];
+  for (let index = 0; index < graph.attractorAt.length; index += 1) {
+    const node = graph.attractorAt[index];
+    if (node < 0) continue;
+    if (label[node] >= 0 && body[node] === 1) continue;
+    food.push({ x: graph.east[node], z: graph.north[node] });
+  }
+  for (let index = 0; index < graph.sourceAt.length; index += 1) {
+    const node = graph.sourceAt[index];
+    if (node < 0) continue;
+    if (label[node] >= 0 && body[node] === 1) continue;
+    food.push({ x: graph.east[node], z: graph.north[node] });
+  }
+  const pullTowardFood = (node: number) => {
+    if (food.length === 0) return 0;
+    let best = Infinity;
+    for (const target of food) {
+      best = Math.min(best, Math.hypot(graph.east[node] - target.x, graph.north[node] - target.z));
+    }
+    return 1 / (1 + best / 45);
+  };
+
   for (let component = 0; component < components; component += 1) {
     const frontier: { edge: number; into: number; from: number; priority: number }[] = [];
     for (let index = 0; index < graph.edges.length; index += 1) {
@@ -313,11 +841,12 @@ function growOrganism(graph: FlowGraph) {
       const a = body[edge.a] === 1 && label[edge.a] === component;
       const b = body[edge.b] === 1 && label[edge.b] === component;
       if (a === b) continue;
+      const into = a ? edge.b : edge.a;
       frontier.push({
         edge: index,
-        into: a ? edge.b : edge.a,
+        into,
         from: a ? edge.a : edge.b,
-        priority: edge.priority,
+        priority: edge.priority + pullTowardFood(into) * 1.55,
       });
     }
     frontier.sort((left, right) => right.priority - left.priority || left.edge - right.edge);

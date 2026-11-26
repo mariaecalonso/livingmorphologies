@@ -92,7 +92,7 @@ function svgFor(title: string, branches: { x0: number; z0: number; x1: number; z
   const lines = branches.map((edge) => `<line x1="${X(edge.x0).toFixed(1)}" y1="${Y(edge.z0).toFixed(1)}" x2="${X(edge.x1).toFixed(1)}" y2="${Y(edge.z1).toFixed(1)}" stroke="#f2f2ee" stroke-width="1.15"/>`).join("");
   const marks = nodes.map((node) => {
     const role = node.kind === "source" ? "source" : roleOf(node.strategy?.note);
-    const fill = role === "source" ? "#c77e5f" : role === "gathering" ? "#e7a0c0" : role === "workspace" ? "#6d97e0" : "#49d7de";
+    const fill = role === "source" || role === "lobby" ? "#e0926c" : role === "gathering" ? "#5ee3ea" : role === "workspace" ? "#ffffff" : "#5ee3ea";
     return role === "source"
       ? `<circle cx="${X(node.x).toFixed(1)}" cy="${Y(node.z).toFixed(1)}" r="5.5" fill="${fill}"/>`
       : `<rect x="${(X(node.x) - 5).toFixed(1)}" y="${(Y(node.z) - 5).toFixed(1)}" width="10" height="10" fill="${fill}"/>`;

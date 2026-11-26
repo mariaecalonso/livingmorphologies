@@ -12,7 +12,6 @@ import {
   DataTexture,
   DoubleSide,
   LinearFilter,
-  Line,
   LineBasicMaterial,
   MeshBasicMaterial,
   ShaderMaterial,
@@ -28,8 +27,7 @@ import { worldToStored } from "@/lib/skill5/render-frame";
 import { trailDisplayAlpha } from "./site-network-display";
 import { influenceContours } from "./site-network-contours";
 import type { NetworkCandidate, NetworkEdit, NetworkNode, NetworkNodeKind, SiteNetworkStudy } from "./site-network";
-import { growthRing } from "./site-water-growth";
-import { FLOW_SURVIVE } from "./site-network-flow";
+import { buildVeinChains, veinHalfWidth, type VeinPoint } from "./site-network-vein-draw";
 
 const TRAIL_Y = 1.5;
 const MARK_Y = 2.4;
@@ -90,14 +88,14 @@ function labelMaterial(text: string, color: string) {
     return blank;
   }
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
+  canvas.width = 512;
   canvas.height = 64;
   const ctx = canvas.getContext("2d");
   const map = new CanvasTexture(canvas);
   if (ctx) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = color;
-    ctx.font = "500 28px sans-serif";
+    ctx.font = "600 26px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
@@ -130,8 +128,8 @@ function NodeMark({
   const [hot, setHot] = useState(false);
   const water = node.surface === "water";
   const color = node.kind === "source" ? SOURCE : water ? WATER : ATTRACTOR;
-  const label = node.kind === "source" ? "Source" : water ? "Water" : "Attractor";
-  const ring = useMemo(() => new RingGeometry(selected ? 4.2 : 5.4, selected ? 7.4 : 6.8, 32), [selected]);
+  const label = `${node.id} · ${node.kind === "source" ? "Source" : water ? "Water" : "Attractor"}`;
+  const ring = useMemo(() => new RingGeometry(selected ? 5.2 : 6.4, selected ? 8.6 : 8.0, 32), [selected]);
   const material = useMemo(() => {
     const next = new MeshBasicMaterial({ color, side: DoubleSide, transparent: true, opacity: 0.95, depthWrite: false });
     next.toneMapped = false;
@@ -176,8 +174,12 @@ function NodeMark({
           <meshBasicMaterial color="#c77e5f" depthWrite={false} toneMapped={false} />
         </mesh>
       ) : null}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} raycast={skipRaycast}>
+        <circleGeometry args={[4.4, 28]} />
+        <meshBasicMaterial color="#ffffff" depthWrite={false} toneMapped={false} side={DoubleSide} />
+      </mesh>
       <mesh rotation={[-Math.PI / 2, 0, node.kind === "source" ? Math.PI / 4 : 0]} raycast={skipRaycast}>
-        {node.kind === "source" ? <circleGeometry args={[2.1, 4]} /> : <circleGeometry args={[2.2, 28]} />}
+        {node.kind === "source" ? <circleGeometry args={[3.6, 4]} /> : <circleGeometry args={[3.8, 28]} />}
         <meshBasicMaterial color={color} depthWrite={false} toneMapped={false} side={DoubleSide} />
       </mesh>
       {water ? (
@@ -197,7 +199,7 @@ function NodeMark({
           <meshBasicMaterial color={color} transparent opacity={0.4} depthWrite={false} side={DoubleSide} toneMapped={false} />
         </mesh>
       ) : null}
-      <sprite material={sprite} position={[0, 12, 0]} scale={[40, 9, 1]} raycast={skipRaycast} />
+      <sprite material={sprite} position={[0, 14, 0]} scale={[56, 11, 1]} raycast={skipRaycast} />
     </group>
   );
 }
@@ -212,6 +214,7 @@ export function SiteNetworkLayer({
   showField,
   showTrails,
   branches = null,
+  fieldNodes = null,
   interactive = true,
   quiet = false,
   glow = true,
@@ -226,11 +229,13 @@ export function SiteNetworkLayer({
   showTrails: boolean;
   /** Saved iteration branches. These replace the conductivity raster. */
   branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null;
+  /** When set (viewing a saved iteration), these are the field points drawn on the site. */
+  fieldNodes?: readonly NetworkNode[] | null;
   /** Node placement stays on Site Strategy. Other steps only draw the network. */
   interactive?: boolean;
   /** Massing views keep the network, drawn lighter so the building reads first. */
   quiet?: boolean;
-  /** Strategy and Zoning keep the branch core and drop the additive halo. */
+  /** Soft additive halo around veins. Default on for the porous-network look. */
   glow?: boolean;
 }) {
   const told = useRef(false);
@@ -337,11 +342,12 @@ export function SiteNetworkLayer({
           float ring = tap(vec2(3.0, 0.0)) + tap(vec2(-3.0, 0.0)) + tap(vec2(0.0, 3.0)) + tap(vec2(0.0, -3.0));
           ring += tap(vec2(2.0, 2.0)) + tap(vec2(-2.0, 2.0)) + tap(vec2(2.0, -2.0)) + tap(vec2(-2.0, -2.0));
           float far = tap(vec2(6.0, 0.0)) + tap(vec2(-6.0, 0.0)) + tap(vec2(0.0, 6.0)) + tap(vec2(0.0, -6.0));
-          float soft = center * 0.62 + near * 0.06 + ring * 0.018 + far * 0.008;
-          float core = smoothstep(0.42, 0.78, soft);
-          float film = smoothstep(0.08, 0.28, soft) * (1.0 - smoothstep(0.42, 0.7, soft));
-          float alpha = max(core, film * 0.35);
-          if (alpha < 0.028) discard;
+          float soft = center * 0.58 + near * 0.055 + ring * 0.02 + far * 0.01;
+          float core = smoothstep(0.38, 0.82, soft);
+          float film = smoothstep(0.05, 0.24, soft) * (1.0 - smoothstep(0.36, 0.72, soft));
+          float hair = smoothstep(0.02, 0.12, soft) * (1.0 - smoothstep(0.14, 0.4, soft));
+          float alpha = max(core, max(film * 0.42, hair * 0.18));
+          if (alpha < 0.022) discard;
           gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
         }
       `,
@@ -480,7 +486,14 @@ export function SiteNetworkLayer({
   return (
     <group>
       {showField ? <InfluenceField study={study} nodes={edit.nodes} /> : null}
-      {showTrails && branches && branches.length > 0 ? <TubeMeshes edges={branches} quiet={quiet} showGlow={glow} /> : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
+      {showTrails && branches && branches.length > 0 ? (
+        <TubeMeshes
+          edges={branches}
+          quiet={quiet}
+          showGlow={glow}
+          pins={(fieldNodes && fieldNodes.length > 0 ? fieldNodes : edit.nodes).map((node) => ({ x: node.x, z: node.z }))}
+        />
+      ) : showTrails && study.generator === "flow" && !preview && !colored ? <FlowTubes study={study} /> : null}
       <mesh
         visible={showTrails && !(branches && branches.length > 0) && (study.generator !== "flow" || preview != null || colored != null)}
         position={[(minX + maxX) / 2, TRAIL_Y, (minZ + maxZ) / 2]}
@@ -517,16 +530,20 @@ export function SiteNetworkLayer({
         <planeGeometry args={[maxX - minX, maxZ - minZ]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} side={DoubleSide} />
       </mesh>
-      {showTrails || interactive ? edit.nodes.map((node) => {
-        if (!node.water) return null;
-        const ring = growthRing(node.x, node.z, node.water.landX, node.water.landZ, node.water.widthFt);
-        if (!ring) return null;
-        return <GrowthZone key={`zone-${node.id}`} ring={ring} />;
-      }) : null}
-      {showTrails || interactive ? edit.nodes.map((node) => (
-        <NodeMark key={node.id} node={node} selected={node.id === edit.selectedId} reached={reached.has(node.id)} visiting={visiting.has(node.id)} onPointerDown={onNodeDown} onDelete={(id) => study.remove(id)} interactive={interactive} showGlow={glow} />
+      {showTrails || interactive ? (fieldNodes && fieldNodes.length > 0 ? fieldNodes : edit.nodes).map((node) => (
+        <NodeMark
+          key={node.id}
+          node={node}
+          selected={!fieldNodes && node.id === edit.selectedId}
+          reached={reached.has(node.id) || Boolean(fieldNodes)}
+          visiting={visiting.has(node.id)}
+          onPointerDown={onNodeDown}
+          onDelete={(id) => study.remove(id)}
+          interactive={interactive && !fieldNodes}
+          showGlow={false}
+        />
       )) : null}
-      {interactive ? edit.nodes.map((node) => node.water && node.id === edit.selectedId ? (
+      {interactive && !fieldNodes ? edit.nodes.map((node) => node.water && node.id === edit.selectedId ? (
         <mesh
           key={`landing-${node.id}`}
           position={[node.water.landX, MARK_Y, node.water.landZ]}
@@ -556,33 +573,6 @@ export function SiteNetworkLayer({
   );
 }
 
-type TubePoint = { x: number; z: number; half: number };
-
-function smoothChain(points: TubePoint[]) {
-  let current = points;
-  for (let pass = 0; pass < 6; pass += 1) {
-    if (current.length < 3) break;
-    const next: TubePoint[] = [current[0]];
-    for (let index = 0; index < current.length - 1; index += 1) {
-      const start = current[index];
-      const end = current[index + 1];
-      next.push({
-        x: start.x * 0.75 + end.x * 0.25,
-        z: start.z * 0.75 + end.z * 0.25,
-        half: start.half * 0.75 + end.half * 0.25,
-      });
-      next.push({
-        x: start.x * 0.25 + end.x * 0.75,
-        z: start.z * 0.25 + end.z * 0.75,
-        half: start.half * 0.25 + end.half * 0.75,
-      });
-    }
-    next.push(current[current.length - 1]);
-    current = next;
-  }
-  return current;
-}
-
 const TUBE_VERTEX = `
   varying float vEdge;
   void main() {
@@ -591,14 +581,13 @@ const TUBE_VERTEX = `
   }
 `;
 
+/** Flat white stroke — same opacity across the whole ribbon. */
 const TUBE_BODY = `
   uniform float uAlpha;
   varying float vEdge;
   void main() {
     float edge = clamp(vEdge, 0.0, 1.0);
-    float core = smoothstep(0.22, 0.0, edge);
-    float sheath = smoothstep(0.55, 0.05, edge);
-    float alpha = (core * 0.92 + sheath * 0.2) * uAlpha;
+    float alpha = (1.0 - smoothstep(0.92, 1.0, edge)) * uAlpha;
     gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
   }
 `;
@@ -608,134 +597,60 @@ const TUBE_GLOW = `
   varying float vEdge;
   void main() {
     float edge = clamp(vEdge, 0.0, 1.0);
-    float alpha = smoothstep(1.0, 0.0, edge) * 0.34 * uAlpha;
+    float halo = pow(1.0 - edge, 1.5);
+    float alpha = halo * 0.08 * uAlpha;
     gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
   }
 `;
 
-function buildTube(edges: ReturnType<SiteNetworkStudy["flowAppearance"]>, widthScale: number, y: number) {
+const TUBE_HAIR = `
+  uniform float uAlpha;
+  varying float vEdge;
+  void main() {
+    float edge = clamp(vEdge, 0.0, 1.0);
+    float alpha = pow(1.0 - edge, 1.8) * 0.03 * uAlpha;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
+  }
+`;
+
+function buildTube(
+  edges: ReturnType<SiteNetworkStudy["flowAppearance"]>,
+  widthScale: number,
+  y: number,
+  pins: readonly { x: number; z: number }[] = [],
+) {
   const positions: number[] = [];
   const uvs: number[] = [];
+  const half = veinHalfWidth(1, widthScale);
   const push = (ax: number, az: number, as: number, bx: number, bz: number, bs: number, cx: number, cz: number, cs: number) => {
     positions.push(ax, y, az, bx, y, bz, cx, y, cz);
     uvs.push(as, 0, bs, 0, cs, 0);
   };
-  const stroke = (from: TubePoint, to: TubePoint) => {
+  const stroke = (from: VeinPoint, to: VeinPoint) => {
     const dx = to.x - from.x;
     const dz = to.z - from.z;
     const length = Math.hypot(dx, dz) || 1;
-    const leftX = (-dz / length);
-    const leftZ = (dx / length);
-    const fromLeftX = from.x + leftX * from.half;
-    const fromLeftZ = from.z + leftZ * from.half;
-    const fromRightX = from.x - leftX * from.half;
-    const fromRightZ = from.z - leftZ * from.half;
-    const toLeftX = to.x + leftX * to.half;
-    const toLeftZ = to.z + leftZ * to.half;
-    const toRightX = to.x - leftX * to.half;
-    const toRightZ = to.z - leftZ * to.half;
+    const leftX = -dz / length;
+    const leftZ = dx / length;
+    const fromLeftX = from.x + leftX * half;
+    const fromLeftZ = from.z + leftZ * half;
+    const fromRightX = from.x - leftX * half;
+    const fromRightZ = from.z - leftZ * half;
+    const toLeftX = to.x + leftX * half;
+    const toLeftZ = to.z + leftZ * half;
+    const toRightX = to.x - leftX * half;
+    const toRightZ = to.z - leftZ * half;
     push(fromLeftX, fromLeftZ, 1, from.x, from.z, 0, toLeftX, toLeftZ, 1);
     push(from.x, from.z, 0, toLeftX, toLeftZ, 1, to.x, to.z, 0);
     push(from.x, from.z, 0, fromRightX, fromRightZ, 1, to.x, to.z, 0);
     push(fromRightX, fromRightZ, 1, toRightX, toRightZ, 1, to.x, to.z, 0);
   };
-  const cap = (point: TubePoint, scale = 1) => {
-    const radius = point.half * scale;
-    const steps = 14;
-    for (let step = 0; step < steps; step += 1) {
-      const a0 = (step / steps) * Math.PI * 2;
-      const a1 = ((step + 1) / steps) * Math.PI * 2;
-      push(point.x, point.z, 0, point.x + Math.cos(a0) * radius, point.z + Math.sin(a0) * radius, 1, point.x + Math.cos(a1) * radius, point.z + Math.sin(a1) * radius, 1);
-    }
-  };
-  const keyOf = (x: number, z: number) => `${Math.round(x)}:${Math.round(z)}`;
-  const nodes = new Map<string, { x: number; z: number; links: { to: string; half: number }[] }>();
-  const ensure = (x: number, z: number) => {
-    const key = keyOf(x, z);
-    const found = nodes.get(key);
-    if (found) return key;
-    nodes.set(key, { x, z, links: [] });
-    return key;
-  };
-  for (const edge of edges) {
-    const tone = Math.min(1, Math.max(0, (edge.conductivity - FLOW_SURVIVE) / (1.25 - FLOW_SURVIVE)));
-    const half = (1.15 + tone ** 1.45 * 2.7) * widthScale;
-    const start = ensure(edge.x0, edge.z0);
-    const end = ensure(edge.x1, edge.z1);
-    nodes.get(start)?.links.push({ to: end, half });
-    nodes.get(end)?.links.push({ to: start, half });
-  }
-  for (let pass = 0; pass < 18; pass += 1) {
-    const shifted = new Map<string, { x: number; z: number }>();
-    for (const [key, node] of nodes) {
-      const neighbors = [...new Set(node.links.map((link) => link.to))];
-      if (neighbors.length < 2) {
-        shifted.set(key, { x: node.x, z: node.z });
-        continue;
-      }
-      let x = 0;
-      let z = 0;
-      for (const neighbor of neighbors) {
-        const other = nodes.get(neighbor);
-        if (!other) continue;
-        x += other.x;
-        z += other.z;
-      }
-      x /= neighbors.length;
-      z /= neighbors.length;
-      const keep = neighbors.length >= 3 ? 0.62 : 0.12;
-      shifted.set(key, { x: node.x * keep + x * (1 - keep), z: node.z * keep + z * (1 - keep) });
-    }
-    for (const [key, point] of shifted) {
-      const node = nodes.get(key);
-      if (!node) continue;
-      node.x = point.x;
-      node.z = point.z;
-    }
-  }
-  const used = new Set<string>();
-  const pair = (left: string, right: string) => left < right ? `${left}|${right}` : `${right}|${left}`;
-  const chains: TubePoint[][] = [];
-  const follow = (start: string, first: { to: string; half: number }) => {
-    const origin = nodes.get(start);
-    if (!origin) return;
-    const chain: TubePoint[] = [{ x: origin.x, z: origin.z, half: first.half }];
-    used.add(pair(start, first.to));
-    let previous = start;
-    let current = first.to;
-    let half = first.half;
-    while (nodes.has(current)) {
-      const node = nodes.get(current);
-      if (!node) break;
-      chain.push({ x: node.x, z: node.z, half });
-      if (node.links.length !== 2) break;
-      const next = node.links.find((link) => link.to !== previous);
-      if (!next) break;
-      const mark = pair(current, next.to);
-      if (used.has(mark)) break;
-      used.add(mark);
-      half = next.half;
-      previous = current;
-      current = next.to;
-    }
-    chains.push(chain);
-  };
-  for (const [key, node] of nodes) {
-    if (node.links.length === 2) continue;
-    for (const link of node.links) {
-      if (!used.has(pair(key, link.to))) follow(key, link);
-    }
-  }
-  for (const [key, node] of nodes) {
-    for (const link of node.links) {
-      if (!used.has(pair(key, link.to))) follow(key, link);
-    }
-  }
+  // Same surviving edges — drawn as softened organic chains, uniform width.
+  const chains = buildVeinChains(edges, widthScale, 3, pins);
   for (const chain of chains) {
-    const curved = smoothChain(chain);
-    for (let index = 0; index < curved.length - 1; index += 1) stroke(curved[index], curved[index + 1]);
-    cap(curved[0], chain.length > 2 ? 1.15 : 1);
-    cap(curved[curved.length - 1], chain.length > 2 ? 1.15 : 1);
+    for (let index = 0; index < chain.points.length - 1; index += 1) {
+      stroke(chain.points[index], chain.points[index + 1]);
+    }
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
@@ -743,19 +658,17 @@ function buildTube(edges: ReturnType<SiteNetworkStudy["flowAppearance"]>, widthS
   return geometry;
 }
 
-function TubeMeshes({ edges, quiet = false, showGlow = true }: { edges: ReturnType<SiteNetworkStudy["flowAppearance"]>; quiet?: boolean; showGlow?: boolean }) {
-  const glow = useMemo(() => buildTube(edges, 2.6, 1.52), [edges]);
-  const core = useMemo(() => buildTube(edges, 1, 1.7), [edges]);
-  const glowMaterial = useMemo(() => new ShaderMaterial({
-    vertexShader: TUBE_VERTEX,
-    fragmentShader: TUBE_GLOW,
-    transparent: true,
-    depthWrite: false,
-    blending: AdditiveBlending,
-    side: DoubleSide,
-    toneMapped: false,
-    uniforms: { uAlpha: { value: 1 } },
-  }), []);
+/** Single soft porous vein pass — same structure shaping as the reference plates. */
+function CoreVeinMeshes({
+  edges,
+  quiet = false,
+  pins = [],
+}: {
+  edges: ReturnType<SiteNetworkStudy["flowAppearance"]>;
+  quiet?: boolean;
+  pins?: readonly { x: number; z: number }[];
+}) {
+  const core = useMemo(() => buildTube(edges, 1.2, 1.72, pins), [edges, pins]);
   const coreMaterial = useMemo(() => new ShaderMaterial({
     vertexShader: TUBE_VERTEX,
     fragmentShader: TUBE_BODY,
@@ -767,23 +680,62 @@ function TubeMeshes({ edges, quiet = false, showGlow = true }: { edges: ReturnTy
     uniforms: { uAlpha: { value: 1 } },
   }), []);
   useEffect(() => {
-    const alpha = quiet ? 0.1 : 1;
-    glowMaterial.uniforms.uAlpha.value = alpha;
-    coreMaterial.uniforms.uAlpha.value = alpha;
-  }, [coreMaterial, glowMaterial, quiet]);
+    coreMaterial.uniforms.uAlpha.value = quiet ? 0.1 : 1;
+  }, [coreMaterial, quiet]);
   useEffect(() => () => {
-    glow.dispose();
     core.dispose();
-    glowMaterial.dispose();
     coreMaterial.dispose();
-  }, [glow, core, glowMaterial, coreMaterial]);
+  }, [core, coreMaterial]);
   if (core.getAttribute("position").count === 0) return null;
-  return (
-    <group>
-      <mesh geometry={glow} material={glowMaterial} visible={showGlow && !quiet} renderOrder={5} raycast={skipRaycast} />
-      <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />
-    </group>
-  );
+  return <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />;
+}
+
+function TubeMeshes({
+  edges,
+  quiet = false,
+  showGlow = true,
+  pins = [],
+}: {
+  edges: ReturnType<SiteNetworkStudy["flowAppearance"]>;
+  quiet?: boolean;
+  showGlow?: boolean;
+  pins?: readonly { x: number; z: number }[];
+}) {
+  // Glow on uses the porous reference stack; glow off keeps a lighter single soft vein.
+  if (!showGlow) return <CoreVeinMeshes edges={edges} quiet={quiet} pins={pins} />;
+  return <VeinTubeMeshes edges={edges} quiet={quiet} pins={pins} />;
+}
+
+function VeinTubeMeshes({
+  edges,
+  quiet = false,
+  pins = [],
+}: {
+  edges: ReturnType<SiteNetworkStudy["flowAppearance"]>;
+  quiet?: boolean;
+  pins?: readonly { x: number; z: number }[];
+}) {
+  // One uniform body for every branch — same width, same paint.
+  const core = useMemo(() => buildTube(edges, 1.2, 1.72, pins), [edges, pins]);
+  const coreMaterial = useMemo(() => new ShaderMaterial({
+    vertexShader: TUBE_VERTEX,
+    fragmentShader: TUBE_BODY,
+    transparent: true,
+    depthWrite: false,
+    blending: NormalBlending,
+    side: DoubleSide,
+    toneMapped: false,
+    uniforms: { uAlpha: { value: 1 } },
+  }), []);
+  useEffect(() => {
+    coreMaterial.uniforms.uAlpha.value = quiet ? 0.1 : 1;
+  }, [coreMaterial, quiet]);
+  useEffect(() => () => {
+    core.dispose();
+    coreMaterial.dispose();
+  }, [core, coreMaterial]);
+  if (core.getAttribute("position").count === 0) return null;
+  return <mesh geometry={core} material={coreMaterial} renderOrder={6} raycast={skipRaycast} />;
 }
 
 function FlowTubes({ study }: { study: SiteNetworkStudy }) {
@@ -792,7 +744,11 @@ function FlowTubes({ study }: { study: SiteNetworkStudy }) {
     if (study.revision !== revision) setRevision(study.revision);
   });
   const edges = useMemo(() => study.flowAppearance(), [revision, study]);
-  return <TubeMeshes edges={edges} />;
+  const pins = useMemo(
+    () => study.edit.nodes.map((node) => ({ x: node.x, z: node.z })),
+    [revision, study],
+  );
+  return <TubeMeshes edges={edges} pins={pins} />;
 }
 
 function ContourMesh({ positions, color }: { positions: Float32Array; color: string }) {
@@ -913,46 +869,6 @@ function CandidateMark({
         />
         <sprite material={sprite} position={[0, 12, 0]} scale={[64, 14, 1]} raycast={skipRaycast} />
       </group>
-    </group>
-  );
-}
-
-function GrowthZone({ ring }: { ring: readonly (readonly [number, number])[] }) {
-  const signature = ring.map((point) => `${point[0].toFixed(2)},${point[1].toFixed(2)}`).join(" ");
-  const fill = useMemo(() => {
-    const geometry = new BufferGeometry();
-    const positions: number[] = [];
-    const [x0, z0] = ring[0];
-    for (let index = 1; index < ring.length - 1; index += 1) {
-      const [x1, z1] = ring[index];
-      const [x2, z2] = ring[index + 1];
-      positions.push(x0, 1.15, z0, x1, 1.15, z1, x2, 1.15, z2);
-    }
-    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-    return geometry;
-  }, [signature, ring]);
-  const edge = useMemo(() => {
-    const geometry = new BufferGeometry();
-    const positions = ring.flatMap(([x, z]) => [x, 1.35, z]);
-    positions.push(ring[0][0], 1.35, ring[0][1]);
-    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
-    const material = new LineBasicMaterial({ color: WATER, transparent: true, opacity: 0.9 });
-    const outline = new Line(geometry, material);
-    outline.raycast = skipRaycast;
-    return outline;
-  }, [signature, ring]);
-  useEffect(() => () => {
-    fill.dispose();
-    edge.geometry.dispose();
-    const material = edge.material;
-    if (!Array.isArray(material)) material.dispose();
-  }, [fill, edge]);
-  return (
-    <group>
-      <mesh geometry={fill} raycast={skipRaycast}>
-        <meshBasicMaterial color={WATER} transparent opacity={0.22} depthWrite={false} side={DoubleSide} toneMapped={false} />
-      </mesh>
-      <primitive object={edge} />
     </group>
   );
 }

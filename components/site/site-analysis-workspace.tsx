@@ -82,7 +82,7 @@ function clearOfNeighbors(
 
 const MODES: { id: SiteViewMode; label: string }[] = [
   { id: "perspective", label: "Perspective" },
-  { id: "plan", label: "Top" },
+  { id: "plan", label: "Plan" },
   { id: "section", label: "Side" },
   { id: "axon", label: "Axonometric" },
 ];
@@ -1542,7 +1542,8 @@ function AnalysisColumn({
 }
 
 export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model" | "analysis" }) {
-  const [mode, setMode] = useState<SiteViewMode>("perspective");
+  // Match Site Strategy: west-up plan is the shared default site graphic.
+  const [mode, setMode] = useState<SiteViewMode>("plan");
   const [studyId, setStudyId] = useState<string | null>(panels === "analysis" ? SUN_STUDY : null);
   const [seasonDates, setSeasonDates] = useState<Record<SolarSeasonId, string> | null>(null);
   const [datesResolved, setDatesResolved] = useState(false);
@@ -1576,7 +1577,7 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
   const inputs = useMemo<readonly SiteObservation[]>(() => [], []);
   const [showSunPath, setShowSunPath] = useState(true);
   const [showShadows, setShowShadows] = useState(true);
-  const [planHeading, setPlanHeading] = useState<"north" | "east">("north");
+  const [planHeading, setPlanHeading] = useState<"north" | "east" | "west">("west");
   const [showGrid, setShowGrid] = useState(true);
   const [showAerial] = useState(false);
   const [fit] = useState<SiteFit>("site");
@@ -2721,9 +2722,9 @@ export function SiteAnalysisWorkspace({ panels = "analysis" }: { panels?: "model
                 className="site-north"
                 data-active={mode === "plan" || undefined}
                 style={{ transform: `rotate(${readout.northDeg}deg)` }}
-                aria-label={mode === "plan" ? (planHeading === "north" ? "North up. Click for east up." : "East up. Click for north up.") : "Geographic north, marked N"}
+                aria-label={mode === "plan" ? (planHeading === "west" ? "West up. Click for north up." : planHeading === "north" ? "North up. Click for east up." : "East up. Click for west up.") : "Geographic north, marked N"}
                 onClick={() => {
-                  if (mode === "plan") setPlanHeading((heading) => heading === "north" ? "east" : "north");
+                  if (mode === "plan") setPlanHeading((heading) => heading === "west" ? "north" : heading === "north" ? "east" : "west");
                 }}
               >
                 <span>N</span>

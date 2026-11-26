@@ -126,8 +126,13 @@ function pocketKey(points: readonly ZonePoint[]) {
 /**
  * Faces enclosed by the surviving network and, where a branch meets it, the parcel edge.
  * Open branches are counted and left open. No edge is added to force a closure.
+ * When `water` is provided, network over the bay stays and waterfront faces remain assignable.
  */
-export function detectPockets(branches: readonly NetworkBranch[], parcel: readonly XZ[]): PocketReport {
+export function detectPockets(
+  branches: readonly NetworkBranch[],
+  parcel: readonly XZ[],
+  water: readonly XZ[] = [],
+): PocketReport {
   if (parcel.length < 3 || branches.length === 0) return { pockets: [], openSegments: branches.length };
   const boundary: Segment[] = [];
   for (let index = 0; index < parcel.length; index += 1) {
@@ -135,6 +140,10 @@ export function detectPockets(branches: readonly NetworkBranch[], parcel: readon
     const to = parcel[(index + 1) % parcel.length];
     boundary.push({ ax: from[0], az: from[1], bx: to[0], bz: to[1], parcel: true });
   }
+  const keepPiece = (x: number, z: number) => {
+    if (insideOrOn(x, z, parcel, boundary)) return true;
+    return water.length >= 3 && pointInRing(x, z, water);
+  };
   const network: Segment[] = [];
   for (const branch of branches) {
     if (Math.hypot(branch.x1 - branch.x0, branch.z1 - branch.z0) < QUANT) continue;
@@ -147,7 +156,7 @@ export function detectPockets(branches: readonly NetworkBranch[], parcel: readon
     for (const piece of cut(segment, cuts)) {
       const midX = (piece.ax + piece.bx) / 2;
       const midZ = (piece.az + piece.bz) / 2;
-      if (insideOrOn(midX, midZ, parcel, boundary)) network.push(piece);
+      if (keepPiece(midX, midZ)) network.push(piece);
     }
   }
   const source = [...boundary, ...network];
@@ -259,7 +268,9 @@ export function detectPockets(branches: readonly NetworkBranch[], parcel: readon
       signed *= 0.5;
       if (signed < MIN_AREA) continue;
       const center = polygonCentroid(points);
-      if (!pointInRing(center.x, center.z, parcel) && !insideOrOn(center.x, center.z, parcel, boundary)) continue;
+      const onParcel = pointInRing(center.x, center.z, parcel) || insideOrOn(center.x, center.z, parcel, boundary);
+      const onWater = water.length >= 3 && pointInRing(center.x, center.z, water);
+      if (!onParcel && !onWater) continue;
       pockets.push({
         id: pocketKey(points),
         points,

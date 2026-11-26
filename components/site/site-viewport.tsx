@@ -74,6 +74,8 @@ import type { UseSegment } from "@/lib/skill5/urban";
 import { ModuleMeshes, useModulePointer, type SitePlacementModel } from "./module-field";
 import { SiteAnalysisLayer, type SiteAnalysisLayers } from "./site-analysis-layer";
 import type { NetworkNodeKind, SiteNetworkStudy } from "./site-network";
+import type { ArrivalZoningMap } from "@/lib/skill5/arrival-zoning-map";
+import { ArrivalZoningLayer } from "./arrival-zoning-layer";
 import { SiteNetworkLayer } from "./site-network-layer";
 import { TypologyAttractorLayer } from "./typology-attractor-layer";
 import type { TypologyAttractor, TypologyIntent } from "./typology-attractors";
@@ -205,8 +207,9 @@ function sheetScale(view: Window) {
 function presentationPixelRatio() {
   const view = typeof window === "undefined" ? null : window;
   if (!view) return 1;
-  const dpr = Math.min(view.devicePixelRatio || 1, 2);
-  return Math.round(Math.min(2, Math.max(0.12, sheetScale(view) * dpr)) * 100) / 100;
+  // Cap at 1.25 — full 2× DPR was overdrawing the site canvas and lagging the lab.
+  const dpr = Math.min(view.devicePixelRatio || 1, 1.25);
+  return Math.round(Math.min(1.25, Math.max(0.12, sheetScale(view) * dpr)) * 100) / 100;
 }
 
 /** The presentation sheet is scaled to the window. Line weight uses the width the window actually shows. */
@@ -1411,7 +1414,7 @@ function PlaceProbe({ ring, onPlace }: { ring: readonly XZ[]; onPlace: (x: numbe
 export function SiteViewport({
   context,
   mode,
-  planHeading = "north",
+  planHeading = "west",
   fit,
   rotateView = false,
   showGrid,
@@ -1443,6 +1446,7 @@ export function SiteViewport({
   joins = null,
   assemblyFilm = null,
   typology = null,
+  arrivalZoning = null,
   focusBounds = null,
   clusterAssembly = null,
   groundPickRef = null,
@@ -1483,7 +1487,7 @@ export function SiteViewport({
   } | null;
   uses?: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
+  network?: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; fieldNodes?: import("./site-network").NetworkNode[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
   zones?: readonly ZoningRegion[] | null;
   zoning?: {
     tool: ZoneTool;
@@ -1500,6 +1504,8 @@ export function SiteViewport({
     pockets?: {
       items: readonly NetworkPocket[];
       kinds: Readonly<Record<string, ZoneKind | null>>;
+      pickKind?: ZoneKind | null;
+      suggestions?: Readonly<Record<string, ZoneKind | null>>;
       fits?: Readonly<Record<string, PocketFit>>;
       hoverId: string | null;
       selectedIds: readonly string[];
@@ -1512,6 +1518,7 @@ export function SiteViewport({
   connections?: readonly { id: string; ax: number; az: number; bx: number; bz: number; mode: "direct" | "hybrid" }[] | null;
   joins?: { highlights: readonly FaceHighlight[]; passages: readonly { id: string; positions: number[]; indices: number[]; preview: boolean }[] } | null;
   assemblyFilm?: SiteAssemblyFilmView | null;
+  arrivalZoning?: ArrivalZoningMap | null;
   typology?: {
     study: SiteNetworkStudy;
     points: readonly TypologyAttractor[];
@@ -1569,7 +1576,7 @@ export function SiteViewport({
       }}
     >
       <FillFrame />
-      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} groundPickRef={groundPickRef} />
+      <PlacementScene context={context} showGrid={showGrid} showAerial={showAerial} showSunPath={showSunPath} showShadows={showShadows} placement={placement} overlay={overlay} analysis={analysis} appearance={appearance} presentation={presentation} sheetsRef={sheetsRef} sun={sun} sunArc={sunArc} wind={wind} sight={sight} roadProximity={roadProximity} walk={walk} movement={movement} uses={uses} onShadowTexel={onShadowTexel} network={network} zones={zones} zoning={zoning} connections={connections} joins={joins} assemblyFilm={assemblyFilm} typology={typology} arrivalZoning={arrivalZoning} measuredRoads={frameWholeSite} clusterAssembly={clusterAssembly} groundPickRef={groundPickRef} />
       <CameraRig mode={mode} planHeading={planHeading} fit={fit} rotateView={rotateView} frameToken={frameToken} bounds={bounds} onReadout={onReadout} framing={cameraFraming} frameWholeSite={frameWholeSite} sheetsRef={sheetsRef} focus={focusBounds != null} />
       {sight?.mode === "views" ? <ViewCalloutProjector overlay={sight} root={callouts} ring={context.site.ring} /> : null}
       {placeObserver ? <PlaceProbe ring={context.site.ring} onPlace={placeObserver} /> : null}
@@ -1607,6 +1614,7 @@ function PlacementScene({
   joins,
   assemblyFilm,
   typology,
+  arrivalZoning = null,
   measuredRoads = false,
   clusterAssembly = null,
   groundPickRef = null,
@@ -1639,7 +1647,7 @@ function PlacementScene({
   } | null;
   uses: readonly UseSegment[] | null;
   onShadowTexel?: (feet: number) => void;
-  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
+  network: { study: SiteNetworkStudy; running: boolean; tool: NetworkNodeKind; onSettle: () => void; preview?: Float32Array | null; colored?: Uint8Array | null; showField: boolean; showTrails: boolean; showContext: boolean; branches?: { x0: number; z0: number; x1: number; z1: number; conductivity: number }[] | null; fieldNodes?: import("./site-network").NetworkNode[] | null; interactive?: boolean; studyTone?: boolean; quiet?: boolean; glow?: boolean } | null;
   zones: readonly ZoningRegion[] | null;
   zoning: {
     tool: ZoneTool;
@@ -1656,6 +1664,8 @@ function PlacementScene({
     pockets?: {
       items: readonly NetworkPocket[];
       kinds: Readonly<Record<string, ZoneKind | null>>;
+      pickKind?: ZoneKind | null;
+      suggestions?: Readonly<Record<string, ZoneKind | null>>;
       fits?: Readonly<Record<string, PocketFit>>;
       hoverId: string | null;
       selectedIds: readonly string[];
@@ -1679,6 +1689,7 @@ function PlacementScene({
     onAdd: (x: number, z: number) => void;
     onMove: (id: string, x: number, z: number) => void;
   } | null;
+  arrivalZoning?: ArrivalZoningMap | null;
   measuredRoads?: boolean;
   clusterAssembly?: ClusterAssemblyModel | null;
   groundPickRef?: { current: ((clientX: number, clientY: number) => { x: number; z: number } | null) | null } | null;
@@ -1709,12 +1720,15 @@ function PlacementScene({
       {roadProximity ? <RoadProximityLayer {...roadProximity} /> : null}
       {movement ? <MovementLayer {...movement} /> : walk && walk.length > 0 ? <WalkLines segments={walk} /> : null}
       {uses && uses.length > 0 ? <UseLines segments={uses} /> : null}
-      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} interactive={network.interactive !== false} quiet={network.quiet === true} glow={network.glow !== false} /> : null}
+      {arrivalZoning ? <ArrivalZoningLayer map={arrivalZoning} /> : null}
+      {network ? <SiteNetworkLayer study={network.study} running={network.running} tool={network.tool} onSettle={network.onSettle} preview={network.preview} colored={network.colored} showField={network.showField} showTrails={network.showTrails} branches={network.branches} fieldNodes={network.fieldNodes ?? null} interactive={network.interactive !== false} quiet={network.quiet === true} glow={network.glow !== false} /> : null}
       {typology ? <TypologyAttractorLayer study={typology.study} points={typology.points} placing={typology.placing} visible={typology.visible} types={typology.types} selectedId={typology.selectedId} onSelect={typology.onSelect} onAdd={typology.onAdd} onMove={typology.onMove} /> : null}
       {zoning?.pockets && (zoning.tool !== "draw" || !zoning.active) ? (
         <SitePocketLayer
           pockets={zoning.pockets.items}
           kinds={zoning.pockets.kinds}
+          pickKind={zoning.pockets.pickKind ?? null}
+          suggestions={zoning.pockets.suggestions}
           fits={zoning.pockets.fits}
           hoverId={zoning.pockets.hoverId}
           selectedIds={zoning.pockets.selectedIds}
