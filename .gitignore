@@ -33,6 +33,9 @@ CLAUDE.md
 # generated search stills
 /public/void-search/*.png
 /public/contained-search/*.png
+# Cluster Integration void mesh cache (regenerable)
+/data/skill5/.void-cache/
+
 # generated Skill 2 calibration numbers
 /calibration/
 # Serving copies of the published Lobby Skill 3 bundles. Rebuilt from verified Z0.

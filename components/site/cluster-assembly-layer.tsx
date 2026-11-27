@@ -16,6 +16,8 @@ export type AssemblySolid = {
   id: string;
   positions: Float32Array;
   indices: Uint32Array;
+  /** Smooth mesh normals when available — keeps void curve highlights continuous. */
+  normals?: Float32Array;
   color: string;
   opacity: number;
   /** When set, positions are local (centered) and this pose places the solid on site. */
@@ -93,39 +95,6 @@ const WHITE_FRAG = `
     }
   }
 `;
-
-const VOID_VERT = `
-  varying float vHeight;
-  void main() {
-    vHeight = position.y;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const VOID_FRAG = `
-  precision highp float;
-  varying float vHeight;
-  uniform float uMinY;
-  uniform float uMaxY;
-  void main() {
-    float height = clamp((vHeight - uMinY) / max(0.001, uMaxY - uMinY), 0.0, 1.0);
-    float warm = 1.0 - smoothstep(0.08, 0.82, height);
-    vec3 teal = vec3(0.058824, 0.450980, 0.466667);
-    vec3 clay = vec3(0.780392, 0.494118, 0.372549);
-    vec3 hue = mix(teal, clay, warm);
-    gl_FragColor = vec4(hue * 0.55, mix(0.72, 0.9, warm));
-  }
-`;
-
-function heightRange(positions: Float32Array) {
-  let min = Infinity;
-  let max = -Infinity;
-  for (let index = 1; index < positions.length; index += 3) {
-    min = Math.min(min, positions[index]);
-    max = Math.max(max, positions[index]);
-  }
-  return { min, max: Math.max(max, min + 1) };
-}
 
 function CatalogCluster({
   solid,
@@ -228,6 +197,7 @@ function CatalogCluster({
     <mesh
       geometry={geometry}
       material={material}
+      renderOrder={1}
       raycast={pickable ? undefined : () => undefined}
       onClick={pickable ? pick : undefined}
       onPointerDown={pickable ? (event) => {
@@ -273,30 +243,166 @@ function CatalogCluster({
   );
 }
 
+/**
+ * Teal + orange void — no ground-up gradient, no contour lines.
+ * Both colors follow world-space bumps/slopes so form reads through the hue.
+ */
+const VOID_VERT = `
+  varying vec3 vWorld;
+  varying vec3 vWorldNormal;
+  void main() {
+    vWorld = position;
+    vec3 n = mat3(modelMatrix) * normal;
+    float len = length(n);
+    vWorldNormal = len > 1e-5 ? n / len : vec3(0.0, 1.0, 0.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const VOID_FRAG = `
+  precision highp float;
+  varying vec3 vWorld;
+  varying vec3 vWorldNormal;
+  uniform float uAlpha;
+  void main() {
+    vec3 teal = vec3(0.058824, 0.450980, 0.466667);
+    vec3 orange = vec3(0.780392, 0.494118, 0.372549);
+    vec3 n = normalize(vWorldNormal);
+    float slope = clamp(1.0 - abs(n.y), 0.0, 1.0);
+    /** Form field from bumps + slopes — not height from the ground. */
+    float bump = 0.5
+      + 0.24 * sin(vWorld.x * 0.09 + vWorld.z * 0.07)
+      + 0.18 * sin(vWorld.y * 0.14 - vWorld.x * 0.05)
+      + 0.14 * sin((vWorld.x + vWorld.z) * 0.045 + vWorld.y * 0.08);
+    bump = clamp(bump, 0.22, 0.9);
+    float form = clamp(mix(bump, slope, 0.45), 0.0, 1.0);
+    /** Orange on ridges/slopes, teal in softer recesses. */
+    vec3 hue = mix(teal, orange, form);
+    float shade = mix(0.78, 1.06, form);
+    float alpha = mix(0.94, 0.99, form) * uAlpha;
+    gl_FragColor = vec4(hue * shade, clamp(alpha, 0.0, 0.99));
+  }
+`;
+
 function VoidVolume({ solid }: { solid: AssemblySolid }) {
+  const parts = useMemo(() => {
+    if (!solid.positions?.length || !solid.indices?.length) return [];
+    const positions = new Float32Array(solid.positions);
+    const indices = new Uint32Array(solid.indices);
+    const normals = solid.normals && solid.normals.length === positions.length
+      ? new Float32Array(solid.normals)
+      : smoothNormals(positions, indices);
+    const triCount = indices.length / 3;
+    const chunkTris = 80_000;
+    const out: { positions: Float32Array; normals: Float32Array; indices: Uint32Array }[] = [];
+    for (let start = 0; start < triCount; start += chunkTris) {
+      const count = Math.min(chunkTris, triCount - start);
+      const remap = new Map<number, number>();
+      const localIndex: number[] = [];
+      const localPos: number[] = [];
+      const localNor: number[] = [];
+      for (let t = 0; t < count; t += 1) {
+        for (let k = 0; k < 3; k += 1) {
+          const src = indices[(start + t) * 3 + k];
+          let next = remap.get(src);
+          if (next === undefined) {
+            next = remap.size;
+            remap.set(src, next);
+            const at = src * 3;
+            localPos.push(positions[at], positions[at + 1], positions[at + 2]);
+            localNor.push(normals[at], normals[at + 1], normals[at + 2]);
+          }
+          localIndex.push(next);
+        }
+      }
+      out.push({
+        positions: new Float32Array(localPos),
+        normals: new Float32Array(localNor),
+        indices: new Uint32Array(localIndex),
+      });
+    }
+    return out;
+  }, [solid.indices, solid.normals, solid.positions]);
+  const alpha = Math.min(1, Math.max(0.65, solid.opacity || 1));
+  return (
+    <group>
+      {parts.map((part, index) => (
+        <VoidShell
+          key={`void-shell-v2-${index}-${part.positions.length}`}
+          positions={part.positions}
+          normals={part.normals}
+          indices={part.indices}
+          alpha={alpha}
+        />
+      ))}
+    </group>
+  );
+}
+
+function smoothNormals(positions: Float32Array, indices: Uint32Array) {
+  const normals = new Float32Array(positions.length);
+  for (let i = 0; i < indices.length; i += 3) {
+    const ia = indices[i] * 3;
+    const ib = indices[i + 1] * 3;
+    const ic = indices[i + 2] * 3;
+    const ax = positions[ib] - positions[ia];
+    const ay = positions[ib + 1] - positions[ia + 1];
+    const az = positions[ib + 2] - positions[ia + 2];
+    const bx = positions[ic] - positions[ia];
+    const by = positions[ic + 1] - positions[ia + 1];
+    const bz = positions[ic + 2] - positions[ia + 2];
+    const nx = ay * bz - az * by;
+    const ny = az * bx - ax * bz;
+    const nz = ax * by - ay * bx;
+    for (const at of [ia, ib, ic]) {
+      normals[at] += nx;
+      normals[at + 1] += ny;
+      normals[at + 2] += nz;
+    }
+  }
+  for (let i = 0; i < normals.length; i += 3) {
+    const length = Math.hypot(normals[i], normals[i + 1], normals[i + 2]) || 1;
+    normals[i] /= length;
+    normals[i + 1] /= length;
+    normals[i + 2] /= length;
+  }
+  return normals;
+}
+
+function VoidShell({
+  positions,
+  normals,
+  indices,
+  alpha,
+}: {
+  positions: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+  alpha: number;
+}) {
   const geometry = useMemo(() => {
     const next = new BufferGeometry();
-    next.setAttribute("position", new Float32BufferAttribute(solid.positions, 3));
-    next.setIndex(new Uint32BufferAttribute(solid.indices, 1));
+    next.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    next.setAttribute("normal", new Float32BufferAttribute(normals, 3));
+    next.setIndex(new Uint32BufferAttribute(indices, 1));
     return next;
-  }, [solid.indices, solid.positions]);
-  const material = useMemo(() => {
-    const range = heightRange(solid.positions);
-    return new ShaderMaterial({
-      vertexShader: VOID_VERT,
-      fragmentShader: VOID_FRAG,
-      uniforms: { uMinY: { value: range.min }, uMaxY: { value: range.max } },
-      transparent: true,
-      depthWrite: false,
-      side: DoubleSide,
-      toneMapped: false,
-    });
-  }, [solid.positions]);
+  }, [indices, normals, positions]);
+  const material = useMemo(() => new ShaderMaterial({
+    vertexShader: VOID_VERT,
+    fragmentShader: VOID_FRAG,
+    uniforms: {
+      uAlpha: { value: alpha },
+    },
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+    side: DoubleSide,
+    toneMapped: false,
+  }), [alpha]);
   useEffect(() => () => {
-    geometry.dispose();
     material.dispose();
-  }, [geometry, material]);
-  return <mesh geometry={geometry} material={material} raycast={() => undefined} />;
+  }, [material]);
+  return <mesh geometry={geometry} material={material} frustumCulled={false} renderOrder={10} raycast={() => undefined} />;
 }
 
 function SolidMesh({ solid }: { solid: AssemblySolid }) {
@@ -483,7 +589,6 @@ export function ClusterAssemblyLayer({ model }: { model: ClusterAssemblyModel })
           <meshBasicMaterial color={anchor.tested ? "#c77e5f" : "#49d7de"} />
         </mesh>
       )) : null}
-      {model.voids.map((item) => <VoidVolume key={item.id} solid={item} />)}
       {model.massing && model.wrap ? <CatalogCluster solid={model.wrap} /> : null}
       {showClusters ? model.solids.map((item) => {
         if (interaction?.hiddenIds?.includes(item.id)) return null;
@@ -508,6 +613,10 @@ export function ClusterAssemblyLayer({ model }: { model: ClusterAssemblyModel })
         );
       }) : null}
       {model.connections && model.hybrid ? <SolidMesh solid={model.hybrid} /> : null}
+      {/* Transparent void after opaque clusters so BOTH keeps the solids readable. */}
+      {model.voids.map((item) => (
+        <VoidVolume key={`${item.id}-${item.positions.length}-${item.indices.length}`} solid={item} />
+      ))}
     </group>
   );
 }

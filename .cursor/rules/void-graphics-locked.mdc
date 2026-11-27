@@ -1,0 +1,21 @@
+---
+description: Cluster Integration void graphics are locked — do not restyle without explicit user request
+alwaysApply: true
+---
+
+# Void graphics locked
+
+Cluster Integration → Void visuals are locked. Do not change them unless the user explicitly asks to restyle the void.
+
+Locked look (in `components/site/cluster-assembly-layer.tsx` VoidVolume / VOID_* shaders):
+
+- Teal `#0f7377` and orange `#c77e5f` only
+- Color follows form (bumps / slopes), not a ground-up height gradient
+- No white contour lines, no rim glow, no grey mesh edges
+- Dense, nearly solid opacity
+
+Allowed without unlocking graphics:
+
+- Clearance / no-touch gap so void never intersects solids
+- Void generation accuracy (domain, footprints, ground-up fill under overhangs)
+- Cache version bumps for mesh regeneration

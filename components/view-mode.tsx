@@ -64,7 +64,9 @@ export function PresentationFrame() {
 
   return (
     <div className="presentation-stage">
+      {/* key keeps one iframe per route; changing key only when src changes avoids reload churn */}
       <iframe
+        key={src}
         src={src}
         title="Living Morphologies presentation canvas"
         className="presentation-canvas"

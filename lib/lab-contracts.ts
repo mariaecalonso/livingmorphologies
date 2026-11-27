@@ -145,7 +145,7 @@ export const INTERPRETATION_LAB_CONTRACT: LabContract = {
     selectionRequired: true,
   },
   downstream: ["enclosure"],
-  methodologyNote: "Input pipeline and live geometry reading are implemented. Integrated Architectural Model generation is not implemented. Readings, revision ids, and null outputGeometryRef do not fulfill the output. Internal generation method remains open.",
+  methodologyNote: "Input pipeline and live geometry reading are implemented. Integrated Architectural Model generation is not implemented. The Cluster Integration void outer shell is the hard spatial limit for interpretation — nothing outside that shell is interpreted; Enclosure wraps the building at that same limit. Readings, revision ids, and null outputGeometryRef do not fulfill the output. Internal generation method remains open.",
   catalogFutureCompatible: true,
 };
 

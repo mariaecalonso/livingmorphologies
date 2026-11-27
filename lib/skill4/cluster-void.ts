@@ -1904,8 +1904,8 @@ function exteriorCap(mask: Uint8Array, minDist: Float32Array, a: number, b: numb
   return crosses && Math.min(minDist[a], minDist[b]) > far;
 }
 
-/** Softens cell-sized bumps and keeps the larger form in place. */
-function calmSurface(mesh: IsoMesh): IsoMesh {
+/** Softens cell-sized bumps and keeps the larger form in place. Same pass the habitable void uses. */
+export function calmSurface(mesh: IsoMesh): IsoMesh {
   const count = mesh.positions.length / 3;
   const positions = new Float32Array(mesh.positions);
   const sums = new Float64Array(mesh.positions.length);

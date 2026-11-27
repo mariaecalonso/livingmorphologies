@@ -16,6 +16,7 @@ Every Lab follows **authoritative input → methodology → authoritative output
 - Do not change an output contract because the internal methodology changed.
 - A revision id, reading, status flag, or null geometry ref does not satisfy a geometry output. Real output geometry plus matching source lineage is required.
 - Architectural Interpretation readings are not the Current Integrated Architectural Model.
+- Architectural Interpretation is limited by the Cluster Integration void outer shell — see `.cursor/rules/architectural-interpretation-void-limit.mdc`. Nothing outside that shell is interpreted; Enclosure wraps the building at that same limit.
 - Enclosure consumes only a complete Current Integrated Architectural Model.
 - Drawing and Rendering share `lib/skill5/site-context-source.ts`. Do not copy the Site Model into those labs.
 - Cluster Placement also uses that same Site Model as spatial context. Do not add a second Site Model loader.

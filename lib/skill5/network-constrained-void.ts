@@ -72,6 +72,37 @@ export type NetworkVoidRequest = {
   cell: number;
   /** When true, also build a distance-field boundary. It does not alter the masks. */
   continuous?: boolean;
+  /**
+   * Rasterize every Nth triangle (N >= 1). Placement-scale runs use a stride so
+   * dense shrink-wraps still cast a shell without visiting every face.
+   */
+  triangleStep?: number;
+  /**
+   * held-between: air sheltered between solids (default, provisional study).
+   * open-domain: every empty cell inside the domain — the open mass of the pocket.
+   */
+  acceptance?: "held-between" | "open-domain";
+  /**
+   * When true with open-domain, void ceiling follows nearby solid tops.
+   * The floor stays on the ground so overhangs fill from below.
+   */
+  followSolidHeights?: boolean;
+  /**
+   * Open-domain only. Advance the void into the solid shell by this many cells
+   * so the gel sits closer and picks up ridge detail.
+   */
+  nibbleSolidCells?: number;
+  /**
+   * Open-domain only. Keep this many empty cells between void and solids so the
+   * gel never touches or fills through cluster footprints.
+   */
+  solidClearanceCells?: number;
+  /**
+   * Open-domain only. Void may extend at most this many cells from a solid.
+   * Network domain remains the hard stop; this envelope gives the void its own
+   * morphology so it does not copy the outer network shell outline.
+   */
+  solidMorphologyCells?: number;
 };
 
 export type VoxelGrid = {
@@ -109,6 +140,9 @@ export type NetworkVoidResult = {
   /** Preliminary exterior of the combined solid and void. Not an Enclosure product. */
   boundary: IsoMesh;
   boundaryRole: "preliminary-voxel-boundary";
+  /** Accepted void cells only. Drawn as the habitable void volume. */
+  voidMesh: IsoMesh;
+  voidMeshRole: "accepted-void-volume";
   /** Distance-field surface. Null when not requested or when a chunk fails. */
   continuous: IsoMesh | null;
   continuousRole: "preliminary-continuous-boundary";
@@ -166,7 +200,8 @@ export function generateNetworkConstrainedVoid(request: NetworkVoidRequest): Net
   const count = nx * ny * nz;
   const surface = new Uint16Array(count);
   const occupied = new Uint8Array(count);
-  solids.forEach((solid, index) => rasterize(solid, surface, index + 1, origin, cell, nx, ny, nz));
+  const triangleStep = Math.max(1, Math.floor(request.triangleStep ?? 1));
+  solids.forEach((solid, index) => rasterize(solid, surface, index + 1, origin, cell, nx, ny, nz, triangleStep));
   fillSolidInteriors(surface, occupied, nx, ny, nz);
   const domainMask = new Uint8Array(count);
   let domainCount = 0;
@@ -176,7 +211,23 @@ export function generateNetworkConstrainedVoid(request: NetworkVoidRequest): Net
     domainMask[index] = 1;
     domainCount += 1;
   }
-  const voidMask = holdBetween(surface, occupied, domainMask, origin, cell, clearance, nx, ny, nz);
+  const acceptance = request.acceptance ?? "held-between";
+  const blocked = acceptance === "open-domain" && (request.solidClearanceCells ?? 0) > 0
+    ? dilateMask(occupied, nx, ny, nz, request.solidClearanceCells ?? 0)
+    : occupied;
+  let voidMask = acceptance === "open-domain"
+    ? openDomain(blocked, domainMask)
+    : holdBetween(surface, occupied, domainMask, origin, cell, clearance, nx, ny, nz);
+  if (acceptance === "open-domain" && (request.solidMorphologyCells ?? 0) > 0) {
+    const envelope = dilateMask(occupied, nx, ny, nz, request.solidMorphologyCells ?? 0);
+    voidMask = intersectMasks(voidMask, envelope);
+  }
+  if (acceptance === "open-domain" && (request.nibbleSolidCells ?? 0) > 0) {
+    voidMask = nibbleSolidShell(voidMask, occupied, domainMask, nx, ny, nz, request.nibbleSolidCells ?? 0);
+  }
+  if (acceptance === "open-domain" && request.followSolidHeights) {
+    voidMask = clipVoidToSolidHeights(voidMask, solids, origin, cell, nx, ny, nz);
+  }
   const kept = dropSmall(voidMask, nx, ny, nz, cell, request.minimumComponent);
   let occupiedCount = 0;
   let voidCount = 0;
@@ -198,6 +249,7 @@ export function generateNetworkConstrainedVoid(request: NetworkVoidRequest): Net
   const voxel = cell * cell * cell;
   const combined = new Uint8Array(count);
   for (let index = 0; index < count; index += 1) if (occupied[index] || kept[index]) combined[index] = 1;
+  const voidMesh = boundaryOf(kept, origin, cell, nx, ny, nz);
   return {
     contract: NETWORK_VOID_CONTRACT,
     provisional: domain.provisional,
@@ -218,6 +270,8 @@ export function generateNetworkConstrainedVoid(request: NetworkVoidRequest): Net
     processing: "dense",
     boundary: boundaryOf(combined, origin, cell, nx, ny, nz),
     boundaryRole: "preliminary-voxel-boundary",
+    voidMesh,
+    voidMeshRole: "accepted-void-volume",
     ...continuousOf(request, boundaryOf(combined, origin, cell, nx, ny, nz)),
   };
 }
@@ -282,11 +336,13 @@ function rasterize(
   nx: number,
   ny: number,
   nz: number,
+  triangleStep = 1,
 ) {
   const reach = cell * 0.87;
   const positions = solid.positions;
   const indices = solid.indices;
-  for (let triangle = 0; triangle < indices.length; triangle += 3) {
+  const step = Math.max(1, Math.floor(triangleStep)) * 3;
+  for (let triangle = 0; triangle < indices.length; triangle += step) {
     const a = corner(positions, indices[triangle]);
     const b = corner(positions, indices[triangle + 1]);
     const c = corner(positions, indices[triangle + 2]);
@@ -378,6 +434,200 @@ function fillSolidInteriors(surface: Uint16Array, occupied: Uint8Array, nx: numb
       }
     }
   });
+}
+
+/** Every empty cell inside the domain. Open courtyards and corridors stay void. */
+function openDomain(occupied: Uint8Array, domain: Uint8Array) {
+  const voidMask = new Uint8Array(domain.length);
+  for (let index = 0; index < domain.length; index += 1) {
+    if (domain[index] && !occupied[index]) voidMask[index] = 1;
+  }
+  return voidMask;
+}
+
+function intersectMasks(a: Uint8Array, b: Uint8Array) {
+  const out = new Uint8Array(a.length);
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] && b[index]) out[index] = 1;
+  }
+  return out;
+}
+
+/** Expand a mask by neighbor layers — used to keep void clear of solid footprints. */
+function dilateMask(mask: Uint8Array, nx: number, ny: number, nz: number, layers: number) {
+  let current = mask;
+  const neighbors = [
+    [-1, 0, 0],
+    [1, 0, 0],
+    [0, -1, 0],
+    [0, 1, 0],
+    [0, 0, -1],
+    [0, 0, 1],
+  ] as const;
+  for (let layer = 0; layer < layers; layer += 1) {
+    const next = new Uint8Array(current);
+    for (let index = 0; index < current.length; index += 1) {
+      if (current[index]) continue;
+      const x = index % nx;
+      const y = Math.floor(index / nx) % ny;
+      const z = Math.floor(index / (nx * ny));
+      for (const [dx, dy, dz] of neighbors) {
+        const nxv = x + dx;
+        const nyv = y + dy;
+        const nzv = z + dz;
+        if (nxv < 0 || nyv < 0 || nzv < 0 || nxv >= nx || nyv >= ny || nzv >= nz) continue;
+        if (current[(nzv * ny + nyv) * nx + nxv]) {
+          next[index] = 1;
+          break;
+        }
+      }
+    }
+    current = next;
+  }
+  return current;
+}
+
+/** Grow void one cell into solids per layer so the skin hugs ridges instead of standing off. */
+function nibbleSolidShell(
+  voidMask: Uint8Array,
+  occupied: Uint8Array,
+  domain: Uint8Array,
+  nx: number,
+  ny: number,
+  nz: number,
+  layers: number,
+) {
+  let current = voidMask;
+  const neighbors = [
+    [-1, 0, 0],
+    [1, 0, 0],
+    [0, -1, 0],
+    [0, 1, 0],
+    [0, 0, -1],
+    [0, 0, 1],
+  ] as const;
+  for (let layer = 0; layer < layers; layer += 1) {
+    const next = new Uint8Array(current);
+    for (let index = 0; index < occupied.length; index += 1) {
+      if (!occupied[index] || !domain[index] || current[index]) continue;
+      const x = index % nx;
+      const y = Math.floor(index / nx) % ny;
+      const z = Math.floor(index / (nx * ny));
+      let touchesVoid = false;
+      for (const [dx, dy, dz] of neighbors) {
+        const nxv = x + dx;
+        const nyv = y + dy;
+        const nzv = z + dz;
+        if (nxv < 0 || nyv < 0 || nzv < 0 || nxv >= nx || nyv >= ny || nzv >= nz) continue;
+        if (current[(nzv * ny + nyv) * nx + nxv]) {
+          touchesVoid = true;
+          break;
+        }
+      }
+      if (touchesVoid) next[index] = 1;
+    }
+    current = next;
+  }
+  return current;
+}
+
+type HeightField = {
+  cell: number;
+  buckets: Map<string, { minY: number; maxY: number }>;
+  fallback: { minY: number; maxY: number };
+};
+
+/**
+ * Plan-grid of solid vertex heights so the void ceiling/floor follows ridges
+ * instead of one flat AABB band per cluster.
+ */
+function buildSolidHeightField(solids: readonly PositionedSolid[], cell: number): HeightField {
+  const buckets = new Map<string, { minY: number; maxY: number }>();
+  let globalMin = Infinity;
+  let globalMax = -Infinity;
+  const step = Math.max(1, Math.floor(cell));
+  for (const solid of solids) {
+    const positions = solid.positions;
+    for (let index = 0; index < positions.length; index += 3 * step) {
+      const x = positions[index];
+      const y = positions[index + 1];
+      const z = positions[index + 2];
+      const key = `${Math.round(x / cell)}:${Math.round(z / cell)}`;
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.minY = Math.min(bucket.minY, y);
+        bucket.maxY = Math.max(bucket.maxY, y);
+      } else {
+        buckets.set(key, { minY: y, maxY: y });
+      }
+      globalMin = Math.min(globalMin, y);
+      globalMax = Math.max(globalMax, y);
+    }
+  }
+  return {
+    cell,
+    buckets,
+    fallback: {
+      minY: Number.isFinite(globalMin) ? globalMin : 0,
+      maxY: Number.isFinite(globalMax) ? globalMax : 24,
+    },
+  };
+}
+
+/**
+ * Soft Gaussian blend of nearby solid tops for the ceiling.
+ * Floor is always the global ground — void rises from the ground under overhangs
+ * instead of trailing the solid underside.
+ */
+function heightBandAt(x: number, z: number, field: HeightField) {
+  const ix = Math.round(x / field.cell);
+  const iz = Math.round(z / field.cell);
+  let weightSum = 0;
+  let maxY = 0;
+  /** Wide sigma so height rolls as soft hills instead of stepped plateaus. */
+  const sigma = field.cell * 5.5;
+  const radius = 12;
+  for (let dz = -radius; dz <= radius; dz += 1) {
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      const bucket = field.buckets.get(`${ix + dx}:${iz + dz}`);
+      if (!bucket) continue;
+      const dist = Math.hypot(dx, dz) * field.cell;
+      const weight = Math.exp(-(dist * dist) / (2 * sigma * sigma));
+      weightSum += weight;
+      maxY += bucket.maxY * weight;
+    }
+  }
+  const pad = field.cell * 0.75;
+  const ground = Math.min(0, field.fallback.minY) - pad;
+  if (!(weightSum > 0)) {
+    return { minY: ground, maxY: field.fallback.maxY + pad };
+  }
+  return {
+    minY: ground,
+    maxY: maxY / weightSum + pad,
+  };
+}
+
+function clipVoidToSolidHeights(
+  voidMask: Uint8Array,
+  solids: readonly PositionedSolid[],
+  origin: SitePoint,
+  cell: number,
+  nx: number,
+  ny: number,
+  nz: number,
+) {
+  const field = buildSolidHeightField(solids, Math.max(2, cell));
+  if (field.buckets.size === 0) return voidMask;
+  const next = new Uint8Array(voidMask);
+  for (let index = 0; index < voidMask.length; index += 1) {
+    if (!voidMask[index]) continue;
+    const point = centerOf(index, origin, cell, nx, ny);
+    const band = heightBandAt(point.x, point.z, field);
+    /** Only clip the ceiling — floor stays at ground so overhangs fill from below. */
+    if (point.y < band.minY || point.y > band.maxY) next[index] = 0;
+  }
+  return next;
 }
 
 /**
@@ -720,6 +970,7 @@ function generateChunked(
   });
   const occupied = new Set<string>();
   const surface = new Map<string, number>();
+  const triangleStep = Math.max(1, Math.floor(request.triangleStep ?? 1));
   request.solids.forEach((solid, index) => {
     const id = index + 1;
     let minX = Infinity;
@@ -743,7 +994,7 @@ function generateChunked(
     const localOrigin = { x: minX - cell, y: minY - cell, z: minZ - cell };
     const shell = new Uint16Array(nx * ny * nz);
     const filled = new Uint8Array(nx * ny * nz);
-    rasterize(solid, shell, id, localOrigin, cell, nx, ny, nz);
+    rasterize(solid, shell, id, localOrigin, cell, nx, ny, nz, triangleStep);
     fillSolidInteriors(shell, filled, nx, ny, nz);
     for (let z = 0; z < nz; z += 1) {
       for (let y = 0; y < ny; y += 1) {
@@ -762,34 +1013,67 @@ function generateChunked(
     }
   });
   const accepted = new Set<string>();
-  const steps = Math.max(2, Math.ceil(request.clearance.shelter / cell));
-  const ids = new Set(surface.values());
-  ids.forEach((id) => {
-    const seen = new Set<string>();
-    const queue: { key: string; step: number }[] = [];
-    surface.forEach((solidId, key) => {
-      if (solidId !== id || seen.has(key)) return;
-      seen.add(key);
-      queue.push({ key, step: 1 });
-    });
-    for (let head = 0; head < queue.length; head += 1) {
-      const current = queue[head];
-      if (current.step >= steps) continue;
-      const [x, y, z] = parse(current.key);
-      for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) {
-        const next = keyOf(x + dx, y + dy, z + dz);
-        if (seen.has(next) || occupied.has(next)) continue;
-        seen.add(next);
-        queue.push({ key: next, step: current.step + 1 });
-        const point = world(x + dx, y + dy, z + dz);
-        if (!insideDomain(point, request.domain)) continue;
-        const other = [...ids].find((candidate) => candidate !== id && nearSurface(surface, keyOf(x + dx, y + dy, z + dz), candidate, steps));
-        if (!other) continue;
-        if (current.step * cell < request.clearance.minimumGap / 2) continue;
-        accepted.add(next);
+  if (request.acceptance === "open-domain") {
+    const nx = Math.ceil((bounds.maxX - bounds.minX) / cell) + 3;
+    const ny = Math.ceil((bounds.maxY - bounds.minY) / cell) + 3;
+    const nz = Math.ceil((bounds.maxZ - bounds.minZ) / cell) + 3;
+    const field = request.followSolidHeights
+      ? buildSolidHeightField(request.solids, Math.max(2, cell))
+      : null;
+    const morphologyReach = Math.max(0, Math.floor(request.solidMorphologyCells ?? 0));
+    const clearanceReach = Math.max(0, Math.floor(request.solidClearanceCells ?? 0));
+    const nearSolid = morphologyReach > 0
+      ? dilateKeySet(occupied, morphologyReach)
+      : null;
+    const blocked = clearanceReach > 0
+      ? dilateKeySet(occupied, clearanceReach)
+      : occupied;
+    for (let z = 0; z < nz; z += 1) {
+      for (let y = 0; y < ny; y += 1) {
+        for (let x = 0; x < nx; x += 1) {
+          const key = keyOf(x, y, z);
+          if (blocked.has(key)) continue;
+          const point = world(x, y, z);
+          if (!insideDomain(point, request.domain)) continue;
+          if (nearSolid && !nearSolid.has(key)) continue;
+          if (field && field.buckets.size > 0) {
+            const band = heightBandAt(point.x, point.z, field);
+            if (point.y < band.minY || point.y > band.maxY) continue;
+          }
+          accepted.add(key);
+        }
       }
     }
-  });
+  } else {
+    const steps = Math.max(2, Math.ceil(request.clearance.shelter / cell));
+    const ids = new Set(surface.values());
+    ids.forEach((id) => {
+      const seen = new Set<string>();
+      const queue: { key: string; step: number }[] = [];
+      surface.forEach((solidId, key) => {
+        if (solidId !== id || seen.has(key)) return;
+        seen.add(key);
+        queue.push({ key, step: 1 });
+      });
+      for (let head = 0; head < queue.length; head += 1) {
+        const current = queue[head];
+        if (current.step >= steps) continue;
+        const [x, y, z] = parse(current.key);
+        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) {
+          const next = keyOf(x + dx, y + dy, z + dz);
+          if (seen.has(next) || occupied.has(next)) continue;
+          seen.add(next);
+          queue.push({ key: next, step: current.step + 1 });
+          const point = world(x + dx, y + dy, z + dz);
+          if (!insideDomain(point, request.domain)) continue;
+          const other = [...ids].find((candidate) => candidate !== id && nearSurface(surface, keyOf(x + dx, y + dy, z + dz), candidate, steps));
+          if (!other) continue;
+          if (current.step * cell < request.clearance.minimumGap / 2) continue;
+          accepted.add(next);
+        }
+      }
+    });
+  }
   let leaked = 0;
   let solidConflicts = 0;
   occupied.forEach((key) => {
@@ -802,6 +1086,7 @@ function generateChunked(
   });
   const voxel = cell * cell * cell;
   const boundary = boundaryFromKeys(occupied, accepted, origin, cell);
+  const voidMesh = boundaryFromKeys(new Set(), accepted, origin, cell);
   return {
     contract: NETWORK_VOID_CONTRACT,
     provisional: request.domain.provisional,
@@ -822,8 +1107,26 @@ function generateChunked(
     processing: "chunked",
     boundary,
     boundaryRole: "preliminary-voxel-boundary",
+    voidMesh,
+    voidMeshRole: "accepted-void-volume",
     ...continuousOf(request, boundary),
   };
+}
+
+/** Expand a sparse key set by neighbor layers (chunked morphology / clearance). */
+function dilateKeySet(seeds: Set<string>, layers: number) {
+  let current = new Set(seeds);
+  for (let layer = 0; layer < layers; layer += 1) {
+    const next = new Set(current);
+    current.forEach((key) => {
+      const [x, y, z] = key.split(":").map(Number);
+      for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const) {
+        next.add(`${x + dx}:${y + dy}:${z + dz}`);
+      }
+    });
+    current = next;
+  }
+  return current;
 }
 
 function nearSurface(surface: Map<string, number>, key: string, id: number, reach: number) {
